@@ -233,7 +233,7 @@ const GroupActivity = createReactClass({
 
     let children = group.activity.map((item, itemIdx) => {
       let avatar = item.user ? (
-        <Avatar user={item.user} size={64} className="avatar" />
+        <Avatar user={item.user} size={18} />
       ) : (
         <div className="avatar sentry">
           <span className="icon-sentry-logo" />
@@ -283,7 +283,7 @@ const GroupActivity = createReactClass({
           <div className="activity-container">
             <ul className="activity">
               <li className="activity-note" key="activity-note">
-                <Avatar user={me} size={64} className="avatar" />
+                <Avatar user={me} size={38} />
                 <div className="activity-bubble">
                   <NoteInput group={group} memberList={memberList} sessionUser={me} />
                 </div>

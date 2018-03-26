@@ -14,6 +14,7 @@ describe('Avatar', function() {
   };
   const TEAM_1 = {
     id: '3',
+    slug: 'cool-team',
     name: 'COOL TEAM',
     projects: [
       {

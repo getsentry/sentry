@@ -595,7 +595,6 @@ table.integrations {
   width: 20px;
   height: 20px;
   vertical-align: middle;
-  border-radius: 2px;
   position: relative;
   display: inline-block;
 
@@ -1665,10 +1664,6 @@ ul.faces {
   li {
     float: left;
     margin: 0 5px 5px 0;
-
-    .avatar {
-      .square(28px);
-    }
   }
 }
 
@@ -1756,10 +1751,6 @@ ul.faces {
   display: flex;
   justify-content: flex-end;
 
-  .avatar {
-    .square(24px);
-  }
-
   .icon-arrow-down {
     position: static;
     top: 0;
@@ -1809,17 +1800,7 @@ ul.faces {
       }
 
       a {
-        display: flex;
-        align-items: center;
-        height: 34px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-
-        span.avatar {
-          margin-right: 5px;
-          .square(20px);
-        }
+        padding: 0;
       }
     }
   }
@@ -1843,12 +1824,6 @@ ul.faces {
   .clear-assignee a {
     background: rgba(52, 60, 69, 0.03);
     border-bottom: 1px solid rgba(52, 60, 69, 0.06);
-
-    .icon-circle-cross {
-      font-size: 16px;
-      margin-right: 5px;
-      opacity: 0.3;
-    }
   }
 
   .list-loading-container {

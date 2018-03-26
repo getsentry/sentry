@@ -42,7 +42,6 @@ exports[`ResolutionBox render() handles inNextRelease with actor 1`] = `
       >
         <Avatar
           className="avatar"
-          gravatar={true}
           hasTooltip={false}
           size={20}
           user={
@@ -121,7 +120,6 @@ exports[`ResolutionBox render() handles inRelease with actor 1`] = `
       >
         <Avatar
           className="avatar"
-          gravatar={true}
           hasTooltip={false}
           size={20}
           user={
