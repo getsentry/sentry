@@ -28,6 +28,11 @@ class Field extends React.Component {
     highlighted: PropTypes.bool,
 
     /**
+     * Padding
+     */
+    p: PropTypes.number,
+
+    /**
      * Show "required" indicator
      */
     required: PropTypes.bool,
@@ -99,6 +104,7 @@ class Field extends React.Component {
       label,
       help,
       id,
+      p,
       children,
     } = this.props;
     let isDisabled = typeof disabled === 'function' ? disabled(this.props) : disabled;
@@ -109,30 +115,27 @@ class Field extends React.Component {
       return null;
     }
 
+    let controlProps = {
+      inline,
+      alignRight,
+      disabled: isDisabled,
+      disabledReason,
+      hideControlState,
+    };
+
     // See comments in prop types
     if (typeof children === 'function') {
       Control = children({
         ...this.props,
-        alignRight,
-        disabled: isDisabled,
-        disabledReason,
+        ...controlProps,
       });
     } else {
-      Control = (
-        <FieldControl
-          inline={inline}
-          alignRight={alignRight}
-          disabled={isDisabled}
-          disabledReason={disabledReason}
-          hideControlState={hideControlState}
-        >
-          {children}
-        </FieldControl>
-      );
+      Control = <FieldControl {...controlProps}>{children}</FieldControl>;
     }
 
     return (
       <FieldWrapper
+        p={p}
         inline={inline}
         highlighted={highlighted}
         hasControlState={!hideControlState}
