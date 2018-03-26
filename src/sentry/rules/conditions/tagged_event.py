@@ -50,6 +50,21 @@ class TaggedEventCondition(EventCondition):
     form_cls = TaggedEventForm
     label = u'An event\'s tags match {key} {match} {value}'
 
+    form_fields = {
+        'key': {
+            'type': 'string',
+            'placeholder': 'key'
+        },
+        'match': {
+            'type': 'choice',
+            'choices': MATCH_CHOICES.items()
+        },
+        'value': {
+            'type': 'string',
+            'placeholder': 'value',
+        }
+    }
+
     def passes(self, event, state, **kwargs):
         key = self.get_option('key')
         match = self.get_option('match')
