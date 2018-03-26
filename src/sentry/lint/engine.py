@@ -83,7 +83,7 @@ def get_js_files(file_list=None):
         file_list = ['tests/js', 'src/sentry/static/sentry/app']
     return [
         x for x in get_files_for_list(file_list)
-        if x.endswith(('.js', '.jsx'))
+        if x.endswith(('.js', '.jsx', '.snap'))
     ]
 
 
