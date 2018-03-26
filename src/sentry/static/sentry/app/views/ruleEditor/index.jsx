@@ -1,4 +1,5 @@
 import $ from 'jquery';
+import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
@@ -134,8 +135,14 @@ const RuleEditor = createReactClass({
       method: rule.id ? 'PUT' : 'POST',
       data,
       success: resp => {
+        const shouldRedirect = !rule.id;
         this.setState({error: null, loading: false, rule: resp});
-
+        // Redirect to correct ID if /new
+        if (shouldRedirect) {
+          browserHistory.replace(
+            `/${org.slug}/${project.slug}/settings/alerts/rules/${resp.id}`
+          );
+        }
         addSuccessMessage(rule.id ? t('Updated alert rule') : t('Created alert rule'));
       },
       error: response => {
