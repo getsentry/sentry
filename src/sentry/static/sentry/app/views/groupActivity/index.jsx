@@ -232,18 +232,7 @@ const GroupActivity = createReactClass({
     let memberList = MemberListStore.getAll();
 
     let children = group.activity.map((item, itemIdx) => {
-      let avatar = item.user ? (
-        <Avatar user={item.user} size={18} />
-      ) : (
-        <div className="avatar sentry">
-          <span className="icon-sentry-logo" />
-        </div>
-      );
-
-      let author = {
-        name: item.user ? item.user.name : 'Sentry',
-        avatar,
-      };
+      let authorName = item.user ? item.user.name : 'Sentry';
 
       if (item.type === 'note') {
         return (
@@ -251,13 +240,29 @@ const GroupActivity = createReactClass({
             group={group}
             item={item}
             key={'note' + itemIdx}
-            author={author}
+            author={{
+              name: authorName,
+              avatar: <Avatar user={item.user} size={38} />,
+            }}
             onDelete={this.onNoteDelete}
             sessionUser={me}
             memberList={memberList}
           />
         );
       } else {
+        let avatar = item.user ? (
+          <Avatar user={item.user} size={18} />
+        ) : (
+          <div className="avatar sentry">
+            <span className="icon-sentry-logo" />
+          </div>
+        );
+
+        let author = {
+          name: authorName,
+          avatar,
+        };
+
         return (
           <li className="activity-item" key={item.id}>
             <a name={'event_' + item.id} />
@@ -265,7 +270,7 @@ const GroupActivity = createReactClass({
             <div className="activity-item-content">
               {this.formatActivity(
                 <span key="author">
-                  {author.avatar}
+                  {avatar}
                   <span className="activity-author">{author.name}</span>
                 </span>,
                 item,

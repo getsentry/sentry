@@ -36,6 +36,7 @@ exports[`TeamMembers render() renders 1`] = `
     key="0"
   >
     <UserBadge
+      avatarSize={36}
       orgId="org-slug"
       user={
         Object {
@@ -78,6 +79,7 @@ exports[`TeamMembers render() renders 1`] = `
     key="1"
   >
     <UserBadge
+      avatarSize={36}
       orgId="org-slug"
       user={
         Object {
@@ -120,6 +122,7 @@ exports[`TeamMembers render() renders 1`] = `
     key="2"
   >
     <UserBadge
+      avatarSize={36}
       orgId="org-slug"
       user={
         Object {
