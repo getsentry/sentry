@@ -39,11 +39,10 @@ class SlackIntegration(Integration):
 
     identity_oauth_scopes = frozenset([
         'channels:read',
-        'commands',
+        'chat:write',
         'links:read',
         'links:write',
         'team:read',
-        'chat:write'
     ])
 
     setup_dialog_config = {
