@@ -32,7 +32,7 @@ export default class CreateTeamForm extends React.Component {
         </p>
 
         <Form
-          submitLabel={t('Save Changes')}
+          submitLabel={t('Create Team')}
           apiEndpoint={`/organizations/${organization.slug}/teams/`}
           apiMethod="POST"
           onSubmit={this.props.onSubmit}

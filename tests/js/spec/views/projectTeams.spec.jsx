@@ -3,6 +3,11 @@ import {shallow, mount} from 'enzyme';
 
 import {Client} from 'app/api';
 import ProjectTeams from 'app/views/settings/project/projectTeams';
+import {openCreateTeamModal} from 'app/actionCreators/modal';
+
+jest.mock('app/actionCreators/modal', () => ({
+  openCreateTeamModal: jest.fn(),
+}));
 
 describe('ProjectTeams', function() {
   let org;
@@ -41,127 +46,184 @@ describe('ProjectTeams', function() {
     Client.clearMockResponses();
   });
 
-  describe('render()', function() {
-    it('renders', function() {
-      let wrapper = shallow(
-        <ProjectTeams
-          params={{orgId: org.slug, projectId: project.slug}}
-          organization={org}
-        />,
-        {
-          context: {
-            router: TestStubs.router(),
-          },
-        }
-      );
-      expect(wrapper).toMatchSnapshot();
-    });
+  it('renders', function() {
+    let wrapper = shallow(
+      <ProjectTeams
+        params={{orgId: org.slug, projectId: project.slug}}
+        organization={org}
+      />,
+      {
+        context: {
+          router: TestStubs.router(),
+        },
+      }
+    );
+    expect(wrapper).toMatchSnapshot();
   });
 
-  describe('TeamRow.handleRemove()', function() {
-    it('can remove a team', async function() {
-      Client.addMockResponse({
-        url: `/projects/${org.slug}/${project.slug}/teams/`,
-        method: 'GET',
-        body: [team, team2],
-      });
-
-      let endpoint = `/projects/${org.slug}/${project.slug}/teams/${team.slug}/`;
-      let mock = Client.addMockResponse({
-        url: endpoint,
-        method: 'DELETE',
-        statusCode: 200,
-      });
-
-      let endpoint2 = `/projects/${org.slug}/${project.slug}/teams/${team2.slug}/`;
-      let mock2 = Client.addMockResponse({
-        url: endpoint2,
-        method: 'DELETE',
-        statusCode: 200,
-      });
-
-      let wrapper = mount(
-        <ProjectTeams
-          params={{orgId: org.slug, projectId: project.slug}}
-          organization={org}
-        />,
-        {
-          context: {
-            router: TestStubs.router(),
-          },
-        }
-      );
-
-      expect(mock).not.toHaveBeenCalled();
-
-      // Click "Remove"
-      wrapper
-        .find('PanelBody Button')
-        .first()
-        .simulate('click');
-
-      expect(mock).toHaveBeenCalledWith(
-        endpoint,
-        expect.objectContaining({
-          method: 'DELETE',
-        })
-      );
-
-      // Remove second team
-      wrapper
-        .find('PanelBody Button')
-        .first()
-        .simulate('click');
-
-      // Modal opens because this is the last team in project
-      // Click confirm
-      wrapper.find('ModalDialog Button[priority="primary"]').simulate('click');
-
-      expect(mock2).toHaveBeenCalledWith(
-        endpoint2,
-        expect.objectContaining({
-          method: 'DELETE',
-        })
-      );
+  it('can remove a team from project', async function() {
+    Client.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/teams/`,
+      method: 'GET',
+      body: [team, team2],
     });
+
+    let endpoint = `/projects/${org.slug}/${project.slug}/teams/${team.slug}/`;
+    let mock = Client.addMockResponse({
+      url: endpoint,
+      method: 'DELETE',
+      statusCode: 200,
+    });
+
+    let endpoint2 = `/projects/${org.slug}/${project.slug}/teams/${team2.slug}/`;
+    let mock2 = Client.addMockResponse({
+      url: endpoint2,
+      method: 'DELETE',
+      statusCode: 200,
+    });
+
+    let wrapper = mount(
+      <ProjectTeams
+        params={{orgId: org.slug, projectId: project.slug}}
+        organization={org}
+      />,
+      {
+        context: {
+          router: TestStubs.router(),
+        },
+      }
+    );
+
+    expect(mock).not.toHaveBeenCalled();
+
+    // Click "Remove"
+    wrapper
+      .find('PanelBody Button')
+      .first()
+      .simulate('click');
+
+    expect(mock).toHaveBeenCalledWith(
+      endpoint,
+      expect.objectContaining({
+        method: 'DELETE',
+      })
+    );
+
+    // Remove second team
+    wrapper
+      .find('PanelBody Button')
+      .first()
+      .simulate('click');
+
+    // Modal opens because this is the last team in project
+    // Click confirm
+    wrapper.find('ModalDialog Button[priority="primary"]').simulate('click');
+
+    expect(mock2).toHaveBeenCalledWith(
+      endpoint2,
+      expect.objectContaining({
+        method: 'DELETE',
+      })
+    );
   });
 
-  describe('ProjectTeams.handleAdd()', function() {
-    it('can add a team', function() {
-      let endpoint = `/projects/${org.slug}/${project.slug}/teams/${team2.slug}/`;
-      let mock = Client.addMockResponse({
-        url: endpoint,
+  it('can associate a team with project', function() {
+    let endpoint = `/projects/${org.slug}/${project.slug}/teams/${team2.slug}/`;
+    let mock = Client.addMockResponse({
+      url: endpoint,
+      method: 'POST',
+      statusCode: 200,
+    });
+
+    let wrapper = mount(
+      <ProjectTeams
+        params={{orgId: org.slug, projectId: project.slug}}
+        organization={org}
+      />,
+      {
+        context: {
+          router: TestStubs.router(),
+        },
+      }
+    );
+
+    expect(mock).not.toHaveBeenCalled();
+
+    // open dropdown
+    wrapper.find('DropdownButton').simulate('click');
+
+    // click a team
+    let el = wrapper.find('AutoCompleteItem').first();
+    el.simulate('click');
+
+    expect(mock).toHaveBeenCalledWith(
+      endpoint,
+      expect.objectContaining({
         method: 'POST',
-        statusCode: 200,
-      });
+      })
+    );
+  });
 
-      let wrapper = mount(
-        <ProjectTeams
-          params={{orgId: org.slug, projectId: project.slug}}
-          organization={org}
-        />,
-        {
-          context: {
-            router: TestStubs.router(),
-          },
-        }
-      );
+  it('opens "create team modal" when creating a new team from header', function() {
+    let wrapper = mount(
+      <ProjectTeams
+        params={{orgId: org.slug, projectId: project.slug}}
+        project={project}
+        organization={org}
+      />,
+      {
+        context: {
+          router: TestStubs.router(),
+        },
+      }
+    );
 
-      expect(mock).not.toHaveBeenCalled();
+    // Click "Create Team" in Panel Header
+    wrapper.find('SettingsPageHeading Button').simulate('click');
 
-      // open dropdown
-      wrapper.find('DropdownButton').simulate('click');
+    // action creator to open "create team modal" is called
+    expect(openCreateTeamModal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        project: expect.objectContaining({
+          slug: project.slug,
+        }),
+        organization: expect.objectContaining({
+          slug: org.slug,
+        }),
+      })
+    );
+  });
 
-      // click a team
-      let el = wrapper.find('AutoCompleteItem').first();
-      el.simulate('click');
+  it('opens "create team modal" when creating a new team from dropdown', function() {
+    let wrapper = mount(
+      <ProjectTeams
+        params={{orgId: org.slug, projectId: project.slug}}
+        project={project}
+        organization={org}
+      />,
+      {
+        context: {
+          router: TestStubs.router(),
+        },
+      }
+    );
 
-      expect(mock).toHaveBeenCalledWith(
-        endpoint,
-        expect.objectContaining({
-          method: 'POST',
-        })
-      );
-    });
+    // open dropdown
+    wrapper.find('DropdownButton').simulate('click');
+
+    // Click "Create Team" inside of dropdown
+    wrapper.find('StyledCreateTeamLink').simulate('click');
+
+    // action creator to open "create team modal" is called
+    expect(openCreateTeamModal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        project: expect.objectContaining({
+          slug: project.slug,
+        }),
+        organization: expect.objectContaining({
+          slug: org.slug,
+        }),
+      })
+    );
   });
 });
