@@ -34,6 +34,12 @@ export function openDiffModal(options) {
     );
 }
 
+/**
+ * @param Object options
+ * @param Object options.organization The organization to create a team for
+ * @param Object options.project (optional) An initial project to add the team to. This may be deprecated soon as
+ * we may add a project selection inside of the modal flow
+ */
 export function openCreateTeamModal(options = {}) {
   import(/* webpackChunkName: "CreateTeamModal" */ '../components/modals/createTeamModal')
     .then(mod => mod.default)

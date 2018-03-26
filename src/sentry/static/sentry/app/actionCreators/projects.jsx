@@ -85,6 +85,9 @@ export function transferProject(api, orgId, project, email) {
     );
 }
 
+/**
+ * Associate a team with a project
+ */
 export function addTeamToProject(api, orgSlug, projectSlug, teamSlug) {
   let endpoint = `/projects/${orgSlug}/${projectSlug}/teams/${teamSlug}/`;
 
