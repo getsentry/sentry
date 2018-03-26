@@ -84,3 +84,35 @@ export function transferProject(api, orgId, project, email) {
       }
     );
 }
+
+export function addTeamToProject(api, orgSlug, projectSlug, teamSlug) {
+  let endpoint = `/projects/${orgSlug}/${projectSlug}/teams/${teamSlug}/`;
+
+  return api
+    .requestPromise(endpoint, {
+      method: 'POST',
+    })
+    .then(
+      () => {
+        addSuccessMessage(
+          tct('[team] has been added to the [project] project', {
+            team: `#${teamSlug}`,
+            project: projectSlug,
+          }),
+          undefined,
+          {append: true}
+        );
+      },
+      err => {
+        addErrorMessage(
+          tct('Unable to add [team] to the [project] project', {
+            team: `#${teamSlug}`,
+            project: projectSlug,
+          }),
+          undefined,
+          {append: true}
+        );
+        throw err;
+      }
+    );
+}
