@@ -1,4 +1,6 @@
 import TeamActions from '../actions/teamActions';
+import {tct} from '../locale';
+import {addSuccessMessage, addErrorMessage} from './indicator';
 
 const doCallback = (params = {}, name, ...args) => {
   if (typeof params[name] === 'function') {
@@ -92,4 +94,35 @@ export function leaveTeam(api, params, options) {
       doCallback(options, 'error', error);
     },
   });
+}
+
+export function removeTeam(api, params, options) {
+  TeamActions.removeTeam(params.teamId);
+
+  return api
+    .requestPromise(`/teams/${params.orgId}/${params.teamId}/`, {
+      method: 'DELETE',
+    })
+    .then(
+      data => {
+        TeamActions.removeTeamSuccess(params.teamId, data);
+        addSuccessMessage(
+          tct('[team] has been removed from [organization]', {
+            team: `#${params.teamId}`,
+            organization: params.orgId,
+          })
+        );
+        return data;
+      },
+      err => {
+        TeamActions.removeTeamError(params.teamId, err);
+        addErrorMessage(
+          tct('Unable to remove [team] from [organization]', {
+            team: `#${params.teamId}`,
+            organization: params.orgId,
+          })
+        );
+        throw err;
+      }
+    );
 }
