@@ -43,14 +43,16 @@ class SlackIntegrationLinkIdentityTest(TestCase):
             'integration_id': self.integration.id,
             'organization_id': self.org.id,
             'slack_id': 'new-slack-id',
-            'notify_channel_id': 'my-channel',
+            'channel_id': 'my-channel',
+            'response_url': 'http://example.slack.com/response_url',
         }
 
         linking_url = build_linking_url(
             self.integration,
             self.org,
             'new-slack-id',
-            'my-channel'
+            'my-channel',
+            'http://example.slack.com/response_url'
         )
 
         resp = self.client.get(linking_url)
@@ -60,7 +62,7 @@ class SlackIntegrationLinkIdentityTest(TestCase):
 
         responses.add(
             method=responses.POST,
-            url='https://slack.com/api/chat.postEphemeral',
+            url='http://example.slack.com/response_url',
             body='{"ok": true}',
             status=200,
             content_type='application/json',
