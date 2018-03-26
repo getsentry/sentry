@@ -72,8 +72,9 @@ class AcceptTransferProjectTest(APITestCase):
         assert resp.data['project']['slug'] == self.project.slug
         assert resp.data['project']['id'] == self.project.id
         assert len(resp.data['organizations']) == 2
-        assert resp.data['organizations'][0]['slug'] == self.from_organization.slug
-        assert resp.data['organizations'][1]['slug'] == self.to_organization.slug
+        org_slugs = {o['slug'] for o in resp.data['organizations']}
+        assert self.from_organization.slug in org_slugs
+        assert self.to_organization.slug in org_slugs
 
     def test_transfers_project_to_correct_organization(self):
         self.login_as(self.owner)
