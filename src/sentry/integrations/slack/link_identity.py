@@ -14,12 +14,13 @@ from sentry.web.helpers import render_to_response
 from .utils import logger
 
 
-def build_linking_url(integration, organization, slack_id, notify_channel_id):
+def build_linking_url(integration, organization, slack_id, channel_id, response_url):
     signed_params = sign(
         integration_id=integration.id,
         organization_id=organization.id,
         slack_id=slack_id,
-        notify_channel_id=notify_channel_id,
+        channel_id=channel_id,
+        response_url=response_url,
     )
 
     return absolute_uri(reverse('sentry-integration-slack-link-identity', kwargs={
@@ -73,15 +74,13 @@ class SlackLinkIdentitiyView(BaseView):
         )
 
         payload = {
-            'token': integration.metadata['access_token'],
-            'token': integration.metadata['access_token'],
-            'channel': params['notify_channel_id'],
-            'user': params['slack_id'],
+            'replace_original': False,
+            'response_type': 'ephemeral',
             'text': "Your Slack identity has been linked to your Sentry account. You're good to go!"
         }
 
         session = http.build_session()
-        req = session.post('https://slack.com/api/chat.postEphemeral', data=payload)
+        req = session.post(params['response_url'], json=payload)
         resp = req.json()
         if not resp.get('ok'):
             logger.error('slack.link-notify.response-error', extra={
@@ -89,6 +88,6 @@ class SlackLinkIdentitiyView(BaseView):
             })
 
         return render_to_response('sentry/slack-linked.html', request=request, context={
-            'channel_id': params['notify_channel_id'],
+            'channel_id': params['channel_id'],
             'team_id': integration.external_id,
         })
