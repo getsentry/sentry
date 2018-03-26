@@ -79,8 +79,7 @@ class SlackNotifyServiceAction(EventAction):
         self.form_fields = {
             'workspace': {
                 'type': 'choice',
-                'choices': [(integration[0], integration[3])
-                            for integration in self.get_integrations().values_list()]
+                'choices': [(i.id, i.name) for i in self.get_integrations()]
             },
             'channel': {
                 'type': 'string',
