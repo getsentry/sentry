@@ -217,12 +217,10 @@ const ProjectContext = createReactClass({
           return;
         }
 
-        // TODO: This doesn't add the query params
-        const {routes, params} = this.props;
         browserHistory.replace(
           recreateRoute('', {
-            routes,
-            params: {...params, projectId: responseJSON.detail.slug},
+            ...this.props,
+            params: {...this.props.params, projectId: responseJSON.detail.slug},
           })
         );
       };
