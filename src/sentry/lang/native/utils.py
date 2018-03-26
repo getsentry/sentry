@@ -162,6 +162,7 @@ def merge_minidump_event(data, minidump):
     else:
         state = ProcessState.from_minidump(minidump)
 
+    data['platform'] = 'native'
     data['level'] = 'fatal' if state.crashed else 'info'
     data['message'] = 'Assertion Error: %s' % state.assertion if state.assertion \
         else 'Fatal Error: %s' % state.crash_reason
