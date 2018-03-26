@@ -134,6 +134,10 @@ class FormField extends React.Component {
      * Should hide error message?
      */
     hideErrorMessage: PropTypes.bool,
+    /**
+     * Hides control state component
+     */
+    hideControlState: PropTypes.bool,
 
     // the following should only be used without form context
     onChange: PropTypes.func,
@@ -145,6 +149,7 @@ class FormField extends React.Component {
 
   static defaultProps = {
     hideErrorMessage: false,
+    hideControlState: false,
   };
 
   static contextTypes = {
@@ -241,7 +246,13 @@ class FormField extends React.Component {
   };
 
   render() {
-    let {name, showReturnButton, hideErrorMessage, ...props} = this.props;
+    let {
+      name,
+      showReturnButton,
+      hideErrorMessage,
+      hideControlState,
+      ...props
+    } = this.props;
     let id = this.getId();
     let model = this.getModel();
 
@@ -253,7 +264,8 @@ class FormField extends React.Component {
             disabledReason={disabledReason}
             inline={inline}
             alignRight={alignRight}
-            controlState={<ControlState model={model} name={name} />}
+            hideControlState={hideControlState}
+            controlState={!hideControlState && <ControlState model={model} name={name} />}
             errorState={
               <Observer>
                 {() => {
