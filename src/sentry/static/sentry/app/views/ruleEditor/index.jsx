@@ -72,10 +72,10 @@ const RuleEditor = createReactClass({
   },
 
   fetchRule() {
-    let {ruleId, projectId, orgId} = this.props.params;
+    const {ruleId, projectId, orgId} = this.props.params;
 
     if (ruleId) {
-      let endpoint = `/projects/${orgId}/${projectId}/rules/${ruleId}/`;
+      const endpoint = `/projects/${orgId}/${projectId}/rules/${ruleId}/`;
       this.api.request(endpoint, {
         success: rule => {
           this.setState({
@@ -84,7 +84,7 @@ const RuleEditor = createReactClass({
         },
       });
     } else {
-      let defaultRule = {
+      const defaultRule = {
         actionMatch: 'all',
         actions: [],
         conditions: [],
@@ -96,36 +96,14 @@ const RuleEditor = createReactClass({
     }
   },
 
-  serializeNode(node) {
-    let result = {};
-    $(node)
-      .find('input, select')
-      .each((_, el) => {
-        if (el.name) {
-          result[el.name] = $(el).val();
-        }
-      });
-    return result;
-  },
-
-  onSubmit(e) {
+  handleSubmit(e) {
     e.preventDefault();
-    let form = $(this.formNode);
-    let conditions = [];
-    form.find('.rule-condition-list .rule-form').each((_, el) => {
-      conditions.push(this.serializeNode(el));
-    });
-    let actions = [];
-    form.find('.rule-action-list .rule-form').each((_, el) => {
-      actions.push(this.serializeNode(el));
-    });
 
-    let data = {...this.state.rule, actions, conditions};
+    const {rule} = this.state;
+    const isNew = !rule.id;
+    const {project, organization} = this.props;
 
-    let rule = this.state.rule;
-    let project = this.props.project;
-    let org = this.props.organization;
-    let endpoint = `/projects/${org.slug}/${project.slug}/rules/`;
+    let endpoint = `/projects/${organization.slug}/${project.slug}/rules/`;
     if (rule.id) {
       endpoint += rule.id + '/';
     }
@@ -133,18 +111,18 @@ const RuleEditor = createReactClass({
     addMessage(t('Saving...'));
 
     this.api.request(endpoint, {
-      method: rule.id ? 'PUT' : 'POST',
-      data,
+      method: isNew ? 'POST' : 'PUT',
+      data: rule,
       success: resp => {
         const shouldRedirect = !rule.id;
         this.setState({error: null, loading: false, rule: resp});
         // Redirect to correct ID if /new
         if (shouldRedirect) {
           browserHistory.replace(
-            `/${org.slug}/${project.slug}/settings/alerts/rules/${resp.id}/`
+            `/${organization.slug}/${project.slug}/settings/alerts/rules/${resp.id}/`
           );
         }
-        addSuccessMessage(rule.id ? t('Updated alert rule') : t('Created alert rule'));
+        addSuccessMessage(isNew ? t('Created alert rule') : t('Updated alert rule'));
       },
       error: response => {
         this.setState({
@@ -157,7 +135,7 @@ const RuleEditor = createReactClass({
   },
 
   hasError(field) {
-    let {error} = this.state;
+    const {error} = this.state;
     if (!error) return false;
     return !!error[field];
   },
@@ -179,6 +157,38 @@ const RuleEditor = createReactClass({
     });
   },
 
+  handlePropertyChange(type) {
+    return idx => {
+      return (prop, val) => {
+        const rule = {...this.state.rule};
+        rule[type][idx][prop] = val;
+        this.setState({rule});
+      };
+    };
+  },
+
+  handleAddRow(type) {
+    return id => {
+      this.setState(prevState => {
+        prevState.rule[type].push({id});
+        return {
+          rule: prevState.rule,
+        };
+      });
+    };
+  },
+
+  handleDeleteRow(type) {
+    return idx => {
+      this.setState(prevState => {
+        prevState.rule[type].splice(idx, 1);
+        return {
+          rule: prevState.rule,
+        };
+      });
+    };
+  },
+
   render() {
     const activeEnvs = EnvironmentStore.getActive() || [];
     const environmentChoices = [
@@ -195,7 +205,7 @@ const RuleEditor = createReactClass({
       rule.environment === null ? ALL_ENVIRONMENTS_KEY : rule.environment;
 
     return (
-      <form onSubmit={this.onSubmit} ref={node => (this.formNode = node)}>
+      <form onSubmit={this.handleSubmit} ref={node => (this.formNode = node)}>
         <Panel className="rule-detail">
           <PanelHeader>{rule.id ? 'Edit Alert Rule' : 'New Alert Rule'}</PanelHeader>
           <PanelBody disablePadding={false}>
@@ -240,8 +250,11 @@ const RuleEditor = createReactClass({
 
             <RuleNodeList
               nodes={this.props.conditions}
-              initialItems={conditions}
+              items={conditions || []}
               className="rule-condition-list"
+              handlePropertyChange={this.handlePropertyChange('conditions')}
+              handleAddRow={this.handleAddRow('conditions')}
+              handleDeleteRow={this.handleDeleteRow('conditions')}
             />
 
             <hr />
@@ -267,28 +280,28 @@ const RuleEditor = createReactClass({
 
             <RuleNodeList
               nodes={this.props.actions}
-              initialItems={actions}
-              className="rule-action-list"
+              items={actions || []}
+              handlePropertyChange={this.handlePropertyChange('actions')}
+              handleAddRow={this.handleAddRow('actions')}
+              handleDeleteRow={this.handleDeleteRow('actions')}
             />
 
             <hr />
 
-            <div className="node-frequency-selector">
-              <AlertRuleRow>
-                {t(
-                  'Perform these actions at most once every %s for an issue.',
-                  <Select2Field
-                    name="frequency"
-                    className={this.hasError('frequency') ? ' error' : ''}
-                    value={frequency}
-                    style={{marginBottom: 0, marginLeft: 5, marginRight: 5, width: 140}}
-                    required={true}
-                    choices={FREQUENCY_CHOICES}
-                    onChange={val => this.handleChange('frequency', val)}
-                  />
-                )}
-              </AlertRuleRow>
-            </div>
+            <AlertRuleRow>
+              {t(
+                'Perform these actions at most once every %s for an issue.',
+                <Select2Field
+                  name="frequency"
+                  className={this.hasError('frequency') ? ' error' : ''}
+                  value={frequency}
+                  style={{marginBottom: 0, marginLeft: 5, marginRight: 5, width: 140}}
+                  required={true}
+                  choices={FREQUENCY_CHOICES}
+                  onChange={val => this.handleChange('frequency', val)}
+                />
+              )}
+            </AlertRuleRow>
 
             <div className="actions">
               <Button priority="primary" disabled={loading}>
