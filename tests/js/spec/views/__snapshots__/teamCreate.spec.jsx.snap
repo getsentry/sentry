@@ -4,7 +4,7 @@ exports[`TeamCreate render() renders correctly 1`] = `
 <SideEffect(DocumentTitle)
   title="Create Team - Sentry"
 >
-  <NarryLayout>
+  <NarrowLayout>
     <h3>
       Create a New Team
     </h3>
@@ -34,6 +34,6 @@ exports[`TeamCreate render() renders correctly 1`] = `
         required={true}
       />
     </ApiForm>
-  </NarryLayout>
+  </NarrowLayout>
 </SideEffect(DocumentTitle)>
 `;
