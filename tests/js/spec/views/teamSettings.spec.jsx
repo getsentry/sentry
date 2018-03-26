@@ -3,6 +3,7 @@ import React from 'react';
 import {mount, shallow} from 'enzyme';
 
 import TeamSettings from 'app/views/settings/team/teamSettings.old';
+import TeamStore from 'app/stores/teamStore';
 import NewTeamSettings from 'app/views/settings/team/teamSettings';
 
 const childContextTypes = {
@@ -116,5 +117,74 @@ describe('NewTeamSettings', function() {
       ).toBe(true);
       done();
     }, 1);
+  });
+
+  it('needs team:admin in order to see remove team button', function() {
+    let team = TestStubs.Team();
+
+    let wrapper = mount(
+      <NewTeamSettings
+        routes={[]}
+        params={{orgId: 'org', teamId: team.slug}}
+        team={team}
+        onTeamChange={() => {}}
+      />,
+      TestStubs.routerContext([{organization: TestStubs.Organization({access: []})}])
+    );
+
+    expect(
+      wrapper
+        .find('PanelHeader')
+        .last()
+        .text()
+    ).not.toBe('Remove Team');
+  });
+
+  it('can remove team', async function() {
+    let team = TestStubs.Team();
+    let deleteMock = MockApiClient.addMockResponse({
+      url: `/teams/org/${team.slug}/`,
+      method: 'DELETE',
+    });
+    let routerPushMock = jest.fn();
+    let teamStoreTriggerMock = jest.fn();
+    sinon.stub(TeamStore, 'trigger', teamStoreTriggerMock);
+    TeamStore.loadInitialData([
+      {
+        slug: 'team-slug',
+      },
+    ]);
+
+    let wrapper = mount(
+      <NewTeamSettings
+        router={{push: routerPushMock}}
+        routes={[]}
+        params={{orgId: 'org', teamId: team.slug}}
+        team={team}
+        onTeamChange={() => {}}
+      />,
+      TestStubs.routerContext()
+    );
+
+    // Click "Remove Team button
+    wrapper.find('Button[priority="danger"]').simulate('click');
+
+    TeamStore.trigger.reset();
+
+    // Wait for modal
+    wrapper.find('ModalDialog Button[priority="danger"]').simulate('click');
+    expect(deleteMock).toHaveBeenCalledWith(
+      `/teams/org/${team.slug}/`,
+      expect.objectContaining({
+        method: 'DELETE',
+      })
+    );
+
+    await tick();
+    expect(routerPushMock).toHaveBeenCalledWith('/settings/org/teams/');
+
+    expect(TeamStore.items).toEqual([]);
+
+    TeamStore.trigger.restore();
   });
 });

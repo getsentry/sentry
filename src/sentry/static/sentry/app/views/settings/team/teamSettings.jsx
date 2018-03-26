@@ -3,7 +3,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {addErrorMessage, addLoadingMessage} from '../../../actionCreators/indicator';
-import {t} from '../../../locale';
+import {removeTeam} from '../../../actionCreators/teams';
+import {t, tct} from '../../../locale';
 import AsyncView from '../../asyncView';
 import Form from '../components/forms/form';
 import JsonForm from '../components/forms/jsonForm';
@@ -12,8 +13,9 @@ import teamSettingsFields from '../../../data/forms/teamSettingsFields';
 import Panel from '../components/panel';
 import Field from '../components/forms/field';
 import PanelHeader from '../components/panelHeader';
-import Link from '../../../components/link';
+import Button from '../../../components/buttons/button';
 import SentryTypes from '../../../proptypes';
+import Confirm from '../../../components/confirm';
 
 export default class TeamSettings extends AsyncView {
   static propTypes = {
@@ -51,10 +53,14 @@ export default class TeamSettings extends AsyncView {
       this.setState({loading: true});
     }
   };
+  handleRemoveTeam = () => {
+    removeTeam(this.api, this.props.params).then(data => {
+      this.props.router.push(`/settings/${this.props.params.orgId}/teams/`);
+    });
+  };
 
   renderBody() {
     let team = this.props.team;
-    let {teamId, orgId} = this.props.params;
 
     let access = new Set(this.context.organization.access);
 
@@ -86,15 +92,17 @@ export default class TeamSettings extends AsyncView {
               )}
             >
               <div>
-                <Link
-                  href={`/organizations/${orgId}/teams/${teamId}/remove/`}
-                  className="btn btn-danger"
+                <Confirm
+                  onConfirm={this.handleRemoveTeam}
                   priority="danger"
-                  size="small"
-                  title={t('Remove Team')}
+                  message={tct('Are you sure you want to remove the team [team]?', {
+                    team: `#${team.slug}`,
+                  })}
                 >
-                  {t('Remove Team')}
-                </Link>
+                  <Button icon="icon-trash" priority="danger" title={t('Remove Team')}>
+                    {t('Remove Team')}
+                  </Button>
+                </Confirm>
               </div>
             </Field>
           </Panel>

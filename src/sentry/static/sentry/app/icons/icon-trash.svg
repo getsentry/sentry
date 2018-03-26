@@ -5,7 +5,7 @@
     <desc>Created with Sketch.</desc>
     <defs></defs>
     <g id="Icons" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-        <g id="icon-trash" fill="#493E54">
+        <g id="icon-trash" fill="currentColor">
             <g id="Trash-Icon-Dark">
                 <path d="M6.44444444,8.8817842e-14 L17.5555556,8.8817842e-14 L6.44444444,8.8817842e-14 Z M22,6 L22,19.2 C22,21.8509668 20.0101544,24 17.5555556,24 L6.44444444,24 C3.98984556,24 2,21.8509668 2,19.2 L2,6 L4,6 L4,19.5 C4,20.8807119 5.03009485,22 6.30078125,22 L17.8046875,22 C19.0753739,22 20.1054687,20.8807119 20.1054687,19.5 L20.1054687,6 L22,6 Z" id="Combined-Shape" fill-rule="nonzero"></path>
                 <rect id="Rectangle-54" fill-rule="evenodd" x="0" y="4" width="24" height="2" rx="1"></rect>
