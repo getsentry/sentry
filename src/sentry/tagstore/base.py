@@ -81,6 +81,8 @@ class TagStorage(Service):
         'get_tag_value_qs',
         'get_group_tag_value_qs',
         'get_event_tag_qs',
+
+        'get_group_tag_keys_and_top_values',
     )
 
     def setup_deletions(self, tagkey_model, tagvalue_model, grouptagkey_model,
@@ -176,9 +178,7 @@ class TagStorage(Service):
             return key
 
     def get_standardized_key(self, key):
-        if key.startswith('sentry:'):
-            return key.split('sentry:', 1)[-1]
-        return key
+        return key.split('sentry:', 1)[-1]
 
     def get_tag_key_label(self, key):
         return TAG_LABELS.get(key) or key.replace('_', ' ').title()
@@ -435,3 +435,16 @@ class TagStorage(Service):
         >>> update_group_tag_key_values_seen(1, [2, 3])
         """
         raise NotImplementedError
+
+    def get_group_tag_keys_and_top_values(self, project_id, group_id, environment_id, user=None):
+        from sentry.api.serializers import serialize
+
+        tag_keys = self.get_group_tag_keys(project_id, group_id, environment_id)
+
+        return [dict(
+            totalValues=self.get_group_tag_value_count(
+                project_id, group_id, environment_id, tk.key),
+            topValues=serialize(self.get_top_group_tag_values(
+                project_id, group_id, environment_id, tk.key, limit=10)),
+            **serialize([tk])[0]
+        ) for tk in tag_keys]
