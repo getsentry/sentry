@@ -246,6 +246,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             'isBookmarked': attrs['is_bookmarked'],
             'isMember': attrs['is_member'],
             'hasAccess': attrs['has_access'],
+            'dateCreated': obj.date_added,
         }
         if 'stats' in attrs:
             context['stats'] = attrs['stats']
