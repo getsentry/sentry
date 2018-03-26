@@ -1,5 +1,4 @@
 import $ from 'jquery';
-import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
@@ -136,8 +135,6 @@ const RuleEditor = createReactClass({
       data,
       success: resp => {
         this.setState({error: null, loading: false, rule: resp});
-
-        browserHistory.replace(`/${org.slug}/${project.slug}/settings/alerts/rules/`);
 
         addSuccessMessage(rule.id ? t('Updated alert rule') : t('Created alert rule'));
       },
