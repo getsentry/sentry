@@ -24,7 +24,7 @@ describe('StreamManager', function() {
       let mgr = new StreamManager(store);
       expect(() => mgr.push()).not.toThrow();
       expect(() => mgr.push([])).not.toThrow();
-      expect(mgr.idList.length).toEqual(0);
+      expect(mgr.idList).toHaveLength(0);
     });
 
     it('adds items', function() {
@@ -33,7 +33,7 @@ describe('StreamManager', function() {
       let items = [{id: 1}];
       mgr.push(items);
 
-      expect(mgr.idList.length).toEqual(1);
+      expect(mgr.idList).toHaveLength(1);
       expect(storeAdd.calledWith(items)).toBe(true);
     });
 
@@ -43,7 +43,7 @@ describe('StreamManager', function() {
       let item = {id: 1};
       mgr.push(item);
 
-      expect(mgr.idList.length).toEqual(1);
+      expect(mgr.idList).toHaveLength(1);
       expect(storeAdd.calledWith([item])).toBe(true);
     });
 
@@ -53,7 +53,7 @@ describe('StreamManager', function() {
       let mgrTrim = sinon.spy(mgr, 'trim');
       mgr.push([{id: 1}, {id: 2}]);
 
-      expect(mgr.idList.length).toEqual(1);
+      expect(mgr.idList).toHaveLength(1);
       expect(storeRemove.calledWith(2)).toBe(true);
       expect(mgrTrim.called).toBe(true);
     });
@@ -75,7 +75,7 @@ describe('StreamManager', function() {
       mgr.trim();
 
       expect(mgr.idList).toEqual([1]);
-      expect(mgr.idList.length).toEqual(1);
+      expect(mgr.idList).toHaveLength(1);
       expect(storeRemove.firstCall.calledWith(2)).toBe(true);
       expect(storeRemove.secondCall.calledWith(3)).toBe(true);
     });
@@ -87,7 +87,7 @@ describe('StreamManager', function() {
       mgr.trim();
 
       expect(mgr.idList).toEqual([1, 2, 3]);
-      expect(mgr.idList.length).toEqual(3);
+      expect(mgr.idList).toHaveLength(3);
       expect(storeRemove.called).toBe(false);
     });
   });

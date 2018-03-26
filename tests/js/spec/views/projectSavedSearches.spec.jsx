@@ -182,7 +182,7 @@ describe('ProjectSavedSearches', function() {
     ).toBe(true);
   });
 
-  it('rolls back update default on error', function() {
+  it('rolls back update default on PUT error', function() {
     let url = `/projects/${org.slug}/${project.slug}/searches/2/`;
     let update = MockApiClient.addMockResponse({
       url,

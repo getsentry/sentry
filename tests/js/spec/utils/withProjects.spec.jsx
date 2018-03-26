@@ -22,7 +22,7 @@ describe('withProjects HoC', function() {
 
     wrapper.update();
     let props = wrapper.find('MyComponent').prop('projects');
-    expect(props.length).toBe(1);
+    expect(props).toHaveLength(1);
     expect(props[0].id).toBe(project.id);
   });
 });
