@@ -637,6 +637,7 @@ const Stream = createReactClass({
   },
 
   renderGroupNodes(ids, statsPeriod) {
+    let hasGuideAnchor = ids.length > 0 && ids.length <= 2;
     let {orgId, projectId} = this.props.params;
     let groupNodes = ids.map(id => {
       return (
@@ -647,6 +648,7 @@ const Stream = createReactClass({
           projectId={projectId}
           statsPeriod={statsPeriod}
           query={this.state.query}
+          hasGuideAnchor={hasGuideAnchor}
         />
       );
     });

@@ -66,7 +66,11 @@ const GuideAnchor = createReactClass({
     let {target, type} = this.props;
 
     return (
-      <GuideAnchorContainer innerRef={el => (this.anchorElement = el)} type={type}>
+      <GuideAnchorContainer
+        className={this.props.className}
+        innerRef={el => (this.anchorElement = el)}
+        type={type}
+      >
         {this.props.children}
         <StyledGuideAnchor
           className={classNames('guide-anchor-ping', target)}

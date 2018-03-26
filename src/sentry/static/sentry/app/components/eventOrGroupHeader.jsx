@@ -5,7 +5,6 @@ import classNames from 'classnames';
 import ProjectLink from '../components/projectLink';
 import {Metadata} from '../proptypes';
 import EventOrGroupTitle from './eventOrGroupTitle';
-import GuideAnchor from '../components/assistant/guideAnchor';
 
 /**
  * Displays an event or group/issue title (i.e. in Stream)
@@ -84,8 +83,7 @@ class EventOrGroupHeader extends React.Component {
 
     return (
       <div className={cx}>
-        <GuideAnchor target="issues" type="text" />
-        <h3 className="truncate">{this.getTitle()}</h3>
+        <h3 className="truncate"> {this.getTitle()}</h3>
         {message && (
           <div className="event-message truncate">
             <span className="message">{message}</span>

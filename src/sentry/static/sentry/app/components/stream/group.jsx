@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
+import styled from 'react-emotion';
 
 import AssigneeSelector from '../assigneeSelector';
 import Count from '../count';
@@ -27,6 +28,7 @@ const StreamGroup = createReactClass({
     statsPeriod: PropTypes.string.isRequired,
     canSelect: PropTypes.bool,
     query: PropTypes.string,
+    hasGuideAnchor: PropTypes.bool,
   },
 
   mixins: [Reflux.listenTo(GroupStore, 'onGroupChange'), ProjectState],
@@ -103,7 +105,7 @@ const StreamGroup = createReactClass({
     className += ' type-' + data.type;
     className += ' level-' + data.level;
 
-    let {id, orgId, projectId} = this.props;
+    let {id, orgId, projectId, hasGuideAnchor} = this.props;
 
     return (
       <li className={className} onClick={this.toggleSelect}>
@@ -113,6 +115,7 @@ const StreamGroup = createReactClass({
               <GroupCheckBox id={data.id} />
             </div>
           )}
+          {hasGuideAnchor ? <StyledGuideAnchor target="issues" type="text" /> : null}
           <EventOrGroupHeader
             data={data}
             orgId={orgId}
@@ -134,15 +137,19 @@ const StreamGroup = createReactClass({
           <GroupChart id={data.id} statsPeriod={this.props.statsPeriod} data={data} />
         </div>
         <div className="col-md-1 col-xs-2 event-count align-right">
-          <GuideAnchor target="events" type="text" />
+          {hasGuideAnchor ? <GuideAnchor target="events" type="text" /> : null}
           <Count value={data.count} />
         </div>
         <div className="col-md-1 col-xs-2 event-users align-right">
-          <GuideAnchor target="users" type="text" />
+          {hasGuideAnchor ? <GuideAnchor target="users" type="text" /> : null}
           <Count value={userCount} />
         </div>
       </li>
     );
   },
 });
+
+const StyledGuideAnchor = styled(GuideAnchor)`
+  display: inline;
+`;
 export default StreamGroup;
