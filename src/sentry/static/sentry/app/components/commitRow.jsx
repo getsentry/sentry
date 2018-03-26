@@ -28,7 +28,7 @@ export default class CommitRow extends React.Component {
       <li className="list-group-item" key={id}>
         <div className="row row-center-vertically">
           <div className="col-xs-10 list-group-avatar">
-            <Avatar user={author} />
+            <Avatar size={36} user={author} />
             <h5 className="truncate">{this.renderMessage(message)}</h5>
             <p>
               {tct('[author] committed [timeago]', {
