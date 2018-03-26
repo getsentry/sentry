@@ -37,6 +37,10 @@ describe('ProjectTeamsSettings', function() {
     });
   });
 
+  afterEach(function() {
+    Client.clearMockResponses();
+  });
+
   describe('render()', function() {
     it('renders', function() {
       let wrapper = shallow(
@@ -55,10 +59,23 @@ describe('ProjectTeamsSettings', function() {
   });
 
   describe('TeamRow.handleRemove()', function() {
-    it('can remove a team', function() {
+    it('can remove a team', async function() {
+      Client.addMockResponse({
+        url: `/projects/${org.slug}/${project.slug}/teams/`,
+        method: 'GET',
+        body: [team, team2],
+      });
+
       let endpoint = `/projects/${org.slug}/${project.slug}/teams/${team.slug}/`;
       let mock = Client.addMockResponse({
         url: endpoint,
+        method: 'DELETE',
+        statusCode: 200,
+      });
+
+      let endpoint2 = `/projects/${org.slug}/${project.slug}/teams/${team2.slug}/`;
+      let mock2 = Client.addMockResponse({
+        url: endpoint2,
         method: 'DELETE',
         statusCode: 200,
       });
@@ -77,20 +94,31 @@ describe('ProjectTeamsSettings', function() {
 
       expect(mock).not.toHaveBeenCalled();
 
-      // open modal
+      // Click "Remove"
       wrapper
-        .find('Button')
-        .at(1)
-        .simulate('click');
-
-      // click confirm
-      wrapper
-        .find('.modal-footer')
-        .find('button.button-primary')
+        .find('PanelBody Button')
+        .first()
         .simulate('click');
 
       expect(mock).toHaveBeenCalledWith(
         endpoint,
+        expect.objectContaining({
+          method: 'DELETE',
+        })
+      );
+
+      // Remove second team
+      wrapper
+        .find('PanelBody Button')
+        .first()
+        .simulate('click');
+
+      // Modal opens because this is the last team in project
+      // Click confirm
+      wrapper.find('ModalDialog Button[priority="primary"]').simulate('click');
+
+      expect(mock2).toHaveBeenCalledWith(
+        endpoint2,
         expect.objectContaining({
           method: 'DELETE',
         })
