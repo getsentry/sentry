@@ -218,7 +218,8 @@ class SlackActionEndpoint(Endpoint):
                 integration,
                 group.organization,
                 user_id,
-                channel_id
+                channel_id,
+                data.get('response_url')
             )
 
             return self.respond({
