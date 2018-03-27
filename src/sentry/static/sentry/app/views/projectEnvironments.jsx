@@ -1,25 +1,32 @@
-import React from 'react';
+import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
+import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
+import styled from 'react-emotion';
 
-import EnvironmentStore from '../stores/environmentStore';
-import {Panel, PanelHeader, PanelBody, PanelItem} from '../components/panels';
-import EmptyMessage from './settings/components/emptyMessage';
-import {t} from '../locale';
-import Button from '../components/buttons/button';
-import SettingsPageHeader from './settings/components/settingsPageHeader';
-import ListLink from '../components/listLink';
-import ApiMixin from '../mixins/apiMixin';
-import recreateRoute from '../utils/recreateRoute';
-
-import LoadingIndicator from '../components/loadingIndicator';
-import IndicatorStore from '../stores/indicatorStore';
-
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from '../actionCreators/indicator';
 import {
   loadActiveEnvironments,
   loadHiddenEnvironments,
 } from '../actionCreators/environments';
+import {t, tct} from '../locale';
+import {update} from '../actionCreators/projects';
+import {Panel, PanelHeader, PanelBody, PanelItem} from '../components/panels';
+import ApiMixin from '../mixins/apiMixin';
+import Button from '../components/buttons/button';
+import EmptyMessage from './settings/components/emptyMessage';
+import EnvironmentStore from '../stores/environmentStore';
+import IndicatorStore from '../stores/indicatorStore';
+import ListLink from '../components/listLink';
+import LoadingIndicator from '../components/loadingIndicator';
+import SettingsPageHeader from './settings/components/settingsPageHeader';
+import Tag from './settings/components/tag';
+import recreateRoute from '../utils/recreateRoute';
 
 const ProjectEnvironments = createReactClass({
   propTypes: {
@@ -37,6 +44,7 @@ const ProjectEnvironments = createReactClass({
       : EnvironmentStore.getActive();
 
     return {
+      project: null,
       environments,
       isHidden,
     };
@@ -46,6 +54,9 @@ const ProjectEnvironments = createReactClass({
     if (this.state.environments === null) {
       this.fetchData(this.state.isHidden);
     }
+
+    // Fetch project details instead of using project context to guarantee we have latest project details
+    this.fetchProjectDetails();
   },
 
   componentWillReceiveProps(nextProps) {
@@ -53,6 +64,7 @@ const ProjectEnvironments = createReactClass({
     const environments = isHidden
       ? EnvironmentStore.getHidden()
       : EnvironmentStore.getActive();
+
     this.setState(
       {
         isHidden,
@@ -69,6 +81,7 @@ const ProjectEnvironments = createReactClass({
   refetchAll() {
     this.fetchData(true);
     this.fetchData(false);
+    this.fetchProjectDetails();
   },
 
   fetchData(hidden) {
@@ -80,6 +93,15 @@ const ProjectEnvironments = createReactClass({
       success: env => {
         const load = hidden ? loadHiddenEnvironments : loadActiveEnvironments;
         load(env);
+      },
+    });
+  },
+
+  fetchProjectDetails() {
+    const {orgId, projectId} = this.props.params;
+    this.api.request(`/projects/${orgId}/${projectId}/`, {
+      success: project => {
+        this.setState({project});
       },
     });
   },
@@ -116,6 +138,49 @@ const ProjectEnvironments = createReactClass({
     );
   },
 
+  // Changed "Default Environment"
+  handleSetAsDefault(env) {
+    const data = {defaultEnvironment: env.name};
+    const oldProject = this.state.project;
+
+    // Optimistically update state
+    this.setState(state => ({
+      ...state,
+      project: {
+        ...state.project,
+        ...data,
+      },
+    }));
+
+    addLoadingMessage();
+
+    // Update project details
+    update(this.api, {
+      ...this.props.params,
+      data,
+    }).then(
+      () => {
+        addSuccessMessage(
+          tct('Changed default environment to [environment]', {
+            environment: env.name,
+          })
+        );
+      },
+      err => {
+        // Error occurred, revert project state
+        this.setState(state => ({
+          ...state,
+          project: oldProject,
+        }));
+        addErrorMessage(
+          tct('Unable to change default environment to [environment]', {
+            environment: env.name,
+          })
+        );
+      }
+    );
+  },
+
   renderEmpty() {
     const {isHidden} = this.state;
     const message = isHidden
@@ -125,18 +190,39 @@ const ProjectEnvironments = createReactClass({
   },
 
   renderEnvironmentList(envs) {
-    const {isHidden} = this.state;
+    const {project, isHidden} = this.state;
     const buttonText = isHidden ? t('Show') : t('Hide');
-    return envs.map(env => (
-      <PanelItem key={env.id} align="center" justify="space-between">
-        <span>
-          {env.displayName} {env.name && <code>{env.name}</code>}
-        </span>
-        <Button size="xsmall" onClick={() => this.toggleEnv(env, !isHidden)}>
-          {buttonText}
-        </Button>
-      </PanelItem>
-    ));
+
+    return envs.map(env => {
+      const isDefault = project && env.name === project.defaultEnvironment;
+      // Don't show "Set as default" button until project details are loaded
+      const shouldShowSetDefault = !isHidden && !isDefault && project;
+      return (
+        <PanelItem key={env.id} align="center" justify="space-between">
+          <Flex align="center">
+            {env.displayName} {env.name && <code>{env.name}</code>}
+            {isDefault && <Tag priority="success">{t('Default')}</Tag>}
+          </Flex>
+          <div>
+            {shouldShowSetDefault && (
+              <EnvironmentButton
+                size="xsmall"
+                onClick={this.handleSetAsDefault.bind(this, env)}
+              >
+                {t('Set as default')}
+              </EnvironmentButton>
+            )}
+
+            <EnvironmentButton
+              size="xsmall"
+              onClick={() => this.toggleEnv(env, !isHidden)}
+            >
+              {buttonText}
+            </EnvironmentButton>
+          </div>
+        </PanelItem>
+      );
+    });
   },
 
   render() {
@@ -171,10 +257,12 @@ const ProjectEnvironments = createReactClass({
             </ul>
           }
         />
+
         <Panel>
           <PanelHeader>
             {this.state.isHidden ? t('Hidden') : t('Active Environments')}
           </PanelHeader>
+
           <PanelBody>
             {environments.length
               ? this.renderEnvironmentList(environments)
@@ -185,5 +273,9 @@ const ProjectEnvironments = createReactClass({
     );
   },
 });
+
+const EnvironmentButton = styled(Button)`
+  margin-left: 4px;
+`;
 
 export default ProjectEnvironments;

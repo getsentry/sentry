@@ -1,9 +1,11 @@
+import {ThemeProvider} from 'emotion-theming';
 import React from 'react';
 import {mount} from 'enzyme';
 
-import ProjectEnvironments from 'app/views/projectEnvironments';
 import EnvironmentStore from 'app/stores/environmentStore';
+import ProjectEnvironments from 'app/views/projectEnvironments';
 import recreateRoute from 'app/utils/recreateRoute';
+import theme from 'app/utils/theme';
 
 jest.mock('app/utils/recreateRoute');
 
@@ -14,19 +16,33 @@ function mountComponent(isHidden) {
   const project = TestStubs.Project();
   let path = isHidden ? 'environments/hidden/' : 'environments/';
   return mount(
-    <ProjectEnvironments
-      params={{
-        orgId: org.slug,
-        projectId: project.slug,
-      }}
-      route={{path}}
-      routes={[]}
-    />,
+    <ThemeProvider theme={theme}>
+      <ProjectEnvironments
+        params={{
+          orgId: org.slug,
+          projectId: project.slug,
+        }}
+        route={{path}}
+        routes={[]}
+      />
+    </ThemeProvider>,
     TestStubs.routerContext()
   );
 }
 
 describe('ProjectEnvironments', function() {
+  let project;
+
+  beforeEach(function() {
+    project = TestStubs.Project({
+      defaultEnvironment: 'production',
+    });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/',
+      body: project,
+    });
+  });
+
   afterEach(function() {
     MockApiClient.clearMockResponses();
   });
@@ -44,6 +60,23 @@ describe('ProjectEnvironments', function() {
     it('renders environment list', function() {
       EnvironmentStore.loadInitialData(TestStubs.Environments(false));
       const wrapper = mountComponent(false);
+
+      // Production environment is default
+      const productionRow = wrapper.find('PanelItem').first();
+      const stagingRow = wrapper.find('PanelItem').last();
+
+      expect(productionRow.find('Tag').prop('children')).toBe('Default');
+
+      expect(productionRow.find('Button')).toHaveLength(1);
+
+      expect(stagingRow.find('Tag')).toHaveLength(0);
+
+      expect(
+        stagingRow
+          .find('Button')
+          .first()
+          .text()
+      ).toBe('Set as default');
       expect(wrapper).toMatchSnapshot();
     });
   });
@@ -64,6 +97,8 @@ describe('ProjectEnvironments', function() {
       EnvironmentStore.loadHiddenData(TestStubs.Environments(true));
       const wrapper = mountComponent(true);
 
+      // Hidden buttons should not have "Set as default"
+      expect(wrapper.find('Button').text()).toBe('Show');
       expect(wrapper).toMatchSnapshot();
     });
   });
