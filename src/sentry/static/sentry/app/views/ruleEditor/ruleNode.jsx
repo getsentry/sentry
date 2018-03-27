@@ -3,6 +3,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import styled, {cx} from 'react-emotion';
 import $ from 'jquery';
+import Button from '../../components/buttons/button';
 
 class RuleNode extends React.Component {
   static propTypes = {
@@ -52,11 +53,9 @@ class RuleNode extends React.Component {
           <span ref="html" dangerouslySetInnerHTML={{__html: node.html}} />
         </RuleNodeForm>
         <RuleNodeControls>
-          <a onClick={this.props.onDelete} className="button button-default button-sm">
-            <span className="button-label">
-              <span className="icon icon-trash" />
-            </span>
-          </a>
+          <Button onClick={this.props.onDelete} type="button" tabIndex="-1" size="small">
+            <span className="icon icon-trash" />
+          </Button>
         </RuleNodeControls>
       </RuleNodeRow>
     );
