@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import ProjectOwnership, Team, OrganizationMember
+from sentry.models import ProjectOwnership, ProjectTeam, OrganizationMemberTeam, UserEmail
 from sentry.ownership.grammar import parse_rules, dump_schema, ParseError
 
 
@@ -28,30 +28,43 @@ class ProjectOwnershipSerializer(serializers.Serializer):
         schema = dump_schema(rules)
 
         user_emails = []
-        team_ids = []
+        team_slugs = []
         for rule in schema['rules']:
             for owner in rule['owners']:
                 if owner['type'] is 'user':
                     user_emails.append(owner['identifier'])
 
                 if owner['type'] is 'team':
-                    team_ids.append(owner['identifier'])
+                    team_slugs.append(owner['identifier'])
 
-        users = set(OrganizationMember.objects.filter(
-            organization=self.context['ownership'].project.organization_id,
-            user__email__in=user_emails
-        ).values_list("user__email", flat=True))
+        user_ids = UserEmail.objects.filter(
+            email__in=user_emails
+        ).values_list('user_id', flat=True)
 
-        unfound_emails = set(user_emails).difference(users)
+        teams = ProjectTeam.objects.filter(
+            project_id=self.context['ownership'].project_id
+        ).values_list('team', flat=True)
 
-        team_slugs = set(Team.objects.filter(
-            organization=self.context['ownership'].project.organization_id,
-            slug__in=team_ids
-        ).values_list("slug", flat=True))
+        org_member_user_ids = OrganizationMemberTeam.objects.filter(
+            organizationmember__user_id__in=user_ids,
+            team__in=teams
+        ).values_list('organizationmember__user_id', flat=True)
 
-        unfound_teams = set(team_ids).difference(team_slugs)
+        validated_user_emails = set(UserEmail.objects.filter(
+            user_id__in=org_member_user_ids
+        ).values_list("email", flat=True))
 
-        unfound_actors = list(unfound_emails) + list(unfound_teams)
+        unfound_emails = set(user_emails).difference(validated_user_emails)
+
+        validated_team_slugs = set(ProjectTeam.objects.filter(
+            team__slug__in=team_slugs,
+            project_id=self.context['ownership'].project_id
+        ).values_list('team__slug', flat=True))
+
+        unfound_teams = set(team_slugs).difference(validated_team_slugs)
+
+        unfound_actors = list(unfound_emails) + \
+            [u'#{}'.format(team) for team in list(unfound_teams)]
 
         if len(unfound_actors) > 0:
             raise serializers.ValidationError(

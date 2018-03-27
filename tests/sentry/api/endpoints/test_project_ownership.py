@@ -9,7 +9,10 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
     def setUp(self):
         self.login_as(user=self.user)
 
-        self.team = self.create_team(organization=self.organization, slug='tiger-team')
+        self.team = self.create_team(
+            organization=self.organization,
+            slug='tiger-team',
+            members=[self.user])
 
         self.project = self.project = self.create_project(
             organization=self.organization,
