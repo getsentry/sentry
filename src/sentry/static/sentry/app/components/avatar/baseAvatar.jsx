@@ -1,4 +1,3 @@
-import {sortedIndexOf} from 'lodash';
 import MD5 from 'crypto-js/md5';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -47,12 +46,14 @@ class BaseAvatar extends React.Component {
 
   getRemoteImageSize = () => {
     let {remoteImageSize, size} = this.props;
+    // Try to make sure remote image size is >= requested size
+    // If requested size > allowed size then use the largest allowed size
+    let allowed =
+      size &&
+      (ALLOWED_SIZES.find(allowedSize => allowedSize >= size) ||
+        ALLOWED_SIZES[ALLOWED_SIZES.length - 1]);
 
-    return (
-      remoteImageSize ||
-      (size && ALLOWED_SIZES[sortedIndexOf(ALLOWED_SIZES, size)]) ||
-      DEFAULT_GRAVATAR_SIZE
-    );
+    return remoteImageSize || allowed || DEFAULT_GRAVATAR_SIZE;
   };
 
   buildGravatarUrl = () => {
