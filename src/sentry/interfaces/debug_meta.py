@@ -20,13 +20,30 @@ def imagetype(name):
     return decorator
 
 
+def _addr(x):
+    return '0x%x' % parse_addr(x)
+
+
+@imagetype('symbolic')
+def process_symbolic_image(image):
+    try:
+        symbolic_image = {
+            'id': normalize_debug_id(image['id']),
+            'image_addr': _addr(image.get('image_addr')),
+            'image_size': parse_addr(image['image_size']),
+            'image_vmaddr': _addr(image.get('image_vmaddr') or 0),
+            'name': image.get('name'),
+        }
+        return symbolic_image
+    except KeyError as e:
+        raise InterfaceValidationError('Missing value for symbolic image: %s' % e.args[0])
+
+
 @imagetype('apple')
 def process_apple_image(image):
-    def _addr(x):
-        return '0x%x' % parse_addr(x)
-
     try:
         apple_image = {
+            'uuid': six.text_type(uuid.UUID(image['uuid'])),
             'arch': image.get('arch'),
             'cpu_type': image.get('cpu_type'),
             'cpu_subtype': image.get('cpu_subtype'),
@@ -35,19 +52,13 @@ def process_apple_image(image):
             'image_vmaddr': _addr(image.get('image_vmaddr') or 0),
             'name': image.get('name'),
         }
-        if image.get('uuid') is not None:
-            apple_image['uuid'] = six.text_type(uuid.UUID(image['uuid']))
-        if image.get('id') is not None:
-            apple_image['id'] = normalize_debug_id(image['id'])
+
         if image.get('major_version') is not None:
             apple_image['major_version'] = image['major_version']
         if image.get('minor_version') is not None:
             apple_image['minor_version'] = image['minor_version']
         if image.get('revision_version') is not None:
             apple_image['revision_version'] = image['revision_version']
-
-        if 'id' not in apple_image and 'uuid' not in apple_image:
-            raise KeyError('id or uuid')
 
         return apple_image
     except KeyError as e:

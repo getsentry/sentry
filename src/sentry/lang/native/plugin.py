@@ -26,6 +26,7 @@ FRAME_CACHE_VERSION = 6
 
 class NativeStacktraceProcessor(StacktraceProcessor):
     supported_platforms = ('cocoa', 'native')
+    supported_images = ('apple', 'symbolic')
 
     def __init__(self, *args, **kwargs):
         StacktraceProcessor.__init__(self, *args, **kwargs)
@@ -38,7 +39,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             self.debug_meta = debug_meta
             self.sdk_info = get_sdk_from_event(self.data)
             self.object_lookup = ObjectLookup(
-                [img for img in self.debug_meta['images'] if img['type'] == 'apple']
+                [img for img in self.debug_meta['images'] if img['type'] in self.supported_images]
             )
         else:
             self.available = False

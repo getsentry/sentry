@@ -36,20 +36,65 @@ class DebugMetaTest(TestCase):
         )
 
         assert len(interface.images) == 1
-        img = interface.images[0]
-        assert img['type'] == 'apple'
-        assert img['cpu_type'] == 16777228
-        assert img['cpu_subtype'] == 0
-        assert img['uuid'] == 'c05b4ddd-69a7-3840-a649-32180d341587'
-        assert img['image_vmaddr'] == '0x100000000'
-        assert img['image_addr'] == '0x100020000'
-        assert img['image_size'] == 32768
-        assert img['name'] == image_name
+        assert interface.images[0] == {
+            'type': 'apple',
+            'arch': None,
+            'cpu_type': 16777228,
+            'cpu_subtype': 0,
+            'uuid': 'c05b4ddd-69a7-3840-a649-32180d341587',
+            'image_vmaddr': '0x100000000',
+            'image_addr': '0x100020000',
+            'image_size': 32768,
+            'name': image_name,
+        }
+        assert interface.sdk_info == {
+            'build': None,
+            'dsym_type': 'none',
+            'sdk_name': 'iOS',
+            'version_major': 9,
+            'version_minor': 3,
+            'version_patchlevel': 0,
+        }
 
-        assert interface.sdk_info['sdk_name'] == 'iOS'
-        assert interface.sdk_info['version_major'] == 9
-        assert interface.sdk_info['version_minor'] == 3
-        assert interface.sdk_info['version_patchlevel'] == 0
+    def test_symbolic_behavior(self):
+        interface = DebugMeta.to_python(
+            {
+                "images": [
+                    {
+                        "type": "symbolic",
+                        "id": "3249d99d-0c40-4931-8610-f4e4fb0b6936-1",
+                        "image_addr": 2752512,
+                        "image_size": 36864,
+                        "name": "C:\\projects\\breakpad-tools\\windows\\Release\\crash.exe",
+                    }
+                ],
+                "sdk_info": {
+                    "sdk_name": "Windows",
+                    "version_major": 10,
+                    "version_minor": 0,
+                    "version_patchlevel": 14393
+                }
+            }
+        )
+
+        assert len(interface.images) == 1
+        assert interface.images[0] == {
+            'type': 'symbolic',
+            'id': '3249d99d-0c40-4931-8610-f4e4fb0b6936-1',
+            'image_vmaddr': '0x0',
+            'image_addr': '0x2a0000',
+            'image_size': 36864,
+            'name': 'C:\\projects\\breakpad-tools\\windows\\Release\\crash.exe',
+        }
+
+        assert interface.sdk_info == {
+            'build': None,
+            'dsym_type': 'none',
+            'sdk_name': 'Windows',
+            'version_major': 10,
+            'version_minor': 0,
+            'version_patchlevel': 14393,
+        }
 
     def test_proguard_behavior(self):
         interface = DebugMeta.to_python(
