@@ -162,7 +162,7 @@ const ProjectEnvironments = createReactClass({
       () => {
         addSuccessMessage(
           tct('Changed default environment to [environment]', {
-            environment: env.name,
+            environment: env.displayName,
           })
         );
       },
@@ -174,7 +174,7 @@ const ProjectEnvironments = createReactClass({
         }));
         addErrorMessage(
           tct('Unable to change default environment to [environment]', {
-            environment: env.name,
+            environment: env.displayName,
           })
         );
       }
