@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
-.glamor-19 {
+.glamor-35 {
   background: #fff;
   border: 1px solid;
   margin-bottom: NaNpx;
@@ -41,7 +41,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
   padding: 15px 20px;
 }
 
-.glamor-18 {
+.glamor-34 {
   padding: 20px;
 }
 
@@ -56,7 +56,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
   align-items: center;
 }
 
-.glamor-10 {
+.glamor-18 {
   display: -webkit-box;
   display: -webkit-flex;
   display: -ms-flexbox;
@@ -67,7 +67,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
   margin-bottom: 10px;
 }
 
-.glamor-16 {
+.glamor-12 {
   box-sizing: border-box;
   display: -webkit-box;
   display: -webkit-flex;
@@ -79,11 +79,48 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
   align-items: center;
 }
 
+.glamor-16 {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  padding: 0 15px;
+}
+
+.glamor-10 {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-flex: 1;
+  -ms-flex: 1;
+  flex: 1;
+  line-height: 36px;
+  margin: 5px 0;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+}
+
+.glamor-10 .control-group {
+  margin: 0 6px;
+}
+
+.glamor-14 {
+  margin-left: 6px;
+}
+
 <ProjectAlertRuleDetails
   params={
     Object {
       "orgId": "org-slug",
       "projectId": "project-slug",
+      "ruleId": "1",
     }
   }
 >
@@ -98,7 +135,6 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
           Array [
             Object {
               "enabled": true,
-              "html": "Send a notification for all services",
               "id": "sentry.rules.actions.notify1",
               "label": "Send a notification for all services",
             },
@@ -108,7 +144,6 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
           Array [
             Object {
               "enabled": true,
-              "html": "An event is seen",
               "id": "sentry.rules.conditions.1",
               "label": "An event is seen",
             },
@@ -144,6 +179,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
           Object {
             "orgId": "org-slug",
             "projectId": "project-slug",
+            "ruleId": "1",
           }
         }
         project={
@@ -168,7 +204,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
               className="rule-detail"
             >
               <div
-                className="rule-detail glamor-19 glamor-20"
+                className="rule-detail glamor-35 glamor-36"
               >
                 <PanelHeader>
                   <StyledPanelHeader>
@@ -189,7 +225,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                             className="glamor-0 glamor-1"
                             is={null}
                           >
-                            New Alert Rule
+                            Edit Alert Rule
                           </div>
                         </Base>
                       </Flex>
@@ -202,14 +238,14 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                   flex={false}
                 >
                   <div
-                    className="glamor-18"
+                    className="glamor-34"
                   >
                     <h6>
                       Rule name
                       :
                     </h6>
                     <TextField
-                      defaultValue=""
+                      defaultValue="My alert rule"
                       disabled={false}
                       hideErrorMessage={false}
                       name="name"
@@ -232,7 +268,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                             placeholder="My Rule Name"
                             required={true}
                             type="text"
-                            value=""
+                            value="My alert rule"
                           />
                         </div>
                       </div>
@@ -280,7 +316,6 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                               "width": 100,
                             }
                           }
-                          value="all"
                         >
                           <div
                             className="control-group required"
@@ -304,7 +339,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                 onChange={[Function]}
                                 placeholder="--"
                                 required={true}
-                                value="all"
+                                value=""
                               >
                                 <option
                                   key="all"
@@ -336,12 +371,18 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                       handleAddRow={[Function]}
                       handleDeleteRow={[Function]}
                       handlePropertyChange={[Function]}
-                      items={Array []}
+                      items={
+                        Array [
+                          Object {
+                            "id": "sentry.rules.conditions.1",
+                            "name": "An alert is first seen",
+                          },
+                        ]
+                      }
                       nodes={
                         Array [
                           Object {
                             "enabled": true,
-                            "html": "An event is seen",
                             "id": "sentry.rules.conditions.1",
                             "label": "An event is seen",
                           },
@@ -353,8 +394,87 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                       >
                         <RuleNodes>
                           <div
-                            className="glamor-10 glamor-11"
-                          />
+                            className="glamor-18 glamor-19"
+                          >
+                            <RuleNode
+                              data={
+                                Object {
+                                  "id": "sentry.rules.conditions.1",
+                                  "name": "An alert is first seen",
+                                }
+                              }
+                              handleDelete={[Function]}
+                              handlePropertyChange={[Function]}
+                              key="0"
+                              node={
+                                Object {
+                                  "enabled": true,
+                                  "id": "sentry.rules.conditions.1",
+                                  "label": "An event is seen",
+                                }
+                              }
+                            >
+                              <RuleNodeRow>
+                                <div
+                                  className="glamor-16 glamor-17"
+                                >
+                                  <RuleNodeForm>
+                                    <div
+                                      className="glamor-10 glamor-11"
+                                    >
+                                      <input
+                                        name="id"
+                                        type="hidden"
+                                        value="sentry.rules.conditions.1"
+                                      />
+                                      An event is seen
+                                    </div>
+                                  </RuleNodeForm>
+                                  <RuleNodeControls>
+                                    <div
+                                      className="glamor-14 glamor-15"
+                                    >
+                                      <Button
+                                        disabled={false}
+                                        onClick={[Function]}
+                                        size="small"
+                                        tabIndex="-1"
+                                        type="button"
+                                      >
+                                        <button
+                                          className="button button-default button-sm"
+                                          disabled={false}
+                                          onClick={[Function]}
+                                          role="button"
+                                          tabIndex="-1"
+                                          type="button"
+                                        >
+                                          <Flex
+                                            align="center"
+                                            className="button-label"
+                                          >
+                                            <Base
+                                              align="center"
+                                              className="button-label glamor-12"
+                                            >
+                                              <div
+                                                className="button-label glamor-12"
+                                                is={null}
+                                              >
+                                                <span
+                                                  className="icon icon-trash"
+                                                />
+                                              </div>
+                                            </Base>
+                                          </Flex>
+                                        </button>
+                                      </Button>
+                                    </div>
+                                  </RuleNodeControls>
+                                </div>
+                              </RuleNodeRow>
+                            </RuleNode>
+                          </div>
                         </RuleNodes>
                         <fieldset>
                           <SelectInput
@@ -430,6 +550,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                           "marginRight": 5,
                         }
                       }
+                      value="staging"
                     >
                       <div
                         className="control-group required"
@@ -452,7 +573,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                             onChange={[Function]}
                             placeholder="--"
                             required={true}
-                            value=""
+                            value="staging"
                           >
                             <option
                               key="__all_environments__"
@@ -472,12 +593,18 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                       handleAddRow={[Function]}
                       handleDeleteRow={[Function]}
                       handlePropertyChange={[Function]}
-                      items={Array []}
+                      items={
+                        Array [
+                          Object {
+                            "id": "sentry.rules.actions.notify1",
+                            "name": "Send a notification to all services",
+                          },
+                        ]
+                      }
                       nodes={
                         Array [
                           Object {
                             "enabled": true,
-                            "html": "Send a notification for all services",
                             "id": "sentry.rules.actions.notify1",
                             "label": "Send a notification for all services",
                           },
@@ -487,8 +614,87 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                       <div>
                         <RuleNodes>
                           <div
-                            className="glamor-10 glamor-11"
-                          />
+                            className="glamor-18 glamor-19"
+                          >
+                            <RuleNode
+                              data={
+                                Object {
+                                  "id": "sentry.rules.actions.notify1",
+                                  "name": "Send a notification to all services",
+                                }
+                              }
+                              handleDelete={[Function]}
+                              handlePropertyChange={[Function]}
+                              key="0"
+                              node={
+                                Object {
+                                  "enabled": true,
+                                  "id": "sentry.rules.actions.notify1",
+                                  "label": "Send a notification for all services",
+                                }
+                              }
+                            >
+                              <RuleNodeRow>
+                                <div
+                                  className="glamor-16 glamor-17"
+                                >
+                                  <RuleNodeForm>
+                                    <div
+                                      className="glamor-10 glamor-11"
+                                    >
+                                      <input
+                                        name="id"
+                                        type="hidden"
+                                        value="sentry.rules.actions.notify1"
+                                      />
+                                      Send a notification for all services
+                                    </div>
+                                  </RuleNodeForm>
+                                  <RuleNodeControls>
+                                    <div
+                                      className="glamor-14 glamor-15"
+                                    >
+                                      <Button
+                                        disabled={false}
+                                        onClick={[Function]}
+                                        size="small"
+                                        tabIndex="-1"
+                                        type="button"
+                                      >
+                                        <button
+                                          className="button button-default button-sm"
+                                          disabled={false}
+                                          onClick={[Function]}
+                                          role="button"
+                                          tabIndex="-1"
+                                          type="button"
+                                        >
+                                          <Flex
+                                            align="center"
+                                            className="button-label"
+                                          >
+                                            <Base
+                                              align="center"
+                                              className="button-label glamor-12"
+                                            >
+                                              <div
+                                                className="button-label glamor-12"
+                                                is={null}
+                                              >
+                                                <span
+                                                  className="icon icon-trash"
+                                                />
+                                              </div>
+                                            </Base>
+                                          </Flex>
+                                        </button>
+                                      </Button>
+                                    </div>
+                                  </RuleNodeControls>
+                                </div>
+                              </RuleNodeRow>
+                            </RuleNode>
+                          </div>
                         </RuleNodes>
                         <fieldset>
                           <SelectInput
@@ -599,7 +805,6 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                               "width": 140,
                             }
                           }
-                          value={30}
                         >
                           <div
                             className="control-group required"
@@ -623,7 +828,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                 onChange={[Function]}
                                 placeholder="--"
                                 required={true}
-                                value={30}
+                                value=""
                               >
                                 <option
                                   key="5"
@@ -705,10 +910,10 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                           >
                             <Base
                               align="center"
-                              className="button-label glamor-16"
+                              className="button-label glamor-12"
                             >
                               <div
-                                className="button-label glamor-16"
+                                className="button-label glamor-12"
                                 is={null}
                               >
                                 Save Rule
@@ -828,7 +1033,6 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
           Array [
             Object {
               "enabled": true,
-              "html": "Send a notification for all services",
               "id": "sentry.rules.actions.notify1",
               "label": "Send a notification for all services",
             },
@@ -838,7 +1042,6 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
           Array [
             Object {
               "enabled": true,
-              "html": "An event is seen",
               "id": "sentry.rules.conditions.1",
               "label": "An event is seen",
             },
@@ -1071,7 +1274,6 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                         Array [
                           Object {
                             "enabled": true,
-                            "html": "An event is seen",
                             "id": "sentry.rules.conditions.1",
                             "label": "An event is seen",
                           },
@@ -1207,7 +1409,6 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                         Array [
                           Object {
                             "enabled": true,
-                            "html": "Send a notification for all services",
                             "id": "sentry.rules.actions.notify1",
                             "label": "Send a notification for all services",
                           },
