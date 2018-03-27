@@ -4,6 +4,12 @@ import React from 'react';
 import KeyValueList from './interfaces/keyValueList';
 import {t} from '../../locale';
 
+const keyMapping = {
+  image_uuid: 'Debug ID',
+  image_name: 'File Name',
+  image_path: 'File Path',
+};
+
 class EventErrorItem extends React.Component {
   static propTypes = {
     error: PropTypes.object.isRequired,
@@ -40,7 +46,7 @@ class EventErrorItem extends React.Component {
       data.image_path = path.length ? path.join(separator) + separator : '';
     }
 
-    return _.mapKeys(data, (value, key) => _.startCase(key));
+    return _.mapKeys(data, (value, key) => t(keyMapping[key] || _.startCase(key)));
   }
 
   render() {
