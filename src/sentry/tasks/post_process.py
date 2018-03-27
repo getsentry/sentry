@@ -170,6 +170,14 @@ def index_event_tags(organization_id, project_id, event_id, tags,
     if date_added is not None:
         create_event_tags_kwargs['date_added'] = date_added
 
+    metrics.timing(
+        'tagstore.tags_per_event',
+        len(tags),
+        tags={
+            'organization_id': organization_id,
+        }
+    )
+
     tagstore.create_event_tags(
         project_id=project_id,
         group_id=group_id,
