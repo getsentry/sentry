@@ -327,8 +327,11 @@ class MailPlugin(NotificationPlugin):
         group = six.next(iter(counts))
         subject = self.get_digest_subject(group, counts, start)
 
-        if ProjectOwnership.objects.filter(project_id=project.id).exists():
-            self.send_digest_with_owners(context, project, subject, headers)
+        events = get_events_from_digest(context['digest'])
+        event_actors = ProjectOwnership.get_actors(project.id, [event[0] for event in events])
+
+        if event_actors != ProjectOwnership.Everyone:
+            self.send_digest_with_owners(project, events, event_actors, context, subject, headers)
             return
 
         for user_id in self.get_send_to(project):
@@ -345,10 +348,8 @@ class MailPlugin(NotificationPlugin):
                 send_to=[user_id],
             )
 
-    def send_digest_with_owners(self, context, project, subject, headers):
+    def send_digest_with_owners(self, project, events, event_actors, context, subject, headers):
         original_context = context
-        events = get_events_from_digest(context['digest'])
-        event_actors = ProjectOwnership.get_actors(project.id, [event[0] for event in events])
         event_users = self.event_actors_to_user_ids(event_actors)
 
         for user_id in self.get_send_to(project):
