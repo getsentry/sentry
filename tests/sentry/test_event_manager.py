@@ -1134,6 +1134,19 @@ class EventManagerTest(TransactionTestCase):
         )
         manager.normalize()
 
+    def test_checksum_rehashed(self):
+        checksum = 'invalid checksum hash'
+        manager = EventManager(
+            self.make_event(**{
+                'checksum': checksum,
+            })
+        )
+        manager.normalize()
+        event = manager.save(self.project.id)
+
+        hashes = [gh.hash for gh in GroupHash.objects.filter(group=event.group)]
+        assert hashes == [md5_from_hash(checksum), checksum]
+
 
 class ProcessTimestampTest(TestCase):
     def test_iso_timestamp(self):
