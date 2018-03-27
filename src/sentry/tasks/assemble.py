@@ -46,9 +46,9 @@ def assemble_dif(project_id, name, checksum, chunks, **kwargs):
                                     % len(result))
                 return
 
-            dsym_type, cpu, file_uuid, filename = result[0]
+            dsym_type, cpu, file_id, filename = result[0]
             dsym, created = dsymfile.create_dsym_from_id(
-                project, dsym_type, cpu, file_uuid,
+                project, dsym_type, cpu, file_id,
                 os.path.basename(name),
                 file=file)
             delete_file = False
