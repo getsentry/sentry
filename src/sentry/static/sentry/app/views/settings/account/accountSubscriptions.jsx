@@ -13,6 +13,7 @@ import SettingsPageHeader from '../components/settingsPageHeader';
 import Switch from '../../../components/switch';
 import IndicatorStore from '../../../stores/indicatorStore';
 import TextBlock from '../components/text/textBlock';
+import EmptyMessage from '../components/emptyMessage';
 
 const ENDPOINT = '/users/me/subscriptions/';
 
@@ -97,31 +98,35 @@ class AccountSubscriptions extends AsyncView {
           </PanelHeader>
 
           <PanelBody>
-            {this.state.subscriptions.map((subscription, index) => (
-              <PanelItem p={2} align="center" key={subscription.listId}>
-                <Box flex="1">
-                  <SubscriptionName>{subscription.listName}</SubscriptionName>
-                  {subscription.listDescription && (
-                    <Description>{subscription.listDescription}</Description>
-                  )}
-                </Box>
-                <Flex direction="column" align="flex-end">
-                  <Switch
-                    isActive={subscription.subscribed}
-                    size="lg"
-                    toggle={this.handleToggle.bind(this, subscription, index)}
-                  />
-                  {subscription.subscribed && (
-                    <SubscribedDescription>
-                      <div>{subscription.email} on </div>
-                      <div>
-                        <DateTime shortDate date={subscription.subscribedDate} />
-                      </div>
-                    </SubscribedDescription>
-                  )}
-                </Flex>
-              </PanelItem>
-            ))}
+            {this.state.subscriptions.length ? (
+              this.state.subscriptions.map((subscription, index) => (
+                <PanelItem p={2} align="center" key={subscription.listId}>
+                  <Box flex="1">
+                    <SubscriptionName>{subscription.listName}</SubscriptionName>
+                    {subscription.listDescription && (
+                      <Description>{subscription.listDescription}</Description>
+                    )}
+                  </Box>
+                  <Flex direction="column" align="flex-end">
+                    <Switch
+                      isActive={subscription.subscribed}
+                      size="lg"
+                      toggle={this.handleToggle.bind(this, subscription, index)}
+                    />
+                    {subscription.subscribed && (
+                      <SubscribedDescription>
+                        <div>{subscription.email} on </div>
+                        <div>
+                          <DateTime shortDate date={subscription.subscribedDate} />
+                        </div>
+                      </SubscribedDescription>
+                    )}
+                  </Flex>
+                </PanelItem>
+              ))
+            ) : (
+              <EmptyMessage>{t("You don't have any subscriptions.")}</EmptyMessage>
+            )}
           </PanelBody>
         </Panel>
         <TextBlock>

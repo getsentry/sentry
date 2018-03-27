@@ -87,6 +87,9 @@ const theme = {
   },
 
   grid: 8,
+  fontSizeSmall: '12px',
+  fontSizeMedium: '16px',
+  fontSizeLarge: '18px',
 
   settings: {
     containerWidth: '1140px',
@@ -99,11 +102,6 @@ const theme = {
     familyMono: 'Monaco, Consolas, "Courier New", monospace',
     lineHeightHeading: '1.15',
     lineHeightBody: '1.4',
-    size: {
-      default: '12px',
-      small: '14px',
-      large: '18px',
-    },
   },
 };
 

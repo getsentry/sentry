@@ -157,22 +157,18 @@ class ApiApplications extends AsyncView {
       <div>
         <SettingsPageHeader title="API Applications" action={action} />
 
-        {isEmpty && (
-          <EmptyMessage>{t("You haven't created any applications yet.")}</EmptyMessage>
-        )}
+        <Panel>
+          <PanelHeader disablePadding>
+            <Flex align="center">
+              <Box px={2} flex="1">
+                {t('Application Name')}
+              </Box>
+            </Flex>
+          </PanelHeader>
 
-        {!isEmpty && (
-          <Panel>
-            <PanelHeader disablePadding>
-              <Flex align="center">
-                <Box px={2} flex="1">
-                  {t('Application Name')}
-                </Box>
-              </Flex>
-            </PanelHeader>
-
-            <PanelBody>
-              {this.state.appList.map(app => {
+          <PanelBody>
+            {!isEmpty ? (
+              this.state.appList.map(app => {
                 return (
                   <ApiApplicationRow
                     key={app.id}
@@ -180,10 +176,14 @@ class ApiApplications extends AsyncView {
                     onRemove={this.handleRemoveApplication}
                   />
                 );
-              })}
-            </PanelBody>
-          </Panel>
-        )}
+              })
+            ) : (
+              <EmptyMessage>
+                {t("You haven't created any applications yet.")}
+              </EmptyMessage>
+            )}
+          </PanelBody>
+        </Panel>
       </div>
     );
   }

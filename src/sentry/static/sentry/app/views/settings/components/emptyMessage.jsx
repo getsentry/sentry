@@ -10,29 +10,27 @@ const Wrapper = styled.div`
   flex-direction: column;
   color: ${p => p.theme.gray4};
   padding: ${p => p.theme.grid * 3}px;
-  font-size: 1.5em;
+  font-size: ${p => (p.theme.large ? p.theme.fontSizeLarge : p.theme.fontSizeMedium)};
   font-weight: bold;
 `;
 
-const Icon = styled.div`
+const StyledInlineSvg = styled(InlineSvg)`
   display: block;
-  margin-bottom: ${p => p.theme.grid * 2.5}px;
   color: ${p => p.theme.gray1};
+  width: 2em;
+  height: 2em;
+  margin-bottom: 0.75em;
 `;
 
 const Action = styled.div`
   display: block;
-  margin-top: ${p => p.theme.grid * 2.5}px;
+  margin-top: 0.75em;
 `;
 
-const EmptyMessage = ({icon, children, action}) => {
+const EmptyMessage = ({icon, children, action, size}) => {
   return (
-    <Wrapper>
-      {icon && (
-        <Icon>
-          <InlineSvg src={icon} size="48px" />
-        </Icon>
-      )}
+    <Wrapper size={size}>
+      {icon && <StyledInlineSvg src={icon} />}
       <div className="ref-message">{children}</div>
       {action && <Action>{action}</Action>}
     </Wrapper>
@@ -42,6 +40,7 @@ const EmptyMessage = ({icon, children, action}) => {
 EmptyMessage.propTypes = {
   icon: PropTypes.string,
   action: PropTypes.element,
+  size: PropTypes.oneOf(['large', 'medium']),
 };
 
 export default EmptyMessage;

@@ -31,7 +31,9 @@ storiesOf('EmptyMessage', module)
     withInfo('Put this in a panel for maximum effect')(() => (
       <Panel>
         <PanelHeader>Members</PanelHeader>
-        <EmptyMessage icon="icon-user">Sentry is better with friends</EmptyMessage>
+        <EmptyMessage icon="icon-user" size="large">
+          Sentry is better with friends
+        </EmptyMessage>
       </Panel>
     ))
   )
