@@ -72,7 +72,7 @@ class ProjectCrumb extends React.Component {
         }
         onSelect={item => {
           browserHistory.push(
-            recreateRoute(route, {
+            recreateRoute('', {
               routes,
               params: {...params, projectId: item.value},
             })
