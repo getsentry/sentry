@@ -638,6 +638,12 @@ window.TestStubs = {
   ProjectAlertRule: () => {
     return {
       id: '1',
+      name: 'My alert rule',
+      environment: 'staging',
+      conditions: [{name: 'An alert is first seen', id: 'sentry.rules.conditions.1'}],
+      actions: [
+        {name: 'Send a notification to all services', id: 'sentry.rules.actions.notify1'},
+      ],
     };
   },
 
@@ -645,7 +651,6 @@ window.TestStubs = {
     return {
       actions: [
         {
-          html: 'Send a notification for all services',
           id: 'sentry.rules.actions.notify1',
           label: 'Send a notification for all services',
           enabled: true,
@@ -653,7 +658,6 @@ window.TestStubs = {
       ],
       conditions: [
         {
-          html: 'An event is seen',
           id: 'sentry.rules.conditions.1',
           label: 'An event is seen',
           enabled: true,
