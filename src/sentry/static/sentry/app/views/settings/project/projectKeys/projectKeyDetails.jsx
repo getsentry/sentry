@@ -288,7 +288,6 @@ const KeySettings = createReactClass({
     organization: PropTypes.object.isRequired,
     project: PropTypes.object.isRequired,
     access: PropTypes.object.isRequired,
-    features: PropTypes.object.isRequired,
     data: SentryTypes.ProjectKey.isRequired,
     onRemove: PropTypes.func.isRequired,
     rateLimitsEnabled: PropTypes.bool,
@@ -327,7 +326,7 @@ const KeySettings = createReactClass({
 
   render() {
     let {keyId, orgId, projectId} = this.props.params;
-    let {access, features, data, rateLimitsEnabled, organization, project} = this.props;
+    let {access, data, rateLimitsEnabled, organization, project} = this.props;
     let apiEndpoint = `/projects/${orgId}/${projectId}/keys/${keyId}/`;
 
     return (
@@ -383,7 +382,6 @@ const KeySettings = createReactClass({
             <ProjectKeyCredentials
               projectId={`${data.projectId}`}
               data={data}
-              features={features}
               showPublicKey
               showSecretKey
               showProjectId
@@ -460,7 +458,6 @@ export default class ProjectKeyDetails extends AsyncView {
           organization={organization}
           project={project}
           access={access}
-          features={features}
           params={params}
           rateLimitsEnabled={hasRateLimitsEnabled}
           data={data}
