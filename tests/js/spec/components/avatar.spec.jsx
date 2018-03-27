@@ -61,6 +61,34 @@ describe('Avatar', function() {
       );
     });
 
+    it.only('should show an upload with the correct size', function() {
+      let user = Object.assign({}, USER, {
+        avatar: {
+          avatarType: 'upload',
+          avatarUuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e',
+        },
+      });
+      let avatar = mount(<Avatar user={user} size={76} />);
+      expect(avatar.find('BaseAvatar img').prop('src')).toMatch(
+        '/avatar/2d641b5d-8c74-44de-9cb6-fbd54701b35e/?s=80'
+      );
+
+      avatar = mount(<Avatar user={user} size={121} />);
+      expect(avatar.find('BaseAvatar img').prop('src')).toMatch(
+        '/avatar/2d641b5d-8c74-44de-9cb6-fbd54701b35e/?s=120'
+      );
+
+      avatar = mount(<Avatar user={user} size={32} />);
+      expect(avatar.find('BaseAvatar img').prop('src')).toMatch(
+        '/avatar/2d641b5d-8c74-44de-9cb6-fbd54701b35e/?s=32'
+      );
+
+      avatar = mount(<Avatar user={user} size={1} />);
+      expect(avatar.find('BaseAvatar img').prop('src')).toMatch(
+        '/avatar/2d641b5d-8c74-44de-9cb6-fbd54701b35e/?s=20'
+      );
+    });
+
     it('should not show upload or gravatar when avatar type is letter', function() {
       let user = Object.assign({}, USER, {
         avatar: {
