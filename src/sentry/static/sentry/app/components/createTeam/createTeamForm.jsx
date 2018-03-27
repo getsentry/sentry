@@ -45,7 +45,8 @@ export default class CreateTeamForm extends React.Component {
               label={t('Team Slug')}
               placeholder={t('e.g. operations, web-frontend, desktop')}
               help={t('May contain letters, numbers, dashes and underscores.')}
-              required={true}
+              required
+              flexibleControlStateSize
               inline={false}
               p={0}
             />
@@ -54,7 +55,8 @@ export default class CreateTeamForm extends React.Component {
               name="name"
               label={t('Team Name')}
               placeholder={t('e.g. Operations, Web, Desktop')}
-              required={true}
+              required
+              flexibleControlStateSize
               inline={false}
               p={0}
             />
