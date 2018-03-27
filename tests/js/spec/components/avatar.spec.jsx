@@ -61,7 +61,7 @@ describe('Avatar', function() {
       );
     });
 
-    it.only('should show an upload with the correct size', function() {
+    it('should show an upload with the correct size', function() {
       let user = Object.assign({}, USER, {
         avatar: {
           avatarType: 'upload',
