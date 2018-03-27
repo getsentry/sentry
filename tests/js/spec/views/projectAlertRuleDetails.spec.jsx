@@ -2,39 +2,33 @@ import React from 'react';
 import {mount} from 'enzyme';
 import {browserHistory} from 'react-router';
 
-import {Client} from 'app/api';
-
 import ProjectAlertRuleDetails from 'app/views/projectAlertRuleDetails';
 
 jest.mock('jquery');
 
 describe('ProjectAlertRuleDetails', function() {
-  let sandbox, replaceState;
   beforeEach(function() {
-    sandbox = sinon.sandbox.create();
-    Client.clearMockResponses();
+    browserHistory.replace = jest.fn();
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/configuration/',
       method: 'GET',
       body: TestStubs.ProjectAlertRuleConfiguration(),
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/1/',
       method: 'GET',
       body: TestStubs.ProjectAlertRule(),
     });
-
-    replaceState = sandbox.stub(browserHistory, 'replace');
   });
 
   afterEach(function() {
-    sandbox.restore();
+    MockApiClient.clearMockResponses();
   });
 
   describe('New alert rule', function() {
     let wrapper, mock;
     beforeEach(function() {
-      mock = Client.addMockResponse({
+      mock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/rules/',
         method: 'POST',
         body: TestStubs.ProjectAlertRule(),
@@ -62,13 +56,11 @@ describe('ProjectAlertRuleDetails', function() {
       expect(selects.last().props().value).toBe(30);
     });
 
-    // TODO: Rewrite the rule editor to not use  ReactDOM.findDOMNode so this can be tested
-    xdescribe('update', function() {
+    describe('saves', function() {
       let name;
       beforeEach(function() {
         name = wrapper.find('input').first();
-        name.value = 'My rule';
-        name.simulate('change');
+        name.simulate('change', {target: {value: 'My rule'}});
 
         wrapper.find('form').simulate('submit');
       });
@@ -85,7 +77,7 @@ describe('ProjectAlertRuleDetails', function() {
 
       it('updates URL', function() {
         let url = '/org-slug/project-slug/settings/alerts/rules/1/';
-        expect(replaceState.calledWith(url)).toBe(true);
+        expect(browserHistory.replace).toHaveBeenCalledWith(url);
       });
     });
   });
@@ -93,15 +85,15 @@ describe('ProjectAlertRuleDetails', function() {
   describe('Edit alert rule', function() {
     let wrapper, mock;
     beforeEach(function() {
-      mock = Client.addMockResponse({
-        url: '/projects/org-slug/project-slug/rules/',
+      mock = MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/rules/1/',
         method: 'PUT',
         body: TestStubs.ProjectAlertRule(),
       });
 
       wrapper = mount(
         <ProjectAlertRuleDetails
-          params={{orgId: 'org-slug', projectId: 'project-slug'}}
+          params={{orgId: 'org-slug', projectId: 'project-slug', ruleId: '1'}}
         />,
         {
           context: {
@@ -115,14 +107,16 @@ describe('ProjectAlertRuleDetails', function() {
       expect(wrapper).toMatchSnapshot();
     });
 
-    // TODO: Rewrite the rule editor to not use  ReactDOM.findDOMNode so this can be tested
-    xit('updates', function() {
-      let name = wrapper.find('input').first();
-      name.value = 'My rule';
-      name.simulate('change');
+    it('updates', function() {
+      const name = wrapper.find('input').first();
+      name.simulate('change', {target: {value: 'My rule'}});
 
       wrapper.find('form').simulate('submit');
       expect(mock).toHaveBeenCalled();
+    });
+
+    it('does not update URL', function() {
+      expect(browserHistory.replace).not.toHaveBeenCalled();
     });
   });
 });
