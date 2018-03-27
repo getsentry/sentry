@@ -35,6 +35,10 @@ const ProjectContext = createReactClass({
   displayName: 'ProjectContext',
 
   propTypes: {
+    /**
+     * If true, this will not change `state.loading` during `fetchData` phase
+     */
+    skipReload: PropTypes.bool,
     projectId: PropTypes.string,
     orgId: PropTypes.string,
     location: PropTypes.object,
@@ -73,7 +77,9 @@ const ProjectContext = createReactClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    if (nextProps.projectId !== this.props.projectId) {
+    if (nextProps.projectId === this.props.projectId) return;
+
+    if (!nextProps.skipReload) {
       this.remountComponent();
     }
   },
@@ -133,13 +139,13 @@ const ProjectContext = createReactClass({
   },
 
   fetchData() {
-    let {orgId, projectId, location} = this.props;
+    let {orgId, projectId, location, skipReload} = this.props;
     // we fetch core access/information from the global organization data
     let activeProject = this.identifyProject();
     let hasAccess = activeProject && activeProject.hasAccess;
 
     this.setState({
-      loading: true,
+      loading: !skipReload ? true : undefined,
       // we bind project initially, but it'll rebind
       project: activeProject,
     });
