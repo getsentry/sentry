@@ -32,9 +32,11 @@ class ProjectOwnership(Model):
     __repr__ = sane_repr('project_id', 'is_active')
 
     @classmethod
-    def get_owners(cls, project_id, data):
+    def get_actors(cls, project_id, events):
         """
-        For a given project_id, and event data blob.
+        For a given project_id, and a list of events,
+        returns a dictionary of event to list of resolved actors
+        and the rule matcher (if applicable).
 
         If Everyone is returned, this means we implicitly are
         falling through our rules and everyone is responsible.
@@ -45,48 +47,31 @@ class ProjectOwnership(Model):
         try:
             ownership = cls.objects.get(project_id=project_id)
         except cls.DoesNotExist:
-            ownership = cls(
-                project_id=project_id,
-            )
-
-        if ownership.schema is not None:
-            for rule in load_schema(ownership.schema):
-                if rule.test(data):
-                    # This is O(n) to resolve, but should be fine for now
-                    # since we don't even explain that you can use multiple
-                    # let alone a number that would be potentially abusive.
-                    owners = []
-                    for o in rule.owners:
-                        try:
-                            owners.append(resolve_actor(o, project_id))
-                        except UnknownActor:
-                            continue
-                    return owners, rule.matcher
-
-        owners = cls.Everyone if ownership.fallthrough else []
-        return owners, None
-
-    @classmethod
-    def get_all_actors(cls, project_id, events):
-        try:
-            ownership = cls.objects.get(project_id=project_id)
-        except cls.DoesNotExist:
-            return cls.Everyone
+            ownership = cls(project_id=project_id)
 
         event_actors = {}
-        event_rules = build_event_rules(ownership, events)
-        for event, rules in six.iteritems(event_rules):
-            user_owners = []
-            team_owners = []
-            for rule in rules:
-                for owner in rule.owners:
-                    if owner.type == 'team':
-                        team_owners.append(owner)
-                    if owner.type == 'user':
-                        user_owners.append(owner)
-                user_actors = resolve_user_actors(user_owners, project_id) if user_owners else []
-                team_actors = resolve_team_actors(team_owners, project_id) if team_owners else []
-                event_actors[event] = user_actors + team_actors
+        if ownership.schema is not None:
+            event_rules = build_event_rules(ownership, events)
+            for event, rules in six.iteritems(event_rules):
+                user_owners = []
+                team_owners = []
+                for rule in rules:
+                    # separate users and teams
+                    for owner in rule.owners:
+                        if owner.type == 'team':
+                            team_owners.append(owner)
+                        if owner.type == 'user':
+                            user_owners.append(owner)
+                    user_actors = resolve_user_actors(
+                        user_owners, project_id) if user_owners else []
+                    team_actors = resolve_team_actors(
+                        team_owners, project_id) if team_owners else []
+                    event_actors[event] = (user_actors + team_actors, rule.matcher)
+
+        if not event_actors:
+            actors = cls.Everyone if ownership.fallthrough else {}
+            return actors, None
+
         return event_actors
 
 

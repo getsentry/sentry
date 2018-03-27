@@ -10,7 +10,7 @@ import six
 
 class ProjectOwnershipTestCase(TestCase):
     def test_get_owners_default(self):
-        assert ProjectOwnership.get_owners(self.project.id, {}) == (ProjectOwnership.Everyone, None)
+        assert ProjectOwnership.get_actors(self.project.id, {}) == (ProjectOwnership.Everyone, None)
 
     def test_get_owners_basic(self):
         matcher = Matcher('path', '*.py')
@@ -27,26 +27,40 @@ class ProjectOwnershipTestCase(TestCase):
         )
 
         # No data matches
-        assert ProjectOwnership.get_owners(self.project.id, {}) == (ProjectOwnership.Everyone, None)
+        assert ProjectOwnership.get_actors(self.project.id, {}) == (ProjectOwnership.Everyone, None)
 
-        assert ProjectOwnership.get_owners(
-            self.project.id, {
+        event = self.create_event(
+            group=self.group,
+            message=self.group.message,
+            project=self.project,
+            datetime=self.group.last_seen,
+            data={
                 'sentry.interfaces.Stacktrace': {
                     'frames': [{
                         'filename': 'foo.py',
                     }]
                 }
             }
-        ) == ([Actor(self.user.id, User), Actor(self.team.id, Team)], matcher)
+        )
+        assert ProjectOwnership.get_actors(
+            self.project.id,
+            [event],
+        ) == {event: ([Actor(self.user.id, User), Actor(self.team.id, Team)], matcher)}
 
-        assert ProjectOwnership.get_owners(
-            self.project.id, {
-                'sentry.interfaces.Stacktrace': {
+        assert ProjectOwnership.get_actors(
+            self.project.id,
+            [self.create_event(
+                group=self.group,
+                message=self.group.message,
+                project=self.project,
+                datetime=self.group.last_seen,
+                data={'sentry.interfaces.Stacktrace': {
                     'frames': [{
                         'filename': 'xxxx',
                     }]
-                }
-            }
+                }}
+            )]
+
         ) == (ProjectOwnership.Everyone, None)
 
         # When fallthrough = False, we don't implicitly assign to Everyone
@@ -54,15 +68,21 @@ class ProjectOwnershipTestCase(TestCase):
             project_id=self.project.id,
         ).update(fallthrough=False)
 
-        assert ProjectOwnership.get_owners(
-            self.project.id, {
-                'sentry.interfaces.Stacktrace': {
-                    'frames': [{
-                        'filename': 'xxxx',
-                    }]
-                }
-            }
-        ) == ([], None)
+        assert ProjectOwnership.get_actors(
+            self.project.id,
+            [self.create_event(
+                group=self.group,
+                message=self.group.message,
+                project=self.project,
+                datetime=self.group.last_seen,
+                data={
+                    'sentry.interfaces.Stacktrace': {
+                        'frames': [{
+                            'filename': 'xxxx',
+                        }]
+                    }
+                })]
+        ) == ({}, None)
 
 
 class ProjectOwnershipGetActorsTestCase(TestCase):
@@ -88,19 +108,18 @@ class ProjectOwnershipGetActorsTestCase(TestCase):
             message='hello  world',
             logger='root',
         )
+        self.rule_team = Rule(Matcher('path', '*.py'), [Owner('team', self.team.slug)])
+        self.rule_user = Rule(Matcher('path', '*.jx'), [Owner('user', self.user2.email)])
+        self.rule_users = Rule(Matcher('path', '*.cbl'), [
+            Owner('user', self.user.email),
+            Owner('user', self.user2.email),
+        ])
         ProjectOwnership.objects.create(
             project_id=self.project.id,
             schema=dump_schema([
-                Rule(Matcher('path', '*.py'), [
-                    Owner('team', self.team.slug),
-                ]),
-                Rule(Matcher('path', '*.jx'), [
-                    Owner('user', self.user2.email),
-                ]),
-                Rule(Matcher('path', '*.cbl'), [
-                    Owner('user', self.user.email),
-                    Owner('user', self.user2.email),
-                ])
+                self.rule_team,
+                self.rule_user,
+                self.rule_users,
             ]),
             fallthrough=True,
         )
@@ -169,10 +188,10 @@ class ProjectOwnershipGetActorsTestCase(TestCase):
         events = [event1, event2, event3, event4, event5]
 
         event_actors = {
-            event1: [Actor(self.team.id, Team)],
-            event2: [Actor(self.user2.id, User)],
-            event3: [Actor(self.user.id, User), Actor(self.user2.id, User)],
+            event1: ([Actor(self.team.id, Team)], self.rule_team.matcher),
+            event2: ([Actor(self.user2.id, User)], self.rule_user.matcher),
+            event3: ([Actor(self.user.id, User), Actor(self.user2.id, User)], self.rule_users.matcher),
         }
 
         self.assert_event_actors_equal(event_actors,
-                                       ProjectOwnership.get_all_actors(self.project, events))
+                                       ProjectOwnership.get_actors(self.project, events))
