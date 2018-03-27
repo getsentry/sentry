@@ -6,7 +6,8 @@ from django.utils import timezone
 
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import ProjectOwnership, ProjectTeam, OrganizationMemberTeam, UserEmail
+from sentry.models import ProjectOwnership, resolve_actor, UnknownActor
+
 from sentry.ownership.grammar import parse_rules, dump_schema, ParseError
 
 
@@ -27,48 +28,21 @@ class ProjectOwnershipSerializer(serializers.Serializer):
 
         schema = dump_schema(rules)
 
-        user_emails = []
-        team_slugs = []
-        for rule in schema['rules']:
-            for owner in rule['owners']:
-                if owner['type'] is 'user':
-                    user_emails.append(owner['identifier'])
+        bad_actors = []
+        for rule in rules:
+            for owner in rule.owners:
+                try:
+                    resolve_actor(owner, self.context['ownership'].project_id)
+                except UnknownActor:
+                    if owner.type is 'user':
+                        bad_actors.append(owner.identifier)
 
-                if owner['type'] is 'team':
-                    team_slugs.append(owner['identifier'])
+                    if owner.type is 'team':
+                        bad_actors.append(u'#{}'.format(owner.identifier))
 
-        user_ids = UserEmail.objects.filter(
-            email__in=user_emails
-        ).values_list('user_id', flat=True)
-
-        teams = ProjectTeam.objects.filter(
-            project_id=self.context['ownership'].project_id
-        ).values_list('team', flat=True)
-
-        org_member_user_ids = OrganizationMemberTeam.objects.filter(
-            organizationmember__user_id__in=user_ids,
-            team__in=teams
-        ).values_list('organizationmember__user_id', flat=True)
-
-        validated_user_emails = set(UserEmail.objects.filter(
-            user_id__in=org_member_user_ids
-        ).values_list("email", flat=True))
-
-        unfound_emails = set(user_emails).difference(validated_user_emails)
-
-        validated_team_slugs = set(ProjectTeam.objects.filter(
-            team__slug__in=team_slugs,
-            project_id=self.context['ownership'].project_id
-        ).values_list('team__slug', flat=True))
-
-        unfound_teams = set(team_slugs).difference(validated_team_slugs)
-
-        unfound_actors = list(unfound_emails) + \
-            [u'#{}'.format(team) for team in list(unfound_teams)]
-
-        if len(unfound_actors) > 0:
+        if len(bad_actors) > 0:
             raise serializers.ValidationError(
-                u'Invalid rule owners: {}'.format(", ".join(unfound_actors))
+                u'Invalid rule owners: {}'.format(", ".join(bad_actors))
             )
 
         attrs['schema'] = schema

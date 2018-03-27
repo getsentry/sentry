@@ -82,11 +82,11 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             'raw': '*.js admin@localhost #faketeam',
         })
         assert resp.status_code == 400
-        assert resp.content == '{"raw": ["Invalid rule owners: faketeam"]}'
+        assert resp.content == '{"raw": ["Invalid rule owners: #faketeam"]}'
 
     def test_invalid_mixed(self):
         resp = self.client.put(self.path, {
             'raw': '*.js idont@exist.com admin@localhost #faketeam #tiger-team',
         })
         assert resp.status_code == 400
-        assert resp.content == '{"raw": ["Invalid rule owners: idont@exist.com, faketeam"]}'
+        assert resp.content == '{"raw": ["Invalid rule owners: idont@exist.com, #faketeam"]}'

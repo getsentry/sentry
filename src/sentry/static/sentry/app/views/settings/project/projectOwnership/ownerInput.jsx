@@ -96,7 +96,7 @@ class OwnerInput extends React.Component {
           error.responseJSON.raw[0].startsWith('Invalid rule owners:')
         ) {
           addErrorMessage(
-            t('Unable to save ownership rules changes:' + error.responseJSON.raw[0])
+            t('Unable to save ownership rules changes: ' + error.responseJSON.raw[0])
           );
         } else {
           addErrorMessage(t('Unable to save ownership rules changes'));
