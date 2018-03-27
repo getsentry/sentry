@@ -38,13 +38,9 @@ by the rule's logic. Each rule condition may be associated with a form.
 from __future__ import absolute_import
 
 import logging
-import re
 import six
 
 from collections import namedtuple
-from django.utils.safestring import mark_safe
-
-from sentry.utils.html import escape
 
 # Encapsulates a reference to the callback, including arguments. The `key`
 # attribute may be specifically used to key the callbacks when they are
@@ -87,18 +83,6 @@ class RuleBase(object):
 
     def render_label(self):
         return self.label.format(**self.data)
-
-    def render_form(self):
-        if not self.form_cls:
-            return self.label
-
-        form = self.get_form_instance()
-
-        def replace_field(match):
-            field = match.group(1)
-            return six.text_type(form[field])
-
-        return mark_safe(re.sub(r'{([^}]+)}', replace_field, escape(self.label)))
 
     def validate_form(self):
         if not self.form_cls:

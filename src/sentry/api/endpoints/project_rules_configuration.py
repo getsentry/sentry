@@ -23,8 +23,6 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
             context = {
                 'id': node.id,
                 'label': node.label,
-                # TODO: remove after we migrate UI to generate form from form_fields object
-                'html': node.render_form(),
                 'enabled': node.is_enabled(),
             }
 

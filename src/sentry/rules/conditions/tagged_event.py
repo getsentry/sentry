@@ -37,13 +37,11 @@ MATCH_CHOICES = OrderedDict(
 
 
 class TaggedEventForm(forms.Form):
-    key = forms.CharField(widget=forms.TextInput(attrs={'placeholder': 'key'}))
+    key = forms.CharField(widget=forms.TextInput())
     match = forms.ChoiceField(
-        MATCH_CHOICES.items(), widget=forms.Select(
-            attrs={'style': 'width:150px'},
-        )
+        MATCH_CHOICES.items(), widget=forms.Select()
     )
-    value = forms.CharField(widget=forms.TextInput(attrs={'placeholder': 'value'}))
+    value = forms.CharField(widget=forms.TextInput())
 
 
 class TaggedEventCondition(EventCondition):
