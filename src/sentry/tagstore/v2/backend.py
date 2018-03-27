@@ -43,19 +43,9 @@ class V2TagStorage(TagStorage):
     """
 
     def setup(self):
-        self.setup_deletions(
-            tagkey_model=TagKey,
-            tagvalue_model=TagValue,
-            grouptagkey_model=GroupTagKey,
-            grouptagvalue_model=GroupTagValue,
-            eventtag_model=EventTag,
-        )
+        self.setup_deletions()
 
-        self.setup_cleanup(
-            tagvalue_model=TagValue,
-            grouptagvalue_model=GroupTagValue,
-            eventtag_model=EventTag,
-        )
+        self.setup_cleanup()
 
         self.setup_merge(
             grouptagkey_model=GroupTagKey,
@@ -67,15 +57,65 @@ class V2TagStorage(TagStorage):
             grouptagvalue_model=GroupTagValue,
         )
 
-    def setup_cleanup(self, tagvalue_model, grouptagvalue_model, eventtag_model):
+    def setup_cleanup(self):
         # TODO: fix for sharded DB
         pass
 
-    def setup_deletions(self, **kwargs):
-        super(V2TagStorage, self).setup_deletions(**kwargs)
-
+    def setup_deletions(self):
         from sentry.deletions import default_manager as deletion_manager
-        from sentry.deletions.base import ModelRelation, ModelDeletionTask
+        from sentry.deletions.defaults import BulkModelDeletionTask, ModelDeletionTask
+        from sentry.deletions.base import ModelRelation
+        from sentry.models import Event, Group, Project
+
+        deletion_manager.add_bulk_dependencies(Event, [
+            lambda instance_list: ModelRelation(EventTag,
+                                                {'event_id__in': [i.id for i in instance_list],
+                                                 'project_id': instance_list[0].project_id},
+                                                ModelDeletionTask),
+        ])
+
+        deletion_manager.register(TagValue, BulkModelDeletionTask)
+        deletion_manager.register(GroupTagKey, BulkModelDeletionTask)
+        deletion_manager.register(GroupTagValue, BulkModelDeletionTask)
+        deletion_manager.register(EventTag, BulkModelDeletionTask)
+
+        deletion_manager.add_dependencies(Group, [
+            lambda instance: ModelRelation(
+                EventTag,
+                query={
+                    'group_id': instance.id,
+                    'project_id': instance.project_id
+                },
+                partition_key={'project_id': instance.project_id}),
+            lambda instance: ModelRelation(
+                GroupTagKey,
+                query={
+                    'group_id': instance.id,
+                    'project_id': instance.project_id
+                },
+                partition_key={'project_id': instance.project_id}),
+            lambda instance: ModelRelation(
+                GroupTagValue,
+                query={
+                    'group_id': instance.id,
+                    'project_id': instance.project_id
+                },
+                partition_key={'project_id': instance.project_id}),
+        ])
+
+        deletion_manager.add_dependencies(Project, [
+            lambda instance: ModelRelation(TagKey,
+                                           query={'project_id': instance.id}),
+            lambda instance: ModelRelation(TagValue,
+                                           query={'project_id': instance.id},
+                                           partition_key={'project_id': instance.id}),
+            lambda instance: ModelRelation(GroupTagKey,
+                                           query={'project_id': instance.id},
+                                           partition_key={'project_id': instance.id}),
+            lambda instance: ModelRelation(GroupTagValue,
+                                           query={'project_id': instance.id},
+                                           partition_key={'project_id': instance.id}),
+        ])
 
         # NOTE: EventTag is handled by cleanup
 
