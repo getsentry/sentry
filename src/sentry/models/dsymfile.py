@@ -220,7 +220,7 @@ class ProjectDSymFile(Model):
     object_name = models.TextField()
     cpu_name = models.CharField(max_length=40)
     project = FlexibleForeignKey('sentry.Project', null=True)
-    debug_id = models.TextField(db_column='uuid')
+    debug_id = models.CharField(max_length=64, db_column='uuid')
     objects = ProjectDSymFileManager()
 
     class Meta:

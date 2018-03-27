@@ -15,7 +15,7 @@ class Migration(SchemaMigration):
 
         # Changing field 'ProjectDSymFile.uuid'
         db.alter_column('sentry_projectdsymfile', 'uuid', self.gf(
-            'django.db.models.fields.TextField')(db_column='uuid'))
+            'django.db.models.fields.CharField')(max_length=64, db_column='uuid'))
 
     def backwards(self, orm):
 
@@ -746,11 +746,11 @@ class Migration(SchemaMigration):
         'sentry.projectdsymfile': {
             'Meta': {'unique_together': "(('project', 'debug_id'),)", 'object_name': 'ProjectDSymFile'},
             'cpu_name': ('django.db.models.fields.CharField', [], {'max_length': '40'}),
+            'debug_id': ('django.db.models.fields.CharField', [], {'max_length': '64', 'db_column': "'uuid'"}),
             'file': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.File']"}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'object_name': ('django.db.models.fields.TextField', [], {}),
-            'project': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Project']", 'null': 'True'}),
-            'debug_id': ('django.db.models.fields.TextField', [], {'db_column': "'uuid'"})
+            'project': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Project']", 'null': 'True'})
         },
         'sentry.projectintegration': {
             'Meta': {'unique_together': "(('project', 'integration'),)", 'object_name': 'ProjectIntegration'},
