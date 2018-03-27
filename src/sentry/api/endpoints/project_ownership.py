@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import ProjectOwnership
+from sentry.models import ProjectOwnership, Team, OrganizationMember
 from sentry.ownership.grammar import parse_rules, dump_schema, ParseError
 
 
@@ -24,7 +24,41 @@ class ProjectOwnershipSerializer(serializers.Serializer):
                 u'Parse error: %r (line %d, column %d)' % (
                     e.expr.name, e.line(), e.column()
                 ))
-        attrs['schema'] = dump_schema(rules)
+
+        schema = dump_schema(rules)
+
+        user_emails = []
+        team_ids = []
+        for rule in schema['rules']:
+            for owner in rule['owners']:
+                if owner['type'] is 'user':
+                    user_emails.append(owner['identifier'])
+
+                if owner['type'] is 'team':
+                    team_ids.append(owner['identifier'])
+
+        users = set(OrganizationMember.objects.filter(
+            organization=self.context['ownership'].project.organization_id,
+            user__email__in=user_emails
+        ).values_list("user__email", flat=True))
+
+        unfound_emails = set(user_emails).difference(users)
+
+        team_slugs = set(Team.objects.filter(
+            organization=self.context['ownership'].project.organization_id,
+            slug__in=team_ids
+        ).values_list("slug", flat=True))
+
+        unfound_teams = set(team_ids).difference(team_slugs)
+
+        unfound_actors = list(unfound_emails) + list(unfound_teams)
+
+        if len(unfound_actors) > 0:
+            raise serializers.ValidationError(
+                u'Invalid rule owners: {}'.format(", ".join(unfound_actors))
+            )
+
+        attrs['schema'] = schema
         return attrs
 
     def save(self):

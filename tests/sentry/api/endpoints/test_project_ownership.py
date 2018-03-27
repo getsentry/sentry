@@ -8,6 +8,15 @@ from sentry.testutils import APITestCase
 class ProjectOwnershipEndpointTestCase(APITestCase):
     def setUp(self):
         self.login_as(user=self.user)
+
+        self.team = self.create_team(organization=self.organization, slug='tiger-team')
+
+        self.project = self.project = self.create_project(
+            organization=self.organization,
+            teams=[self.team],
+            slug='bengal',
+        )
+
         self.path = reverse(
             'sentry-api-0-project-ownership',
             kwargs={
@@ -29,11 +38,11 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
 
     def test_update(self):
         resp = self.client.put(self.path, {
-            'raw': '*.js foo@example.com #foo-team',
+            'raw': '*.js admin@localhost #tiger-team',
         })
         assert resp.status_code == 200
         assert resp.data['fallthrough'] is True
-        assert resp.data['raw'] == '*.js foo@example.com #foo-team'
+        assert resp.data['raw'] == '*.js admin@localhost #tiger-team'
         assert resp.data['dateCreated'] is not None
         assert resp.data['lastUpdated'] is not None
 
@@ -42,14 +51,14 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         })
         assert resp.status_code == 200
         assert resp.data['fallthrough'] is False
-        assert resp.data['raw'] == '*.js foo@example.com #foo-team'
+        assert resp.data['raw'] == '*.js admin@localhost #tiger-team'
         assert resp.data['dateCreated'] is not None
         assert resp.data['lastUpdated'] is not None
 
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         assert resp.data['fallthrough'] is False
-        assert resp.data['raw'] == '*.js foo@example.com #foo-team'
+        assert resp.data['raw'] == '*.js admin@localhost #tiger-team'
         assert resp.data['dateCreated'] is not None
         assert resp.data['lastUpdated'] is not None
 
@@ -57,3 +66,24 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             'raw': '...',
         })
         assert resp.status_code == 400
+
+    def test_invalid_email(self):
+        resp = self.client.put(self.path, {
+            'raw': '*.js idont@exist.com #tiger-team',
+        })
+        assert resp.status_code == 400
+        assert resp.content == '{"raw": ["Invalid rule owners: idont@exist.com"]}'
+
+    def test_invalid_team(self):
+        resp = self.client.put(self.path, {
+            'raw': '*.js admin@localhost #faketeam',
+        })
+        assert resp.status_code == 400
+        assert resp.content == '{"raw": ["Invalid rule owners: faketeam"]}'
+
+    def test_invalid_mixed(self):
+        resp = self.client.put(self.path, {
+            'raw': '*.js idont@exist.com admin@localhost #faketeam #tiger-team',
+        })
+        assert resp.status_code == 400
+        assert resp.content == '{"raw": ["Invalid rule owners: idont@exist.com, faketeam"]}'
