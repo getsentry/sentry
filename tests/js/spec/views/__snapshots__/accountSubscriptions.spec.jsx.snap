@@ -16,23 +16,15 @@ exports[`AccountSubscriptions renders empty 1`] = `
     </TextBlock>
     <Panel>
       <PanelHeader
-        disablePadding={true}
+        align="center"
+        justify="space-between"
       >
-        <Flex
-          align="center"
-        >
-          <Box
-            flex="1"
-            px={2}
-          >
-            Name
-          </Box>
-          <Box
-            px={2}
-          >
-            Subscribed
-          </Box>
-        </Flex>
+        <span>
+          Name
+        </span>
+        <span>
+          Subscribed
+        </span>
       </PanelHeader>
       <PanelBody
         direction="column"
@@ -89,24 +81,24 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
   margin-bottom: 30px;
 }
 
-.glamor-54 {
+.glamor-48 {
   background: #fff;
   border: 1px solid;
   margin-bottom: NaNpx;
   position: relative;
 }
 
-.glamor-24 {
+.glamor-18 {
   font-size: 13px;
   font-weight: 600;
   text-transform: uppercase;
   border-bottom: 1px solid;
   border-radius: 0 0;
   line-height: 1;
-  padding: 15px 0;
+  padding: 15px 20px;
 }
 
-.glamor-21 {
+.glamor-15 {
   box-sizing: border-box;
   display: -webkit-box;
   display: -webkit-flex;
@@ -126,25 +118,10 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
   border-bottom: 1px solid;
   border-radius: 0 0;
   line-height: 1;
-  padding: 15px 0;
+  padding: 15px 20px;
 }
 
-.glamor-14 {
-  box-sizing: border-box;
-  padding-left: 16px;
-  padding-right: 16px;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-}
-
-.glamor-16 {
-  box-sizing: border-box;
-  padding-left: 16px;
-  padding-right: 16px;
-}
-
-.glamor-38 {
+.glamor-32 {
   box-sizing: border-box;
   padding: 16px;
   display: -webkit-box;
@@ -158,27 +135,27 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
   border-bottom: 1px solid;
 }
 
-.glamor-38:last-child {
+.glamor-32:last-child {
   border: 0;
 }
 
-.glamor-32 {
+.glamor-26 {
   box-sizing: border-box;
   -webkit-flex: 1;
   -ms-flex: 1;
   flex: 1;
 }
 
-.glamor-28 {
+.glamor-22 {
   font-size: 1.2em;
 }
 
-.glamor-30 {
+.glamor-24 {
   font-size: 0.8em;
   margin-top: 6px;
 }
 
-.glamor-36 {
+.glamor-30 {
   box-sizing: border-box;
   display: -webkit-box;
   display: -webkit-flex;
@@ -193,7 +170,7 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
   align-items: flex-end;
 }
 
-.glamor-34 {
+.glamor-28 {
   font-size: 0.8em;
   margin-top: 6px;
   text-align: right;
@@ -263,78 +240,41 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
         <Panel>
           <StyledPanel>
             <div
-              className="glamor-54 glamor-55"
+              className="glamor-48 glamor-49"
             >
               <PanelHeader
-                disablePadding={true}
+                align="center"
+                justify="space-between"
               >
                 <StyledPanelHeader
-                  disablePadding={true}
+                  align="center"
+                  justify="space-between"
                 >
                   <Component
-                    className="glamor-24 glamor-20"
-                    disablePadding={true}
+                    align="center"
+                    className="glamor-18 glamor-14"
+                    justify="space-between"
                   >
                     <Flex
                       align="center"
-                      className="glamor-24 glamor-20"
+                      className="glamor-18 glamor-14"
                       justify="space-between"
                     >
                       <Base
                         align="center"
-                        className="glamor-20 glamor-21"
+                        className="glamor-14 glamor-15"
                         justify="space-between"
                       >
                         <div
-                          className="glamor-20 glamor-21"
+                          className="glamor-14 glamor-15"
                           is={null}
                         >
-                          <Flex
-                            align="center"
-                          >
-                            <Base
-                              align="center"
-                              className="glamor-2"
-                            >
-                              <div
-                                className="glamor-2"
-                                is={null}
-                              >
-                                <Box
-                                  flex="1"
-                                  px={2}
-                                >
-                                  <Base
-                                    className="glamor-14"
-                                    flex="1"
-                                    px={2}
-                                  >
-                                    <div
-                                      className="glamor-14"
-                                      is={null}
-                                    >
-                                      Name
-                                    </div>
-                                  </Base>
-                                </Box>
-                                <Box
-                                  px={2}
-                                >
-                                  <Base
-                                    className="glamor-16"
-                                    px={2}
-                                  >
-                                    <div
-                                      className="glamor-16"
-                                      is={null}
-                                    >
-                                      Subscribed
-                                    </div>
-                                  </Base>
-                                </Box>
-                              </div>
-                            </Base>
-                          </Flex>
+                          <span>
+                            Name
+                          </span>
+                          <span>
+                            Subscribed
+                          </span>
                         </div>
                       </Base>
                     </Flex>
@@ -360,34 +300,34 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                     >
                       <Base
                         align="center"
-                        className="glamor-38 glamor-39"
+                        className="glamor-32 glamor-33"
                         p={2}
                       >
                         <div
-                          className="glamor-38 glamor-39"
+                          className="glamor-32 glamor-33"
                           is={null}
                         >
                           <Box
                             flex="1"
                           >
                             <Base
-                              className="glamor-32"
+                              className="glamor-26"
                               flex="1"
                             >
                               <div
-                                className="glamor-32"
+                                className="glamor-26"
                                 is={null}
                               >
                                 <SubscriptionName>
                                   <div
-                                    className="glamor-28 glamor-29"
+                                    className="glamor-22 glamor-23"
                                   >
                                     Product & Feature Updates
                                   </div>
                                 </SubscriptionName>
                                 <Description>
                                   <div
-                                    className="glamor-30 glamor-31"
+                                    className="glamor-24 glamor-25"
                                   >
                                     Everything you need to know about Sentry features, integrations, partnerships, and launches.
                                   </div>
@@ -401,11 +341,11 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                           >
                             <Base
                               align="flex-end"
-                              className="glamor-36"
+                              className="glamor-30"
                               direction="column"
                             >
                               <div
-                                className="glamor-36"
+                                className="glamor-30"
                                 is={null}
                               >
                                 <Switch
@@ -426,7 +366,7 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                                 </Switch>
                                 <SubscribedDescription>
                                   <div
-                                    className="glamor-34 glamor-35"
+                                    className="glamor-28 glamor-29"
                                   >
                                     <div>
                                       test@sentry.io
@@ -463,34 +403,34 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                     >
                       <Base
                         align="center"
-                        className="glamor-38 glamor-39"
+                        className="glamor-32 glamor-33"
                         p={2}
                       >
                         <div
-                          className="glamor-38 glamor-39"
+                          className="glamor-32 glamor-33"
                           is={null}
                         >
                           <Box
                             flex="1"
                           >
                             <Base
-                              className="glamor-32"
+                              className="glamor-26"
                               flex="1"
                             >
                               <div
-                                className="glamor-32"
+                                className="glamor-26"
                                 is={null}
                               >
                                 <SubscriptionName>
                                   <div
-                                    className="glamor-28 glamor-29"
+                                    className="glamor-22 glamor-23"
                                   >
                                     Sentry Newsletter
                                   </div>
                                 </SubscriptionName>
                                 <Description>
                                   <div
-                                    className="glamor-30 glamor-31"
+                                    className="glamor-24 glamor-25"
                                   >
                                     Our monthly update on what's new with Sentry and the community.
                                   </div>
@@ -504,11 +444,11 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                           >
                             <Base
                               align="flex-end"
-                              className="glamor-36"
+                              className="glamor-30"
                               direction="column"
                             >
                               <div
-                                className="glamor-36"
+                                className="glamor-30"
                                 is={null}
                               >
                                 <Switch
