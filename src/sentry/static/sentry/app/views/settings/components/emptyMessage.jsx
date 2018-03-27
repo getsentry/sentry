@@ -10,7 +10,7 @@ const Wrapper = styled.div`
   flex-direction: column;
   color: ${p => p.theme.gray4};
   padding: ${p => p.theme.grid * 3}px;
-  font-size: ${p => (p.theme.large ? '18px' : '16px')};
+  font-size: ${p => (p.theme.large ? p.theme.fontSizeLarge : p.theme.fontSizeMedium)};
   font-weight: bold;
 `;
 
@@ -24,7 +24,7 @@ const StyledInlineSvg = styled(InlineSvg)`
 
 const Action = styled.div`
   display: block;
-  margin-top: ${p => p.theme.grid * 2.5}px;
+  margin-top: 0.75em;
 `;
 
 const EmptyMessage = ({icon, children, action, size}) => {
