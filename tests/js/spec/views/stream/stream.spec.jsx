@@ -6,6 +6,7 @@ import _ from 'lodash';
 import {Client} from 'app/api';
 import CursorPoller from 'app/utils/cursorPoller';
 import LoadingError from 'app/components/loadingError';
+import ErrorRobot from 'app/components/errorRobot';
 import Stream from 'app/views/stream/stream';
 import EnvironmentStore from 'app/stores/environmentStore';
 import {setActiveEnvironment} from 'app/actionCreators/environments';
@@ -328,7 +329,7 @@ describe('Stream', function() {
         dataLoading: false,
       });
 
-      expect(wrapper.find('.awaiting-events')).toHaveLength(1);
+      expect(wrapper.find(ErrorRobot)).toHaveLength(1);
 
       context.project.firstEvent = true; // Reset for other tests
     });
