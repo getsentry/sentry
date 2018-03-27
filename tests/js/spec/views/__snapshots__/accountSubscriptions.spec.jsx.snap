@@ -38,7 +38,11 @@ exports[`AccountSubscriptions renders empty 1`] = `
         direction="column"
         disablePadding={true}
         flex={false}
-      />
+      >
+        <EmptyMessage>
+          You don't have any subscriptions.
+        </EmptyMessage>
+      </PanelBody>
     </Panel>
     <TextBlock>
       We’re applying GDPR consent and privacy policies to all Sentry contacts, regardless of location. You’ll be able to manage your subscriptions here and from an Unsubscribe link in the footer of all marketing emails.
