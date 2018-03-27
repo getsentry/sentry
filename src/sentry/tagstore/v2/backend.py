@@ -151,6 +151,21 @@ class V2TagStorage(TagStorage):
             **kwargs
         )
 
+    def get_or_create_tag_keys_bulk(self, project_id, environment_id, keys):
+        assert environment_id is not None
+
+        return TagKey.get_or_create_bulk(
+            project_id=project_id,
+            environment_id=environment_id,
+            keys=keys,
+        )
+
+    def get_or_create_tag_values_bulk(self, project_id, tags):
+        return TagValue.get_or_create_bulk(
+            project_id=project_id,
+            tags=tags,
+        )
+
     def get_or_create_tag_key(self, project_id, environment_id, key, **kwargs):
         assert environment_id is not None
 
@@ -304,12 +319,10 @@ class V2TagStorage(TagStorage):
         if date_added is None:
             date_added = timezone.now()
 
-        tag_ids = []
-        for key, value in tags:
-            tagkey, _ = self.get_or_create_tag_key(project_id, environment_id, key)
-            tagvalue, _ = self.get_or_create_tag_value(
-                project_id, environment_id, key, value, key_id=tagkey.id)
-            tag_ids.append((tagkey.id, tagvalue.id))
+        tagkeys = self.get_or_create_tag_keys_bulk(project_id, environment_id, [t[0] for t in tags])
+        tagvalues = self.get_or_create_tag_values_bulk(
+            project_id, [(tagkeys[t[0]], t[1]) for t in tags])
+        tag_ids = [(tk.id, tv.id) for (tk, _), tv in tagvalues.items()]
 
         try:
             # don't let a duplicate break the outer transaction
