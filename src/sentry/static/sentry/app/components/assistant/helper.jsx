@@ -50,10 +50,9 @@ const AssistantHelper = createReactClass({
     let {currentGuide} = this.state;
 
     HookStore.get('analytics:event').forEach(cb =>
-      cb('assistant.guide', {
+      cb('assistant.guide_opened', {
         guide: currentGuide.id,
         cue: currentGuide.cue,
-        action: 'drawer opened',
       })
     );
 
@@ -70,16 +69,13 @@ const AssistantHelper = createReactClass({
   },
 
   handleDismiss(e) {
-    dismiss(this.state.currentGuide.id);
-
     HookStore.get('analytics:event').forEach(cb =>
-      cb('assistant.guide', {
+      cb('assistant.guide_dismissed', {
         guide: this.state.currentGuide.id,
         cue: this.state.currentGuide.cue,
-        action: 'guide dismissed',
+        step: this.state.currentStep,
       })
     );
-
     dismiss(this.state.currentGuide.id);
     closeGuide();
   },
@@ -96,10 +92,9 @@ const AssistantHelper = createReactClass({
 
     if (isGuideCued) {
       HookStore.get('analytics:event').forEach(cb =>
-        cb('assistant.guide', {
+        cb('assistant.guide_cued', {
           guide: currentGuide.id,
           cue: currentGuide.cue,
-          action: 'guide cued',
         })
       );
     }
