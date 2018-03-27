@@ -420,7 +420,7 @@ class MailPlugin(NotificationPlugin):
         return resolved_teams
 
     def build_custom_context(self, events, project):
-        records = tuple([event_to_record(event[0], event[1]) for event in events])
+        records = [event_to_record(event[0], event[1]) for event in events]
         digest = build_digest(project, records)
         start, end, counts = get_digest_metadata(digest)
         context = {
