@@ -268,7 +268,8 @@ class MailPlugin(NotificationPlugin):
             'X-Sentry-Reply-To': group_id_to_email(group.id),
         }
 
-        send_to_users = users or self.get_send_to(project=project, event=event)
+        send_to_users = users if users is not None else self.get_send_to(
+            project=project, event=event)
         for user_id in send_to_users:
             self.add_unsubscribe_link(context, user_id, project)
             self._send_mail(

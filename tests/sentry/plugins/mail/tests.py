@@ -20,7 +20,7 @@ from sentry.digests.notifications import build_digest, event_to_record
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import (
     Activity, Event, Group, GroupSubscription, OrganizationMember, OrganizationMemberTeam,
-    ProjectOwnership, Rule, UserOption, UserReport
+    ProjectOwnership, Rule, User, UserOption, UserReport
 )
 from sentry.ownership.grammar import Rule as grammar_rule
 from sentry.ownership.grammar import Owner, Matcher, dump_schema
@@ -589,6 +589,18 @@ class MailPluginOwnersTest(TestCase):
         assert len(mail.outbox) == len(emails_sent_to)
         assert sorted(email.to[0] for email in mail.outbox) == sorted(emails_sent_to)
 
+    def assert_notify_users(self, event, users):
+        mail.outbox = []
+        with self.options({'system.url-prefix': 'http://example.com'}), self.tasks():
+            self.plugin.notify(Notification(event=event), users)
+        assert len(mail.outbox) == len(users)
+        assert sorted(
+            email.to[0] for email in mail.outbox) == sorted(
+            User.objects.filter(
+                id__in=users).values_list(
+                'email',
+                flat=True))
+
     def assert_digest_email(self, email, user_email, subject=None,
                             event_messages=None, not_event_messages=None):
         assert email.to == [user_email]
@@ -656,6 +668,12 @@ class MailPluginOwnersTest(TestCase):
         )
         assert [] == sorted(self.plugin.get_send_to(self.project, event))
 
+    def test_notify_with_specific_users(self):
+        group = self.create_group(project=self.project)
+        self.assert_notify_users(self.create_event(group=group), [self.user.id, self.user2.id])
+        self.assert_notify_users(self.create_event(group=group), [self.user.id])
+        self.assert_notify_users(self.create_event(group=group), [])
+
     def test_notify_users_with_owners(self):
         self.assert_notify(self.event_all_users, [self.user.email, self.user2.email])
         self.assert_notify(self.event_team, [self.user.email, self.user2.email])
@@ -690,7 +708,6 @@ class MailPluginOwnersTest(TestCase):
         )
 
     def test_event_actors_to_user_ids(self):
-        from sentry.models import User
         from sentry.api.fields.actor import Actor
         user_actor1 = Actor(self.user.id, User)
         user_actor2 = Actor(self.user2.id, User)
