@@ -136,11 +136,6 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
         except OrganizationMember.DoesNotExist:
             raise ResourceDoesNotExist
 
-        # You can't edit your own membership
-        if om.user == request.user:
-            return Response(
-                {'detail': 'You cannot make changes to your own membership.'}, status=400)
-
         serializer = OrganizationMemberSerializer(
             data=request.DATA, partial=True)
 
@@ -204,6 +199,12 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
             if not result['role'] in {r.id for r in allowed_roles}:
                 return Response(
                     {'role': 'You do not have permission to invite that role.'}, status=403)
+                # You can't edit your own role
+
+            if om.user == request.user and (result['role'] != om.role):
+                return Response(
+                    {'detail': 'You cannot make changes to your own role.'}, status=400)
+
             om.update(role=result['role'])
 
         context = self._serialize_member(om, request, allowed_roles)

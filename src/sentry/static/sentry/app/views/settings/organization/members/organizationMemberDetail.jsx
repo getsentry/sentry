@@ -132,9 +132,7 @@ class OrganizationMemberDetail extends AsyncView {
 
     let currentUser = ConfigStore.get('user');
     let isCurrentUser = currentUser.email === email;
-    let disabled = isCurrentUser;
-    let roleSelectDisabled = disabled;
-    let teamSelectDisabled = disabled;
+    let roleSelectDisabled = isCurrentUser;
 
     return (
       <div>
@@ -228,7 +226,6 @@ class OrganizationMemberDetail extends AsyncView {
 
         <TeamSelect
           teams={teams}
-          disabled={teamSelectDisabled}
           selectedTeams={new Set(member.teams)}
           toggleTeam={this.handleToggleTeam}
         />
