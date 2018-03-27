@@ -21,7 +21,7 @@ from django.utils.safestring import mark_safe
 from sentry import features, options
 from sentry.models import ProjectOwnership, User
 
-from sentry.digests.utilities import get_digest_metadata, get_events_from_digest, sort_records
+from sentry.digests.utilities import get_digest_metadata, get_events_from_digest
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.plugins import register
 from sentry.plugins.base.structs import Notification
@@ -420,7 +420,6 @@ class MailPlugin(NotificationPlugin):
 
     def build_custom_context(self, events, project):
         records = tuple([event_to_record(event[0], event[1]) for event in events])
-        records = sort_records(records)
         digest = build_digest(project, records)
         start, end, counts = get_digest_metadata(digest)
         context = {

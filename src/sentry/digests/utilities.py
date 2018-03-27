@@ -25,15 +25,6 @@ def get_digest_metadata(digest):
     return start, end, counts
 
 
-def sort_records(records):
-    """
-    Sorts records for build_digest method
-    Order is important to the build_digest method.
-    build_digest is expecting these records to be ordered from newest to oldest
-    """
-    return sorted(records, key=lambda r: r.value.event.datetime, reverse=True)
-
-
 def get_events_from_digest(digest):
     """
     Returns events with their corresponding rules.

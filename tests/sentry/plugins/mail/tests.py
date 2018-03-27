@@ -17,7 +17,6 @@ from sentry.api.serializers import (
     serialize, ProjectUserReportSerializer
 )
 from sentry.digests.notifications import build_digest, event_to_record
-from sentry.digests.utilities import sort_records
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import (
     Activity, Event, Group, GroupSubscription, OrganizationMember, OrganizationMemberTeam,
@@ -664,11 +663,11 @@ class MailPluginOwnersTest(TestCase):
 
     def test_notify_digest_with_owners(self):
         rule = self.project.rule_set.all()[0]
-        records = sort_records((
+        records = (
             event_to_record(self.event_team, (rule,)),
             event_to_record(self.event_all_users, (rule,)),
             event_to_record(self.event_single_user, (rule,)),
-        ))
+        )
         digest = build_digest(self.project, records)
         with self.tasks():
             self.plugin.notify_digest(self.project, digest)
