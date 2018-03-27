@@ -168,23 +168,23 @@ def test_minidump_linux():
                 {
                     'id': u'451a38b5-0679-79d2-0738-22a5ceb24c4b',
                     'image_addr': '0x7f514015d000',
-                    'image_size': '0x1c0000',
+                    'image_size': 1835008,
                     'name': u'/lib/x86_64-linux-gnu/libc-2.23.so',
-                    'type': 'apple'
+                    'type': 'symbolic'
                 },
                 {
                     'id': u'59627b5d-2255-a375-c17b-d4c3fd05f5a6',
                     'image_addr': '0x7f5140cdc000',
-                    'image_size': '0x26000',
+                    'image_size': 155648,
                     'name': u'/lib/x86_64-linux-gnu/ld-2.23.so',
-                    'type': 'apple'
+                    'type': 'symbolic'
                 },
                 {
                     'id': u'c0bcc3f1-9827-fe65-3058-404b2831d9e6',
                     'image_addr': '0x400000',
-                    'image_size': '0x1a000',
+                    'image_size': 106496,
                     'name': u'/work/linux/build/crash',
-                    'type': 'apple'
+                    'type': 'symbolic'
                 }
             ]
         },
@@ -323,16 +323,16 @@ def test_minidump_macos():
                 {
                     'id': u'67e9247c-814e-392b-a027-dbde6748fcbf',
                     'image_addr': '0x109b9b000',
-                    'image_size': '0x11000',
+                    'image_size': 69632,
                     'name': u'/Users/travis/build/getsentry/breakpad-tools/macos/build/./crash',
-                    'type': 'apple'
+                    'type': 'symbolic'
                 },
                 {
                     'id': u'9b2ac56d-107c-3541-a127-9094a751f2c9',
                     'image_addr': '0x7fffe7ee6000',
-                    'image_size': '0x6000',
+                    'image_size': 24576,
                     'name': u'/usr/lib/system/libdyld.dylib',
-                    'type': 'apple'
+                    'type': 'symbolic'
                 }
             ]
         },
@@ -401,37 +401,37 @@ def test_minidump_windows():
                 {
                     'id': u'3249d99d-0c40-4931-8610-f4e4fb0b6936-1',
                     'image_addr': '0x2a0000',
-                    'image_size': '0x9000',
+                    'image_size': 36864,
                     'name': u'C:\\projects\\breakpad-tools\\windows\\Release\\crash.exe',
-                    'type': 'apple'
+                    'type': 'symbolic'
                 },
                 {
                     'id': u'971f98e5-ce60-41ff-b2d7-235bbeb34578-1',
                     'image_addr': '0x77170000',
-                    'image_size': '0x183000',
+                    'image_size': 1585152,
                     'name': u'C:\\Windows\\System32\\ntdll.dll',
-                    'type': 'apple'
+                    'type': 'symbolic'
                 },
                 {
                     'id': u'ae131c67-27a7-4fa1-9916-b5a4aef41190-1',
                     'image_addr': '0x75810000',
-                    'image_size': '0xc1000',
+                    'image_size': 790528,
                     'name': u'C:\\Windows\\System32\\rpcrt4.dll',
-                    'type': 'apple'
+                    'type': 'symbolic'
                 },
                 {
                     'id': u'aec7ef2f-df4b-4642-a471-4c3e5fe8760a-1',
                     'image_addr': '0x70b70000',
-                    'image_size': '0x25000',
+                    'image_size': 151552,
                     'name': u'C:\\Windows\\System32\\dbgcore.dll',
-                    'type': 'apple'
+                    'type': 'symbolic'
                 },
                 {
                     'id': u'd3474559-96f7-47d6-bf43-c176b2171e68-1',
                     'image_addr': '0x75050000',
-                    'image_size': '0xe0000',
+                    'image_size': 917504,
                     'name': u'C:\\Windows\\System32\\kernel32.dll',
-                    'type': 'apple'
+                    'type': 'symbolic'
                 }
             ]
         },

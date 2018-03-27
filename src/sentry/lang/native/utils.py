@@ -213,10 +213,10 @@ def merge_minidump_event(data, minidump):
 
     # Extract referenced (not all loaded) images
     images = [{
-        'type': 'apple',  # Required by interface
+        'type': 'symbolic',
         'id': id_from_breakpad(module.id),
         'image_addr': '0x%x' % module.addr,
-        'image_size': '0x%x' % module.size,
+        'image_size': module.size,
         'name': module.name,
     } for module in state.modules()]
     data.setdefault('debug_meta', {})['images'] = images

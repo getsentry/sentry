@@ -1246,9 +1246,9 @@ class RealResolvingIntegrationTest(TestCase):
                     {
                         'id': u'3249d99d-0c40-4931-8610-f4e4fb0b6936-1',
                         'image_addr': '0x2a0000',
-                        'image_size': '0x9000',
+                        'image_size': 36864,
                         'name': u'C:\\projects\\breakpad-tools\\windows\\Release\\crash.exe',
-                        'type': 'apple'
+                        'type': 'symbolic'
                     }
                 ]
             },
