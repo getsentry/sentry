@@ -18,6 +18,7 @@ import PanelBody from './settings/components/panelBody';
 import PanelHeader from './settings/components/panelHeader';
 import SettingsPageHeader from './settings/components/settingsPageHeader';
 import recreateRoute from '../utils/recreateRoute';
+import EnvironmentStore from '../stores/environmentStore';
 
 const TextColorLink = styled(Link)`
   color: ${p => p.theme.gray3};
@@ -80,8 +81,12 @@ const RuleRow = createReactClass({
   },
 
   render() {
-    let {data} = this.props;
-    let editLink = recreateRoute(`${data.id}/`, this.props);
+    const {data} = this.props;
+    const editLink = recreateRoute(`${data.id}/`, this.props);
+
+    const env = EnvironmentStore.getByName(data.environment);
+
+    const environmentName = env ? env.displayName : t('All Environments');
 
     return (
       <Panel>
@@ -90,7 +95,9 @@ const RuleRow = createReactClass({
           align="center"
           justify="space-between"
         >
-          <TextColorLink to={editLink}>{data.name}</TextColorLink>
+          <TextColorLink to={editLink}>
+            {data.name} - {environmentName}
+          </TextColorLink>
 
           <div>
             <Button style={{marginRight: 5}} size="small" to={editLink}>
