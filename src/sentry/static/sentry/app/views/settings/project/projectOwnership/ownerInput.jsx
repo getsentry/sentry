@@ -93,6 +93,7 @@ class OwnerInput extends React.Component {
           );
         } else if (
           error.status === 400 &&
+          error.responseJSON.raw &&
           error.responseJSON.raw[0].startsWith('Invalid rule owners:')
         ) {
           addErrorMessage(
