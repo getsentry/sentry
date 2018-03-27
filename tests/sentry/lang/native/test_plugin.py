@@ -1266,17 +1266,7 @@ class RealResolvingIntegrationTest(TestCase):
                 'type': u'EXCEPTION_ACCESS_VIOLATION_WRITE',
                 'value': u'Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE'
             },
-            'level': 'fatal',
-            'message': u'Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE',
-            'platform': 'native',
-            'release': 'test-1.0.0',
-            'threads': [
-                {
-                    'crashed': True,
-                    'id': 1636
-                }
-            ],
-            'timestamp': 1521713273.0
+            'platform': 'native'
         }
 
         resp = self._postWithHeader(event_data)

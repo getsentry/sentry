@@ -34,6 +34,10 @@ def process_symbolic_image(image):
             'image_vmaddr': _addr(image.get('image_vmaddr') or 0),
             'name': image.get('name'),
         }
+
+        if image.get('arch') is not None:
+            symbolic_image['arch'] = image.get('arch')
+
         return symbolic_image
     except KeyError as e:
         raise InterfaceValidationError('Missing value for symbolic image: %s' % e.args[0])
@@ -44,7 +48,6 @@ def process_apple_image(image):
     try:
         apple_image = {
             'uuid': six.text_type(uuid.UUID(image['uuid'])),
-            'arch': image.get('arch'),
             'cpu_type': image.get('cpu_type'),
             'cpu_subtype': image.get('cpu_subtype'),
             'image_addr': _addr(image.get('image_addr')),
@@ -53,6 +56,8 @@ def process_apple_image(image):
             'name': image.get('name'),
         }
 
+        if image.get('arch') is not None:
+            apple_image['arch'] = image.get('arch')
         if image.get('major_version') is not None:
             apple_image['major_version'] = image['major_version']
         if image.get('minor_version') is not None:
