@@ -140,7 +140,7 @@ const RuleEditor = createReactClass({
         // Redirect to correct ID if /new
         if (shouldRedirect) {
           browserHistory.replace(
-            `/${org.slug}/${project.slug}/settings/alerts/rules/${resp.id}`
+            `/${org.slug}/${project.slug}/settings/alerts/rules/${resp.id}/`
           );
         }
         addSuccessMessage(rule.id ? t('Updated alert rule') : t('Created alert rule'));
