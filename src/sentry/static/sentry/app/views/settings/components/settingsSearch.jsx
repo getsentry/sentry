@@ -10,13 +10,13 @@ import {navigateTo} from '../../../actionCreators/navigation';
 import {t} from '../../../locale';
 import ApiSearch from '../../../components/search/apiSearch';
 import AutoComplete from '../../../components/autoComplete';
+import Avatar from '../../../components/avatar';
 import FormFieldSearch from '../../../components/search/formFieldSearch';
 import InlineSvg from '../../../components/inlineSvg';
 import LoadingIndicator from '../../../components/loadingIndicator';
-import TeamAvatar from '../../../components/teamAvatar';
+import SentryTypes from '../../../proptypes';
 import UserBadge from '../../../components/userBadge';
 import replaceRouterParams from '../../../utils/replaceRouterParams';
-import SentryTypes from '../../../proptypes';
 
 const MIN_SEARCH_LENGTH = 2;
 
@@ -67,14 +67,10 @@ class SearchResult extends React.Component {
 
     if (sourceType === 'team') {
       return (
-        <React.Fragment>
-          <div>
-            <TeamAvatar team={model} />
-            #{model.slug}
-          </div>
-
-          <SearchDetail>Settings</SearchDetail>
-        </React.Fragment>
+        <div>
+          <TeamAvatar team={model} size={32} />
+          #{model.slug}
+        </div>
       );
     }
 
@@ -305,7 +301,9 @@ const SearchItem = styled(({highlighted, ...props}) => <Link {...props} />)`
     css`
       color: ${p.theme.purpleDarkest};
       background: ${p.theme.offWhite};
-    `} &:first-child {
+    `};
+
+  &:first-child {
     border-radius: 5px 5px 0 0;
   }
 
@@ -334,4 +332,8 @@ const Content = styled(props => <Flex direction="column" {...props} />)``;
 const ResultTypeIcon = styled(InlineSvg)`
   color: ${p => p.theme.gray1};
   font-size: 1.2em;
+`;
+
+const TeamAvatar = styled(Avatar)`
+  margin-right: 0.5em;
 `;
