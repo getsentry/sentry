@@ -144,11 +144,12 @@ const ProjectContext = createReactClass({
     let activeProject = this.identifyProject();
     let hasAccess = activeProject && activeProject.hasAccess;
 
-    this.setState({
-      loading: !skipReload ? true : undefined,
+    this.setState(state => ({
+      // if `skipReload` is true, then don't change loading state
+      loading: skipReload ? state.loading : true,
       // we bind project initially, but it'll rebind
       project: activeProject,
-    });
+    }));
 
     if (activeProject && hasAccess) {
       setActiveProject(null);
