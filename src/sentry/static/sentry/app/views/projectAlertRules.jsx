@@ -87,7 +87,6 @@ const RuleRow = createReactClass({
       <Panel>
         <PanelHeader
           css={{paddingTop: 5, paddingBottom: 5}}
-          isFlex
           align="center"
           justify="space-between"
         >
