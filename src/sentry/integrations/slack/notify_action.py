@@ -17,18 +17,10 @@ strip_channel_chars = ''.join([MEMBER_PREFIX, CHANNEL_PREFIX])
 
 class SlackNotifyServiceForm(forms.Form):
     workspace = forms.ChoiceField(choices=(), widget=forms.Select(
-        attrs={'style': 'width:150px'},
     ))
-    channel = forms.CharField(widget=forms.TextInput(
-        attrs={'placeholder': 'i.e #critical'},
-    ))
+    channel = forms.CharField(widget=forms.TextInput())
     channel_id = forms.HiddenInput()
-    tags = forms.CharField(required=False, widget=forms.TextInput(
-        attrs={
-            'placeholder': 'i.e environment,user,my_tag',
-            'style': 'width:200px',
-        },
-    ))
+    tags = forms.CharField(required=False, widget=forms.TextInput())
 
     def __init__(self, *args, **kwargs):
         # NOTE: Workspace maps directly to the integration ID

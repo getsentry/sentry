@@ -37,11 +37,9 @@ MATCH_CHOICES = OrderedDict(
 class LevelEventForm(forms.Form):
     level = forms.ChoiceField(
         choices=LEVEL_CHOICES.items(),
-        initial=30,
     )
     match = forms.ChoiceField(
         choices=MATCH_CHOICES.items(),
-        initial=MatchType.GREATER_OR_EQUAL,
     )
 
 
