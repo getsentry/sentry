@@ -129,7 +129,7 @@ const CommitAuthorStats = createReactClass({
                       className="avatar-grid-item m-b-0 tip"
                       title={author.name + ' ' + author.email}
                     >
-                      <Avatar user={author} size={32} />
+                      <Avatar user={author} size={20} />
                     </span>
                     <CommitBar
                       totalCommits={commitList.length}
