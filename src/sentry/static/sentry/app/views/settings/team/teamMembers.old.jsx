@@ -106,7 +106,7 @@ const TeamMembers = createReactClass({
               return (
                 <tr key={i}>
                   <td className="table-user-info">
-                    <Avatar user={member} size={80} />
+                    <Avatar user={member} size={36} />
                     <h5>
                       <Link to={`${memberPrefix}/${member.id}/`}>{member.email}</Link>
                     </h5>
