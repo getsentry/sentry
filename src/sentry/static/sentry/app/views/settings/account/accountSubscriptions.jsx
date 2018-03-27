@@ -91,13 +91,9 @@ class AccountSubscriptions extends AsyncView {
         </TextBlock>
 
         <Panel>
-          <PanelHeader disablePadding>
-            <Flex align="center">
-              <Box px={2} flex="1">
-                {t('Name')}
-              </Box>
-              <Box px={2}>{t('Subscribed')}</Box>
-            </Flex>
+          <PanelHeader align="center" justify="space-between">
+            <span>{t('Name')}</span>
+            <span>{t('Subscribed')}</span>
           </PanelHeader>
 
           <PanelBody>
