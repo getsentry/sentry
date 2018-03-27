@@ -69,7 +69,9 @@ class ProjectOwnership(Model):
                     event_actors[event] = (user_actors + team_actors, rule.matcher)
 
         if not event_actors:
-            return cls.Everyone if ownership.fallthrough else {}
+            actors = cls.Everyone if ownership.fallthrough else {}
+            return actors
+
         return event_actors
 
 

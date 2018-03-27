@@ -128,9 +128,10 @@ class MailPlugin(NotificationPlugin):
             return []
 
         if event:
-            owners, _ = ProjectOwnership.get_owners(project.id, event.data)
-            if owners != ProjectOwnership.Everyone:
-                if not owners:
+            event_actors = ProjectOwnership.get_actors(project.id, [event])
+
+            if event_actors != ProjectOwnership.Everyone:
+                if not event_actors:
                     metrics.incr(
                         'features.owners.send_to',
                         tags={
@@ -140,7 +141,7 @@ class MailPlugin(NotificationPlugin):
                         skip_internal=True,
                     )
                     return []
-
+                owners = event_actors[event][0]
                 metrics.incr(
                     'features.owners.send_to',
                     tags={
@@ -347,7 +348,7 @@ class MailPlugin(NotificationPlugin):
     def send_digest_with_owners(self, context, project, subject, headers):
         original_context = context
         events = get_events_from_digest(context['digest'])
-        event_actors = ProjectOwnership.get_all_actors(project.id, [event[0] for event in events])
+        event_actors = ProjectOwnership.get_actors(project.id, [event[0] for event in events])
         event_users = self.event_actors_to_user_ids(event_actors)
 
         for user_id in self.get_send_to(project):
@@ -382,7 +383,8 @@ class MailPlugin(NotificationPlugin):
         from sentry.models import Team
         resolved_teams = self.teams_to_user_ids(event_actors)
         event_users = {}
-        for event, actors in six.iteritems(event_actors):
+        for event, actors_rules in six.iteritems(event_actors):
+            actors = actors_rules[0]
             user_ids = set()
             for actor in actors:
                 if actor.type == Team:
@@ -400,7 +402,7 @@ class MailPlugin(NotificationPlugin):
         from sentry.models import Team
         # Get Team Actors
         teams_to_resolve = set()
-        for actors in six.itervalues(event_actors):
+        for actors, __rules in six.itervalues(event_actors):
             for actor in actors:
                 if actor.type == Team:
                     teams_to_resolve.add(actor)

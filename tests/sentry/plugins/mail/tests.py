@@ -507,22 +507,22 @@ class MailPluginOwnersTest(TestCase):
         )
         self.create_member(user=self.user2, organization=self.organization, teams=[self.team])
 
+        self.rule_team = grammar_rule(Matcher('path', '*.py'), [Owner('team', self.team.slug)])
+        self.rule_user = grammar_rule(Matcher('path', '*.jx'), [Owner('user', self.user2.email)])
+        self.rule_users = grammar_rule(Matcher('path', '*.cbl'), [
+            Owner('user', self.user.email),
+            Owner('user', self.user2.email),
+        ])
         ProjectOwnership.objects.create(
             project_id=self.project.id,
             schema=dump_schema([
-                grammar_rule(Matcher('path', '*.py'), [
-                    Owner('team', self.team.slug),
-                ]),
-                grammar_rule(Matcher('path', '*.jx'), [
-                    Owner('user', self.user2.email),
-                ]),
-                grammar_rule(Matcher('path', '*.cbl'), [
-                    Owner('user', self.user.email),
-                    Owner('user', self.user2.email),
-                ])
+                self.rule_team,
+                self.rule_user,
+                self.rule_users,
             ]),
             fallthrough=True,
         )
+
         self.group = self.create_group(
             first_seen=timezone.now() - timedelta(days=3),
             last_seen=timezone.now() - timedelta(hours=3),
@@ -611,7 +611,7 @@ class MailPluginOwnersTest(TestCase):
             data=self.make_event_data('foo.py')
         )
         assert (sorted(set([self.user.pk, self.user2.pk])) == sorted(
-            self.plugin.get_send_to(self.project, event.data)))
+            self.plugin.get_send_to(self.project, event)))
 
     def test_get_send_to_with_user_owners(self):
         event = Event(
@@ -622,7 +622,7 @@ class MailPluginOwnersTest(TestCase):
             data=self.make_event_data('foo.cbl')
         )
         assert (sorted(set([self.user.pk, self.user2.pk])) == sorted(
-            self.plugin.get_send_to(self.project, event.data)))
+            self.plugin.get_send_to(self.project, event)))
 
     def test_get_send_to_with_user_owner(self):
         event = Event(
@@ -633,7 +633,7 @@ class MailPluginOwnersTest(TestCase):
             data=self.make_event_data('foo.jx')
         )
         assert (sorted(set([self.user2.pk])) == sorted(
-            self.plugin.get_send_to(self.project, event.data)))
+            self.plugin.get_send_to(self.project, event)))
 
     def test_get_send_to_with_fallthrough(self):
         event = Event(
@@ -644,7 +644,7 @@ class MailPluginOwnersTest(TestCase):
             data=self.make_event_data('foo.jx')
         )
         assert (sorted(set([self.user2.pk])) == sorted(
-            self.plugin.get_send_to(self.project, event.data)))
+            self.plugin.get_send_to(self.project, event)))
 
     def test_get_send_to_without_fallthrough(self):
         ProjectOwnership.objects.get(project_id=self.project.id).update(fallthrough=False)
@@ -655,7 +655,7 @@ class MailPluginOwnersTest(TestCase):
             datetime=self.group.last_seen,
             data=self.make_event_data('foo.cpp')
         )
-        assert [] == sorted(self.plugin.get_send_to(self.project, event.data))
+        assert [] == sorted(self.plugin.get_send_to(self.project, event))
 
     def test_notify_users_with_owners(self):
         self.assert_notify(self.event_all_users, [self.user.email, self.user2.email])
@@ -696,8 +696,8 @@ class MailPluginOwnersTest(TestCase):
         user_actor1 = Actor(self.user.id, User)
         user_actor2 = Actor(self.user2.id, User)
         event_actors = {
-            self.event_all_users: [user_actor1, user_actor2],
-            self.event_single_user: [user_actor2],
+            self.event_all_users: ([user_actor1, user_actor2], self.rule_users),
+            self.event_single_user: ([user_actor2], self.rule_user),
         }
         event_actors = self.plugin.event_actors_to_user_ids(event_actors)
         assert self.event_all_users in event_actors
