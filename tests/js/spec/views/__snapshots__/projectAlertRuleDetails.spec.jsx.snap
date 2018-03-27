@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
-.glamor-17 {
+.glamor-19 {
   background: #fff;
   border: 1px solid;
   margin-bottom: NaNpx;
@@ -41,7 +41,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
   padding: 15px 20px;
 }
 
-.glamor-16 {
+.glamor-18 {
   padding: 20px;
 }
 
@@ -65,6 +65,18 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
   -ms-flex-direction: column;
   flex-direction: column;
   margin-bottom: 10px;
+}
+
+.glamor-16 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
 }
 
 <ProjectAlertRuleDetails
@@ -156,7 +168,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
               className="rule-detail"
             >
               <div
-                className="rule-detail glamor-17 glamor-18"
+                className="rule-detail glamor-19 glamor-20"
               >
                 <PanelHeader>
                   <StyledPanelHeader>
@@ -190,120 +202,135 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                   flex={false}
                 >
                   <div
-                    className="glamor-16"
+                    className="glamor-18"
                   >
                     <h6>
                       Rule name
                       :
                     </h6>
-                    <div
-                      className="control-group"
+                    <TextField
+                      defaultValue=""
+                      disabled={false}
+                      hideErrorMessage={false}
+                      name="name"
+                      onChange={[Function]}
+                      placeholder="My Rule Name"
+                      required={true}
                     >
-                      <input
-                        className="form-control"
-                        defaultValue=""
-                        onChange={[Function]}
-                        placeholder="My Rule Name"
-                        required={true}
-                        type="text"
-                      />
-                    </div>
-                    <hr />
-                    <div
-                      className="node-match-selector"
-                    >
-                      <AlertRuleRow>
-                        <h6
-                          className="glamor-8 glamor-9"
+                      <div
+                        className="control-group required"
+                      >
+                        <div
+                          className="controls"
                         >
-                          Every time 
-                          <Select2Field
-                            allowClear={false}
-                            allowEmpty={false}
-                            choices={
-                              Array [
-                                Array [
-                                  "all",
-                                  "all",
-                                ],
-                                Array [
-                                  "any",
-                                  "any",
-                                ],
-                                Array [
-                                  "none",
-                                  "none",
-                                ],
-                              ]
-                            }
-                            className=""
+                          <input
+                            className="form-control"
                             disabled={false}
-                            escapeMarkup={true}
-                            hideErrorMessage={false}
-                            key="1"
-                            multiple={false}
-                            name="actionMatch"
+                            id="id-name"
+                            name="name"
                             onChange={[Function]}
-                            placeholder="--"
+                            placeholder="My Rule Name"
                             required={true}
+                            type="text"
+                            value=""
+                          />
+                        </div>
+                      </div>
+                    </TextField>
+                    <hr />
+                    <AlertRuleRow>
+                      <h6
+                        className="glamor-8 glamor-9"
+                      >
+                        Every time 
+                        <Select2Field
+                          allowClear={false}
+                          allowEmpty={false}
+                          choices={
+                            Array [
+                              Array [
+                                "all",
+                                "all",
+                              ],
+                              Array [
+                                "any",
+                                "any",
+                              ],
+                              Array [
+                                "none",
+                                "none",
+                              ],
+                            ]
+                          }
+                          className=""
+                          disabled={false}
+                          escapeMarkup={true}
+                          hideErrorMessage={false}
+                          key="1"
+                          multiple={false}
+                          name="actionMatch"
+                          onChange={[Function]}
+                          placeholder="--"
+                          required={true}
+                          style={
+                            Object {
+                              "marginBottom": 0,
+                              "marginLeft": 5,
+                              "marginRight": 5,
+                              "width": 100,
+                            }
+                          }
+                          value="all"
+                        >
+                          <div
+                            className="control-group required"
                             style={
                               Object {
                                 "marginBottom": 0,
                                 "marginLeft": 5,
                                 "marginRight": 5,
+                                "width": 100,
                               }
                             }
-                            value="all"
                           >
                             <div
-                              className="control-group required"
-                              style={
-                                Object {
-                                  "marginBottom": 0,
-                                  "marginLeft": 5,
-                                  "marginRight": 5,
-                                }
-                              }
+                              className="controls"
                             >
-                              <div
-                                className="controls"
+                              <select
+                                className="form-control"
+                                disabled={false}
+                                id="id-actionMatch"
+                                multiple={false}
+                                onChange={[Function]}
+                                placeholder="--"
+                                required={true}
+                                value="all"
                               >
-                                <select
-                                  className="form-control"
-                                  disabled={false}
-                                  id="id-actionMatch"
-                                  multiple={false}
-                                  onChange={[Function]}
-                                  placeholder="--"
-                                  required={true}
+                                <option
+                                  key="all"
                                   value="all"
                                 >
-                                  <option
-                                    key="all"
-                                    value="all"
-                                  >
-                                    all
-                                  </option>
-                                  <option
-                                    key="any"
-                                    value="any"
-                                  >
-                                    any
-                                  </option>
-                                  <option
-                                    key="none"
-                                    value="none"
-                                  >
-                                    none
-                                  </option>
-                                </select>
-                              </div>
+                                  all
+                                </option>
+                                <option
+                                  key="any"
+                                  value="any"
+                                >
+                                  any
+                                </option>
+                                <option
+                                  key="none"
+                                  value="none"
+                                >
+                                  none
+                                </option>
+                              </select>
                             </div>
-                          </Select2Field>
-                           of these conditions are met:
-                        </h6>
-                      </AlertRuleRow>
-                    </div>
+                          </div>
+                        </Select2Field>
+                         of these conditions are met:
+                      </h6>
+                    </AlertRuleRow>
                     <RuleNodeList
                       className="rule-condition-list"
                       initialItems={Array []}
@@ -667,12 +694,34 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                     <div
                       className="actions"
                     >
-                      <button
-                        className="btn btn-primary btn-lg"
+                      <Button
                         disabled={false}
+                        priority="primary"
                       >
-                        Save Rule
-                      </button>
+                        <button
+                          className="button button-primary"
+                          disabled={false}
+                          onClick={[Function]}
+                          role="button"
+                        >
+                          <Flex
+                            align="center"
+                            className="button-label"
+                          >
+                            <Base
+                              align="center"
+                              className="button-label glamor-16"
+                            >
+                              <div
+                                className="button-label glamor-16"
+                                is={null}
+                              >
+                                Save Rule
+                              </div>
+                            </Base>
+                          </Flex>
+                        </button>
+                      </Button>
                     </div>
                   </div>
                 </PanelBody>
@@ -687,7 +736,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
 `;
 
 exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
-.glamor-17 {
+.glamor-19 {
   background: #fff;
   border: 1px solid;
   margin-bottom: NaNpx;
@@ -727,7 +776,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
   padding: 15px 20px;
 }
 
-.glamor-16 {
+.glamor-18 {
   padding: 20px;
 }
 
@@ -751,6 +800,18 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
   -ms-flex-direction: column;
   flex-direction: column;
   margin-bottom: 10px;
+}
+
+.glamor-16 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
 }
 
 <ProjectAlertRuleDetails
@@ -842,7 +903,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
               className="rule-detail"
             >
               <div
-                className="rule-detail glamor-17 glamor-18"
+                className="rule-detail glamor-19 glamor-20"
               >
                 <PanelHeader>
                   <StyledPanelHeader>
@@ -876,120 +937,135 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                   flex={false}
                 >
                   <div
-                    className="glamor-16"
+                    className="glamor-18"
                   >
                     <h6>
                       Rule name
                       :
                     </h6>
-                    <div
-                      className="control-group"
+                    <TextField
+                      defaultValue=""
+                      disabled={false}
+                      hideErrorMessage={false}
+                      name="name"
+                      onChange={[Function]}
+                      placeholder="My Rule Name"
+                      required={true}
                     >
-                      <input
-                        className="form-control"
-                        defaultValue=""
-                        onChange={[Function]}
-                        placeholder="My Rule Name"
-                        required={true}
-                        type="text"
-                      />
-                    </div>
-                    <hr />
-                    <div
-                      className="node-match-selector"
-                    >
-                      <AlertRuleRow>
-                        <h6
-                          className="glamor-8 glamor-9"
+                      <div
+                        className="control-group required"
+                      >
+                        <div
+                          className="controls"
                         >
-                          Every time 
-                          <Select2Field
-                            allowClear={false}
-                            allowEmpty={false}
-                            choices={
-                              Array [
-                                Array [
-                                  "all",
-                                  "all",
-                                ],
-                                Array [
-                                  "any",
-                                  "any",
-                                ],
-                                Array [
-                                  "none",
-                                  "none",
-                                ],
-                              ]
-                            }
-                            className=""
+                          <input
+                            className="form-control"
                             disabled={false}
-                            escapeMarkup={true}
-                            hideErrorMessage={false}
-                            key="1"
-                            multiple={false}
-                            name="actionMatch"
+                            id="id-name"
+                            name="name"
                             onChange={[Function]}
-                            placeholder="--"
+                            placeholder="My Rule Name"
                             required={true}
+                            type="text"
+                            value=""
+                          />
+                        </div>
+                      </div>
+                    </TextField>
+                    <hr />
+                    <AlertRuleRow>
+                      <h6
+                        className="glamor-8 glamor-9"
+                      >
+                        Every time 
+                        <Select2Field
+                          allowClear={false}
+                          allowEmpty={false}
+                          choices={
+                            Array [
+                              Array [
+                                "all",
+                                "all",
+                              ],
+                              Array [
+                                "any",
+                                "any",
+                              ],
+                              Array [
+                                "none",
+                                "none",
+                              ],
+                            ]
+                          }
+                          className=""
+                          disabled={false}
+                          escapeMarkup={true}
+                          hideErrorMessage={false}
+                          key="1"
+                          multiple={false}
+                          name="actionMatch"
+                          onChange={[Function]}
+                          placeholder="--"
+                          required={true}
+                          style={
+                            Object {
+                              "marginBottom": 0,
+                              "marginLeft": 5,
+                              "marginRight": 5,
+                              "width": 100,
+                            }
+                          }
+                          value="all"
+                        >
+                          <div
+                            className="control-group required"
                             style={
                               Object {
                                 "marginBottom": 0,
                                 "marginLeft": 5,
                                 "marginRight": 5,
+                                "width": 100,
                               }
                             }
-                            value="all"
                           >
                             <div
-                              className="control-group required"
-                              style={
-                                Object {
-                                  "marginBottom": 0,
-                                  "marginLeft": 5,
-                                  "marginRight": 5,
-                                }
-                              }
+                              className="controls"
                             >
-                              <div
-                                className="controls"
+                              <select
+                                className="form-control"
+                                disabled={false}
+                                id="id-actionMatch"
+                                multiple={false}
+                                onChange={[Function]}
+                                placeholder="--"
+                                required={true}
+                                value="all"
                               >
-                                <select
-                                  className="form-control"
-                                  disabled={false}
-                                  id="id-actionMatch"
-                                  multiple={false}
-                                  onChange={[Function]}
-                                  placeholder="--"
-                                  required={true}
+                                <option
+                                  key="all"
                                   value="all"
                                 >
-                                  <option
-                                    key="all"
-                                    value="all"
-                                  >
-                                    all
-                                  </option>
-                                  <option
-                                    key="any"
-                                    value="any"
-                                  >
-                                    any
-                                  </option>
-                                  <option
-                                    key="none"
-                                    value="none"
-                                  >
-                                    none
-                                  </option>
-                                </select>
-                              </div>
+                                  all
+                                </option>
+                                <option
+                                  key="any"
+                                  value="any"
+                                >
+                                  any
+                                </option>
+                                <option
+                                  key="none"
+                                  value="none"
+                                >
+                                  none
+                                </option>
+                              </select>
                             </div>
-                          </Select2Field>
-                           of these conditions are met:
-                        </h6>
-                      </AlertRuleRow>
-                    </div>
+                          </div>
+                        </Select2Field>
+                         of these conditions are met:
+                      </h6>
+                    </AlertRuleRow>
                     <RuleNodeList
                       className="rule-condition-list"
                       initialItems={Array []}
@@ -1353,12 +1429,34 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                     <div
                       className="actions"
                     >
-                      <button
-                        className="btn btn-primary btn-lg"
+                      <Button
                         disabled={false}
+                        priority="primary"
                       >
-                        Save Rule
-                      </button>
+                        <button
+                          className="button button-primary"
+                          disabled={false}
+                          onClick={[Function]}
+                          role="button"
+                        >
+                          <Flex
+                            align="center"
+                            className="button-label"
+                          >
+                            <Base
+                              align="center"
+                              className="button-label glamor-16"
+                            >
+                              <div
+                                className="button-label glamor-16"
+                                is={null}
+                              >
+                                Save Rule
+                              </div>
+                            </Base>
+                          </Flex>
+                        </button>
+                      </Button>
                     </div>
                   </div>
                 </PanelBody>
