@@ -28,7 +28,7 @@ class DSymFileSerializerTest(TestCase):
 
         assert result == {
             'uuid': 'dfb8e43a-f242-3d73-a453-aeb6a777ef75',
-            'debug_id': 'dfb8e43a-f242-3d73-a453-aeb6a777ef75',
+            'debugId': 'dfb8e43a-f242-3d73-a453-aeb6a777ef75',
             'cpuName': 'x86_64',
             'objectName': 'baz.dSYM',
             'symbolType': 'macho',
@@ -58,7 +58,7 @@ class DSymFileSerializerTest(TestCase):
 
         assert result == {
             'uuid': 'dfb8e43a-f242-3d73-a453-aeb6a777ef75',
-            'debug_id': 'dfb8e43a-f242-3d73-a453-aeb6a777ef75-feedface',
+            'debugId': 'dfb8e43a-f242-3d73-a453-aeb6a777ef75-feedface',
             'cpuName': 'x86_64',
             'objectName': 'baz.dSYM',
             'symbolType': 'macho',

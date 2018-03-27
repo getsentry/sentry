@@ -12,7 +12,7 @@ class DSymFileSerializer(Serializer):
         d = {
             'id': six.text_type(obj.id),
             'uuid': obj.debug_id[:36],
-            'debug_id': obj.debug_id,
+            'debugId': obj.debug_id,
             'cpuName': obj.cpu_name,
             'objectName': obj.object_name,
             'symbolType': obj.dsym_type,
