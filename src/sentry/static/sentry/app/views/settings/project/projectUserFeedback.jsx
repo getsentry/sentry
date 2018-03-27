@@ -129,13 +129,6 @@ class ProjectUserReportSettings extends AsyncView {
     return (
       <div>
         <SettingsPageHeader title={t('User Feedback')} />
-
-        <div className="alert alert-block alert-info">
-          {t(
-            'Psst! This feature is still a work-in-progress. Thanks for being an early adopter!'
-          )}
-        </div>
-
         <TextBlock>
           {t(
             'Enabling User Feedback allows you to interact with your users on an unprecedented level. Collect additional details about issues affecting them, and more importantly reach out to them with resolutions.'
