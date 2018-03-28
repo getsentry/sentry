@@ -44,12 +44,13 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
         conditions.append((col, 'IN', keys))
 
     # project_ids will be the set of projects either referenced directly as
-    # passed-in keys for project_id, or indrectly (eg the set of projects
+    # passed-in keys for project_id, or indirectly (eg the set of projects
     # related to the queried set of issues or releases)
     project_ids = [get_project_ids(k, ids) for k, ids in six.iteritems(filter_keys)]
-    if all(not ids for ids in project_ids):
+    if not any(project_ids):
         raise Exception("No project_id filter, or none could be inferred from other filters.")
     project_ids = list(set.intersection(*[set(ids) for ids in project_ids if ids]))
+    # TODO if using intersection, also need to check its non-empty here
 
     # If the grouping, aggregation, or any of the conditions reference `issue`
     # we need to fetch the issue definitions (issue -> fingerprint hashes)
