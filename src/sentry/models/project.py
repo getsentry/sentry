@@ -401,5 +401,4 @@ class Project(Model):
         )
 
         if not created:
-            redirect.project = self
-            redirect.save()
+            redirect.update(project=self)
