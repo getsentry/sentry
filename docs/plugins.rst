@@ -43,7 +43,6 @@ The following plugins are fully supported and maintained by the Sentry team.
 * `GitHub <https://github.com/getsentry/sentry-github>`_
 * `JIRA <https://github.com/getsentry/sentry-jira>`_
 * `Hipchat <https://github.com/getsentry/sentry-hipchat-ac>`_
-* `Slack <https://github.com/getsentry/sentry-slack>`_
 * `GitLab <https://github.com/getsentry/sentry-gitlab>`_
 * `Phabricator <https://github.com/getsentry/sentry-phabricator>`_
 * `Pivotal Tracker <https://github.com/getsentry/sentry-pivotal>`_
