@@ -2,7 +2,7 @@
 
 from __future__ import absolute_import
 
-from sentry.models import Environment, OrganizationMember, OrganizationMemberTeam, Project, Release, ReleaseProject, ReleaseProjectEnvironment, Rule, ProjectRedirect
+from sentry.models import Environment, OrganizationMember, OrganizationMemberTeam, Project, Release, ReleaseProject, ReleaseProjectEnvironment, Rule
 from sentry.testutils import TestCase
 
 
@@ -128,29 +128,4 @@ class ProjectTest(TestCase):
         assert not ReleaseProject.objects.filter(
             project=project,
             release=release,
-        ).exists()
-
-    def test_record_redirect_slug(self):
-        org = self.create_organization()
-        project = self.create_project(organization=org)
-        project.record_redirect_slug('old_slug')
-
-        assert ProjectRedirect.objects.filter(
-            redirect_slug='old_slug',
-            project=project,
-        ).exists()
-
-        # Recording the same historic slug on a different project updates the
-        # project pointer.
-        project2 = self.create_project(organization=org)
-        project2.record_redirect_slug('old_slug')
-
-        assert not ProjectRedirect.objects.filter(
-            redirect_slug='old_slug',
-            project=project,
-        ).exists()
-
-        assert ProjectRedirect.objects.filter(
-            redirect_slug='old_slug',
-            project=project2,
         ).exists()

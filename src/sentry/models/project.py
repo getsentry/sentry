@@ -386,19 +386,3 @@ class Project(Model):
 
     def get_lock_key(self):
         return 'project_token:%s' % self.id
-
-    def record_redirect_slug(self, historic_slug):
-        """
-        Records a historic slug used for redirect purposes. Overwrites
-        historic redirect slugs from previous projects
-        """
-        from sentry.models import ProjectRedirect
-
-        redirect, created = ProjectRedirect.objects.get_or_create(
-            redirect_slug=historic_slug,
-            organization=self.organization,
-            defaults={'project': self},
-        )
-
-        if not created:
-            redirect.update(project=self)

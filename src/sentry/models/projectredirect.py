@@ -18,3 +18,18 @@ class ProjectRedirect(Model):
         app_label = 'sentry'
         db_table = 'sentry_projectredirect'
         unique_together = (('organization', 'redirect_slug'),)
+
+    @classmethod
+    def record(cls, project, historic_slug):
+        """
+        Records a historic slug used for redirect purposes. Overwrites
+        historic redirect slugs from previous projects
+        """
+        redirect, created = cls.objects.get_or_create(
+            redirect_slug=historic_slug,
+            organization=project.organization,
+            defaults={'project': project},
+        )
+
+        if not created:
+            redirect.update(project=project)
