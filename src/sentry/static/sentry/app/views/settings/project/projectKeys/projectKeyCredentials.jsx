@@ -50,7 +50,7 @@ class ProjectKeyCredentials extends React.Component {
     return (
       <React.Fragment>
         {showDsn && (
-          <Field label={t('DSN')} inline={false} hideControlState>
+          <Field label={t('DSN')} inline={false} flexibleControlStateSize>
             <TextCopyInput>
               {getDynamicText({
                 value: data.dsn.secret,
@@ -77,7 +77,7 @@ class ProjectKeyCredentials extends React.Component {
               }
             )}
             inline={false}
-            hideControlState
+            flexibleControlStateSize
           >
             <TextCopyInput>
               {getDynamicText({
@@ -102,7 +102,7 @@ class ProjectKeyCredentials extends React.Component {
               }
             )}
             inline={false}
-            hideControlState
+            flexibleControlStateSize
           >
             <TextCopyInput>
               {getDynamicText({
@@ -127,7 +127,7 @@ class ProjectKeyCredentials extends React.Component {
                 }
               )}
               inline={false}
-              hideControlState
+              flexibleControlStateSize
             >
               <TextCopyInput>
                 {getDynamicText({
@@ -142,7 +142,7 @@ class ProjectKeyCredentials extends React.Component {
           )}
 
         {showPublicKey && (
-          <Field label={t('Public Key')} inline={true} hideControlState>
+          <Field label={t('Public Key')} inline={true} flexibleControlStateSize>
             <TextCopyInput>
               {getDynamicText({
                 value: data.public,
@@ -153,7 +153,7 @@ class ProjectKeyCredentials extends React.Component {
         )}
 
         {showSecretKey && (
-          <Field label={t('Secret Key')} inline={true} hideControlState>
+          <Field label={t('Secret Key')} inline={true} flexibleControlStateSize>
             <TextCopyInput>
               {getDynamicText({
                 value: data.secret,
@@ -164,7 +164,7 @@ class ProjectKeyCredentials extends React.Component {
         )}
 
         {showProjectId && (
-          <Field label={t('Project ID')} inline={true} hideControlState>
+          <Field label={t('Project ID')} inline={true} flexibleControlStateSize>
             <TextCopyInput>
               {getDynamicText({
                 value: projectId,

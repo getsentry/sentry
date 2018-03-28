@@ -9,15 +9,18 @@ import {
   addSuccessMessage,
   removeIndicator,
 } from '../../../actionCreators/indicator';
+import {addTeamToProject} from '../../../actionCreators/projects';
+import {getOrganizationState} from '../../../mixins/organizationState';
+import {openCreateTeamModal} from '../../../actionCreators/modal';
 import {t} from '../../../locale';
 import ApiMixin from '../../../mixins/apiMixin';
 import AsyncView from '../../asyncView';
 import Button from '../../../components/buttons/button';
 import Confirm from '../../../components/confirm';
-import InlineSvg from '../../../components/inlineSvg';
 import DropdownAutoComplete from '../../../components/dropdownAutoComplete';
 import DropdownButton from '../../../components/dropdownButton';
 import EmptyMessage from '../components/emptyMessage';
+import InlineSvg from '../../../components/inlineSvg';
 import Link from '../../../components/link';
 import Panel from '../components/panel';
 import PanelBody from '../components/panelBody';
@@ -92,6 +95,7 @@ const TeamRow = createReactClass({
                   )
                 : t('Are you sure you want to remove this team?')
             }
+            bypass={this.props.teamCount > 1}
             onConfirm={this.handleRemove}
             disabled={this.state.loading}
           >
@@ -114,7 +118,7 @@ class ProjectTeams extends AsyncView {
     ];
   }
 
-  handleRemovedTeam(removedTeam) {
+  handleRemovedTeam = removedTeam => {
     this.setState(prevState => {
       return {
         projectTeams: this.state.projectTeams.filter(team => {
@@ -122,43 +126,53 @@ class ProjectTeams extends AsyncView {
         }),
       };
     });
-  }
+  };
 
-  handleAddedTeam(team) {
+  handleAddedTeam = team => {
     this.setState(prevState => {
       return {
         projectTeams: this.state.projectTeams.concat([team]),
       };
     });
-  }
+  };
 
   handleAdd = selection => {
     if (this.state.loading) return;
 
     let team = this.state.allTeams.find(tm => tm.id === selection.value);
 
-    let loadingIndicator = addLoadingMessage(t('Saving changes...'));
     let {orgId, projectId} = this.props.params;
-    this.api.request(`/projects/${orgId}/${projectId}/teams/${team.slug}/`, {
-      method: 'POST',
-      success: (d, _, jqXHR) => {
+
+    addTeamToProject(this.api, orgId, projectId, team.slug).then(
+      () => {
         this.handleAddedTeam(team);
-        addSuccessMessage(t(`#${team.slug} has been added to project`));
-        removeIndicator(loadingIndicator);
       },
-      error: () => {
+      () => {
         this.setState({
           error: true,
           loading: false,
         });
-        addErrorMessage(t(`Unable to add #${team.slug} to project`));
-        removeIndicator(loadingIndicator);
+      }
+    );
+  };
+
+  handleCreateTeam = e => {
+    let {project, organization} = this.props;
+    e.stopPropagation();
+    e.preventDefault();
+    openCreateTeamModal({
+      project,
+      organization,
+      onClose: data => {
+        addTeamToProject(this.api, organization.slug, project.slug, data.slug).then(
+          this.remountComponent,
+          this.remountComponent
+        );
       },
     });
   };
 
-  renderAddTeamButton() {
-    let {orgId} = this.props.params;
+  renderAddTeamToProject() {
     let projectTeams = new Set(this.state.projectTeams.map(team => team.slug));
     let teamsToAdd = this.state.allTeams
       .filter(team => {
@@ -173,7 +187,7 @@ class ProjectTeams extends AsyncView {
     let menuHeader = (
       <StyledTeamsLabel>
         {t('Teams')}
-        <StyledCreateTeamLink to={`/organizations/${orgId}/teams/new/`}>
+        <StyledCreateTeamLink onClick={this.handleCreateTeam}>
           {t('Create Team')}
         </StyledCreateTeamLink>
       </StyledTeamsLabel>
@@ -229,13 +243,36 @@ class ProjectTeams extends AsyncView {
     if (this.state.projectTeams.length > 0) body = this.renderResults();
     else body = this.renderEmpty();
 
+    let {organization} = this.props;
+    let canCreateTeams = getOrganizationState(organization)
+      .getAccess()
+      .has('project:admin');
+
     return (
       <div>
-        <SettingsPageHeader title={t('Teams')} />
+        <SettingsPageHeader
+          title={t('Teams')}
+          action={
+            <Button
+              priority="primary"
+              size="small"
+              disabled={!canCreateTeams}
+              title={
+                !canCreateTeams
+                  ? t('You do not have permission to create teams')
+                  : undefined
+              }
+              onClick={this.handleCreateTeam}
+              icon="icon-circle-add"
+            >
+              {t('Create Team')}
+            </Button>
+          }
+        />
         <Panel>
           <PanelHeader hasButtons={true}>
             <div>{t('Team')}</div>
-            <div>{this.renderAddTeamButton()}</div>
+            <div>{this.renderAddTeamToProject()}</div>
           </PanelHeader>
           {body}
         </Panel>

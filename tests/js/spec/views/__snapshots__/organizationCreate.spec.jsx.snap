@@ -4,7 +4,7 @@ exports[`OrganizationCreate render() renders with terms 1`] = `
 <SideEffect(DocumentTitle)
   title="Create Organization - Sentry"
 >
-  <NarryLayout>
+  <NarrowLayout>
     <h3>
       Create a New Organization
     </h3>
@@ -70,7 +70,7 @@ exports[`OrganizationCreate render() renders with terms 1`] = `
         required={true}
       />
     </ApiForm>
-  </NarryLayout>
+  </NarrowLayout>
 </SideEffect(DocumentTitle)>
 `;
 
@@ -78,7 +78,7 @@ exports[`OrganizationCreate render() renders without terms 1`] = `
 <SideEffect(DocumentTitle)
   title="Create Organization - Sentry"
 >
-  <NarryLayout>
+  <NarrowLayout>
     <h3>
       Create a New Organization
     </h3>
@@ -113,6 +113,6 @@ exports[`OrganizationCreate render() renders without terms 1`] = `
         required={true}
       />
     </ApiForm>
-  </NarryLayout>
+  </NarrowLayout>
 </SideEffect(DocumentTitle)>
 `;

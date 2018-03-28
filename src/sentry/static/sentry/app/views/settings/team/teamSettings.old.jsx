@@ -16,6 +16,10 @@ export default class TeamSettings extends AsyncView {
     return 'Team Settings';
   }
 
+  getEndpoints() {
+    return [];
+  }
+
   renderBody() {
     let {orgId, teamId} = this.props.params;
     let team = this.props.team;

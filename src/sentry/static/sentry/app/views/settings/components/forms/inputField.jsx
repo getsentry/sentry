@@ -7,7 +7,7 @@ import Input from './controls/input';
 export default class InputField extends React.Component {
   static propTypes = {
     ...FormField.propTypes,
-    field: PropTypes.func.isRequired,
+    field: PropTypes.func,
   };
 
   static defaultProps = {

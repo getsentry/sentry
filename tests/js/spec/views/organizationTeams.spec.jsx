@@ -1,10 +1,18 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+import {mount, shallow} from 'enzyme';
 
 import {Client} from 'app/api';
 import OrganizationTeams from 'app/views/organizationTeams';
+import OrganizationTeamsView from 'app/views/settings/team/organizationTeamsView';
+import {openCreateTeamModal} from 'app/actionCreators/modal';
+
+jest.mock('app/actionCreators/modal', () => ({
+  openCreateTeamModal: jest.fn(),
+}));
 
 describe('OrganizationTeams', function() {
+  let org = TestStubs.Organization();
+  let project = TestStubs.Project();
   let sandbox;
   let stubbedApiRequest;
 
@@ -32,6 +40,35 @@ describe('OrganizationTeams', function() {
 
       expect(stubbedApiRequest.callCount).toEqual(1);
       expect(stubbedApiRequest.getCall(0).args[0]).toEqual('/organizations/123/stats/');
+    });
+  });
+
+  describe('New Settings', function() {
+    it('opens "create team modal" when creating a new team from header', function() {
+      let wrapper = mount(
+        <OrganizationTeamsView
+          params={{orgId: org.slug, projectId: project.slug}}
+          routes={[]}
+          allTeams={[TestStubs.Team()]}
+          access={new Set(['org:write'])}
+          features={new Set([])}
+          activeTeams={[]}
+          organization={org}
+        />,
+        TestStubs.routerContext()
+      );
+
+      // Click "Create Team" in Panel Header
+      wrapper.find('SettingsPageHeading Button').simulate('click');
+
+      // action creator to open "create team modal" is called
+      expect(openCreateTeamModal).toHaveBeenCalledWith(
+        expect.objectContaining({
+          organization: expect.objectContaining({
+            slug: org.slug,
+          }),
+        })
+      );
     });
   });
 });

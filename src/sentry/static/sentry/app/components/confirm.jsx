@@ -11,6 +11,10 @@ class Confirm extends React.PureComponent {
     confirmText: PropTypes.string.isRequired,
     cancelText: PropTypes.string.isRequired,
     priority: PropTypes.oneOf(['primary', 'danger']).isRequired,
+    /**
+     * If true, will skip the confirmation modal and call `onConfirm`
+     */
+    bypass: PropTypes.bool,
     message: PropTypes.node,
     /**
      * Renderer that passes:
@@ -84,8 +88,13 @@ class Confirm extends React.PureComponent {
   };
 
   handleToggle = e => {
-    let {disabled} = this.props;
+    let {disabled, bypass} = this.props;
     if (disabled) return;
+
+    if (bypass) {
+      this.props.onConfirm();
+      return;
+    }
 
     // Current state is closed, means it will toggle open
     if (!this.state.isModalOpen) {
@@ -107,7 +116,6 @@ class Confirm extends React.PureComponent {
     } = this.props;
 
     let confirmMessage;
-
     if (typeof renderMessage === 'function') {
       confirmMessage = renderMessage({
         confirm: this.handleConfirm,

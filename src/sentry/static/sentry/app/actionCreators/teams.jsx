@@ -96,6 +96,38 @@ export function leaveTeam(api, params, options) {
   });
 }
 
+export function createTeam(api, team, params, options) {
+  TeamActions.createTeam(team);
+
+  return api
+    .requestPromise(`/organizations/${params.orgId}/teams/`, {
+      method: 'POST',
+      data: team,
+    })
+    .then(
+      data => {
+        TeamActions.createTeamSuccess(data);
+        addSuccessMessage(
+          tct('[team] has been add to the [organization] organization', {
+            team: `#${data.slug}`,
+            organization: params.orgId,
+          })
+        );
+        return data;
+      },
+      err => {
+        TeamActions.createTeamError(team.slug || team.name, err);
+        addErrorMessage(
+          tct('Unable to create [team] in the [organization] organization', {
+            team: `#${team.slug || team.name}`,
+            organization: params.orgId,
+          })
+        );
+        throw err;
+      }
+    );
+}
+
 export function removeTeam(api, params, options) {
   TeamActions.removeTeam(params.teamId);
 
@@ -107,7 +139,7 @@ export function removeTeam(api, params, options) {
       data => {
         TeamActions.removeTeamSuccess(params.teamId, data);
         addSuccessMessage(
-          tct('[team] has been removed from [organization]', {
+          tct('[team] has been removed from the [organization] organization', {
             team: `#${params.teamId}`,
             organization: params.orgId,
           })
@@ -117,7 +149,7 @@ export function removeTeam(api, params, options) {
       err => {
         TeamActions.removeTeamError(params.teamId, err);
         addErrorMessage(
-          tct('Unable to remove [team] from [organization]', {
+          tct('Unable to remove [team] from the [organization] organization', {
             team: `#${params.teamId}`,
             organization: params.orgId,
           })

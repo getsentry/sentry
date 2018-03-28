@@ -67,6 +67,10 @@ const getValueFromEvent = (valueOrEvent, e) => {
   };
 };
 
+const ControlStateWrapper = styled('div')`
+  padding: 0 8px;
+`;
+
 /**
  * ControlState (i.e. loading/error icons) for connected form components
  */
@@ -87,12 +91,18 @@ class ControlState extends React.Component {
             let isSaved = model.getFieldState(name, FormState.READY);
 
             if (isSaving) {
-              return <FormSpinner />;
+              return (
+                <ControlStateWrapper>
+                  <FormSpinner />
+                </ControlStateWrapper>
+              );
             } else if (isSaved) {
               return (
-                <FormFieldIsSaved>
-                  <InlineSvg src="icon-checkmark-sm" size="18px" />
-                </FormFieldIsSaved>
+                <ControlStateWrapper>
+                  <FormFieldIsSaved>
+                    <InlineSvg src="icon-checkmark-sm" size="18px" />
+                  </FormFieldIsSaved>
+                </ControlStateWrapper>
               );
             }
 
@@ -107,9 +117,11 @@ class ControlState extends React.Component {
             if (!error) return null;
 
             return (
-              <FormFieldError>
-                <InlineSvg src="icon-warning-sm" size="18px" />
-              </FormFieldError>
+              <ControlStateWrapper>
+                <FormFieldError>
+                  <InlineSvg src="icon-warning-sm" size="18px" />
+                </FormFieldError>
+              </ControlStateWrapper>
             );
           }}
         </Observer>
@@ -134,6 +146,10 @@ class FormField extends React.Component {
      * Should hide error message?
      */
     hideErrorMessage: PropTypes.bool,
+    /**
+     * Hides control state component
+     */
+    flexibleControlStateSize: PropTypes.bool,
 
     // the following should only be used without form context
     onChange: PropTypes.func,
@@ -145,6 +161,7 @@ class FormField extends React.Component {
 
   static defaultProps = {
     hideErrorMessage: false,
+    flexibleControlStateSize: false,
   };
 
   static contextTypes = {
@@ -241,7 +258,13 @@ class FormField extends React.Component {
   };
 
   render() {
-    let {name, showReturnButton, hideErrorMessage, ...props} = this.props;
+    let {
+      name,
+      showReturnButton,
+      hideErrorMessage,
+      flexibleControlStateSize,
+      ...props
+    } = this.props;
     let id = this.getId();
     let model = this.getModel();
 
@@ -253,6 +276,7 @@ class FormField extends React.Component {
             disabledReason={disabledReason}
             inline={inline}
             alignRight={alignRight}
+            flexibleControlStateSize={flexibleControlStateSize}
             controlState={<ControlState model={model} name={name} />}
             errorState={
               <Observer>
