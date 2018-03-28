@@ -197,7 +197,7 @@ def register_extensions():
 def pytest_runtest_teardown(item):
     from sentry import tsdb
     # TODO(dcramer): this only works if this is the correct tsdb backend
-    tsdb.backend.flush()
+    tsdb.flush()
 
     from sentry.utils.redis import clusters
 

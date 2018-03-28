@@ -113,3 +113,6 @@ class DummyTSDB(BaseTSDB):
             set(environment_ids) if environment_ids is not None else set()).union(
             [None])
         self.validate_arguments(models, environment_ids)
+
+    def flush(self):
+        pass
