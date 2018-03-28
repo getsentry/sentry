@@ -130,6 +130,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
       saveOnBlur={true}
       submitDisabled={false}
       submitLabel="Save Changes"
+      submitPriority="primary"
     >
       <JsonForm
         additionalFieldProps={Object {}}
