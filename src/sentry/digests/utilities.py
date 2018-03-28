@@ -25,14 +25,12 @@ def get_digest_metadata(digest):
     return start, end, counts
 
 
-def get_events_from_digest(digest):
+def get_notifications_from_digest(digest):
     """
-    Returns events with their corresponding rules.
-    ** Uses group.get_latest_event **
+    Returns all(?) notifications in a digest
     """
-    events = []
+    notifications = []
     for groups in six.itervalues(digest):
         for group in groups:
-            rules = groups[group][0].value.rules
-            events.append((group.get_latest_event(), rules))
-    return events
+            notifications.append(groups[group][0].value)
+    return notifications

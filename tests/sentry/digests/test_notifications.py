@@ -211,7 +211,7 @@ class SortWholeRecordsTestCase(TestCase):
         record2 = event_to_record(self.event_all_users, (self.rule,))
         record3 = event_to_record(self.event_single_user, (self.rule,))
 
-        records = sort_records((record2, record3, record1))
+        records = (record2, record3, record1)
         digest = build_digest(self.project, records)
         events = sorted(get_events_from_digest(digest), key=lambda e_r: e_r[0].id)
 

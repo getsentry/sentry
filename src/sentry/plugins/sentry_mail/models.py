@@ -21,7 +21,7 @@ from django.utils.safestring import mark_safe
 from sentry import features, options
 from sentry.models import ProjectOwnership, User
 
-from sentry.digests.utilities import get_digest_metadata, get_events_from_digest
+from sentry.digests.utilities import get_digest_metadata, get_notifications_from_digest
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.plugins import register
 from sentry.plugins.base.structs import Notification
@@ -328,11 +328,18 @@ class MailPlugin(NotificationPlugin):
         group = six.next(iter(counts))
         subject = self.get_digest_subject(group, counts, start)
 
-        events = get_events_from_digest(context['digest'])
-        event_actors = ProjectOwnership.get_actors(project.id, [event[0] for event in events])
+        notifications = get_notifications_from_digest(context['digest'])
+        events = [notification.event for notification in notifications]
+        event_actors = ProjectOwnership.get_actors(project.id, events)
 
         if event_actors != ProjectOwnership.Everyone:
-            self.send_digest_with_owners(project, events, event_actors, context, subject, headers)
+            self.send_digest_with_owners(
+                project,
+                notifications,
+                event_actors,
+                context,
+                subject,
+                headers)
             return
 
         for user_id in self.get_send_to(project):
@@ -349,18 +356,19 @@ class MailPlugin(NotificationPlugin):
                 send_to=[user_id],
             )
 
-    def send_digest_with_owners(self, project, events, event_actors, context, subject, headers):
+    def send_digest_with_owners(self, project, notifications,
+                                event_actors, context, subject, headers):
         original_context = context
         event_users = self.event_actors_to_user_ids(event_actors)
 
         for user_id in self.get_send_to(project):
             context = original_context
-            events_for_user = [event for event in events if user_id in event_users[event[0]]]
-            if not events_for_user:
+            notifications_for_user = [n for n in notifications if user_id in event_users[n.event]]
+            if not notifications_for_user:
                 continue
-            if len(events_for_user) != len(original_context['counts']):
-                context = self.build_custom_context(events_for_user, project)
-            if len(events_for_user) == 1:
+            if len(notifications_for_user) != len(original_context['counts']):
+                context = self.build_custom_context(notifications_for_user, project)
+            if len(notifications_for_user) == 1:
                 self.render_digest_as_single_notification(
                     context['counts'], context['digest'], [user_id])
                 continue
@@ -420,8 +428,8 @@ class MailPlugin(NotificationPlugin):
 
         return resolved_teams
 
-    def build_custom_context(self, events, project):
-        records = [event_to_record(event[0], event[1]) for event in events]
+    def build_custom_context(self, notifications, project):
+        records = [event_to_record(n.event, n.rules) for n in notifications]
         digest = build_digest(project, records)
         start, end, counts = get_digest_metadata(digest)
         context = {
