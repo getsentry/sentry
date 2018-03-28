@@ -105,10 +105,11 @@ def nest_groups(data, groups):
         return {k: nest_groups(v, rest) for k, v in six.iteritems(inter)}
 
 # The following are functions for resolving information from sentry models
-# about projects, environments, and issues (groups). Having the TSDB
+# about projects, environments, and issues (groups). Having this snuba
 # implementation have to know about these relationships is not ideal, and
-# couples this tsdb implementation to django model code, but is currently
-# implemented here for simplicity.
+# many of these relationships (eg environment id->name) will have already
+# been queried and exist somewhere in the call stack, but for now, lookup
+# is implemented here for simplicity.
 
 
 def get_snuba_map(column, ids):

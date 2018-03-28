@@ -20,7 +20,6 @@ from sentry.utils import snuba
 class SnubaTagStorage(TagStorage):
 
     # Tag keys and values
-    # TODO these all return QuerySets, not sure if they are applicable to snuba
     def get_tag_key(self, project_id, environment_id, key, status=TagKeyStatus.VISIBLE):
         pass
 
