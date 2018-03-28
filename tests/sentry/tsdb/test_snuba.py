@@ -47,6 +47,7 @@ class SnubaTSDBTest(TestCase):
     def setUp(self):
         self.db = SnubaTSDB()
 
+    @responses.activate
     def test_result_shape(self):
         """
         Tests that the results from the different TSDB methods have the
@@ -103,7 +104,10 @@ class SnubaTSDBTest(TestCase):
                                                         [project_id], dts[0], dts[-1])
             assert has_shape(results, 1)
 
+    @responses.activate
     def test_groups(self):
+        now = parse_datetime('2018-03-09T01:00:00Z')
+        dts = [now + timedelta(hours=i) for i in range(4)]
         project = self.create_project()
         group = self.create_group(
             project=project,
@@ -114,10 +118,20 @@ class SnubaTSDBTest(TestCase):
             hash='0' * 32
         )
 
-        now = parse_datetime('2018-03-09T01:00:00Z')
-        dts = [now + timedelta(hours=i) for i in range(4)]
-        results = self.db.get_range(TSDBModel.group, [group.id], dts[0], dts[-1])
-        assert results is not None
+        with responses.RequestsMock() as rsps:
+            def snuba_response(request):
+                body = json.loads(request.body)
+                assert body['aggregation'] == 'count'
+                assert body['project'] == [project.id]
+                assert body['groupby'] == ['issue', 'time']
+                return (200, {}, json.dumps({
+                    'data': [{'time': '2018-03-09T01:00:00Z', 'issue': 1, 'aggregate': 100}],
+                    'meta': [{'name': 'time'}, {'name': 'issue'}, {'name': 'aggregate'}]
+                }))
+
+            rsps.add_callback(responses.POST, snuba.SNUBA + '/query', callback=snuba_response)
+            results = self.db.get_range(TSDBModel.group, [group.id], dts[0], dts[-1])
+            assert results is not None
 
     @responses.activate
     def test_releases(self):
