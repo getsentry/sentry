@@ -1,4 +1,4 @@
-import {Box, Flex} from 'grid-emotion';
+import {Box} from 'grid-emotion';
 import React from 'react';
 import styled from 'react-emotion';
 
@@ -27,7 +27,7 @@ const Description = styled.div`
 `;
 
 const SubscribedDescription = styled(Description)`
-  text-align: right;
+  color: ${p => p.theme.gray2};
 `;
 
 class AccountSubscriptions extends AsyncView {
@@ -92,42 +92,44 @@ class AccountSubscriptions extends AsyncView {
         </TextBlock>
 
         <Panel>
-          <PanelHeader align="center" justify="space-between">
-            <span>{t('Name')}</span>
-            <span>{t('Subscribed')}</span>
-          </PanelHeader>
-
-          <PanelBody>
-            {this.state.subscriptions.length ? (
-              this.state.subscriptions.map((subscription, index) => (
-                <PanelItem p={2} align="center" key={subscription.listId}>
-                  <Box flex="1">
-                    <SubscriptionName>{subscription.listName}</SubscriptionName>
-                    {subscription.listDescription && (
-                      <Description>{subscription.listDescription}</Description>
-                    )}
-                  </Box>
-                  <Flex direction="column" align="flex-end">
-                    <Switch
-                      isActive={subscription.subscribed}
-                      size="lg"
-                      toggle={this.handleToggle.bind(this, subscription, index)}
-                    />
-                    {subscription.subscribed && (
-                      <SubscribedDescription>
-                        <div>{subscription.email} on </div>
-                        <div>
-                          <DateTime shortDate date={subscription.subscribedDate} />
-                        </div>
-                      </SubscribedDescription>
-                    )}
-                  </Flex>
-                </PanelItem>
-              ))
-            ) : (
-              <EmptyMessage>{t("You don't have any subscriptions.")}</EmptyMessage>
-            )}
-          </PanelBody>
+          {this.state.subscriptions.length ? (
+            <div>
+              <PanelHeader>{t('Subscription')}</PanelHeader>
+              <PanelBody>
+                {this.state.subscriptions.map((subscription, index) => (
+                  <PanelItem p={2} align="center" key={subscription.listId}>
+                    <Box w={1 / 2} pr={2}>
+                      <SubscriptionName>{subscription.listName}</SubscriptionName>
+                      {subscription.listDescription && (
+                        <Description>{subscription.listDescription}</Description>
+                      )}
+                      {subscription.subscribed ? (
+                        <SubscribedDescription>
+                          <div>
+                            {subscription.email} on{' '}
+                            <DateTime shortDate date={subscription.subscribedDate} />
+                          </div>
+                        </SubscribedDescription>
+                      ) : (
+                        <SubscribedDescription>
+                          Not currently subscribed
+                        </SubscribedDescription>
+                      )}
+                    </Box>
+                    <Box>
+                      <Switch
+                        isActive={subscription.subscribed}
+                        size="lg"
+                        toggle={this.handleToggle.bind(this, subscription, index)}
+                      />
+                    </Box>
+                  </PanelItem>
+                ))}{' '}
+              </PanelBody>
+            </div>
+          ) : (
+            <EmptyMessage>{t("There's no subscription backend present.")}</EmptyMessage>
+          )}
         </Panel>
         <TextBlock>
           We’re applying GDPR consent and privacy policies to all Sentry contacts,
