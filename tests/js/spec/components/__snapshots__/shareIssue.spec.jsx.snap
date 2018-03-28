@@ -117,7 +117,7 @@ exports[`ShareIssue renders when not shared 1`] = `
 </DropdownLink>
 `;
 
-exports[`ShareIssue renders when not shared 2`] = `
+exports[`ShareIssue renders when shared  1`] = `
 <DropdownLink
   alwaysRenderMenu={true}
   anchorRight={false}

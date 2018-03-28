@@ -102,7 +102,7 @@ describe('TagDistributionMeter', function() {
         },
         () => {
           element.renderBody();
-          expect(element.renderSegments.calledOnce);
+          expect(element.renderSegments.callCount).toBeTruthy();
           done();
         }
       );

@@ -177,11 +177,11 @@ describe('AssigneeSelector', function() {
       openMenu();
       MemberListStore.loadInitialData([USER_1, USER_2]);
       assigneeSelector.update();
-      expect(assigneeSelector.instance().assignableTeams().length).toBe(1);
+      expect(assigneeSelector.instance().assignableTeams()).toHaveLength(1);
 
-      expect(assigneeSelector.find('Avatar').length).toBe(3);
-      expect(assigneeSelector.find('UserAvatar').length).toBe(2);
-      expect(assigneeSelector.find('TeamAvatar').length).toBe(1);
+      expect(assigneeSelector.find('Avatar')).toHaveLength(3);
+      expect(assigneeSelector.find('UserAvatar')).toHaveLength(2);
+      expect(assigneeSelector.find('TeamAvatar')).toHaveLength(1);
       expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
     });
 
@@ -190,13 +190,13 @@ describe('AssigneeSelector', function() {
       MemberListStore.loadInitialData([USER_1, USER_2]);
       assigneeSelector.update();
 
-      expect(assigneeSelector.find('Avatar').length).toBe(3);
+      expect(assigneeSelector.find('Avatar')).toHaveLength(3);
       expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
 
       MemberListStore.loadInitialData([USER_1, USER_2, USER_3]);
       assigneeSelector.update();
 
-      expect(assigneeSelector.find('Avatar').length).toBe(3);
+      expect(assigneeSelector.find('Avatar')).toHaveLength(3);
       expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
     });
 
@@ -214,7 +214,7 @@ describe('AssigneeSelector', function() {
       setTimeout(() => {
         assigneeSelector.update();
         expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
-        expect(assigneeSelector.find('ActorAvatar').length).toBe(1);
+        expect(assigneeSelector.find('ActorAvatar')).toHaveLength(1);
         done();
       }, 100); //hack
     });
@@ -233,7 +233,7 @@ describe('AssigneeSelector', function() {
       setTimeout(() => {
         assigneeSelector.update();
         expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
-        expect(assigneeSelector.find('ActorAvatar').length).toBe(1);
+        expect(assigneeSelector.find('ActorAvatar')).toHaveLength(1);
         done();
       }, 100); //hack
     });
@@ -283,7 +283,7 @@ describe('AssigneeSelector', function() {
       // if the state doesn't change.
       let sel = mount(<AssigneeSelector id={GROUP_1.id} />, TestStubs.routerContext());
       sel.find('a').simulate('click');
-      expect(sel.find('MenuItem.invite-member').length).toBe(1);
+      expect(sel.find('MenuItem.invite-member')).toHaveLength(1);
 
       // Remove org:write access permission and make sure invite member button is not shown.
       sel = mount(<AssigneeSelector id={GROUP_1.id} />, TestStubs.routerContext());

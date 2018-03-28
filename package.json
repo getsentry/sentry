@@ -92,15 +92,18 @@
   "proxyURL": "http://localhost:8000",
   "scripts": {
     "test": "node scripts/test.js",
-    "test-ci": "npm run test -- --runInBand --ci --coverage --testResultsProcessor=jest-junit",
+    "test-ci":
+      "npm run test -- --runInBand --ci --coverage --testResultsProcessor=jest-junit",
     "test-watch": "npm run test -- --watch",
     "jest": "node scripts/test.js",
     "jest-debug": "node --inspect-brk scripts/test.js --runInBand",
-    "lint": "node_modules/.bin/eslint tests/js src/sentry/static/sentry/app --ext .js,.jsx",
+    "lint":
+      "node_modules/.bin/eslint tests/js src/sentry/static/sentry/app --ext .js,.jsx",
     "dev-proxy": "node scripts/devproxy.js",
     "dev-server": "webpack-dev-server",
     "storybook": "start-storybook -p 9001 -c .storybook",
-    "snapshot": "build-storybook && PERCY_TOKEN=$STORYBOOK_PERCY_TOKEN PERCY_PROJECT=$STORYBOOK_PERCY_PROJECT percy-storybook --widths=375,1280",
+    "snapshot":
+      "build-storybook && PERCY_TOKEN=$STORYBOOK_PERCY_TOKEN PERCY_PROJECT=$STORYBOOK_PERCY_PROJECT percy-storybook --widths=375,1280",
     "webpack-profile": "yarn -s webpack --profile --json > stats.json"
   },
   "jest": {
@@ -108,33 +111,20 @@
       "tests/js/spec/**/*.{js,jsx}",
       "src/sentry/static/sentry/app/**/*.{js,jsx}"
     ],
-    "coverageReporters": [
-      "html",
-      "lcov",
-      "cobertura"
-    ],
-    "snapshotSerializers": [
-      "enzyme-to-json/serializer"
-    ],
+    "coverageReporters": ["html", "lcov", "cobertura"],
+    "snapshotSerializers": ["enzyme-to-json/serializer"],
     "moduleNameMapper": {
       "\\.(css|less|png)$": "<rootDir>/tests/js/helpers/importStyleMock.js",
       "\\.(svg)$": "<rootDir>/tests/js/helpers/svgMock.js",
       "jquery": "<rootDir>/src/sentry/static/sentry/__mocks__/jquery.jsx",
-      "integration-docs-platforms": "<rootDir>/tests/fixtures/integration-docs/_platforms.json"
+      "integration-docs-platforms":
+        "<rootDir>/tests/fixtures/integration-docs/_platforms.json"
     },
-    "modulePaths": [
-      "<rootDir>/src/sentry/static/sentry"
-    ],
-    "setupFiles": [
-      "<rootDir>/tests/js/setup.js"
-    ],
+    "modulePaths": ["<rootDir>/src/sentry/static/sentry"],
+    "setupFiles": ["<rootDir>/tests/js/setup.js"],
     "setupTestFrameworkScriptFile": "<rootDir>/tests/js/setupFramework.js",
-    "testMatch": [
-      "<rootDir>/tests/js/**/?(*.)(spec|test).js?(x)"
-    ],
-    "testPathIgnorePatterns": [
-      "<rootDir>/tests/sentry/lang/javascript/"
-    ],
+    "testMatch": ["<rootDir>/tests/js/**/?(*.)(spec|test).js?(x)"],
+    "testPathIgnorePatterns": ["<rootDir>/tests/sentry/lang/javascript/"],
     "unmockedModulePathPatterns": [
       "<rootDir>/node_modules/react",
       "<rootDir>/node_modules/reflux"
@@ -152,11 +142,12 @@
     "enzyme": "3.2.0",
     "eslint": "4.4.1",
     "eslint-config-prettier": "^2.3.0",
-    "eslint-config-sentry-react": "1.0.4",
+    "eslint-config-sentry-react": "1.1.0",
     "eslint-import-resolver-webpack": "^0.8.3",
     "eslint-plugin-getsentry": "1.0.0",
     "eslint-plugin-import": "^2.7.0",
     "eslint-plugin-react": "7.4.0",
+    "eslint-plugin-jest": "^21.15.0",
     "jest": "22.1.2",
     "jest-glamor-react": "^3.1.2",
     "jest-junit": "^3.4.1",

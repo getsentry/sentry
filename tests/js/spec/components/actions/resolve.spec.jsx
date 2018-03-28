@@ -49,13 +49,13 @@ describe('ResolveActions', function() {
 
     it('displays resolved view', function() {
       let button = component.find('a.btn.active');
-      expect(button.length).toBe(1);
+      expect(button).toHaveLength(1);
       expect(button.text()).toBe('');
     });
 
     it('calls onUpdate with unresolved status when clicked', function() {
       component.find('a.btn.active').simulate('click');
-      expect(spy.calledWith({status: 'unresolved'}));
+      expect(spy.calledWith({status: 'unresolved'})).toBeTruthy();
     });
   });
 

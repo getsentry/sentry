@@ -55,7 +55,7 @@ describe('Sudo Modal', function() {
     let orgDeleteMock;
 
     // No Modal
-    expect($('.modal input').length).toBe(0);
+    expect($('.modal input')).toHaveLength(0);
 
     // Should return w/ `sudoRequired`
     api.request('/organizations/org-slug/', {
@@ -67,7 +67,7 @@ describe('Sudo Modal', function() {
     SudoModal.prototype.componentDidMount = function() {
       try {
         const $input = $('.modal input');
-        expect($input.length).toBe(1);
+        expect($input).toHaveLength(1);
         // Original callbacks should not have been called
         expect(successCb).not.toBeCalled();
         expect(errorCb).not.toBeCalled();

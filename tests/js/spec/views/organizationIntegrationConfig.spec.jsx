@@ -81,8 +81,8 @@ describe('OrganizationIntegrationConfig', function() {
         global.open = open;
 
         wrapper.find('PanelHeader Button').simulate('click');
-        expect(open.mock.calls.length).toBe(1);
-        expect(focus.mock.calls.length).toBe(1);
+        expect(open.mock.calls).toHaveLength(1);
+        expect(focus.mock.calls).toHaveLength(1);
         expect(open.mock.calls[0][2]).toBe(
           'scrollbars=yes,width=100,height=100,top=334,left=462'
         );
@@ -109,7 +109,7 @@ describe('OrganizationIntegrationConfig', function() {
           },
         });
 
-        expect(wrapper.instance().state.itemList.length).toBe(2);
+        expect(wrapper.instance().state.itemList).toHaveLength(2);
       });
 
       it('Merges existing integrations', function() {
@@ -135,7 +135,7 @@ describe('OrganizationIntegrationConfig', function() {
           },
         });
 
-        expect(wrapper.instance().state.itemList.length).toBe(1);
+        expect(wrapper.instance().state.itemList).toHaveLength(1);
         expect(wrapper.instance().state.itemList[0]).toBe(updatedIntegration);
       });
 

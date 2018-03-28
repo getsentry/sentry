@@ -69,13 +69,13 @@ describe('OrganizationTeamProjects', function() {
     );
 
     let star = wrapper.find('.icon-star-outline');
-    expect(star.length).toBe(1);
+    expect(star).toHaveLength(1);
     star.simulate('click');
 
     star = wrapper.find('.icon-star-outline');
-    expect(star.length).toBe(0);
+    expect(star).toHaveLength(0);
     star = wrapper.find('.icon-star-solid');
-    expect(star.length).toBe(1);
+    expect(star).toHaveLength(1);
 
     expect(putMock).toHaveBeenCalledTimes(1);
   });

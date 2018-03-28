@@ -20,7 +20,7 @@ describe('AlertStore', function() {
         type: 'info',
       });
 
-      expect(AlertStore.alerts.length).toEqual(2);
+      expect(AlertStore.alerts).toHaveLength(2);
       expect(AlertStore.alerts[0].key).toEqual(0);
       expect(AlertStore.alerts[1].key).toEqual(1);
     });
@@ -36,7 +36,7 @@ describe('AlertStore', function() {
 
       AlertStore.onCloseAlert(AlertStore.alerts[1]);
 
-      expect(AlertStore.alerts.length).toEqual(2);
+      expect(AlertStore.alerts).toHaveLength(2);
       expect(AlertStore.alerts[0].key).toEqual(1);
       expect(AlertStore.alerts[1].key).toEqual(3);
     });
@@ -44,7 +44,7 @@ describe('AlertStore', function() {
       let alert = {key: 1, id: 'test', message: 'foo', type: 'error'};
       AlertStore.onCloseAlert(alert);
       AlertStore.onAddAlert(alert);
-      expect(AlertStore.alerts.length).toEqual(0);
+      expect(AlertStore.alerts).toHaveLength(0);
     });
   });
 });

@@ -149,7 +149,7 @@ describe('ProjectSelector', function() {
       const input = wrapper.find('.project-filter input');
       input.simulate('click', {target: input});
 
-      expect(wrapper.find('.dropdown-menu').length).toBe(1);
+      expect(wrapper.find('.dropdown-menu')).toHaveLength(1);
     });
 
     it('closes dropdown when project is selected', function() {
@@ -160,7 +160,7 @@ describe('ProjectSelector', function() {
         .find('.dropdown-menu [role="presentation"] a')
         .first()
         .simulate('click');
-      expect(wrapper.find('.dropdown-menu').length).toBe(0);
+      expect(wrapper.find('.dropdown-menu')).toHaveLength(0);
     });
 
     it('shows empty filter message when filtering has no results', function() {

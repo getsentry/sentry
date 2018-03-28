@@ -328,7 +328,7 @@ describe('Stream', function() {
         dataLoading: false,
       });
 
-      expect(wrapper.find('.awaiting-events').length).toEqual(1);
+      expect(wrapper.find('.awaiting-events')).toHaveLength(1);
 
       context.project.firstEvent = true; // Reset for other tests
     });

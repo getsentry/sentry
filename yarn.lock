@@ -3408,9 +3408,9 @@ eslint-config-prettier@^2.3.0:
   dependencies:
     get-stdin "^5.0.1"
 
-eslint-config-sentry-react@1.0.4:
-  version "1.0.4"
-  resolved "https://registry.yarnpkg.com/eslint-config-sentry-react/-/eslint-config-sentry-react-1.0.4.tgz#365d06ef9346f99485e3a814ea623070eae1ae1d"
+eslint-config-sentry-react@1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/eslint-config-sentry-react/-/eslint-config-sentry-react-1.1.0.tgz#9112e05e5193c34672b18ebdedd507d0899f035a"
   dependencies:
     eslint-config-sentry "^1.0.4"
 
@@ -3466,6 +3466,10 @@ eslint-plugin-import@^2.7.0:
     lodash.cond "^4.3.0"
     minimatch "^3.0.3"
     read-pkg-up "^2.0.0"
+
+eslint-plugin-jest@^21.15.0:
+  version "21.15.0"
+  resolved "https://registry.yarnpkg.com/eslint-plugin-jest/-/eslint-plugin-jest-21.15.0.tgz#645a3f560d3e61d99611b215adc80b4f31e6d896"
 
 eslint-plugin-react@7.4.0:
   version "7.4.0"

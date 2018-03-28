@@ -145,7 +145,7 @@ describe('utils.parseRepo', function() {
   it('should work for full BitBucket url', function() {
     expect(parseRepo('https://bitbucket.org/example/example')).toEqual('example/example');
   });
-  it('should work for trailing slash', function() {
+  it('should work for trailing Bitbucket slash', function() {
     expect(parseRepo('https://bitbucket.org/example/example/')).toEqual(
       'example/example'
     );

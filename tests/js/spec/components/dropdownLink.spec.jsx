@@ -57,7 +57,7 @@ describe('DropdownLink', function() {
 
         // open
         wrapper.find('a').simulate('click');
-        expect(wrapper.find('li').length).toBe(1);
+        expect(wrapper.find('li')).toHaveLength(1);
       });
     });
     describe('While Opened', function() {
@@ -71,17 +71,17 @@ describe('DropdownLink', function() {
         evt.initEvent('click', false, true);
         document.body.dispatchEvent(evt);
         wrapper.update();
-        expect(wrapper.find('li').length).toBe(0);
+        expect(wrapper.find('li')).toHaveLength(0);
       });
 
       it('closes when dropdown actor button is clicked', function() {
         wrapper.find('a').simulate('click');
-        expect(wrapper.find('li').length).toBe(0);
+        expect(wrapper.find('li')).toHaveLength(0);
       });
 
       it('closes when dropdown menu item is clicked', function() {
         wrapper.find('li').simulate('click');
-        expect(wrapper.find('li').length).toBe(0);
+        expect(wrapper.find('li')).toHaveLength(0);
       });
 
       it('does not close when menu is clicked and `keepMenuOpen` is on', function() {
@@ -92,7 +92,7 @@ describe('DropdownLink', function() {
         );
         wrapper.find('a').simulate('click');
         wrapper.find('li').simulate('click');
-        expect(wrapper.find('li').length).toBe(1);
+        expect(wrapper.find('li')).toHaveLength(1);
         wrapper.unmount();
       });
     });
@@ -119,19 +119,19 @@ describe('DropdownLink', function() {
         // open
         wrapper.find('li').simulate('click');
         // State does not change
-        expect(wrapper.find('.dropdown-menu').length).toBe(1);
+        expect(wrapper.find('.dropdown-menu')).toHaveLength(1);
       });
 
       it('does not close when document is clicked', function() {
         jQuery(document).click();
         // State does not change
-        expect(wrapper.find('.dropdown-menu').length).toBe(1);
+        expect(wrapper.find('.dropdown-menu')).toHaveLength(1);
       });
 
       it('does not close when dropdown actor is clicked', function() {
         wrapper.find('a').simulate('click');
         // State does not change
-        expect(wrapper.find('.dropdown-menu').length).toBe(1);
+        expect(wrapper.find('.dropdown-menu')).toHaveLength(1);
       });
     });
     describe('Closed', function() {
@@ -146,7 +146,7 @@ describe('DropdownLink', function() {
       it('does not open when dropdown actor is clicked', function() {
         wrapper.find('a').simulate('click');
         // State does not change
-        expect(wrapper.find('.dropdown-menu').length).toBe(0);
+        expect(wrapper.find('.dropdown-menu')).toHaveLength(0);
       });
     });
   });
@@ -198,11 +198,11 @@ describe('DropdownLink', function() {
 
     it('Opens / closes on mouse enter and leave', function() {
       wrapper.find('.dropdown-menu a').simulate('mouseEnter');
-      expect(wrapper.find('.dropdown-menu').length).toBe(2);
+      expect(wrapper.find('.dropdown-menu')).toHaveLength(2);
 
       wrapper.find('a.nested-menu').simulate('mouseLeave');
 
-      expect(wrapper.find('.dropdown-menu').length).toBe(1);
+      expect(wrapper.find('.dropdown-menu')).toHaveLength(1);
     });
 
     it('closes when first level nested actor is clicked', function() {
