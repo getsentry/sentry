@@ -185,7 +185,7 @@ class AutoComplete extends React.Component {
       onOpen(...args);
       return;
     }
-
+    this.resetHighlightState();
     this.setState({
       isOpen: true,
     });
