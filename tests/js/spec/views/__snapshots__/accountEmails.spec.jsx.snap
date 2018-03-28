@@ -57,6 +57,7 @@ exports[`AccountEmails renders with emails 1`] = `
       saveOnBlur={true}
       submitDisabled={false}
       submitLabel="Save Changes"
+      submitPriority="primary"
     >
       <JsonForm
         additionalFieldProps={Object {}}
