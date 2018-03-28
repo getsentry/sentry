@@ -346,10 +346,9 @@ class V2TagStorage(TagStorage):
 
         tag_ids = []
         for key, value in tags:
-            tagkey, _ = self.get_or_create_tag_key(project_id, environment_id, key)
             tagvalue, _ = self.get_or_create_tag_value(
-                project_id, environment_id, key, value, key_id=tagkey.id)
-            tag_ids.append((tagkey.id, tagvalue.id))
+                project_id, environment_id, key, value)
+            tag_ids.append(tagvalue.id)
 
         try:
             # don't let a duplicate break the outer transaction
@@ -362,11 +361,10 @@ class V2TagStorage(TagStorage):
                         project_id=project_id,
                         group_id=group_id,
                         event_id=event_id,
-                        key_id=key_id,
                         value_id=value_id,
                         date_added=date_added,
                     )
-                    for key_id, value_id in tag_ids
+                    for value_id in tag_ids
                 ])
         except IntegrityError:
             logger.error(
@@ -625,7 +623,7 @@ class V2TagStorage(TagStorage):
         kv_pairs = tag_lookups.pop()
         matches = list(
             EventTag.objects.filter(
-                reduce(or_, (Q(key_id=k, value_id=v)
+                reduce(or_, (Q(value___key_id=k, value_id=v)
                              for k, v in kv_pairs)),
                 project_id=project_id,
                 group_id=group_id,
@@ -637,7 +635,7 @@ class V2TagStorage(TagStorage):
         for kv_pairs in tag_lookups:
             matches = list(
                 EventTag.objects.filter(
-                    reduce(or_, (Q(key_id=k, value_id=v)
+                    reduce(or_, (Q(value___key_id=k, value_id=v)
                                  for k, v in kv_pairs)),
                     project_id=project_id,
                     group_id=group_id,
@@ -891,7 +889,7 @@ class V2TagStorage(TagStorage):
     def get_event_tag_qs(self, project_id, environment_id, key, value):
         qs = EventTag.objects.filter(
             project_id=project_id,
-            key__key=key,
+            value___key__key=key,
             value__value=value,
         )
 
@@ -915,8 +913,8 @@ class V2TagStorage(TagStorage):
 
         if queryset.model == TagKey:
             return queryset.filter(environment_id=environment_id)
-        elif queryset.model in (EventTag,):
-            return queryset.filter(key__environment_id=environment_id)
+        elif queryset.model == EventTag:
+            return queryset.filter(value___key__environment_id=environment_id)
         elif queryset.model in (TagValue, GroupTagKey, GroupTagValue):
             return queryset.filter(_key__environment_id=environment_id)
         else:
