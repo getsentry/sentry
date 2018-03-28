@@ -1,6 +1,8 @@
 {
-  "extends": ["prettier", "sentry-react", "plugin:jest/recommended"],
-
+  "extends": [
+    "prettier",
+    "sentry-react"
+  ],
   "parser": "babel-eslint",
   "parserOptions": {
     "ecmaVersion": 6,
@@ -26,13 +28,13 @@
     "Raven": true,
     "jest": true
   },
-  "plugins": ["react", "import", "getsentry", "jest"],
+  "plugins": [
+    "react",
+    "import",
+    "getsentry"
+  ],
   "settings": {
     "import/resolver": "webpack",
     "import/extensions": [".js", ".jsx"]
-  },
-  "rules": {
-    "jest/no-large-snapshots": ["warn", {"maxSize": 2000}],
-    "jest/no-disabled-tests": "off"
   }
 }
