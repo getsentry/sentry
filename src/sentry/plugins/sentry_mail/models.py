@@ -366,9 +366,9 @@ class MailPlugin(NotificationPlugin):
             notifications_for_user = [n for n in notifications if user_id in event_users[n.event]]
             if not notifications_for_user:
                 continue
-            if len(notifications_for_user) != len(original_context['counts']):
+            if len(notifications_for_user) != len(notifications):
                 context = self.build_custom_context(notifications_for_user, project)
-            if len(notifications_for_user) == 1:
+            if len(context['counts']) == 1:
                 self.render_digest_as_single_notification(
                     context['counts'], context['digest'], [user_id])
                 continue
