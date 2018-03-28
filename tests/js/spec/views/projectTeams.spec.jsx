@@ -52,11 +52,7 @@ describe('ProjectTeams', function() {
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
       />,
-      {
-        context: {
-          router: TestStubs.router(),
-        },
-      }
+      TestStubs.routerContext()
     );
     expect(wrapper).toMatchSnapshot();
   });
@@ -87,11 +83,7 @@ describe('ProjectTeams', function() {
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
       />,
-      {
-        context: {
-          router: TestStubs.router(),
-        },
-      }
+      TestStubs.routerContext()
     );
 
     expect(mock).not.toHaveBeenCalled();
@@ -140,11 +132,7 @@ describe('ProjectTeams', function() {
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
       />,
-      {
-        context: {
-          router: TestStubs.router(),
-        },
-      }
+      TestStubs.routerContext()
     );
 
     expect(mock).not.toHaveBeenCalled();
@@ -171,11 +159,7 @@ describe('ProjectTeams', function() {
         project={project}
         organization={org}
       />,
-      {
-        context: {
-          router: TestStubs.router(),
-        },
-      }
+      TestStubs.routerContext()
     );
 
     // Click "Create Team" in Panel Header
@@ -201,11 +185,7 @@ describe('ProjectTeams', function() {
         project={project}
         organization={org}
       />,
-      {
-        context: {
-          router: TestStubs.router(),
-        },
-      }
+      TestStubs.routerContext()
     );
 
     // open dropdown
