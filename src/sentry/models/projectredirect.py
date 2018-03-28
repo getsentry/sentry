@@ -6,7 +6,6 @@ from django.utils import timezone
 from sentry.db.models import Model, FlexibleForeignKey
 
 
-# TODO: Should this be ProjectSlugHistory
 class ProjectRedirect(Model):
     __core__ = True
 
