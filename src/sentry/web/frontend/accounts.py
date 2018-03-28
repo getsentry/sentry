@@ -137,7 +137,10 @@ def recover_confirm(request, user_id, hash, mode='recover'):
                     password=form.cleaned_data['password'],
                 )
 
-                login_user(request, user)
+                # Only log the user in if there is no two-factor on the
+                # account.
+                if not Authenticator.objects.user_has_2fa(user):
+                    login_user(request, user)
 
                 password_hash.delete()
 
@@ -527,7 +530,8 @@ def show_emails(request):
             new_primary_email = UserEmail.objects.get(user=user, email__iexact=new_primary)
             if not new_primary_email.is_verified:
                 messages.add_message(
-                    request, messages.ERROR, _("Cannot make an unverified address your primary email")
+                    request, messages.ERROR, _(
+                        "Cannot make an unverified address your primary email")
                 )
                 return HttpResponseRedirect(request.path)
             # update notification settings for those set to primary email with new primary email

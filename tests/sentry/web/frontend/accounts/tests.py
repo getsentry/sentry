@@ -12,7 +12,7 @@ from exam import fixture
 from social_auth.models import UserSocialAuth
 
 from sentry.models import (
-    UserEmail, LostPasswordHash, User, UserOption
+    UserEmail, LostPasswordHash, User, UserOption, TotpInterface
 )
 from sentry.testutils import TestCase
 
@@ -381,6 +381,23 @@ class RecoverPasswordConfirmTest(TestCase):
         assert user.check_password('bar')
         assert user.session_nonce != old_nonce
         assert not LostPasswordHash.objects.filter(user=user).exists()
+
+    def test_normal_signin(self):
+        resp = self.client.post(self.path, {
+            'password': 'bar',
+            'confirm_password': 'bar'
+        })
+        assert resp.status_code == 302
+        assert self.client.session.get('_auth_user_id') is not None
+
+    def test_2fa_no_signin(self):
+        TotpInterface().enroll(self.user)
+        resp = self.client.post(self.path, {
+            'password': 'bar',
+            'confirm_password': 'bar'
+        })
+        assert resp.status_code == 302
+        assert self.client.session.get('_auth_user_id') is None
 
 
 class ConfirmEmailSendTest(TestCase):
