@@ -153,15 +153,15 @@ class DropdownAutoCompleteMenu extends React.Component {
                   <div>
                     {menuHeader && <StyledLabel>{menuHeader}</StyledLabel>}
                     {this.autoCompleteFilter(items, inputValue).map(
-                      (item, index) =>
+                      ({index, ...item}) =>
                         item.groupLabel ? (
-                          <StyledLabel key={index}>{item.label}</StyledLabel>
+                          <StyledLabel key={item.value}>{item.label}</StyledLabel>
                         ) : (
                           <AutoCompleteItem
                             key={`${item.value}-${index}`}
                             index={index}
                             highlightedIndex={highlightedIndex}
-                            {...getItemProps({item, index: item.index})}
+                            {...getItemProps({item, index})}
                           >
                             {item.label}
                           </AutoCompleteItem>
