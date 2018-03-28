@@ -4,10 +4,17 @@ import {mount} from 'enzyme';
 import ProjectAlertRules from 'app/views/projectAlertRules';
 
 describe('projectAlertRules', function() {
+  let deleteMock;
   beforeEach(function() {
     MockApiClient.addMockResponse({
       url: '/projects/org1/project1/rules/',
       body: [TestStubs.ProjectAlertRule()],
+    });
+
+    deleteMock = MockApiClient.addMockResponse({
+      method: 'DELETE',
+      url: '/projects/org1/project1/rules/1/',
+      body: {},
     });
   });
 
@@ -16,15 +23,22 @@ describe('projectAlertRules', function() {
   });
 
   it('renders', function() {
-    const routes = [];
-
     const wrapper = mount(
-      <ProjectAlertRules
-        routes={routes}
-        params={{orgId: 'org1', projectId: 'project1'}}
-      />,
+      <ProjectAlertRules routes={[]} params={{orgId: 'org1', projectId: 'project1'}} />,
       TestStubs.routerContext()
     );
     expect(wrapper).toMatchSnapshot();
+  });
+
+  it('deletes', function() {
+    const wrapper = mount(
+      <ProjectAlertRules routes={[]} params={{orgId: 'org1', projectId: 'project1'}} />,
+      TestStubs.routerContext()
+    );
+
+    wrapper.find('Confirm').simulate('click');
+    wrapper.update();
+    wrapper.find('Modal Button[priority="primary"]').simulate('click');
+    expect(deleteMock).toHaveBeenCalled();
   });
 });
