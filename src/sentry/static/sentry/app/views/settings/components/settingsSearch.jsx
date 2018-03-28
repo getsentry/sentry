@@ -42,26 +42,17 @@ class SearchResult extends React.Component {
     ]),
   };
 
-  renderResultType() {
-    let {resultType} = this.props;
-
-    // let isRoute = resultType === 'route';
-    let isSettings = resultType === 'settings';
-    let isField = resultType === 'field';
-
-    if (isSettings) {
-      return <ResultTypeIcon src="icon-settings" />;
-    }
-
-    if (isField) {
-      return <ResultTypeIcon src="icon-input" />;
-    }
-
-    return <ResultTypeIcon src="icon-location" />;
+  render() {
+    return (
+      <Flex justify="space-between" align="center">
+        <Content>{this.renderContent()}</Content>
+        {this.renderResultType()}
+      </Flex>
+    );
   }
 
   renderContent() {
-    let {sourceType, resultType, field, model, params} = this.props;
+    let {sourceType, resultType, field, title, description, model, params} = this.props;
 
     let isSettings = resultType === 'settings';
 
@@ -98,14 +89,14 @@ class SearchResult extends React.Component {
       );
     }
 
-    if (sourceType === 'field') {
+    if (sourceType === 'field' || sourceType === 'route') {
       return (
         <React.Fragment>
           <div>
-            <span>{field.label}</span>
+            <span>{title}</span>
           </div>
 
-          <SearchDetail>{field.help}</SearchDetail>
+          <SearchDetail>{description}</SearchDetail>
         </React.Fragment>
       );
     }
@@ -113,13 +104,22 @@ class SearchResult extends React.Component {
     return null;
   }
 
-  render() {
-    return (
-      <Flex justify="space-between" align="center">
-        <Content>{this.renderContent()}</Content>
-        {this.renderResultType()}
-      </Flex>
-    );
+  renderResultType() {
+    let {resultType} = this.props;
+
+    // let isRoute = resultType === 'route';
+    let isSettings = resultType === 'settings';
+    let isField = resultType === 'field';
+
+    if (isSettings) {
+      return <ResultTypeIcon src="icon-settings" />;
+    }
+
+    if (isField) {
+      return <ResultTypeIcon src="icon-input" />;
+    }
+
+    return <ResultTypeIcon src="icon-location" />;
   }
 }
 
@@ -332,6 +332,7 @@ const Content = styled(props => <Flex direction="column" {...props} />)``;
 const ResultTypeIcon = styled(InlineSvg)`
   color: ${p => p.theme.gray1};
   font-size: 1.2em;
+  flex-shrink: 0;
 `;
 
 const TeamAvatar = styled(Avatar)`

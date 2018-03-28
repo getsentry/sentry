@@ -32,6 +32,8 @@ class FormFieldSearch extends React.Component {
             sourceType: 'field',
             resultType: 'field',
             ...item,
+            title: item.field.label,
+            description: item.field.help,
             to: `${replaceRouterParams(item.route, params)}#${encodeURIComponent(
               item.field.name
             )}`,
