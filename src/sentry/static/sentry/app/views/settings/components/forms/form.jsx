@@ -134,7 +134,7 @@ export default class Form extends React.Component {
 
     return (
       <form onSubmit={this.onSubmit} className={className}>
-        {children}
+        <div>{children}</div>
 
         {shouldShowFooter && (
           <div className={footerClass} style={{marginTop: 25, ...footerStyle}}>

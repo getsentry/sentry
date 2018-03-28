@@ -41,6 +41,10 @@ export default class TeamSettings extends AsyncView {
     return 'Team Settings';
   }
 
+  getEndpoints() {
+    return [];
+  }
+
   handleSubmitSuccess = (resp, model, id, change) => {
     if (id === 'slug') {
       addLoadingMessage(t('Slug changed, refreshing page...'));
@@ -53,6 +57,7 @@ export default class TeamSettings extends AsyncView {
       this.setState({loading: true});
     }
   };
+
   handleRemoveTeam = () => {
     removeTeam(this.api, this.props.params).then(data => {
       this.props.router.push(`/settings/${this.props.params.orgId}/teams/`);

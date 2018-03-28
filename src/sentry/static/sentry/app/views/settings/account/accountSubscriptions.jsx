@@ -13,6 +13,7 @@ import SettingsPageHeader from '../components/settingsPageHeader';
 import Switch from '../../../components/switch';
 import IndicatorStore from '../../../stores/indicatorStore';
 import TextBlock from '../components/text/textBlock';
+import EmptyMessage from '../components/emptyMessage';
 
 const ENDPOINT = '/users/me/subscriptions/';
 
@@ -91,38 +92,44 @@ class AccountSubscriptions extends AsyncView {
         </TextBlock>
 
         <Panel>
-          <PanelHeader>{t('Subscription')}</PanelHeader>
-          <PanelBody>
-            {this.state.subscriptions.map((subscription, index) => (
-              <PanelItem p={2} align="center" key={subscription.listId}>
-                <Box w={1 / 2} pr={2}>
-                  <SubscriptionName>{subscription.listName}</SubscriptionName>
-                  {subscription.listDescription && (
-                    <Description>{subscription.listDescription}</Description>
-                  )}
-                  {subscription.subscribed ? (
-                    <SubscribedDescription>
-                      <div>
-                        {subscription.email} on{' '}
-                        <DateTime shortDate date={subscription.subscribedDate} />
-                      </div>
-                    </SubscribedDescription>
-                  ) : (
-                    <SubscribedDescription>
-                      Not currently subscribed
-                    </SubscribedDescription>
-                  )}
-                </Box>
-                <Box>
-                  <Switch
-                    isActive={subscription.subscribed}
-                    size="lg"
-                    toggle={this.handleToggle.bind(this, subscription, index)}
-                  />
-                </Box>
-              </PanelItem>
-            ))}
-          </PanelBody>
+          {this.state.subscriptions.length ? (
+            <div>
+              <PanelHeader>{t('Subscription')}</PanelHeader>
+              <PanelBody>
+                {this.state.subscriptions.map((subscription, index) => (
+                  <PanelItem p={2} align="center" key={subscription.listId}>
+                    <Box w={1 / 2} pr={2}>
+                      <SubscriptionName>{subscription.listName}</SubscriptionName>
+                      {subscription.listDescription && (
+                        <Description>{subscription.listDescription}</Description>
+                      )}
+                      {subscription.subscribed ? (
+                        <SubscribedDescription>
+                          <div>
+                            {subscription.email} on{' '}
+                            <DateTime shortDate date={subscription.subscribedDate} />
+                          </div>
+                        </SubscribedDescription>
+                      ) : (
+                        <SubscribedDescription>
+                          Not currently subscribed
+                        </SubscribedDescription>
+                      )}
+                    </Box>
+                    <Box>
+                      <Switch
+                        isActive={subscription.subscribed}
+                        size="lg"
+                        toggle={this.handleToggle.bind(this, subscription, index)}
+                      />
+                    </Box>
+                  </PanelItem>
+                ))}{' '}
+              </PanelBody>
+            </div>
+          ) : (
+            <EmptyMessage>{t("There's no subscription backend present.")}</EmptyMessage>
+          )}
         </Panel>
         <TextBlock>
           We’re applying GDPR consent and privacy policies to all Sentry contacts,

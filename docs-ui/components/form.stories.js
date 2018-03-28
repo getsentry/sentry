@@ -105,6 +105,13 @@ storiesOf('Forms/Fields/New', module)
           placeholder="Type here to show the return button"
           showReturnButton
         />
+        <TextField
+          name="textfieldflexiblecontrol"
+          label="Text Field With Flexible Control State Size"
+          placeholder="Type text and then delete it"
+          required
+          flexibleControlStateSize
+        />
       </Form>
     ))
   )

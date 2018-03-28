@@ -248,7 +248,9 @@ const TeamMembers = createReactClass({
             </StyledMemberContainer>
           ))
         ) : (
-          <EmptyMessage icon="icon-user">Your Team is Empty</EmptyMessage>
+          <EmptyMessage icon="icon-user" size="large">
+            Your Team is Empty
+          </EmptyMessage>
         )}
       </Panel>
     );

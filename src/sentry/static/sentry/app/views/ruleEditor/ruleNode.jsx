@@ -1,59 +1,110 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import ReactDOM from 'react-dom';
-import styled, {cx} from 'react-emotion';
-import $ from 'jquery';
+import styled from 'react-emotion';
 import Button from '../../components/buttons/button';
+import {Select2Field, NumberField, TextField} from '../../components/forms';
 
 class RuleNode extends React.Component {
   static propTypes = {
     data: PropTypes.object.isRequired,
     node: PropTypes.shape({
-      html: PropTypes.string.isRequired,
+      label: PropTypes.string.isRequired,
+      formFields: PropTypes.object,
     }).isRequired,
-    onDelete: PropTypes.func.isRequired,
+    handleDelete: PropTypes.func.isRequired,
+    handlePropertyChange: PropTypes.func.isRequired,
   };
 
-  componentDidMount() {
-    let $html = $(ReactDOM.findDOMNode(this.refs.html));
+  getChoiceField(name, data) {
+    // Select the first item on this list
+    // If it's not yet defined, call handlePropertyChange to make sure the value is set on state
 
-    $html.find('select, input, textarea').each((_, el) => {
-      if (this.props.data[el.name] === undefined) {
-        return;
+    let initialVal;
+    if (this.props.data[name] === undefined) {
+      initialVal = data.choices[0][0];
+      this.props.handlePropertyChange(name, initialVal);
+    } else {
+      initialVal = this.props.data[name];
+    }
+
+    return (
+      <Select2Field
+        name={name}
+        value={initialVal}
+        choices={data.choices}
+        key={name}
+        style={{marginBottom: 0}}
+        onChange={val => this.props.handlePropertyChange(name, val)}
+      />
+    );
+  }
+
+  getTextField(name, data) {
+    return (
+      <TextField
+        name={name}
+        value={this.props.data[name]}
+        placeholder={data.placeholder}
+        key={name}
+        style={{marginBottom: 0}}
+        onChange={val => this.props.handlePropertyChange(name, val)}
+      />
+    );
+  }
+
+  getNumberField(name, data) {
+    return (
+      <NumberField
+        name={name}
+        value={this.props.data[name]}
+        placeholder={data.placeholder.toString()}
+        key={name}
+        style={{marginBottom: 0}}
+        onChange={val => this.props.handlePropertyChange(name, val)}
+      />
+    );
+  }
+
+  getField(name, data) {
+    const getFieldTypes = {
+      choice: this.getChoiceField.bind(this),
+      number: this.getNumberField.bind(this),
+      string: this.getTextField.bind(this),
+    };
+    return getFieldTypes[data.type](name, data);
+  }
+
+  getComponent(node) {
+    const {label, formFields} = node;
+
+    return label.split(/({\w+})/).map(part => {
+      if (!/^{\w+}$/.test(part)) {
+        return part;
       }
 
-      let $el = $(el);
-      $el.attr('id', '');
-      $el.val(this.props.data[el.name]);
-    });
-
-    $html.find('select').select2();
-
-    $html.find('input.typeahead').each((_, el) => {
-      let $el = $(el);
-      $el.select2({
-        initSelection: function(option, callback) {
-          let $option = $(option);
-          callback({id: $option.val(), text: $option.val()});
-        },
-        data: $el.data('choices'),
-        createSearchChoice: function(term) {
-          return {id: $.trim(term), text: $.trim(term)};
-        },
-      });
+      const key = part.slice(1, -1);
+      return formFields[key] ? this.getField(key, formFields[key]) : part;
     });
   }
 
   render() {
-    let {data, node} = this.props;
+    const {data, node} = this.props;
+
+    const component = this.getComponent(node);
+
     return (
       <RuleNodeRow>
         <RuleNodeForm>
           <input type="hidden" name="id" value={data.id} />
-          <span ref="html" dangerouslySetInnerHTML={{__html: node.html}} />
+          {component}
         </RuleNodeForm>
         <RuleNodeControls>
-          <Button onClick={this.props.onDelete} type="button" tabIndex="-1" size="small">
+          <Button
+            onClick={this.props.handleDelete}
+            type="button"
+            tabIndex="-1"
+            size="small"
+          >
             <span className="icon icon-trash" />
           </Button>
         </RuleNodeControls>
@@ -75,32 +126,15 @@ const RuleNodeRow = styled.div`
 `;
 
 // This needs to have class name "rule-form" because of how we serialize rules atm
-const RuleNodeForm = styled(({className, ...props}) => (
-  <div {...props} className={cx(className, 'rule-form')} />
-))`
+const RuleNodeForm = styled('div')`
   display: flex;
   flex: 1;
   line-height: 36px;
   margin: 5px 0;
+  align-items: center;
 
-  .select2-container {
+  .control-group {
     margin: 0 6px;
-  }
-
-  input[type='text'],
-  input[type='number'] {
-    box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.04);
-    border: 1px solid #c9c0d1;
-    position: relative;
-    border-radius: 3px;
-    color: #493e54;
-    padding: 1px 8px 2px; // select2 height = 29px
-    line-height: 1.5;
-    margin: 0 6px;
-  }
-
-  span {
-    flex: 1;
   }
 `;
 

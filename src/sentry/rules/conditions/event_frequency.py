@@ -33,8 +33,7 @@ class EventFrequencyForm(forms.Form):
         ]
     )
     value = forms.IntegerField(
-        widget=forms.TextInput(attrs={'placeholder': '100',
-                                      'type': 'number'})
+        widget=forms.TextInput()
     )
 
 

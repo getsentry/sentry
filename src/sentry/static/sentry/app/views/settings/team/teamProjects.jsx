@@ -106,7 +106,9 @@ const TeamProjects = createReactClass({
         </PanelItem>
       ))
     ) : (
-      <EmptyMessage>{t("This team doesn't have access to any projects.")}</EmptyMessage>
+      <EmptyMessage size="large" icon="icon-circle-exclamation">
+        {t("This team doesn't have access to any projects.")}
+      </EmptyMessage>
     );
   },
 

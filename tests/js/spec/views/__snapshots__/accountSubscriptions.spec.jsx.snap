@@ -15,14 +15,9 @@ exports[`AccountSubscriptions renders empty 1`] = `
       As part of our compliance with the EU’s General Data Protection Regulation (GDPR), starting on 25 May 2018, we’ll only email you according to the marketing categories to which you’ve explicitly opted-in.
     </TextBlock>
     <Panel>
-      <PanelHeader>
-        Subscription
-      </PanelHeader>
-      <PanelBody
-        direction="column"
-        disablePadding={true}
-        flex={false}
-      />
+      <EmptyMessage>
+        There's no subscription backend present.
+      </EmptyMessage>
     </Panel>
     <TextBlock>
       We’re applying GDPR consent and privacy policies to all Sentry contacts, regardless of location. You’ll be able to manage your subscriptions here and from an Unsubscribe link in the footer of all marketing emails.
@@ -221,227 +216,230 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
             <div
               className="glamor-50 glamor-51"
             >
-              <PanelHeader>
-                <StyledPanelHeader>
-                  <Component
-                    className="glamor-18 glamor-14"
-                  >
-                    <Flex
-                      align="center"
+              <div>
+                <PanelHeader>
+                  <StyledPanelHeader>
+                    <Component
                       className="glamor-18 glamor-14"
-                      justify="space-between"
                     >
-                      <Base
+                      <Flex
                         align="center"
-                        className="glamor-14 glamor-15"
+                        className="glamor-18 glamor-14"
                         justify="space-between"
                       >
-                        <div
+                        <Base
+                          align="center"
                           className="glamor-14 glamor-15"
-                          is={null}
+                          justify="space-between"
                         >
-                          Subscription
-                        </div>
-                      </Base>
-                    </Flex>
-                  </Component>
-                </StyledPanelHeader>
-              </PanelHeader>
-              <PanelBody
-                direction="column"
-                disablePadding={true}
-                flex={false}
-              >
-                <div
-                  className=""
+                          <div
+                            className="glamor-14 glamor-15"
+                            is={null}
+                          >
+                            Subscription
+                          </div>
+                        </Base>
+                      </Flex>
+                    </Component>
+                  </StyledPanelHeader>
+                </PanelHeader>
+                <PanelBody
+                  direction="column"
+                  disablePadding={true}
+                  flex={false}
                 >
-                  <PanelItem
-                    align="center"
-                    key="2"
-                    p={2}
+                  <div
+                    className=""
                   >
-                    <StyledPanelItem
+                    <PanelItem
                       align="center"
+                      key="2"
                       p={2}
                     >
-                      <Base
+                      <StyledPanelItem
                         align="center"
-                        className="glamor-32 glamor-33"
                         p={2}
                       >
-                        <div
+                        <Base
+                          align="center"
                           className="glamor-32 glamor-33"
-                          is={null}
+                          p={2}
                         >
-                          <Box
-                            pr={2}
-                            w={0.5}
+                          <div
+                            className="glamor-32 glamor-33"
+                            is={null}
                           >
-                            <Base
-                              className="glamor-28"
+                            <Box
                               pr={2}
                               w={0.5}
                             >
-                              <div
+                              <Base
                                 className="glamor-28"
-                                is={null}
+                                pr={2}
+                                w={0.5}
                               >
-                                <SubscriptionName>
-                                  <div
-                                    className="glamor-22 glamor-23"
-                                  >
-                                    Product & Feature Updates
-                                  </div>
-                                </SubscriptionName>
-                                <Description>
-                                  <div
-                                    className="glamor-24 glamor-25"
-                                  >
-                                    Everything you need to know about Sentry features, integrations, partnerships, and launches.
-                                  </div>
-                                </Description>
-                                <SubscribedDescription>
-                                  <div
-                                    className="glamor-26 glamor-27"
-                                  >
-                                    <div>
-                                      test@sentry.io
-                                       on
-                                       
-                                      <DateTime
-                                        date="2018-01-08T05:14:59.102Z"
-                                        seconds={true}
-                                        shortDate={true}
-                                      >
-                                        <time>
-                                          01/08/2018
-                                        </time>
-                                      </DateTime>
+                                <div
+                                  className="glamor-28"
+                                  is={null}
+                                >
+                                  <SubscriptionName>
+                                    <div
+                                      className="glamor-22 glamor-23"
+                                    >
+                                      Product & Feature Updates
                                     </div>
-                                  </div>
-                                </SubscribedDescription>
-                              </div>
-                            </Base>
-                          </Box>
-                          <Box>
-                            <Base
-                              className="glamor-30"
-                            >
-                              <div
+                                  </SubscriptionName>
+                                  <Description>
+                                    <div
+                                      className="glamor-24 glamor-25"
+                                    >
+                                      Everything you need to know about Sentry features, integrations, partnerships, and launches.
+                                    </div>
+                                  </Description>
+                                  <SubscribedDescription>
+                                    <div
+                                      className="glamor-26 glamor-27"
+                                    >
+                                      <div>
+                                        test@sentry.io
+                                         on
+                                         
+                                        <DateTime
+                                          date="2018-01-08T05:14:59.102Z"
+                                          seconds={true}
+                                          shortDate={true}
+                                        >
+                                          <time>
+                                            01/08/2018
+                                          </time>
+                                        </DateTime>
+                                      </div>
+                                    </div>
+                                  </SubscribedDescription>
+                                </div>
+                              </Base>
+                            </Box>
+                            <Box>
+                              <Base
                                 className="glamor-30"
-                                is={null}
                               >
-                                <Switch
-                                  isActive={true}
-                                  size="lg"
-                                  toggle={[Function]}
+                                <div
+                                  className="glamor-30"
+                                  is={null}
                                 >
-                                  <div
-                                    aria-checked={true}
-                                    className="switch switch-lg switch-on"
-                                    onClick={[Function]}
-                                    role="checkbox"
+                                  <Switch
+                                    isActive={true}
+                                    size="lg"
+                                    toggle={[Function]}
                                   >
-                                    <span
-                                      className="switch-toggle"
-                                    />
-                                  </div>
-                                </Switch>
-                              </div>
-                            </Base>
-                          </Box>
-                        </div>
-                      </Base>
-                    </StyledPanelItem>
-                  </PanelItem>
-                  <PanelItem
-                    align="center"
-                    key="1"
-                    p={2}
-                  >
-                    <StyledPanelItem
+                                    <div
+                                      aria-checked={true}
+                                      className="switch switch-lg switch-on"
+                                      onClick={[Function]}
+                                      role="checkbox"
+                                    >
+                                      <span
+                                        className="switch-toggle"
+                                      />
+                                    </div>
+                                  </Switch>
+                                </div>
+                              </Base>
+                            </Box>
+                          </div>
+                        </Base>
+                      </StyledPanelItem>
+                    </PanelItem>
+                    <PanelItem
                       align="center"
+                      key="1"
                       p={2}
                     >
-                      <Base
+                      <StyledPanelItem
                         align="center"
-                        className="glamor-32 glamor-33"
                         p={2}
                       >
-                        <div
+                        <Base
+                          align="center"
                           className="glamor-32 glamor-33"
-                          is={null}
+                          p={2}
                         >
-                          <Box
-                            pr={2}
-                            w={0.5}
+                          <div
+                            className="glamor-32 glamor-33"
+                            is={null}
                           >
-                            <Base
-                              className="glamor-28"
+                            <Box
                               pr={2}
                               w={0.5}
                             >
-                              <div
+                              <Base
                                 className="glamor-28"
-                                is={null}
+                                pr={2}
+                                w={0.5}
                               >
-                                <SubscriptionName>
-                                  <div
-                                    className="glamor-22 glamor-23"
-                                  >
-                                    Sentry Newsletter
-                                  </div>
-                                </SubscriptionName>
-                                <Description>
-                                  <div
-                                    className="glamor-24 glamor-25"
-                                  >
-                                    Our monthly update on what's new with Sentry and the community.
-                                  </div>
-                                </Description>
-                                <SubscribedDescription>
-                                  <div
-                                    className="glamor-26 glamor-27"
-                                  >
-                                    Not currently subscribed
-                                  </div>
-                                </SubscribedDescription>
-                              </div>
-                            </Base>
-                          </Box>
-                          <Box>
-                            <Base
-                              className="glamor-30"
-                            >
-                              <div
-                                className="glamor-30"
-                                is={null}
-                              >
-                                <Switch
-                                  isActive={false}
-                                  size="lg"
-                                  toggle={[Function]}
+                                <div
+                                  className="glamor-28"
+                                  is={null}
                                 >
-                                  <div
-                                    aria-checked={false}
-                                    className="switch switch-lg"
-                                    onClick={[Function]}
-                                    role="checkbox"
+                                  <SubscriptionName>
+                                    <div
+                                      className="glamor-22 glamor-23"
+                                    >
+                                      Sentry Newsletter
+                                    </div>
+                                  </SubscriptionName>
+                                  <Description>
+                                    <div
+                                      className="glamor-24 glamor-25"
+                                    >
+                                      Our monthly update on what's new with Sentry and the community.
+                                    </div>
+                                  </Description>
+                                  <SubscribedDescription>
+                                    <div
+                                      className="glamor-26 glamor-27"
+                                    >
+                                      Not currently subscribed
+                                    </div>
+                                  </SubscribedDescription>
+                                </div>
+                              </Base>
+                            </Box>
+                            <Box>
+                              <Base
+                                className="glamor-30"
+                              >
+                                <div
+                                  className="glamor-30"
+                                  is={null}
+                                >
+                                  <Switch
+                                    isActive={false}
+                                    size="lg"
+                                    toggle={[Function]}
                                   >
-                                    <span
-                                      className="switch-toggle"
-                                    />
-                                  </div>
-                                </Switch>
-                              </div>
-                            </Base>
-                          </Box>
-                        </div>
-                      </Base>
-                    </StyledPanelItem>
-                  </PanelItem>
-                </div>
-              </PanelBody>
+                                    <div
+                                      aria-checked={false}
+                                      className="switch switch-lg"
+                                      onClick={[Function]}
+                                      role="checkbox"
+                                    >
+                                      <span
+                                        className="switch-toggle"
+                                      />
+                                    </div>
+                                  </Switch>
+                                </div>
+                              </Base>
+                            </Box>
+                          </div>
+                        </Base>
+                      </StyledPanelItem>
+                    </PanelItem>
+                     
+                  </div>
+                </PanelBody>
+              </div>
             </div>
           </StyledPanel>
         </Panel>

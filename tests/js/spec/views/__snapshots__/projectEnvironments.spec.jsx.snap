@@ -81,7 +81,6 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
   -ms-flex-direction: column;
   flex-direction: column;
   padding: NaNpx;
-  font-size: 1.5em;
   font-weight: bold;
 }
 
@@ -803,7 +802,6 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
   -ms-flex-direction: column;
   flex-direction: column;
   padding: NaNpx;
-  font-size: 1.5em;
   font-weight: bold;
 }
 

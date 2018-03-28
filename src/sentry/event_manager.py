@@ -8,6 +8,7 @@ from __future__ import absolute_import, print_function
 
 import logging
 import math
+import re
 import six
 
 from datetime import datetime, timedelta
@@ -46,6 +47,7 @@ from sentry.utils.validators import is_float
 from sentry.stacktraces import normalize_in_app
 
 
+HASH_RE = re.compile(r'^[0-9a-f]{32}$')
 DEFAULT_FINGERPRINT_VALUES = frozenset(['{{ default }}', '{{default}}'])
 
 
@@ -600,7 +602,10 @@ class EventManager(object):
         if fingerprint:
             hashes = [md5_from_hash(h) for h in get_hashes_from_fingerprint(event, fingerprint)]
         elif checksum:
-            hashes = [checksum]
+            if HASH_RE.match(checksum):
+                hashes = [checksum]
+            else:
+                hashes = [md5_from_hash([checksum]), checksum]
             data['checksum'] = checksum
         else:
             hashes = [md5_from_hash(h) for h in get_hashes_for_event(event)]
