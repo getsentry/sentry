@@ -57,11 +57,11 @@ class EventManagerTest(TransactionTestCase):
         # we had a regression which caused the default hash to just be
         # 'event.message' instead of '[event.message]' which caused it to
         # generate a hash per letter
-        manager = EventManager(self.make_event(message='foo bar'))
+        manager = EventManager(self.make_event(event_id='a', message='foo bar'))
         manager.normalize()
         event1 = manager.save(1)
 
-        manager = EventManager(self.make_event(message='foo baz'))
+        manager = EventManager(self.make_event(event_id='b', message='foo baz'))
         manager.normalize()
         event2 = manager.save(1)
 
@@ -124,20 +124,6 @@ class EventManagerTest(TransactionTestCase):
         assert not Event.objects.filter(
             event_id=event_id,
         ).exists()
-
-    @mock.patch('sentry.event_manager.should_sample')
-    def test_sample_feature_flag(self, should_sample):
-        should_sample.return_value = True
-
-        manager = EventManager(self.make_event())
-        with self.feature('projects:sample-events'):
-            event = manager.save(1)
-        assert event.id
-
-        manager = EventManager(self.make_event())
-        with self.feature({'projects:sample-events': False}):
-            event = manager.save(1)
-        assert not event.id
 
     def test_tags_as_list(self):
         manager = EventManager(self.make_event(tags=[('foo', 'bar')]))
@@ -693,6 +679,7 @@ class EventManagerTest(TransactionTestCase):
 
     def test_event_user(self):
         manager = EventManager(self.make_event(
+            event_id='a',
             environment='totally unique environment',
             **{'sentry.interfaces.User': {
                 'id': '1',
@@ -753,10 +740,13 @@ class EventManagerTest(TransactionTestCase):
 
         # ensure event user is mapped to tags in second attempt
         manager = EventManager(
-            self.make_event(**{'sentry.interfaces.User': {
-                'id': '1',
-                'name': 'jane',
-            }})
+            self.make_event(
+                event_id='b',
+                **{'sentry.interfaces.User': {
+                    'id': '1',
+                    'name': 'jane',
+                }}
+            )
         )
         manager.normalize()
         with self.tasks():
@@ -1075,7 +1065,7 @@ class EventManagerTest(TransactionTestCase):
         manager = EventManager(
             self.make_event(
                 message='foo',
-                event_id='a' * 32,
+                event_id='b' * 32,
                 fingerprint=['a' * 32],
             )
         )
