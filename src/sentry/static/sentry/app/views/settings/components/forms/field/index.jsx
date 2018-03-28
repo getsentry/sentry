@@ -81,6 +81,9 @@ class Field extends React.Component {
      * The Control component
      */
     children: PropTypes.oneOfType([PropTypes.node, PropTypes.func]),
+
+    /** Inline style */
+    style: PropTypes.object,
   };
 
   static defaultProps = {
@@ -106,6 +109,7 @@ class Field extends React.Component {
       id,
       p,
       children,
+      style,
     } = this.props;
     let isDisabled = typeof disabled === 'function' ? disabled(this.props) : disabled;
     let isVisible = typeof visible === 'function' ? visible(this.props) : visible;
@@ -139,6 +143,7 @@ class Field extends React.Component {
         inline={inline}
         highlighted={highlighted}
         hasControlState={!flexibleControlStateSize}
+        style={style}
       >
         <FieldDescription inline={inline} htmlFor={id}>
           {label && (
