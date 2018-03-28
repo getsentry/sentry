@@ -133,9 +133,11 @@ describe('Configure should render correctly', function() {
                 slug: 'project-slug',
                 id: 'testProject',
                 hasAccess: true,
+                isBookmarked: false,
                 teams: [
                   {
                     id: 'coolteam',
+                    slug: 'coolteam',
                     hasAccess: true,
                   },
                 ],
@@ -144,6 +146,7 @@ describe('Configure should render correctly', function() {
             teams: [
               {
                 id: 'coolteam',
+                slug: 'coolteam',
                 hasAccess: true,
                 projects: [
                   {

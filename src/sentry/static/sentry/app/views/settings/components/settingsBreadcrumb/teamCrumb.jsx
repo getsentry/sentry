@@ -38,7 +38,7 @@ class TeamCrumb extends React.Component {
         }
         onSelect={item => {
           browserHistory.push(
-            recreateRoute(route, {
+            recreateRoute('', {
               routes,
               params: {...params, teamId: item.value},
             })

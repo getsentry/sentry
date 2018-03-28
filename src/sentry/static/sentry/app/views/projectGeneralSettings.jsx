@@ -39,6 +39,11 @@ export default class ProjectGeneralSettings extends AsyncView {
     this._form = {};
   }
 
+  getTitle() {
+    let {projectId} = this.props.params;
+    return t('%s Settings', projectId);
+  }
+
   getEndpoints() {
     let {orgId, projectId} = this.props.params;
     return [['data', `/projects/${orgId}/${projectId}/`]];

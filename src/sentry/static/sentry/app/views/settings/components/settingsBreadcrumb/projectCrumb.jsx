@@ -13,14 +13,19 @@ import replaceRouterParams from '../../../../utils/replaceRouterParams';
 import withLatestContext from '../../../../utils/withLatestContext';
 import withProjects from '../../../../utils/withProjects';
 
+const HEIGHT = '24px';
 const ProjectName = styled.div`
   display: flex;
 
   .loading {
     width: 26px;
-    height: 24px;
+    height: ${HEIGHT};
     margin: 0;
   }
+`;
+
+const ProjectTextLink = styled(TextLink)`
+  line-height: ${HEIGHT};
 `;
 
 class ProjectCrumb extends React.Component {
@@ -58,21 +63,21 @@ class ProjectCrumb extends React.Component {
               <LoadingIndicator mini />
             ) : (
               <div>
-                <TextLink
+                <ProjectTextLink
                   to={replaceRouterParams('/settings/:orgId/:projectId/', {
                     orgId: latestOrganization.slug,
                     projectId: latestProject.slug,
                   })}
                 >
                   {latestProject.slug}
-                </TextLink>
+                </ProjectTextLink>
               </div>
             )}
           </ProjectName>
         }
         onSelect={item => {
           browserHistory.push(
-            recreateRoute(route, {
+            recreateRoute('', {
               routes,
               params: {...params, projectId: item.value},
             })
