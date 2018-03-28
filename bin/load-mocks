@@ -17,7 +17,7 @@ from django.utils import timezone
 from loremipsum import Generator
 from pytz import utc
 
-from sentry import buffer, roles
+from sentry import buffer, roles, tsdb
 from sentry.event_manager import HashDiscarded
 from sentry.models import (
     Activity, Broadcast, Commit, CommitAuthor, CommitFileChange, Deploy,
@@ -28,7 +28,6 @@ from sentry.models import (
 )
 from sentry.signals import mocks_loaded
 from sentry.similarity import features
-from sentry.tsdb import backend as tsdb
 from sentry.utils.hashlib import md5_text
 from sentry.utils.samples import create_sample_event as _create_sample_event
 from sentry.utils.samples import generate_user
