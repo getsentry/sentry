@@ -48,8 +48,14 @@ class OrganizationCrumb extends React.Component {
           </TextLink>
         }
         onSelect={item => {
+          // If we are currently in a project context, and we're attempting to switch organizations,
+          // then we need to default to index route (e.g. `route`)
+          //
+          // Otherwise, using empty string ('') will keep the current route path but with target org
+          let hasProjectParam = !!params.projectId;
+          let destination = hasProjectParam ? route : '';
           browserHistory.push(
-            recreateRoute(route, {
+            recreateRoute(destination, {
               routes,
               params: {...params, orgId: item.value},
             })
