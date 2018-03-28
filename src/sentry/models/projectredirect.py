@@ -9,7 +9,7 @@ from sentry.db.models import Model, FlexibleForeignKey
 class ProjectRedirect(Model):
     __core__ = True
 
-    redirect_slug = models.SlugField(null=True, db_index=True)
+    redirect_slug = models.SlugField(db_index=True)
     project = FlexibleForeignKey('sentry.Project')
     organization = FlexibleForeignKey('sentry.Organization')
     date_added = models.DateTimeField(default=timezone.now)
