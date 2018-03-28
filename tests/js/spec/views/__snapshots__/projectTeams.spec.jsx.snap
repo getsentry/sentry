@@ -1,11 +1,23 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`ProjectTeamsSettings render() renders 1`] = `
+exports[`ProjectTeams renders 1`] = `
 <SideEffect(DocumentTitle)
   title="Sentry"
 >
   <div>
     <SettingsPageHeading
+      action={
+        <Button
+          disabled={false}
+          icon="icon-circle-add"
+          onClick={[Function]}
+          priority="primary"
+          size="small"
+          title={undefined}
+        >
+          Create Team
+        </Button>
+      }
       title="Teams"
     />
     <Panel>
@@ -34,7 +46,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
               <StyledTeamsLabel>
                 Teams
                 <StyledCreateTeamLink
-                  to="/organizations/org-slug/teams/new/"
+                  onClick={[Function]}
                 >
                   Create Team
                 </StyledCreateTeamLink>

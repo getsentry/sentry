@@ -66,7 +66,7 @@ class LazyLoad extends React.Component {
   handleFetchError = error => {
     // eslint-disable-next-line no-console
     console.error(error);
-    Raven.captureException(error);
+    Raven.captureException(error, {fingerprint: ['webpack', 'error loading chunk']});
     this.setState({
       error,
     });
