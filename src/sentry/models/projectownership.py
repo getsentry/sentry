@@ -66,7 +66,7 @@ class ProjectOwnership(Model):
                         user_owners, project_id) if user_owners else []
                     team_actors = resolve_team_actors(
                         team_owners, project_id) if team_owners else []
-                    event_actors[event] = (user_actors + team_actors, rule.matcher)
+                    event_actors[event] = (set(user_actors + team_actors), rule.matcher)
 
         if not event_actors:
             actors = cls.Everyone if ownership.fallthrough else {}

@@ -8,6 +8,21 @@ from sentry.ownership.grammar import Rule, Owner, Matcher, dump_schema
 import six
 
 
+def sort_actors(actors_rules):
+    return sorted([actor_rule for actor_rule in actors_rules[0]],
+                  key=lambda a: (a.id, a.type))
+
+
+def assert_event_actors_equal(event_actors1, event_actors2):
+    assert len(event_actors1) == len(event_actors2)
+    for event, actors_rules in six.iteritems(event_actors1):
+        actors1 = sort_actors(actors_rules)
+        actors2 = sort_actors(event_actors2[event])
+        assert len(actors1) == len(actors2)
+        for actor1, actor2 in zip(actors1, actors2):
+            assert actor1.id == actor2.id and actor1.type == actor2.type
+
+
 class ProjectOwnershipTestCase(TestCase):
     def test_get_owners_default(self):
         assert ProjectOwnership.get_actors(self.project.id, {}) == ProjectOwnership.Everyone
@@ -42,10 +57,10 @@ class ProjectOwnershipTestCase(TestCase):
                 }
             }
         )
-        assert ProjectOwnership.get_actors(
+        assert_event_actors_equal(ProjectOwnership.get_actors(
             self.project.id,
             [event],
-        ) == {event: ([Actor(self.user.id, User), Actor(self.team.id, Team)], matcher)}
+        ), {event: (set([Actor(self.user.id, User), Actor(self.team.id, Team)]), matcher)})
 
         assert ProjectOwnership.get_actors(
             self.project.id,
@@ -141,14 +156,6 @@ class ProjectOwnershipGetActorsTestCase(TestCase):
         }
         return data
 
-    def assert_event_actors_equal(self, event_actors1, event_actors2):
-        assert len(event_actors1) == len(event_actors2)
-        for event, actors1 in six.iteritems(event_actors1):
-            actors2 = event_actors2[event]
-            assert len(actors1) == len(actors2)
-            for actor in actors1:
-                assert actor in actors2
-
     def test_get_all_actors(self):
         event1 = self.create_event(
             group=self.group,
@@ -188,10 +195,10 @@ class ProjectOwnershipGetActorsTestCase(TestCase):
         events = [event1, event2, event3, event4, event5]
 
         event_actors = {
-            event1: ([Actor(self.team.id, Team)], self.rule_team.matcher),
-            event2: ([Actor(self.user2.id, User)], self.rule_user.matcher),
-            event3: ([Actor(self.user.id, User), Actor(self.user2.id, User)], self.rule_users.matcher),
+            event1: (set([Actor(self.team.id, Team)]), self.rule_team.matcher),
+            event2: (set([Actor(self.user2.id, User)]), self.rule_user.matcher),
+            event3: (set([Actor(self.user.id, User), Actor(self.user2.id, User)]), self.rule_users.matcher),
         }
 
-        self.assert_event_actors_equal(event_actors,
-                                       ProjectOwnership.get_actors(self.project, events))
+        assert_event_actors_equal(event_actors,
+                                  ProjectOwnership.get_actors(self.project, events))
