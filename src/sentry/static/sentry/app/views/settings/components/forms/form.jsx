@@ -16,6 +16,7 @@ export default class Form extends React.Component {
     onFieldChange: PropTypes.func,
     submitDisabled: PropTypes.bool,
     submitLabel: PropTypes.string,
+    submitPriority: PropTypes.string,
     footerClass: PropTypes.string,
     footerStyle: PropTypes.object,
     extraButton: PropTypes.element,
@@ -33,6 +34,7 @@ export default class Form extends React.Component {
     cancelLabel: t('Cancel'),
     submitLabel: t('Save Changes'),
     submitDisabled: false,
+    submitPriority: 'primary',
     footerClass: 'form-actions align-right',
     className: 'form-stacked',
     requireChanges: false,
@@ -123,6 +125,7 @@ export default class Form extends React.Component {
       footerStyle,
       submitDisabled,
       submitLabel,
+      submitPriority,
       cancelLabel,
       onCancel,
       extraButton,
@@ -141,7 +144,7 @@ export default class Form extends React.Component {
             <Observer>
               {() => (
                 <Button
-                  priority="primary"
+                  priority={submitPriority}
                   disabled={
                     this.model.isError ||
                     isSaving ||
