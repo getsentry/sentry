@@ -48,18 +48,16 @@ const AssistantHelper = createReactClass({
 
   handleDrawerOpen() {
     let {currentGuide} = this.state;
-
+    this.setState({
+      isDrawerOpen: true,
+    });
+    nextStep();
     HookStore.get('analytics:event').forEach(cb =>
       cb('assistant.guide_opened', {
         guide: currentGuide.id,
         cue: currentGuide.cue,
       })
     );
-
-    this.setState({
-      isDrawerOpen: true,
-    });
-    nextStep();
   },
 
   handleSupportDrawerClose() {
@@ -69,6 +67,8 @@ const AssistantHelper = createReactClass({
   },
 
   handleDismiss(e) {
+    dismiss(this.state.currentGuide.id);
+    closeGuide();
     HookStore.get('analytics:event').forEach(cb =>
       cb('assistant.guide_dismissed', {
         guide: this.state.currentGuide.id,
@@ -76,8 +76,6 @@ const AssistantHelper = createReactClass({
         step: this.state.currentStep,
       })
     );
-    dismiss(this.state.currentGuide.id);
-    closeGuide();
   },
 
   render() {

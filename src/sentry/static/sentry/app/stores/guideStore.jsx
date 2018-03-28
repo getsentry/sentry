@@ -32,20 +32,19 @@ const GuideStore = Reflux.createStore({
 
   onCloseGuide() {
     let {currentGuide, guidesSeen} = this.state;
-
+    guidesSeen.add(currentGuide.id);
+    this.updateCurrentGuide();
     HookStore.get('analytics:event').forEach(cb =>
       cb('assistant.guide_closed', {
         guide: currentGuide.id,
         cue: currentGuide.cue,
       })
     );
-    guidesSeen.add(currentGuide.id);
-    this.updateCurrentGuide();
   },
 
   onNextStep() {
     this.state.currentStep += 1;
-
+    this.trigger(this.state);
     HookStore.get('analytics:event').forEach(cb =>
       cb('assistant.guide_next', {
         guide: this.state.currentGuide.id,
@@ -53,7 +52,6 @@ const GuideStore = Reflux.createStore({
         step: this.state.currentStep,
       })
     );
-    this.trigger(this.state);
   },
 
   onRegisterAnchor(anchor) {
