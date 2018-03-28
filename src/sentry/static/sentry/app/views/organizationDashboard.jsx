@@ -139,6 +139,7 @@ class Resources extends React.Component {
               link={'https://docs.sentry.io/'}
               imgUrl={'images/code-arguments-tags.svg'}
               title={'Docs'}
+              flipImage={true}
             />
           </Box>
         </Flex>
