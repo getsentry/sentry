@@ -12,7 +12,7 @@ SNUBA = 'http://localhost:5000'
 
 
 def query(start, end, groupby, conditions=None, filter_keys=None,
-          aggregation=None, aggregateby=None, rollup=None):
+          aggregation=None, aggregateby=None, rollup=None, arrayjoin=None):
     """
     Sends a query to snuba.
 
@@ -28,6 +28,7 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
     result. The project_id(s) to restrict the query to will also be
     automatically inferred from these keys.
     """
+    groupby = groupby or []
     conditions = conditions or []
     filter_keys = filter_keys or {}
 
@@ -66,6 +67,7 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
         'aggregateby': aggregateby,
         'granularity': rollup,
         'issues': issues,
+        'arrayjoin': arrayjoin,
     }) if v is not None}
 
     response = requests.post(url, data=json.dumps(request))

@@ -111,7 +111,7 @@ class SnubaTSDBTest(TestCase):
         GroupHash.objects.create(
             project=project,
             group=group,
-            hash='0000000000000000'
+            hash='0' * 32
         )
 
         now = parse_datetime('2018-03-09T01:00:00Z')

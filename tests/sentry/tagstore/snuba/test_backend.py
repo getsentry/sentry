@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+
 import json
 import responses
 
@@ -15,14 +16,14 @@ class TagStorage(TestCase):
 
         self.proj1 = self.create_project()
 
-        self.proj1env1 = self.create_environment(project=self.proj1, name='dev')
+        self.proj1env1 = self.create_environment(project=self.proj1, name='test')
         self.proj1env2 = self.create_environment(project=self.proj1, name='prod')
 
         self.proj1group1 = self.create_group(self.proj1)
         self.proj1group2 = self.create_group(self.proj1)
 
-        GroupHash.objects.create(project=self.proj1, group=self.proj1group1, hash='1' * 16)
-        GroupHash.objects.create(project=self.proj1, group=self.proj1group2, hash='2' * 16)
+        GroupHash.objects.create(project=self.proj1, group=self.proj1group1, hash='1' * 32)
+        GroupHash.objects.create(project=self.proj1, group=self.proj1group2, hash='2' * 32)
 
     @responses.activate
     def test_get_group_ids_for_search_filter(self):
