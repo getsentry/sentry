@@ -532,6 +532,14 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                             "__all_environments__",
                             "All Environments",
                           ],
+                          Array [
+                            "production",
+                            "Production",
+                          ],
+                          Array [
+                            "staging",
+                            "Staging",
+                          ],
                         ]
                       }
                       className=""
@@ -580,6 +588,18 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                               value="__all_environments__"
                             >
                               All Environments
+                            </option>
+                            <option
+                              key="production"
+                              value="production"
+                            >
+                              Production
+                            </option>
+                            <option
+                              key="staging"
+                              value="staging"
+                            >
+                              Staging
                             </option>
                           </select>
                         </div>
@@ -1344,6 +1364,14 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                             "__all_environments__",
                             "All Environments",
                           ],
+                          Array [
+                            "production",
+                            "Production",
+                          ],
+                          Array [
+                            "staging",
+                            "Staging",
+                          ],
                         ]
                       }
                       className=""
@@ -1392,6 +1420,18 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                               value="__all_environments__"
                             >
                               All Environments
+                            </option>
+                            <option
+                              key="production"
+                              value="production"
+                            >
+                              Production
+                            </option>
+                            <option
+                              key="staging"
+                              value="staging"
+                            >
+                              Staging
                             </option>
                           </select>
                         </div>
