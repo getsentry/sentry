@@ -224,7 +224,7 @@ const ProjectProcessingIssues = createReactClass({
   },
 
   getImageName(path) {
-    let pathSegments = path.split(/\//g);
+    let pathSegments = path.split(/^[a-z]:\\/i.test(path) ? '\\' : '/');
     return pathSegments[pathSegments.length - 1];
   },
 

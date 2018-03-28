@@ -22,6 +22,9 @@ KNOWN_DSYM_TYPES = {
 # Regular expression to parse OS versions from a minidump OS string
 VERSION_RE = re.compile(r'(\d+\.\d+\.\d+)\s+(.*)')
 
+# Regular expression to guess whether we're dealing with Windows or Unix paths
+WINDOWS_PATH_RE = re.compile(r'^[a-z]:\\', re.IGNORECASE)
+
 # Mapping of well-known minidump OS constants to our internal names
 MINIDUMP_OS_TYPES = {
     'Mac OS X': 'macOS',
@@ -29,6 +32,11 @@ MINIDUMP_OS_TYPES = {
 }
 
 AppInfo = namedtuple('AppInfo', ['id', 'version', 'build', 'name'])
+
+
+def image_name(pkg):
+    split = '\\' if WINDOWS_PATH_RE.match(pkg) else '/'
+    return pkg.rsplit(split, 1)[-1]
 
 
 def find_all_stacktraces(data):

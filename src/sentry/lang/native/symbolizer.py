@@ -8,7 +8,7 @@ from symbolic import SymbolicError, ObjectLookup, LineInfo, parse_addr
 from sentry.utils.safe import trim
 from sentry.utils.compat import implements_to_string
 from sentry.models import EventError, ProjectDSymFile
-from sentry.lang.native.utils import rebase_addr
+from sentry.lang.native.utils import image_name, rebase_addr
 from sentry.constants import MAX_SYM, NATIVE_UNKNOWN_STRING
 
 FATAL_ERRORS = (EventError.NATIVE_MISSING_DSYM, EventError.NATIVE_BAD_DSYM, )
@@ -62,7 +62,7 @@ class SymbolicationFailed(Exception):
             self.image_uuid = six.text_type(obj.id)
             if obj.name:
                 self.image_path = obj.name
-                self.image_name = obj.name.rsplit('/', 1)[-1]
+                self.image_name = image_name(obj.name)
             self.image_arch = obj.arch
         else:
             self.image_uuid = None
