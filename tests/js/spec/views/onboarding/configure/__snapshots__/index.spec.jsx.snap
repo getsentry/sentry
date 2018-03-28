@@ -112,10 +112,10 @@ exports[`Configure should render correctly render() should render platform docs 
           }
         >
           <SideEffect(DocumentTitle)
-            title="Project Name"
+            title="project-slug"
           >
             <DocumentTitle
-              title="Project Name"
+              title="project-slug"
             >
               <ProjectDocsContext>
                 <ProjectInstallPlatform
