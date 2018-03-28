@@ -9,6 +9,7 @@ import MenuItem from '../../components/menuItem';
 import ApiMixin from '../../mixins/apiMixin';
 import CommitRow from '../../components/commitRow';
 import {Panel, PanelHeader, PanelBody} from '../../components/panels';
+import {t} from '../../locale';
 
 const ReleaseCommits = createReactClass({
   displayName: 'ReleaseCommits',
@@ -53,7 +54,7 @@ const ReleaseCommits = createReactClass({
     return (
       <div className="box empty-stream m-y-0">
         <span className="icon icon-exclamation" />
-        <p>There are no commits associated with this release.</p>
+        <p>{t('There are no commits associated with this release.')}</p>
         {/* Todo: Should we link to repo settings from here?  */}
       </div>
     );
@@ -122,7 +123,7 @@ const ReleaseCommits = createReactClass({
                     }}
                     isActive={this.state.activeRepo === null}
                   >
-                    <a>All Repositories</a>
+                    <a>{t('All Repositories')}</a>
                   </MenuItem>
                   {Object.keys(commitsByRepository).map(repository => {
                     return (

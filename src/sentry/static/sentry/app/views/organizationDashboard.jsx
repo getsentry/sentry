@@ -49,7 +49,9 @@ class UnreleasedChanges extends AsyncComponent {
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>We couldn't find any unreleased commits associated with your account.</p>
+        <p>
+          {t("We couldn't find any unreleased commits associated with your account.")}
+        </p>
       </div>
     );
   }
@@ -58,10 +60,12 @@ class UnreleasedChanges extends AsyncComponent {
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>We couldn't find any commits associated with your account.</p>
+        <p>{t("We couldn't find any commits associated with your account.")}</p>
         <p>
           <small>
-            Have you added (and verified) the email address associated with your activity?
+            {t(
+              'Have you added (and verified) the email address associated with your activity?'
+            )}
           </small>
         </p>
       </div>

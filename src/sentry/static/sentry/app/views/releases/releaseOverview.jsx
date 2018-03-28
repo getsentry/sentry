@@ -257,7 +257,7 @@ const ReleaseOverview = createReactClass({
                   projectId={projectId}
                   version={version}
                 />
-                <h6 className="nav-header m-b-1">Other Projects Affected</h6>
+                <h6 className="nav-header m-b-1">{t('Other Projects Affected')}</h6>
                 <ul className="nav nav-stacked">
                   {projects.length === 1
                     ? this.renderEmpty()

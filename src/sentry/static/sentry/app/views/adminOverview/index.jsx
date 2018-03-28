@@ -3,6 +3,7 @@ import React from 'react';
 
 import ApiChart from './apiChart';
 import EventChart from './eventChart';
+import {t} from '../../locale';
 
 export default class extends React.Component {
   constructor(...args) {
@@ -16,12 +17,12 @@ export default class extends React.Component {
   render() {
     return (
       <div>
-        <h3>System Overview</h3>
+        <h3>{t('System Overview')}</h3>
 
         <div className="box">
           <div className="box-header">
             <h4>
-              Event Throughput
+              {t('Event Throughput')}
               <span id="rate" className="pull-right" />
             </h4>
           </div>
@@ -30,7 +31,7 @@ export default class extends React.Component {
 
         <div className="box">
           <div className="box-header">
-            <h4>API Responses</h4>
+            <h4>{t('API Responses')}</h4>
           </div>
           <ApiChart since={this.state.since} resolution={this.state.resolution} />
         </div>
