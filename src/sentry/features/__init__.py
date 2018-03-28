@@ -35,6 +35,7 @@ default_manager.add('projects:servicehooks', ProjectFeature)  # NOQA
 default_manager.add('projects:similarity-indexing', ProjectFeature)  # NOQA
 default_manager.add('projects:discard-groups', ProjectFeature)  # NOQA
 default_manager.add('projects:custom-inbound-filters', ProjectFeature)  # NOQA
+default_manager.add('projects:minidump', ProjectFeature)  # NOQA
 default_manager.add('organizations:environments', OrganizationFeature)  # NOQA
 default_manager.add('user:assistant')
 
