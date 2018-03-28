@@ -17,10 +17,12 @@ import TimeSince from '../../../components/timeSince';
 const MESSAGES = {
   native_no_crashed_thread: t('No crashed thread found in crash report'),
   native_internal_failure: t('Internal failure when attempting to symbolicate: {error}'),
-  native_bad_dsym: t('The debug symbol file used was broken.'),
-  native_missing_optionally_bundled_dsym: t('An optional debug symbol file was missing.'),
-  native_missing_dsym: t('A required debug symbol file was missing.'),
-  native_missing_system_dsym: t('A system debug symbol file was missing.'),
+  native_bad_dsym: t('The debug information file used was broken.'),
+  native_missing_optionally_bundled_dsym: t(
+    'An optional debug information file was missing.'
+  ),
+  native_missing_dsym: t('A required debug information file was missing.'),
+  native_missing_system_dsym: t('A system debug information file was missing.'),
   native_missing_symbol: t('Unable to resolve a symbol.'),
   native_simulator_frame: t('Encountered an unprocessable simulator frame.'),
   native_unknown_image: t('A binary image is referenced that is unknown.'),
@@ -297,7 +299,7 @@ const ProjectProcessingIssues = createReactClass({
       fixLinkBlock = (
         <div className="panel panel-info">
           <div className="panel-heading">
-            <h3>{t('Having trouble uploading debug symbols? We can help!')}</h3>
+            <h3>{t('Having trouble uploading debug informations? We can help!')}</h3>
           </div>
           <div className="panel-body">
             <div className="form-group" style={{marginBottom: 0}}>
