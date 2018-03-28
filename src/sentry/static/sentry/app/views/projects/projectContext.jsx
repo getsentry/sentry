@@ -112,7 +112,7 @@ const ProjectContext = createReactClass({
   },
 
   getTitle() {
-    if (this.state.project) return this.state.project.name;
+    if (this.state.project) return this.state.project.slug;
     return 'Sentry';
   },
 
