@@ -116,7 +116,7 @@ class RuleBuilder extends React.Component {
     return projectData.teams.map(team => ({
       value: buildTeamId(team.id),
       label: `#${team.slug}`,
-      searchKey: team.slug,
+      searchKey: `#${team.slug}`,
       actor: {
         type: 'team',
         id: team.id,

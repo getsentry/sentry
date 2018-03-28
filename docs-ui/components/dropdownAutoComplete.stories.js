@@ -23,17 +23,15 @@ const items = [
 
 const groupedItems = [
   {
-    group: {
-      value: 'countries',
-      label: (
-        <div>
-          Countries{' '}
-          <a style={{float: 'right'}} href="#">
-            + Add
-          </a>
-        </div>
-      ),
-    },
+    value: 'countries',
+    label: (
+      <div>
+        Countries{' '}
+        <a style={{float: 'right'}} href="#">
+          + Add
+        </a>
+      </div>
+    ),
     items: [
       {
         value: 'new zealand',
@@ -50,10 +48,8 @@ const groupedItems = [
     ],
   },
   {
-    group: {
-      value: 'foods',
-      label: 'Foods',
-    },
+    value: 'foods',
+    label: 'Foods',
     items: [
       {
         value: 'apple',
@@ -75,7 +71,7 @@ storiesOf('DropdownAutoComplete', module)
   .add(
     'ungrouped',
     withInfo('The item label can be a component or a string')(() => (
-      <DropdownAutoComplete items={items}>
+      <DropdownAutoComplete items={items} alignMenu="left">
         {({isOpen, selectedItem}) => (selectedItem ? selectedItem.label : 'Click me!')}
       </DropdownAutoComplete>
     ))
@@ -83,7 +79,7 @@ storiesOf('DropdownAutoComplete', module)
   .add(
     'grouped',
     withInfo('Group labels can receive a component too')(() => (
-      <DropdownAutoComplete items={groupedItems}>
+      <DropdownAutoComplete items={groupedItems} alignMenu="left">
         {({isOpen, selectedItem}) => (selectedItem ? selectedItem.label : 'Click me!')}
       </DropdownAutoComplete>
     ))
@@ -91,7 +87,7 @@ storiesOf('DropdownAutoComplete', module)
   .add(
     'with dropdownButton',
     withInfo('Use it with dropdownbutton for maximum fun')(() => (
-      <DropdownAutoComplete items={groupedItems}>
+      <DropdownAutoComplete items={groupedItems} alignMenu="left">
         {({isOpen, selectedItem}) => (
           <DropdownButton isOpen={isOpen}>
             {selectedItem ? selectedItem.label : 'Click me!'}
@@ -106,6 +102,7 @@ storiesOf('DropdownAutoComplete', module)
       <DropdownAutoComplete
         items={items}
         action={<Button priority="primary">Now click me!</Button>}
+        alignMenu="left"
       >
         {({isOpen, selectedItem}) => (
           <DropdownButton isOpen={isOpen}>
