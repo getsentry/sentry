@@ -55,6 +55,21 @@ describe('ApiSearch', function() {
     expect(membersMock).toHaveBeenCalled();
   });
 
+  it('only queries org endpoint if there is no org in context', function() {
+    let mock = jest.fn().mockReturnValue(null);
+    wrapper = mount(
+      <ApiSearch params={{}} query="foo">
+        {mock}
+      </ApiSearch>,
+      TestStubs.routerContext()
+    );
+
+    expect(orgsMock).toHaveBeenCalled();
+    expect(projectsMock).not.toHaveBeenCalled();
+    expect(teamsMock).not.toHaveBeenCalled();
+    expect(membersMock).not.toHaveBeenCalled();
+  });
+
   it('render function is called with correct results', async function() {
     let mock = jest.fn().mockReturnValue(null);
     wrapper = mount(

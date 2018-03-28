@@ -1,10 +1,11 @@
+import {flatten, debounce} from 'lodash';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import Raven from 'raven-js';
 import React from 'react';
-import {flatten, debounce} from 'lodash';
 
 import {Client} from '../../api';
+import withLatestContext from '../../utils/withLatestContext';
 
 class ApiSearch extends React.Component {
   static propTypes = {
@@ -39,14 +40,19 @@ class ApiSearch extends React.Component {
   }
 
   doSearch = debounce(async query => {
-    let {params} = this.props;
-    let {orgId} = params;
-    let urls = [
-      '/organizations/',
-      `/organizations/${orgId}/projects/`,
-      `/organizations/${orgId}/teams/`,
-      `/organizations/${orgId}/members/`,
-    ];
+    let {params, organization} = this.props;
+    let orgId = params.orgId || (organization && organization.slug);
+    let urls = ['/organizations/'];
+
+    // Only run these queries when we have an org in context
+    if (orgId) {
+      urls = [
+        ...urls,
+        `/organizations/${orgId}/projects/`,
+        `/organizations/${orgId}/teams/`,
+        `/organizations/${orgId}/members/`,
+      ];
+    }
 
     let reqs = urls.map(url =>
       this.api
@@ -86,7 +92,7 @@ class ApiSearch extends React.Component {
         ])
       ),
       ...flatten(
-        projects.map(project => [
+        (projects || []).map(project => [
           {
             searchIndex: project.slug,
             model: project,
@@ -103,14 +109,14 @@ class ApiSearch extends React.Component {
           },
         ])
       ),
-      ...teams.map(team => ({
+      ...(teams || []).map(team => ({
         searchIndex: team.slug,
         model: team,
         sourceType: 'team',
         resultType: 'settings',
         to: `/settings/${orgId}/teams/${team.slug}/`,
       })),
-      ...members.map(member => ({
+      ...(members || []).map(member => ({
         searchIndex: `${member.email}${member.name}`,
         model: member,
         sourceType: 'member',
@@ -140,4 +146,4 @@ class ApiSearch extends React.Component {
 }
 
 export {ApiSearch};
-export default withRouter(ApiSearch);
+export default withLatestContext(withRouter(ApiSearch));
