@@ -90,6 +90,7 @@ const RuleEditor = createReactClass({
         conditions: [],
         name: '',
         frequency: 30,
+        environment: ALL_ENVIRONMENTS_KEY,
       };
 
       this.setState({rule: defaultRule});
@@ -99,25 +100,28 @@ const RuleEditor = createReactClass({
   handleSubmit(e) {
     e.preventDefault();
 
-    const {rule} = this.state;
-    const isNew = !rule.id;
+    const data = {...this.state.rule};
+    const isNew = !data.id;
     const {project, organization} = this.props;
 
     let endpoint = `/projects/${organization.slug}/${project.slug}/rules/`;
-    if (rule.id) {
-      endpoint += rule.id + '/';
+    if (data.id) {
+      endpoint += data.id + '/';
+    }
+
+    if (data.environment === ALL_ENVIRONMENTS_KEY) {
+      delete data.environment;
     }
 
     addMessage(t('Saving...'));
 
     this.api.request(endpoint, {
       method: isNew ? 'POST' : 'PUT',
-      data: rule,
+      data,
       success: resp => {
-        const shouldRedirect = !rule.id;
         this.setState({error: null, loading: false, rule: resp});
         // Redirect to correct ID if /new
-        if (shouldRedirect) {
+        if (isNew) {
           browserHistory.replace(
             `/${organization.slug}/${project.slug}/settings/alerts/rules/${resp.id}/`
           );

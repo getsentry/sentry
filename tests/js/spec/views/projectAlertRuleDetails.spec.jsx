@@ -3,6 +3,7 @@ import {mount} from 'enzyme';
 import {browserHistory} from 'react-router';
 
 import ProjectAlertRuleDetails from 'app/views/projectAlertRuleDetails';
+import EnvironmentStore from 'app/stores/environmentStore';
 
 jest.mock('jquery');
 
@@ -19,6 +20,7 @@ describe('ProjectAlertRuleDetails', function() {
       method: 'GET',
       body: TestStubs.ProjectAlertRule(),
     });
+    EnvironmentStore.loadActiveData(TestStubs.Environments());
   });
 
   afterEach(function() {
@@ -84,9 +86,10 @@ describe('ProjectAlertRuleDetails', function() {
 
   describe('Edit alert rule', function() {
     let wrapper, mock;
+    const endpoint = '/projects/org-slug/project-slug/rules/1/';
     beforeEach(function() {
       mock = MockApiClient.addMockResponse({
-        url: '/projects/org-slug/project-slug/rules/1/',
+        url: endpoint,
         method: 'PUT',
         body: TestStubs.ProjectAlertRule(),
       });
@@ -117,6 +120,35 @@ describe('ProjectAlertRuleDetails', function() {
 
     it('does not update URL', function() {
       expect(browserHistory.replace).not.toHaveBeenCalled();
+    });
+
+    it('sends correct environment value', function() {
+      wrapper
+        .find('select#id-environment')
+        .simulate('change', {target: {value: 'production'}});
+      expect(wrapper.find('select#id-environment').props().value).toBe('production');
+      wrapper.find('form').simulate('submit');
+
+      expect(mock).toHaveBeenCalledWith(
+        endpoint,
+        expect.objectContaining({
+          data: expect.objectContaining({environment: 'production'}),
+        })
+      );
+    });
+
+    it('strips environment value if "All environments" is selected', function() {
+      wrapper
+        .find('select#id-environment')
+        .simulate('change', {target: {value: '__all_environments__'}});
+      wrapper.find('form').simulate('submit');
+
+      expect(mock).not.toHaveBeenCalledWith(
+        endpoint,
+        expect.objectContaining({
+          data: expect.objectContaining({environment: '__all_environments__'}),
+        })
+      );
     });
   });
 });
