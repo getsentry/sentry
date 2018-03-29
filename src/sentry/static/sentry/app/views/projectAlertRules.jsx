@@ -4,12 +4,18 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
-import {t} from '../locale';
+import {t, tct} from '../locale';
 import ApiMixin from '../mixins/apiMixin';
 import Button from '../components/buttons/button';
 import Confirm from '../components/confirm';
 import Duration from '../components/duration';
-import IndicatorStore from '../stores/indicatorStore';
+import {
+  addSuccessMessage,
+  addErrorMessage,
+  addLoadingMessage,
+  removeIndicator,
+} from '../actionCreators/indicator';
+
 import ListLink from '../components/listLink';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
@@ -61,21 +67,22 @@ const RuleRow = createReactClass({
   onDelete() {
     if (this.state.loading) return;
 
-    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
-    let {orgId, projectId, data} = this.props;
+    const loadingIndicator = addLoadingMessage();
+    const {orgId, projectId, data} = this.props;
     this.api.request(`/projects/${orgId}/${projectId}/rules/${data.id}/`, {
       method: 'DELETE',
-      success: (d, _, jqXHR) => {
+      success: () => {
         this.props.onDelete();
-        IndicatorStore.remove(loadingIndicator);
+        removeIndicator(loadingIndicator);
+        addSuccessMessage(tct('Successfully deleted "[alert]"', {alert: data.name}));
       },
       error: () => {
         this.setState({
           error: true,
           loading: false,
         });
-        IndicatorStore.remove(loadingIndicator);
-        IndicatorStore.add(t('Unable to save changes. Please try again.'), 'error');
+        removeIndicator(loadingIndicator);
+        addErrorMessage(t('Unable to save changes. Please try again.'));
       },
     });
   },
@@ -190,7 +197,7 @@ const ProjectAlertRules = createReactClass({
   fetchData() {
     let {orgId, projectId} = this.props.params;
     this.api.request(`/projects/${orgId}/${projectId}/rules/`, {
-      success: (data, _, jqXHR) => {
+      success: data => {
         this.setState({
           error: false,
           loading: false,
