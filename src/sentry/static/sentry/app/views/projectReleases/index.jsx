@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
+import {Flex} from 'grid-emotion';
 
 import SentryTypes from '../../proptypes';
 import ApiMixin from '../../mixins/apiMixin';
@@ -11,6 +12,9 @@ import Pagination from '../../components/pagination';
 import GuideAnchor from '../../components/assistant/guideAnchor';
 import SearchBar from '../../components/searchBar';
 import {t, tct} from '../../locale';
+import Panel from '../settings/components/panel';
+import PanelBody from '../settings/components/panelBody';
+import PanelHeader from '../settings/components/panelHeader';
 
 import ReleaseList from './releaseList';
 
@@ -193,16 +197,15 @@ const ProjectReleases = createReactClass({
             />
           </div>
         </div>
-        <div className="panel panel-default">
-          <div className="panel-heading panel-heading-bold">
-            <div className="row">
-              <div className="col-sm-8 col-xs-7">{t('Version')}</div>
-              <div className="col-sm-2 col-xs-3">{t('New Issues')}</div>
-              <div className="col-sm-2 col-xs-2">{t('Last Event')}</div>
-            </div>
-          </div>
-          {this.renderStreamBody()}
-        </div>
+        <Panel>
+          <PanelHeader>
+            <Flex flex="4">{t('Version')}</Flex>
+            <Flex flex="4" className="hidden-xs" />
+            <Flex flex="2">{t('New Issues')}</Flex>
+            <Flex flex="2">{t('Last Event')}</Flex>
+          </PanelHeader>
+          <PanelBody>{this.renderStreamBody()}</PanelBody>
+        </Panel>
         <Pagination pageLinks={this.state.pageLinks} />
       </div>
     );
