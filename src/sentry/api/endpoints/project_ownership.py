@@ -34,13 +34,13 @@ class ProjectOwnershipSerializer(serializers.Serializer):
                 try:
                     resolve_actor(owner, self.context['ownership'].project_id)
                 except UnknownActor:
-                    if owner.type is 'user':
+                    if owner.type == 'user':
                         bad_actors.append(owner.identifier)
 
-                    if owner.type is 'team':
+                    if owner.type == 'team':
                         bad_actors.append(u'#{}'.format(owner.identifier))
 
-        if len(bad_actors) > 0:
+        if bad_actors > 0:
             raise serializers.ValidationError(
                 u'Invalid rule owners: {}'.format(", ".join(bad_actors))
             )
