@@ -13,26 +13,13 @@ describe('ProjectPlugins', function() {
   };
 
   it('renders', function() {
-    wrapper = shallow(
-      <ProjectPlugins
-        params={params}
-        plugins={plugins}
-        organization={{features: ['integrations-v3']}}
-      />
-    );
+    wrapper = shallow(<ProjectPlugins params={params} plugins={plugins} />);
 
     expect(wrapper).toMatchSnapshot();
   });
 
   it('has loading state', function() {
-    wrapper = shallow(
-      <ProjectPlugins
-        params={params}
-        loading
-        plugins={[]}
-        organization={{features: ['integrations-v3']}}
-      />
-    );
+    wrapper = shallow(<ProjectPlugins params={params} loading plugins={[]} />);
 
     expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
   });
@@ -43,7 +30,6 @@ describe('ProjectPlugins', function() {
         params={params}
         plugins={null}
         loading
-        organization={{features: ['integrations-v3']}}
         error={new Error('An error')}
       />
     );
@@ -57,7 +43,6 @@ describe('ProjectPlugins', function() {
         params={params}
         plugins={[]}
         loading
-        organization={{features: ['integrations-v3']}}
         error={new Error('An error')}
       />
     );
