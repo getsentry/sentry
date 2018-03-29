@@ -108,7 +108,7 @@ class SlackIntegrationLinkIdentityTest(TestCase):
         )
         responses.add(
             method=responses.POST,
-            url='https://slack.com/api/chat.postEphemeral',
+            url='http://example.slack.com/response_url',
             body='{"ok": true}',
             status=200,
             content_type='application/json',
