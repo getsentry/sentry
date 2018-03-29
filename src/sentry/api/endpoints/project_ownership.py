@@ -40,7 +40,7 @@ class ProjectOwnershipSerializer(serializers.Serializer):
                     if owner.type == 'team':
                         bad_actors.append(u'#{}'.format(owner.identifier))
 
-        if bad_actors > 0:
+        if bad_actors:
             raise serializers.ValidationError(
                 u'Invalid rule owners: {}'.format(", ".join(bad_actors))
             )
