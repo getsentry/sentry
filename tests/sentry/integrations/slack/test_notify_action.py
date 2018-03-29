@@ -5,7 +5,7 @@ import responses
 from six.moves.urllib.parse import parse_qs
 
 from sentry.utils import json
-from sentry.models import OrganizationIntegration, Integration
+from sentry.models import OrganizationIntegration, Integration, GroupStatus
 from sentry.testutils.cases import RuleTestCase
 from sentry.integrations.slack import SlackNotifyServiceAction
 
@@ -224,3 +224,16 @@ class SlackNotifyActionTest(RuleTestCase):
 
         assert not form.is_valid()
         assert len(form.errors) == 1
+
+    def test_dont_notify_ignored(self):
+        event = self.get_event()
+        event.group.status = GroupStatus.IGNORED
+        event.group.save()
+
+        rule = self.get_rule(data={
+            'workspace': self.integration.id,
+            'channel': '#my-channel',
+        })
+
+        results = list(rule.after(event=event, state=self.get_state()))
+        assert len(results) == 0
