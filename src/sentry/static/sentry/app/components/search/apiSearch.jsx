@@ -121,7 +121,7 @@ class ApiSearch extends React.Component {
         model: member,
         sourceType: 'member',
         resultType: 'settings',
-        to: `/settings/${orgId}/member/${member.slug}/`,
+        to: `/settings/${orgId}/members/${member.id}/`,
       })),
     ];
 

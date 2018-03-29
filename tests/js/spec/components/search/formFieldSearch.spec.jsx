@@ -41,6 +41,7 @@ describe('FormFieldSearch', function() {
             route: '/route/',
             sourceType: 'field',
             to: '/route/#test-field',
+            searchIndex: '/route/#test-field',
           },
         ],
       });
