@@ -10,6 +10,9 @@ import {isUrl, deviceNameMapper} from '../../utils';
 import {t} from '../../locale';
 import Pills from '../pills';
 import Pill from '../pill';
+import VersionHoverCard from '../versionHoverCard';
+import InlineSvg from '../inlineSvg';
+import TextLink from '../textLink';
 
 class EventTags extends React.Component {
   static propTypes = {
@@ -48,6 +51,23 @@ class EventTags extends React.Component {
                   <a href={tag.value} className="external-icon">
                     <em className="icon-open" />
                   </a>
+                )}
+                {tag.key == 'release' && (
+                  <VersionHoverCard
+                    version={tag.value}
+                    orgId={orgId}
+                    projectId={projectId}
+                  >
+                    <TextLink
+                      style={{
+                        color: '#625471',
+                        paddingLeft: '4px',
+                      }}
+                      to={`/${orgId}/${projectId}/releases/${tag.value}/`}
+                    >
+                      <InlineSvg src="icon-circle-info" size="14px" />
+                    </TextLink>
+                  </VersionHoverCard>
                 )}
               </Pill>
             );
