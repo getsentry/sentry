@@ -33,7 +33,8 @@ class SearchResult extends React.Component {
      * - form field
      */
     resultType: PropTypes.oneOf(['settings', 'route', 'field']),
-    field: PropTypes.object,
+    title: PropTypes.string,
+    description: PropTypes.string,
     model: PropTypes.oneOfType([
       SentryTypes.Organization,
       SentryTypes.Project,
@@ -42,17 +43,8 @@ class SearchResult extends React.Component {
     ]),
   };
 
-  render() {
-    return (
-      <Flex justify="space-between" align="center">
-        <Content>{this.renderContent()}</Content>
-        {this.renderResultType()}
-      </Flex>
-    );
-  }
-
   renderContent() {
-    let {sourceType, resultType, field, title, description, model, params} = this.props;
+    let {sourceType, resultType, title, description, model, params} = this.props;
 
     let isSettings = resultType === 'settings';
 
@@ -120,6 +112,15 @@ class SearchResult extends React.Component {
     }
 
     return <ResultTypeIcon src="icon-location" />;
+  }
+
+  render() {
+    return (
+      <Flex justify="space-between" align="center">
+        <Content>{this.renderContent()}</Content>
+        {this.renderResultType()}
+      </Flex>
+    );
   }
 }
 
@@ -196,7 +197,7 @@ class SettingsSearch extends React.Component {
                             !isLoading && fieldResults && !!fieldResults.length;
                           let hasAnyResults = hasFieldResults || hasApiResults;
                           let results = !isLoading
-                            ? (apiResults || []).concat(fieldResults || [])
+                            ? (fieldResults || []).concat(apiResults || [])
                             : [];
 
                           return (
