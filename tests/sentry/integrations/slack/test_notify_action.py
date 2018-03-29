@@ -236,15 +236,4 @@ class SlackNotifyActionTest(RuleTestCase):
         })
 
         results = list(rule.after(event=event, state=self.get_state()))
-
-        responses.add(
-            method=responses.POST,
-            url='https://slack.com/api/chat.postMessage',
-            body='{"ok": true}',
-            status=200,
-            content_type='application/json',
-        )
-
-        # Trigger rule callback. The notification should not have been posted.
-        results[0].callback(event, futures=[])
-        assert len(responses.calls) == 0
+        assert len(results) == 0
