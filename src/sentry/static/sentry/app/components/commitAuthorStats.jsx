@@ -1,16 +1,19 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-
+import {Flex} from 'grid-emotion';
 import createReactClass from 'create-react-class';
 
 import LoadingIndicator from '../components/loadingIndicator';
 import LoadingError from '../components/loadingError';
 import Avatar from '../components/avatar';
+import Tooltip from '../components/tooltip';
 
-import TooltipMixin from '../mixins/tooltip';
 import ApiMixin from '../mixins/apiMixin';
 
 import {t} from '../locale';
+import Panel from '../views/settings/components/panel';
+import PanelItem from '../views/settings/components/panelItem';
+import PanelBody from '../views/settings/components/panelBody';
 
 class CommitBar extends React.Component {
   static propTypes = {
@@ -35,12 +38,7 @@ const CommitAuthorStats = createReactClass({
     version: PropTypes.string.isRequired,
   },
 
-  mixins: [
-    ApiMixin,
-    TooltipMixin({
-      selector: '.tip',
-    }),
-  ],
+  mixins: [ApiMixin],
 
   getInitialState() {
     return {
@@ -71,13 +69,6 @@ const CommitAuthorStats = createReactClass({
         });
       },
     });
-  },
-
-  componentDidUpdate(prevProps, prevState) {
-    if (prevState.loading && !this.state.loading) {
-      this.removeTooltips();
-      this.attachTooltips();
-    }
   },
 
   renderEmpty() {
@@ -113,35 +104,32 @@ const CommitAuthorStats = createReactClass({
 
     return (
       <div style={{marginTop: 5}}>
-        <h6 className="nav-header m-b-1">Commits by Author</h6>
+        <h6 className="nav-header m-b-1">{t('Commits by Author')}</h6>
         {!commitAuthorValues.length && this.renderEmpty()}
-        <ul className="list-group">
-          {commitAuthorValues.map((commitAuthor, i) => {
-            let {author, commitCount} = commitAuthor;
-            return (
-              <li
-                key={i}
-                className="list-group-item list-group-item-sm list-group-avatar"
-              >
-                <div className="row row-flex row-center-vertically">
-                  <div className="col-sm-8">
-                    <span
-                      className="avatar-grid-item m-b-0 tip"
-                      title={author.name + ' ' + author.email}
-                    >
+        <Panel>
+          <PanelBody>
+            {commitAuthorValues.map((commitAuthor, i) => {
+              let {author, commitCount} = commitAuthor;
+              return (
+                <PanelItem key={i} p={1} align="center">
+                  <Flex>
+                    <Tooltip title={author.name + ' ' + author.email}>
                       <Avatar user={author} size={20} />
-                    </span>
+                    </Tooltip>
+                  </Flex>
+                  <Flex style={{flexGrow: 1}} px={1}>
                     <CommitBar
+                      style={{marginLeft: 5}}
                       totalCommits={commitList.length}
                       authorCommits={commitCount}
                     />
-                  </div>
-                  <div className="col-sm-4 align-right">{commitCount}</div>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+                  </Flex>
+                  <Flex>{commitCount}</Flex>
+                </PanelItem>
+              );
+            })}
+          </PanelBody>
+        </Panel>
       </div>
     );
   },

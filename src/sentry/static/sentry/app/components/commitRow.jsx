@@ -1,11 +1,14 @@
 import idx from 'idx';
 import PropTypes from 'prop-types';
 import React from 'react';
+import {Flex} from 'grid-emotion';
 
 import Avatar from './avatar';
 import TimeSince from './timeSince';
 import CommitLink from './commitLink';
 import {t, tct} from '../locale';
+
+import PanelItem from '../views/settings/components/panelItem';
 
 export default class CommitRow extends React.Component {
   static propTypes = {
@@ -25,25 +28,23 @@ export default class CommitRow extends React.Component {
   render() {
     let {id, dateCreated, message, author, repository} = this.props.commit;
     return (
-      <li className="list-group-item" key={id}>
-        <div className="row row-center-vertically">
-          <div className="col-xs-10 list-group-avatar">
-            <Avatar size={36} user={author} />
-            <h5 className="truncate">{this.renderMessage(message)}</h5>
-            <p>
-              {tct('[author] committed [timeago]', {
-                author: (
-                  <strong>{idx(author, _ => _.name) || t('Unknown author')}</strong>
-                ),
-                timeago: <TimeSince date={dateCreated} />,
-              })}
-            </p>
+      <PanelItem key={id} align="center">
+        <Flex mr={2}>
+          <Avatar size={36} user={author} />
+        </Flex>
+        <Flex style={{flexGrow: 1, fontSize: 15}} direction="column">
+          <strong className="truncate">{this.renderMessage(message)}</strong>
+          <div style={{fontSize: 13}}>
+            {tct('[author] committed [timeago]', {
+              author: <strong>{idx(author, _ => _.name) || t('Unknown author')}</strong>,
+              timeago: <TimeSince date={dateCreated} />,
+            })}
           </div>
-          <div className="col-xs-2 hidden-xs align-right">
-            <CommitLink commitId={id} repository={repository} />
-          </div>
-        </div>
-      </li>
+        </Flex>
+        <Flex className="hidden-xs">
+          <CommitLink commitId={id} repository={repository} />
+        </Flex>
+      </PanelItem>
     );
   }
 }
