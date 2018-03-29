@@ -6,6 +6,7 @@ import EnvironmentStore from 'app/stores/environmentStore';
 import ProjectEnvironments from 'app/views/projectEnvironments';
 import recreateRoute from 'app/utils/recreateRoute';
 import theme from 'app/utils/theme';
+import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
 
 jest.mock('app/utils/recreateRoute');
 
@@ -32,6 +33,7 @@ function mountComponent(isHidden) {
 
 describe('ProjectEnvironments', function() {
   let project;
+  let updateDefaultMock;
 
   beforeEach(function() {
     project = TestStubs.Project({
@@ -40,6 +42,10 @@ describe('ProjectEnvironments', function() {
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/',
       body: project,
+    });
+    updateDefaultMock = MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/',
+      method: 'PUT',
     });
   });
 
@@ -57,13 +63,13 @@ describe('ProjectEnvironments', function() {
       expect(wrapper.find('ProjectEnvironments')).toMatchSnapshot();
     });
 
-    it('renders environment list', function() {
+    it('renders environment list and sets staging as default env', async function() {
       EnvironmentStore.loadInitialData(TestStubs.Environments(false));
       const wrapper = mountComponent(false);
 
       // Production environment is default
-      const productionRow = wrapper.find('PanelItem').first();
-      const stagingRow = wrapper.find('PanelItem').last();
+      const productionRow = wrapper.find('EnvironmentRow[name="production"]');
+      const stagingRow = wrapper.find('EnvironmentRow[name="staging"]');
 
       expect(productionRow.find('Tag').prop('children')).toBe('Default');
 
@@ -77,7 +83,107 @@ describe('ProjectEnvironments', function() {
           .first()
           .text()
       ).toBe('Set as default');
+
+      // Can set as default
+      stagingRow
+        .find('Button')
+        .first()
+        .simulate('click');
+
+      expect(updateDefaultMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {
+            defaultEnvironment: 'staging',
+          },
+        })
+      );
+
+      expect(wrapper.find('EnvironmentRow[name="staging"] Tag')).toHaveLength(1);
+      expect(wrapper.find('EnvironmentRow[name="production"] Tag')).toHaveLength(0);
       expect(wrapper.find('ProjectEnvironments')).toMatchSnapshot();
+    });
+
+    it('can set "All Environments" as default', function() {
+      EnvironmentStore.loadInitialData(TestStubs.Environments(false));
+      const wrapper = mountComponent(false);
+
+      const allEnvironmentsRow = wrapper.find(
+        `EnvironmentRow[name="${ALL_ENVIRONMENTS_KEY}"]`
+      );
+
+      // Not default
+      expect(allEnvironmentsRow.find('Tag')).toHaveLength(0);
+
+      // Should not have hide button
+      expect(allEnvironmentsRow.find('Button')).toHaveLength(1);
+      expect(allEnvironmentsRow.find('Button').text()).toBe('Set as default');
+
+      // Set as default
+      allEnvironmentsRow.find('Button').simulate('click');
+
+      expect(updateDefaultMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {
+            defaultEnvironment: ALL_ENVIRONMENTS_KEY,
+          },
+        })
+      );
+
+      expect(
+        wrapper.find(`EnvironmentRow[name="${ALL_ENVIRONMENTS_KEY}"]`).find('Tag')
+      ).toHaveLength(1);
+    });
+
+    it('can set "No Environments" as default', function() {
+      EnvironmentStore.loadInitialData(TestStubs.Environments(false));
+      const wrapper = mountComponent(false);
+
+      const noEnvironmentsRow = wrapper.find('EnvironmentRow[name=""]');
+
+      // Not default
+      expect(noEnvironmentsRow.find('Tag')).toHaveLength(0);
+
+      // Should not have hide button
+      expect(noEnvironmentsRow.find('Button')).toHaveLength(1);
+      expect(noEnvironmentsRow.find('Button').text()).toBe('Set as default');
+
+      noEnvironmentsRow.find('Button').simulate('click');
+
+      expect(updateDefaultMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {
+            defaultEnvironment: '',
+          },
+        })
+      );
+
+      // Is default
+      expect(wrapper.find('EnvironmentRow[name=""]').find('Tag')).toHaveLength(1);
+    });
+
+    it('displays invalid environment in list with no actions', function() {
+      project = TestStubs.Project({
+        defaultEnvironment: 'invalid-environment',
+      });
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/',
+        body: project,
+      });
+      EnvironmentStore.loadInitialData(TestStubs.Environments(false));
+      const wrapper = mountComponent(false);
+
+      const row = wrapper.find('EnvironmentRow[name="invalid-environment"]');
+
+      // Is default
+      expect(row.find('Tag')).toHaveLength(1);
+
+      // Can not hide or set as default
+      expect(row.find('Button')).toHaveLength(0);
+
+      expect(wrapper.find('InvalidDefaultEnvironmentIcon')).toHaveLength(1);
     });
   });
 
@@ -123,10 +229,7 @@ describe('ProjectEnvironments', function() {
     it('hides', function() {
       EnvironmentStore.loadInitialData(TestStubs.Environments(false));
       const wrapper = mountComponent(false);
-      wrapper
-        .find('Button')
-        .first()
-        .simulate('click');
+      wrapper.find('EnvironmentRow[name="production"] Button').simulate('click');
       expect(hideMock).toHaveBeenCalledWith(
         `${baseUrl}production/`,
         expect.objectContaining({
@@ -138,10 +241,7 @@ describe('ProjectEnvironments', function() {
     it('shows', function() {
       EnvironmentStore.loadHiddenData(TestStubs.Environments(true));
       const wrapper = mountComponent(true);
-      wrapper
-        .find('Button')
-        .first()
-        .simulate('click');
+      wrapper.find('EnvironmentRow[name="zzz"] Button').simulate('click');
       expect(showMock).toHaveBeenCalledWith(
         `${baseUrl}zzz/`,
         expect.objectContaining({
@@ -149,5 +249,7 @@ describe('ProjectEnvironments', function() {
         })
       );
     });
+
+    it('does not have "All/No Enviroments" rows', function() {});
   });
 });

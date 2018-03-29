@@ -5,6 +5,7 @@ import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
+import {ALL_ENVIRONMENTS_KEY} from '../constants';
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -21,10 +22,13 @@ import ApiMixin from '../mixins/apiMixin';
 import Button from '../components/buttons/button';
 import EmptyMessage from './settings/components/emptyMessage';
 import EnvironmentStore from '../stores/environmentStore';
+import InlineSvg from '../components/inlineSvg';
 import ListLink from '../components/listLink';
 import LoadingIndicator from '../components/loadingIndicator';
+import SentryTypes from '../proptypes';
 import SettingsPageHeader from './settings/components/settingsPageHeader';
 import Tag from './settings/components/tag';
+import Tooltip from '../components/tooltip';
 import recreateRoute from '../utils/recreateRoute';
 
 const ProjectEnvironments = createReactClass({
@@ -115,6 +119,7 @@ const ProjectEnvironments = createReactClass({
     });
   },
 
+  // Toggle visibility of environment
   toggleEnv(env, shouldHide) {
     const {orgId, projectId} = this.props.params;
 
@@ -145,7 +150,7 @@ const ProjectEnvironments = createReactClass({
     );
   },
 
-  // Changed "Default Environment"
+  // Change "Default Environment"
   handleSetAsDefault(env) {
     const data = {defaultEnvironment: env.name};
     const oldProject = this.state.project;
@@ -196,40 +201,110 @@ const ProjectEnvironments = createReactClass({
     return <EmptyMessage>{message}</EmptyMessage>;
   },
 
+  /**
+   * Renders rows for "system" environments:
+   * - "All Environments"
+   * - "No Environment"
+   *
+   * Also renders current default environment IF it is not a valid environment
+   */
+  renderSystemRows() {
+    // Not available in "Hidden" tab
+    if (this.state.isHidden) return null;
+    let {environments, project} = this.state;
+
+    let isAllEnvironmentsDefault =
+      project && project.defaultEnvironment === ALL_ENVIRONMENTS_KEY;
+    let isNoEnvironmentsDefault = project && project.defaultEnvironment === '';
+
+    // Default environment that is not a valid environment
+    let hasOtherDefaultEnvironment =
+      project &&
+      environments &&
+      !isAllEnvironmentsDefault &&
+      !isNoEnvironmentsDefault &&
+      !environments.find(({name}) => name === project.defaultEnvironment);
+
+    return (
+      <React.Fragment>
+        {hasOtherDefaultEnvironment && (
+          <EnvironmentRow
+            name={project.defaultEnvironment}
+            environment={{
+              id: project.defaultEnvironment,
+              displayName: (
+                <React.Fragment>
+                  <Tooltip title={t('This is not an active environment')}>
+                    <span css={{marginRight: 8}}>
+                      <InvalidDefaultEnvironmentIcon />
+                    </span>
+                  </Tooltip>
+                  <code>{project.defaultEnvironment}</code>
+                </React.Fragment>
+              ),
+              name: project.defaultEnvironment,
+            }}
+            hideName
+            isDefault
+            shouldShowSetDefault={false}
+            onSetAsDefault={this.handleSetAsDefault}
+          />
+        )}
+        <EnvironmentRow
+          name={ALL_ENVIRONMENTS_KEY}
+          environment={{
+            id: ALL_ENVIRONMENTS_KEY,
+            displayName: t('All Environments'),
+            name: ALL_ENVIRONMENTS_KEY,
+          }}
+          hideName
+          isDefault={isAllEnvironmentsDefault}
+          shouldShowSetDefault={!isAllEnvironmentsDefault && !!project}
+          onSetAsDefault={this.handleSetAsDefault}
+        />
+        <EnvironmentRow
+          name=""
+          environment={{
+            id: '',
+            displayName: t('No Environments'),
+            name: '',
+          }}
+          isDefault={isNoEnvironmentsDefault}
+          shouldShowSetDefault={!isNoEnvironmentsDefault && !!project}
+          onSetAsDefault={this.handleSetAsDefault}
+        />
+      </React.Fragment>
+    );
+  },
+
   renderEnvironmentList(envs) {
     const {project, isHidden} = this.state;
     const buttonText = isHidden ? t('Show') : t('Hide');
 
-    return envs.map(env => {
-      const isDefault = project && env.name === project.defaultEnvironment;
-      // Don't show "Set as default" button until project details are loaded
-      const shouldShowSetDefault = !isHidden && !isDefault && project;
-      return (
-        <PanelItem key={env.id} align="center" justify="space-between">
-          <Flex align="center">
-            {env.displayName} {env.name && <code>{env.name}</code>}
-            {isDefault && <Tag priority="success">{t('Default')}</Tag>}
-          </Flex>
-          <div>
-            {shouldShowSetDefault && (
-              <EnvironmentButton
-                size="xsmall"
-                onClick={this.handleSetAsDefault.bind(this, env)}
-              >
-                {t('Set as default')}
-              </EnvironmentButton>
-            )}
-
-            <EnvironmentButton
-              size="xsmall"
-              onClick={() => this.toggleEnv(env, !isHidden)}
-            >
-              {buttonText}
-            </EnvironmentButton>
-          </div>
-        </PanelItem>
-      );
-    });
+    return (
+      <React.Fragment>
+        {this.renderSystemRows()}
+        {envs.map(env => {
+          const isDefault = project && env.name === project.defaultEnvironment;
+          // Don't show "Set as default" button until project details are loaded
+          const shouldShowSetDefault = !isHidden && !isDefault && !!project;
+          return (
+            <EnvironmentRow
+              key={env.id}
+              name={env.name}
+              environment={env}
+              isDefault={isDefault}
+              isHidden={isHidden}
+              shouldShowSetDefault={shouldShowSetDefault}
+              onSetAsDefault={this.handleSetAsDefault}
+              onHide={this.toggleEnv}
+              actionText={buttonText}
+              shouldShowAction
+            />
+          );
+        })}
+      </React.Fragment>
+    );
   },
 
   render() {
@@ -281,8 +356,67 @@ const ProjectEnvironments = createReactClass({
   },
 });
 
+class EnvironmentRow extends React.Component {
+  static propTypes = {
+    environment: SentryTypes.Environment,
+    isDefault: PropTypes.bool,
+    isHidden: PropTypes.bool,
+    hideName: PropTypes.bool,
+    shouldShowSetDefault: PropTypes.bool,
+    shouldShowAction: PropTypes.bool,
+    actionText: PropTypes.string,
+    onSetAsDefault: PropTypes.func,
+    onHide: PropTypes.func,
+  };
+
+  render() {
+    let {
+      environment,
+      shouldShowSetDefault,
+      shouldShowAction,
+      hideName,
+      isDefault,
+      isHidden,
+      actionText,
+    } = this.props;
+
+    return (
+      <PanelItem align="center" justify="space-between">
+        <Flex align="center">
+          {environment.displayName}{' '}
+          {!hideName && environment.name && <code>{environment.name}</code>}
+          {isDefault && <Tag priority="success">{t('Default')}</Tag>}
+        </Flex>
+        <div>
+          {shouldShowSetDefault && (
+            <EnvironmentButton
+              size="xsmall"
+              onClick={() => this.props.onSetAsDefault(environment)}
+            >
+              {t('Set as default')}
+            </EnvironmentButton>
+          )}
+
+          {shouldShowAction && (
+            <EnvironmentButton
+              size="xsmall"
+              onClick={() => this.props.onHide(environment, !isHidden)}
+            >
+              {actionText}
+            </EnvironmentButton>
+          )}
+        </div>
+      </PanelItem>
+    );
+  }
+}
 const EnvironmentButton = styled(Button)`
   margin-left: 4px;
 `;
 
+const InvalidDefaultEnvironmentIcon = styled(props => (
+  <InlineSvg src="icon-circle-exclamation" {...props} />
+))`
+  color: ${p => p.theme.error};
+`;
 export default ProjectEnvironments;
