@@ -48,4 +48,5 @@ class DashboardTest(AcceptanceTestCase):
         self.browser.wait_until('.organization-home')
         self.browser.wait_until('.dashboard-barchart')
         self.browser.wait_until_not('.loading-indicator')
+        assert not self.browser.element_exists('.awaiting-events')
         self.browser.snapshot('org dash one issue')
