@@ -2,6 +2,7 @@ from __future__ import absolute_import, print_function
 
 from django.conf.urls import include, patterns, url
 
+from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
 from .endpoints.api_applications import ApiApplicationsEndpoint
 from .endpoints.api_application_details import ApiApplicationDetailsEndpoint
 from .endpoints.api_authorizations import ApiAuthorizationsEndpoint
@@ -200,6 +201,10 @@ urlpatterns = patterns(
     # Broadcasts
     url(r'^broadcasts/$', BroadcastIndexEndpoint.as_view(),
         name='sentry-api-0-broadcast-index'),
+
+    # Project transfer
+    url(r'^accept-transfer/$', AcceptProjectTransferEndpoint.as_view(),
+        name='sentry-api-0-accept-project-transfer'),
 
     # Users
     url(r'^users/$', UserIndexEndpoint.as_view(), name='sentry-api-0-user-index'),
