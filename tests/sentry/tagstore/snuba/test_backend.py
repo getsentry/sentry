@@ -27,7 +27,7 @@ class TagStorage(TestCase):
 
     @responses.activate
     def test_get_group_ids_for_search_filter(self):
-        from sentry.search.base import ANY, EMPTY
+        from sentry.search.base import ANY
         tags = {
             'foo': 'bar',
             'baz': 'quux',
@@ -52,7 +52,6 @@ class TagStorage(TestCase):
 
         tags = {
             'foo': ANY,
-            'baz': EMPTY,
         }
 
         with responses.RequestsMock() as rsps:
@@ -62,7 +61,6 @@ class TagStorage(TestCase):
                 assert body['groupby'] == ['issue']
                 assert body['issues']
                 assert ['tags[foo]', 'IS NOT NULL', None] in body['conditions']
-                assert ['tags[baz]', 'IS NULL', None] in body['conditions']
                 return (200, {}, json.dumps({
                     'meta': [{'name': 'issue'}, {'name': 'aggregate'}],
                     'data': [{'issue': self.proj1group2.id, 'aggregate': 1}],
