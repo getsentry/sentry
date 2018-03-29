@@ -22,7 +22,7 @@ let NewSettingsWarning = ({location = {}}) => {
   let projectRegex = /^\/settings\/([^\/]+)\/([^\/]+)\//;
   let accountRegex = /^\/settings\/account\/([^\/]+)\//;
   let orgSettingsIndex = /^\/settings\/([^\/]+)\/$/;
-  let orgRegex = /^\/settings\/([^\/]+)\/(settings|projects|teams|stats|members|auth|audit-log|rate-limits|repos|billing|payments|subscription|legal|support)\//;
+  let orgRegex = /^\/settings\/([^\/]+)\/(settings|projects|teams|stats|members|auth|api-keys|audit-log|rate-limits|repos|billing|payments|subscription|legal|support)\//;
   let isProject = projectRegex.test(location.pathname);
   let isOrgIndex = orgSettingsIndex.test(location.pathname);
   let isOrg = orgRegex.test(location.pathname);
@@ -48,7 +48,7 @@ let NewSettingsWarning = ({location = {}}) => {
   }
 
   // original org auth view and account settings are django views so we can't use react router navigation
-  let isRouter = !/\/(auth)\//.test(location.pathname);
+  let isRouter = !/\/(auth|account)\//.test(location.pathname);
   let linkProps = {
     href: isRouter ? undefined : oldLocation,
     to: isRouter ? oldLocation : undefined,
