@@ -52,6 +52,18 @@ class OwnerInput extends React.Component {
     }
   }
 
+  parseError(error) {
+    let text = error && error.raw && error.raw[0];
+    if (!text) {
+      return null;
+    }
+    if (text.startsWith('Invalid rule owners:')) {
+      return text;
+    } else {
+      return <SyntaxOverlay line={text.match(/line (\d*),/)[1] - 1} />;
+    }
+  }
+
   handleUpdateOwnership = () => {
     let {organization, project} = this.props;
     let {text} = this.state;
@@ -78,6 +90,14 @@ class OwnerInput extends React.Component {
         if (error.status === 403) {
           addErrorMessage(
             t("You don't have permission to modify ownership rules for this project")
+          );
+        } else if (
+          error.status === 400 &&
+          error.responseJSON.raw &&
+          error.responseJSON.raw[0].startsWith('Invalid rule owners:')
+        ) {
+          addErrorMessage(
+            t('Unable to save ownership rules changes: ' + error.responseJSON.raw[0])
           );
         } else {
           addErrorMessage(t('Unable to save ownership rules changes'));
@@ -162,11 +182,7 @@ class OwnerInput extends React.Component {
             autoCorrect="off"
             autoCapitalize="off"
           />
-          {error &&
-            error.raw && (
-              <SyntaxOverlay line={error.raw[0].match(/line (\d*),/)[1] - 1} />
-            )}
-          {error && error.raw && error.raw.toString()}
+          {this.parseError(error)}
           <SaveButton>
             <Button
               size="small"

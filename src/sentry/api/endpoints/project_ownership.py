@@ -6,7 +6,8 @@ from django.utils import timezone
 
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import ProjectOwnership
+from sentry.models import ProjectOwnership, resolve_actor, UnknownActor
+
 from sentry.ownership.grammar import parse_rules, dump_schema, ParseError
 
 
@@ -24,7 +25,27 @@ class ProjectOwnershipSerializer(serializers.Serializer):
                 u'Parse error: %r (line %d, column %d)' % (
                     e.expr.name, e.line(), e.column()
                 ))
-        attrs['schema'] = dump_schema(rules)
+
+        schema = dump_schema(rules)
+
+        bad_actors = []
+        for rule in rules:
+            for owner in rule.owners:
+                try:
+                    resolve_actor(owner, self.context['ownership'].project_id)
+                except UnknownActor:
+                    if owner.type == 'user':
+                        bad_actors.append(owner.identifier)
+
+                    if owner.type == 'team':
+                        bad_actors.append(u'#{}'.format(owner.identifier))
+
+        if bad_actors:
+            raise serializers.ValidationError(
+                u'Invalid rule owners: {}'.format(", ".join(bad_actors))
+            )
+
+        attrs['schema'] = schema
         return attrs
 
     def save(self):
