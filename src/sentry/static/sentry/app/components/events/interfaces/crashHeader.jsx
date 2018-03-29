@@ -21,7 +21,6 @@ const CrashHeader = createReactClass({
     newestFirst: PropTypes.bool.isRequired,
     stackType: PropTypes.string, // 'original', 'minified', or falsy (none)
     onChange: PropTypes.func,
-    hasGuideAnchor: PropTypes.bool,
   },
 
   mixins: [
@@ -99,9 +98,7 @@ const CrashHeader = createReactClass({
     return (
       <div className="crash-title">
         {this.props.beforeTitle}
-        {this.props.hasGuideAnchor ? (
-          <GuideAnchor target="exception" type="text" />
-        ) : null}
+        <GuideAnchor target="exception" type="text" />
         <h3 className="pull-left">
           {this.props.title}
           <small style={{marginLeft: 5}}>

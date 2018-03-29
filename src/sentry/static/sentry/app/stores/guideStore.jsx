@@ -1,4 +1,5 @@
 import Reflux from 'reflux';
+import $ from 'jquery';
 import GuideActions from '../actions/guideActions';
 import HookStore from './hookStore';
 
@@ -49,7 +50,6 @@ const GuideStore = Reflux.createStore({
       cb('assistant.guide_next', {
         guide: this.state.currentGuide.id,
         cue: this.state.currentGuide.cue,
-        step: this.state.currentStep,
       })
     );
   },
@@ -66,9 +66,10 @@ const GuideStore = Reflux.createStore({
 
   updateCurrentGuide() {
     let availableTargets = [...this.state.anchors].map(a => a.props.target);
+
+    // Select the first guide that hasn't been seen in this session and has all
+    // required anchors on the page.
     let bestGuideKey = Object.keys(this.state.guides).find(key => {
-      // Only show a guide if it hasn't been seen in this session before and every
-      // anchor needed by the guide is on the page.
       let guide = this.state.guides[key];
       let seen = this.state.guidesSeen.has(guide.id);
       let allTargetsPresent = guide.required_targets.every(
@@ -76,7 +77,16 @@ const GuideStore = Reflux.createStore({
       );
       return !seen && allTargetsPresent;
     });
-    let bestGuide = bestGuideKey ? this.state.guides[bestGuideKey] : null;
+
+    let bestGuide = null;
+    if (bestGuideKey) {
+      bestGuide = $.extend(true, {}, this.state.guides[bestGuideKey]);
+      // Remove steps that don't have an anchor on the page.
+      bestGuide.steps = bestGuide.steps.filter(
+        step => step.target && availableTargets.indexOf(step.target) >= 0
+      );
+    }
+
     if (bestGuide !== this.state.currentGuide) {
       this.state.currentGuide = bestGuide;
       this.state.currentStep = 0;

@@ -12,15 +12,14 @@ GUIDES = {
             {
                 'title': _('Stacktrace'),
                 'message': _(
-                    'See the sequence of function calls that led to the error, and global/local '
-                    'variables for each stack frame.'),
+                    'See the sequence of function calls that led to the error, and in some cases '
+                    'global/local variables for each stack frame.'),
                 'target': 'exception',
             },
             {
                 'title': _('Breadcrumbs'),
                 'message': _(
-                    'Breadcrumbs (when sent with the event) appear below the stacktrace and show '
-                    'you a trail of events that happened prior to the error. They\'re '
+                    'Breadcrumbs are a trail of events that happened prior to the error. They\'re '
                     'similar to traditional logs but can record more rich structured data. '
                     'When Sentry is used with web frameworks, breadcrumbs are automatically '
                     'captured for events like database calls and network requests.'),
@@ -29,10 +28,10 @@ GUIDES = {
             {
                 'title': _('Tags'),
                 'message': _(
-                    'Tags are arbitrary key-value pairs sent with every event. You can filter '
-                    'events by tags, like searching for all events from a specific machine, '
-                    'browser, release etc. The sidebar on the right shows you the '
-                    'distribution of tags for all events in this event group.'),
+                    'Tags are arbitrary key-value pairs you can send with an event. Events can be '
+                    'filtered by tags, allowing you to do things like search for all events from '
+                    'a specific machine, browser or release. The sidebar on the right shows you '
+                    'the distribution of tags for all events in this event group.'),
                 'target': 'tags',
             },
             {
@@ -46,7 +45,7 @@ GUIDES = {
             {
                 'title': _('Issue Number'),
                 'message': _(
-                    'This is a unique identifier for the issue, and can be included in a commit '
+                    'This is a unique identifier for the issue and can be included in a commit '
                     'message to tell Sentry to resolve the issue when the commit gets deployed. '
                     'See <a href="https://docs.sentry.io/learn/releases/">Releases</a> '
                     'to learn more.'),
@@ -62,13 +61,12 @@ GUIDES = {
             {
                 'title': _('Ignore, Delete and Discard'),
                 'message': _(
-                    'Ignoring an issue silences notifications and removes it from your feeds by '
-                    'default. Deleting an issue deletes the data associated with an issue and '
-                    'causes a new issue to be created if the same error happens again. Delete '
-                    '& Discard (available on the medium plan and higher) deletes most of the data '
-                    'associated with the issue and discards future events matching the issue '
-                    'before it reaches your stream. This is useful to permanently ignore errors '
-                    'you don\'t care about.'),
+                    'Ignoring an issue silences notifications and removes it from your feeds. '
+                    'Deleting an issue deletes its data and causes a new issue to be created if it '
+                    'happens again. Delete & Discard (available on the medium plan and higher) '
+                    'deletes most of the issue\'s data and discards future events matching the '
+                    'issue before they reach your stream. This is useful to permanently ignore '
+                    'errors you don\'t care about.'),
                 'target': 'ignore_delete_discard',
             },
         ],
@@ -92,6 +90,7 @@ GUIDES = {
                              'touched by those commits, files observed in the stacktrace, and '
                              'authors of those files. Learn more about releases '
                              '<a href="https://docs.sentry.io/learn/releases/">here</a>.'),
+                'target': 'releases',
             },
         ]
     },
