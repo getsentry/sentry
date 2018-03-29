@@ -12,7 +12,7 @@ import {
 import {addTeamToProject} from '../../../actionCreators/projects';
 import {getOrganizationState} from '../../../mixins/organizationState';
 import {openCreateTeamModal} from '../../../actionCreators/modal';
-import {t} from '../../../locale';
+import {t, tct} from '../../../locale';
 import ApiMixin from '../../../mixins/apiMixin';
 import AsyncView from '../../asyncView';
 import Button from '../../../components/buttons/button';
@@ -73,7 +73,7 @@ const TeamRow = createReactClass({
   },
 
   render() {
-    let {team, access, orgId} = this.props;
+    let {team, access, orgId, projectId} = this.props;
 
     return (
       <StyledPanelItem>
@@ -88,12 +88,16 @@ const TeamRow = createReactClass({
           <Confirm
             message={
               this.props.teamCount === 1
-                ? t(
+                ? tct(
                     'This is the last team with access to this project. Removing it will mean ' +
                       'only owners and managers will be able to access the project pages. Are ' +
-                      'you sure you want to remove this team?'
+                      'you sure you want to remove this team from the project [projectId]?',
+                    {projectId}
                   )
-                : t('Are you sure you want to remove this team?')
+                : tct(
+                    'Are you sure you want to remove this team from the project [projectId]?',
+                    {projectId}
+                  )
             }
             bypass={this.props.teamCount > 1}
             onConfirm={this.handleRemove}
@@ -201,7 +205,7 @@ class ProjectTeams extends AsyncView {
       >
         {({isOpen, selectedItem}) => (
           <DropdownButton isOpen={isOpen} size="xsmall">
-            {t('Add Team')}
+            {tct('Add Team to [projectId]', {projectId: this.props.params.projectId})}
           </DropdownButton>
         )}
       </DropdownAutoComplete>
@@ -243,7 +247,7 @@ class ProjectTeams extends AsyncView {
     if (this.state.projectTeams.length > 0) body = this.renderResults();
     else body = this.renderEmpty();
 
-    let {organization} = this.props;
+    let {organization, params} = this.props;
     let canCreateTeams = getOrganizationState(organization)
       .getAccess()
       .has('project:admin');
@@ -251,7 +255,7 @@ class ProjectTeams extends AsyncView {
     return (
       <div>
         <SettingsPageHeader
-          title={t('Teams')}
+          title={tct('[projectId] Teams', {projectId: params.projectId})}
           action={
             <Button
               priority="primary"
