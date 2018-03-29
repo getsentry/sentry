@@ -44,7 +44,7 @@ export default class IssueLink extends React.Component {
 
     return (
       <div className={className}>
-        <div style={{marginBottom: 20}}>
+        <div style={{marginBottom: 15}}>
           <h3>
             <EventOrGroupTitle data={issue} />
           </h3>
@@ -74,7 +74,7 @@ export default class IssueLink extends React.Component {
             })}
           </div>
         </div>
-        <div className="row row-flex" style={{marginBottom: 20}}>
+        <div className="row row-flex" style={{marginBottom: 15}}>
           <div className="col-xs-6">
             <h6>First Seen</h6>
             <TimeSince date={issue.firstSeen} />
