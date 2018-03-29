@@ -40,3 +40,12 @@ class AssistantActivity(APITestCase):
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         assert resp.data == {k: v for k, v in GUIDES.items() if v['id'] != 2}
+
+    def test_validate_guides(self):
+        # Steps in different guides should not have the same target.
+        guides = GUIDES.values()
+        for i in range(len(guides)):
+            for j in range(0, i):
+                steps_i = set(s['target'] for s in guides[i]['steps'])
+                steps_j = set(s['target'] for s in guides[j]['steps'])
+                assert not(steps_i & steps_j)
