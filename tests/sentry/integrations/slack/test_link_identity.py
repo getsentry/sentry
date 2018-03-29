@@ -96,13 +96,15 @@ class SlackIntegrationLinkIdentityTest(TestCase):
             'organization_id': self.org.id,
             'slack_id': 'new-slack-id',
             'notify_channel_id': 'my-channel',
+            'response_url': 'http://example.slack.com/response_url',
         }
 
         linking_url = build_linking_url(
             self.integration,
             self.org,
             'new-slack-id',
-            'my-channel'
+            'my-channel',
+            'http://example.slack.com/response_url'
         )
         responses.add(
             method=responses.POST,
