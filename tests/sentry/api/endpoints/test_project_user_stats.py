@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 
-from sentry.tsdb import backend as tsdb
+from sentry import tsdb
 from sentry.models import EventUser
 from sentry.testutils import APITestCase
 

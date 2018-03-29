@@ -71,7 +71,7 @@ class GroupSnooze(Model):
         return True
 
     def test_frequency_rates(self):
-        from sentry.tsdb import backend as tsdb
+        from sentry import tsdb
 
         end = timezone.now()
         start = end - timedelta(minutes=self.window)
@@ -88,7 +88,7 @@ class GroupSnooze(Model):
         return True
 
     def test_user_rates(self):
-        from sentry.tsdb import backend as tsdb
+        from sentry import tsdb
 
         end = timezone.now()
         start = end - timedelta(minutes=self.user_window)

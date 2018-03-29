@@ -12,7 +12,7 @@ from datetime import timedelta
 from django import forms
 from django.utils import timezone
 
-from sentry.tsdb import backend as tsdb
+from sentry import tsdb
 from sentry.rules.conditions.base import EventCondition
 
 intervals = {
