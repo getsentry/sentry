@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from datetime import timedelta
 from dateutil.parser import parse as parse_datetime
 import json
+import pytest
 import responses
 
 from sentry.utils import snuba
@@ -185,3 +186,8 @@ class SnubaTSDBTest(TestCase):
             results = self.db.get_range(TSDBModel.project, [project.id],
                                         dts[0], dts[-1], environment_id=env.id)
             assert results == {project.id: [(to_timestamp(now), 100)]}
+
+    def test_invalid_model(self):
+        with pytest.raises(Exception) as ex:
+            self.db.get_range(TSDBModel.project_total_received_discarded, [], None, None)
+        assert "Unsupported TSDBModel" in ex.value.message

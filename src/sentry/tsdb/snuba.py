@@ -48,7 +48,7 @@ class SnubaTSDB(BaseTSDB):
         model_columns = self.model_columns(model)
 
         if model_columns is None:
-            return None
+            raise Exception("Unsupported TSDBModel: {}".format(model.name))
 
         model_group, model_aggregate = model_columns
 
@@ -133,7 +133,7 @@ class SnubaTSDB(BaseTSDB):
         return result
 
     def get_frequency_series(self, model, items, start, end=None,
-                             rollup=None, environment_id=None, limit=10):
+                             rollup=None, environment_id=None):
         result = self.get_data(model, items, start, end, rollup, environment_id,
                                aggregation='count', group_on_time=True)
         # convert

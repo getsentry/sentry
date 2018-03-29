@@ -200,7 +200,7 @@ class BaseTSDB(Service):
     def get_optimal_rollup(self, start):
         """
         Return the size (in seconds) of the finest-granularity available rollup
-        that will have data available in the given time range.
+        that will have data available between the given start time and now.
 
         Because rollups are kept as a FIFO up to the current time, we check the
         time range from ``start`` up until now.  Rollups in the distant past
