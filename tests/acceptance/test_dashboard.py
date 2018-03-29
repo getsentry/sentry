@@ -28,7 +28,18 @@ class DashboardTest(AcceptanceTestCase):
         self.login_as(self.user)
         self.path = '/{}/'.format(self.org.slug)
 
-    def test_simple(self):
+    def test_no_issues(self):
+        self.project.update(first_event=None)
+        self.browser.get(self.path)
+        # dashboard is a bit complex to load since it has many subcomponents
+        # so we bank on a few containers being enough of a check
+        self.browser.wait_until('.organization-home')
+        self.browser.wait_until('.dashboard-barchart')
+        self.browser.wait_until('.awaiting-events')
+        self.browser.wait_until_not('.loading-indicator')
+        self.browser.snapshot('org dash no issues')
+
+    def test_one_issue(self):
         self.project.update(first_event=timezone.now())
         self.browser.get(self.path)
         # dashboard is a bit complex to load since it has many subcomponents
@@ -37,4 +48,4 @@ class DashboardTest(AcceptanceTestCase):
         self.browser.wait_until('.organization-home')
         self.browser.wait_until('.dashboard-barchart')
         self.browser.wait_until_not('.loading-indicator')
-        self.browser.snapshot('organization dashboard')
+        self.browser.snapshot('org dash one issue')
