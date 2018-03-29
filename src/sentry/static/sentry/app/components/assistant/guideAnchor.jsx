@@ -79,7 +79,7 @@ const GuideAnchor = createReactClass({
 
 const recedeAnchor = keyframes`
   0% {
-    transform: scale(2, 2);
+    transform: scale(3, 3);
     opacity: 1;
   }
 
