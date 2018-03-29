@@ -78,6 +78,12 @@ class SnubaTagStorage(TagStorage):
     # Search
     def get_group_ids_for_search_filter(self, project_id, environment_id, tags):
         from sentry.search.base import ANY, EMPTY
+
+        # Any EMPTY value means there can be no results for this query so
+        # return an empty list immediately.
+        if any(val == EMPTY for _, val in six.iteritems(tags)):
+            return []
+
         filters = {
             'environment': [environment_id],
             'project_id': [project_id],
@@ -88,8 +94,6 @@ class SnubaTagStorage(TagStorage):
             col = 'tags[{}]'.format(tag)
             if val == ANY:
                 conditions.append((col, 'IS NOT NULL', None))
-            elif val == EMPTY:
-                conditions.append((col, 'IS NULL', None))
             else:
                 conditions.append((col, '=', val))
 
