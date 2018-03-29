@@ -8,7 +8,9 @@ exports[`GuideAnchor renders 1`] = `
   <StyledGuideAnchor
     active={false}
     className="guide-anchor-ping target 1"
-  />
+  >
+    <StyledGuideAnchorRipples />
+  </StyledGuideAnchor>
 </GuideAnchorContainer>
 `;
 
@@ -20,6 +22,8 @@ exports[`GuideAnchor turns active when guide state changes 1`] = `
   <StyledGuideAnchor
     active={true}
     className="guide-anchor-ping target 1"
-  />
+  >
+    <StyledGuideAnchorRipples />
+  </StyledGuideAnchor>
 </GuideAnchorContainer>
 `;
