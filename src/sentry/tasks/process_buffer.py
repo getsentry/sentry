@@ -16,10 +16,7 @@ from sentry.utils.locking import UnableToAcquireLock
 logger = logging.getLogger(__name__)
 
 
-@instrumented_task(
-    name='sentry.tasks.process_buffer.process_pending',
-    queue='buffers.process_pending',
-)
+@instrumented_task(name='sentry.tasks.process_buffer.process_pending')
 def process_pending(partition=None):
     """
     Process pending buffers.
