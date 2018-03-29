@@ -4,6 +4,7 @@ let GuideActions = Reflux.createActions([
   'closeGuideOrSupport',
   'fetchSucceeded',
   'nextStep',
+  'openDrawer',
   'registerAnchor',
   'unregisterAnchor',
 ]);

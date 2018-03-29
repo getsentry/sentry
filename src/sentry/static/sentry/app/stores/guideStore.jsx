@@ -27,6 +27,7 @@ const GuideStore = Reflux.createStore({
     this.listenTo(GuideActions.nextStep, this.onNextStep);
     this.listenTo(GuideActions.registerAnchor, this.onRegisterAnchor);
     this.listenTo(GuideActions.unregisterAnchor, this.onUnregisterAnchor);
+    this.listenTo(GuideActions.openDrawer, this.onOpenDrawer);
     this.listenTo(OrganizationsActions.setActive, this.onSetActiveOrganization);
     this.listenTo(OrganizationsActions.changeSlug, this.onChangeSlug);
   },
@@ -50,6 +51,11 @@ const GuideStore = Reflux.createStore({
     if (currentGuide) {
       this.state.guidesSeen.add(currentGuide.id);
     }
+    this.updateCurrentGuide();
+  },
+
+  onOpenDrawer() {
+    this.state.isDrawerOpen = true;
     this.updateCurrentGuide();
   },
 
@@ -99,7 +105,7 @@ const GuideStore = Reflux.createStore({
     }
 
     this.state.currentGuide = bestGuide;
-    this.state.currentStep = 0;
+    this.state.currentStep = window.location.hash === '#assistant' ? 1 : 0;
     this.trigger(this.state);
   },
 });
