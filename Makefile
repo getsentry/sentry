@@ -9,7 +9,7 @@ ifneq "$(wildcard /usr/local/opt/openssl/lib)" ""
 	LDFLAGS += -L/usr/local/opt/openssl/lib
 endif
 
-PIP = LDFLAGS="$(LDFLAGS)" pip
+PIP = LDFLAGS="$(LDFLAGS)" pip -q
 
 develop-only: update-submodules install-brew install-python install-yarn
 
@@ -149,7 +149,7 @@ test-network:
 
 test-acceptance: build-platform-assets
 	@echo "--> Building static assets"
-	@${NPM_ROOT}/.bin/webpack
+	@${NPM_ROOT}/.bin/webpack --display errors-only
 	@echo "--> Running acceptance tests"
 	py.test tests/acceptance --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml" --html="pytest.html"
 	@echo ""
