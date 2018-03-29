@@ -47,7 +47,6 @@ class ExceptionInterface extends React.Component {
       <CrashHeader
         group={group}
         title={t('Exception')}
-        hasGuideAnchor={true}
         platform={event.platform}
         exception={data}
         stackView={stackView}

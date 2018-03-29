@@ -13,6 +13,7 @@ describe('GuideStore', function() {
       steps: [
         {message: 'Message 1', target: 'target 1', title: '1. Title 1'},
         {message: 'Message 2', target: 'target 2', title: '2. Title 2'},
+        {message: 'Message 3', target: 'target 3', title: '3. Title 3'},
       ],
     },
   };
@@ -45,6 +46,8 @@ describe('GuideStore', function() {
     GuideStore.onRegisterAnchor(anchor1);
     GuideStore.onRegisterAnchor(anchor2);
     GuideStore.onFetchSucceeded(data);
+    // GuideStore should prune steps that don't have anchors.
+    expect(GuideStore.state.currentGuide.steps).toHaveLength(2);
     GuideStore.onNextStep();
     expect(GuideStore.state.currentStep).toEqual(1);
     GuideStore.onNextStep();
