@@ -59,10 +59,13 @@ class EventTags extends React.Component {
                     projectId={projectId}
                   >
                     <TextLink
+                      style={{
+                        color: '#625471',
+                        paddingLeft: '4px',
+                      }}
                       to={`/${orgId}/${projectId}/releases/${tag.value}/`}
-                      style={{paddingLeft: '3px'}}
                     >
-                      <InlineSvg src="icon-circle-info" size="16px" />
+                      <InlineSvg src="icon-circle-info" size="14px" />
                     </TextLink>
                   </VersionHoverCard>
                 )}
