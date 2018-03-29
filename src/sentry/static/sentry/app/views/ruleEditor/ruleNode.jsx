@@ -125,16 +125,24 @@ const RuleNodeRow = styled.div`
   }
 `;
 
-// This needs to have class name "rule-form" because of how we serialize rules atm
 const RuleNodeForm = styled('div')`
   display: flex;
+  flex-wrap: wrap;
   flex: 1;
-  line-height: 36px;
-  margin: 5px 0;
+  line-height: 40px;
+  margin: 5px 12px 5px 0;
   align-items: center;
 
   .control-group {
     margin: 0 6px;
+  }
+
+  .form-control {
+    padding: 3px 12px;
+  }
+  .select2-container,
+  input {
+    min-width: 100px;
   }
 `;
 

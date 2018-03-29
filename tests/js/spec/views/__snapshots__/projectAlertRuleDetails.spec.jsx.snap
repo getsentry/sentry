@@ -96,11 +96,14 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
   display: -webkit-flex;
   display: -ms-flexbox;
   display: flex;
+  -webkit-flex-wrap: wrap;
+  -ms-flex-wrap: wrap;
+  flex-wrap: wrap;
   -webkit-flex: 1;
   -ms-flex: 1;
   flex: 1;
-  line-height: 36px;
-  margin: 5px 0;
+  line-height: 40px;
+  margin: 5px 12px 5px 0;
   -webkit-align-items: center;
   -webkit-box-align: center;
   -ms-flex-align: center;
@@ -109,6 +112,15 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
 
 .glamor-10 .control-group {
   margin: 0 6px;
+}
+
+.glamor-10 .form-control {
+  padding: 3px 12px;
+}
+
+.glamor-10 .select2-container,
+.glamor-10 input {
+  min-width: 100px;
 }
 
 .glamor-14 {
