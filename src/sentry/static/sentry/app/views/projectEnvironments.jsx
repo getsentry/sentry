@@ -214,34 +214,20 @@ const ProjectEnvironments = createReactClass({
 
     let isAllEnvironmentsDefault =
       project && project.defaultEnvironment === ALL_ENVIRONMENTS_KEY;
-    let isNoEnvironmentsDefault = project && project.defaultEnvironment === '';
 
     return (
-      <React.Fragment>
-        <EnvironmentRow
-          name={ALL_ENVIRONMENTS_KEY}
-          environment={{
-            id: ALL_ENVIRONMENTS_KEY,
-            displayName: t('All Environments'),
-            name: ALL_ENVIRONMENTS_KEY,
-          }}
-          hideName
-          isDefault={isAllEnvironmentsDefault}
-          shouldShowSetDefault={!isAllEnvironmentsDefault && !!project}
-          onSetAsDefault={this.handleSetAsDefault}
-        />
-        <EnvironmentRow
-          name=""
-          environment={{
-            id: '',
-            displayName: t('No Environments'),
-            name: '',
-          }}
-          isDefault={isNoEnvironmentsDefault}
-          shouldShowSetDefault={!isNoEnvironmentsDefault && !!project}
-          onSetAsDefault={this.handleSetAsDefault}
-        />
-      </React.Fragment>
+      <EnvironmentRow
+        name={ALL_ENVIRONMENTS_KEY}
+        environment={{
+          id: ALL_ENVIRONMENTS_KEY,
+          displayName: t('All Environments'),
+          name: ALL_ENVIRONMENTS_KEY,
+        }}
+        hideName
+        isDefault={isAllEnvironmentsDefault}
+        shouldShowSetDefault={!isAllEnvironmentsDefault && !!project}
+        onSetAsDefault={this.handleSetAsDefault}
+      />
     );
   },
 
@@ -253,13 +239,11 @@ const ProjectEnvironments = createReactClass({
     // Default environment that is not a valid environment
     let isAllEnvironmentsDefault =
       project && project.defaultEnvironment === ALL_ENVIRONMENTS_KEY;
-    let isNoEnvironmentsDefault = project && project.defaultEnvironment === '';
 
     let hasOtherDefaultEnvironment =
       project &&
       environments &&
       !isAllEnvironmentsDefault &&
-      !isNoEnvironmentsDefault &&
       !environments.find(({name}) => name === project.defaultEnvironment);
 
     if (!hasOtherDefaultEnvironment) return null;

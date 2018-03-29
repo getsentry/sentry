@@ -104,6 +104,48 @@ describe('ProjectEnvironments', function() {
       expect(wrapper.find('ProjectEnvironments')).toMatchSnapshot();
     });
 
+    it('can set "(No Environment)" as default', function() {
+      EnvironmentStore.loadInitialData([
+        ...TestStubs.Environments(false),
+        {
+          id: '3',
+          name: '',
+          displayName: '(No Environment)',
+        },
+      ]);
+      const wrapper = mountComponent(false);
+
+      const noEnvironmentsRow = wrapper.find('EnvironmentRow[name=""]');
+
+      // Not default
+      expect(noEnvironmentsRow.find('Tag')).toHaveLength(0);
+
+      // Is able to hide
+      expect(noEnvironmentsRow.find('Button')).toHaveLength(2);
+      expect(
+        noEnvironmentsRow
+          .find('Button')
+          .first()
+          .text()
+      ).toBe('Set as default');
+      noEnvironmentsRow
+        .find('Button')
+        .first()
+        .simulate('click');
+
+      expect(updateDefaultMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {
+            defaultEnvironment: '',
+          },
+        })
+      );
+
+      // Is default
+      expect(wrapper.find('EnvironmentRow[name=""]').find('Tag')).toHaveLength(1);
+    });
+
     it('can set "All Environments" as default', function() {
       EnvironmentStore.loadInitialData(TestStubs.Environments(false));
       const wrapper = mountComponent(false);
@@ -134,34 +176,6 @@ describe('ProjectEnvironments', function() {
       expect(
         wrapper.find(`EnvironmentRow[name="${ALL_ENVIRONMENTS_KEY}"]`).find('Tag')
       ).toHaveLength(1);
-    });
-
-    it('can set "No Environments" as default', function() {
-      EnvironmentStore.loadInitialData(TestStubs.Environments(false));
-      const wrapper = mountComponent(false);
-
-      const noEnvironmentsRow = wrapper.find('EnvironmentRow[name=""]');
-
-      // Not default
-      expect(noEnvironmentsRow.find('Tag')).toHaveLength(0);
-
-      // Should not have hide button
-      expect(noEnvironmentsRow.find('Button')).toHaveLength(1);
-      expect(noEnvironmentsRow.find('Button').text()).toBe('Set as default');
-
-      noEnvironmentsRow.find('Button').simulate('click');
-
-      expect(updateDefaultMock).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          data: {
-            defaultEnvironment: '',
-          },
-        })
-      );
-
-      // Is default
-      expect(wrapper.find('EnvironmentRow[name=""]').find('Tag')).toHaveLength(1);
     });
 
     it('displays invalid environment in list with no actions', function() {
@@ -250,6 +264,12 @@ describe('ProjectEnvironments', function() {
       );
     });
 
-    it('does not have "All/No Enviroments" rows', function() {});
+    it('does not have "All Enviroments" rows', function() {
+      EnvironmentStore.loadHiddenData(TestStubs.Environments(true));
+      const wrapper = mountComponent(true);
+      expect(wrapper.find(`EnvironmentRow[name="${ALL_ENVIRONMENTS_KEY}"]`)).toHaveLength(
+        0
+      );
+    });
   });
 });
