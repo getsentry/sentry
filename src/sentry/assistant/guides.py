@@ -143,7 +143,8 @@ GUIDES = {
             },
             {
                 'title': _('A tip for roles'),
-                'message': _('Consider having two owners, in case one person\'s out.<br><br>'
+                'message': _('Consider having two owners, in case one person\'s out, and you '
+                             'need to adjust billing or a new hire.<br><br>'
                              'Add finance as a billing member. They\'ll get access to '
                              'invoices, so they won\'t email you for receipts.'),
                 'target': 'member_role',
