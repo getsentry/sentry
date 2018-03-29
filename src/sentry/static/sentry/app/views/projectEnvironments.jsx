@@ -206,50 +206,18 @@ const ProjectEnvironments = createReactClass({
    * - "All Environments"
    * - "No Environment"
    *
-   * Also renders current default environment IF it is not a valid environment
    */
   renderSystemRows() {
     // Not available in "Hidden" tab
     if (this.state.isHidden) return null;
-    let {environments, project} = this.state;
+    let {project} = this.state;
 
     let isAllEnvironmentsDefault =
       project && project.defaultEnvironment === ALL_ENVIRONMENTS_KEY;
     let isNoEnvironmentsDefault = project && project.defaultEnvironment === '';
 
-    // Default environment that is not a valid environment
-    let hasOtherDefaultEnvironment =
-      project &&
-      environments &&
-      !isAllEnvironmentsDefault &&
-      !isNoEnvironmentsDefault &&
-      !environments.find(({name}) => name === project.defaultEnvironment);
-
     return (
       <React.Fragment>
-        {hasOtherDefaultEnvironment && (
-          <EnvironmentRow
-            name={project.defaultEnvironment}
-            environment={{
-              id: project.defaultEnvironment,
-              displayName: (
-                <React.Fragment>
-                  <Tooltip title={t('This is not an active environment')}>
-                    <span css={{marginRight: 8}}>
-                      <InvalidDefaultEnvironmentIcon />
-                    </span>
-                  </Tooltip>
-                  <code>{project.defaultEnvironment}</code>
-                </React.Fragment>
-              ),
-              name: project.defaultEnvironment,
-            }}
-            hideName
-            isDefault
-            shouldShowSetDefault={false}
-            onSetAsDefault={this.handleSetAsDefault}
-          />
-        )}
         <EnvironmentRow
           name={ALL_ENVIRONMENTS_KEY}
           environment={{
@@ -274,6 +242,50 @@ const ProjectEnvironments = createReactClass({
           onSetAsDefault={this.handleSetAsDefault}
         />
       </React.Fragment>
+    );
+  },
+
+  // Renders current default environment IF it is not a valid environment
+  renderInvalidDefaultEnvironment() {
+    // Not available in "Hidden" tab
+    if (this.state.isHidden) return null;
+    let {environments, project} = this.state;
+    // Default environment that is not a valid environment
+    let isAllEnvironmentsDefault =
+      project && project.defaultEnvironment === ALL_ENVIRONMENTS_KEY;
+    let isNoEnvironmentsDefault = project && project.defaultEnvironment === '';
+
+    let hasOtherDefaultEnvironment =
+      project &&
+      environments &&
+      !isAllEnvironmentsDefault &&
+      !isNoEnvironmentsDefault &&
+      !environments.find(({name}) => name === project.defaultEnvironment);
+
+    if (!hasOtherDefaultEnvironment) return null;
+
+    return (
+      <EnvironmentRow
+        name={project.defaultEnvironment}
+        environment={{
+          id: project.defaultEnvironment,
+          displayName: (
+            <React.Fragment>
+              <Tooltip title={t('This is not an active environment')}>
+                <span css={{marginRight: 8}}>
+                  <InvalidDefaultEnvironmentIcon />
+                </span>
+              </Tooltip>
+              <code>{project.defaultEnvironment}</code>
+            </React.Fragment>
+          ),
+          name: project.defaultEnvironment,
+        }}
+        hideName
+        isDefault
+        shouldShowSetDefault={false}
+        onSetAsDefault={this.handleSetAsDefault}
+      />
     );
   },
 
@@ -303,6 +315,7 @@ const ProjectEnvironments = createReactClass({
             />
           );
         })}
+        {this.renderInvalidDefaultEnvironment()}
       </React.Fragment>
     );
   },
