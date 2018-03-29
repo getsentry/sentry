@@ -86,19 +86,12 @@ const TeamRow = createReactClass({
         </div>
         {this.props.access.has('project:write') && (
           <Confirm
-            message={
-              this.props.teamCount === 1
-                ? tct(
-                    'This is the last team with access to this project. Removing it will mean ' +
-                      'only owners and managers will be able to access the project pages. Are ' +
-                      'you sure you want to remove this team from the project [projectId]?',
-                    {projectId}
-                  )
-                : tct(
-                    'Are you sure you want to remove this team from the project [projectId]?',
-                    {projectId}
-                  )
-            }
+            message={tct(
+              'This is the last team with access to this project. Removing it will mean ' +
+                'only owners and managers will be able to access the project pages. Are ' +
+                'you sure you want to remove this team from the project [projectId]?',
+              {projectId}
+            )}
             bypass={this.props.teamCount > 1}
             onConfirm={this.handleRemove}
             disabled={this.state.loading}
