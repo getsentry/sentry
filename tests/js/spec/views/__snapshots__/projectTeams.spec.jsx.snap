@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`ProjectTeams renders 1`] = `
+exports['ProjectTeams renders 1'] = `
 <SideEffect(DocumentTitle)
   title="Sentry"
 >
@@ -18,7 +18,16 @@ exports[`ProjectTeams renders 1`] = `
           Create Team
         </Button>
       }
-      title="Teams"
+      title={
+        <span>
+          <span>
+            project-slug
+          </span>
+          <span>
+             Teams
+          </span>
+        </span>
+      }
     />
     <Panel>
       <PanelHeader
