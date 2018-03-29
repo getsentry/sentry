@@ -7,7 +7,6 @@ from celery import current_app
 
 COUNTER_TASKS = set(
     [
-        'sentry.tasks.process_buffer.process_pending',
         'sentry.tasks.process_buffer.process_incr',
     ]
 )
