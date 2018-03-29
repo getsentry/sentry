@@ -1,21 +1,28 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`ResolveActions with confirmation step renders 1`] = `
-.glamor-2 {
+.glamor-4 {
   display: inline-block;
   position: relative;
 }
 
-.glamor-0 {
+.glamor-2 {
   width: 20px;
   height: 20px;
   cursor: pointer;
   z-index: 999;
-  position: relative;
+  position: absolute;
   pointer-events: none;
+  visibility: hidden;
+}
+
+.glamor-0 {
   -webkit-animation: animation-1vh9m9r-expandOut 1.5s ease-out infinite;
   animation: animation-1vh9m9r-expandOut 1.5s ease-out infinite;
-  visibility: hidden;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
 }
 
 .glamor-0,
@@ -167,16 +174,22 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                 type="text"
               >
                 <div
-                  className="glamor-2 glamor-3"
+                  className="glamor-4 glamor-5"
                   type="text"
                 >
                   <StyledGuideAnchor
                     active={false}
                     className="guide-anchor-ping resolve"
                   >
-                    <span
-                      className="guide-anchor-ping resolve glamor-0 glamor-1"
-                    />
+                    <div
+                      className="guide-anchor-ping resolve glamor-2 glamor-3"
+                    >
+                      <StyledGuideAnchorRipples>
+                        <div
+                          className="glamor-0 glamor-1"
+                        />
+                      </StyledGuideAnchorRipples>
+                    </div>
                   </StyledGuideAnchor>
                 </div>
               </GuideAnchorContainer>
@@ -490,21 +503,28 @@ exports[`ResolveActions with confirmation step renders 1`] = `
 `;
 
 exports[`ResolveActions without confirmation renders 1`] = `
-.glamor-2 {
+.glamor-4 {
   display: inline-block;
   position: relative;
 }
 
-.glamor-0 {
+.glamor-2 {
   width: 20px;
   height: 20px;
   cursor: pointer;
   z-index: 999;
-  position: relative;
+  position: absolute;
   pointer-events: none;
+  visibility: hidden;
+}
+
+.glamor-0 {
   -webkit-animation: animation-1vh9m9r-expandOut 1.5s ease-out infinite;
   animation: animation-1vh9m9r-expandOut 1.5s ease-out infinite;
-  visibility: hidden;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
 }
 
 .glamor-0,
@@ -645,16 +665,22 @@ exports[`ResolveActions without confirmation renders 1`] = `
               type="text"
             >
               <div
-                className="glamor-2 glamor-3"
+                className="glamor-4 glamor-5"
                 type="text"
               >
                 <StyledGuideAnchor
                   active={false}
                   className="guide-anchor-ping resolve"
                 >
-                  <span
-                    className="guide-anchor-ping resolve glamor-0 glamor-1"
-                  />
+                  <div
+                    className="guide-anchor-ping resolve glamor-2 glamor-3"
+                  >
+                    <StyledGuideAnchorRipples>
+                      <div
+                        className="glamor-0 glamor-1"
+                      />
+                    </StyledGuideAnchorRipples>
+                  </div>
                 </StyledGuideAnchor>
               </div>
             </GuideAnchorContainer>
