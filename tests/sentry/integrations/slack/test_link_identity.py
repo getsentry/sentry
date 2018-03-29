@@ -95,7 +95,7 @@ class SlackIntegrationLinkIdentityTest(TestCase):
             'integration_id': self.integration.id,
             'organization_id': self.org.id,
             'slack_id': 'new-slack-id',
-            'notify_channel_id': 'my-channel',
+            'channel_id': 'my-channel',
             'response_url': 'http://example.slack.com/response_url',
         }
 
