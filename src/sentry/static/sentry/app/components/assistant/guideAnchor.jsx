@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import React from 'react';
-import styled from 'react-emotion';
+import styled, {keyframes} from 'react-emotion';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import {registerAnchor, unregisterAnchor} from '../../actionCreators/guides';
@@ -69,11 +69,25 @@ const GuideAnchor = createReactClass({
         <StyledGuideAnchor
           className={classNames('guide-anchor-ping', target)}
           active={this.state.active}
-        />
+        >
+          <StyledGuideAnchorRipples />
+        </StyledGuideAnchor>
       </GuideAnchorContainer>
     );
   },
 });
+
+const recedeAnchor = keyframes`
+  0% {
+    transform: scale(2, 2);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1, 1);
+    opacity: 0.75;
+  }
+`;
 
 const GuideAnchorContainer = styled('div')`
   ${p =>
@@ -84,15 +98,30 @@ const GuideAnchorContainer = styled('div')`
     `};
 `;
 
-const StyledGuideAnchor = styled('span')`
+const StyledGuideAnchor = styled('div')`
   width: 20px;
   height: 20px;
   cursor: pointer;
   z-index: 999;
-  position: relative;
+  position: absolute;
   pointer-events: none;
-  animation: ${expandOut} 1.5s ease-out infinite;
   visibility: hidden;
+
+  ${p =>
+    p.active
+      ? `
+    visibility: visible;
+    animation: ${recedeAnchor} 5s ease-out forwards;
+  `
+      : ''};
+`;
+
+const StyledGuideAnchorRipples = styled('div')`
+  animation: ${expandOut} 1.5s ease-out infinite;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
 
   &,
   &:before,
@@ -101,7 +130,7 @@ const StyledGuideAnchor = styled('span')`
     display: block;
     left: calc(50% - 10px);
     top: calc(50% - 10px);
-    background-color: ${p => p.theme.greenTransparent25};
+    background-color: ${p => p.theme.greenTransparent};
     border-radius: 50%;
   }
 
@@ -115,7 +144,7 @@ const StyledGuideAnchor = styled('span')`
     height: 70%;
     left: calc(50% - 7px);
     top: calc(50% - 7px);
-    background-color: ${p => p.theme.greenTransparent25};
+    background-color: ${p => p.theme.greenTransparent};
   }
 
   &:after {
@@ -125,8 +154,6 @@ const StyledGuideAnchor = styled('span')`
     top: calc(50% - 5px);
     color: ${p => p.theme.green};
   }
-
-  ${p => (p.active ? 'visibility: visible;' : '')};
 `;
 
 export default GuideAnchor;

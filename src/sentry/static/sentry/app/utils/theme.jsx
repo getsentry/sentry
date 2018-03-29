@@ -15,11 +15,9 @@ const theme = {
   green: '#57be8c',
   greenLight: '#71D8A6',
   greenDark: '#3EA573',
-  greenTransparent25: 'rgba(87, 190, 140, 0.25)',
-  greenTransparent50: 'rgba(87, 190, 140, 0.5)',
+  greenTransparent: 'rgba(87, 190, 140, 0.5)',
 
   yellow: '#ecc844',
-  yellowLightest: '#FFFDF7',
   yellowLight: '#FFF15E',
   yellowDark: '#e6bc23',
 
