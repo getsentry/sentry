@@ -58,8 +58,8 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
 
     # If the grouping, aggregation, or any of the conditions reference `issue`
     # we need to fetch the issue definitions (issue -> fingerprint hashes)
-    references_issues = 'issue' in groupby + [aggregateby] + [c[0] for c in conditions]
-    issues = get_project_issues(project_ids) if references_issues else None
+    get_issues = 'issue' in groupby + [aggregateby] + [c[0] for c in conditions]
+    issues = get_project_issues(project_ids, filter_keys.get('issue')) if get_issues else None
 
     url = '{0}/query'.format(SNUBA)
     request = {k: v for k, v in six.iteritems({
@@ -134,14 +134,19 @@ def get_snuba_map(column, ids):
     return None
 
 
-def get_project_issues(project_ids):
+def get_project_issues(project_ids, issue_ids=None):
     """
-    Get a list of issues and associated fingerprint hashes for a project.
+    Get a list of issues and associated fingerprint hashes for a list of
+    project ids. If issue_ids is also set, then also restrict to only those
+    issues as well.
+
+    Returns a list: [(issue_id: [hash1, hash2, ...]), ...]
     """
-    project_ids = project_ids if isinstance(project_ids, list) else [project_ids]
+    hashes = GroupHash.objects.filter(project__in=project_ids)
+    if issue_ids:
+        hashes = hashes.filter(group_id__in=issue_ids)
     result = {}
-    hashes = GroupHash.objects.filter(project__in=project_ids).values_list('group_id', 'hash')
-    for gid, hsh in hashes:
+    for gid, hsh in hashes.values_list('group_id', 'hash'):
         result.setdefault(gid, []).append(hsh)
     return list(result.items())
 

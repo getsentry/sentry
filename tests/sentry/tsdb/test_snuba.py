@@ -109,14 +109,10 @@ class SnubaTSDBTest(TestCase):
         now = parse_datetime('2018-03-09T01:00:00Z')
         dts = [now + timedelta(hours=i) for i in range(4)]
         project = self.create_project()
-        group = self.create_group(
-            project=project,
-        )
-        GroupHash.objects.create(
-            project=project,
-            group=group,
-            hash='0' * 32
-        )
+        group = self.create_group(project=project)
+        GroupHash.objects.create(project=project, group=group, hash='0' * 32)
+        group2 = self.create_group(project=project)
+        GroupHash.objects.create(project=project, group=group2, hash='1' * 32)
 
         with responses.RequestsMock() as rsps:
             def snuba_response(request):
@@ -124,6 +120,11 @@ class SnubaTSDBTest(TestCase):
                 assert body['aggregation'] == 'count'
                 assert body['project'] == [project.id]
                 assert body['groupby'] == ['issue', 'time']
+
+                # Assert issue->hash map is generated, but only for referenced issues
+                assert [group.id, ['0' * 32]] in body['issues']
+                assert [group2.id, ['1' * 32]] not in body['issues']
+
                 return (200, {}, json.dumps({
                     'data': [{'time': '2018-03-09T01:00:00Z', 'issue': 1, 'aggregate': 100}],
                     'meta': [{'name': 'time'}, {'name': 'issue'}, {'name': 'aggregate'}]
