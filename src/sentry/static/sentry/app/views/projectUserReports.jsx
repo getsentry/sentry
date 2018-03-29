@@ -255,4 +255,5 @@ const ProjectUserReports = createReactClass({
   },
 });
 
+export {ProjectUserReports};
 export default withEnvironmentInQueryString(ProjectUserReports);

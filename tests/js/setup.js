@@ -894,6 +894,14 @@ window.TestStubs = {
     name: 'Foo Bar',
     ...params,
   }),
+
+  UserReport: () => ({
+    id: '123',
+    name: 'Lyn',
+    email: 'lyn@sentry.io',
+    comments: 'Something bad happened',
+    issue: TestStubs.Group(),
+  }),
 };
 
 // this is very commonly used, so expose it globally
