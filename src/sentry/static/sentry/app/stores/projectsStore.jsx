@@ -30,7 +30,7 @@ const ProjectsStore = Reflux.createStore({
     // This shouldn't happen
     if (!prevProject) return;
 
-    this.itemsById[newSlug] = {
+    const newProject = {
       ...prevProject,
       slug: newSlug,
     };
@@ -38,6 +38,8 @@ const ProjectsStore = Reflux.createStore({
     this.itemsById = {
       ...this.itemsById,
     };
+
+    this.itemsById[newProject.id] = newProject;
 
     // Ideally we'd always trigger this.itemsById, but following existing patterns
     // so we don't break things
