@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from django.http import HttpResponse
-from sentry.integrations import Integration
+from sentry.integrations import Integration, IntegrationMetadata
 from sentry.utils.pipeline import PipelineView
 
 
@@ -22,14 +22,28 @@ class ExampleSetupView(PipelineView):
 
         return HttpResponse(self.TEMPLATE)
 
+DESCRIPTION = """
+This is an example integration
+
+ * Descriptions support _markdown rendering_.
+"""
+
+metadata = IntegrationMetadata(
+    description=DESCRIPTION.strip(),
+    author='The Sentry Team',
+    issue_url='https://github.com/getsentry/sentry/issues/new',
+    source_url='https://github.com/getsentry/sentry',
+    aspects={},
+)
+
 
 class ExampleIntegration(Integration):
     """
     An example integration, generally used for testing.
     """
     key = 'example'
-
     name = 'Example'
+    metadata = metadata
 
     def get_pipeline_views(self):
         return [

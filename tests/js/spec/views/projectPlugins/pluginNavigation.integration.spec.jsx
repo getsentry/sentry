@@ -47,7 +47,7 @@ describe('PluginNavigation Integration', function() {
       let params = {orgId: org.slug, projectId: project.slug};
       let organization = {
         id: org.slug,
-        features: ['integrations-v3'],
+        features: [],
       };
 
       wrapper = mount(

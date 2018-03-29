@@ -17,8 +17,7 @@ class OrganizationIntegrationDetailsTest(APITestCase):
         integration.add_organization(org.id)
         path = '/api/0/organizations/{}/integrations/{}/'.format(org.slug, integration.id)
 
-        with self.feature('organizations:integrations-v3'):
-            response = self.client.get(path, format='json')
+        response = self.client.get(path, format='json')
 
         assert response.status_code == 200, response.content
         assert response.data['id'] == six.text_type(integration.id)
@@ -35,8 +34,7 @@ class OrganizationIntegrationDeleteTest(APITestCase):
         integration.add_organization(org.id)
         path = '/api/0/organizations/{}/integrations/{}/'.format(org.slug, integration.id)
 
-        with self.feature('organizations:integrations-v3'):
-            response = self.client.delete(path, format='json')
+        response = self.client.delete(path, format='json')
 
         assert response.status_code == 204, response.content
         assert Integration.objects.filter(id=integration.id).exists()
