@@ -43,14 +43,18 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
             keys = [snuba_map[col][k] for k in keys]
         conditions.append((col, 'IN', keys))
 
-    # project_ids will be the set of projects either referenced directly as
-    # passed-in keys for project_id, or indirectly (eg the set of projects
-    # related to the queried set of issues or releases)
-    project_ids = [get_project_ids(k, ids) for k, ids in six.iteritems(filter_keys)]
-    if not any(project_ids):
+    if 'project_id' in filter_keys:
+        # If we are given a set of project ids, use those directly.
+        project_ids = filter_keys['project_id']
+    elif filter_keys:
+        # Otherwise infer the project_ids from any related models
+        ids = [get_related_project_ids(k, filter_keys[k]) for k in filter_keys]
+        project_ids = list(set.union(*map(set, ids)))
+    else:
+        project_ids = []
+
+    if not project_ids:
         raise Exception("No project_id filter, or none could be inferred from other filters.")
-    project_ids = list(set.intersection(*[set(ids) for ids in project_ids if ids]))
-    # TODO if using intersection, also need to check its non-empty here
 
     # If the grouping, aggregation, or any of the conditions reference `issue`
     # we need to fetch the issue definitions (issue -> fingerprint hashes)
@@ -142,7 +146,7 @@ def get_project_issues(project_ids):
     return list(result.items())
 
 
-def get_project_ids(column, ids):
+def get_related_project_ids(column, ids):
     """
     Get the project_ids from a model that has a foreign key to project.
     """
