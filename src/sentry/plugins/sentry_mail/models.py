@@ -21,7 +21,7 @@ from django.utils.safestring import mark_safe
 from sentry import features, options
 from sentry.models import ProjectOwnership, User
 
-from sentry.digests.utilities import get_digest_metadata, get_notifications_from_digest
+from sentry.digests.utilities import get_digest_metadata
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.plugins import register
 from sentry.plugins.base.structs import Notification
@@ -327,19 +327,12 @@ class MailPlugin(NotificationPlugin):
         }
         group = six.next(iter(counts))
         subject = self.get_digest_subject(group, counts, start)
+        events = [groups[g][0].value.event for __, groups in six.iteritems(digest) for g in groups]
+        user_id_events, event_rules = ProjectOwnership.get_user_ids_to_events(project.id, events)
 
-        notifications = get_notifications_from_digest(context['digest'])
-        events = [notification.event for notification in notifications]
-        event_actors = ProjectOwnership.get_actors(project.id, events)
-
-        if event_actors != ProjectOwnership.Everyone:
-            self.send_digest_with_owners(
-                project,
-                notifications,
-                event_actors,
-                context,
-                subject,
-                headers)
+        if user_id_events != ProjectOwnership.Everyone:
+            self.send_digest_with_owners(project, user_id_events, event_rules,
+                                         context, subject, headers)
             return
 
         for user_id in self.get_send_to(project):
@@ -356,18 +349,19 @@ class MailPlugin(NotificationPlugin):
                 send_to=[user_id],
             )
 
-    def send_digest_with_owners(self, project, notifications,
-                                event_actors, context, subject, headers):
+    def send_digest_with_owners(self, project, user_id_events, event_rules,
+                                context, subject, headers):
         original_context = context
-        event_users = self.event_actors_to_user_ids(event_actors)
 
         for user_id in self.get_send_to(project):
             context = original_context
-            notifications_for_user = [n for n in notifications if user_id in event_users[n.event]]
-            if not notifications_for_user:
+
+            if user_id not in user_id_events:
                 continue
-            if len(notifications_for_user) != len(notifications):
-                context = self.build_custom_context(notifications_for_user, project)
+
+            user_events = user_id_events[user_id]
+
+            context = self.build_custom_context(user_events, event_rules, project)
             if len(context['counts']) == 1:
                 self.render_digest_as_single_notification(
                     context['counts'], context['digest'], [user_id])
@@ -386,50 +380,8 @@ class MailPlugin(NotificationPlugin):
                 send_to=[user_id],
             )
 
-    def event_actors_to_user_ids(self, event_actors):
-        """
-        Create a dictionary from event to user_ids
-        """
-        from sentry.models import Team
-        resolved_teams = self.teams_to_user_ids(event_actors)
-        event_users = {}
-        for event, actors_rules in six.iteritems(event_actors):
-            actors = actors_rules[0]
-            user_ids = set()
-            for actor in actors:
-                if actor.type == Team:
-                    user_ids.update(resolved_teams[actor])
-                else:
-                    user_ids.add(actor.id)
-            event_users[event] = user_ids
-
-        return event_users
-
-    def teams_to_user_ids(self, event_actors):
-        """
-        Create a dictionary of team:[user_ids]
-        """
-        from sentry.models import Team
-        # Get Team Actors
-        teams_to_resolve = set()
-        for actors, __rules in six.itervalues(event_actors):
-            for actor in actors:
-                if actor.type == Team:
-                    teams_to_resolve.add(actor)
-
-        # Resolve Teams to User ids
-        resolved_teams = {}
-        for team in teams_to_resolve:
-            users = User.objects.filter(
-                is_active=True,
-                sentry_orgmember_set__organizationmemberteam__team_id=team.id,
-            ).values_list('id', flat=True)
-            resolved_teams[team] = set(users)
-
-        return resolved_teams
-
-    def build_custom_context(self, notifications, project):
-        records = [event_to_record(n.event, n.rules) for n in notifications]
+    def build_custom_context(self, user_events, event_rules, project):
+        records = [event_to_record(event, event_rules[event]) for event in user_events]
         digest = build_digest(project, records)
         start, end, counts = get_digest_metadata(digest)
         context = {

@@ -74,6 +74,137 @@ class ProjectOwnership(Model):
 
         return event_actors
 
+    @classmethod
+    def get_user_ids_to_events(cls, project_id, events):
+        try:
+            ownership = cls.objects.get(project_id=project_id)
+        except cls.DoesNotExist:
+            ownership = cls(project_id=project_id)
+
+        user_id_to_events = {}
+        if ownership.schema is not None:
+            event_rules = build_event_rules(ownership, events)
+            user_id_to_events = build_user_id_to_event_map(event_rules, project_id)
+
+        if not user_id_to_events:
+            actors = cls.Everyone if ownership.fallthrough else {}
+            return actors, None
+
+        return user_id_to_events, event_rules
+
+
+def teams_to_user_ids(team_actors):
+    """
+    team_actors is a list
+
+    returns team_actor -> set(users)
+    """
+    from sentry.models import User
+    # Resolve Teams to User ids
+    resolved_teams = {}
+    for team in set(team_actors):
+        users = User.objects.filter(
+            is_active=True,
+            sentry_orgmember_set__organizationmemberteam__team_id=team.id,
+        ).values_list('id', flat=True)
+        resolved_teams[team] = set(users)
+
+    return resolved_teams
+
+
+def build_user_id_to_event_map(event_rules, project_id):
+    user_id_to_events = {}
+
+    # Build owner -> events mapping
+    user_owners = {}
+    team_owners = {}
+    for event, rules in six.iteritems(event_rules):
+        for rule in rules:
+            for owner in rule.owners:
+                if owner.type == 'team':
+                    owners = team_owners
+                else:
+                    owners = user_owners
+                if owner in owners:
+                    owners[owner].append(event)
+                else:
+                    owners[owner] = [event]
+
+    # resolve user_owners to actors
+    if user_owners:
+        user_actors_to_events = resolve_user_actors_map(user_owners, project_id)
+    else:
+        user_actors_to_events = {}
+
+    # resolve team_owners to actors
+    if team_owners:
+        team_actors_to_events = resolve_team_actors_map(team_owners, project_id)
+    else:
+        team_actors_to_events = {}
+
+    # add user_ids to result dictionary
+    for user_actor, events in six.iteritems(user_actors_to_events):
+        user_id_to_events[user_actor.id] = events
+    # create a mapping between team_actor and user_ids
+    team_actors_to_user_ids = teams_to_user_ids(six.iterkeys(team_actors_to_events))
+    # add the user_ids of team_actors to the result dictionary
+    for team_actor, events in six.iteritems(team_actors_to_events):
+        for user_id in team_actors_to_user_ids[team_actor]:
+            try:
+                user_id_to_events[user_id] += events
+            except AttributeError:
+                user_id_to_events[user_id] = events
+
+    # remove duplicate events
+    for user_id, events in six.iteritems(user_id_to_events):
+        user_id_to_events[user_id] = set(events)
+
+    return user_id_to_events
+
+
+def resolve_team_actors_map(team_owners, project_id):
+    from sentry.api.fields.actor import Actor
+    from sentry.models import Team
+
+    teams = Team.objects.filter(
+        projectteam__project_id=project_id,
+    ).values('id', 'slug')
+
+    teams_dict = {}
+    for team in teams:
+        teams_dict[team['slug']] = team['id']
+
+    actors = {}
+    for team, events in six.iteritems(team_owners):
+        team_id = teams_dict[team.identifier]
+        actors[Actor(team_id, Team)] = events
+    return actors
+
+
+def resolve_user_actors_map(user_owners, project_id):
+    """
+   user_owners is a dict owners->events
+
+    returns useractors -> list of events
+    """
+    from sentry.api.fields.actor import Actor
+    from sentry.models import User
+
+    users = User.objects.filter(
+        is_active=True,
+        sentry_orgmember_set__organizationmemberteam__team__projectteam__project_id=project_id,
+    ).values('id', 'email')
+
+    users_dict = {}
+    for user in users:
+        users_dict[user['email']] = user['id']
+
+    actors = {}
+    for user, events in six.iteritems(user_owners):
+        user_id = users_dict[user.identifier]
+        actors[Actor(user_id, User)] = events
+    return actors
+
 
 class UnknownActor(Exception):
     pass

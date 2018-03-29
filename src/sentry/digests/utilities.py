@@ -23,14 +23,3 @@ def get_digest_metadata(digest):
                     end = record.datetime
 
     return start, end, counts
-
-
-def get_notifications_from_digest(digest):
-    """
-    Returns all(?) notifications in a digest
-    """
-    notifications = []
-    for groups in six.itervalues(digest):
-        for group in groups:
-            notifications.append(groups[group][0].value)
-    return notifications
