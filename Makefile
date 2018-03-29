@@ -86,7 +86,7 @@ locale: build-js-po
 	cd src/sentry && sentry django compilemessages
 
 update-transifex: build-js-po
-	pip install transifex-client
+	pip install -q transifex-client
 	cd src/sentry && sentry django makemessages -i static -l en
 	./bin/merge-catalogs en
 	tx push -s
@@ -108,7 +108,7 @@ build-platform-assets:
 test: develop lint test-js test-python test-cli
 
 testloop: develop
-	pip install pytest-xdist
+	pip install -q pytest-xdist
 	py.test tests -f
 
 test-cli:
@@ -193,16 +193,16 @@ extract-api-docs:
 
 # Bases for all builds
 travis-upgrade-pip:
-	python -m pip install "pip>=9,<10"
+	python -m pip install -q "pip>=9,<10"
 travis-setup-cassandra:
 	echo "create keyspace sentry with replication = {'class' : 'SimpleStrategy', 'replication_factor': 1};" | cqlsh --cqlversion=3.1.7
 	echo 'create table nodestore (key text primary key, value blob, flags int);' | cqlsh -k sentry --cqlversion=3.1.7
 travis-install-python:
-	pip install Django${DJANGO_VERSION}
+	pip install -q Django${DJANGO_VERSION}
 	$(MAKE) travis-upgrade-pip
 	$(MAKE) install-python-base
 	$(MAKE) install-python-tests
-	python -m pip install codecov
+	python -m pip install -q codecov
 travis-noop:
 	@echo "nothing to do here."
 
@@ -212,7 +212,7 @@ travis-install-sqlite: travis-install-python
 travis-install-postgres: travis-install-python dev-postgres
 	psql -c 'create database sentry;' -U postgres
 travis-install-mysql: travis-install-python
-	pip install mysqlclient
+	pip install -q mysqlclient
 	echo 'create database sentry;' | mysql -uroot
 travis-install-acceptance: install-yarn travis-install-postgres
 	wget -N http://chromedriver.storage.googleapis.com/$(shell curl https://chromedriver.storage.googleapis.com/LATEST_RELEASE)/chromedriver_linux64.zip -P ~/
