@@ -111,7 +111,7 @@ const StyledGuideAnchor = styled('div')`
     p.active
       ? `
     visibility: visible;
-    animation: ${recedeAnchor} 5s ease-out forwards;
+    animation: ${recedeAnchor} 5s ease-in forwards;
   `
       : ''};
 `;
