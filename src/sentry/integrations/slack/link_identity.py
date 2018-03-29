@@ -66,12 +66,22 @@ class SlackLinkIdentitiyView(BaseView):
         # TODO(epurkhiser): We could do some fancy slack querying here to
         # render a nice linking page with info about the user their linking.
 
-        Identity.objects.get_or_create(
-            external_id=params['slack_id'],
+        identity, created = Identity.objects.get_or_create(
             user=request.user,
             idp=idp,
-            status=IdentityStatus.VALID,
+            defaults={
+                'external_id': params['slack_id'],
+                'status': IdentityStatus.VALID,
+            },
         )
+
+        if not created:
+            # TODO(epurkhiser): In this case we probably want to prompt and
+            # warn them that they had a previous identity linked to slack.
+            identity.update(
+                external_id=params['slack_id'],
+                status=IdentityStatus.VALID
+            )
 
         payload = {
             'replace_original': False,
