@@ -31,7 +31,7 @@ const GuideStore = Reflux.createStore({
   },
 
   onSetActiveOrganization(data) {
-    this.state.currentOrgSlug = data.slug;
+    this.setState({currentOrgSlug: data.slug});
   },
 
   onFetchSucceeded(data) {

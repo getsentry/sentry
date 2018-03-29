@@ -242,7 +242,7 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
         <SettingsPageHeading
           action={
             <GuideAnchor
-              target="member-add"
+              target="member_add"
               type="invisible"
             >
               <Button
@@ -283,7 +283,7 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                     </Title>
                     <div>
                       <GuideAnchor
-                        target="member-add"
+                        target="member_add"
                         type="invisible"
                       >
                         <GuideAnchorContainer
@@ -380,10 +380,10 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                             </Button>
                             <StyledGuideAnchor
                               active={false}
-                              className="guide-anchor-ping member-add"
+                              className="guide-anchor-ping member_add"
                             >
                               <span
-                                className="guide-anchor-ping member-add glamor-15 glamor-16"
+                                className="guide-anchor-ping member_add glamor-15 glamor-16"
                               />
                             </StyledGuideAnchor>
                           </div>
@@ -449,7 +449,7 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                             </Base>
                           </Box>
                           <GuideAnchor
-                            target="member-status"
+                            target="member_status"
                             type="text"
                           >
                             <Base
@@ -480,17 +480,17 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                 </Box>
                                 <StyledGuideAnchor
                                   active={false}
-                                  className="guide-anchor-ping member-status"
+                                  className="guide-anchor-ping member_status"
                                 >
                                   <span
-                                    className="guide-anchor-ping member-status glamor-15 glamor-16"
+                                    className="guide-anchor-ping member_status glamor-15 glamor-16"
                                   />
                                 </StyledGuideAnchor>
                               </div>
                             </GuideAnchorContainer>
                           </GuideAnchor>
                           <GuideAnchor
-                            target="member-role"
+                            target="member_role"
                             type="text"
                           >
                             <Base
@@ -521,10 +521,10 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                 </Box>
                                 <StyledGuideAnchor
                                   active={false}
-                                  className="guide-anchor-ping member-role"
+                                  className="guide-anchor-ping member_role"
                                 >
                                   <span
-                                    className="guide-anchor-ping member-role glamor-15 glamor-16"
+                                    className="guide-anchor-ping member_role glamor-15 glamor-16"
                                   />
                                 </StyledGuideAnchor>
                               </div>
@@ -1498,7 +1498,7 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
         <SettingsPageHeading
           action={
             <GuideAnchor
-              target="member-add"
+              target="member_add"
               type="invisible"
             >
               <Button
@@ -1539,7 +1539,7 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                     </Title>
                     <div>
                       <GuideAnchor
-                        target="member-add"
+                        target="member_add"
                         type="invisible"
                       >
                         <GuideAnchorContainer
@@ -1636,10 +1636,10 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                             </Button>
                             <StyledGuideAnchor
                               active={false}
-                              className="guide-anchor-ping member-add"
+                              className="guide-anchor-ping member_add"
                             >
                               <span
-                                className="guide-anchor-ping member-add glamor-15 glamor-16"
+                                className="guide-anchor-ping member_add glamor-15 glamor-16"
                               />
                             </StyledGuideAnchor>
                           </div>
@@ -1705,7 +1705,7 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                             </Base>
                           </Box>
                           <GuideAnchor
-                            target="member-status"
+                            target="member_status"
                             type="text"
                           >
                             <Base
@@ -1736,17 +1736,17 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                 </Box>
                                 <StyledGuideAnchor
                                   active={false}
-                                  className="guide-anchor-ping member-status"
+                                  className="guide-anchor-ping member_status"
                                 >
                                   <span
-                                    className="guide-anchor-ping member-status glamor-15 glamor-16"
+                                    className="guide-anchor-ping member_status glamor-15 glamor-16"
                                   />
                                 </StyledGuideAnchor>
                               </div>
                             </GuideAnchorContainer>
                           </GuideAnchor>
                           <GuideAnchor
-                            target="member-role"
+                            target="member_role"
                             type="text"
                           >
                             <Base
@@ -1777,10 +1777,10 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                 </Box>
                                 <StyledGuideAnchor
                                   active={false}
-                                  className="guide-anchor-ping member-role"
+                                  className="guide-anchor-ping member_role"
                                 >
                                   <span
-                                    className="guide-anchor-ping member-role glamor-15 glamor-16"
+                                    className="guide-anchor-ping member_role glamor-15 glamor-16"
                                   />
                                 </StyledGuideAnchor>
                               </div>

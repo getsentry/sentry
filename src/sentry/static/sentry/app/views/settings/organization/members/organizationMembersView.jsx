@@ -239,7 +239,7 @@ class OrganizationMembersView extends OrganizationSettingsView {
 
     if (canAddMembers)
       action = (
-        <GuideAnchor target="member-add" type="invisible">
+        <GuideAnchor target="member_add" type="invisible">
           {action}
         </GuideAnchor>
       );
@@ -260,12 +260,12 @@ class OrganizationMembersView extends OrganizationSettingsView {
             <Box px={2} flex="1">
               {t('Member')}
             </Box>
-            <GuideAnchor target="member-status" type="text">
+            <GuideAnchor target="member_status" type="text">
               <Box px={2} w={180}>
                 {t('Status')}
               </Box>
             </GuideAnchor>
-            <GuideAnchor target="member-role" type="text">
+            <GuideAnchor target="member_role" type="text">
               <Box px={2} w={140}>
                 {t('Role')}
               </Box>

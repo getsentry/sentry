@@ -125,28 +125,28 @@ GUIDES = {
     },
     'members': {
         'id': 3,
-        'cue': _('Tips on inviting your team'),
-        'required_targets': ['member-add'],
+        'cue': _('Tips when inviting your team'),
+        'required_targets': ['member_add'],
         'steps': [
             {
-                'title': _('Why invite your team?'),
-                'message': _('Sentry doesn\'t just collect errors. Adding your team lets you '
-                             'triage and assign issues to the right engineer.'),
-                'target': 'member-add',
+                'title': _('Fix issues faster, together'),
+                'message': _('Sentry isn\'t logs. It\'s about shipping faster by immediately '
+                             'alerting, triaging, and assigning issues to the right engineer.'),
+                'target': 'member_add',
             },
             {
                 'title': _('What is status?'),
                 'message': _('You can enforce <a href="https://sentry.io/settings/organization/${org_slug}/settings/#require2FA">2-factor auth</a> or '
-                             '<a href="/organizations/${org_slug}/auth/"">SSO</a> across your organization. From here, you\'ll be able to see '
+                             '<a href="/organizations/${org_slug}/auth/"">SSO</a> across your organization. Status lets you see '
                              'which members haven\'t configured them yet.'),
-                'target': 'member-status',
+                'target': 'member_status',
             },
             {
                 'title': _('A tip for roles'),
-                'message': _('Every org should have at least two owners (in case one leaves).<br><br>'
+                'message': _('Consider having two owners, in case one person\'s out.<br><br>'
                              'Add finance as a billing member. They\'ll get access to '
                              'invoices, so they won\'t email you for receipts.'),
-                'target': 'member-role',
+                'target': 'member_role',
             },
         ]
     }
