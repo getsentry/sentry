@@ -142,7 +142,7 @@ test-python: build-platform-assets
 test-network:
 	@echo "--> Building platform assets"
 	sentry init
-	@echo "from sentry.utils.integrationdocs import sync_docs; sync_docs()" | sentry exec
+	@echo "from sentry.utils.integrationdocs import sync_docs; sync_docs(quiet=True)" | sentry exec
 	@echo "--> Running network tests"
 	py.test tests/network --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml"
 	@echo ""
@@ -168,7 +168,7 @@ lint-js:
 
 scan-python:
 	@echo "--> Running Python vulnerability scanner"
-	python -m pip install safety
+	python -m pip install -q safety
 	bin/scan
 	@echo ""
 
