@@ -43,17 +43,8 @@ class SearchResult extends React.Component {
     ]),
   };
 
-  render() {
-    return (
-      <Flex justify="space-between" align="center">
-        <Content>{this.renderContent()}</Content>
-        {this.renderResultType()}
-      </Flex>
-    );
-  }
-
   renderContent() {
-    let {sourceType, resultType, field, title, description, model, params} = this.props;
+    let {sourceType, resultType, title, description, model, params} = this.props;
 
     let isSettings = resultType === 'settings';
 
@@ -123,6 +114,15 @@ class SearchResult extends React.Component {
     }
 
     return <ResultTypeIcon src="icon-location" />;
+  }
+
+  render() {
+    return (
+      <Flex justify="space-between" align="center">
+        <Content>{this.renderContent()}</Content>
+        {this.renderResultType()}
+      </Flex>
+    );
   }
 }
 
