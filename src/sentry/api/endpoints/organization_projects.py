@@ -59,7 +59,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
             # TODO: remove this, no longer supported probably
             if hasattr(request.auth, 'project'):
                 team_list = list(request.auth.project.teams.all())
-                queryset = queryset = Project.objects.filter(
+                queryset = Project.objects.filter(
                     id=request.auth.project.id,
                 ).prefetch_related('teams')
             elif request.auth.organization is not None:
@@ -92,6 +92,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                     queryset = queryset.filter(Q(name__icontains=value) | Q(slug__icontains=value))
                 else:
                     queryset = queryset.none()
+
         queryset = queryset.distinct()
 
         return self.paginate(

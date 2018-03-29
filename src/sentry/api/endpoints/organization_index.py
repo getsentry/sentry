@@ -71,7 +71,7 @@ class OrganizationIndexEndpoint(Endpoint):
         """
         owner_only = request.GET.get('owner') in ('1', 'true')
 
-        queryset = Organization.objects.all()
+        queryset = Organization.objects.distinct()
 
         if request.auth and not request.user.is_authenticated():
             if hasattr(request.auth, 'project'):
