@@ -78,9 +78,10 @@ class SlackLinkIdentitiyView(BaseView):
         if not created:
             # TODO(epurkhiser): In this case we probably want to prompt and
             # warn them that they had a previous identity linked to slack.
-            identity.external_id = params['slack_id']
-            identity.status = IdentityStatus.VALID
-            identity.save()
+            identity.update(
+                external_id=params['slack_id'],
+                status=IdentityStatus.VALID
+            )
 
         payload = {
             'replace_original': False,
