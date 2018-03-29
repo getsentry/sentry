@@ -115,11 +115,20 @@ class ProjectHeader extends React.Component {
                 title={activeEnvironmentTitle}
                 className="environment-selector-toggle"
               >
-                <MenuItem onClick={clearActiveEnvironment}>
+                <MenuItem
+                  onClick={clearActiveEnvironment}
+                  className={activeEnvironment === null && 'active'}
+                >
                   {allEnvironmentsLabel}
                 </MenuItem>
                 {environments.map(env => (
-                  <MenuItem key={env.id} onClick={() => setActiveEnvironment(env)}>
+                  <MenuItem
+                    key={env.id}
+                    onClick={() => setActiveEnvironment(env)}
+                    className={
+                      activeEnvironment && activeEnvironment.name === env.name && 'active'
+                    }
+                  >
                     {env.displayName}
                   </MenuItem>
                 ))}
@@ -131,7 +140,6 @@ class ProjectHeader extends React.Component {
                         ? `/settings/${org.slug}/${project.slug}/environments/`
                         : `/${org.slug}/${project.slug}/settings/`
                     }
-                    priority="primary"
                     size="small"
                   >
                     {t('Manage environments')}
