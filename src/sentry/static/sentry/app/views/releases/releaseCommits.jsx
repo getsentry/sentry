@@ -10,6 +10,10 @@ import ApiMixin from '../../mixins/apiMixin';
 
 import CommitRow from '../../components/commitRow';
 
+import Panel from '../settings/components/panel';
+import PanelHeader from '../settings/components/panelHeader';
+import PanelBody from '../settings/components/panelBody';
+
 const ReleaseCommits = createReactClass({
   displayName: 'ReleaseCommits',
   mixins: [ApiMixin],
@@ -82,15 +86,16 @@ const ReleaseCommits = createReactClass({
   renderCommitsForRepo(repo) {
     let commitsByRepository = this.getCommitsByRepository();
     let activeCommits = commitsByRepository[repo];
+
     return (
-      <div className="panel panel-default">
-        <div className="panel-heading panel-heading-bold">{repo}</div>
-        <ul className="list-group list-group-lg commit-list">
+      <Panel>
+        <PanelHeader>{repo}</PanelHeader>
+        <PanelBody>
           {activeCommits.map(commit => {
             return <CommitRow key={commit.id} commit={commit} />;
           })}
-        </ul>
-      </div>
+        </PanelBody>
+      </Panel>
     );
   },
 
