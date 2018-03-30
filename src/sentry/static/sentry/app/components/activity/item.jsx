@@ -298,7 +298,7 @@ class ActivityItem extends React.Component {
     let avatar = item.user ? (
       <Avatar user={item.user} size={36} className="activity-avatar" />
     ) : (
-      <div className="avatar sentry">
+      <div className="activity-avatar avatar sentry">
         <span className="icon-sentry-logo" />
       </div>
     );
