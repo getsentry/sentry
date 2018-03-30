@@ -21,7 +21,7 @@ from django.utils.safestring import mark_safe
 from sentry import features, options
 from sentry.models import ProjectOwnership, User
 
-from sentry.digests.utilities import get_digest_metadata
+from sentry.digests.utilities import get_digest_metadata, get_digest_event_rules
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.plugins import register
 from sentry.plugins.base.structs import Notification
@@ -327,8 +327,10 @@ class MailPlugin(NotificationPlugin):
         }
         group = six.next(iter(counts))
         subject = self.get_digest_subject(group, counts, start)
-        events = [groups[g][0].value.event for __, groups in six.iteritems(digest) for g in groups]
-        user_id_events, event_rules = ProjectOwnership.get_user_ids_to_events(project.id, events)
+        event_rules = get_digest_event_rules(digest)
+
+        user_id_events, __ = ProjectOwnership.get_user_ids_to_events(
+            project.id, six.iterkeys(event_rules))
 
         if user_id_events != ProjectOwnership.Everyone:
             self.send_digest_with_owners(project, user_id_events, event_rules,

@@ -23,3 +23,16 @@ def get_digest_metadata(digest):
                     end = record.datetime
 
     return start, end, counts
+
+
+def get_digest_events(digest):
+    return [groups[g][0].value.event for groups in six.iteritems(digest) for g in groups]
+
+
+def get_digest_event_rules(digest):
+    event_rules = {}
+    for groups in six.itervalues(digest):
+        for group in groups:
+            value = groups[group][0].value
+            event_rules[value.event] = value.rules
+    return event_rules

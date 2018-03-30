@@ -152,7 +152,7 @@ def build_user_id_to_event_map(event_rules, project_id):
         for user_id in team_actors_to_user_ids[team_actor]:
             try:
                 user_id_to_events[user_id] += events
-            except AttributeError:
+            except KeyError:
                 user_id_to_events[user_id] = events
 
     # remove duplicate events
