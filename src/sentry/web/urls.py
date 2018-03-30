@@ -49,7 +49,6 @@ from sentry.web.frontend.restore_organization import RestoreOrganizationView
 from sentry.web.frontend.remove_project import RemoveProjectView
 from sentry.web.frontend.transfer_project import TransferProjectView
 from sentry.web.frontend.account_identity import AccountIdentityAssociateView, AccountIdentityLinkView
-from sentry.web.frontend.accept_project_transfer import AcceptProjectTransferView
 from sentry.web.frontend.remove_team import RemoveTeamView
 from sentry.web.frontend.sudo import SudoView
 from sentry.web.frontend.unsubscribe_issue_notifications import \
@@ -352,9 +351,7 @@ urlpatterns += patterns(
     url(r'^api/[^0]+/', generic_react_page_view),
     url(r'^out/$', OutView.as_view()),
 
-    url(r'^accept-transfer/$', AcceptProjectTransferView.as_view(),
-        name='sentry-accept-project-transfer'),
-
+    url(r'^accept-transfer/$', react_page_view, name='sentry-accept-project-transfer'),
     url(r'^settings/', react_page_view),
 
     # Organizations
