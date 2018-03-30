@@ -241,7 +241,7 @@ const VersionHoverCard = createReactClass({
     }
 
     return (
-      <Hovercard header={header} body={body}>
+      <Hovercard {...this.props} header={header} body={body}>
         {this.props.children}
       </Hovercard>
     );

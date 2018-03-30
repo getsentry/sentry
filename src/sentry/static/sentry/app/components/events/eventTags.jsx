@@ -12,7 +12,6 @@ import Pills from '../pills';
 import Pill from '../pill';
 import VersionHoverCard from '../versionHoverCard';
 import InlineSvg from '../inlineSvg';
-import TextLink from '../textLink';
 
 class EventTags extends React.Component {
   static propTypes = {
@@ -54,19 +53,14 @@ class EventTags extends React.Component {
                 )}
                 {tag.key == 'release' && (
                   <VersionHoverCard
+                    containerClassName="pill-icon"
                     version={tag.value}
                     orgId={orgId}
                     projectId={projectId}
                   >
-                    <TextLink
-                      style={{
-                        color: '#625471',
-                        paddingLeft: '4px',
-                      }}
-                      to={`/${orgId}/${projectId}/releases/${tag.value}/`}
-                    >
+                    <Link to={`/${orgId}/${projectId}/releases/${tag.value}/`}>
                       <InlineSvg src="icon-circle-info" size="14px" />
-                    </TextLink>
+                    </Link>
                   </VersionHoverCard>
                 )}
               </Pill>
