@@ -9,7 +9,7 @@ ifneq "$(wildcard /usr/local/opt/openssl/lib)" ""
 	LDFLAGS += -L/usr/local/opt/openssl/lib
 endif
 
-PIP = LDFLAGS="$(LDFLAGS)" pip
+PIP = LDFLAGS="$(LDFLAGS)" pip -q
 
 develop-only: update-submodules install-brew install-python install-yarn
 
@@ -86,7 +86,7 @@ locale: build-js-po
 	cd src/sentry && sentry django compilemessages
 
 update-transifex: build-js-po
-	pip install transifex-client
+	pip install -q transifex-client
 	cd src/sentry && sentry django makemessages -i static -l en
 	./bin/merge-catalogs en
 	tx push -s
@@ -103,12 +103,12 @@ update-submodules:
 build-platform-assets:
 	@echo "--> Building platform assets"
 	sentry init
-	@echo "from sentry.utils.integrationdocs import sync_docs; sync_docs()" | sentry exec
+	@echo "from sentry.utils.integrationdocs import sync_docs; sync_docs(quiet=True)" | sentry exec
 
 test: develop lint test-js test-python test-cli
 
 testloop: develop
-	pip install pytest-xdist
+	pip install -q pytest-xdist
 	py.test tests -f
 
 test-cli:
@@ -142,14 +142,14 @@ test-python: build-platform-assets
 test-network:
 	@echo "--> Building platform assets"
 	sentry init
-	@echo "from sentry.utils.integrationdocs import sync_docs; sync_docs()" | sentry exec
+	@echo "from sentry.utils.integrationdocs import sync_docs; sync_docs(quiet=True)" | sentry exec
 	@echo "--> Running network tests"
 	py.test tests/network --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml"
 	@echo ""
 
 test-acceptance: build-platform-assets
 	@echo "--> Building static assets"
-	@${NPM_ROOT}/.bin/webpack
+	@${NPM_ROOT}/.bin/webpack --display errors-only
 	@echo "--> Running acceptance tests"
 	py.test tests/acceptance --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml" --html="pytest.html"
 	@echo ""
@@ -168,7 +168,7 @@ lint-js:
 
 scan-python:
 	@echo "--> Running Python vulnerability scanner"
-	python -m pip install safety
+	python -m pip install -q safety
 	bin/scan
 	@echo ""
 
@@ -193,16 +193,16 @@ extract-api-docs:
 
 # Bases for all builds
 travis-upgrade-pip:
-	python -m pip install "pip>=9,<10"
+	python -m pip install -q "pip>=9,<10"
 travis-setup-cassandra:
 	echo "create keyspace sentry with replication = {'class' : 'SimpleStrategy', 'replication_factor': 1};" | cqlsh --cqlversion=3.1.7
 	echo 'create table nodestore (key text primary key, value blob, flags int);' | cqlsh -k sentry --cqlversion=3.1.7
 travis-install-python:
-	pip install Django${DJANGO_VERSION}
+	pip install -q Django${DJANGO_VERSION}
 	$(MAKE) travis-upgrade-pip
 	$(MAKE) install-python-base
 	$(MAKE) install-python-tests
-	python -m pip install codecov
+	python -m pip install -q codecov
 travis-noop:
 	@echo "nothing to do here."
 
@@ -212,7 +212,7 @@ travis-install-sqlite: travis-install-python
 travis-install-postgres: travis-install-python dev-postgres
 	psql -c 'create database sentry;' -U postgres
 travis-install-mysql: travis-install-python
-	pip install mysqlclient
+	pip install -q mysqlclient
 	echo 'create database sentry;' | mysql -uroot
 travis-install-acceptance: install-yarn travis-install-postgres
 	wget -N http://chromedriver.storage.googleapis.com/$(shell curl https://chromedriver.storage.googleapis.com/LATEST_RELEASE)/chromedriver_linux64.zip -P ~/
