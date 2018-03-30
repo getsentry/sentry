@@ -113,18 +113,18 @@ const CommitAuthorStats = createReactClass({
               return (
                 <PanelItem key={i} p={1} align="center">
                   <Flex>
-                    <Tooltip title={author.name + ' ' + author.email}>
+                    <Tooltip title={`${author.name} ${author.email}`}>
                       <Avatar user={author} size={20} />
                     </Tooltip>
                   </Flex>
-                  <Flex style={{flexGrow: 1}} px={1}>
+                  <Flex flex="1" px={1}>
                     <CommitBar
                       style={{marginLeft: 5}}
                       totalCommits={commitList.length}
                       authorCommits={commitCount}
                     />
                   </Flex>
-                  <Flex>{commitCount}</Flex>
+                  <div>{commitCount}</div>
                 </PanelItem>
               );
             })}
