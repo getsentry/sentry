@@ -19,10 +19,6 @@ import SettingsPageHeader from './settings/components/settingsPageHeader';
 import ProjectLabel from '../components/projectLabel';
 import SentryTypes from '../proptypes';
 
-const StyledProjectLabel = styled(ProjectLabel)`
-  color: ${p => p.theme.blue};
-`;
-
 const ProjectChooser = createReactClass({
   displayName: 'ProjectChooser',
 
@@ -31,6 +27,7 @@ const ProjectChooser = createReactClass({
   },
 
   mixins: [OrganizationState],
+
   componentWillMount() {
     this.redirectNoMultipleProjects();
   },
@@ -92,5 +89,9 @@ const ProjectChooser = createReactClass({
     );
   },
 });
+
+const StyledProjectLabel = styled(ProjectLabel)`
+  color: ${p => p.theme.blue};
+`;
 
 export default ProjectChooser;
