@@ -251,9 +251,9 @@ const GroupActivity = createReactClass({
         );
       } else {
         let avatar = item.user ? (
-          <Avatar user={item.user} size={18} />
+          <Avatar user={item.user} size={18} className="activity-avatar" />
         ) : (
-          <div className="avatar sentry">
+          <div className="activity-avatar avatar sentry">
             <span className="icon-sentry-logo" />
           </div>
         );
