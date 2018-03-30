@@ -9,7 +9,7 @@ import TimeSince from './timeSince';
 import CommitLink from './commitLink';
 import {t, tct} from '../locale';
 
-import PanelItem from '../views/settings/components/panelItem';
+import {PanelItem} from './panels';
 import TextOverflow from './textOverflow';
 
 export default class CommitRow extends React.Component {

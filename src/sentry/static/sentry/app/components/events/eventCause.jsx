@@ -7,7 +7,7 @@ import GroupState from '../../mixins/groupState';
 import CommitRow from '../commitRow';
 import {t} from '../../locale';
 
-import Panel from '../../views/settings/components/panel';
+import {Panel} from '../panels';
 
 export default createReactClass({
   displayName: 'EventCause',

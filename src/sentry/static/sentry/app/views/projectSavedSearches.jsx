@@ -11,10 +11,7 @@ import Confirm from '../components/confirm';
 import IndicatorStore from '../stores/indicatorStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
-import Panel from './settings/components/panel';
-import PanelBody from './settings/components/panelBody';
-import PanelHeader from './settings/components/panelHeader';
-import PanelItem from './settings/components/panelItem';
+import {Panel, PanelBody, PanelHeader, PanelItem} from '../components/panels';
 import SettingsPageHeader from './settings/components/settingsPageHeader';
 import SentryTypes from '../proptypes';
 

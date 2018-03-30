@@ -16,9 +16,7 @@ import {t} from '../../locale';
 import ApiMixin from '../../mixins/apiMixin';
 import EnvironmentStore from '../../stores/environmentStore';
 import LoadingIndicator from '../../components/loadingIndicator';
-import Panel from '../settings/components/panel';
-import PanelBody from '../settings/components/panelBody';
-import PanelHeader from '../settings/components/panelHeader';
+import {Panel, PanelBody, PanelHeader} from '../../components/panels';
 import RuleNodeList from './ruleNodeList';
 import {ALL_ENVIRONMENTS_KEY} from '../../constants';
 
