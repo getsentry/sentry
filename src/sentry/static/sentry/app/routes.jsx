@@ -1,6 +1,7 @@
 import {Redirect, Route, IndexRoute, IndexRedirect} from 'react-router';
 import React from 'react';
 
+import AcceptProjectTransfer from './views/acceptProjectTransfer';
 import AccountAuthorizations from './views/accountAuthorizations';
 import AccountLayout from './views/accountLayout';
 import AdminBuffer from './views/adminBuffer';
@@ -506,6 +507,7 @@ function routes() {
 
   return (
     <Route path="/" component={errorHandler(App)}>
+      <Route path="/accept-transfer/" component={errorHandler(AcceptProjectTransfer)} />
       <Route path="/account/" component={errorHandler(AccountLayout)}>
         <Route path="authorizations/" component={errorHandler(AccountAuthorizations)} />
       </Route>
