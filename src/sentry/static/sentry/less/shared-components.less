@@ -441,9 +441,8 @@ pre.plain {
 
 .external-icon {
   .transition(0.1s linear color);
-  color: inherit;
   font-size: 11px;
-  padding: 0 5px;
+  margin: 0 5px;
   color: @gray-light;
   line-height: 1;
 
@@ -1730,9 +1729,26 @@ ul.faces {
       vertical-align: text-bottom;
     }
 
+    .pill-icon,
     .external-icon {
+      .transition(0.1s linear color);
       display: inline;
-      padding: 0 0 0 8px;
+      margin: 0 0 0 8px;
+      color: @gray-light;
+
+      &:hover {
+        color: @gray;
+      }
+    }
+
+    // Some pill icons are hovercard wrappers, so select the direct anchor
+    // element and correctly color that
+    .pill-icon > a {
+      color: @gray-light;
+
+      &:hover {
+        color: @gray;
+      }
     }
   }
 
