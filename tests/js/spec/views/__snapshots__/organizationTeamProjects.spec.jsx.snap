@@ -250,9 +250,11 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                         items={
                           Array [
                             Object {
-                              "label": <ProjectDropdownListElement>
+                              "label": <div
+                                className="css-hfmtrw-styles"
+                              >
                                 project-slug-2
-                              </ProjectDropdownListElement>,
+                              </div>,
                               "searchKey": "project-slug-2",
                               "value": "3",
                             },
@@ -266,9 +268,11 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                           items={
                             Array [
                               Object {
-                                "label": <ProjectDropdownListElement>
+                                "label": <div
+                                  className="css-hfmtrw-styles"
+                                >
                                   project-slug-2
-                                </ProjectDropdownListElement>,
+                                </div>,
                                 "searchKey": "project-slug-2",
                                 "value": "3",
                               },

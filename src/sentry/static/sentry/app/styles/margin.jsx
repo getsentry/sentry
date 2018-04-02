@@ -18,10 +18,21 @@ const styles = {
     css`
       margin-bottom: ${spacingScale(size)}px;
     `,
-  marginHorizontal: size => `${styles.paddingLeft(size)}; ${styles.paddingRight(size)};`,
-  marginVertical: size => `${styles.paddingTop(size)}; ${styles.paddingBottom(size)};`,
+  marginHorizontal: size =>
+    css`
+      ${styles.paddingLeft(size)};
+      ${styles.paddingRight(size)};
+    `,
+  marginVertical: size =>
+    css`
+      ${styles.paddingTop(size)};
+      ${styles.paddingBottom(size)};
+    `,
   marginAll: size =>
-    `${styles.paddingHorizontal(size)}; ${styles.paddingVertical(size)};`,
+    css`
+      ${styles.paddingHorizontal(size)};
+      ${styles.paddingVertical(size)};
+    `,
 };
 
 export default styles;

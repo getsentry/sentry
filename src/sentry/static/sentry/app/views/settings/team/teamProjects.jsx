@@ -121,7 +121,7 @@ const TeamProjects = createReactClass({
         return {
           value: p.id,
           searchKey: p.slug,
-          label: <ProjectDropdownListElement>{p.slug}</ProjectDropdownListElement>,
+          label: <div className={styles.paddingVertical(1)}>{p.slug}</div>,
         };
       });
 
@@ -156,10 +156,6 @@ const RemoveIcon = styled(props => (
   min-height: 1.25em;
   min-width: 1.25em;
   ${styles.marginRight(3)};
-`;
-
-const ProjectDropdownListElement = styled('div')`
-  ${styles.paddingVertical(1)};
 `;
 
 const StyledPanelItem = styled(PanelItem)`

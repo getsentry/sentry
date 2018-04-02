@@ -233,7 +233,6 @@ const AutoCompleteItem = styled('div')`
   }
 
   &:hover {
-    cursor: pointer;
     background-color: ${p => p.theme.offWhite};
   }
 `;
