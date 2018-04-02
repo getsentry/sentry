@@ -201,6 +201,17 @@ class SlackNotifyServiceAction(EventAction):
 
         channel_id = {c['name']: c['id'] for c in resp['channels']}.get(name)
 
+        # Channel may be private, use the groups.list endpoint to find them
+        if not channel_id:
+            resp = session.get('https://slack.com/api/groups.list', params=channels_payload)
+            resp = resp.json()
+            if not resp.get('ok'):
+                self.logger.info('rule.slack.group_list_failed', extra={'error': resp.get('error')})
+                return None
+
+            channel_id = {c['name']: c['id'] for c in resp['groups']}.get(name)
+
+        # We should sufficiently have been able to find the channel by now
         if channel_id:
             if channel_id in channel_perms['excluded_ids']:
                 return None
