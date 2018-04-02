@@ -7,9 +7,10 @@ sentry.web.forms.accounts
 """
 from __future__ import absolute_import
 
-from datetime import datetime
-
 import pytz
+import six
+
+from datetime import datetime
 from django import forms
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
@@ -17,9 +18,9 @@ from django.db.models import Q
 from django.utils.text import capfirst, mark_safe
 from django.utils.translation import ugettext_lazy as _
 
-from sentry import options
+from sentry import newsletter, options
 from sentry.auth import password_validation
-from sentry.app import ratelimiter, newsletter
+from sentry.app import ratelimiter
 from sentry.constants import LANGUAGES
 from sentry.models import (Organization, OrganizationStatus, User, UserOption, UserOptionValue)
 from sentry.security import capture_security_activity
@@ -192,7 +193,7 @@ class RegistrationForm(forms.ModelForm):
         required=True, widget=forms.PasswordInput(attrs={'placeholder': 'something super secret'})
     )
     subscribe = CustomTypedChoiceField(
-        coerce=bool,
+        coerce=lambda x: six.text_type(x) == u'1',
         label=_("Email updates"),
         choices=(
             (1, 'Yes, I would like to receive updates via email'),
@@ -205,7 +206,7 @@ class RegistrationForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super(RegistrationForm, self).__init__(*args, **kwargs)
-        if not newsletter.enabled:
+        if not newsletter.is_enabled():
             del self.fields['subscribe']
         else:
             self.fields['subscribe'].help_text = mark_safe("We'd love to keep you updated via email with product and feature announcements, promotions, educational materials, and events. Our updates focus on relevant information and never sell your data to marketing companies. See our <a href=\"%(privacy_link)s\">Privacy Policy</a> for more details.".format(
@@ -238,7 +239,7 @@ class RegistrationForm(forms.ModelForm):
         if commit:
             user.save()
             if self.cleaned_data.get('subscribe'):
-                newsletter.create_or_update_subscription(user, list_id=newsletter.DEFAULT_LIST_ID)
+                newsletter.create_or_update_subscription(user, list_id=newsletter.get_default_list_id())
         return user
 
 

@@ -21,9 +21,9 @@ post_save.connect(create_user_email, sender=User, dispatch_uid="create_user_emai
 
 @email_verified.connect(weak=False)
 def verify_newsletter_subscription(sender, **kwargs):
-    from sentry.app import newsletter
+    from sentry import newsletter
 
-    if not newsletter.enabled:
+    if not newsletter.is_enabled():
         return
 
     if not sender.is_primary():

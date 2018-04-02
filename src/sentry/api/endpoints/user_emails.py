@@ -60,10 +60,11 @@ def add_email(email, user, subscribe_newsletter=False):
 
         # Update newsletter subscription and mark as unverified
         if subscribe_newsletter:
-            newsletter.update_subscription(user=user,
-                                           verified=False,
-                                           list_id=1,
-                                           )
+            newsletter.create_or_update_subscription(
+                user=user,
+                verified=False,
+                list_id=newsletter.get_default_list_id(),
+            )
         return new_email
 
 
