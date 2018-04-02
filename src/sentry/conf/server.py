@@ -1119,6 +1119,7 @@ SENTRY_ROLES = (
                 'team:read',
                 'team:write',
                 'team:admin',
+                'org:integrations',
             ]
         ),
     }, {
