@@ -3,7 +3,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import DocumentTitle from 'react-document-title';
-import {withRouter, browserHistory} from 'react-router';
+import {withRouter} from 'react-router';
 
 import ApiMixin from '../../mixins/apiMixin';
 
@@ -43,7 +43,7 @@ const ProjectContext = createReactClass({
     projectId: PropTypes.string,
     orgId: PropTypes.string,
     location: PropTypes.object,
-    routes: PropTypes.array,
+    router: PropTypes.object,
   },
 
   childContextTypes: {
@@ -217,7 +217,7 @@ const ProjectContext = createReactClass({
           return;
         }
 
-        browserHistory.replace(
+        this.props.router.replace(
           recreateRoute('', {
             ...this.props,
             params: {...this.props.params, projectId: responseJSON.detail.slug},
@@ -283,5 +283,7 @@ const ProjectContext = createReactClass({
     );
   },
 });
+
+export {ProjectContext};
 
 export default withRouter(ProjectContext);

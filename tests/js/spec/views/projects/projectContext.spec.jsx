@@ -1,14 +1,11 @@
 import React from 'react';
 import {mount} from 'enzyme';
-import {browserHistory} from 'react-router';
 
 import {Client} from 'app/api';
-import ProjectContext from 'app/views/projects/projectContext';
+import {ProjectContext} from 'app/views/projects/projectContext';
 import SentryTypes from 'app/proptypes';
 
 describe('projectContext component', function() {
-  const sandbox = sinon.sandbox.create();
-
   const routes = [
     {path: '/', childRoutes: []},
     {name: 'Organizations', path: ':orgId/', childRoutes: []},
@@ -21,7 +18,7 @@ describe('projectContext component', function() {
   const org = TestStubs.Organization();
 
   it('redirects for renamed projects', function() {
-    sandbox.stub(browserHistory, 'replace').returns(jest.fn());
+    const router = TestStubs.router();
 
     Client.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
@@ -36,6 +33,7 @@ describe('projectContext component', function() {
       <ProjectContext
         params={{orgId: org.slug, projectId: project.slug}}
         routes={routes}
+        router={router}
         location={location}
         orgId={org.slug}
         projectId={project.slug}
@@ -47,7 +45,7 @@ describe('projectContext component', function() {
       childContextTypes: {organization: SentryTypes.Organization},
     });
 
-    expect(browserHistory.replace.calledOnce).toBeTruthy();
-    expect(browserHistory.replace.args[0]).toEqual([`/${org.slug}/renamed-slug/`]);
+    expect(router.replace.calledOnce).toBeTruthy();
+    expect(router.replace.args[0]).toEqual([`/${org.slug}/renamed-slug/`]);
   });
 });
