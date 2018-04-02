@@ -1,322 +1,243 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`EventOrGroupExtraDetails details when mentioned 1`] = `
-<div
-  className="event-extra"
->
-  <ul>
-    <li>
-      <ShortId
-        shortId="shortId"
-      />
-    </li>
-    <li>
-      <span
-        className="icon icon-clock"
-      />
-      <TimeSince
-        date="2017-07-25T22:56:12Z"
-        suffix="ago"
-      />
-      <span>
-         — 
-      </span>
-      <TimeSince
-        date="2017-07-01T02:06:02Z"
-        suffix="old"
-      />
-    </li>
-    <li>
-      <Link
-        className="comments"
-        onlyActiveOnIndex={false}
-        style={Object {}}
-        to="/orgId/projectId/issues/groupId/activity/"
-      >
-        <span
-          className="icon icon-comments"
-          style={
-            Object {
-              "color": "#57be8c",
-            }
-          }
-        />
-        <span
-          className="tag-count"
-        >
-          14
-        </span>
-      </Link>
-    </li>
-    <li
-      className="event-annotation"
+<GroupExtra>
+  <Box>
+    <GroupExtraIcon
+      className="icon icon-clock"
+    />
+    <TimeSince
+      date="2017-07-25T22:56:12Z"
+      suffix="ago"
+    />
+  </Box>
+  <Box>
+    <Link
+      className="comments"
+      onlyActiveOnIndex={false}
+      style={Object {}}
+      to="/orgId/projectId/issues/groupId/activity/"
     >
-      <Link
-        onlyActiveOnIndex={false}
-        style={Object {}}
-        to={
+      <GroupExtraIcon
+        className="icon icon-comments"
+        style={
           Object {
-            "pathname": "/orgId/projectId/",
-            "query": Object {
-              "query": "logger:javascript logger",
-            },
+            "color": "#57be8c",
           }
         }
+      />
+      <GroupExtraIcon
+        className="tag-count"
       >
-        javascript logger
-      </Link>
-    </li>
-    <li
-      className="event-annotation"
-      dangerouslySetInnerHTML={
+        14
+      </GroupExtraIcon>
+    </Link>
+  </Box>
+  <Box
+    className="event-annotation"
+  >
+    <Link
+      onlyActiveOnIndex={false}
+      style={Object {}}
+      to={
         Object {
-          "__html": "annotation1",
+          "pathname": "/orgId/projectId/",
+          "query": Object {
+            "query": "logger:javascript logger",
+          },
         }
       }
-      key="0"
-    />
-    <li
-      className="event-annotation"
-      dangerouslySetInnerHTML={
-        Object {
-          "__html": "annotation2",
-        }
+    >
+      javascript logger
+    </Link>
+  </Box>
+  <Box
+    className="event-annotation"
+    dangerouslySetInnerHTML={
+      Object {
+        "__html": "annotation1",
       }
-      key="1"
-    />
-  </ul>
-</div>
+    }
+    key="0"
+  />
+  <Box
+    className="event-annotation"
+    dangerouslySetInnerHTML={
+      Object {
+        "__html": "annotation2",
+      }
+    }
+    key="1"
+  />
+</GroupExtra>
 `;
 
 exports[`EventOrGroupExtraDetails renders all details 1`] = `
-<div
-  className="event-extra"
->
-  <ul>
-    <li>
-      <ShortId
-        shortId="shortId"
-      />
-    </li>
-    <li>
-      <span
-        className="icon icon-clock"
-      />
-      <TimeSince
-        date="2017-07-25T22:56:12Z"
-        suffix="ago"
-      />
-      <span>
-         — 
-      </span>
-      <TimeSince
-        date="2017-07-01T02:06:02Z"
-        suffix="old"
-      />
-    </li>
-    <li>
-      <Link
-        className="comments"
-        onlyActiveOnIndex={false}
-        style={Object {}}
-        to="/orgId/projectId/issues/groupId/activity/"
-      >
-        <span
-          className="icon icon-comments"
-          style={Object {}}
-        />
-        <span
-          className="tag-count"
-        >
-          14
-        </span>
-      </Link>
-    </li>
-    <li
-      className="event-annotation"
+<GroupExtra>
+  <Box>
+    <GroupExtraIcon
+      className="icon icon-clock"
+    />
+    <TimeSince
+      date="2017-07-25T22:56:12Z"
+      suffix="ago"
+    />
+  </Box>
+  <Box>
+    <Link
+      className="comments"
+      onlyActiveOnIndex={false}
+      style={Object {}}
+      to="/orgId/projectId/issues/groupId/activity/"
     >
-      <Link
-        onlyActiveOnIndex={false}
+      <GroupExtraIcon
+        className="icon icon-comments"
         style={Object {}}
-        to={
-          Object {
-            "pathname": "/orgId/projectId/",
-            "query": Object {
-              "query": "logger:javascript logger",
-            },
-          }
-        }
+      />
+      <GroupExtraIcon
+        className="tag-count"
       >
-        javascript logger
-      </Link>
-    </li>
-    <li
-      className="event-annotation"
-      dangerouslySetInnerHTML={
+        14
+      </GroupExtraIcon>
+    </Link>
+  </Box>
+  <Box
+    className="event-annotation"
+  >
+    <Link
+      onlyActiveOnIndex={false}
+      style={Object {}}
+      to={
         Object {
-          "__html": "annotation1",
+          "pathname": "/orgId/projectId/",
+          "query": Object {
+            "query": "logger:javascript logger",
+          },
         }
       }
-      key="0"
-    />
-    <li
-      className="event-annotation"
-      dangerouslySetInnerHTML={
-        Object {
-          "__html": "annotation2",
-        }
+    >
+      javascript logger
+    </Link>
+  </Box>
+  <Box
+    className="event-annotation"
+    dangerouslySetInnerHTML={
+      Object {
+        "__html": "annotation1",
       }
-      key="1"
-    />
-  </ul>
-</div>
+    }
+    key="0"
+  />
+  <Box
+    className="event-annotation"
+    dangerouslySetInnerHTML={
+      Object {
+        "__html": "annotation2",
+      }
+    }
+    key="1"
+  />
+</GroupExtra>
 `;
 
 exports[`EventOrGroupExtraDetails renders assignee and status 1`] = `
-<div
-  className="event-extra"
->
-  <ul>
-    <li>
-      <ShortId
-        shortId="shortId"
-      />
-    </li>
-    <li>
-      <span
-        className="icon icon-clock"
-      />
-      <TimeSince
-        date="2017-07-25T22:56:12Z"
-        suffix="ago"
-      />
-      <span>
-         — 
-      </span>
-      <TimeSince
-        date="2017-07-01T02:06:02Z"
-        suffix="old"
-      />
-    </li>
-    <li>
-      <Link
-        className="comments"
-        onlyActiveOnIndex={false}
-        style={Object {}}
-        to="/orgId/projectId/issues/groupId/activity/"
-      >
-        <span
-          className="icon icon-comments"
-          style={Object {}}
-        />
-        <span
-          className="tag-count"
-        >
-          14
-        </span>
-      </Link>
-    </li>
-    <li
-      className="event-annotation"
+<GroupExtra>
+  <Box>
+    <GroupExtraIcon
+      className="icon icon-clock"
+    />
+    <TimeSince
+      date="2017-07-25T22:56:12Z"
+      suffix="ago"
+    />
+  </Box>
+  <Box>
+    <Link
+      className="comments"
+      onlyActiveOnIndex={false}
+      style={Object {}}
+      to="/orgId/projectId/issues/groupId/activity/"
     >
-      <Link
-        onlyActiveOnIndex={false}
+      <GroupExtraIcon
+        className="icon icon-comments"
         style={Object {}}
-        to={
-          Object {
-            "pathname": "/orgId/projectId/",
-            "query": Object {
-              "query": "logger:javascript logger",
-            },
-          }
-        }
+      />
+      <GroupExtraIcon
+        className="tag-count"
       >
-        javascript logger
-      </Link>
-    </li>
-    <li
-      className="event-annotation"
-      dangerouslySetInnerHTML={
+        14
+      </GroupExtraIcon>
+    </Link>
+  </Box>
+  <Box
+    className="event-annotation"
+  >
+    <Link
+      onlyActiveOnIndex={false}
+      style={Object {}}
+      to={
         Object {
-          "__html": "annotation1",
+          "pathname": "/orgId/projectId/",
+          "query": Object {
+            "query": "logger:javascript logger",
+          },
         }
       }
-      key="0"
-    />
-    <li
-      className="event-annotation"
-      dangerouslySetInnerHTML={
-        Object {
-          "__html": "annotation2",
-        }
+    >
+      javascript logger
+    </Link>
+  </Box>
+  <Box
+    className="event-annotation"
+    dangerouslySetInnerHTML={
+      Object {
+        "__html": "annotation1",
       }
-      key="1"
-    />
-    <li>
-      Assigned to 
-      Assignee Name
-    </li>
-  </ul>
-</div>
+    }
+    key="0"
+  />
+  <Box
+    className="event-annotation"
+    dangerouslySetInnerHTML={
+      Object {
+        "__html": "annotation2",
+      }
+    }
+    key="1"
+  />
+  <Box>
+    Assigned to 
+    Assignee Name
+  </Box>
+</GroupExtra>
 `;
 
 exports[`EventOrGroupExtraDetails renders last and first seen 1`] = `
-<div
-  className="event-extra"
->
-  <ul>
-    <li>
-      <span
-        className="icon icon-clock"
-      />
-      <TimeSince
-        date="2017-07-25T22:56:12Z"
-        suffix="ago"
-      />
-      <span>
-         — 
-      </span>
-      <TimeSince
-        date="2017-07-01T02:06:02Z"
-        suffix="old"
-      />
-    </li>
-  </ul>
-</div>
+<GroupExtra>
+  <Box>
+    <GroupExtraIcon
+      className="icon icon-clock"
+    />
+    <TimeSince
+      date="2017-07-25T22:56:12Z"
+      suffix="ago"
+    />
+  </Box>
+</GroupExtra>
 `;
 
-exports[`EventOrGroupExtraDetails renders only first seen 1`] = `
-<div
-  className="event-extra"
->
-  <ul>
-    <li>
-      <span
-        className="icon icon-clock"
-      />
-      <TimeSince
-        date="2017-07-01T02:06:02Z"
-        suffix="old"
-      />
-    </li>
-  </ul>
-</div>
-`;
+exports[`EventOrGroupExtraDetails renders only first seen 1`] = `<GroupExtra />`;
 
 exports[`EventOrGroupExtraDetails renders only last seen 1`] = `
-<div
-  className="event-extra"
->
-  <ul>
-    <li>
-      <span
-        className="icon icon-clock"
-      />
-      <TimeSince
-        date="2017-07-25T22:56:12Z"
-        suffix="ago"
-      />
-    </li>
-  </ul>
-</div>
+<GroupExtra>
+  <Box>
+    <GroupExtraIcon
+      className="icon icon-clock"
+    />
+    <TimeSince
+      date="2017-07-25T22:56:12Z"
+      suffix="ago"
+    />
+  </Box>
+</GroupExtra>
 `;

@@ -3,6 +3,8 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import {capitalize} from 'lodash';
+import styled from 'react-emotion';
+import {Flex, Box} from 'grid-emotion';
 
 import ApiMixin from '../../mixins/apiMixin';
 import DropdownLink from '../../components/dropdownLink';
@@ -12,7 +14,6 @@ import SelectedGroupStore from '../../stores/selectedGroupStore';
 import {t, tct, tn} from '../../locale';
 
 import Checkbox from '../../components/checkbox';
-import Toolbar from '../../components/toolbar';
 import ToolbarHeader from '../../components/toolbarHeader';
 import ResolveActions from '../../components/actions/resolve';
 import IgnoreActions from '../../components/actions/ignore';
@@ -267,16 +268,12 @@ const StreamActions = createReactClass({
     let label = getLabel(numIssues, allInQuerySelected);
 
     return (
-      <div>
-        <Toolbar className="stream-actions row">
-          <div className="stream-actions-left col-md-6 col-sm-8 col-xs-8">
-            <div className="checkbox">
-              <Checkbox
-                className="chk-select-all"
-                onChange={this.onSelectAll}
-                checked={this.state.pageSelected}
-              />
-            </div>
+      <Sticky>
+        <StyledFlex py={1}>
+          <ActionsCheckbox pl={2}>
+            <Checkbox onChange={this.onSelectAll} checked={this.state.pageSelected} />
+          </ActionsCheckbox>
+          <ActionSet w={[8 / 12, 8 / 12, 6 / 12]} mx={1} flex="1">
             <ResolveActions
               hasRelease={this.props.hasReleases}
               latestRelease={this.props.latestRelease}
@@ -390,29 +387,38 @@ const StreamActions = createReactClass({
                 </a>
               </Tooltip>
             </div>
-          </div>
-          <div className="hidden-sm stream-actions-assignee col-md-1" />
-          <div className="stream-actions-level col-md-1 hidden-xs" />
-          <div className="hidden-sm hidden-xs stream-actions-graph col-md-2">
-            <ToolbarHeader className="stream-actions-graph-label">
-              {t('Graph:')}
-            </ToolbarHeader>
-            <ul className="toggle-graph">
-              <li className={this.props.statsPeriod === '24h' ? 'active' : ''}>
-                <a onClick={this.selectStatsPeriod.bind(this, '24h')}>{t('24h')}</a>
-              </li>
-              <li className={this.props.statsPeriod === '14d' ? 'active' : ''}>
-                <a onClick={this.selectStatsPeriod.bind(this, '14d')}>{t('14d')}</a>
-              </li>
-            </ul>
-          </div>
-          <ToolbarHeader className="stream-actions-count align-right col-md-1 col-sm-2 col-xs-2">
-            {t('Events')}
-          </ToolbarHeader>
-          <ToolbarHeader className="stream-actions-users align-right col-md-1 col-sm-2 col-xs-2">
-            {t('Users')}
-          </ToolbarHeader>
-        </Toolbar>
+          </ActionSet>
+          <Box w={130} mx={2} className="hidden-xs">
+            <ToolbarHeader>{t('Issue ID')}</ToolbarHeader>
+          </Box>
+          <Box w={120} mx={2} className="hidden-xs hidden-sm">
+            <Flex>
+              <StyledToolbarHeader>{t('Graph:')}</StyledToolbarHeader>
+              <GraphToggle
+                active={this.props.statsPeriod === '24h'}
+                onClick={this.selectStatsPeriod.bind(this, '24h')}
+              >
+                {t('24h')}
+              </GraphToggle>
+
+              <GraphToggle
+                active={this.props.statsPeriod === '14d'}
+                onClick={this.selectStatsPeriod.bind(this, '14d')}
+              >
+                {t('14d')}
+              </GraphToggle>
+            </Flex>
+          </Box>
+          <Box w={50} mx={2} className="align-right">
+            <ToolbarHeader>{t('Events')}</ToolbarHeader>
+          </Box>
+          <Box w={50} mx={2} className="align-right">
+            <ToolbarHeader>{t('Users')}</ToolbarHeader>
+          </Box>
+          <Box w={50} mx={2} className="align-right">
+            <ToolbarHeader>{t('Owner')}</ToolbarHeader>
+          </Box>
+        </StyledFlex>
 
         {!this.props.allResultsVisible &&
           this.state.pageSelected && (
@@ -447,9 +453,54 @@ const StreamActions = createReactClass({
               </div>
             </div>
           )}
-      </div>
+      </Sticky>
     );
   },
 });
+
+const Sticky = styled.div`
+  position: sticky;
+  z-index: ${p => p.theme.zIndex.header};
+  top: -1px;
+`;
+
+const StyledFlex = styled(Flex)`
+  align-items: center;
+  background: ${p => p.theme.offWhite};
+  border: 1px solid ${p => p.theme.borderDark};
+  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
+  margin-bottom: -1px;
+`;
+
+const ActionsCheckbox = styled(Box)`
+  & input[type='checkbox'] {
+    margin: 0;
+    display: block;
+  }
+`;
+
+const ActionSet = styled(Box)`
+  display: flex;
+
+  .btn-group {
+    margin-right: 6px;
+  }
+`;
+
+const StyledToolbarHeader = styled(ToolbarHeader)`
+  flex: 1;
+`;
+
+const GraphToggle = styled.a`
+  font-size: 13px;
+  padding-left: 8px;
+
+  &,
+  &:hover,
+  &:focus,
+  &:active {
+    color: ${p => (p.active ? p.theme.gray4 : p.theme.gray1)};
+  }
+`;
 
 export default StreamActions;

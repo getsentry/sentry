@@ -3,6 +3,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
+import styled from 'react-emotion';
+import {Flex, Box} from 'grid-emotion';
 
 import AssigneeSelector from '../assigneeSelector';
 import Count from '../count';
@@ -12,8 +14,10 @@ import ProjectState from '../../mixins/projectState';
 import GroupStore from '../../stores/groupStore';
 import GuideAnchor from '../../components/assistant/guideAnchor';
 import SelectedGroupStore from '../../stores/selectedGroupStore';
+import ShortId from '../shortId';
 import EventOrGroupHeader from '../eventOrGroupHeader';
 import EventOrGroupExtraDetails from '../eventOrGroupExtraDetails';
+import TimeSince from '../timeSince';
 
 import {valueIsEqual} from '../../utils';
 
@@ -87,35 +91,20 @@ const StreamGroup = createReactClass({
     let data = this.state.data;
     let userCount = data.userCount;
 
-    let className = 'group row';
-    if (data.isBookmarked) {
-      className += ' isBookmarked';
-    }
-    if (data.hasSeen) {
-      className += ' hasSeen';
-    }
-    if (data.status === 'resolved') {
-      className += ' isResolved';
-    }
-    if (data.status === 'ignored') {
-      className += ' isIgnored';
-    }
-
-    className += ' type-' + data.type;
-    className += ' level-' + data.level;
-
     let {id, orgId, projectId, hasGuideAnchor} = this.props;
 
-    return (
-      <li className={className} onClick={this.toggleSelect}>
-        <div className="col-md-7 col-xs-8 event-details">
-          {this.props.canSelect && (
-            <div className="checkbox">
-              {hasGuideAnchor && <GuideAnchor target="issues" type="text" />}
-              <GroupCheckBox id={data.id} />
-            </div>
-          )}
+    // Todo(ckj): Implement resolved and hasSeen state
 
+    return (
+      <Group onClick={this.toggleSelect} py={1}>
+        <GroupLevel level={data.level} />
+        {this.props.canSelect && (
+          <GroupCheckbox ml={1}>
+            {hasGuideAnchor && <GuideAnchor target="issues" type="text" />}
+            <GroupCheckBox id={data.id} />
+          </GroupCheckbox>
+        )}
+        <GroupSummary w={[8 / 12, 8 / 12, 6 / 12]} mx={1} flex="1">
           <EventOrGroupHeader
             data={data}
             orgId={orgId}
@@ -129,24 +118,110 @@ const StreamGroup = createReactClass({
             orgId={orgId}
             projectId={projectId}
           />
-        </div>
-        <div className="event-assignee col-md-1 hidden-sm hidden-xs">
-          <AssigneeSelector size={24} id={data.id} />
-        </div>
-        <div className="col-md-2 hidden-sm hidden-xs event-graph align-right">
+        </GroupSummary>
+        <Box w={130} mx={2} className="hidden-xs">
+          {data.shortId && <GroupShortId shortId={data.shortId} />}
+          {data.firstSeen && (
+            <GroupTimeSinceWrapper>
+              first seen <TimeSince date={data.firstSeen} suffix="ago" />
+            </GroupTimeSinceWrapper>
+          )}
+        </Box>
+        <Box w={120} mx={2} className="hidden-xs hidden-sm">
           <GroupChart id={data.id} statsPeriod={this.props.statsPeriod} data={data} />
-        </div>
-        <div className="col-md-1 col-xs-2 event-count align-right">
+        </Box>
+        <Box w={50} mx={2} className="align-right">
           {hasGuideAnchor && <GuideAnchor target="events" type="text" />}
           <Count value={data.count} />
-        </div>
-        <div className="col-md-1 col-xs-2 event-users align-right">
+        </Box>
+        <Box w={50} mx={2} className="align-right">
           {hasGuideAnchor && <GuideAnchor target="users" type="text" />}
           <Count value={userCount} />
-        </div>
-      </li>
+        </Box>
+        <Box w={50} mx={2}>
+          <StyledAssigneeSelector id={data.id} />
+        </Box>
+      </Group>
     );
   },
 });
+
+const Group = styled(Flex)`
+  line-height: 1.1;
+  font-size: 16px;
+  position: relative;
+  align-items: center;
+  border-left: 1px solid ${p => p.theme.borderDark};
+  border-right: 1px solid ${p => p.theme.borderDark};
+  border-top: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.borderLight};
+  & + & {
+    margin-top: -1px;
+  }
+  &:first-child {
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    border-top: 1px solid ${p => p.theme.borderDark};
+  }
+  &:last-child {
+    border-bottom-left-radius: 3px;
+    border-bottom-right-radius: 3px;
+    border-bottom: 1px solid ${p => p.theme.borderDark};
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
+  }
+`;
+
+const GroupSummary = styled(Box)`
+  overflow: hidden;
+`;
+
+const GroupLevel = styled.div`
+  margin-left: -1px;
+  width: 9px;
+  height: 15px;
+  border-radius: 0 3px 3px 0;
+  align-self: flex-start;
+
+  background-color: ${p => {
+    switch (p.level) {
+      case 'sample':
+        return p.theme.purple;
+      case 'info':
+        return p.theme.blue;
+      case 'warning':
+        return p.theme.yellowOrange;
+      case 'error':
+        return p.theme.orange;
+      case 'fatal':
+        return p.theme.red;
+      default:
+        return p.theme.gray2;
+    }
+  }};
+`;
+
+const GroupCheckbox = styled(Box)`
+  align-self: flex-start;
+  & input[type='checkbox'] {
+    margin: 0;
+    display: block;
+  }
+`;
+
+const GroupTimeSinceWrapper = styled.span`
+  font-size: 12px;
+  color: ${p => p.theme.gray2};
+`;
+
+const GroupShortId = styled(ShortId)`
+  display: inline;
+  font-size: 15px;
+  margin-bottom: 4px;
+  }
+`;
+
+const StyledAssigneeSelector = styled(AssigneeSelector)`
+  color: ${p => p.theme.gray1};
+`;
 
 export default StreamGroup;

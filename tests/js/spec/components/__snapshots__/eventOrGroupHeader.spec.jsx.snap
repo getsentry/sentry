@@ -4,9 +4,7 @@ exports[`EventOrGroupHeader Event hides level tag 1`] = `
 <div
   className="event-issue-header"
 >
-  <h3
-    className="truncate"
-  >
+  <Title>
     <ProjectLink
       to={
         Object {
@@ -15,12 +13,6 @@ exports[`EventOrGroupHeader Event hides level tag 1`] = `
         }
       }
     >
-      <span
-        className="icon icon-soundoff"
-      />
-      <span
-        className="icon icon-star-solid"
-      />
       <EventOrGroupTitle
         data={
           Object {
@@ -45,7 +37,7 @@ exports[`EventOrGroupHeader Event hides level tag 1`] = `
         projectId="projectId"
       />
     </ProjectLink>
-  </h3>
+  </Title>
 </div>
 `;
 
@@ -53,9 +45,7 @@ exports[`EventOrGroupHeader Event renders with \`type = csp\` 1`] = `
 <div
   className="event-issue-header"
 >
-  <h3
-    className="truncate"
-  >
+  <Title>
     <ProjectLink
       to={
         Object {
@@ -64,12 +54,6 @@ exports[`EventOrGroupHeader Event renders with \`type = csp\` 1`] = `
         }
       }
     >
-      <span
-        className="icon icon-soundoff"
-      />
-      <span
-        className="icon icon-star-solid"
-      />
       <EventOrGroupTitle
         data={
           Object {
@@ -93,16 +77,12 @@ exports[`EventOrGroupHeader Event renders with \`type = csp\` 1`] = `
         projectId="projectId"
       />
     </ProjectLink>
-  </h3>
-  <div
-    className="event-message truncate"
-  >
-    <span
-      className="message"
-    >
+  </Title>
+  <Message>
+    <span>
       metadata message
     </span>
-  </div>
+  </Message>
 </div>
 `;
 
@@ -110,9 +90,7 @@ exports[`EventOrGroupHeader Event renders with \`type = default\` 1`] = `
 <div
   className="event-issue-header"
 >
-  <h3
-    className="truncate"
-  >
+  <Title>
     <ProjectLink
       to={
         Object {
@@ -121,12 +99,6 @@ exports[`EventOrGroupHeader Event renders with \`type = default\` 1`] = `
         }
       }
     >
-      <span
-        className="icon icon-soundoff"
-      />
-      <span
-        className="icon icon-star-solid"
-      />
       <EventOrGroupTitle
         data={
           Object {
@@ -150,7 +122,7 @@ exports[`EventOrGroupHeader Event renders with \`type = default\` 1`] = `
         projectId="projectId"
       />
     </ProjectLink>
-  </h3>
+  </Title>
 </div>
 `;
 
@@ -158,9 +130,7 @@ exports[`EventOrGroupHeader Event renders with \`type = error\` 1`] = `
 <div
   className="event-issue-header"
 >
-  <h3
-    className="truncate"
-  >
+  <Title>
     <ProjectLink
       to={
         Object {
@@ -169,12 +139,6 @@ exports[`EventOrGroupHeader Event renders with \`type = error\` 1`] = `
         }
       }
     >
-      <span
-        className="icon icon-soundoff"
-      />
-      <span
-        className="icon icon-star-solid"
-      />
       <EventOrGroupTitle
         data={
           Object {
@@ -198,16 +162,12 @@ exports[`EventOrGroupHeader Event renders with \`type = error\` 1`] = `
         projectId="projectId"
       />
     </ProjectLink>
-  </h3>
-  <div
-    className="event-message truncate"
-  >
-    <span
-      className="message"
-    >
+  </Title>
+  <Message>
+    <span>
       metadata value
     </span>
-  </div>
+  </Message>
 </div>
 `;
 
@@ -215,9 +175,7 @@ exports[`EventOrGroupHeader Group renders with \`type = csp\` 1`] = `
 <div
   className="event-issue-header"
 >
-  <h3
-    className="truncate"
-  >
+  <Title>
     <ProjectLink
       to={
         Object {
@@ -226,17 +184,6 @@ exports[`EventOrGroupHeader Group renders with \`type = csp\` 1`] = `
         }
       }
     >
-      <span
-        className="error-level truncate"
-      >
-        error
-      </span>
-      <span
-        className="icon icon-soundoff"
-      />
-      <span
-        className="icon icon-star-solid"
-      />
       <EventOrGroupTitle
         data={
           Object {
@@ -259,16 +206,12 @@ exports[`EventOrGroupHeader Group renders with \`type = csp\` 1`] = `
         projectId="projectId"
       />
     </ProjectLink>
-  </h3>
-  <div
-    className="event-message truncate"
-  >
-    <span
-      className="message"
-    >
+  </Title>
+  <Message>
+    <span>
       metadata message
     </span>
-  </div>
+  </Message>
 </div>
 `;
 
@@ -276,9 +219,7 @@ exports[`EventOrGroupHeader Group renders with \`type = default\` 1`] = `
 <div
   className="event-issue-header"
 >
-  <h3
-    className="truncate"
-  >
+  <Title>
     <ProjectLink
       to={
         Object {
@@ -287,17 +228,6 @@ exports[`EventOrGroupHeader Group renders with \`type = default\` 1`] = `
         }
       }
     >
-      <span
-        className="error-level truncate"
-      >
-        error
-      </span>
-      <span
-        className="icon icon-soundoff"
-      />
-      <span
-        className="icon icon-star-solid"
-      />
       <EventOrGroupTitle
         data={
           Object {
@@ -320,16 +250,12 @@ exports[`EventOrGroupHeader Group renders with \`type = default\` 1`] = `
         projectId="projectId"
       />
     </ProjectLink>
-  </h3>
-  <div
-    className="event-message truncate"
-  >
-    <span
-      className="message"
-    >
+  </Title>
+  <Message>
+    <span>
       culprit
     </span>
-  </div>
+  </Message>
 </div>
 `;
 
@@ -337,9 +263,7 @@ exports[`EventOrGroupHeader Group renders with \`type = error\` 1`] = `
 <div
   className="event-issue-header"
 >
-  <h3
-    className="truncate"
-  >
+  <Title>
     <ProjectLink
       to={
         Object {
@@ -348,17 +272,6 @@ exports[`EventOrGroupHeader Group renders with \`type = error\` 1`] = `
         }
       }
     >
-      <span
-        className="error-level truncate"
-      >
-        error
-      </span>
-      <span
-        className="icon icon-soundoff"
-      />
-      <span
-        className="icon icon-star-solid"
-      />
       <EventOrGroupTitle
         data={
           Object {
@@ -381,15 +294,11 @@ exports[`EventOrGroupHeader Group renders with \`type = error\` 1`] = `
         projectId="projectId"
       />
     </ProjectLink>
-  </h3>
-  <div
-    className="event-message truncate"
-  >
-    <span
-      className="message"
-    >
+  </Title>
+  <Message>
+    <span>
       metadata value
     </span>
-  </div>
+  </Message>
 </div>
 `;
