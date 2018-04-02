@@ -196,10 +196,17 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
 
         if result.get('role'):
             _, allowed_roles = get_allowed_roles(request, organization)
-            if not result['role'] in {r.id for r in allowed_roles}:
+            allowed_role_ids = {r.id for r in allowed_roles}
+
+            # A user cannot promote others above themselves
+            if result['role'] not in allowed_role_ids:
                 return Response(
-                    {'role': 'You do not have permission to invite that role.'}, status=403)
-                # You can't edit your own role
+                    {'role': 'You do not have permission to assign the given role.'}, status=403)
+
+            # A user cannot demote a superior
+            if om.role not in allowed_role_ids:
+                return Response(
+                    {'role': 'You do not have permission to assign a role to the given user.'}, status=403)
 
             if om.user == request.user and (result['role'] != om.role):
                 return Response(

@@ -386,6 +386,36 @@ class UpdateOrganizationMemberTest(APITestCase):
 
         assert resp.status_code == 400
 
+    def test_cannot_lower_superior_role(self):
+        organization = self.create_organization(name='foo', owner=self.user)
+        owner = self.create_user('baz@example.com')
+        owner_om = self.create_member(
+            organization=organization,
+            user=owner,
+            role='owner',
+            teams=[]
+        )
+
+        manager = self.create_user('foo@example.com')
+        self.create_member(
+            organization=organization,
+            user=manager,
+            role='manager',
+            teams=[],
+        )
+        self.login_as(manager)
+
+        path = reverse(
+            'sentry-api-0-organization-member-details', args=[organization.slug, owner_om.id]
+        )
+
+        resp = self.client.put(path, data={'role': 'member'})
+        assert resp.status_code == 403
+
+        owner_om = OrganizationMember.objects.get(
+            organization=organization, user=owner)
+        assert owner_om.role == 'owner'
+
 
 class DeleteOrganizationMemberTest(APITestCase):
     def test_simple(self):
