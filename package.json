@@ -6,6 +6,7 @@
     "url": "git://github.com/getsentry/sentry.git"
   },
   "dependencies": {
+    "@storybook/addon-storysource": "^3.4.0",
     "babel-core": "6.21.0",
     "babel-gettext-extractor": "^3.0.0",
     "babel-loader": "^7.1.2",

@@ -20,23 +20,23 @@ import TextField from 'app/views/settings/components/forms/textField';
 import Switch from 'app/components/switch';
 
 class UndoButton extends React.Component {
-  static contextTypes = {
-    form: PropTypes.object,
-  };
-
-  handleClick = e => {
+  handleClick(e) {
     e.preventDefault();
     this.context.form.undo();
-  };
+  }
 
   render() {
     return (
-      <button type="button" onClick={this.handleClick}>
+      <button type="button" onClick={this.handleClick.bind(this)}>
         Undo
       </button>
     );
   }
 }
+
+UndoButton.contextTypes = {
+  form: PropTypes.object,
+};
 
 // eslint-disable-next-line
 storiesOf('Forms/Form', module)
