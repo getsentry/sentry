@@ -3,6 +3,7 @@
 exports[`ProjectChooser renders 1`] = `
 .glamor-3 {
   padding-left: 90px;
+  padding-top: 30px;
 }
 
 .glamor-2 {

@@ -63,7 +63,7 @@ const ProjectChooser = createReactClass({
       throw new Error('User arrived on project chooser without a valid task id.');
     }
     return (
-      <div className="container" css={{'padding-left': '90px'}}>
+      <div className="container" css={{'padding-left': '90px', 'padding-top': '30px'}}>
         <SettingsPageHeader title="Projects" />
         <Panel>
           <PanelHeader hasButtons>{t('Projects')}</PanelHeader>
