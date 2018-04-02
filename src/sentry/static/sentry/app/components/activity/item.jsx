@@ -75,11 +75,14 @@ class ActivityItem extends React.Component {
         return tct('[author] commented on [issue]', {
           author,
           issue: (
-            <Link
+            <IssueLink
+              orgId={orgId}
+              projectId={project.slug}
+              issue={issue}
               to={`/${orgId}/${project.slug}/issues/${issue.id}/activity/#event_${item.id}`}
             >
               {issue.shortId}
-            </Link>
+            </IssueLink>
           ),
         });
       case 'set_resolved':
