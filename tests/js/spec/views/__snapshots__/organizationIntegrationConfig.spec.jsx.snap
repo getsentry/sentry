@@ -1,212 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`OrganizationIntegrationConfig render() with one integration renders 1`] = `
-.glamor-8 {
-  font-size: 14px;
-  box-shadow: inset 0 -1px 0;
-  margin: -20px 0 30px;
-}
-
-.glamor-6 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
-.glamor-2 {
-  box-sizing: border-box;
-  padding-right: 8px;
-}
-
-.glamor-0 {
-  position: relative;
-  height: 28px;
-  width: 28px;
-  border-radius: 2px;
-  border: 0;
-  background-color: #fff;
-  display: inline-block;
-  background-size: contain;
-  background-position: center center;
-  background-repeat: no-repeat;
-  background-image: url();
-}
-
-.glamor-4 {
-  font-size: 20px;
-  font-weight: bold;
-  margin: 20px 0;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-}
-
-.glamor-42 {
-  background: #fff;
-  border: 1px solid;
-  margin-bottom: NaNpx;
-  position: relative;
-}
-
-.glamor-20 {
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  line-height: 1;
-  padding: 8px 0;
-}
-
-.glamor-17 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  -webkit-box-pack: justify;
-  -webkit-justify-content: space-between;
-  -ms-flex-pack: justify;
-  justify-content: space-between;
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  line-height: 1;
-  padding: 8px 0;
-}
-
-.glamor-10 {
-  box-sizing: border-box;
-  padding-left: 16px;
-  padding-right: 16px;
-}
-
-.glamor-14 {
-  box-sizing: border-box;
-  margin-right: 8px;
-}
-
-.glamor-38 {
-  box-sizing: border-box;
-  padding: 0px;
-  padding-top: 16px;
-  padding-bottom: 16px;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  border-bottom: 1px solid;
-}
-
-.glamor-38:last-child {
-  border: 0;
-}
-
-.glamor-26 {
-  box-sizing: border-box;
-  padding-left: 16px;
-}
-
-.glamor-24 {
-  height: 32px;
-  width: 32px;
-  border-radius: 3px;
-  display: block;
-}
-
-.glamor-32 {
-  box-sizing: border-box;
-  padding-left: 16px;
-  padding-right: 16px;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-}
-
-.glamor-28 {
-  font-size: 1.6rem;
-  margin-bottom: 3px;
-}
-
-.glamor-30 {
-  font-size: 1.4rem;
-}
-
-.glamor-36 {
-  box-sizing: border-box;
-  margin-right: 8px;
-  padding-right: 16px;
-}
-
-.glamor-48 {
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  border: 1px dashed;
-  padding: NaNpx;
-  margin-bottom: NaNpx;
-  border-radius: 0.25em;
-  -webkit-transition: 0.2s border-color;
-  transition: 0.2s border-color;
-}
-
-.glamor-44 {
-  -webkit-box-flex: 1;
-  -webkit-flex-grow: 1;
-  -ms-flex-positive: 1;
-  flex-grow: 1;
-}
-
-.glamor-46 {
-  vertical-align: middle;
-}
-
-.glamor-68 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  font-size: 1.5rem;
-  line-height: 2.1rem;
-}
-
-.glamor-60 {
-  box-sizing: border-box;
-  width: 62.5%;
-}
-
-.glamor-56 li {
-  margin-bottom: 6px;
-}
-
-.glamor-66 {
-  box-sizing: border-box;
-  margin-left: 60px;
-}
-
-.glamor-62 {
-  display: block;
-  margin-bottom: 6px;
-}
-
 <OrganizationIntegrationConfig
   params={
     Object {
@@ -232,28 +26,28 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
       >
         <Wrapper>
           <div
-            className="glamor-8 glamor-9"
+            className="css-foidy-Wrapper css-17jmgia0"
           >
             <Flex
               align="center"
             >
               <Base
                 align="center"
-                className="glamor-6"
+                className="css-5ipae5"
               >
                 <div
-                  className="glamor-6"
+                  className="css-5ipae5"
                   is={null}
                 >
                   <Box
                     pr={1}
                   >
                     <Base
-                      className="glamor-2"
+                      className="css-ioegso"
                       pr={1}
                     >
                       <div
-                        className="glamor-2"
+                        className="css-ioegso"
                         is={null}
                       >
                         <PluginIcon
@@ -265,7 +59,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                             size={28}
                           >
                             <div
-                              className="glamor-0 glamor-1"
+                              className="css-1g0dosy-IntegrationIcon css-10uim240"
                               size={28}
                             />
                           </IntegrationIcon>
@@ -275,7 +69,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                   </Box>
                   <Title>
                     <div
-                      className="glamor-4 glamor-5"
+                      className="css-zmdcxu-Title css-17jmgia1"
                     >
                       GitHub
                     </div>
@@ -289,7 +83,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
       <Panel>
         <StyledPanel>
           <div
-            className="glamor-42 glamor-43"
+            className="css-wfa8ap-StyledPanel css-5bw71w0"
           >
             <PanelHeader
               disablePadding={true}
@@ -300,33 +94,33 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                 hasButtons={true}
               >
                 <Component
-                  className="glamor-20 glamor-16"
+                  className="css-bx554z-StyledPanelHeader css-zott9u0"
                   disablePadding={true}
                   hasButtons={true}
                 >
                   <Flex
                     align="center"
-                    className="glamor-20 glamor-16"
+                    className="css-bx554z-StyledPanelHeader css-zott9u0"
                     justify="space-between"
                   >
                     <Base
                       align="center"
-                      className="glamor-16 glamor-17"
+                      className="css-zott9u0 css-1wxtvvf"
                       justify="space-between"
                     >
                       <div
-                        className="glamor-16 glamor-17"
+                        className="css-zott9u0 css-1wxtvvf"
                         is={null}
                       >
                         <Box
                           px={2}
                         >
                           <Base
-                            className="glamor-10"
+                            className="css-17pfgr6"
                             px={2}
                           >
                             <div
-                              className="glamor-10"
+                              className="css-17pfgr6"
                               is={null}
                             >
                               Workspaces
@@ -337,11 +131,11 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                           mr={1}
                         >
                           <Base
-                            className="glamor-14"
+                            className="css-xgysgc"
                             mr={1}
                           >
                             <div
-                              className="glamor-14"
+                              className="css-xgysgc"
                               is={null}
                             >
                               <Button
@@ -361,10 +155,10 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                                   >
                                     <Base
                                       align="center"
-                                      className="button-label glamor-6"
+                                      className="button-label css-5ipae5"
                                     >
                                       <div
-                                        className="button-label glamor-6"
+                                        className="button-label css-5ipae5"
                                         is={null}
                                       >
                                         <span
@@ -404,30 +198,30 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                     py={2}
                   >
                     <Base
-                      className="glamor-38 glamor-39"
+                      className="css-17iyzx4-StyledPanelItem css-q9h14u0"
                       p={0}
                       py={2}
                     >
                       <div
-                        className="glamor-38 glamor-39"
+                        className="css-17iyzx4-StyledPanelItem css-q9h14u0"
                         is={null}
                       >
                         <Box
                           pl={2}
                         >
                           <Base
-                            className="glamor-26"
+                            className="css-wwmrss"
                             pl={2}
                           >
                             <div
-                              className="glamor-26"
+                              className="css-wwmrss"
                               is={null}
                             >
                               <IntegrationIcon
                                 src="http://example.com/integration_icon.png"
                               >
                                 <img
-                                  className="glamor-24 glamor-25"
+                                  className="css-lx37iq-IntegrationIcon css-1slqebt0"
                                   src="http://example.com/integration_icon.png"
                                 />
                               </IntegrationIcon>
@@ -439,24 +233,24 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                           px={2}
                         >
                           <Base
-                            className="glamor-32"
+                            className="css-pcjga5"
                             flex={1}
                             px={2}
                           >
                             <div
-                              className="glamor-32"
+                              className="css-pcjga5"
                               is={null}
                             >
                               <IntegrationName>
                                 <div
-                                  className="glamor-28 glamor-29"
+                                  className="css-1daz7ru-IntegrationName css-1slqebt1"
                                 >
                                   Test Integration
                                 </div>
                               </IntegrationName>
                               <DomainName>
                                 <div
-                                  className="glamor-30 glamor-31"
+                                  className="css-1y54ser-DomainName css-1slqebt2"
                                 >
                                   gtithub.com/test-integration
                                 </div>
@@ -469,12 +263,12 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                           pr={2}
                         >
                           <Base
-                            className="glamor-36"
+                            className="css-3n6m02"
                             mr={1}
                             pr={2}
                           >
                             <div
-                              className="glamor-36"
+                              className="css-3n6m02"
                               is={null}
                             >
                               <Confirm
@@ -501,10 +295,10 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                                     >
                                       <Base
                                         align="center"
-                                        className="button-label glamor-6"
+                                        className="button-label css-5ipae5"
                                       >
                                         <div
-                                          className="button-label glamor-6"
+                                          className="button-label css-5ipae5"
                                           is={null}
                                         >
                                           <span
@@ -589,27 +383,27 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
         to="/url/with/params/org-slug/"
       >
         <Component
-          className="glamor-48 glamor-49"
+          className="css-ryqtzi-AlertLink css-1k2xcw02"
           to="/url/with/params/org-slug/"
         >
           <Link
-            className="glamor-48 glamor-49"
+            className="css-ryqtzi-AlertLink css-1k2xcw02"
             to="/url/with/params/org-slug/"
           >
             <Link
-              className="glamor-48 glamor-49"
+              className="css-ryqtzi-AlertLink css-1k2xcw02"
               onlyActiveOnIndex={false}
               style={Object {}}
               to="/url/with/params/org-slug/"
             >
               <a
-                className="glamor-48 glamor-49"
+                className="css-ryqtzi-AlertLink css-1k2xcw02"
                 onClick={[Function]}
                 style={Object {}}
               >
                 <AlertLinkText>
                   <div
-                    className="glamor-44 glamor-45"
+                    className="css-19z7wog-AlertLinkText css-1k2xcw00"
                   >
                     <span
                       dangerouslySetInnerHTML={
@@ -630,7 +424,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                     width="1em"
                   >
                     <svg
-                      className="glamor-46 glamor-47"
+                      className="css-ryh69w-StyledSvg css-adkcw30"
                       height="1em"
                       viewBox={Object {}}
                       width="1em"
@@ -653,21 +447,21 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
       </h5>
       <Details>
         <Base
-          className="glamor-68 glamor-69"
+          className="css-16wp28j-Details css-1slqebt3"
         >
           <div
-            className="glamor-68 glamor-69"
+            className="css-16wp28j-Details css-1slqebt3"
             is={null}
           >
             <Box
               width={0.625}
             >
               <Base
-                className="glamor-60"
+                className="css-dydpyx"
                 width={0.625}
               >
                 <div
-                  className="glamor-60"
+                  className="css-dydpyx"
                   is={null}
                 >
                   <Description
@@ -679,7 +473,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                     }
                   >
                     <div
-                      className="glamor-56 glamor-57"
+                      className="css-i2iqfw-Description css-1slqebt4"
                       dangerouslySetInnerHTML={
                         Object {
                           "__html": "<p><em>markdown</em> formatted <em>description</em></p>
@@ -690,7 +484,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                   </Description>
                   <AuthorName>
                     <div
-                      className="glamor-58 glamor-59"
+                      className="css-v0poyl-AuthorName css-1slqebt5"
                     >
                       By Morty
                     </div>
@@ -702,18 +496,18 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
               ml={60}
             >
               <Base
-                className="glamor-66"
+                className="css-vgctkd"
                 ml={60}
               >
                 <div
-                  className="glamor-66"
+                  className="css-vgctkd"
                   is={null}
                 >
                   <MetadataLink
                     href="http://example.com/integration_issue_url"
                   >
                     <a
-                      className="glamor-62 glamor-63"
+                      className="css-5qmaie-MetadataLink css-1slqebt6"
                       href="http://example.com/integration_issue_url"
                     >
                       Report an Issue
@@ -723,7 +517,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                     href="http://example.com/integration_source_url"
                   >
                     <a
-                      className="glamor-62 glamor-63"
+                      className="css-5qmaie-MetadataLink css-1slqebt6"
                       href="http://example.com/integration_source_url"
                     >
                       View Source
@@ -740,7 +534,9 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
 </OrganizationIntegrationConfig>
 `;
 
-exports[`OrganizationIntegrationConfig render() without any integrations Displays an error for an invalid provider key 1`] = `
+exports[
+  `OrganizationIntegrationConfig render() without any integrations Displays an error for an invalid provider key 1`
+] = `
 <SideEffect(DocumentTitle)
   title="Global Integrations - Sentry"
 >

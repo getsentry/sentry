@@ -1,159 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`ProjectDebugSymbols renders 1`] = `
-.glamor-4 {
-  font-size: 14px;
-  box-shadow: inset 0 -1px 0;
-  margin: -20px 0 30px;
-}
-
-.glamor-2 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
-.glamor-0 {
-  font-size: 20px;
-  font-weight: bold;
-  margin: 20px 0;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-}
-
-.glamor-6 {
-  line-height: 1.5;
-  margin-bottom: 30px;
-}
-
-.glamor-42 {
-  background: #fff;
-  border: 1px solid;
-  margin-bottom: NaNpx;
-  position: relative;
-}
-
-.glamor-14 {
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  line-height: 1;
-  padding: 15px 20px;
-}
-
-.glamor-11 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  -webkit-box-pack: justify;
-  -webkit-justify-content: space-between;
-  -ms-flex-pack: justify;
-  justify-content: space-between;
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  line-height: 1;
-  padding: 15px 20px;
-}
-
-.glamor-38 {
-  box-sizing: border-box;
-  padding: 16px;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-flex-direction: column;
-  -ms-flex-direction: column;
-  flex-direction: column;
-  border-bottom: 1px solid;
-}
-
-.glamor-38:last-child {
-  border: 0;
-}
-
-.glamor-34 {
-  cursor: pointer;
-  -webkit-transition: all 0s ease-in-out;
-  transition: all 0s ease-in-out;
-}
-
-.glamor-29 {
-  box-sizing: border-box;
-  padding: 16px;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  border-bottom: 1px solid;
-  cursor: pointer;
-  -webkit-transition: all 0s ease-in-out;
-  transition: all 0s ease-in-out;
-}
-
-.glamor-29:last-child {
-  border: 0;
-}
-
-.glamor-24 {
-  box-sizing: border-box;
-  padding: 16px;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-flex-direction: column;
-  -ms-flex-direction: column;
-  flex-direction: column;
-}
-
-.glamor-20 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  font-size: 12px;
-}
-
-.glamor-18 {
-  margin-right: 4px;
-}
-
-.glamor-26 {
-  box-sizing: border-box;
-  padding: 16px;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-}
-
 <ProjectDebugSymbols
   params={
     Object {
@@ -168,22 +15,22 @@ exports[`ProjectDebugSymbols renders 1`] = `
     >
       <Wrapper>
         <div
-          className="glamor-4 glamor-5"
+          className="css-foidy-Wrapper css-17jmgia0"
         >
           <Flex
             align="center"
           >
             <Base
               align="center"
-              className="glamor-2"
+              className="css-5ipae5"
             >
               <div
-                className="glamor-2"
+                className="css-5ipae5"
                 is={null}
               >
                 <Title>
                   <div
-                    className="glamor-0 glamor-1"
+                    className="css-zmdcxu-Title css-17jmgia1"
                   >
                     Debug Information Files
                   </div>
@@ -196,10 +43,10 @@ exports[`ProjectDebugSymbols renders 1`] = `
     </SettingsPageHeading>
     <TextBlock>
       <Component
-        className="glamor-6 glamor-7"
+        className="css-ms59cf-TextBlock css-1gwew8k0"
       >
         <div
-          className="glamor-6 glamor-7"
+          className="css-ms59cf-TextBlock css-1gwew8k0"
         >
           
           Here you can find uploaded debug information (for instance debug
@@ -227,7 +74,7 @@ exports[`ProjectDebugSymbols renders 1`] = `
         }
       >
         <div
-          className="glamor-42 glamor-43"
+          className="css-wfa8ap-StyledPanel css-5bw71w0"
           style={
             Object {
               "marginBottom": 40,
@@ -237,20 +84,20 @@ exports[`ProjectDebugSymbols renders 1`] = `
           <PanelHeader>
             <StyledPanelHeader>
               <Component
-                className="glamor-14 glamor-10"
+                className="css-wxaapd-StyledPanelHeader css-zott9u0"
               >
                 <Flex
                   align="center"
-                  className="glamor-14 glamor-10"
+                  className="css-wxaapd-StyledPanelHeader css-zott9u0"
                   justify="space-between"
                 >
                   <Base
                     align="center"
-                    className="glamor-10 glamor-11"
+                    className="css-zott9u0 css-1qscict"
                     justify="space-between"
                   >
                     <div
-                      className="glamor-10 glamor-11"
+                      className="css-zott9u0 css-1qscict"
                       is={null}
                     >
                       <div
@@ -288,12 +135,12 @@ exports[`ProjectDebugSymbols renders 1`] = `
                   p={2}
                 >
                   <Base
-                    className="glamor-38 glamor-30"
+                    className="css-1u7weda-StyledPanelItem css-q9h14u0"
                     direction="column"
                     p={2}
                   >
                     <div
-                      className="glamor-38 glamor-30"
+                      className="css-1u7weda-StyledPanelItem css-q9h14u0"
                       is={null}
                     >
                       <HoverablePanelItem
@@ -301,22 +148,22 @@ exports[`ProjectDebugSymbols renders 1`] = `
                         onClick={[Function]}
                       >
                         <PanelItem
-                          className="hoverable glamor-34 glamor-28"
+                          className="hoverable css-1mrkblk-HoverablePanelItem css-nt1oxw2"
                           onClick={[Function]}
                           p={2}
                         >
                           <StyledPanelItem
-                            className="hoverable glamor-34 glamor-28"
+                            className="hoverable css-1mrkblk-HoverablePanelItem css-nt1oxw2"
                             onClick={[Function]}
                             p={2}
                           >
                             <Base
-                              className="hoverable glamor-28 glamor-29 glamor-30"
+                              className="hoverable css-nt1oxw2 css-bqgi4j-StyledPanelItem css-q9h14u0"
                               onClick={[Function]}
                               p={2}
                             >
                               <div
-                                className="hoverable glamor-28 glamor-29 glamor-30"
+                                className="hoverable css-nt1oxw2 css-bqgi4j-StyledPanelItem css-q9h14u0"
                                 is={null}
                                 onClick={[Function]}
                               >
@@ -326,13 +173,13 @@ exports[`ProjectDebugSymbols renders 1`] = `
                                   p={2}
                                 >
                                   <Base
-                                    className="glamor-24"
+                                    className="css-oemg4t"
                                     direction="column"
                                     flex="1"
                                     p={2}
                                   >
                                     <div
-                                      className="glamor-24"
+                                      className="css-oemg4t"
                                       is={null}
                                     >
                                       <h3
@@ -352,17 +199,17 @@ exports[`ProjectDebugSymbols renders 1`] = `
                                       >
                                         <Base
                                           align="center"
-                                          className="glamor-20 glamor-21"
+                                          className="css-2qebs7-LastSeen css-nt1oxw0"
                                         >
                                           <div
-                                            className="glamor-20 glamor-21"
+                                            className="css-2qebs7-LastSeen css-nt1oxw0"
                                             is={null}
                                           >
                                             <TimeIcon
                                               className="icon icon-clock"
                                             >
                                               <span
-                                                className="icon icon-clock glamor-18 glamor-19"
+                                                className="icon icon-clock css-3im64z-TimeIcon css-nt1oxw1"
                                               />
                                             </TimeIcon>
                                             <TimeSince
@@ -386,11 +233,11 @@ exports[`ProjectDebugSymbols renders 1`] = `
                                   p={2}
                                 >
                                   <Base
-                                    className="glamor-26"
+                                    className="css-y2pm3j"
                                     p={2}
                                   >
                                     <div
-                                      className="glamor-26"
+                                      className="css-y2pm3j"
                                       is={null}
                                     >
                                       Debug Information Files
@@ -419,22 +266,22 @@ exports[`ProjectDebugSymbols renders 1`] = `
       >
         <Wrapper>
           <div
-            className="glamor-4 glamor-5"
+            className="css-foidy-Wrapper css-17jmgia0"
           >
             <Flex
               align="center"
             >
               <Base
                 align="center"
-                className="glamor-2"
+                className="css-5ipae5"
               >
                 <div
-                  className="glamor-2"
+                  className="css-5ipae5"
                   is={null}
                 >
                   <Title>
                     <div
-                      className="glamor-0 glamor-1"
+                      className="css-zmdcxu-Title css-17jmgia1"
                     >
                       Unreferenced Debug Information Files
                     </div>
@@ -447,10 +294,10 @@ exports[`ProjectDebugSymbols renders 1`] = `
       </SettingsPageHeading>
       <TextBlock>
         <Component
-          className="glamor-6 glamor-7"
+          className="css-ms59cf-TextBlock css-1gwew8k0"
         >
           <div
-            className="glamor-6 glamor-7"
+            className="css-ms59cf-TextBlock css-1gwew8k0"
           >
             
           This list represents all Debug Information Files which are not assigned to an

@@ -1,222 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`RuleBuilder render() renders 1`] = `
-.glamor-62 {
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  height: 40px;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  margin-bottom: 1em;
-}
-
-.glamor-0 {
-  padding: 0.5em;
-  margin-right: 5px;
-  width: 80px;
-  -webkit-flex-shrink: 0;
-  -ms-flex-negative: 0;
-  flex-shrink: 0;
-}
-
-.glamor-4 {
-  display: block;
-  width: 100%;
-  background: #fff;
-  border: 1px solid;
-  box-shadow: inset;
-  padding: 0.5em;
-  -webkit-transition: border 0.1s linear;
-  transition: border 0.1s linear;
-  resize: vertical;
-  padding: 0.5em;
-  margin-right: 5px;
-}
-
-.glamor-4 {
-  display: block;
-  width: 100%;
-  background: #fff;
-  border: 1px solid;
-  box-shadow: inset;
-  padding: 0.5em;
-  -webkit-transition: border 0.1s linear;
-  transition: border 0.1s linear;
-  resize: vertical;
-  padding: 0.5em;
-  margin-right: 5px;
-}
-
-.glamor-4 {
-  display: block;
-  width: 100%;
-  background: #fff;
-  border: 1px solid;
-  box-shadow: inset;
-  padding: 0.5em;
-  -webkit-transition: border 0.1s linear;
-  transition: border 0.1s linear;
-  resize: vertical;
-  padding: 0.5em;
-  margin-right: 5px;
-}
-
-.glamor-4 {
-  display: block;
-  width: 100%;
-  background: #fff;
-  border: 1px solid;
-  box-shadow: inset;
-  padding: 0.5em;
-  -webkit-transition: border 0.1s linear;
-  transition: border 0.1s linear;
-  resize: vertical;
-  padding: 0.5em;
-  margin-right: 5px;
-}
-
-.glamor-4:focus {
-  outline: none;
-}
-
-.glamor-4:hover,
-.glamor-4:focus,
-.glamor-4:active {
-  border: 1px solid;
-}
-
-.glamor-9 {
-  -webkit-flex-shrink: 0;
-  -ms-flex-negative: 0;
-  flex-shrink: 0;
-  margin-right: 5px;
-}
-
-.glamor-7 {
-  vertical-align: middle;
-  -webkit-flex-shrink: 0;
-  -ms-flex-negative: 0;
-  flex-shrink: 0;
-  margin-right: 5px;
-}
-
-.glamor-43 {
-  box-sizing: border-box;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
-.glamor-39 {
-  position: relative;
-  display: inline-block;
-}
-
-.glamor-35 {
-  margin-right: 5px;
-  padding-right: 8px !important;
-  padding-left: 3px !important;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-  white-space: nowrap;
-  height: 37px;
-  color: !important;
-}
-
-.glamor-27 {
-  position: relative;
-  z-index: 2;
-  box-shadow: none;
-  margin-right: 5px;
-  padding-right: 8px !important;
-  padding-left: 3px !important;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-  white-space: nowrap;
-  height: 37px;
-  color: !important;
-}
-
-.glamor-24 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
-.glamor-13 {
-  -webkit-box-pack: end;
-  -webkit-justify-content: flex-end;
-  -ms-flex-pack: end;
-  justify-content: flex-end;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  padding: 3px;
-}
-
-.glamor-13 span {
-  margin-right: 2px;
-}
-
-.glamor-13 .avatar {
-  width: 28px;
-  height: 28px;
-}
-
-.glamor-18 {
-  margin-left: 0.33em;
-}
-
-.glamor-16 {
-  vertical-align: middle;
-  margin-left: 0.33em;
-}
-
-.glamor-58 {
-  width: 37px;
-  height: 37px;
-  -webkit-flex-shrink: 0;
-  -ms-flex-negative: 0;
-  flex-shrink: 0;
-  padding: 10px 12px !important;
-}
-
-.glamor-52 {
-  box-sizing: border-box;
-  margin-right: 8px;
-  margin-left: -2px;
-}
-
-.glamor-48 {
-  display: block;
-}
-
-.glamor-46 {
-  vertical-align: middle;
-  display: block;
-}
-
 <RuleBuilder
   onAddRule={
     [MockFunction] {
@@ -241,7 +25,7 @@ exports[`RuleBuilder render() renders 1`] = `
 >
   <BuilderBar>
     <div
-      className="glamor-62 glamor-63"
+      className="css-1rsoebt-BuilderBar css-z41bgv0"
     >
       <BuilderSelect
         onChange={[Function]}
@@ -249,7 +33,7 @@ exports[`RuleBuilder render() renders 1`] = `
         value="path"
       >
         <SelectInput
-          className="glamor-0 glamor-1"
+          className="css-1eslqkc-BuilderSelect css-z41bgv1"
           disabled={false}
           multiple={false}
           onChange={[Function]}
@@ -259,7 +43,7 @@ exports[`RuleBuilder render() renders 1`] = `
           value="path"
         >
           <select
-            className="glamor-0 glamor-1"
+            className="css-1eslqkc-BuilderSelect css-z41bgv1"
             disabled={false}
             multiple={false}
             onChange={[Function]}
@@ -287,7 +71,7 @@ exports[`RuleBuilder render() renders 1`] = `
         value=""
       >
         <input
-          className="glamor-4 glamor-5"
+          className="css-1kjq5p2-Input-BuilderInput css-z41bgv2"
           onChange={[Function]}
           placeholder="src/example/*"
           value=""
@@ -297,17 +81,17 @@ exports[`RuleBuilder render() renders 1`] = `
         src="icon-chevron-right"
       >
         <InlineSvg
-          className="glamor-9 glamor-6"
+          className="css-oym5an-Divider css-z41bgv3"
           src="icon-chevron-right"
         >
           <StyledSvg
-            className="glamor-9 glamor-6"
+            className="css-oym5an-Divider css-z41bgv3"
             height="1em"
             viewBox={Object {}}
             width="1em"
           >
             <svg
-              className="glamor-6 glamor-7 glamor-8"
+              className="css-z41bgv3 css-1n8xwmp-StyledSvg css-adkcw30"
               height="1em"
               viewBox={Object {}}
               width="1em"
@@ -326,11 +110,11 @@ exports[`RuleBuilder render() renders 1`] = `
       >
         <Base
           align="center"
-          className="glamor-43"
+          className="css-1yrw3fm"
           flex="1"
         >
           <div
-            className="glamor-43"
+            className="css-1yrw3fm"
             is={null}
           >
             <DropdownAutoComplete
@@ -423,10 +207,10 @@ exports[`RuleBuilder render() renders 1`] = `
                   >
                     <AutoCompleteRoot>
                       <Component
-                        className="glamor-39 glamor-40"
+                        className="css-6v04yn-AutoCompleteRoot css-15ruqn40"
                       >
                         <div
-                          className="glamor-39 glamor-40"
+                          className="css-6v04yn-AutoCompleteRoot css-15ruqn40"
                         >
                           <div
                             onClick={[Function]}
@@ -439,27 +223,27 @@ exports[`RuleBuilder render() renders 1`] = `
                               size="zero"
                             >
                               <DropdownButton
-                                className="glamor-35 glamor-26"
+                                className="css-1miqrq6-BuilderDropdownButton css-z41bgv5"
                                 isOpen={false}
                                 size="zero"
                               >
                                 <StyledButton
-                                  className="glamor-35 glamor-26"
+                                  className="css-1miqrq6-BuilderDropdownButton css-z41bgv5"
                                   isOpen={false}
                                   size="zero"
                                 >
                                   <Component
-                                    className="glamor-26 glamor-27 glamor-28"
+                                    className="css-z41bgv5 css-1hasbse-StyledButton css-1pig06q1"
                                     isOpen={false}
                                     size="zero"
                                   >
                                     <Button
-                                      className="glamor-26 glamor-27 glamor-28"
+                                      className="css-z41bgv5 css-1hasbse-StyledButton css-1pig06q1"
                                       disabled={false}
                                       size="zero"
                                     >
                                       <button
-                                        className="glamor-26 glamor-27 glamor-28 button button-default button-zero"
+                                        className="css-z41bgv5 css-1hasbse-StyledButton css-1pig06q1 button button-default button-zero"
                                         disabled={false}
                                         onClick={[Function]}
                                         role="button"
@@ -470,15 +254,15 @@ exports[`RuleBuilder render() renders 1`] = `
                                         >
                                           <Base
                                             align="center"
-                                            className="button-label glamor-24"
+                                            className="button-label css-5ipae5"
                                           >
                                             <div
-                                              className="button-label glamor-24"
+                                              className="button-label css-5ipae5"
                                               is={null}
                                             >
                                               <Owners>
                                                 <div
-                                                  className="glamor-13 glamor-14"
+                                                  className="css-1t34ifm-Owners css-z41bgv4"
                                                 />
                                               </Owners>
                                               <div>
@@ -486,20 +270,20 @@ exports[`RuleBuilder render() renders 1`] = `
                                               </div>
                                               <StyledChevronDown>
                                                 <Component
-                                                  className="glamor-18 glamor-15"
+                                                  className="css-17v3tc-StyledChevronDown css-1pig06q0"
                                                 >
                                                   <InlineSvg
-                                                    className="glamor-18 glamor-15"
+                                                    className="css-17v3tc-StyledChevronDown css-1pig06q0"
                                                     src="icon-chevron-down"
                                                   >
                                                     <StyledSvg
-                                                      className="glamor-18 glamor-15"
+                                                      className="css-17v3tc-StyledChevronDown css-1pig06q0"
                                                       height="1em"
                                                       viewBox={Object {}}
                                                       width="1em"
                                                     >
                                                       <svg
-                                                        className="glamor-15 glamor-16 glamor-8"
+                                                        className="css-1pig06q0 css-1vk3ljv-StyledSvg css-adkcw30"
                                                         height="1em"
                                                         viewBox={Object {}}
                                                         width="1em"
@@ -540,7 +324,7 @@ exports[`RuleBuilder render() renders 1`] = `
         size="zero"
       >
         <Button
-          className="glamor-58 glamor-59"
+          className="css-3daogo-RuleAddButton css-z41bgv6"
           disabled={false}
           icon="icon-circle-add"
           onClick={[Function]}
@@ -548,7 +332,7 @@ exports[`RuleBuilder render() renders 1`] = `
           size="zero"
         >
           <button
-            className="glamor-58 glamor-59 button button-primary button-zero"
+            className="css-3daogo-RuleAddButton css-z41bgv6 button button-primary button-zero"
             disabled={false}
             onClick={[Function]}
             role="button"
@@ -559,21 +343,21 @@ exports[`RuleBuilder render() renders 1`] = `
             >
               <Base
                 align="center"
-                className="button-label glamor-24"
+                className="button-label css-5ipae5"
               >
                 <div
-                  className="button-label glamor-24"
+                  className="button-label css-5ipae5"
                   is={null}
                 >
                   <Icon
                     size="zero"
                   >
                     <Base
-                      className="glamor-52 glamor-53"
+                      className="css-l3pkcx-Icon css-geyqay0"
                       size="zero"
                     >
                       <div
-                        className="glamor-52 glamor-53"
+                        className="css-l3pkcx-Icon css-geyqay0"
                         is={null}
                         size="zero"
                       >
@@ -582,18 +366,18 @@ exports[`RuleBuilder render() renders 1`] = `
                           src="icon-circle-add"
                         >
                           <InlineSvg
-                            className="glamor-48 glamor-45"
+                            className="css-1ov3rcq-StyledInlineSvg css-geyqay1"
                             size="16px"
                             src="icon-circle-add"
                           >
                             <StyledSvg
-                              className="glamor-48 glamor-45"
+                              className="css-1ov3rcq-StyledInlineSvg css-geyqay1"
                               height="16px"
                               viewBox={Object {}}
                               width="16px"
                             >
                               <svg
-                                className="glamor-45 glamor-46 glamor-8"
+                                className="css-geyqay1 css-1rlza0i-StyledSvg css-adkcw30"
                                 height="16px"
                                 viewBox={Object {}}
                                 width="16px"

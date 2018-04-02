@@ -1,24 +1,14 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`Organization Rate Limits renders with maxRate and maxRateInterval set 1`] = `
-.glamor-4 {
-  margin-bottom: 0;
-}
-
-.glamor-0 {
-  line-height: 1.5;
-  margin-bottom: 30px;
-  margin-bottom: 0;
-}
-
 <TextBlock
-  className="glamor-4"
+  className="css-gx0lhm"
 >
   <Component
-    className="glamor-0 glamor-1"
+    className="css-b3mf8s-TextBlock css-1gwew8k0"
   >
     <div
-      className="glamor-0 glamor-1"
+      className="css-b3mf8s-TextBlock css-1gwew8k0"
     >
       <span
         key="8"

@@ -1,153 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`ProjectSavedSearches renders 1`] = `
-.glamor-4 {
-  font-size: 14px;
-  box-shadow: inset 0 -1px 0;
-  margin: -20px 0 30px;
-}
-
-.glamor-2 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
-.glamor-0 {
-  font-size: 20px;
-  font-weight: bold;
-  margin: 20px 0;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-}
-
-.glamor-62 {
-  background: #fff;
-  border: 1px solid;
-  margin-bottom: NaNpx;
-  position: relative;
-}
-
-.glamor-22 {
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  line-height: 1;
-  padding: 15px 0;
-}
-
-.glamor-19 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  -webkit-box-pack: justify;
-  -webkit-justify-content: space-between;
-  -ms-flex-pack: justify;
-  justify-content: space-between;
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  line-height: 1;
-  padding: 15px 0;
-}
-
-.glamor-14 {
-  box-sizing: border-box;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-}
-
-.glamor-6 {
-  box-sizing: border-box;
-  padding-left: 16px;
-  padding-right: 16px;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-}
-
-.glamor-8 {
-  box-sizing: border-box;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-box-pack: center;
-  -webkit-justify-content: center;
-  -ms-flex-pack: center;
-  justify-content: center;
-}
-
-.glamor-40 {
-  box-sizing: border-box;
-  padding: 0px;
-  padding-top: 16px;
-  padding-bottom: 16px;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  border-bottom: 1px solid;
-}
-
-.glamor-40:last-child {
-  border: 0;
-}
-
-.glamor-28 {
-  box-sizing: border-box;
-  padding-left: 16px;
-  padding-right: 16px;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-flex-direction: column;
-  -ms-flex-direction: column;
-  flex-direction: column;
-}
-
-.glamor-26 {
-  font-size: 18px;
-  margin-bottom: 5px;
-}
-
 <ProjectSavedSearches
   params={
     Object {
@@ -162,22 +15,22 @@ exports[`ProjectSavedSearches renders 1`] = `
     >
       <Wrapper>
         <div
-          className="glamor-4 glamor-5"
+          className="css-foidy-Wrapper css-17jmgia0"
         >
           <Flex
             align="center"
           >
             <Base
               align="center"
-              className="glamor-2"
+              className="css-5ipae5"
             >
               <div
-                className="glamor-2"
+                className="css-5ipae5"
                 is={null}
               >
                 <Title>
                   <div
-                    className="glamor-0 glamor-1"
+                    className="css-zmdcxu-Title css-17jmgia1"
                   >
                     Saved Searches
                   </div>
@@ -191,7 +44,7 @@ exports[`ProjectSavedSearches renders 1`] = `
     <Panel>
       <StyledPanel>
         <div
-          className="glamor-62 glamor-63"
+          className="css-wfa8ap-StyledPanel css-5bw71w0"
         >
           <PanelHeader
             disablePadding={true}
@@ -200,32 +53,32 @@ exports[`ProjectSavedSearches renders 1`] = `
               disablePadding={true}
             >
               <Component
-                className="glamor-22 glamor-18"
+                className="css-1ml1jfr-StyledPanelHeader css-zott9u0"
                 disablePadding={true}
               >
                 <Flex
                   align="center"
-                  className="glamor-22 glamor-18"
+                  className="css-1ml1jfr-StyledPanelHeader css-zott9u0"
                   justify="space-between"
                 >
                   <Base
                     align="center"
-                    className="glamor-18 glamor-19"
+                    className="css-zott9u0 css-kam103"
                     justify="space-between"
                   >
                     <div
-                      className="glamor-18 glamor-19"
+                      className="css-zott9u0 css-kam103"
                       is={null}
                     >
                       <Flex
                         flex="1"
                       >
                         <Base
-                          className="glamor-14"
+                          className="css-z8nhq7"
                           flex="1"
                         >
                           <div
-                            className="glamor-14"
+                            className="css-z8nhq7"
                             is={null}
                           >
                             <Flex
@@ -233,12 +86,12 @@ exports[`ProjectSavedSearches renders 1`] = `
                               px={2}
                             >
                               <Base
-                                className="glamor-6"
+                                className="css-1i4q2rt"
                                 flex="1"
                                 px={2}
                               >
                                 <div
-                                  className="glamor-6"
+                                  className="css-1i4q2rt"
                                   is={null}
                                 >
                                   Search
@@ -249,11 +102,11 @@ exports[`ProjectSavedSearches renders 1`] = `
                               flex="1"
                             >
                               <Base
-                                className="glamor-14"
+                                className="css-z8nhq7"
                                 flex="1"
                               >
                                 <div
-                                  className="glamor-14"
+                                  className="css-z8nhq7"
                                   is={null}
                                 >
                                   <InputColumn>
@@ -262,12 +115,12 @@ exports[`ProjectSavedSearches renders 1`] = `
                                       justify="center"
                                     >
                                       <Base
-                                        className="glamor-8"
+                                        className="css-k3hlac"
                                         flex="1"
                                         justify="center"
                                       >
                                         <div
-                                          className="glamor-8"
+                                          className="css-k3hlac"
                                           is={null}
                                         >
                                           My Default
@@ -281,12 +134,12 @@ exports[`ProjectSavedSearches renders 1`] = `
                                       justify="center"
                                     >
                                       <Base
-                                        className="glamor-8"
+                                        className="css-k3hlac"
                                         flex="1"
                                         justify="center"
                                       >
                                         <div
-                                          className="glamor-8"
+                                          className="css-k3hlac"
                                           is={null}
                                         >
                                           Team Default
@@ -300,12 +153,12 @@ exports[`ProjectSavedSearches renders 1`] = `
                                       justify="center"
                                     >
                                       <Base
-                                        className="glamor-8"
+                                        className="css-k3hlac"
                                         flex="1"
                                         justify="center"
                                       >
                                         <div
-                                          className="glamor-8"
+                                          className="css-k3hlac"
                                           is={null}
                                         >
                                           Remove
@@ -378,12 +231,12 @@ exports[`ProjectSavedSearches renders 1`] = `
                   >
                     <Base
                       align="center"
-                      className="glamor-40 glamor-41"
+                      className="css-xw0gom-StyledPanelItem css-q9h14u0"
                       p={0}
                       py={2}
                     >
                       <div
-                        className="glamor-40 glamor-41"
+                        className="css-xw0gom-StyledPanelItem css-q9h14u0"
                         is={null}
                       >
                         <Flex
@@ -392,18 +245,18 @@ exports[`ProjectSavedSearches renders 1`] = `
                           px={2}
                         >
                           <Base
-                            className="glamor-28"
+                            className="css-16auc1r"
                             direction="column"
                             flex="1"
                             px={2}
                           >
                             <div
-                              className="glamor-28"
+                              className="css-16auc1r"
                               is={null}
                             >
                               <SearchTitle>
                                 <div
-                                  className="glamor-26 glamor-27"
+                                  className="css-225nrx-SearchTitle css-ipros10"
                                 >
                                   Needs Triage
                                 </div>
@@ -418,11 +271,11 @@ exports[`ProjectSavedSearches renders 1`] = `
                           flex="1"
                         >
                           <Base
-                            className="glamor-14"
+                            className="css-z8nhq7"
                             flex="1"
                           >
                             <div
-                              className="glamor-14"
+                              className="css-z8nhq7"
                               is={null}
                             >
                               <InputColumn>
@@ -431,12 +284,12 @@ exports[`ProjectSavedSearches renders 1`] = `
                                   justify="center"
                                 >
                                   <Base
-                                    className="glamor-8"
+                                    className="css-k3hlac"
                                     flex="1"
                                     justify="center"
                                   >
                                     <div
-                                      className="glamor-8"
+                                      className="css-k3hlac"
                                       is={null}
                                     >
                                       <input
@@ -455,12 +308,12 @@ exports[`ProjectSavedSearches renders 1`] = `
                                   justify="center"
                                 >
                                   <Base
-                                    className="glamor-8"
+                                    className="css-k3hlac"
                                     flex="1"
                                     justify="center"
                                   >
                                     <div
-                                      className="glamor-8"
+                                      className="css-k3hlac"
                                       is={null}
                                     >
                                       <input
@@ -479,12 +332,12 @@ exports[`ProjectSavedSearches renders 1`] = `
                                   justify="center"
                                 >
                                   <Base
-                                    className="glamor-8"
+                                    className="css-k3hlac"
                                     flex="1"
                                     justify="center"
                                   >
                                     <div
-                                      className="glamor-8"
+                                      className="css-k3hlac"
                                       is={null}
                                     >
                                       <Confirm
@@ -511,10 +364,10 @@ exports[`ProjectSavedSearches renders 1`] = `
                                             >
                                               <Base
                                                 align="center"
-                                                className="button-label glamor-2"
+                                                className="button-label css-5ipae5"
                                               >
                                                 <div
-                                                  className="button-label glamor-2"
+                                                  className="button-label css-5ipae5"
                                                   is={null}
                                                 >
                                                   <span
@@ -635,12 +488,12 @@ exports[`ProjectSavedSearches renders 1`] = `
                   >
                     <Base
                       align="center"
-                      className="glamor-40 glamor-41"
+                      className="css-xw0gom-StyledPanelItem css-q9h14u0"
                       p={0}
                       py={2}
                     >
                       <div
-                        className="glamor-40 glamor-41"
+                        className="css-xw0gom-StyledPanelItem css-q9h14u0"
                         is={null}
                       >
                         <Flex
@@ -649,18 +502,18 @@ exports[`ProjectSavedSearches renders 1`] = `
                           px={2}
                         >
                           <Base
-                            className="glamor-28"
+                            className="css-16auc1r"
                             direction="column"
                             flex="1"
                             px={2}
                           >
                             <div
-                              className="glamor-28"
+                              className="css-16auc1r"
                               is={null}
                             >
                               <SearchTitle>
                                 <div
-                                  className="glamor-26 glamor-27"
+                                  className="css-225nrx-SearchTitle css-ipros10"
                                 >
                                   Unresolved Issues
                                 </div>
@@ -675,11 +528,11 @@ exports[`ProjectSavedSearches renders 1`] = `
                           flex="1"
                         >
                           <Base
-                            className="glamor-14"
+                            className="css-z8nhq7"
                             flex="1"
                           >
                             <div
-                              className="glamor-14"
+                              className="css-z8nhq7"
                               is={null}
                             >
                               <InputColumn>
@@ -688,12 +541,12 @@ exports[`ProjectSavedSearches renders 1`] = `
                                   justify="center"
                                 >
                                   <Base
-                                    className="glamor-8"
+                                    className="css-k3hlac"
                                     flex="1"
                                     justify="center"
                                   >
                                     <div
-                                      className="glamor-8"
+                                      className="css-k3hlac"
                                       is={null}
                                     >
                                       <input
@@ -712,12 +565,12 @@ exports[`ProjectSavedSearches renders 1`] = `
                                   justify="center"
                                 >
                                   <Base
-                                    className="glamor-8"
+                                    className="css-k3hlac"
                                     flex="1"
                                     justify="center"
                                   >
                                     <div
-                                      className="glamor-8"
+                                      className="css-k3hlac"
                                       is={null}
                                     >
                                       <input
@@ -736,12 +589,12 @@ exports[`ProjectSavedSearches renders 1`] = `
                                   justify="center"
                                 >
                                   <Base
-                                    className="glamor-8"
+                                    className="css-k3hlac"
                                     flex="1"
                                     justify="center"
                                   >
                                     <div
-                                      className="glamor-8"
+                                      className="css-k3hlac"
                                       is={null}
                                     >
                                       <Confirm
@@ -768,10 +621,10 @@ exports[`ProjectSavedSearches renders 1`] = `
                                             >
                                               <Base
                                                 align="center"
-                                                className="button-label glamor-2"
+                                                className="button-label css-5ipae5"
                                               >
                                                 <div
-                                                  className="button-label glamor-2"
+                                                  className="button-label css-5ipae5"
                                                   is={null}
                                                 >
                                                   <span
@@ -857,33 +710,6 @@ exports[`ProjectSavedSearches renders 1`] = `
 `;
 
 exports[`ProjectSavedSearches renders empty 1`] = `
-.glamor-4 {
-  font-size: 14px;
-  box-shadow: inset 0 -1px 0;
-  margin: -20px 0 30px;
-}
-
-.glamor-2 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
-.glamor-0 {
-  font-size: 20px;
-  font-weight: bold;
-  margin: 20px 0;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-}
-
 <ProjectSavedSearches
   params={
     Object {
@@ -898,22 +724,22 @@ exports[`ProjectSavedSearches renders empty 1`] = `
     >
       <Wrapper>
         <div
-          className="glamor-4 glamor-5"
+          className="css-foidy-Wrapper css-17jmgia0"
         >
           <Flex
             align="center"
           >
             <Base
               align="center"
-              className="glamor-2"
+              className="css-5ipae5"
             >
               <div
-                className="glamor-2"
+                className="css-5ipae5"
                 is={null}
               >
                 <Title>
                   <div
-                    className="glamor-0 glamor-1"
+                    className="css-zmdcxu-Title css-17jmgia1"
                   >
                     Saved Searches
                   </div>

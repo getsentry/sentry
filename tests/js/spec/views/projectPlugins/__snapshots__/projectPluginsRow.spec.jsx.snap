@@ -1,10 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`ProjectPluginRow renders 1`] = `
-.glamor-0 {
-  color: #979ba0;
-}
-
 <Flex
   align="center"
   className="amazon-sqs"
@@ -37,7 +33,7 @@ exports[`ProjectPluginRow renders 1`] = `
       </PluginName>
       <div>
         <ExternalLink
-          className="glamor-0"
+          className="css-9nrxy7"
           href="https://github.com/getsentry/sentry"
           rel="noreferrer noopener"
           target="_blank"
@@ -49,7 +45,7 @@ exports[`ProjectPluginRow renders 1`] = `
           ·
            
           <Link
-            className="glamor-0"
+            className="css-9nrxy7"
             onlyActiveOnIndex={false}
             style={Object {}}
           >
