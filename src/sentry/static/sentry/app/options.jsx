@@ -2,7 +2,7 @@ import React from 'react';
 import _ from 'lodash';
 import ConfigStore from './stores/configStore';
 import {t, tct} from './locale';
-import {EmailField, TextField, BooleanField} from './components/forms';
+import {EmailField, TextField, BooleanField, RadioBooleanField} from './components/forms';
 
 // This are ordered based on their display order visually
 const sections = [
@@ -100,9 +100,10 @@ const definitions = [
   },
   {
     key: 'beacon.anonymous',
-    label: 'Anonymize Beacon',
-    component: BooleanField,
-    defaultValue: () => true,
+    label: 'Usage Statistics',
+    component: RadioBooleanField,
+    yesLabel: 'Send my contact information along with usage statistics',
+    noLabel: 'Please keep my usage information anonymous',
     help: tct(
       'If enabled, any stats reported to sentry.io will exclude identifying information (such as your administrative email address). By anonymizing your installation the Sentry team will be unable to contact you about security updates. For more information on what data is sent to Sentry, see the [link:documentation].',
       {
@@ -172,14 +173,11 @@ export function getOptionField(option, field) {
   let Field = meta.component || TextField;
   return (
     <Field
+      {...meta}
       name={option}
       key={option}
-      label={meta.label}
       defaultValue={meta.defaultValue ? meta.defaultValue() : undefined}
-      placeholder={meta.placeholder}
-      help={meta.help}
       required={meta.required && !meta.allowEmpty}
-      disabled={meta.disabled}
       disabledReason={meta.disabledReason && disabledReasons[meta.disabledReason]}
     />
   );
