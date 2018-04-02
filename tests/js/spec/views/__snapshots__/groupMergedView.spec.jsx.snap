@@ -772,7 +772,6 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                             <h3
                               className="truncate"
                             >
-                               
                               <ProjectLink
                                 to={
                                   Object {
@@ -1209,7 +1208,6 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                             <h3
                               className="truncate"
                             >
-                               
                               <ProjectLink
                                 to={
                                   Object {
@@ -2121,7 +2119,6 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                             <h3
                               className="truncate"
                             >
-                               
                               <ProjectLink
                                 to={
                                   Object {
@@ -2558,7 +2555,6 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                             <h3
                               className="truncate"
                             >
-                               
                               <ProjectLink
                                 to={
                                   Object {

@@ -115,7 +115,7 @@ const StreamGroup = createReactClass({
               <GroupCheckBox id={data.id} />
             </div>
           )}
-          {hasGuideAnchor ? <StyledGuideAnchor target="issues" type="text" /> : null}
+          {hasGuideAnchor && <StyledGuideAnchor target="issues" type="text" />}
           <EventOrGroupHeader
             data={data}
             orgId={orgId}
@@ -137,11 +137,11 @@ const StreamGroup = createReactClass({
           <GroupChart id={data.id} statsPeriod={this.props.statsPeriod} data={data} />
         </div>
         <div className="col-md-1 col-xs-2 event-count align-right">
-          {hasGuideAnchor ? <GuideAnchor target="events" type="text" /> : null}
+          {hasGuideAnchor && <GuideAnchor target="events" type="text" />}
           <Count value={data.count} />
         </div>
         <div className="col-md-1 col-xs-2 event-users align-right">
-          {hasGuideAnchor ? <GuideAnchor target="users" type="text" /> : null}
+          {hasGuideAnchor && <GuideAnchor target="users" type="text" />}
           <Count value={userCount} />
         </div>
       </li>

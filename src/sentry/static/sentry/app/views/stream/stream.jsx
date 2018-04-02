@@ -637,6 +637,8 @@ const Stream = createReactClass({
   },
 
   renderGroupNodes(ids, statsPeriod) {
+    // Restrict this guide to only show on a project with less than two issues
+    // because anchors light up all issues on the page
     let hasGuideAnchor = ids.length > 0 && ids.length <= 2;
     let {orgId, projectId} = this.props.params;
     let groupNodes = ids.map(id => {
