@@ -6,6 +6,7 @@ import styled from 'react-emotion';
 
 import AutoComplete from './autoComplete';
 import Input from '../views/settings/components/forms/controls/input';
+import styles from '../styles/index';
 
 class DropdownAutoCompleteMenu extends React.Component {
   static propTypes = {
@@ -214,18 +215,18 @@ const StyledInput = styled(Input)`
     border-radius: 0;
     box-shadow: none;
     font-size: 13px;
-    padding: 12px 8px;
     font-weight: normal;
     color: ${p => p.gray2};
+    ${styles.paddingBoth(4, 3)};
   }
 `;
 
 const AutoCompleteItem = styled('div')`
   background-color: ${p =>
     p.index == p.highlightedIndex ? p.theme.offWhite : 'transparent'};
-  padding: 4px 8px;
   cursor: pointer;
   border-bottom: 1px solid ${p => p.theme.borderLighter};
+  ${styles.paddingBoth(3)};
 
   &:last-child {
     border-bottom: none;
@@ -238,10 +239,10 @@ const AutoCompleteItem = styled('div')`
 `;
 
 const StyledLabel = styled('div')`
-  padding: 2px 8px;
   background-color: ${p => p.theme.offWhite};
   border: 1px solid ${p => p.theme.borderLight};
   border-width: 1px 0;
+  ${styles.paddingBoth(3)};
 
   &:first-child {
     border-top: none;

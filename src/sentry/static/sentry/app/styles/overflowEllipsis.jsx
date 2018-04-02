@@ -1,6 +1,6 @@
 import {css} from 'react-emotion';
 
-export default `
+export default css`
   display: block;
   white-space: nowrap;
   overflow: hidden;

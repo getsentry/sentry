@@ -63,8 +63,9 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
   border-bottom: 1px solid;
   border-radius: 0 0;
   line-height: 1;
-  padding-top: 8px;
-  padding-bottom: 8px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-right: 4px;
 }
 
 .glamor-17 {
@@ -87,8 +88,9 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
   border-bottom: 1px solid;
   border-radius: 0 0;
   line-height: 1;
-  padding-top: 8px;
-  padding-bottom: 8px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-right: 4px;
 }
 
 .glamor-10 {
@@ -745,7 +747,9 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
 </OrganizationIntegrationConfig>
 `;
 
-exports[`OrganizationIntegrationConfig render() without any integrations Displays an error for an invalid provider key 1`] = `
+exports[
+  `OrganizationIntegrationConfig render() without any integrations Displays an error for an invalid provider key 1`
+] = `
 <SideEffect(DocumentTitle)
   title="Global Integrations - Sentry"
 >

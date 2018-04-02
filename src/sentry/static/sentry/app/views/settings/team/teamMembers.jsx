@@ -18,7 +18,7 @@ import {Panel, PanelHeader} from '../../../components/panels';
 import InlineSvg from '../../../components/inlineSvg';
 import EmptyMessage from '../components/emptyMessage';
 import {t} from '../../../locale';
-import overflowEllipsis from '../../../styles/overflowEllipsis';
+import styles from '../../../styles/index';
 
 const TeamMembers = createReactClass({
   displayName: 'TeamMembers',
@@ -218,7 +218,7 @@ const TeamMembers = createReactClass({
         <InlineSvg
           src="icon-circle-subtract"
           size="1.25em"
-          style={{marginRight: '0.5em'}}
+          className={styles.marginRight(4)}
         />
         {t('Remove')}
       </Button>
@@ -259,21 +259,21 @@ const TeamMembers = createReactClass({
 const StyledMemberContainer = styled('div')`
   display: flex;
   justify-content: space-between;
-  padding: 1.25em 1em;
   border-bottom: 1px solid ${p => p.theme.borderLight};
+  ${styles.paddingBoth(6, 5)};
 `;
 
 const StyledUserListElement = styled('div')`
-  width: 250px;
   font-size: 0.875em;
   display: flex;
   align-items: center;
+  ${styles.paddingBoth(2)};
 `;
 
 const StyledNameOrEmail = styled('div')`
   flex-shrink: 1;
   min-width: 0;
-  ${overflowEllipsis};
+  ${styles.overflowEllipsis};
 `;
 
 const StyledAvatar = styled(props => <Avatar {...props} />)`
@@ -281,14 +281,14 @@ const StyledAvatar = styled(props => <Avatar {...props} />)`
   min-height: 1.75em;
   width: 1.5em;
   height: 1.5em;
-  margin-right: 0.33em;
+  ${styles.marginRight(3)};
 `;
 
 const StyledMembersLabel = styled('div')`
   width: 250px;
   font-size: 0.875em;
-  padding: 0.75em 0;
   text-transform: uppercase;
+  ${styles.paddingHorizontal(2)};
 `;
 
 const StyledCreateMemberLink = styled(Link)`

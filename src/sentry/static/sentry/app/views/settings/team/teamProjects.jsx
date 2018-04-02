@@ -5,7 +5,7 @@ import styled from 'react-emotion';
 
 import ApiMixin from '../../../mixins/apiMixin';
 import {addErrorMessage, addSuccessMessage} from '../../../actionCreators/indicator';
-import padding from '../../../styles/padding';
+import styles from '../../../styles/index';
 import Button from '../../../components/buttons/button';
 import DropdownAutoComplete from '../../../components/dropdownAutoComplete';
 import DropdownButton from '../../../components/dropdownButton';
@@ -155,18 +155,18 @@ const RemoveIcon = styled(props => (
 ))`
   min-height: 1.25em;
   min-width: 1.25em;
-  margin-right: 0.5em;
+  ${styles.marginRight(3)};
 `;
 
 const ProjectDropdownListElement = styled('div')`
-  ${padding.verticalSmall} ${padding.horizontalExtaSmall};
+  ${styles.paddingVertical(1)};
 `;
 
 const StyledPanelItem = styled(PanelItem)`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  ${padding.normal};
+  ${styles.paddingBoth(4)};
 `;
 
 export default TeamProjects;

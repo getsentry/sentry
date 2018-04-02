@@ -1,7 +1,11 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 exports['ProjectTeams renders 1'] = `
+=======
+exports[`ProjectTeams renders 1`] = `
+>>>>>>> use spacing functions that add unitless numbers
 <SideEffect(DocumentTitle)
   title="Sentry"
 >
@@ -19,6 +23,7 @@ exports['ProjectTeams renders 1'] = `
           Create Team
         </Button>
       }
+<<<<<<< HEAD
       title={
         <span>
           <span>
@@ -29,6 +34,9 @@ exports['ProjectTeams renders 1'] = `
           </span>
         </span>
       }
+=======
+      title="Teams"
+>>>>>>> use spacing functions that add unitless numbers
     />
     <Panel>
       <PanelHeader
@@ -43,10 +51,19 @@ exports['ProjectTeams renders 1'] = `
             items={
               Array [
                 Object {
+<<<<<<< HEAD
                   "label": <TeamDropdownElement>
                     #
                     team-slug-2
                   </TeamDropdownElement>,
+=======
+                  "label": <div
+                    className="css-1i9ojym-styles"
+                  >
+                    #
+                    team-slug-2
+                  </div>,
+>>>>>>> use spacing functions that add unitless numbers
                   "searchKey": "team-slug-2",
                   "value": "2",
                 },
@@ -103,6 +120,9 @@ exports['ProjectTeams renders 1'] = `
   </div>
 </SideEffect(DocumentTitle)>
 `;
+<<<<<<< HEAD
 =======
 exports[`ProjectTeams renders 1`] = `""`;
 >>>>>>> second commit
+=======
+>>>>>>> use spacing functions that add unitless numbers

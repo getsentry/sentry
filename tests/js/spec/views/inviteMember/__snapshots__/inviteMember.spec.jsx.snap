@@ -13,11 +13,17 @@ exports[`CreateProject render() should render loading 1`] = `
 `;
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 exports[
   `CreateProject render() should render roles when available and allowed, and handle submitting 1`
 ] = `
 =======
 exports[`CreateProject render() should render roles when available and allowed, and handle submitting 1`] = `
+=======
+exports[
+  `CreateProject render() should render roles when available and allowed, and handle submitting 1`
+] = `
+>>>>>>> use spacing functions that add unitless numbers
 .glamor-4 {
   font-size: 14px;
   box-shadow: inset 0 -1px 0;
@@ -68,10 +74,10 @@ exports[`CreateProject render() should render roles when available and allowed, 
   border-bottom: 1px solid;
   border-radius: 0 0;
   line-height: 1;
-  padding-top: 16px;
-  padding-bottom: 16px;
-  padding-left: 16px;
-  padding-right: 16px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  padding-left: 10px;
+  padding-right: 10px;
 }
 
 .glamor-11 {
@@ -94,10 +100,10 @@ exports[`CreateProject render() should render roles when available and allowed, 
   border-bottom: 1px solid;
   border-radius: 0 0;
   line-height: 1;
-  padding-top: 16px;
-  padding-bottom: 16px;
-  padding-left: 16px;
-  padding-right: 16px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  padding-left: 10px;
+  padding-right: 10px;
 }
 
 .glamor-25 {

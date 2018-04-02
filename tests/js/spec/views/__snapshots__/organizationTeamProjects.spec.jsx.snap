@@ -17,10 +17,11 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   border-bottom: 1px solid;
   border-radius: 0 0;
   line-height: 1;
-  padding-top: 8px;
-  padding-bottom: 8px;
-  padding-left: 16px;
-  padding-right: 16px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 10px;
+  padding-right: 10px;
+  padding-right: 4px;
 }
 
 .glamor-22 {
@@ -43,10 +44,11 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   border-bottom: 1px solid;
   border-radius: 0 0;
   line-height: 1;
-  padding-top: 8px;
-  padding-bottom: 8px;
-  padding-left: 16px;
-  padding-right: 16px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 10px;
+  padding-right: 10px;
+  padding-right: 4px;
 }
 
 .glamor-17 {
@@ -94,7 +96,10 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   -webkit-justify-content: space-between;
   -ms-flex-pack: justify;
   justify-content: space-between;
-  padding: 16px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  padding-left: 10px;
+  padding-right: 10px;
 }
 
 .glamor-50 {
@@ -117,7 +122,10 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   -webkit-justify-content: space-between;
   -ms-flex-pack: justify;
   justify-content: space-between;
-  padding: 16px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  padding-left: 10px;
+  padding-right: 10px;
 }
 
 .glamor-50:last-child {
@@ -137,14 +145,14 @@ exports[`OrganizationTeamProjects Should render 1`] = `
 .glamor-41 {
   min-height: 1.25em;
   min-width: 1.25em;
-  margin-right: 0.5em;
+  margin-right: 6px;
 }
 
 .glamor-39 {
   vertical-align: middle;
   min-height: 1.25em;
   min-width: 1.25em;
-  margin-right: 0.5em;
+  margin-right: 6px;
 }
 
 >>>>>>> second commit
