@@ -382,12 +382,14 @@ class BuildEventRulesTestCase(TestCase):
             self.create_event(data=make_event_data('hello.py', 'hello.co')),
             self.create_event(data=make_event_data('hello.cpp')),
         ]
-        expected = [[], [
-            self.rule1], [
-            self.rule3, self.rule4], [
-            self.rule2], [
-                self.rule1, self.rule2], [
-                    self.rule5]]
+        expected = [
+            [],
+            [self.rule1],
+            [self.rule3, self.rule4],
+            [self.rule2],
+            [self.rule1, self.rule2],
+            [self.rule5]
+        ]
         event_rules = build_event_rules(self.ownership, events)
         for event, rules in zip(events, expected):
             assert event_rules[event] == rules

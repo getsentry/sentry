@@ -14,7 +14,6 @@ from sentry.digests import Record
 
 from sentry.digests.notifications import (
     Notification,
-    build_digest,
     event_to_record,
     rewrite_record,
     group_records,
@@ -22,7 +21,6 @@ from sentry.digests.notifications import (
     sort_group_contents,
     sort_rule_groups,
 )
-from sentry.digests.utilities import get_events_from_digest
 from sentry.models import Rule
 from sentry.testutils import TestCase
 
@@ -205,16 +203,3 @@ class SortWholeRecordsTestCase(TestCase):
         assert records[0] == record1
         assert records[1] == record2
         assert records[2] == record3
-
-    def test_get_events_from_digest(self):
-        record1 = event_to_record(self.event_team, (self.rule,))
-        record2 = event_to_record(self.event_all_users, (self.rule,))
-        record3 = event_to_record(self.event_single_user, (self.rule,))
-
-        records = (record2, record3, record1)
-        digest = build_digest(self.project, records)
-        events = sorted(get_events_from_digest(digest), key=lambda e_r: e_r[0].id)
-
-        assert len(events) == 3
-        assert events == [(self.event_single_user, [self.rule]),
-                          (self.event_all_users, [self.rule]), (self.event_team, [self.rule])]
