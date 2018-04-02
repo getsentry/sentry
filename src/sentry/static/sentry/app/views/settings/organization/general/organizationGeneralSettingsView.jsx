@@ -51,7 +51,7 @@ const OrganizationGeneralSettingsView = createReactClass({
           data.access.indexOf('org:admin') === -1 &&
           data.access.indexOf('org:write') === -1
         ) {
-          browserHistory.push(
+          browserHistory.replace(
             recreateRoute('teams', {
               params: this.props.params,
               routes: this.props.routes,
