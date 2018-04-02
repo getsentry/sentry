@@ -308,69 +308,6 @@ fieldset[disabled] .btn-danger.active,
   }
 }
 
-/* Justified button group */
-
-.btn-group-justified {
-  display: block;
-
-  .btn {
-    height: 38px;
-    background: #fff;
-    border-color: @gray-lighter;
-    color: @gray-dark;
-    font-weight: 400;
-
-    &.active {
-      font-weight: bold;
-      text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.15);
-
-      &:hover {
-        background: @blue-dark;
-        border-color: darken(@blue-dark, 20);
-      }
-    }
-
-    &:hover {
-      color: @gray-darker;
-      background: @white-dark;
-    }
-
-    &:active {
-      top: 0;
-      box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.06);
-      text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.15);
-    }
-  }
-  .btn-middle {
-    border-left: 0;
-    border-right: 0;
-    position: relative;
-    &:before,
-    &:after {
-      display: block;
-      content: '';
-      position: absolute;
-      top: -1px;
-      bottom: -1px;
-      width: 1px;
-      background: transparent;
-    }
-    &:after {
-      left: -1px;
-    }
-    &:before {
-      right: -1px;
-    }
-
-    &.active {
-      &:after,
-      &:before {
-        background: darken(@blue, 20);
-      }
-    }
-  }
-}
-
 /**
 * Tables
 * ============================================================================
@@ -1048,22 +985,6 @@ table.integrations {
     font-size: 14px;
   }
 
-  .search-save-search {
-    position: absolute;
-    right: 34px;
-    top: 12px;
-    font-size: 12px;
-    padding: 1px 5px 0;
-    color: lighten(@gray, 10);
-    border-radius: 3px;
-
-    &:focus,
-    &:active {
-      position: absolute;
-      top: 13px;
-    }
-  }
-
   .search-input {
     padding: 8px 24px 8px 37px;
     font-size: 14px;
@@ -1073,14 +994,6 @@ table.integrations {
     &:focus {
       border-radius: 3px 3px 0 0;
     }
-  }
-
-  .search-toggle {
-    color: #8e8e97;
-    position: absolute;
-    right: 2px;
-    top: -1px;
-    padding: 10px;
   }
 
   &.disabled {
@@ -1351,10 +1264,9 @@ table.integrations {
 
       > a {
         .truncate();
-        padding: 6px 0 6px 6px;
+        padding: 6px 0;
         border-radius: 0;
         line-height: 1;
-        margin-left: -6px;
         border-left: 3px solid transparent;
 
         &:hover {
@@ -1387,7 +1299,6 @@ table.integrations {
 
         // need to override bootstrap for <a> in dropdown-menu
         a {
-          margin-left: 0;
           border-radius: 3px;
           font-weight: 600;
           color: #ffffff;
@@ -1396,49 +1307,6 @@ table.integrations {
           }
         }
       }
-    }
-  }
-}
-
-/**
-* Charts
-* ============================================================================
-*/
-
-.team-chart {
-  margin-bottom: 30px !important;
-}
-
-.chart {
-  display: block;
-  position: relative;
-  height: 100%;
-  margin-bottom: 20px;
-
-  > .title {
-    font-size: 2em;
-    text-transform: uppercase;
-    position: absolute;
-    left: 1px;
-    top: 1px;
-    color: #dfe3e9;
-    .opacity(70);
-    background: #fff;
-    padding: 5px 8px;
-    line-height: 100%;
-  }
-
-  > .legend {
-    position: absolute;
-    left: 0;
-    top: 0;
-    white-space: nowrap;
-    padding-left: 10px;
-    height: 100%;
-    text-align: left;
-    color: @link-color;
-    .legendLabel {
-      padding: 0 5px;
     }
   }
 }
@@ -1849,80 +1717,6 @@ ul.faces {
 
   .list-loading-container {
     padding: 15px 0 10px 0;
-  }
-}
-
-/**
-* Settings modal
-* ============================================================================
-*/
-
-.settings-modal {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.65);
-  z-index: @zindex-settings-modal;
-  overflow: auto;
-
-  .container {
-    max-width: 760px;
-  }
-
-  .settings-modal-wrap {
-    margin-top: 80px;
-    margin-bottom: 30px;
-    border-radius: 5px;
-    background: #fff;
-    z-index: @zindex-settings-modal;
-  }
-
-  .settings-modal-header {
-    background: #f7f7f7;
-    padding: 15px 20px;
-    border-radius: 5px 5px 0 0;
-
-    h3 {
-      margin: 0;
-    }
-  }
-
-  .settings-modal-body {
-    padding: 20px;
-  }
-
-  .settings-modal-footer {
-    border-top: 1px solid #e9ebec;
-    padding: 15px 20px;
-    text-align: right;
-  }
-}
-
-// Back Arrow
-
-.back-arrow {
-  position: absolute;
-  left: -25px;
-  top: -4px;
-
-  .icon-arrow-left {
-    font-size: 28px !important;
-    font-weight: bold;
-    color: lighten(@gray, 30);
-    .transition(color 0.2s linear);
-  }
-
-  &:hover {
-    .icon-arrow-left {
-      color: lighten(@gray, 20);
-    }
-  }
-
-  &:active {
-    top: -3px;
   }
 }
 
@@ -2351,21 +2145,6 @@ header + .alert {
   }
 }
 
-.active-alerts {
-  margin: 15px 25px 0;
-  padding: 0 5px;
-  li.alert {
-    margin-bottom: 5px;
-  }
-}
-
-.early-adopter-banner {
-  .box;
-  font-size: 13px;
-  padding: 8px 15px;
-  background: @white-dark;
-}
-
 .email-alert-button {
   display: inline;
   margin: 0;
@@ -2687,52 +2466,6 @@ header + .alert {
   }
 }
 
-.nav-tabs-xs {
-  a {
-    font-size: 13px !important;
-    padding: 6px 0 5px !important;
-  }
-}
-
-.text-tabs {
-  a {
-    font-size: 20px !important;
-    padding: 0 !important;
-    line-height: 1 !important;
-  }
-
-  li {
-    padding-left: 17px;
-    margin-right: 15px;
-    position: relative;
-
-    &:before {
-      display: block;
-      content: '';
-      position: absolute;
-      top: 1px;
-      left: 0;
-      height: 18px;
-      width: 1px;
-      background: @trim;
-    }
-
-    &:first-child {
-      padding: 0 !important;
-      &:before {
-        display: none;
-      }
-    }
-  }
-
-  li.active a,
-  li.active a:hover,
-  li.active a:focus,
-  li.active a:active {
-    border: 0;
-  }
-}
-
 /**
 * Badge
 * ============================================================================
@@ -2850,19 +2583,6 @@ header + .alert {
 * Project nav
 * ============================================================================
 */
-
-.nav.project-nav {
-  display: none;
-  margin: -10px 0 30px;
-  border-radius: 3px 3px 0 0;
-
-  .icon-settings {
-    position: relative;
-    top: 1px;
-    margin-right: 2px;
-    opacity: 0.45;
-  }
-}
 
 ul.radio-inputs {
   .list-unstyled;
@@ -3009,12 +2729,6 @@ ul.radio-inputs {
   }
 }
 
-// Modal Small
-
-.modal-sm {
-  width: 400px;
-}
-
 // Broadcast Modal
 
 .modal-broadcast {
@@ -3141,32 +2855,6 @@ ul.tag-list {
     span {
       position: absolute;
       right: 10px;
-    }
-  }
-}
-
-/**
-* Mini tag list
-* ============================================================================
-*/
-
-.mini-tag-list {
-  .clearfix();
-  .list-unstyled();
-  margin: -10px 0 5px;
-
-  > li {
-    float: left;
-    background: #fff;
-    border-radius: 3px;
-    margin: 0 20px 5px 0;
-
-    span:nth-child(2) {
-      color: #aaa;
-    }
-
-    a {
-      word-break: break-all;
     }
   }
 }
@@ -3366,20 +3054,6 @@ ul.tag-list {
       color: black !important;
       background: white !important;
     }
-  }
-}
-
-/**
- * Reusable project label
- * ============================================================================
- */
-.project-label {
-  .callsign-addon {
-    color: @blue;
-    font-weight: bold;
-    padding-left: 7px;
-    font-size: 80%;
-    vertical-align: top;
   }
 }
 
