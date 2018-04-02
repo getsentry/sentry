@@ -21,6 +21,7 @@ import sentry
 from sentry.utils.types import type_from_value
 
 from datetime import timedelta
+from django.utils.translation import ugettext_lazy as _
 from six.moves.urllib.parse import urlparse
 
 
@@ -1305,3 +1306,5 @@ SOUTH_TESTS_MIGRATE = os.environ.get('SOUTH_TESTS_MIGRATE', '0') == '1'
 
 TERMS_URL = None
 PRIVACY_URL = None
+
+NEWSLETTER_OPTIN_TEXT = _('Subscribe to product updates newsletter')

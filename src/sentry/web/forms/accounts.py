@@ -192,7 +192,7 @@ class RegistrationForm(forms.ModelForm):
         required=True, widget=forms.PasswordInput(attrs={'placeholder': 'something super secret'})
     )
     subscribe = forms.BooleanField(
-        label=_('Subscribe to product updates newsletter'),
+        label=settings.NEWSLETTER_OPTIN_TEXT,
         required=False,
         initial=False,
     )
