@@ -353,6 +353,7 @@ class BuildEventRulesTestCase(TestCase):
                 self.rule2,
                 self.rule3,
                 self.rule4,
+                self.rule5,
             ]),
             fallthrough=True,
         )
@@ -364,7 +365,7 @@ class BuildEventRulesTestCase(TestCase):
 
     def test_no_schema(self):
         ownership = ProjectOwnership.objects.create(
-            project_id=self.create_project(),
+            project_id=self.create_project().id,
             schema=None,
             fallthrough=True,
         )
@@ -388,7 +389,7 @@ class BuildEventRulesTestCase(TestCase):
             [self.rule3, self.rule4],
             [self.rule2],
             [self.rule1, self.rule2],
-            [self.rule5]
+            [self.rule5],
         ]
         event_rules = build_event_rules(self.ownership, events)
         for event, rules in zip(events, expected):
