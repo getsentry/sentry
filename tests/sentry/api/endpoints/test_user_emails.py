@@ -2,12 +2,22 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 
+from sentry import newsletter
 from sentry.models import User, UserEmail
 from sentry.testutils import APITestCase
 
 
 class UserEmailsTest(APITestCase):
     def setUp(self):
+        super(UserEmailsTest, self).setUp()
+
+        def disable_newsletter():
+            newsletter.backend.disable()
+
+        # disable newsletter by default
+        newsletter.backend.disable()
+
+        self.addCleanup(disable_newsletter)
         self.user = self.create_user(email='foo@example.com')
         self.login_as(user=self.user)
         self.url = reverse('sentry-api-0-user-emails', kwargs={'user_id': self.user.id})
@@ -33,7 +43,7 @@ class UserEmailsTest(APITestCase):
             'email': 'invalidemail',
         })
         assert response.status_code == 400
-        assert not len(UserEmail.objects.filter(user=self.user, email='invalidemail'))
+        assert not UserEmail.objects.filter(user=self.user, email='invalidemail').exists()
 
         # valid secondary email
         response = self.client.post(self.url, data={
@@ -41,13 +51,39 @@ class UserEmailsTest(APITestCase):
         })
 
         assert response.status_code == 201
-        assert len(UserEmail.objects.filter(user=self.user, email='altemail1@example.com'))
+        assert UserEmail.objects.filter(user=self.user, email='altemail1@example.com').exists()
 
         # duplicate email
         response = self.client.post(self.url, data={
             'email': 'altemail1@example.com',
         })
         assert response.status_code == 400
+
+    def test_add_secondary_email_with_newsletter_subscribe(self):
+        newsletter.backend.enable()
+        response = self.client.post(self.url, data={
+            'email': 'altemail1@example.com',
+            'newsletter': '1',
+        })
+
+        assert response.status_code == 201
+        assert UserEmail.objects.filter(user=self.user, email='altemail1@example.com').exists()
+        results = newsletter.get_subscriptions(self.user)['subscriptions']
+        assert len(results) == 1
+        assert results[0].list_id == newsletter.get_default_list_id()
+        assert results[0].subscribed
+        assert not results[0].verified
+
+    def test_add_secondary_email_with_newsletter_no_subscribe(self):
+        newsletter.backend.enable()
+        response = self.client.post(self.url, data={
+            'email': 'altemail1@example.com',
+            'newsletter': '0',
+        })
+
+        assert response.status_code == 201
+        assert UserEmail.objects.filter(user=self.user, email='altemail1@example.com').exists()
+        assert newsletter.get_subscriptions(self.user) == {'subscriptions': []}
 
     def test_change_verified_secondary_to_primary(self):
         UserEmail.objects.create(user=self.user, email='altemail1@example.com', is_verified=True)
