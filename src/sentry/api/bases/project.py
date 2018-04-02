@@ -2,10 +2,10 @@ from __future__ import absolute_import
 
 from sentry import roles
 from sentry.api.base import Endpoint
-from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.exceptions import ResourceDoesNotExist, ResourceMoved
 from sentry.app import raven
 from sentry.auth.superuser import is_active_superuser
-from sentry.models import OrganizationMember, Project, ProjectStatus
+from sentry.models import OrganizationMember, Project, ProjectStatus, ProjectRedirect
 
 from .organization import OrganizationPermission
 from .team import has_team_permission
@@ -104,7 +104,17 @@ class ProjectEndpoint(Endpoint):
                 slug=project_slug,
             ).select_related('organization').prefetch_related('teams').get()
         except Project.DoesNotExist:
-            raise ResourceDoesNotExist
+            try:
+                # Project may have been renamed
+                redirect = ProjectRedirect.objects.select_related('project')
+                redirect = redirect.get(
+                    organization__slug=organization_slug,
+                    redirect_slug=project_slug
+                )
+
+                raise ResourceMoved(detail={'slug': redirect.project.slug})
+            except ProjectRedirect.DoesNotExist:
+                raise ResourceDoesNotExist
 
         if project.status != ProjectStatus.VISIBLE:
             raise ResourceDoesNotExist

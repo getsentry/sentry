@@ -14,6 +14,7 @@ import MissingProjectMembership from '../../components/missingProjectMembership'
 import OrganizationState from '../../mixins/organizationState';
 import SentryTypes from '../../proptypes';
 import ProjectsStore from '../../stores/projectsStore';
+import recreateRoute from '../../utils/recreateRoute';
 import {loadEnvironments} from '../../actionCreators/environments';
 import {setActiveProject} from '../../actionCreators/projects';
 import {t} from '../../locale';
@@ -42,6 +43,7 @@ const ProjectContext = createReactClass({
     projectId: PropTypes.string,
     orgId: PropTypes.string,
     location: PropTypes.object,
+    router: PropTypes.object,
   },
 
   childContextTypes: {
@@ -200,11 +202,31 @@ const ProjectContext = createReactClass({
         errorType: ERROR_TYPES.MISSING_MEMBERSHIP,
       });
     } else {
-      this.setState({
-        loading: false,
-        error: true,
-        errorType: ERROR_TYPES.PROJECT_NOT_FOUND,
-      });
+      // The project may have been renamed, attempt to lookup the project, if
+      // we 301 we will recieve the moved project slug and can update update
+      // our route accordingly.
+      const lookupHandler = resp => {
+        const {status, responseJSON} = resp;
+
+        if (status !== 301 || !responseJSON || !responseJSON.detail) {
+          this.setState({
+            loading: false,
+            error: true,
+            errorType: ERROR_TYPES.PROJECT_NOT_FOUND,
+          });
+          return;
+        }
+
+        this.props.router.replace(
+          recreateRoute('', {
+            ...this.props,
+            params: {...this.props.params, projectId: responseJSON.detail.slug},
+          })
+        );
+      };
+
+      // The request ill 404 or 301
+      this.api.request(`/projects/${orgId}/${projectId}/`, {error: lookupHandler});
     }
   },
 
@@ -261,5 +283,7 @@ const ProjectContext = createReactClass({
     );
   },
 });
+
+export {ProjectContext};
 
 export default withRouter(ProjectContext);

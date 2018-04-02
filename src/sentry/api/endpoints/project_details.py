@@ -19,8 +19,8 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import DetailedProjectSerializer
 from sentry.api.serializers.rest_framework import ListField, OriginField
 from sentry.models import (
-    AuditLogEntryEvent, Group, GroupStatus, Project, ProjectBookmark, ProjectStatus,
-    ProjectTeam, UserOption, Team,
+    AuditLogEntryEvent, Group, GroupStatus, Project, ProjectBookmark, ProjectRedirect,
+    ProjectStatus, ProjectTeam, UserOption, Team,
 )
 from sentry.tasks.deletion import delete_project
 from sentry.utils.apidocs import scenario, attach_scenarios
@@ -250,7 +250,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     )
 
         changed = False
+
+        old_slug = None
         if result.get('slug'):
+            old_slug = project.slug
             project.slug = result['slug']
             changed = True
 
@@ -304,6 +307,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     project=project,
                     team_id=old_team_id,
                 ).update(team=new_team)
+
+            if old_slug:
+                ProjectRedirect.record(project, old_slug)
 
         if result.get('isBookmarked'):
             try:
