@@ -274,14 +274,12 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                               <StyledSvg
                                                                 className="glamor-3 glamor-0"
                                                                 height="1em"
-                                                                style={Object {}}
                                                                 viewBox={Object {}}
                                                                 width="1em"
                                                               >
                                                                 <svg
                                                                   className="glamor-0 glamor-1 glamor-2"
                                                                   height="1em"
-                                                                  style={Object {}}
                                                                   viewBox={Object {}}
                                                                   width="1em"
                                                                 >
@@ -637,14 +635,12 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                             <StyledSvg
                                               className="glamor-43 glamor-40"
                                               height="1em"
-                                              style={Object {}}
                                               viewBox={Object {}}
                                               width="1em"
                                             >
                                               <svg
                                                 className="glamor-40 glamor-41 glamor-2"
                                                 height="1em"
-                                                style={Object {}}
                                                 viewBox={Object {}}
                                                 width="1em"
                                               >

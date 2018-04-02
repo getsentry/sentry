@@ -372,14 +372,12 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
             <StyledSvg
               className="glamor-9 glamor-6"
               height="1em"
-              style={Object {}}
               viewBox={Object {}}
               width="1em"
             >
               <svg
                 className="glamor-6 glamor-7 glamor-8"
                 height="1em"
-                style={Object {}}
                 viewBox={Object {}}
                 width="1em"
               >
@@ -524,14 +522,12 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                                                       <StyledSvg
                                                         className="glamor-18 glamor-15"
                                                         height="1em"
-                                                        style={Object {}}
                                                         viewBox={Object {}}
                                                         width="1em"
                                                       >
                                                         <svg
                                                           className="glamor-15 glamor-16 glamor-8"
                                                           height="1em"
-                                                          style={Object {}}
                                                           viewBox={Object {}}
                                                           width="1em"
                                                         >
@@ -620,14 +616,12 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                               <StyledSvg
                                 className="glamor-48 glamor-45"
                                 height="16px"
-                                style={Object {}}
                                 viewBox={Object {}}
                                 width="16px"
                               >
                                 <svg
                                   className="glamor-45 glamor-46 glamor-8"
                                   height="16px"
-                                  style={Object {}}
                                   viewBox={Object {}}
                                   width="16px"
                                 >

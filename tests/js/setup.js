@@ -27,6 +27,9 @@ window.$ = window.jQuery = jQuery;
 window.sinon = sinon;
 window.scrollTo = sinon.spy();
 
+// Instead of wrapping codeblocks in `setTimeout`
+window.tick = () => new Promise(res => setTimeout(res));
+
 window.Raven = {
   captureMessage: sinon.spy(),
   captureException: sinon.spy(),
