@@ -8,10 +8,7 @@ import Avatar from '../../../../components/avatar';
 import DateTime from '../../../../components/dateTime';
 import EmptyMessage from '../../components/emptyMessage';
 import Pagination from '../../../../components/pagination';
-import Panel from '../../components/panel';
-import PanelBody from '../../components/panelBody';
-import PanelHeader from '../../components/panelHeader';
-import PanelItem from '../../components/panelItem';
+import {Panel, PanelBody, PanelHeader, PanelItem} from '../../../../components/panels';
 import SelectInput from '../../../../components/selectInput';
 import SettingsPageHeader from '../../components/settingsPageHeader';
 

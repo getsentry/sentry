@@ -7,11 +7,8 @@ import {t} from '../../locale';
 import AsyncComponent from '../../components/asyncComponent';
 import Link from '../../components/link';
 import Button from '../../components/buttons/button';
-import Panel from '../settings/components/panel';
-import PanelBody from '../settings/components/panelBody';
-import PanelHeader from '../settings/components/panelHeader';
+import {Panel, PanelBody, PanelHeader, PanelItem} from '../../components/panels';
 import PluginIcon from '../../plugins/components/pluginIcon';
-import PanelItem from '../settings/components/panelItem';
 import theme from '../../utils/theme';
 
 const ProviderName = styled.div`

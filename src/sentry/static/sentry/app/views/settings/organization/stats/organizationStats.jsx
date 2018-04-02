@@ -5,9 +5,7 @@ import LoadingError from '../../../../components/loadingError';
 import LoadingIndicator from '../../../../components/loadingIndicator';
 import StackedBarChart from '../../../../components/stackedBarChart';
 import Pagination from '../../../../components/pagination';
-import Panel from '../../components/panel';
-import PanelBody from '../../components/panelBody';
-import PanelHeader from '../../components/panelHeader';
+import {Panel, PanelBody, PanelHeader} from '../../../../components/panels';
 import SettingsPageHeader from '../../components/settingsPageHeader';
 import TextBlock from '../../components/text/textBlock';
 

@@ -11,9 +11,7 @@ import Tooltip from '../components/tooltip';
 import ApiMixin from '../mixins/apiMixin';
 
 import {t} from '../locale';
-import Panel from '../views/settings/components/panel';
-import PanelItem from '../views/settings/components/panelItem';
-import PanelBody from '../views/settings/components/panelBody';
+import {Panel, PanelItem, PanelBody} from './panels';
 
 class CommitBar extends React.Component {
   static propTypes = {

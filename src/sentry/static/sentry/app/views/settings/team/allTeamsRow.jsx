@@ -8,7 +8,7 @@ import {addErrorMessage, addSuccessMessage} from '../../../actionCreators/indica
 import {joinTeam, leaveTeam} from '../../../actionCreators/teams';
 import {t, tct} from '../../../locale';
 import ApiMixin from '../../../mixins/apiMixin';
-import PanelItem from '../components/panelItem';
+import {PanelItem} from '../../../components/panels';
 
 // TODO(dcramer): this isnt great UX
 

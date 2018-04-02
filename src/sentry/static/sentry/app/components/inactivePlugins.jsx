@@ -4,9 +4,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {t} from '../locale';
-import Panel from '../views/settings/components/panel';
-import PanelBody from '../views/settings/components/panelBody';
-import PanelHeader from '../views/settings/components/panelHeader';
+import {Panel, PanelBody, PanelHeader} from './panels';
 import PluginIcon from '../plugins/components/pluginIcon';
 import TextOverflow from './textOverflow';
 

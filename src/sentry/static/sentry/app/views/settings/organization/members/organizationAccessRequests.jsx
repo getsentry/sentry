@@ -4,10 +4,7 @@ import {Flex, Box} from 'grid-emotion';
 
 import {t, tct} from '../../../../locale';
 import Button from '../../../../components/buttons/button';
-import Panel from '../../components/panel';
-import PanelBody from '../../components/panelBody';
-import PanelHeader from '../../components/panelHeader';
-import PanelItem from '../../components/panelItem';
+import {Panel, PanelBody, PanelHeader, PanelItem} from '../../../../components/panels';
 import SentryTypes from '../../../../proptypes';
 
 class OrganizationAccessRequests extends React.Component {

@@ -4,10 +4,7 @@ import styled from 'react-emotion';
 
 import {t} from '../../locale';
 import Checkbox from '../../components/checkbox';
-import Panel from '../settings/components/panel';
-import PanelBody from '../settings/components/panelBody';
-import PanelHeader from '../settings/components/panelHeader';
-import PanelItem from '../settings/components/panelItem';
+import {Panel, PanelBody, PanelHeader, PanelItem} from '../../components/panels';
 
 const TeamItem = styled.div`
   width: 25%;

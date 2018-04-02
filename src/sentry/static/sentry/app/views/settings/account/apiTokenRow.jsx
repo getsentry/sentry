@@ -6,7 +6,7 @@ import styled from 'react-emotion';
 import {t} from '../../../locale';
 import Button from '../../../components/buttons/button';
 import DateTime from '../../../components/dateTime';
-import PanelItem from '../components/panelItem';
+import {PanelItem} from '../../../components/panels';
 import TextCopyInput from '../components/forms/textCopyInput';
 
 const StyledPanelItem = styled(PanelItem)`
