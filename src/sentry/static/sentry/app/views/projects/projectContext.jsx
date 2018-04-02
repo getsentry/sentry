@@ -176,8 +176,8 @@ const ProjectContext = createReactClass({
           // If an environment is specified in the query string, load it instead of default
           const queryEnv = location.query.environment;
           // The default environment cannot be "" (No Environment)
-          const defaultEnv = project.defaultEnv || null;
-          const envName = typeof queryEnv === 'undefined' ? defaultEnv : queryEnv;
+          const {defaultEnvironment} = project;
+          const envName = typeof queryEnv === 'undefined' ? defaultEnvironment : queryEnv;
           loadEnvironments(envs, envName);
         },
         () => {
