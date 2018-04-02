@@ -11,6 +11,7 @@ import {omit, isEqual} from 'lodash';
 
 import SentryTypes from '../../proptypes';
 import ApiMixin from '../../mixins/apiMixin';
+import ConfigStore from '../../stores/configStore';
 import GroupStore from '../../stores/groupStore';
 import EnvironmentStore from '../../stores/environmentStore';
 import HookStore from '../../stores/hookStore';
@@ -639,7 +640,12 @@ const Stream = createReactClass({
   renderGroupNodes(ids, statsPeriod) {
     // Restrict this guide to only show on a project with less than two issues
     // because anchors light up all issues on the page
-    let hasGuideAnchor = ids.length > 0 && ids.length <= 2;
+    let userDateJoined = new Date(ConfigStore.get('user').dateJoined);
+    let dateCutoff = new Date();
+    dateCutoff.setDate(dateCutoff.getDate() - 30);
+
+    let hasGuideAnchor = ids.length > 0 && ids.length <= 2 && userDateJoined > dateCutoff;
+
     let {orgId, projectId} = this.props.params;
     let groupNodes = ids.map(id => {
       return (

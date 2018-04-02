@@ -11,14 +11,14 @@ exports[`StreamGroup renders with anchors 1`] = `
     <div
       className="checkbox"
     >
+      <GuideAnchor
+        target="issues"
+        type="text"
+      />
       <GroupCheckBox
         id="1337"
       />
     </div>
-    <StyledGuideAnchor
-      target="issues"
-      type="text"
-    />
     <EventOrGroupHeader
       data={
         Object {

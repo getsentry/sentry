@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
-import styled from 'react-emotion';
 
 import AssigneeSelector from '../assigneeSelector';
 import Count from '../count';
@@ -112,10 +111,11 @@ const StreamGroup = createReactClass({
         <div className="col-md-7 col-xs-8 event-details">
           {this.props.canSelect && (
             <div className="checkbox">
+              {hasGuideAnchor && <GuideAnchor target="issues" type="text" />}
               <GroupCheckBox id={data.id} />
             </div>
           )}
-          {hasGuideAnchor && <StyledGuideAnchor target="issues" type="text" />}
+
           <EventOrGroupHeader
             data={data}
             orgId={orgId}
@@ -149,7 +149,4 @@ const StreamGroup = createReactClass({
   },
 });
 
-const StyledGuideAnchor = styled(GuideAnchor)`
-  display: inline;
-`;
 export default StreamGroup;
