@@ -13,8 +13,8 @@ const StyledInlineSvg = styled(InlineSvg)`
   margin-right: 0.75em;
 `;
 
-const AlertLink = styled(({to, children, icon, ...props}) => (
-  <Link to={to} {...props}>
+const AlertLink = styled(({children, icon, ...props}) => (
+  <Link {...props}>
     {icon && <StyledInlineSvg src={icon} size="1.5em" />}
     <AlertLinkText>{children}</AlertLinkText>
     <InlineSvg src="icon-chevron-right" size="1em" />
@@ -36,7 +36,8 @@ const AlertLink = styled(({to, children, icon, ...props}) => (
 `;
 
 AlertLink.propTypes = {
-  to: PropTypes.string.isRequired,
+  to: PropTypes.string,
+  href: PropTypes.string,
   icon: PropTypes.string,
 };
 
