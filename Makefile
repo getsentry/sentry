@@ -147,6 +147,11 @@ test-network:
 	py.test tests/network --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml"
 	@echo ""
 
+test-snuba:
+	@echo "--> Running snuba tests"
+	py.test tests/snuba --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml"
+	@echo ""
+
 test-acceptance: build-platform-assets
 	@echo "--> Building static assets"
 	@${NPM_ROOT}/.bin/webpack --display errors-only
@@ -222,6 +227,7 @@ travis-install-acceptance: install-yarn travis-install-postgres
 	mkdir -p ~/.bin
 	mv ~/chromedriver ~/.bin/
 travis-install-network: travis-install-postgres
+travis-install-snuba: travis-install-postgres
 travis-install-js:
 	$(MAKE) travis-upgrade-pip
 	$(MAKE) travis-install-python install-yarn
@@ -239,6 +245,7 @@ travis-lint-postgres: lint-python
 travis-lint-mysql: lint-python
 travis-lint-acceptance: travis-noop
 travis-lint-network: lint-python
+travis-lint-snuba: lint-python
 travis-lint-js: lint-js
 travis-lint-cli: travis-noop
 travis-lint-dist: travis-noop
@@ -252,6 +259,7 @@ travis-test-postgres: test-python
 travis-test-mysql: test-python
 travis-test-acceptance: test-acceptance
 travis-test-network: test-network
+travis-test-snuba: test-snuba
 travis-test-js:
 	$(MAKE) test-js
 	$(MAKE) test-styleguide
@@ -270,9 +278,10 @@ travis-scan-postgres: scan-python
 travis-scan-mysql: scan-python
 travis-scan-acceptance: travis-noop
 travis-scan-network: travis-noop
+travis-scan-snuba: scan-python
 travis-scan-js: travis-noop
 travis-scan-cli: travis-noop
 travis-scan-dist: travis-noop
 travis-scan-django-18: travis-noop
 
-.PHONY: travis-scan-sqlite travis-scan-postgres travis-scan-mysql travis-scan-acceptance travis-scan-network travis-scan-js travis-scan-cli travis-scan-dist travis-scan-django-18
+.PHONY: travis-scan-sqlite travis-scan-postgres travis-scan-mysql travis-scan-acceptance travis-scan-network travis-scan-snuba travis-scan-js travis-scan-cli travis-scan-dist travis-scan-django-18

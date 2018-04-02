@@ -4,11 +4,12 @@ from dateutil.parser import parse as parse_datetime
 import json
 import requests
 import six
+import os
 
 from sentry.models import Group, GroupHash, Environment, Release, ReleaseProject
 from sentry.utils.dates import to_timestamp
 
-SNUBA = 'http://localhost:5000'
+SNUBA = os.environ.get('SNUBA', 'http://localhost:5000')
 
 
 def query(start, end, groupby, conditions=None, filter_keys=None,
