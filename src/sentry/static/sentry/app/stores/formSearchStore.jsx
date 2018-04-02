@@ -10,8 +10,13 @@ const FormSearchStore = Reflux.createStore({
     this.listenTo(FormSearchActions.addSearchMap, this.onAddSearchMap);
   },
 
+  getInitialState() {
+    return this.searchMap;
+  },
+
   reset() {
-    this.searchMap = {};
+    // `null` means it hasn't been loaded yet
+    this.searchMap = null;
   },
 
   /**
@@ -21,7 +26,7 @@ const FormSearchStore = Reflux.createStore({
    */
   onAddSearchMap(searchMap) {
     this.searchMap = {
-      ...this.searchMap,
+      ...(this.searchMap || {}),
       ...searchMap,
     };
 

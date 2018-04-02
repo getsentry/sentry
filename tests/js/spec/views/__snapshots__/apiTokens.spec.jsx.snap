@@ -738,14 +738,12 @@ exports[`ApiTokens renders with result 1`] = `
                                                                   <StyledSvg
                                                                     className="glamor-45 glamor-42"
                                                                     height="12px"
-                                                                    style={Object {}}
                                                                     viewBox={Object {}}
                                                                     width="12px"
                                                                   >
                                                                     <svg
                                                                       className="glamor-42 glamor-43 glamor-44"
                                                                       height="12px"
-                                                                      style={Object {}}
                                                                       viewBox={Object {}}
                                                                       width="12px"
                                                                     >

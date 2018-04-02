@@ -303,14 +303,12 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                                             <StyledSvg
                                               className="glamor-5 glamor-2"
                                               height="12px"
-                                              style={Object {}}
                                               viewBox={Object {}}
                                               width="12px"
                                             >
                                               <svg
                                                 className="glamor-2 glamor-3 glamor-4"
                                                 height="12px"
-                                                style={Object {}}
                                                 viewBox={Object {}}
                                                 width="12px"
                                               >

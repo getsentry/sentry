@@ -5,14 +5,18 @@ import Avatar from './avatar';
 import Link from './link';
 import overflowEllipsis from '../styles/overflowEllipsis';
 
-const UserBadge = ({user, orgId, avatarSize, ...props}) => {
+const UserBadge = ({user, orgId, avatarSize, useLink, ...props}) => {
+  const LinkOrText = useLink ? (
+    <StyledLink to={`/settings/${orgId}/members/${user.id}`} />
+  ) : (
+    'div'
+  );
+
   return (
     <StyledUserBadge {...props}>
-      <StyledAvatar user={user} size={avatarSize} className="avatar" />
+      <StyledAvatar user={user} size={avatarSize} />
       <StyledNameAndEmail>
-        <StyledLink to={`/settings/${orgId}/members/${user.id}`}>
-          {user.name || user.email}
-        </StyledLink>
+        <LinkOrText>{user.name || user.email}</LinkOrText>
         <StyledEmail>{user.email}</StyledEmail>
       </StyledNameAndEmail>
     </StyledUserBadge>
@@ -23,6 +27,11 @@ UserBadge.propTypes = {
   avatarSize: PropTypes.number,
   user: PropTypes.object,
   orgId: PropTypes.string,
+  useLink: PropTypes.bool,
+};
+
+UserBadge.defaultProps = {
+  userLink: true,
 };
 
 const StyledUserBadge = styled('div')`

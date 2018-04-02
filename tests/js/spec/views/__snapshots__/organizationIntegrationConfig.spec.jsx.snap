@@ -625,16 +625,13 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                   src="icon-chevron-right"
                 >
                   <StyledSvg
-                    className=""
                     height="1em"
-                    style={Object {}}
                     viewBox={Object {}}
                     width="1em"
                   >
                     <svg
                       className="glamor-46 glamor-47"
                       height="1em"
-                      style={Object {}}
                       viewBox={Object {}}
                       width="1em"
                     >
