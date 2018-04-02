@@ -1,0 +1,119 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`RadioBooleanField render() renders with form context 1`] = `
+<div
+  className="control-group"
+>
+  <div
+    className="controls"
+  >
+    <div
+      className="control-group"
+    >
+      <div
+        className="radio"
+      >
+        <label
+          style={
+            Object {
+              "fontWeight": "normal",
+            }
+          }
+        >
+          <input
+            checked={true}
+            disabled={false}
+            name="fieldName"
+            onChange={[Function]}
+            type="radio"
+            value="true"
+          />
+           
+          Yes
+        </label>
+      </div>
+      <div
+        className="radio"
+      >
+        <label
+          style={
+            Object {
+              "fontWeight": "normal",
+            }
+          }
+        >
+          <input
+            checked={false}
+            disabled={false}
+            name="fieldName"
+            onChange={[Function]}
+            type="radio"
+            value="false"
+          />
+           
+          No
+        </label>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`RadioBooleanField render() renders without form context 1`] = `
+<div
+  className="control-group"
+>
+  <div
+    className="controls"
+  >
+    <div
+      className="control-group"
+    >
+      <div
+        className="radio"
+      >
+        <label
+          style={
+            Object {
+              "fontWeight": "normal",
+            }
+          }
+        >
+          <input
+            checked={false}
+            disabled={false}
+            name="fieldName"
+            onChange={[Function]}
+            type="radio"
+            value="true"
+          />
+           
+          Yes
+        </label>
+      </div>
+      <div
+        className="radio"
+      >
+        <label
+          style={
+            Object {
+              "fontWeight": "normal",
+            }
+          }
+        >
+          <input
+            checked={false}
+            disabled={false}
+            name="fieldName"
+            onChange={[Function]}
+            type="radio"
+            value="false"
+          />
+           
+          No
+        </label>
+      </div>
+    </div>
+  </div>
+</div>
+`;
