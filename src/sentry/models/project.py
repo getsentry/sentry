@@ -172,7 +172,9 @@ class Project(Model):
 
     @property
     def callsign(self):
-        warnings.warn('Project.callsign is deprecated. Use Group.get_short_id() instead.', DeprecationWarning)
+        warnings.warn(
+            'Project.callsign is deprecated. Use Group.get_short_id() instead.',
+            DeprecationWarning)
         return self.slug.upper()
 
     @property
