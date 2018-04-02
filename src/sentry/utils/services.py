@@ -59,6 +59,7 @@ class LazyServiceWrapper(LazyObject):
     def _setup(self):
         backend = import_string(self._backend)
         assert issubclass(backend, Service)
+
         if backend in self._dangerous:
             warnings.warn(
                 warnings.UnsupportedBackend(
@@ -66,6 +67,20 @@ class LazyServiceWrapper(LazyObject):
                     'for production use.'.format(self._backend, self._base)
                 )
             )
+
+        base = self._base
+        for name in base.__all__:
+            if inspect.ismethod(getattr(base, name)) and \
+                    inspect.getargspec(getattr(base, name)) != inspect.getargspec(getattr(backend, name)):
+                warnings.warn(
+                    RuntimeWarning(
+                        "The {!r} backend's {!r} method signature does not "
+                        "match the base backend signature.".format(
+                            self._backend, name,
+                        )
+                    )
+                )
+
         instance = backend(**self._options)
         self._wrapped = instance
 
