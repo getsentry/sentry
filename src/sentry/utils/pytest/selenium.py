@@ -76,6 +76,36 @@ class Browser(object):
     def click(self, selector):
         self.element(selector).click()
 
+    def click_when_visible(self, selector=None, timeout=3):
+        """
+        Waits until ``selector`` is available to be clicked before attempting to click
+        """
+        if selector:
+            self.wait_until_clickable(selector, timeout)
+            self.click(selector)
+        else:
+            raise ValueError
+
+        return self
+
+    def wait_until_clickable(self, selector=None, timeout=3):
+        """
+        Waits until ``selector`` is visible and enabled to be clicked, or until ``timeout``
+        is hit, whichever happens first.
+        """
+        from selenium.webdriver.common.by import By
+
+        if selector:
+            condition = expected_conditions.element_to_be_clickable((By.CSS_SELECTOR, selector))
+        else:
+            raise ValueError
+
+        WebDriverWait(
+            self.driver, timeout
+        ).until(condition)
+
+        return self
+
     def wait_until(self, selector=None, title=None, timeout=3):
         """
         Waits until ``selector`` is found in the browser, or until ``timeout``
