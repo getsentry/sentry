@@ -15,9 +15,7 @@ const EventOrGroupExtraDetails = createReactClass({
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     groupId: PropTypes.string.isRequired,
-    firstSeen: PropTypes.string,
     lastSeen: PropTypes.string,
-    shortId: PropTypes.string,
     subscriptionDetails: PropTypes.shape({
       reason: PropTypes.string,
     }),
