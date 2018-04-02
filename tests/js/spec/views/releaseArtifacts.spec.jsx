@@ -68,7 +68,7 @@ describe('ReleaseArtifacts', function() {
         ],
       });
 
-      expect(wrapper.find('.list-group-item')).toHaveLength(2);
+      expect(wrapper.find('PanelItem')).toHaveLength(2);
     });
 
     it('should have no permission to download', function() {
