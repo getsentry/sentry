@@ -12,12 +12,6 @@ class OrganizationIntegrationSetupPermissionTest(PermissionTestCase):
             self.organization.slug,
         )
 
-    def test_teamless_admin_cannot_load(self):
-        self.assert_teamless_admin_cannot_access(self.path)
-
-    def test_team_admin_cannot_load(self):
-        self.assert_team_admin_cannot_access(self.path)
-
     # this currently redirects the user
     @pytest.mark.xfail
     def test_manager_can_load(self):
