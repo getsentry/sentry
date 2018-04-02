@@ -4,7 +4,7 @@ from django.utils import timezone
 from rest_framework.response import Response
 from rest_framework import status
 
-from sentry.app import newsletter
+from sentry import newsletter
 from sentry.api.bases.user import UserEndpoint
 from sentry.models import UserEmail
 
