@@ -5,7 +5,7 @@ import styled from 'react-emotion';
 
 import {t, tct} from '../../../../locale';
 import Button from '../../../../components/buttons/button';
-import PanelItem from '../../components/panelItem';
+import {PanelItem} from '../../../../components/panels';
 
 export default class ProviderItem extends React.PureComponent {
   static propTypes = {

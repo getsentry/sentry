@@ -3,8 +3,7 @@ import React, {Fragment, Component} from 'react';
 
 import {t} from '../../locale';
 import LoadingIndicator from '../../components/loadingIndicator';
-import Panel from '../settings/components/panel';
-import PanelItem from '../settings/components/panelItem';
+import {Panel, PanelItem} from '../../components/panels';
 import ProjectPluginRow from './projectPluginRow';
 import RouteError from '../routeError';
 import SentryTypes from '../../proptypes';

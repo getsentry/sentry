@@ -12,9 +12,7 @@ import Pagination from '../../components/pagination';
 import GuideAnchor from '../../components/assistant/guideAnchor';
 import SearchBar from '../../components/searchBar';
 import {t, tct} from '../../locale';
-import Panel from '../settings/components/panel';
-import PanelBody from '../settings/components/panelBody';
-import PanelHeader from '../settings/components/panelHeader';
+import {Panel, PanelBody, PanelHeader} from '../../components/panels';
 
 import ReleaseList from './releaseList';
 

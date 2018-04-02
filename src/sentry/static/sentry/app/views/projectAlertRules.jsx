@@ -19,9 +19,7 @@ import {
 import ListLink from '../components/listLink';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
-import Panel from './settings/components/panel';
-import PanelBody from './settings/components/panelBody';
-import PanelHeader from './settings/components/panelHeader';
+import {Panel, PanelBody, PanelHeader} from '../components/panels';
 import SettingsPageHeader from './settings/components/settingsPageHeader';
 import recreateRoute from '../utils/recreateRoute';
 import EnvironmentStore from '../stores/environmentStore';

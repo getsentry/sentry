@@ -7,7 +7,7 @@ import Button from '../components/buttons/button';
 import Form from './settings/components/forms/form';
 import JsonForm from './settings/components/forms/jsonForm';
 import ListLink from '../components/listLink';
-import PanelAlert from './settings/components/panelAlert';
+import {PanelAlert} from '../components/panels';
 import PluginList from '../components/pluginList';
 import SentryTypes from '../proptypes';
 import SettingsPageHeader from './settings/components/settingsPageHeader';

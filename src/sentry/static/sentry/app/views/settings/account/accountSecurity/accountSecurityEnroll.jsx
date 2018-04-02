@@ -15,7 +15,7 @@ import Button from '../../../../components/buttons/button';
 import CircleIndicator from '../../../../components/circleIndicator';
 import Form from '../../components/forms/form';
 import JsonForm from '../../components/forms/jsonForm';
-import PanelItem from '../../components/panelItem';
+import {PanelItem} from '../../../../components/panels';
 import Qrcode from '../../../../components/qrcode';
 import RemoveConfirm from './components/removeConfirm';
 import SettingsPageHeader from '../../components/settingsPageHeader';

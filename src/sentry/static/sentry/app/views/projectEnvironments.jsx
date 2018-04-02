@@ -4,12 +4,9 @@ import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 
 import EnvironmentStore from '../stores/environmentStore';
-import Panel from './settings/components/panel';
-import PanelHeader from './settings/components/panelHeader';
-import PanelBody from './settings/components/panelBody';
+import {Panel, PanelHeader, PanelBody, PanelItem} from '../components/panels';
 import EmptyMessage from './settings/components/emptyMessage';
 import {t} from '../locale';
-import PanelItem from './settings/components/panelItem';
 import Button from '../components/buttons/button';
 import SettingsPageHeader from './settings/components/settingsPageHeader';
 import ListLink from '../components/listLink';

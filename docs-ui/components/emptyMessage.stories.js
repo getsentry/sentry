@@ -2,8 +2,7 @@ import React from 'react';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
-import Panel from 'settings-ui/panel';
-import PanelHeader from 'settings-ui/panelHeader';
+import {Panel, PanelHeader} from 'sentry-ui/panels';
 import EmptyMessage from 'settings-ui/emptyMessage';
 
 import Button from 'sentry-ui/buttons/button';

@@ -8,10 +8,7 @@ import AsyncView from '../../asyncView';
 import Button from '../../../components/buttons/button';
 import EmptyMessage from '../components/emptyMessage';
 import IndicatorStore from '../../../stores/indicatorStore';
-import Panel from '../components/panel';
-import PanelBody from '../components/panelBody';
-import PanelHeader from '../components/panelHeader';
-import PanelItem from '../components/panelItem';
+import {Panel, PanelBody, PanelHeader, PanelItem} from '../../../components/panels';
 import SettingsPageHeader from '../components/settingsPageHeader';
 
 class AuthorizationRow extends React.Component {

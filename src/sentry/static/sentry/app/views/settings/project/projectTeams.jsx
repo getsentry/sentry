@@ -22,10 +22,7 @@ import DropdownButton from '../../../components/dropdownButton';
 import EmptyMessage from '../components/emptyMessage';
 import InlineSvg from '../../../components/inlineSvg';
 import Link from '../../../components/link';
-import Panel from '../components/panel';
-import PanelBody from '../components/panelBody';
-import PanelHeader from '../components/panelHeader';
-import PanelItem from '../components/panelItem';
+import {Panel, PanelBody, PanelHeader, PanelItem} from '../../../components/panels';
 import SettingsPageHeader from '../components/settingsPageHeader';
 
 const TeamRow = createReactClass({

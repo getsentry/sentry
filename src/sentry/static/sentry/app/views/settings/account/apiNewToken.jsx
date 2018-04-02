@@ -7,9 +7,7 @@ import {t, tct} from '../../../locale';
 import ApiForm from '../components/forms/apiForm';
 import FormField from '../components/forms/formField';
 import MultipleCheckbox from '../components/forms/controls/multipleCheckbox';
-import Panel from '../components/panel';
-import PanelBody from '../components/panelBody';
-import PanelHeader from '../components/panelHeader';
+import {Panel, PanelBody, PanelHeader} from '../../../components/panels';
 import SettingsPageHeader from '../components/settingsPageHeader';
 import TextBlock from '../components/text/textBlock';
 

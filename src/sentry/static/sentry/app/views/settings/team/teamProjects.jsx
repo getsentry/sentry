@@ -14,10 +14,7 @@ import ProjectsStore from '../../../stores/projectsStore';
 import LoadingError from '../../../components/loadingError';
 import OrganizationState from '../../../mixins/organizationState';
 import ProjectListItem from '../components/settingsProjectItem';
-import Panel from '../components/panel';
-import PanelItem from '../components/panelItem';
-import PanelHeader from '../components/panelHeader';
-import PanelBody from '../components/panelBody';
+import {Panel, PanelHeader, PanelBody, PanelItem} from '../../../components/panels';
 import InlineSvg from '../../../components/inlineSvg';
 
 import {sortProjects} from '../../../utils';

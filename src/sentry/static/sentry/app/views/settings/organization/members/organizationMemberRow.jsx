@@ -9,7 +9,7 @@ import Button from '../../../../components/buttons/button';
 import Confirm from '../../../../components/confirm';
 import Link from '../../../../components/link';
 import LoadingIndicator from '../../../../components/loadingIndicator';
-import PanelItem from '../../components/panelItem';
+import {PanelItem} from '../../../../components/panels';
 import SentryTypes from '../../../../proptypes';
 import Tooltip from '../../../../components/tooltip';
 import recreateRoute from '../../../../utils/recreateRoute';

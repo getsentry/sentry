@@ -12,9 +12,7 @@ import LoadingIndicator from '../components/loadingIndicator';
 import {percent, deviceNameMapper} from '../utils';
 import {t, tct} from '../locale';
 import withEnvironmentInQueryString from '../utils/withEnvironmentInQueryString';
-import Panel from '../views/settings/components/panel';
-import PanelBody from '../views/settings/components/panelBody';
-import PanelHeader from '../views/settings/components/panelHeader';
+import {Panel, PanelBody, PanelHeader} from '../components/panels';
 import Alert from '../components/alert';
 
 const GroupTags = createReactClass({

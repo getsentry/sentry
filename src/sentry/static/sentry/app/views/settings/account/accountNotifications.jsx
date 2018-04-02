@@ -10,7 +10,7 @@ import Form from '../components/forms/form';
 import InlineSvg from '../../../components/inlineSvg';
 import JsonForm from '../components/forms/jsonForm';
 import Link from '../../../components/link';
-import PanelFooter from '../components/panelFooter';
+import {PanelFooter} from '../../../components/panels';
 import SettingsPageHeader from '../components/settingsPageHeader';
 import accountNotificationFields from '../../../data/forms/accountNotificationSettings';
 

@@ -9,9 +9,7 @@ import ApiMixin from '../mixins/apiMixin';
 import Button from './buttons/button';
 import IndicatorStore from '../stores/indicatorStore';
 import LoadingIndicator from '../components/loadingIndicator';
-import Panel from '../views/settings/components/panel';
-import PanelBody from '../views/settings/components/panelBody';
-import PanelHeader from '../views/settings/components/panelHeader';
+import {Panel, PanelBody, PanelHeader} from './panels';
 import PluginIcon from '../plugins/components/pluginIcon';
 import plugins from '../plugins';
 

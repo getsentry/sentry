@@ -4,9 +4,7 @@ import styled from 'react-emotion';
 import {t} from '../../../../locale';
 import AsyncView from '../../../asyncView';
 
-import Panel from '../../components/panel';
-import PanelBody from '../../components/panelBody';
-import PanelHeader from '../../components/panelHeader';
+import {Panel, PanelBody, PanelHeader} from '../../../../components/panels';
 import SentryTypes from '../../../../proptypes';
 import SettingsPageHeader from '../../components/settingsPageHeader';
 import Form from '../../components/forms/form';

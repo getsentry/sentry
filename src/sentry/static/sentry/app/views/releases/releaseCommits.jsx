@@ -7,12 +7,8 @@ import LoadingError from '../../components/loadingError';
 import DropdownLink from '../../components/dropdownLink';
 import MenuItem from '../../components/menuItem';
 import ApiMixin from '../../mixins/apiMixin';
-
 import CommitRow from '../../components/commitRow';
-
-import Panel from '../settings/components/panel';
-import PanelHeader from '../settings/components/panelHeader';
-import PanelBody from '../settings/components/panelBody';
+import {Panel, PanelHeader, PanelBody} from '../../components/panels';
 
 const ReleaseCommits = createReactClass({
   displayName: 'ReleaseCommits',

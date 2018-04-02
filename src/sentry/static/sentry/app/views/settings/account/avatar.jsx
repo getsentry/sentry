@@ -10,9 +10,7 @@ import Avatar from '../../../components/avatar';
 import AvatarCropper from '../../../components/avatarCropper';
 import LoadingError from '../../../components/loadingError';
 import LoadingIndicator from '../../../components/loadingIndicator';
-import Panel from '../components/panel';
-import PanelBody from '../components/panelBody';
-import PanelHeader from '../components/panelHeader';
+import {Panel, PanelBody, PanelHeader} from '../../../components/panels';
 import RadioGroup from '../components/forms/controls/radioGroup';
 import SentryTypes from '../../../proptypes';
 

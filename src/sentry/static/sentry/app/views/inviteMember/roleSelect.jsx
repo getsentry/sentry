@@ -3,10 +3,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {t} from '../../locale';
-import Panel from '../settings/components/panel';
-import PanelBody from '../settings/components/panelBody';
-import PanelHeader from '../settings/components/panelHeader';
-import PanelItem from '../settings/components/panelItem';
+import {Panel, PanelBody, PanelHeader, PanelItem} from '../../components/panels';
 import Radio from '../../components/radio';
 import TextBlock from '../settings/components/text/textBlock';
 
