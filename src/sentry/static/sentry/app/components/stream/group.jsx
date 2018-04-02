@@ -5,6 +5,7 @@ import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import styled from 'react-emotion';
 import {Flex, Box} from 'grid-emotion';
+import {capitalize} from 'lodash';
 
 import AssigneeSelector from '../assigneeSelector';
 import Count from '../count';
@@ -18,6 +19,7 @@ import ShortId from '../shortId';
 import EventOrGroupHeader from '../eventOrGroupHeader';
 import EventOrGroupExtraDetails from '../eventOrGroupExtraDetails';
 import TimeSince from '../timeSince';
+import Tooltip from '../tooltip';
 
 import {valueIsEqual} from '../../utils';
 
@@ -88,16 +90,14 @@ const StreamGroup = createReactClass({
   },
 
   render() {
-    let data = this.state.data;
-    let userCount = data.userCount;
-
-    let {id, orgId, projectId, hasGuideAnchor} = this.props;
-
-    // Todo(ckj): Implement resolved and hasSeen state
+    const {data} = this.state;
+    const {id, orgId, projectId, query, hasGuideAnchor} = this.props;
 
     return (
       <Group onClick={this.toggleSelect} py={1}>
-        <GroupLevel level={data.level} />
+        <Tooltip title={`Error level: ${capitalize(data.level)}`}>
+          <GroupLevel level={data.level} />
+        </Tooltip>
         {this.props.canSelect && (
           <GroupCheckbox ml={1}>
             {hasGuideAnchor && <GuideAnchor target="issues" type="text" />}
@@ -109,7 +109,7 @@ const StreamGroup = createReactClass({
             data={data}
             orgId={orgId}
             projectId={projectId}
-            query={this.props.query}
+            query={query}
           />
           <EventOrGroupExtraDetails
             group
@@ -136,7 +136,7 @@ const StreamGroup = createReactClass({
         </Box>
         <Box w={50} mx={2} className="align-right">
           {hasGuideAnchor && <GuideAnchor target="users" type="text" />}
-          <Count value={userCount} />
+          <Count value={data.userCount} />
         </Box>
         <Box w={50} mx={2}>
           <StyledAssigneeSelector id={data.id} />

@@ -761,7 +761,6 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                             }
                           }
                           hideIcons={true}
-                          hideLevel={true}
                           includeLink={true}
                           orgId="orgId"
                           projectId="projectId"
@@ -888,7 +887,6 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                                         }
                                       }
                                       hideIcons={true}
-                                      hideLevel={true}
                                       includeLink={true}
                                       orgId="orgId"
                                       projectId="projectId"
@@ -1199,7 +1197,6 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                             }
                           }
                           hideIcons={true}
-                          hideLevel={true}
                           includeLink={true}
                           orgId="orgId"
                           projectId="projectId"
@@ -1326,7 +1323,6 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                                         }
                                       }
                                       hideIcons={true}
-                                      hideLevel={true}
                                       includeLink={true}
                                       orgId="orgId"
                                       projectId="projectId"
@@ -2112,7 +2108,6 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                             }
                           }
                           hideIcons={true}
-                          hideLevel={true}
                           includeLink={true}
                           orgId="orgId"
                           projectId="projectId"
@@ -2239,7 +2234,6 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                                         }
                                       }
                                       hideIcons={true}
-                                      hideLevel={true}
                                       includeLink={true}
                                       orgId="orgId"
                                       projectId="projectId"
@@ -2550,7 +2544,6 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                             }
                           }
                           hideIcons={true}
-                          hideLevel={true}
                           includeLink={true}
                           orgId="orgId"
                           projectId="projectId"
@@ -2677,7 +2670,6 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                                         }
                                       }
                                       hideIcons={true}
-                                      hideLevel={true}
                                       includeLink={true}
                                       orgId="orgId"
                                       projectId="projectId"

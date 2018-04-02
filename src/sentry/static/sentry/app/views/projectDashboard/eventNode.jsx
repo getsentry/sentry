@@ -33,7 +33,6 @@ const EventNode = createReactClass({
             orgId={orgId}
             projectId={projectId}
             data={group}
-            hideLevel
             hideIcons
           />
           <EventOrGroupExtraDetails
