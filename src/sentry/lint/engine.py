@@ -78,12 +78,17 @@ def get_files_for_list(file_list):
     return sorted(set(files_to_check))
 
 
-def get_js_files(file_list=None):
+def get_js_files(file_list=None, snapshots=False):
+    if snapshots:
+        extensions = ('.js', '.jsx', '.jsx.snap', '.js.snap')
+    else:
+        extensions = ('.js', '.jsx')
+
     if file_list is None:
         file_list = ['tests/js', 'src/sentry/static/sentry/app']
     return [
         x for x in get_files_for_list(file_list)
-        if x.endswith(('.js', '.jsx', '.jsx.snap', '.js.snap'))
+        if x.endswith(extensions)
     ]
 
 
@@ -123,7 +128,7 @@ def js_lint(file_list=None, parseable=False, format=False):
         echo('!! Skipping JavaScript linting because eslint is not installed.')
         return False
 
-    js_file_list = get_js_files(file_list)
+    js_file_list = get_js_files(file_list, snapshots=True)
 
     has_errors = False
     if js_file_list:
