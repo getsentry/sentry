@@ -13,6 +13,7 @@ export default class IssueLink extends React.Component {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     issue: PropTypes.object.isRequired,
+    to: PropTypes.string,
     card: PropTypes.bool,
   };
 
@@ -98,20 +99,19 @@ export default class IssueLink extends React.Component {
     );
   }
 
+  getLinkTo() {
+    let {issue, orgId, projectId} = this.props;
+
+    return this.props.to || `/${orgId}/${projectId}/issues/${issue.id}/`;
+  }
+
   render() {
-    let {card, issue, orgId, projectId} = this.props;
-    if (!card)
-      return (
-        <Link to={`/${orgId}/${projectId}/issues/${issue.id}/`}>
-          {this.props.children}
-        </Link>
-      );
+    let {card, issue} = this.props;
+    if (!card) return <Link to={this.getLinkTo()}>{this.props.children}</Link>;
 
     return (
       <Hovercard body={this.renderBody()} header={issue.shortId}>
-        <Link to={`/${orgId}/${projectId}/issues/${issue.id}/`}>
-          {this.props.children}
-        </Link>
+        <Link to={this.getLinkTo()}>{this.props.children}</Link>
       </Hovercard>
     );
   }
