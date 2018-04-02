@@ -8,8 +8,8 @@ import {Flex, Box} from 'grid-emotion';
 import ProjectState from '../mixins/projectState';
 import TimeSince from './timeSince';
 
-const EventOrIssueExtraDetails = createReactClass({
-  displayName: 'EventOrIssueExtraDetails',
+const EventOrGroupExtraDetails = createReactClass({
+  displayName: 'EventOrGroupExtraDetails',
 
   propTypes: {
     orgId: PropTypes.string.isRequired,
@@ -114,4 +114,4 @@ const GroupExtraIcon = styled.span`
   opacity: 0.5;
 `;
 
-export default EventOrIssueExtraDetails;
+export default EventOrGroupExtraDetails;
