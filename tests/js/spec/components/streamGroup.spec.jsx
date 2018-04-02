@@ -1,6 +1,5 @@
 import React from 'react';
 import {shallow} from 'enzyme';
-import toJson from 'enzyme-to-json';
 
 import GroupStore from 'app/stores/groupStore';
 import StreamGroup from 'app/components/stream/group';
@@ -41,6 +40,6 @@ describe('StreamGroup', function() {
     );
 
     expect(component.find('GuideAnchor').exists()).toBe(true);
-    expect(toJson(component)).toMatchSnapshot();
+    expect(component).toMatchSnapshot();
   });
 });
