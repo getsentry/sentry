@@ -130,14 +130,14 @@ const StreamGroup = createReactClass({
         <Box w={120} mx={2} className="hidden-xs hidden-sm">
           <GroupChart id={data.id} statsPeriod={this.props.statsPeriod} data={data} />
         </Box>
-        <Box w={50} mx={2} className="align-right">
+        <Flex w={50} mx={2} justify="flex-end">
           {hasGuideAnchor && <GuideAnchor target="events" type="text" />}
           <Count value={data.count} />
-        </Box>
-        <Box w={50} mx={2} className="align-right">
+        </Flex>
+        <Flex w={50} mx={2} justify="flex-end">
           {hasGuideAnchor && <GuideAnchor target="users" type="text" />}
           <Count value={data.userCount} />
-        </Box>
+        </Flex>
         <Box w={50} mx={2}>
           <StyledAssigneeSelector id={data.id} />
         </Box>
