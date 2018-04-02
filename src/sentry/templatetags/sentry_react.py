@@ -129,6 +129,7 @@ def get_react_config(context):
         'gravatarBaseUrl': settings.SENTRY_GRAVATAR_BASE_URL,
         'termsUrl': settings.TERMS_URL,
         'privacyUrl': settings.PRIVACY_URL,
+        'newsletterOptInText': settings.NEWSLETTER_OPTIN_TEXT,
     }
     if user and user.is_authenticated():
         context.update({
