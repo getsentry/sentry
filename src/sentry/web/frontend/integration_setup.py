@@ -9,6 +9,8 @@ logger = logging.getLogger('sentry.integrations')
 
 
 class IntegrationSetupView(BaseView):
+    required_scope = 'org:integrations'
+
     csrf_protect = False
 
     def handle(self, request, provider_id):
