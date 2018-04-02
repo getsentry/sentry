@@ -3,6 +3,7 @@ import {ThemeProvider} from 'emotion-theming';
 import {configure, setAddon, getStorybook, addDecorator} from '@storybook/react';
 import createPercyAddon from '@percy-io/percy-storybook';
 import infoAddon, {setDefaults} from '@storybook/addon-info';
+import {checkA11y} from '@storybook/addon-a11y';
 import {withKnobs} from '@storybook/addon-knobs';
 import theme from '../src/sentry/static/sentry/app/utils/theme';
 import './storybook.less';
@@ -19,6 +20,7 @@ setDefaults({
 });
 setAddon(infoAddon);
 
+addDecorator(checkA11y);
 addDecorator(withTheme);
 addDecorator(withKnobs);
 // Use webpack's require.context to load modules dynamically
