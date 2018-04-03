@@ -307,15 +307,13 @@ class BuildEventRulesTestCase(TestCase):
         self.create_member(
             user=self.user4,
             organization=self.organization,
-            teams=[
-                self.team1,
-                self.team2])
+            teams=[self.team1, self.team2]
+        )
         self.create_member(
             user=self.user5,
             organization=self.organization,
-            teams=[
-                self.team2,
-                self.create_team()])
+            teams=[self.team2, self.create_team()]
+        )
         self.create_member(user=self.user6, organization=self.organization, teams=[self.team2])
         self.create_member(user=self.user7, organization=self.organization, teams=[self.team3])
         self.create_member(user=self.user8, organization=self.organization, teams=[self.team3])
