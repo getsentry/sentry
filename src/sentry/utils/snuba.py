@@ -13,7 +13,7 @@ SNUBA = os.environ.get('SNUBA', 'http://localhost:5000')
 
 
 def query(start, end, groupby, conditions=None, filter_keys=None,
-          aggregation=None, aggregateby=None, rollup=None, arrayjoin=None):
+          aggregations=None, rollup=None, arrayjoin=None):
     """
     Sends a query to snuba.
 
@@ -28,9 +28,13 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
     performed on the query, and the inverse translation performed on the
     result. The project_id(s) to restrict the query to will also be
     automatically inferred from these keys.
+
+    `aggregations` a list of (aggregation_function, column, alias) tuples to be
+    passed to the query.
     """
     groupby = groupby or []
     conditions = conditions or []
+    aggregations = aggregations or [['count', '', 'aggregate']]
     filter_keys = filter_keys or {}
 
     # Forward and reverse translation maps from model ids to snuba keys, per column
@@ -59,7 +63,7 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
 
     # If the grouping, aggregation, or any of the conditions reference `issue`
     # we need to fetch the issue definitions (issue -> fingerprint hashes)
-    get_issues = 'issue' in groupby + [aggregateby] + [c[0] for c in conditions]
+    get_issues = 'issue' in groupby + [a[1] for a in aggregations] + [c[0] for c in conditions]
     issues = get_project_issues(project_ids, filter_keys.get('issue')) if get_issues else None
 
     url = '{0}/query'.format(SNUBA)
@@ -69,8 +73,7 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
         'conditions': conditions,
         'groupby': groupby,
         'project': project_ids,
-        'aggregation': aggregation,
-        'aggregateby': aggregateby,
+        'aggregations': aggregations,
         'granularity': rollup,
         'issues': issues,
         'arrayjoin': arrayjoin,
@@ -81,34 +84,39 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
     response = json.loads(response.text)
 
     # Validate and scrub response, and translate snuba keys back to IDs
-    expected_cols = groupby + ['aggregate']
-    assert all(c['name'] in expected_cols for c in response['meta'])
+    aggregate_cols = [a[2] for a in aggregations]
+    expected_cols = set(groupby + aggregate_cols)
+    got_cols = set(c['name'] for c in response['meta'])
+    assert expected_cols == got_cols
+
     for d in response['data']:
         if 'time' in d:
             d['time'] = int(to_timestamp(parse_datetime(d['time'])))
-        if d['aggregate'] is None:
-            d['aggregate'] = 0
         for col in rev_snuba_map:
             if col in d:
                 d[col] = rev_snuba_map[col][d[col]]
 
-    return nest_groups(response['data'], groupby)
+    return nest_groups(response['data'], groupby, aggregate_cols)
 
 
-def nest_groups(data, groups):
+def nest_groups(data, groups, aggregate_cols):
     """
     Build a nested mapping from query response rows. Each group column
     gives a new level of nesting and the leaf result is the aggregate
     """
     if not groups:
-        # If no groups, just return the aggregate value from the first row
-        return data[0]['aggregate'] if data else None
+        # At leaf level, just return the aggregations from the first data row
+        if len(aggregate_cols) == 1:
+            # Special case, if there is only one aggregate, just return the raw value
+            return data[0][aggregate_cols[0]] if data else None
+        else:
+            return {c: data[0][c] for c in aggregate_cols} if data else None
     else:
         g, rest = groups[0], groups[1:]
         inter = {}
         for d in data:
             inter.setdefault(d[g], []).append(d)
-        return {k: nest_groups(v, rest) for k, v in six.iteritems(inter)}
+        return {k: nest_groups(v, rest, aggregate_cols) for k, v in six.iteritems(inter)}
 
 # The following are functions for resolving information from sentry models
 # about projects, environments, and issues (groups). Having this snuba
