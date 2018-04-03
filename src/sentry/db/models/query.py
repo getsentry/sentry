@@ -106,3 +106,11 @@ def in_iexact(column, values):
     query = '{}__iexact'.format(column)
 
     return reduce(or_, [Q(**{query: v}) for v in values])
+
+
+def in_icontains(column, values):
+    from operator import or_
+
+    query = '{}__icontains'.format(column)
+
+    return reduce(or_, [Q(**{query: v}) for v in values])

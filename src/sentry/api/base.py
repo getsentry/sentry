@@ -19,6 +19,7 @@ from rest_framework.views import APIView
 
 from sentry import tsdb
 from sentry.app import raven
+from sentry.auth import access
 from sentry.models import Environment
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_datetime
@@ -159,6 +160,10 @@ class Endpoint(APIView):
                 self.kwargs = kwargs
             else:
                 handler = self.http_method_not_allowed
+
+            if getattr(request, 'access', None) is None:
+                # setup default access
+                request.access = access.from_request(request)
 
             response = handler(request, *args, **kwargs)
 
