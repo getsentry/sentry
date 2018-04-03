@@ -50,71 +50,6 @@ exports[`Configure should render correctly render() should redirect to if no mat
 `;
 
 exports[`Configure should render correctly render() should render platform docs 1`] = `
-.glamor-17 {
-  background: #fff;
-  border: 1px solid;
-  margin-bottom: NaNpx;
-  position: relative;
-}
-
-.glamor-6 {
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  line-height: 1;
-  padding: 8px 20px;
-}
-
-.glamor-3 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  -webkit-box-pack: justify;
-  -webkit-justify-content: space-between;
-  -ms-flex-pack: justify;
-  justify-content: space-between;
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  line-height: 1;
-  padding: 8px 20px;
-}
-
-.glamor-0 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
-.glamor-16 {
-  padding: 20px;
-}
-
-.glamor-10 {
-  line-height: 1.5;
-  margin-bottom: 30px;
-}
-
-.glamor-14 p {
-  line-height: 1.5;
-}
-
 <Configure
   next={[Function]}
   params={
@@ -222,7 +157,7 @@ exports[`Configure should render correctly render() should render platform docs 
                       <Panel>
                         <StyledPanel>
                           <div
-                            className="glamor-17 glamor-18"
+                            className="css-wfa8ap-StyledPanel css-5bw71w0"
                           >
                             <PanelHeader
                               hasButtons={true}
@@ -231,21 +166,21 @@ exports[`Configure should render correctly render() should render platform docs 
                                 hasButtons={true}
                               >
                                 <Component
-                                  className="glamor-6 glamor-2"
+                                  className="css-1729ikd-StyledPanelHeader css-zott9u0"
                                   hasButtons={true}
                                 >
                                   <Flex
                                     align="center"
-                                    className="glamor-6 glamor-2"
+                                    className="css-1729ikd-StyledPanelHeader css-zott9u0"
                                     justify="space-between"
                                   >
                                     <Base
                                       align="center"
-                                      className="glamor-2 glamor-3"
+                                      className="css-zott9u0 css-sgens1"
                                       justify="space-between"
                                     >
                                       <div
-                                        className="glamor-2 glamor-3"
+                                        className="css-zott9u0 css-sgens1"
                                         is={null}
                                       >
                                         Configure node
@@ -279,10 +214,10 @@ exports[`Configure should render correctly render() should render platform docs 
                                               >
                                                 <Base
                                                   align="center"
-                                                  className="button-label glamor-0"
+                                                  className="button-label css-5ipae5"
                                                 >
                                                   <div
-                                                    className="button-label glamor-0"
+                                                    className="button-label css-5ipae5"
                                                     is={null}
                                                   >
                                                     Full Documentation
@@ -304,14 +239,14 @@ exports[`Configure should render correctly render() should render platform docs 
                               flex={false}
                             >
                               <div
-                                className="glamor-16"
+                                className="css-1pugmsu-padding"
                               >
                                 <TextBlock>
                                   <Component
-                                    className="glamor-10 glamor-11"
+                                    className="css-ms59cf-TextBlock css-1gwew8k0"
                                   >
                                     <div
-                                      className="glamor-10 glamor-11"
+                                      className="css-ms59cf-TextBlock css-1gwew8k0"
                                     >
                                       <span
                                         key="8"
@@ -362,7 +297,7 @@ exports[`Configure should render correctly render() should render platform docs 
                                   }
                                 >
                                   <div
-                                    className="glamor-14 glamor-15"
+                                    className="css-1k2bws-DocumentationWrapper css-1igogt70"
                                     dangerouslySetInnerHTML={
                                       Object {
                                         "__html": undefined,
