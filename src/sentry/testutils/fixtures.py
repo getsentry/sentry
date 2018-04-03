@@ -16,6 +16,7 @@ import random
 import six
 import warnings
 
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 from django.utils.text import slugify
 from exam import fixture
@@ -26,7 +27,7 @@ from uuid import uuid4
 from sentry.models import (
     Activity, Environment, Event, EventError, EventMapping, Group, Organization, OrganizationMember,
     OrganizationMemberTeam, Project, Team, User, UserEmail, Release, Commit, ReleaseCommit,
-    CommitAuthor, Repository, CommitFileChange, ProjectDSymFile, File
+    CommitAuthor, Repository, CommitFileChange, ProjectDSymFile, File, UserPermission
 )
 
 loremipsum = Generator()
@@ -615,3 +616,10 @@ class Fixtures(object):
             project = self.project
 
         return ProjectDSymFile.objects.create(project=project, **kwargs)
+
+    def add_user_permission(self, user, permission):
+        try:
+            with transaction.atomic():
+                UserPermission.objects.create(user=user, permission=permission)
+        except IntegrityError:
+            raise
