@@ -123,7 +123,7 @@ describe('OrganizationGeneralSettingsView', function() {
     wrapper.setState({loading: false});
     setTimeout(() => {
       wrapper.update();
-      expect(browserHistory.push).toHaveBeenCalledWith('teams');
+      expect(browserHistory.replace).toHaveBeenCalledWith('teams');
       done();
     });
   });
