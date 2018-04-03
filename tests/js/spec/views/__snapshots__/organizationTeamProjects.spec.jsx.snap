@@ -17,8 +17,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   border-bottom: 1px solid;
   border-radius: 0 0;
   line-height: 1;
-  padding: 4px;
-  padding-left: 10px;
+  padding: 6px 20px;
 }
 
 .glamor-22 {
@@ -41,8 +40,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   border-bottom: 1px solid;
   border-radius: 0 0;
   line-height: 1;
-  padding: 4px;
-  padding-left: 10px;
+  padding: 6px 20px;
 }
 
 .glamor-17 {

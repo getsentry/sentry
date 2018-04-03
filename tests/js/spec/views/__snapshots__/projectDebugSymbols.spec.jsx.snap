@@ -49,7 +49,7 @@ exports[`ProjectDebugSymbols renders 1`] = `
   border-bottom: 1px solid;
   border-radius: 0 0;
   line-height: 1;
-  padding: 10px;
+  padding: 10px 20px;
 }
 
 .glamor-11 {
@@ -72,7 +72,7 @@ exports[`ProjectDebugSymbols renders 1`] = `
   border-bottom: 1px solid;
   border-radius: 0 0;
   line-height: 1;
-  padding: 10px;
+  padding: 10px 20px;
 }
 
 .glamor-38 {

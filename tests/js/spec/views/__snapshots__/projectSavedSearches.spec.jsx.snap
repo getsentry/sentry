@@ -44,9 +44,7 @@ exports[`ProjectSavedSearches renders 1`] = `
   border-bottom: 1px solid;
   border-radius: 0 0;
   line-height: 1;
-  padding: 10px;
-  padding-left: 0;
-  padding-right: 0;
+  padding: 10px 0;
 }
 
 .glamor-19 {
@@ -69,9 +67,7 @@ exports[`ProjectSavedSearches renders 1`] = `
   border-bottom: 1px solid;
   border-radius: 0 0;
   line-height: 1;
-  padding: 10px;
-  padding-left: 0;
-  padding-right: 0;
+  padding: 10px 0;
 }
 
 .glamor-14 {
