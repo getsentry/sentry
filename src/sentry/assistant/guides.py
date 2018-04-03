@@ -54,8 +54,8 @@ GUIDES = {
             {
                 'title': _('Issue Tracking'),
                 'message': _(
-                    'Create issues within your project management tool. Sentry integrates with '
-                    '<a href="https://docs.sentry.io/integrations/" target="_blank">many popular tools</a>.'),
+                    'Create issues in your project management tool from within Sentry. See a list '
+                    'of all integrations <a href="https://docs.sentry.io/integrations/" target="_blank">here</a>.'),
                 'target': 'issue_tracking',
             },
             {
