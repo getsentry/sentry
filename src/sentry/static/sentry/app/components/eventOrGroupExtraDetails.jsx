@@ -51,13 +51,13 @@ const EventOrGroupExtraDetails = createReactClass({
     return (
       <GroupExtra>
         {lastSeen && (
-          <Box>
+          <Box mr={1}>
             <GroupExtraIcon className="icon icon-clock" />
             <TimeSince date={lastSeen} suffix="ago" />
           </Box>
         )}
         {numComments > 0 && (
-          <Box>
+          <Box mr={1}>
             <Link
               to={`/${orgId}/${projectId}/issues/${groupId}/activity/`}
               className="comments"
@@ -68,7 +68,7 @@ const EventOrGroupExtraDetails = createReactClass({
           </Box>
         )}
         {logger && (
-          <Box className="event-annotation">
+          <Box className="event-annotation" mr={1}>
             <Link
               to={{
                 pathname: `/${orgId}/${projectId}/`,

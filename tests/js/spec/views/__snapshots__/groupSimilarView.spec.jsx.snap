@@ -17,42 +17,6 @@ exports[`Issues Similar View renders initially with loading component 1`] = `
 `;
 
 exports[`Issues Similar View renders with mocked data 1`] = `
-.glamor-0 {
-  overflow: hidden;
-  max-width: 100%;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  margin: 0 0 5px;
-}
-
-.glamor-0 em {
-  font-size: 14px;
-  font-style: normal;
-  font-weight: 300;
-}
-
-.glamor-2 {
-  overflow: hidden;
-  max-width: 100%;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 14px;
-  margin: 0 0 5px;
-}
-
-.glamor-6 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  font-size: 12px;
-}
-
-.glamor-4 {
-  box-sizing: border-box;
-}
-
 <GroupGroupingView
   location={Object {}}
   params={
@@ -704,7 +668,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                             >
                               <Title>
                                 <div
-                                  className="glamor-0 glamor-1"
+                                  className="css-1dqh62j-Title css-ef8juq0"
                                 >
                                   <ProjectLink
                                     style={
@@ -805,7 +769,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                               </Title>
                               <Message>
                                 <div
-                                  className="glamor-2 glamor-3"
+                                  className="css-ogpcmq-Message css-ef8juq1"
                                 >
                                   Cannot read property 'length' of undefined
                                 </div>
@@ -857,20 +821,22 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                           >
                             <GroupExtra>
                               <Base
-                                className="glamor-6 glamor-7"
+                                className="css-1bdop2-GroupExtra css-yv1tfg0"
                               >
                                 <div
-                                  className="glamor-6 glamor-7"
+                                  className="css-1bdop2-GroupExtra css-yv1tfg0"
                                   is={null}
                                 >
                                   <Box
                                     className="event-annotation"
+                                    mr={1}
                                   >
                                     <Base
-                                      className="event-annotation glamor-4"
+                                      className="event-annotation css-xgysgc"
+                                      mr={1}
                                     >
                                       <div
-                                        className="event-annotation glamor-4"
+                                        className="event-annotation css-xgysgc"
                                         is={null}
                                       >
                                         <Link
@@ -1136,42 +1102,6 @@ exports[`Issues Similar View renders with mocked data 1`] = `
 `;
 
 exports[`Issues Similar View renders with mocked data 2`] = `
-.glamor-0 {
-  overflow: hidden;
-  max-width: 100%;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  margin: 0 0 5px;
-}
-
-.glamor-0 em {
-  font-size: 14px;
-  font-style: normal;
-  font-weight: 300;
-}
-
-.glamor-2 {
-  overflow: hidden;
-  max-width: 100%;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 14px;
-  margin: 0 0 5px;
-}
-
-.glamor-6 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  font-size: 12px;
-}
-
-.glamor-4 {
-  box-sizing: border-box;
-}
-
 <GroupGroupingView
   location={Object {}}
   params={
@@ -1823,7 +1753,7 @@ exports[`Issues Similar View renders with mocked data 2`] = `
                             >
                               <Title>
                                 <div
-                                  className="glamor-0 glamor-1"
+                                  className="css-1dqh62j-Title css-ef8juq0"
                                 >
                                   <ProjectLink
                                     style={
@@ -1924,7 +1854,7 @@ exports[`Issues Similar View renders with mocked data 2`] = `
                               </Title>
                               <Message>
                                 <div
-                                  className="glamor-2 glamor-3"
+                                  className="css-ogpcmq-Message css-ef8juq1"
                                 >
                                   Cannot read property 'length' of undefined
                                 </div>
@@ -1976,20 +1906,22 @@ exports[`Issues Similar View renders with mocked data 2`] = `
                           >
                             <GroupExtra>
                               <Base
-                                className="glamor-6 glamor-7"
+                                className="css-1bdop2-GroupExtra css-yv1tfg0"
                               >
                                 <div
-                                  className="glamor-6 glamor-7"
+                                  className="css-1bdop2-GroupExtra css-yv1tfg0"
                                   is={null}
                                 >
                                   <Box
                                     className="event-annotation"
+                                    mr={1}
                                   >
                                     <Base
-                                      className="event-annotation glamor-4"
+                                      className="event-annotation css-xgysgc"
+                                      mr={1}
                                     >
                                       <div
-                                        className="event-annotation glamor-4"
+                                        className="event-annotation css-xgysgc"
                                         is={null}
                                       >
                                         <Link

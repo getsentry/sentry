@@ -2,7 +2,9 @@
 
 exports[`EventOrGroupExtraDetails details when mentioned 1`] = `
 <GroupExtra>
-  <Box>
+  <Box
+    mr={1}
+  >
     <GroupExtraIcon
       className="icon icon-clock"
     />
@@ -11,7 +13,9 @@ exports[`EventOrGroupExtraDetails details when mentioned 1`] = `
       suffix="ago"
     />
   </Box>
-  <Box>
+  <Box
+    mr={1}
+  >
     <Link
       className="comments"
       onlyActiveOnIndex={false}
@@ -35,6 +39,7 @@ exports[`EventOrGroupExtraDetails details when mentioned 1`] = `
   </Box>
   <Box
     className="event-annotation"
+    mr={1}
   >
     <Link
       onlyActiveOnIndex={false}
@@ -74,7 +79,9 @@ exports[`EventOrGroupExtraDetails details when mentioned 1`] = `
 
 exports[`EventOrGroupExtraDetails renders all details 1`] = `
 <GroupExtra>
-  <Box>
+  <Box
+    mr={1}
+  >
     <GroupExtraIcon
       className="icon icon-clock"
     />
@@ -83,7 +90,9 @@ exports[`EventOrGroupExtraDetails renders all details 1`] = `
       suffix="ago"
     />
   </Box>
-  <Box>
+  <Box
+    mr={1}
+  >
     <Link
       className="comments"
       onlyActiveOnIndex={false}
@@ -103,6 +112,7 @@ exports[`EventOrGroupExtraDetails renders all details 1`] = `
   </Box>
   <Box
     className="event-annotation"
+    mr={1}
   >
     <Link
       onlyActiveOnIndex={false}
@@ -142,7 +152,9 @@ exports[`EventOrGroupExtraDetails renders all details 1`] = `
 
 exports[`EventOrGroupExtraDetails renders assignee and status 1`] = `
 <GroupExtra>
-  <Box>
+  <Box
+    mr={1}
+  >
     <GroupExtraIcon
       className="icon icon-clock"
     />
@@ -151,7 +163,9 @@ exports[`EventOrGroupExtraDetails renders assignee and status 1`] = `
       suffix="ago"
     />
   </Box>
-  <Box>
+  <Box
+    mr={1}
+  >
     <Link
       className="comments"
       onlyActiveOnIndex={false}
@@ -171,6 +185,7 @@ exports[`EventOrGroupExtraDetails renders assignee and status 1`] = `
   </Box>
   <Box
     className="event-annotation"
+    mr={1}
   >
     <Link
       onlyActiveOnIndex={false}
@@ -214,7 +229,9 @@ exports[`EventOrGroupExtraDetails renders assignee and status 1`] = `
 
 exports[`EventOrGroupExtraDetails renders last and first seen 1`] = `
 <GroupExtra>
-  <Box>
+  <Box
+    mr={1}
+  >
     <GroupExtraIcon
       className="icon icon-clock"
     />
@@ -230,7 +247,9 @@ exports[`EventOrGroupExtraDetails renders only first seen 1`] = `<GroupExtra />`
 
 exports[`EventOrGroupExtraDetails renders only last seen 1`] = `
 <GroupExtra>
-  <Box>
+  <Box
+    mr={1}
+  >
     <GroupExtraIcon
       className="icon icon-clock"
     />
