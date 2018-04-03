@@ -36,6 +36,7 @@ const ShortId = createReactClass({
 
 const StyledShortId = styled.div`
   font-family: ${p => p.theme.text.familyMono};
+  font-size: 14px;
 `;
 
 export default ShortId;
