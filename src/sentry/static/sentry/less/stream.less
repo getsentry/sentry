@@ -3,55 +3,8 @@
 * ============================================================================
 */
 
-.sticky {
-  // !important because react-sticky uses inline styles w/ hardcoded z-index
-  z-index: @zindex-sticky-bar !important;
-
-  .group-header .container {
-    width: 100% !important;
-    padding-left: 0;
-    padding-right: 0;
-  }
-
-  .stream-actions {
-    border-top-color: transparent;
-    border-bottom-color: transparent;
-    box-shadow: 0 1px 0 rgba(52, 60, 69, 0.15), 0 1px 3px rgba(0, 0, 0, 0.08);
-    background: @white-dark;
-    margin: 0 -30px;
-    border-left: none;
-    border-right: none;
-    padding-right: 41px; // adjust for border-right: none
-    padding-left: 31px; // adjust for border-right: none
-  }
-
-  .container {
-    padding-left: 30px + @sidebar-width;
-  }
-}
-
-.show-sidebar .sticky {
-  .stream-actions {
-    border-right: 1px solid @trim;
-    margin-right: 0;
-    padding-right: 10px;
-  }
-}
-
-.sticky + .group-list {
-  margin-top: 64px;
-}
-
 .group-header {
-  // needs fixed height so that stream doesn't "pop" up
-  // when stream actions turn "sticky"
   min-height: 0;
-  &.sticky {
-    top: 0;
-    position: fixed;
-    width: 100%;
-    width: 100%;
-  }
 }
 
 .stream-no-bulk-actions {
@@ -118,46 +71,11 @@
     flex: 1;
   }
 
-  .realtime-paused {
-    .btn-danger();
-  }
-
   > .btn {
     color: inherit;
     background: rgba(255, 255, 255, 0.85);
     &.dropdown-toggle {
       background: none;
-    }
-  }
-
-  .toggle-graph {
-    .list-unstyled();
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 0;
-    font-size: 11px;
-    text-transform: uppercase;
-    font-weight: bold;
-
-    li {
-      margin-right: 5px;
-
-      &:last-child {
-        margin-right: 0;
-      }
-
-      a {
-        color: lighten(@gray, 10);
-        padding: 3px 4px 2px;
-        border-radius: 3px;
-        .transition(background 0.2s linear);
-      }
-      &.active a {
-        background: lighten(@gray, 15);
-        opacity: 1;
-        font-weight: 600;
-        color: #fff;
-      }
     }
   }
 }
@@ -540,10 +458,6 @@
     .group:last-child {
       border: 0;
     }
-  }
-
-  &.similar-events {
-    //TODO:Chris style similar events
   }
 
   .severity {
@@ -1240,13 +1154,6 @@
   }
 }
 
-.panel {
-  .alert-box,
-  .empty-stream {
-    border: 0;
-  }
-}
-
 /**
 * Responsive small screen
 * ============================================================================
@@ -1295,10 +1202,6 @@
 
   .stream-actions {
     padding-right: 0;
-  }
-
-  .sticky .stream-actions {
-    padding-right: 30px;
   }
 
   .stream-actions .stream-actions-left,
