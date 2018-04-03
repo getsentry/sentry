@@ -7,6 +7,7 @@ import {Flex, Box} from 'grid-emotion';
 
 import ProjectState from '../mixins/projectState';
 import TimeSince from './timeSince';
+import {tct} from '../locale';
 
 const EventOrGroupExtraDetails = createReactClass({
   displayName: 'EventOrGroupExtraDetails',
@@ -51,7 +52,7 @@ const EventOrGroupExtraDetails = createReactClass({
     return (
       <GroupExtra>
         {lastSeen && (
-          <Box mr={1}>
+          <Box mr={1} style={{opacity: 0.5}}>
             <GroupExtraIcon className="icon icon-clock" />
             <TimeSince date={lastSeen} suffix="ago" />
           </Box>
@@ -94,7 +95,8 @@ const EventOrGroupExtraDetails = createReactClass({
             );
           })}
 
-        {showAssignee && assignedTo && <Box>Assigned to {assignedTo.name}</Box>}
+        {showAssignee &&
+          assignedTo && <Box>{tct('Assigned to [name]', {name: assignedTo.name})}</Box>}
       </GroupExtra>
     );
   },
@@ -109,7 +111,6 @@ const GroupExtraIcon = styled.span`
   color: ${p => p.theme.gray2};
   font-size: 11px;
   margin-right: 4px;
-  opacity: 0.5;
 `;
 
 export default EventOrGroupExtraDetails;
