@@ -10,7 +10,7 @@ describe('GuideDrawer', function() {
     page: 'issue',
     required_targets: ['target 1'],
     steps: [
-      {message: 'Message 1 ${org_slug}', target: 'target 1', title: '1. Title 1'},
+      {message: 'Message 1 ${orgSlug}', target: 'target 1', title: '1. Title 1'},
       {message: 'Message 2', target: 'target 2', title: '2. Title 2'},
     ],
   };

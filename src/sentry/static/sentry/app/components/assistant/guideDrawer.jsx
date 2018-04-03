@@ -31,8 +31,8 @@ export default class GuideDrawer extends React.Component {
   }
 
   render() {
-    let message_variables = {
-      org_slug: this.props.orgSlug,
+    let messageVariables = {
+      orgSlug: this.props.orgSlug,
     };
 
     return (
@@ -53,7 +53,7 @@ export default class GuideDrawer extends React.Component {
             dangerouslySetInnerHTML={{
               __html: this.interpolate(
                 this.props.guide.steps[this.props.step - 1].message,
-                message_variables
+                messageVariables
               ),
             }}
           />

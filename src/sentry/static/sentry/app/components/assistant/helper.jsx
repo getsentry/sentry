@@ -30,7 +30,7 @@ const AssistantHelper = createReactClass({
       // is null, if currentStep is 0 the Need-Help button is cued, and if it's > 0
       // the support widget is open.
       currentStep: 0,
-      currentOrg: null,
+      currentOrgSlug: null,
     };
   },
 

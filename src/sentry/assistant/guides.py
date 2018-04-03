@@ -136,8 +136,8 @@ GUIDES = {
             },
             {
                 'title': _('What is status?'),
-                'message': _('You can enforce <a href="https://sentry.io/settings/organization/${org_slug}/settings/#require2FA">2-factor auth</a> or '
-                             '<a href="/organizations/${org_slug}/auth/"">SSO</a> across your organization. Status lets you see '
+                'message': _('You can enforce <a href="https://sentry.io/settings/organization/${orgSlug}/settings/#require2FA">2-factor auth</a> or '
+                             '<a href="/organizations/${orgSlug}/auth/"">SSO</a> across your organization. Status lets you see '
                              'which members haven\'t configured them yet.'),
                 'target': 'member_status',
             },
