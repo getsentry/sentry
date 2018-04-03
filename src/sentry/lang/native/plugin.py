@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import uuid
 import logging
 import posixpath
 
@@ -179,6 +180,15 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             if pf.cache_value is not None or obj is None or \
                self.sym.is_image_from_app_bundle(obj):
                 continue
+
+            # We can only look up objects in the symbol server that have a
+            # uuid.  If we encounter things with an age appended or
+            # similar we need to skip.
+            try:
+                uuid.UUID(obj.id)
+            except ValueError:
+                continue
+
             to_lookup.append(
                 {
                     'object_uuid': obj.id,
