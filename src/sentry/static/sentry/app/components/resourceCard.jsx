@@ -25,9 +25,9 @@ export default class ResourceCard extends React.Component {
     let {title, link, imgUrl, flipImage} = this.props;
 
     return (
-      <div className="box" style={{padding: '20px 20px 10px'}}>
+      <div className="box p-x-2 p-y-1">
         <Link to={link}>
-          <div style={{paddingBottom: '10px'}}>
+          <div className="m-b-1">
             <img
               src={mediaUrl + imgUrl}
               alt={title}
