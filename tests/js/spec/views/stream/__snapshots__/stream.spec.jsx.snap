@@ -56,6 +56,7 @@ exports[`Stream render() displays the group list 1`] = `
       >
         <StreamGroup
           canSelect={true}
+          hasGuideAnchor={false}
           id="1"
           key="1"
           orgId="org-slug"
@@ -207,6 +208,7 @@ exports[`Stream toggles environment select all environments 1`] = `
       >
         <StreamGroup
           canSelect={true}
+          hasGuideAnchor={false}
           id="1"
           key="1"
           orgId="org-slug"

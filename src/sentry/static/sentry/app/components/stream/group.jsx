@@ -10,6 +10,7 @@ import GroupChart from './groupChart';
 import GroupCheckBox from './groupCheckBox';
 import ProjectState from '../../mixins/projectState';
 import GroupStore from '../../stores/groupStore';
+import GuideAnchor from '../../components/assistant/guideAnchor';
 import SelectedGroupStore from '../../stores/selectedGroupStore';
 import EventOrGroupHeader from '../eventOrGroupHeader';
 import EventOrGroupExtraDetails from '../eventOrGroupExtraDetails';
@@ -26,6 +27,7 @@ const StreamGroup = createReactClass({
     statsPeriod: PropTypes.string.isRequired,
     canSelect: PropTypes.bool,
     query: PropTypes.string,
+    hasGuideAnchor: PropTypes.bool,
   },
 
   mixins: [Reflux.listenTo(GroupStore, 'onGroupChange'), ProjectState],
@@ -102,16 +104,18 @@ const StreamGroup = createReactClass({
     className += ' type-' + data.type;
     className += ' level-' + data.level;
 
-    let {id, orgId, projectId} = this.props;
+    let {id, orgId, projectId, hasGuideAnchor} = this.props;
 
     return (
       <li className={className} onClick={this.toggleSelect}>
         <div className="col-md-7 col-xs-8 event-details">
           {this.props.canSelect && (
             <div className="checkbox">
+              {hasGuideAnchor && <GuideAnchor target="issues" type="text" />}
               <GroupCheckBox id={data.id} />
             </div>
           )}
+
           <EventOrGroupHeader
             data={data}
             orgId={orgId}
@@ -133,13 +137,16 @@ const StreamGroup = createReactClass({
           <GroupChart id={data.id} statsPeriod={this.props.statsPeriod} data={data} />
         </div>
         <div className="col-md-1 col-xs-2 event-count align-right">
+          {hasGuideAnchor && <GuideAnchor target="events" type="text" />}
           <Count value={data.count} />
         </div>
         <div className="col-md-1 col-xs-2 event-users align-right">
+          {hasGuideAnchor && <GuideAnchor target="users" type="text" />}
           <Count value={userCount} />
         </div>
       </li>
     );
   },
 });
+
 export default StreamGroup;
