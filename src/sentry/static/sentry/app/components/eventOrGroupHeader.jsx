@@ -67,7 +67,10 @@ class EventOrIssueHeader extends React.Component {
     }
 
     return (
-      <Wrapper {...props}>
+      <Wrapper
+        {...props}
+        style={data.status === 'resolved' ? {textDecoration: 'line-through'} : null}
+      >
         {!hideIcons && data.status === 'ignored' && <Muted className="icon-soundoff" />}
         {!hideIcons && data.isBookmarked && <Starred className="icon-star-solid" />}
         <EventOrGroupTitle {...this.props} />

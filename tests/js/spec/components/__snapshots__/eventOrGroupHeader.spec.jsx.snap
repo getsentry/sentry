@@ -6,6 +6,7 @@ exports[`EventOrGroupHeader Event hides level tag 1`] = `
 >
   <Title>
     <ProjectLink
+      style={null}
       to={
         Object {
           "pathname": "/orgId/projectId/issues/groupID/events/id/",
@@ -47,6 +48,7 @@ exports[`EventOrGroupHeader Event renders with \`type = csp\` 1`] = `
 >
   <Title>
     <ProjectLink
+      style={null}
       to={
         Object {
           "pathname": "/orgId/projectId/issues/groupID/events/id/",
@@ -92,6 +94,7 @@ exports[`EventOrGroupHeader Event renders with \`type = default\` 1`] = `
 >
   <Title>
     <ProjectLink
+      style={null}
       to={
         Object {
           "pathname": "/orgId/projectId/issues/groupID/events/id/",
@@ -132,6 +135,7 @@ exports[`EventOrGroupHeader Event renders with \`type = error\` 1`] = `
 >
   <Title>
     <ProjectLink
+      style={null}
       to={
         Object {
           "pathname": "/orgId/projectId/issues/groupID/events/id/",
@@ -177,6 +181,7 @@ exports[`EventOrGroupHeader Group renders with \`type = csp\` 1`] = `
 >
   <Title>
     <ProjectLink
+      style={null}
       to={
         Object {
           "pathname": "/orgId/projectId/issues/id/",
@@ -221,6 +226,7 @@ exports[`EventOrGroupHeader Group renders with \`type = default\` 1`] = `
 >
   <Title>
     <ProjectLink
+      style={null}
       to={
         Object {
           "pathname": "/orgId/projectId/issues/id/",
@@ -265,6 +271,7 @@ exports[`EventOrGroupHeader Group renders with \`type = error\` 1`] = `
 >
   <Title>
     <ProjectLink
+      style={null}
       to={
         Object {
           "pathname": "/orgId/projectId/issues/id/",

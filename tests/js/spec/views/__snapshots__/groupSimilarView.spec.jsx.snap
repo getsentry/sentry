@@ -707,6 +707,11 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                   className="glamor-0 glamor-1"
                                 >
                                   <ProjectLink
+                                    style={
+                                      Object {
+                                        "textDecoration": "line-through",
+                                      }
+                                    }
                                     to={
                                       Object {
                                         "pathname": "/orgId/projectId/issues/271/",
@@ -719,6 +724,11 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                         Object {
                                           "pathname": "/orgId/projectId/issues/271/",
                                           "search": "",
+                                        }
+                                      }
+                                      style={
+                                        Object {
+                                          "textDecoration": "line-through",
                                         }
                                       }
                                     >
@@ -1807,6 +1817,11 @@ exports[`Issues Similar View renders with mocked data 2`] = `
                                   className="glamor-0 glamor-1"
                                 >
                                   <ProjectLink
+                                    style={
+                                      Object {
+                                        "textDecoration": "line-through",
+                                      }
+                                    }
                                     to={
                                       Object {
                                         "pathname": "/orgId/projectId/issues/271/",
@@ -1819,6 +1834,11 @@ exports[`Issues Similar View renders with mocked data 2`] = `
                                         Object {
                                           "pathname": "/orgId/projectId/issues/271/",
                                           "search": "",
+                                        }
+                                      }
+                                      style={
+                                        Object {
+                                          "textDecoration": "line-through",
                                         }
                                       }
                                     >
