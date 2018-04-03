@@ -74,7 +74,10 @@ class OrganizationPermission(ScopedPermission):
                             'user_id': request.user.id,
                         }
                     )
-                    raise NotAuthenticated(detail='Must login via SSO')
+                    raise NotAuthenticated(detail={
+                        'message': 'Must login via SSO',
+                        'orgId': organization.slug,
+                    })
 
                 if self.is_not_2fa_compliant(
                         request.user, organization):

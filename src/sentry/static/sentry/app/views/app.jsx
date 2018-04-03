@@ -102,18 +102,32 @@ const App = createReactClass({
       // TODO: Need better way of identifying anonymous pages
       //       that don't trigger redirect
       let pageAllowsAnon = /^\/share\//.test(window.location.pathname);
+
+      // Ignore error unless it is a 401
+      if (!jqXHR || jqXHR.status !== 401 || pageAllowsAnon) return;
+
+      let response = jqXHR.responseJSON;
+
+      // 401s can also mean sudo is required or it's a request that is allowed to fail
+      // Ignore if these are the cases
+      if (response && (response.sudoRequired || response.allowFail)) return;
+
+      // If user must login via SSO, redirect to org login page
       if (
-        jqXHR &&
-        jqXHR.status === 401 &&
-        !pageAllowsAnon &&
-        (!jqXHR.responseJSON ||
-          (!jqXHR.responseJSON.sudoRequired && !jqXHR.responseJSON.allowFail))
+        response &&
+        response.detail &&
+        response.detail.message === 'Must login via SSO'
       ) {
-        Cookies.set('session_expired', 1);
-        // User has become unauthenticated; reload URL, and let Django
-        // redirect to login page
-        window.location.reload();
+        window.location.assign(
+          `/auth/login/${response.detail.orgId ? `${response.detail.orgId}/` : ''}`
+        );
+        return;
       }
+
+      // Otherwise, user has become unauthenticated; reload URL, and let Django
+      // redirect to login page
+      Cookies.set('session_expired', 1);
+      window.location.reload();
     });
   },
 
