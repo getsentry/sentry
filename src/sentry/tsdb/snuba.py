@@ -68,8 +68,9 @@ class SnubaTSDB(BaseTSDB):
         if environment_id is not None:
             keys_map['environment'] = [environment_id]
 
+        aggregations = [[aggregation, model_aggregate, 'aggregate']]
         return snuba.query(start, end, groupby, None, keys_map,
-                           aggregation, model_aggregate, rollup)
+                           aggregations, rollup)
 
     def get_range(self, model, keys, start, end, rollup=None, environment_id=None):
         result = self.get_data(model, keys, start, end, rollup, environment_id,

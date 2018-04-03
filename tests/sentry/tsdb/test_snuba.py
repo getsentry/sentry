@@ -61,12 +61,14 @@ class SnubaTSDBTest(TestCase):
         with responses.RequestsMock() as rsps:
             def snuba_response(request):
                 body = json.loads(request.body)
-                meta = [{'name': col} for col in body['groupby'] + ['aggregate']]
+                aggs = body.get('aggregations', [])
+                meta = [{'name': col} for col in body['groupby'] + [a[2] for a in aggs]]
                 datum = {col['name']: 1 for col in meta}
                 if 'time' in datum:
                     datum['time'] = '2018-03-09T01:00:00Z'
-                if body['aggregation'].startswith('topK'):
-                    datum['aggregate'] = [1]
+                for agg in aggs:
+                    if agg[0].startswith('topK'):
+                        datum[agg[2]] = [1]
                 return (200, {}, json.dumps({'data': [datum], 'meta': meta}))
 
             rsps.add_callback(responses.POST, snuba.SNUBA + '/query', callback=snuba_response)
@@ -118,7 +120,7 @@ class SnubaTSDBTest(TestCase):
         with responses.RequestsMock() as rsps:
             def snuba_response(request):
                 body = json.loads(request.body)
-                assert body['aggregation'] == 'count'
+                assert body['aggregations'] == [['count', None, 'aggregate']]
                 assert body['project'] == [project.id]
                 assert body['groupby'] == ['issue', 'time']
 
@@ -150,7 +152,7 @@ class SnubaTSDBTest(TestCase):
         with responses.RequestsMock() as rsps:
             def snuba_response(request):
                 body = json.loads(request.body)
-                assert body['aggregation'] == 'count'
+                assert body['aggregations'] == [['count', None, 'aggregate']]
                 assert body['project'] == [project.id]
                 assert body['groupby'] == ['release', 'time']
                 assert ['release', 'IN', ['version X']] in body['conditions']
@@ -173,7 +175,7 @@ class SnubaTSDBTest(TestCase):
         with responses.RequestsMock() as rsps:
             def snuba_response(request):
                 body = json.loads(request.body)
-                assert body['aggregation'] == 'count'
+                assert body['aggregations'] == [['count', None, 'aggregate']]
                 assert body['project'] == [project.id]
                 assert body['groupby'] == ['project_id', 'time']
                 assert ['environment', 'IN', ['prod']] in body['conditions']
