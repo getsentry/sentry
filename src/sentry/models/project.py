@@ -280,7 +280,12 @@ class Project(Model):
             is_enabled = bool(is_enabled)
         return is_enabled
 
-    def transfer_to(self, team):
+    def transfer_to(self, team=None, organization=None):
+
+        # TODO(jess): remove this when new-teams is live for everyone
+        # only support passing team or org not both
+        assert (team and not organization) or (organization and not team)
+
         # NOTE: this will only work properly if the new team is in a different
         # org than the existing one, which is currently the only use case in
         # production
@@ -294,7 +299,8 @@ class Project(Model):
             Rule,
         )
 
-        organization = team.organization
+        if organization is None:
+            organization = team.organization
 
         old_org_id = self.organization_id
         org_changed = old_org_id != organization.id
@@ -354,7 +360,8 @@ class Project(Model):
             )
 
         # ensure this actually exists in case from team was null
-        self.add_team(team)
+        if team is not None:
+            self.add_team(team)
 
     def add_team(self, team):
         try:
