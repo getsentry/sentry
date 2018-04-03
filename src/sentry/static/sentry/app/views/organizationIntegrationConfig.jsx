@@ -135,7 +135,6 @@ export default class OrganizationIntegrationConfig extends AsyncView {
     );
 
     this.dialog.focus();
-    this.dialog.onclose = () => document.location.refresh();
   };
 
   receiveMessage = message => {
