@@ -140,7 +140,7 @@ const StreamGroup = createReactClass({
           {hasGuideAnchor && <GuideAnchor target="users" type="text" />}
           <Count value={data.userCount} />
         </Flex>
-        <Box w={50} mx={2} className="hidden-sm">
+        <Box w={50} mx={2} className="hidden-xs hidden-sm">
           <StyledAssigneeSelector id={data.id} />
         </Box>
       </Group>

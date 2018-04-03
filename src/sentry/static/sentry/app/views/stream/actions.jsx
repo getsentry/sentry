@@ -414,7 +414,7 @@ const StreamActions = createReactClass({
           <Box w={50} mx={2} className="align-right">
             <ToolbarHeader>{t('Users')}</ToolbarHeader>
           </Box>
-          <Box w={50} mx={2} className="align-right hidden-sm">
+          <Box w={50} mx={2} className="align-right hidden-xs hidden-sm">
             <ToolbarHeader>{t('Owner')}</ToolbarHeader>
           </Box>
         </StyledFlex>
