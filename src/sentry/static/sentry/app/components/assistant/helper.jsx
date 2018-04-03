@@ -142,6 +142,9 @@ const AssistantHelper = createReactClass({
 //this globally controls the size of the component
 const StyledHelper = styled('div')`
   font-size: 1.4rem;
+  @media (max-width: 600px) {
+    display: none;
+  }
 `;
 
 const StyledCueText = styled('span')`
