@@ -302,6 +302,7 @@ const StyledTeamsLabel = styled('div')`
 
 const StyledCreateTeamLink = styled(Link)`
   float: right;
+  text-transform: none;
 `;
 
 export default ProjectTeams;
