@@ -892,8 +892,19 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                                       includeLink={true}
                                       orgId="orgId"
                                       projectId="projectId"
+                                      style={
+                                        Object {
+                                          "fontWeight": 600,
+                                        }
+                                      }
                                     >
-                                      <span>
+                                      <span
+                                        style={
+                                          Object {
+                                            "fontWeight": 600,
+                                          }
+                                        }
+                                      >
                                         TypeError
                                       </span>
                                     </EventOrGroupTitle>
@@ -1330,8 +1341,19 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                                       includeLink={true}
                                       orgId="orgId"
                                       projectId="projectId"
+                                      style={
+                                        Object {
+                                          "fontWeight": 600,
+                                        }
+                                      }
                                     >
-                                      <span>
+                                      <span
+                                        style={
+                                          Object {
+                                            "fontWeight": 600,
+                                          }
+                                        }
+                                      >
                                         TypeError
                                       </span>
                                     </EventOrGroupTitle>
@@ -2243,8 +2265,19 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                                       includeLink={true}
                                       orgId="orgId"
                                       projectId="projectId"
+                                      style={
+                                        Object {
+                                          "fontWeight": 600,
+                                        }
+                                      }
                                     >
-                                      <span>
+                                      <span
+                                        style={
+                                          Object {
+                                            "fontWeight": 600,
+                                          }
+                                        }
+                                      >
                                         TypeError
                                       </span>
                                     </EventOrGroupTitle>
@@ -2681,8 +2714,19 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                                       includeLink={true}
                                       orgId="orgId"
                                       projectId="projectId"
+                                      style={
+                                        Object {
+                                          "fontWeight": 600,
+                                        }
+                                      }
                                     >
-                                      <span>
+                                      <span
+                                        style={
+                                          Object {
+                                            "fontWeight": 600,
+                                          }
+                                        }
+                                      >
                                         TypeError
                                       </span>
                                     </EventOrGroupTitle>

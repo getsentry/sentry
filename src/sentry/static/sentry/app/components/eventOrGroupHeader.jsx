@@ -73,7 +73,10 @@ class EventOrIssueHeader extends React.Component {
       >
         {!hideIcons && data.status === 'ignored' && <Muted className="icon-soundoff" />}
         {!hideIcons && data.isBookmarked && <Starred className="icon-star-solid" />}
-        <EventOrGroupTitle {...this.props} />
+        <EventOrGroupTitle
+          {...this.props}
+          style={{fontWeight: data.hasSeen ? 400 : 600}}
+        />
       </Wrapper>
     );
   }

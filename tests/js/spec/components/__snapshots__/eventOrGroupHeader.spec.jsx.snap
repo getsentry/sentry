@@ -36,6 +36,11 @@ exports[`EventOrGroupHeader Event hides level tag 1`] = `
         includeLink={true}
         orgId="orgId"
         projectId="projectId"
+        style={
+          Object {
+            "fontWeight": 600,
+          }
+        }
       />
     </ProjectLink>
   </Title>
@@ -77,6 +82,11 @@ exports[`EventOrGroupHeader Event renders with \`type = csp\` 1`] = `
         includeLink={true}
         orgId="orgId"
         projectId="projectId"
+        style={
+          Object {
+            "fontWeight": 600,
+          }
+        }
       />
     </ProjectLink>
   </Title>
@@ -123,6 +133,11 @@ exports[`EventOrGroupHeader Event renders with \`type = default\` 1`] = `
         includeLink={true}
         orgId="orgId"
         projectId="projectId"
+        style={
+          Object {
+            "fontWeight": 600,
+          }
+        }
       />
     </ProjectLink>
   </Title>
@@ -164,6 +179,11 @@ exports[`EventOrGroupHeader Event renders with \`type = error\` 1`] = `
         includeLink={true}
         orgId="orgId"
         projectId="projectId"
+        style={
+          Object {
+            "fontWeight": 600,
+          }
+        }
       />
     </ProjectLink>
   </Title>
@@ -209,6 +229,11 @@ exports[`EventOrGroupHeader Group renders with \`type = csp\` 1`] = `
         includeLink={true}
         orgId="orgId"
         projectId="projectId"
+        style={
+          Object {
+            "fontWeight": 600,
+          }
+        }
       />
     </ProjectLink>
   </Title>
@@ -254,6 +279,11 @@ exports[`EventOrGroupHeader Group renders with \`type = default\` 1`] = `
         includeLink={true}
         orgId="orgId"
         projectId="projectId"
+        style={
+          Object {
+            "fontWeight": 600,
+          }
+        }
       />
     </ProjectLink>
   </Title>
@@ -299,6 +329,11 @@ exports[`EventOrGroupHeader Group renders with \`type = error\` 1`] = `
         includeLink={true}
         orgId="orgId"
         projectId="projectId"
+        style={
+          Object {
+            "fontWeight": 600,
+          }
+        }
       />
     </ProjectLink>
   </Title>
