@@ -229,10 +229,10 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                     >
                       <AutoCompleteRoot>
                         <Component
-                          className="css-6v04yn-AutoCompleteRoot css-1eofoy40"
+                          className="css-6v04yn-AutoCompleteRoot css-m3vjbe0"
                         >
                           <div
-                            className="css-6v04yn-AutoCompleteRoot css-1eofoy40"
+                            className="css-6v04yn-AutoCompleteRoot css-m3vjbe0"
                           >
                             <div
                               onClick={[Function]}

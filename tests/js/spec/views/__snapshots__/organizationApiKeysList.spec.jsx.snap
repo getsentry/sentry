@@ -1,144 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`OrganizationApiKeysList renders 1`] = `
-<<<<<<< HEAD
-=======
-.glamor-8 {
-  font-size: 14px;
-  box-shadow: inset 0 -1px 0;
-  margin: -20px 0 30px;
-}
-
-.glamor-4 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
-.glamor-0 {
-  font-size: 20px;
-  font-weight: bold;
-  margin: 20px 0;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-}
-
-.glamor-2 {
-  margin-right: 4px;
-}
-
-.glamor-10 {
-  line-height: 1.8;
-}
-
-.glamor-42 {
-  background: #fff;
-  border: 1px solid;
-  margin-bottom: NaNpx;
-  position: relative;
-}
-
-.glamor-26 {
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  line-height: 1;
-  padding: 10px 0;
-}
-
-.glamor-23 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  -webkit-box-pack: justify;
-  -webkit-justify-content: space-between;
-  -ms-flex-pack: justify;
-  justify-content: space-between;
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  line-height: 1;
-  padding: 10px 0;
-}
-
-.glamor-16 {
-  box-sizing: border-box;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
-.glamor-12 {
-  box-sizing: border-box;
-  padding-left: 16px;
-  padding-right: 16px;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-}
-
-.glamor-14 {
-  box-sizing: border-box;
-  padding-left: 16px;
-  padding-right: 16px;
-  -webkit-flex: 2;
-  -ms-flex: 2;
-  flex: 2;
-}
-
-.glamor-18 {
-  box-sizing: border-box;
-  width: 100px;
-  padding-left: 16px;
-  padding-right: 16px;
-}
-
-.glamor-38 {
-  box-sizing: border-box;
-  padding: 0px;
-  padding-top: 8px;
-  padding-bottom: 8px;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  border-bottom: 1px solid;
-}
-
-.glamor-38:last-child {
-  border: 0;
-}
-
->>>>>>> second commit
 <OrganizationApiKeysList
   keys={
     Array [
@@ -348,21 +210,21 @@ exports[`OrganizationApiKeysList renders 1`] = `
               disablePadding={true}
             >
               <Component
-                className="css-1ml1jfr-StyledPanelHeader css-zott9u0"
+                className="css-gsi5u6-StyledPanelHeader css-ma0kn80"
                 disablePadding={true}
               >
                 <Flex
                   align="center"
-                  className="css-1ml1jfr-StyledPanelHeader css-zott9u0"
+                  className="css-gsi5u6-StyledPanelHeader css-ma0kn80"
                   justify="space-between"
                 >
                   <Base
                     align="center"
-                    className="css-zott9u0 css-kam103"
+                    className="css-ma0kn80 css-vszqlz"
                     justify="space-between"
                   >
                     <div
-                      className="css-zott9u0 css-kam103"
+                      className="css-ma0kn80 css-vszqlz"
                       is={null}
                     >
                       <Flex

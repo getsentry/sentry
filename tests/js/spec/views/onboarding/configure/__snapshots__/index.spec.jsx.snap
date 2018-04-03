@@ -166,21 +166,21 @@ exports[`Configure should render correctly render() should render platform docs 
                                 hasButtons={true}
                               >
                                 <Component
-                                  className="css-1729ikd-StyledPanelHeader css-zott9u0"
+                                  className="css-1aolgz-StyledPanelHeader css-ma0kn80"
                                   hasButtons={true}
                                 >
                                   <Flex
                                     align="center"
-                                    className="css-1729ikd-StyledPanelHeader css-zott9u0"
+                                    className="css-1aolgz-StyledPanelHeader css-ma0kn80"
                                     justify="space-between"
                                   >
                                     <Base
                                       align="center"
-                                      className="css-zott9u0 css-sgens1"
+                                      className="css-ma0kn80 css-1i7043a"
                                       justify="space-between"
                                     >
                                       <div
-                                        className="css-zott9u0 css-sgens1"
+                                        className="css-ma0kn80 css-1i7043a"
                                         is={null}
                                       >
                                         Configure node

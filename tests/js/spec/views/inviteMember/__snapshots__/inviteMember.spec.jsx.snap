@@ -12,158 +12,7 @@ exports[`CreateProject render() should render loading 1`] = `
 </div>
 `;
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-exports[
-  `CreateProject render() should render roles when available and allowed, and handle submitting 1`
-] = `
-=======
 exports[`CreateProject render() should render roles when available and allowed, and handle submitting 1`] = `
-=======
-exports[
-  `CreateProject render() should render roles when available and allowed, and handle submitting 1`
-] = `
->>>>>>> use spacing functions that add unitless numbers
-.glamor-4 {
-  font-size: 14px;
-  box-shadow: inset 0 -1px 0;
-  margin: -20px 0 30px;
-}
-
-.glamor-2 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
-.glamor-0 {
-  font-size: 20px;
-  font-weight: bold;
-  margin: 20px 0;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-}
-
-.glamor-6 {
-  line-height: 1.5;
-  margin-bottom: 30px;
-}
-
-.glamor-22 {
-  margin-bottom: 0;
-}
-
-.glamor-44 {
-  background: #fff;
-  border: 1px solid;
-  margin-bottom: NaNpx;
-  position: relative;
-}
-
-.glamor-14 {
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  line-height: 1;
-  padding: 10px 20px;
-}
-
-.glamor-11 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  -webkit-box-pack: justify;
-  -webkit-justify-content: space-between;
-  -ms-flex-pack: justify;
-  justify-content: space-between;
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  line-height: 1;
-  padding: 10px 20px;
-}
-
-.glamor-25 {
-  box-sizing: border-box;
-  padding: 16px;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  border-bottom: 1px solid;
-}
-
-.glamor-25:last-child {
-  border: 0;
-}
-
-.glamor-23 {
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  margin-bottom: 0;
-}
-
-.glamor-18 {
-  line-height: 1.5;
-  margin-bottom: 30px;
-  margin-bottom: 0;
-}
-
-.glamor-62 {
-  -webkit-flex-wrap: wrap;
-  -ms-flex-wrap: wrap;
-  flex-wrap: wrap;
-}
-
-.glamor-58 {
-  box-sizing: border-box;
-  padding: 16px;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  border-bottom: 1px solid;
-  -webkit-flex-wrap: wrap;
-  -ms-flex-wrap: wrap;
-  flex-wrap: wrap;
-}
-
-.glamor-58:last-child {
-  border: 0;
-}
-
-.glamor-54 {
-  width: 25%;
-  padding: 6px;
-}
-
->>>>>>> second commit
 <InviteMember
   location={
     Object {
@@ -294,20 +143,20 @@ exports[
               <PanelHeader>
                 <StyledPanelHeader>
                   <Component
-                    className="css-wxaapd-StyledPanelHeader css-zott9u0"
+                    className="css-1y7casb-StyledPanelHeader css-ma0kn80"
                   >
                     <Flex
                       align="center"
-                      className="css-wxaapd-StyledPanelHeader css-zott9u0"
+                      className="css-1y7casb-StyledPanelHeader css-ma0kn80"
                       justify="space-between"
                     >
                       <Base
                         align="center"
-                        className="css-zott9u0 css-1qscict"
+                        className="css-ma0kn80 css-1qsvam7"
                         justify="space-between"
                       >
                         <div
-                          className="css-zott9u0 css-1qscict"
+                          className="css-ma0kn80 css-1qsvam7"
                           is={null}
                         >
                           Role
@@ -533,20 +382,20 @@ exports[
               <PanelHeader>
                 <StyledPanelHeader>
                   <Component
-                    className="css-wxaapd-StyledPanelHeader css-zott9u0"
+                    className="css-1y7casb-StyledPanelHeader css-ma0kn80"
                   >
                     <Flex
                       align="center"
-                      className="css-wxaapd-StyledPanelHeader css-zott9u0"
+                      className="css-1y7casb-StyledPanelHeader css-ma0kn80"
                       justify="space-between"
                     >
                       <Base
                         align="center"
-                        className="css-zott9u0 css-1qscict"
+                        className="css-ma0kn80 css-1qsvam7"
                         justify="space-between"
                       >
                         <div
-                          className="css-zott9u0 css-1qscict"
+                          className="css-ma0kn80 css-1qsvam7"
                           is={null}
                         >
                           Team
