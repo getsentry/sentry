@@ -10,7 +10,7 @@ import EventOrGroupTitle from './eventOrGroupTitle';
 /**
  * Displays an event or group/issue title (i.e. in Stream)
  */
-class EventOrIssueHeader extends React.Component {
+class EventOrGroupHeader extends React.Component {
   static propTypes = {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
@@ -89,11 +89,7 @@ class EventOrIssueHeader extends React.Component {
     return (
       <div className={cx}>
         <Title>{this.getTitle()}</Title>
-        {message && (
-          <Message>
-            <span>{message}</span>
-          </Message>
-        )}
+        {message && <Message>{message}</Message>}
       </div>
     );
   }
@@ -138,4 +134,4 @@ const Starred = styled.span`
   color: ${p => p.theme.yellowOrange};
 `;
 
-export default EventOrIssueHeader;
+export default EventOrGroupHeader;

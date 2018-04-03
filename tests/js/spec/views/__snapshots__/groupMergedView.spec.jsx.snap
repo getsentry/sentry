@@ -662,7 +662,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                       <div
                         className="flow-layout is-truncated"
                       >
-                        <EventOrIssueHeader
+                        <EventOrGroupHeader
                           data={
                             Object {
                               "context": Object {
@@ -916,13 +916,11 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                               <div
                                 className="css-ogpcmq-Message css-1b89nad1"
                               >
-                                <span>
-                                  Cannot read property 'assignedTo' of undefined
-                                </span>
+                                Cannot read property 'assignedTo' of undefined
                               </div>
                             </Message>
                           </div>
-                        </EventOrIssueHeader>
+                        </EventOrGroupHeader>
                       </div>
                     </FlowLayout>
                   </div>
@@ -1111,7 +1109,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                       <div
                         className="flow-layout is-truncated"
                       >
-                        <EventOrIssueHeader
+                        <EventOrGroupHeader
                           data={
                             Object {
                               "context": Object {
@@ -1365,13 +1363,11 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                               <div
                                 className="css-ogpcmq-Message css-1b89nad1"
                               >
-                                <span>
-                                  Cannot read property 'assignedTo' of undefined
-                                </span>
+                                Cannot read property 'assignedTo' of undefined
                               </div>
                             </Message>
                           </div>
-                        </EventOrIssueHeader>
+                        </EventOrGroupHeader>
                       </div>
                     </FlowLayout>
                   </div>
@@ -2035,7 +2031,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                       <div
                         className="flow-layout is-truncated"
                       >
-                        <EventOrIssueHeader
+                        <EventOrGroupHeader
                           data={
                             Object {
                               "context": Object {
@@ -2289,13 +2285,11 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                               <div
                                 className="css-ogpcmq-Message css-1b89nad1"
                               >
-                                <span>
-                                  Cannot read property 'assignedTo' of undefined
-                                </span>
+                                Cannot read property 'assignedTo' of undefined
                               </div>
                             </Message>
                           </div>
-                        </EventOrIssueHeader>
+                        </EventOrGroupHeader>
                       </div>
                     </FlowLayout>
                   </div>
@@ -2484,7 +2478,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                       <div
                         className="flow-layout is-truncated"
                       >
-                        <EventOrIssueHeader
+                        <EventOrGroupHeader
                           data={
                             Object {
                               "context": Object {
@@ -2738,13 +2732,11 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                               <div
                                 className="css-ogpcmq-Message css-1b89nad1"
                               >
-                                <span>
-                                  Cannot read property 'assignedTo' of undefined
-                                </span>
+                                Cannot read property 'assignedTo' of undefined
                               </div>
                             </Message>
                           </div>
-                        </EventOrIssueHeader>
+                        </EventOrGroupHeader>
                       </div>
                     </FlowLayout>
                   </div>

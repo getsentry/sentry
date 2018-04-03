@@ -91,9 +91,7 @@ exports[`EventOrGroupHeader Event renders with \`type = csp\` 1`] = `
     </ProjectLink>
   </Title>
   <Message>
-    <span>
-      metadata message
-    </span>
+    metadata message
   </Message>
 </div>
 `;
@@ -188,9 +186,7 @@ exports[`EventOrGroupHeader Event renders with \`type = error\` 1`] = `
     </ProjectLink>
   </Title>
   <Message>
-    <span>
-      metadata value
-    </span>
+    metadata value
   </Message>
 </div>
 `;
@@ -238,9 +234,7 @@ exports[`EventOrGroupHeader Group renders with \`type = csp\` 1`] = `
     </ProjectLink>
   </Title>
   <Message>
-    <span>
-      metadata message
-    </span>
+    metadata message
   </Message>
 </div>
 `;
@@ -288,9 +282,7 @@ exports[`EventOrGroupHeader Group renders with \`type = default\` 1`] = `
     </ProjectLink>
   </Title>
   <Message>
-    <span>
-      culprit
-    </span>
+    culprit
   </Message>
 </div>
 `;
@@ -338,9 +330,7 @@ exports[`EventOrGroupHeader Group renders with \`type = error\` 1`] = `
     </ProjectLink>
   </Title>
   <Message>
-    <span>
-      metadata value
-    </span>
+    metadata value
   </Message>
 </div>
 `;

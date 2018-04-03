@@ -21,6 +21,7 @@ import EventOrGroupExtraDetails from '../eventOrGroupExtraDetails';
 import TimeSince from '../timeSince';
 import Tooltip from '../tooltip';
 
+import {t} from '../../locale';
 import {valueIsEqual} from '../../utils';
 
 const StreamGroup = createReactClass({
@@ -123,7 +124,7 @@ const StreamGroup = createReactClass({
           {data.shortId && <GroupShortId shortId={data.shortId} />}
           {data.firstSeen && (
             <GroupTimeSinceWrapper>
-              first seen <TimeSince date={data.firstSeen} suffix="ago" />
+              {t('first seen')} <TimeSince date={data.firstSeen} suffix={t('ago')} />
             </GroupTimeSinceWrapper>
           )}
         </Box>
