@@ -18,6 +18,15 @@ import {addErrorMessage} from '../../../../actionCreators/indicator';
 
 import {t} from '../../../../locale';
 
+const IssueOwnerCandidate = styled('div')`
+  fontfamily: Monaco, Consolas, 'Courier New', monospace;
+  border: 1px solid ${p => p.theme.borderDark};
+  background-color: #f8fafd;
+  padding-left: 10px;
+  margin-bottom: 3px;
+  cursor: pointer;
+`;
+
 const BuilderBar = styled('div')`
   display: flex;
   height: 40px;
@@ -34,6 +43,7 @@ const BuilderSelect = styled(SelectInput)`
 
 const BuilderInput = styled(Input)`
   padding: 0.5em;
+  line-height: 19px;
   margin-right: 5px;
 `;
 
@@ -85,6 +95,8 @@ class RuleBuilder extends React.Component {
   static propTypes = {
     project: SentryTypes.Project,
     onAddRule: PropTypes.func,
+    urls: PropTypes.arrayOf(PropTypes.string),
+    paths: PropTypes.arrayOf(PropTypes.string),
   };
 
   constructor(props) {
@@ -171,62 +183,71 @@ class RuleBuilder extends React.Component {
   };
 
   render() {
+    let {urls, paths} = this.props;
     let {type, text, owners} = this.state;
 
     return (
-      <BuilderBar>
-        <BuilderSelect value={type} showSearch={false} onChange={this.handleTypeChange}>
-          <option value="path">Path</option>
-          <option value="url">URL</option>
-        </BuilderSelect>
-        <BuilderInput
-          controlled
-          value={text}
-          onChange={this.handleChangeValue}
-          placeholder={type === 'path' ? 'src/example/*' : 'example.com/settings/*'}
-        />
-        <Divider src="icon-chevron-right" />
-        <Flex flex="1" align="center">
-          <DropdownAutoComplete
-            items={[
-              {
-                value: 'team',
-                label: 'Teams',
-                items: this.mentionableTeams(),
-              },
-              {
-                value: 'user',
-                label: 'Users',
-                items: this.mentionableUsers(),
-              },
-            ]}
-            onSelect={this.onAddActor}
-          >
-            {({isOpen, selectedItem}) => (
-              <BuilderDropdownButton isOpen={isOpen} size="zero">
-                <Owners>
-                  {owners.map(owner => (
-                    <span
-                      key={`${owner.type}-${owner.id}`}
-                      onClick={this.handleRemoveActor.bind(this, owner)}
-                    >
-                      <ActorAvatar actor={owner} />
-                    </span>
-                  ))}
-                </Owners>
-                <div>{t('Add Owners')}</div>
-              </BuilderDropdownButton>
-            )}
-          </DropdownAutoComplete>
-        </Flex>
+      <React.Fragment>
+        {((type === 'path' ? paths : urls) || []).map(v => (
+          <IssueOwnerCandidate key={v} onClick={() => this.setState({text: v})}>
+            <InlineSvg src="icon-circle-add" />
+            {v}
+          </IssueOwnerCandidate>
+        ))}
+        <BuilderBar>
+          <BuilderSelect value={type} showSearch={false} onChange={this.handleTypeChange}>
+            <option value="path">Path</option>
+            <option value="url">URL</option>
+          </BuilderSelect>
+          <BuilderInput
+            controlled
+            value={text}
+            onChange={this.handleChangeValue}
+            placeholder={type === 'path' ? 'src/example/*' : 'example.com/settings/*'}
+          />
+          <Divider src="icon-chevron-right" />
+          <Flex flex="1" align="center">
+            <DropdownAutoComplete
+              items={[
+                {
+                  value: 'team',
+                  label: 'Teams',
+                  items: this.mentionableTeams(),
+                },
+                {
+                  value: 'user',
+                  label: 'Users',
+                  items: this.mentionableUsers(),
+                },
+              ]}
+              onSelect={this.onAddActor}
+            >
+              {({isOpen, selectedItem}) => (
+                <BuilderDropdownButton isOpen={isOpen} size="zero">
+                  <Owners>
+                    {owners.map(owner => (
+                      <span
+                        key={`${owner.type}-${owner.id}`}
+                        onClick={this.handleRemoveActor.bind(this, owner)}
+                      >
+                        <ActorAvatar actor={owner} />
+                      </span>
+                    ))}
+                  </Owners>
+                  <div>{t('Add Owners')}</div>
+                </BuilderDropdownButton>
+              )}
+            </DropdownAutoComplete>
+          </Flex>
 
-        <RuleAddButton
-          priority="primary"
-          onClick={this.handleAddRule}
-          icon="icon-circle-add"
-          size="zero"
-        />
-      </BuilderBar>
+          <RuleAddButton
+            priority="primary"
+            onClick={this.handleAddRule}
+            icon="icon-circle-add"
+            size="zero"
+          />
+        </BuilderBar>
+      </React.Fragment>
     );
   }
 }

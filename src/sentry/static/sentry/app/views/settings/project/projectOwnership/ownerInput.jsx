@@ -35,6 +35,8 @@ class OwnerInput extends React.Component {
     organization: SentryTypes.Organization,
     project: SentryTypes.Project,
     initialText: PropTypes.string,
+    urls: PropTypes.arrayOf(PropTypes.string),
+    paths: PropTypes.arrayOf(PropTypes.string),
   };
 
   constructor(props) {
@@ -140,12 +142,14 @@ class OwnerInput extends React.Component {
   }
 
   render() {
-    let {project, organization} = this.props;
+    let {project, organization, urls, paths} = this.props;
     let {text, error, initialText} = this.state;
 
     return (
       <React.Fragment>
         <RuleBuilder
+          urls={urls}
+          paths={paths}
           organization={organization}
           project={project}
           onAddRule={this.handleAddRule.bind(this)}
