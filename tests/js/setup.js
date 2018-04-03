@@ -20,6 +20,7 @@ import {
 import {VstsPlugin, VstsCreate} from './fixtures/vsts-old';
 
 jest.mock('lodash/debounce', () => jest.fn(fn => fn));
+jest.mock('app/components/inlineSvg');
 jest.mock('app/utils/recreateRoute');
 jest.mock('app/translations');
 jest.mock('app/api');
