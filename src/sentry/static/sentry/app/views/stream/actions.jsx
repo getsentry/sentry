@@ -292,7 +292,7 @@ const StreamActions = createReactClass({
               confirmLabel={label('ignore')}
               disabled={!anySelected}
             />
-            <div className="btn-group">
+            <div className="btn-group hidden-xs">
               <ActionLink
                 className={'btn btn-default btn-sm action-merge'}
                 disabled={!multiSelected}
