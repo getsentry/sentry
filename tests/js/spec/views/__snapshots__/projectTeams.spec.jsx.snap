@@ -52,6 +52,7 @@ exports[`ProjectTeams renders 1`] = `
               Array [
                 Object {
 <<<<<<< HEAD
+<<<<<<< HEAD
                   "label": <TeamDropdownElement>
                     #
                     team-slug-2
@@ -64,6 +65,12 @@ exports[`ProjectTeams renders 1`] = `
                     team-slug-2
                   </div>,
 >>>>>>> use spacing functions that add unitless numbers
+=======
+                  "label": <TeamDropdownElement>
+                    #
+                    team-slug-2
+                  </TeamDropdownElement>,
+>>>>>>> just interpolate the spacing scale for now rather than mixing in full lines
                   "searchKey": "team-slug-2",
                   "value": "2",
                 },

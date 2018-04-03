@@ -5,7 +5,7 @@ import styled from 'react-emotion';
 
 import ApiMixin from '../../../mixins/apiMixin';
 import {addErrorMessage, addSuccessMessage} from '../../../actionCreators/indicator';
-import styles from '../../../styles';
+import space from '../../../styles/spacingScale';
 import Button from '../../../components/buttons/button';
 import DropdownAutoComplete from '../../../components/dropdownAutoComplete';
 import DropdownButton from '../../../components/dropdownButton';
@@ -121,7 +121,7 @@ const TeamProjects = createReactClass({
         return {
           value: p.id,
           searchKey: p.slug,
-          label: <div className={styles.paddingVertical(1)}>{p.slug}</div>,
+          label: <ProjectListElement>{p.slug}</ProjectListElement>,
         };
       });
 
@@ -155,14 +155,18 @@ const RemoveIcon = styled(props => (
 ))`
   min-height: 1.25em;
   min-width: 1.25em;
-  ${styles.marginRight(3)};
+  margin-right: ${space(3)};
 `;
 
 const StyledPanelItem = styled(PanelItem)`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  ${styles.padding(4)};
+  padding: ${space(4)};
+`;
+
+const ProjectListElement = styled('div')`
+  padding: ${space(1)} 0;
 `;
 
 export default TeamProjects;

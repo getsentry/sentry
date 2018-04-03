@@ -1,10 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`TeamMembers render() renders 1`] = `
-.glamor-0 {
-  margin-right: 10px;
-}
-
 <Panel>
   <PanelHeader
     hasButtons={true}
@@ -69,9 +65,13 @@ exports[`TeamMembers render() renders 1`] = `
       size="small"
     >
       <InlineSvg
-        className="glamor-0"
         size="1.25em"
         src="icon-circle-subtract"
+        style={
+          Object {
+            "marginRight": "10px",
+          }
+        }
       />
       Remove
     </Button>
@@ -109,9 +109,13 @@ exports[`TeamMembers render() renders 1`] = `
       size="small"
     >
       <InlineSvg
-        className="glamor-0"
         size="1.25em"
         src="icon-circle-subtract"
+        style={
+          Object {
+            "marginRight": "10px",
+          }
+        }
       />
       Remove
     </Button>
@@ -149,9 +153,13 @@ exports[`TeamMembers render() renders 1`] = `
       size="small"
     >
       <InlineSvg
-        className="glamor-0"
         size="1.25em"
         src="icon-circle-subtract"
+        style={
+          Object {
+            "marginRight": "10px",
+          }
+        }
       />
       Remove
     </Button>
