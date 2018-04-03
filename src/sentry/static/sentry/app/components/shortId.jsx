@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
+import styled from 'react-emotion';
 import ProjectState from '../mixins/projectState';
 
 import AutoSelectText from './autoSelectText';
@@ -10,7 +11,6 @@ const ShortId = createReactClass({
 
   propTypes: {
     shortId: PropTypes.string,
-    project: PropTypes.object,
   },
 
   mixins: [ProjectState],
@@ -27,11 +27,15 @@ const ShortId = createReactClass({
       return null;
     }
     return (
-      <span className="short-id" onClick={this.preventPropagation}>
+      <StyledShortId onClick={this.preventPropagation}>
         <AutoSelectText>{shortId}</AutoSelectText>
-      </span>
+      </StyledShortId>
     );
   },
 });
+
+const StyledShortId = styled.div`
+  font-family: ${p => p.theme.text.familyMono};
+`;
 
 export default ShortId;
