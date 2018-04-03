@@ -11,6 +11,7 @@ import {omit, isEqual} from 'lodash';
 
 import SentryTypes from '../../proptypes';
 import ApiMixin from '../../mixins/apiMixin';
+import ConfigStore from '../../stores/configStore';
 import GroupStore from '../../stores/groupStore';
 import EnvironmentStore from '../../stores/environmentStore';
 import HookStore from '../../stores/hookStore';
@@ -637,8 +638,16 @@ const Stream = createReactClass({
   },
 
   renderGroupNodes(ids, statsPeriod) {
+    // Restrict this guide to only show for new users (joined<30 days) and add guide anhor only to the first issue
+    let userDateJoined = new Date(ConfigStore.get('user').dateJoined);
+    let dateCutoff = new Date();
+    dateCutoff.setDate(dateCutoff.getDate() - 30);
+
+    let topIssue = ids[0];
+
     let {orgId, projectId} = this.props.params;
     let groupNodes = ids.map(id => {
+      let hasGuideAnchor = userDateJoined > dateCutoff && id === topIssue;
       return (
         <StreamGroup
           key={id}
@@ -647,6 +656,7 @@ const Stream = createReactClass({
           projectId={projectId}
           statsPeriod={statsPeriod}
           query={this.state.query}
+          hasGuideAnchor={hasGuideAnchor}
         />
       );
     });

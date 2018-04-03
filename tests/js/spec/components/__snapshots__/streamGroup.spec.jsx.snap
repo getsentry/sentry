@@ -1,0 +1,168 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`StreamGroup renders with anchors 1`] = `
+<li
+  className="group row type-undefined level-undefined"
+  onClick={[Function]}
+>
+  <div
+    className="col-md-7 col-xs-8 event-details"
+  >
+    <div
+      className="checkbox"
+    >
+      <GuideAnchor
+        target="issues"
+        type="text"
+      />
+      <GroupCheckBox
+        id="1337"
+      />
+    </div>
+    <EventOrGroupHeader
+      data={
+        Object {
+          "assignedTo": null,
+          "id": "1337",
+          "project": Object {
+            "id": "13",
+            "slug": "test",
+          },
+          "stats": Object {
+            "24h": Array [
+              Array [
+                1517281200,
+                2,
+              ],
+              Array [
+                1517310000,
+                1,
+              ],
+            ],
+            "30d": Array [
+              Array [
+                1514764800,
+                1,
+              ],
+              Array [
+                1515024000,
+                122,
+              ],
+            ],
+          },
+          "tags": Array [],
+        }
+      }
+      includeLink={true}
+      orgId="orgId"
+      projectId="projectId"
+    />
+    <EventOrGroupExtraDetails
+      assignedTo={null}
+      group={true}
+      groupId="1L"
+      id="1337"
+      orgId="orgId"
+      project={
+        Object {
+          "id": "13",
+          "slug": "test",
+        }
+      }
+      projectId="projectId"
+      stats={
+        Object {
+          "24h": Array [
+            Array [
+              1517281200,
+              2,
+            ],
+            Array [
+              1517310000,
+              1,
+            ],
+          ],
+          "30d": Array [
+            Array [
+              1514764800,
+              1,
+            ],
+            Array [
+              1515024000,
+              122,
+            ],
+          ],
+        }
+      }
+      tags={Array []}
+    />
+  </div>
+  <div
+    className="event-assignee col-md-1 hidden-sm hidden-xs"
+  >
+    <AssigneeSelector
+      id="1337"
+      size={24}
+    />
+  </div>
+  <div
+    className="col-md-2 hidden-sm hidden-xs event-graph align-right"
+  >
+    <GroupChart
+      data={
+        Object {
+          "assignedTo": null,
+          "id": "1337",
+          "project": Object {
+            "id": "13",
+            "slug": "test",
+          },
+          "stats": Object {
+            "24h": Array [
+              Array [
+                1517281200,
+                2,
+              ],
+              Array [
+                1517310000,
+                1,
+              ],
+            ],
+            "30d": Array [
+              Array [
+                1514764800,
+                1,
+              ],
+              Array [
+                1515024000,
+                122,
+              ],
+            ],
+          },
+          "tags": Array [],
+        }
+      }
+      id="1337"
+      statsPeriod="24h"
+    />
+  </div>
+  <div
+    className="col-md-1 col-xs-2 event-count align-right"
+  >
+    <GuideAnchor
+      target="events"
+      type="text"
+    />
+    <count />
+  </div>
+  <div
+    className="col-md-1 col-xs-2 event-users align-right"
+  >
+    <GuideAnchor
+      target="users"
+      type="text"
+    />
+    <count />
+  </div>
+</li>
+`;

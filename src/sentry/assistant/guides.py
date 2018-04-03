@@ -38,7 +38,7 @@ GUIDES = {
                 'title': _('Resolve'),
                 'message': _(
                     'Resolving an issue removes it from the default dashboard view of unresolved '
-                    'issues. You can ask Sentry to <a href="/settings/account/notifications/"> '
+                    'issues. You can ask Sentry to <a href="/settings/account/notifications/" target="_blank"> '
                     'alert you</a> when a resolved issue re-occurs.'),
                 'target': 'resolve',
             },
@@ -47,7 +47,7 @@ GUIDES = {
                 'message': _(
                     'This is a unique identifier for the issue and can be included in a commit '
                     'message to tell Sentry to resolve the issue when the commit gets deployed. '
-                    'See <a href="https://docs.sentry.io/learn/releases/">Releases</a> '
+                    'See <a href="https://docs.sentry.io/learn/releases/" target="_blank">Releases</a> '
                     'to learn more.'),
                 'target': 'issue_number',
             },
@@ -55,7 +55,7 @@ GUIDES = {
                 'title': _('Issue Tracking'),
                 'message': _(
                     'Create issues in your project management tool from within Sentry. See a list '
-                    'of all integrations <a href="https://docs.sentry.io/integrations/">here</a>.'),
+                    'of all integrations <a href="https://docs.sentry.io/integrations/" target="_blank">here</a>.'),
                 'target': 'issue_tracking',
             },
             {
@@ -89,8 +89,37 @@ GUIDES = {
                 'message': _('Sentry does this by tying together commits in the release, files '
                              'touched by those commits, files observed in the stacktrace, and '
                              'authors of those files. Learn more about releases '
-                             '<a href="https://docs.sentry.io/learn/releases/">here</a>.'),
+                             '<a href="https://docs.sentry.io/learn/releases/" target="_blank">here</a>.'),
                 'target': 'releases',
+            },
+        ]
+    },
+
+    'event_issue': {
+        'id': 3,
+        'cue': _('Learn about the issue stream'),
+        'required_targets': ['issues'],
+        'steps': [
+            {
+                'title': _('Events'),
+                'message': _(
+                    'When your application throws an error, that error is captured by Sentry as an event.'),
+                'target': 'events',
+            },
+            {
+                'title': _('Issues'),
+                'message': _(
+                    'Individual events are then automatically rolled up and grouped into Issues with other similar events. '
+                    'A single issue can represent anywhere from one to thousands of individual events, depending on how many '
+                    'times a specific error is thrown. '),
+                'target': 'issues',
+            },
+            {
+                'title': _('Users'),
+                'message': _(
+                    'Sending user data to Sentry will unlock a number of features, primarily the ability to drill down into the number of users affected by an issue. '
+                    'Learn how easy it is to <a href="https://docs.sentry.io/learn/context/#capturing-the-user" target="_blank">set this up </a>today.'),
+                'target': 'users',
             },
         ]
     },
