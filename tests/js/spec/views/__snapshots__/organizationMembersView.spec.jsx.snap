@@ -1,209 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[
-  'OrganizationMembersView No Require Link does not have 2fa warning if user has 2fa 1'
-] = `
-.glamor-23 {
-  font-size: 14px;
-  box-shadow: inset 0 -1px 0;
-  margin: -20px 0 30px;
-}
-
-.glamor-13 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
-.glamor-0 {
-  font-size: 20px;
-  font-weight: bold;
-  margin: 20px 0;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-}
-
-.glamor-9 {
-  box-sizing: border-box;
-  margin-right: 6px;
-  margin-left: -2px;
-}
-
-.glamor-5 {
-  display: block;
-}
-
-.glamor-3 {
-  vertical-align: middle;
-  display: block;
-}
-
-.glamor-17 {
-  width: 20px;
-  height: 20px;
-  cursor: pointer;
-  z-index: 999;
-  position: absolute;
-  pointer-events: none;
-  visibility: hidden;
-}
-
-.glamor-15 {
-  -webkit-animation: animation-1vh9m9r-expandOut 1.5s ease-out infinite;
-  animation: animation-1vh9m9r-expandOut 1.5s ease-out infinite;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  left: 0;
-}
-
-.glamor-15,
-.glamor-15:before,
-.glamor-15:after {
-  position: absolute;
-  display: block;
-  left: calc(50% - 10px);
-  top: calc(50% - 10px);
-  border-radius: 50%;
-}
-
-.glamor-15:before,
-.glamor-15:after {
-  content: '';
-}
-
-.glamor-15:before {
-  width: 70%;
-  height: 70%;
-  left: calc(50% - 7px);
-  top: calc(50% - 7px);
-}
-
-.glamor-15:after {
-  width: 50%;
-  height: 50%;
-  left: calc(50% - 5px);
-  top: calc(50% - 5px);
-}
-
-.glamor-119 {
-  background: #fff;
-  border: 1px solid;
-  margin-bottom: NaNpx;
-  position: relative;
-}
-
-.glamor-49 {
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  line-height: 1;
-  padding: 15px 0;
-}
-
-.glamor-46 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  -webkit-box-pack: justify;
-  -webkit-justify-content: space-between;
-  -ms-flex-pack: justify;
-  justify-content: space-between;
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  line-height: 1;
-  padding: 15px 0;
-}
-
-.glamor-25 {
-  box-sizing: border-box;
-  padding-left: 16px;
-  padding-right: 16px;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-}
-
-.glamor-33 {
-  display: inline-block;
-  position: relative;
-}
-
-.glamor-27 {
-  box-sizing: border-box;
-  width: 180px;
-  padding-left: 16px;
-  padding-right: 16px;
-}
-
-.glamor-35 {
-  box-sizing: border-box;
-  width: 140px;
-  padding-left: 16px;
-  padding-right: 16px;
-}
-
-.glamor-71 {
-  box-sizing: border-box;
-  padding: 0px;
-  padding-top: 16px;
-  padding-bottom: 16px;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  border-bottom: 1px solid;
-}
-
-.glamor-71:last-child {
-  border: 0;
-}
-
-.glamor-53 {
-  box-sizing: border-box;
-  padding-left: 16px;
-}
-
-.glamor-61 {
-  box-sizing: border-box;
-  padding-left: 8px;
-  padding-right: 16px;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-}
-
-.glamor-55 {
-  font-size: 16px;
-}
-
-.glamor-59 {
-  font-size: 14px;
-}
-
->>>>>>> feat(assistant): Members Guide
+exports[`OrganizationMembersView No Require Link does not have 2fa warning if user has 2fa 1`] = `
 <OrganizationMembersView
   canAddMembers={false}
   canRemoveMembers={false}
@@ -300,7 +97,7 @@ exports[
                           type="invisible"
                         >
                           <div
-                            className="glamor-19 glamor-20"
+                            className="css-kaem6e-GuideAnchorContainer css-1aiyb4m0"
                             type="invisible"
                           >
                             <Button
@@ -310,62 +107,64 @@ exports[
                               size="small"
                               to="new"
                             >
-                              <Base
-                                align="center"
-                                className="button-label css-5ipae5"
+                              <Link
+                                className="button button-primary button-sm"
+                                disabled={false}
+                                onClick={[Function]}
+                                onlyActiveOnIndex={false}
+                                role="button"
+                                style={Object {}}
+                                to="new"
                               >
-                                <div
-                                  className="button-label css-5ipae5"
-                                  is={null}
+                                <a
+                                  className="button button-primary button-sm"
+                                  disabled={false}
+                                  onClick={[Function]}
+                                  role="button"
+                                  style={Object {}}
                                 >
                                   <Flex
                                     align="center"
                                     className="button-label"
                                   >
                                     <Base
-                                      className="css-11bwulm-Icon css-1vxxnb60"
-                                      size="small"
+                                      align="center"
+                                      className="button-label css-5ipae5"
                                     >
                                       <div
-                                        className="css-11bwulm-Icon css-1vxxnb60"
+                                        className="button-label css-5ipae5"
                                         is={null}
                                       >
                                         <Icon
                                           size="small"
                                         >
-                                          <InlineSvg
-                                            className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
-                                            size="12px"
-                                            src="icon-circle-add"
+                                          <Base
+                                            className="css-11bwulm-Icon css-1vxxnb60"
+                                            size="small"
                                           >
-                                            <StyledSvg
-                                              className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
-                                              height="12px"
-                                              viewBox={Object {}}
-                                              width="12px"
+                                            <div
+                                              className="css-11bwulm-Icon css-1vxxnb60"
+                                              is={null}
+                                              size="small"
                                             >
-                                              <svg
-                                                className="css-1vxxnb61 css-1rlza0i-StyledSvg css-adkcw30"
-                                                height="12px"
-                                                viewBox={Object {}}
-                                                width="12px"
+                                              <StyledInlineSvg
+                                                size="12px"
+                                                src="icon-circle-add"
                                               >
                                                 <InlineSvg
-                                                  className="glamor-5 glamor-2"
+                                                  className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
                                                   size="12px"
                                                   src="icon-circle-add"
                                                 >
                                                   <StyledSvg
-                                                    className="glamor-5 glamor-2"
+                                                    className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
                                                     height="12px"
-                                                    style={Object {}}
                                                     viewBox={Object {}}
                                                     width="12px"
                                                   >
                                                     <svg
-                                                      className="glamor-2 glamor-3 glamor-4"
+                                                      className="css-1vxxnb61 css-1rlza0i-StyledSvg css-adkcw30"
                                                       height="12px"
-                                                      style={Object {}}
                                                       viewBox={Object {}}
                                                       width="12px"
                                                     >
@@ -392,11 +191,11 @@ exports[
                               className="guide-anchor-ping member_add"
                             >
                               <div
-                                className="guide-anchor-ping member_add glamor-17 glamor-18"
+                                className="guide-anchor-ping member_add css-1yndvnf-StyledGuideAnchor css-1aiyb4m1"
                               >
                                 <StyledGuideAnchorRipples>
                                   <div
-                                    className="glamor-15 glamor-16"
+                                    className="css-1t9mqkr-StyledGuideAnchorRipples css-1aiyb4m2"
                                   />
                                 </StyledGuideAnchorRipples>
                               </div>
@@ -467,26 +266,25 @@ exports[
                             target="member_status"
                             type="text"
                           >
-                            <Base
-                              className="css-1pkva7q"
-                              px={2}
-                              w={180}
+                            <GuideAnchorContainer
+                              innerRef={[Function]}
+                              type="text"
                             >
                               <div
-                                className="css-1pkva7q"
-                                is={null}
+                                className="css-9u5for-GuideAnchorContainer css-1aiyb4m0"
+                                type="text"
                               >
                                 <Box
                                   px={2}
                                   w={180}
                                 >
                                   <Base
-                                    className="glamor-27"
+                                    className="css-1pkva7q"
                                     px={2}
                                     w={180}
                                   >
                                     <div
-                                      className="glamor-27"
+                                      className="css-1pkva7q"
                                       is={null}
                                     >
                                       Status
@@ -498,11 +296,11 @@ exports[
                                   className="guide-anchor-ping member_status"
                                 >
                                   <div
-                                    className="guide-anchor-ping member_status glamor-17 glamor-18"
+                                    className="guide-anchor-ping member_status css-1yndvnf-StyledGuideAnchor css-1aiyb4m1"
                                   >
                                     <StyledGuideAnchorRipples>
                                       <div
-                                        className="glamor-15 glamor-16"
+                                        className="css-1t9mqkr-StyledGuideAnchorRipples css-1aiyb4m2"
                                       />
                                     </StyledGuideAnchorRipples>
                                   </div>
@@ -514,26 +312,25 @@ exports[
                             target="member_role"
                             type="text"
                           >
-                            <Base
-                              className="css-1fsdpfi"
-                              px={2}
-                              w={140}
+                            <GuideAnchorContainer
+                              innerRef={[Function]}
+                              type="text"
                             >
                               <div
-                                className="css-1fsdpfi"
-                                is={null}
+                                className="css-9u5for-GuideAnchorContainer css-1aiyb4m0"
+                                type="text"
                               >
                                 <Box
                                   px={2}
                                   w={140}
                                 >
                                   <Base
-                                    className="glamor-35"
+                                    className="css-1fsdpfi"
                                     px={2}
                                     w={140}
                                   >
                                     <div
-                                      className="glamor-35"
+                                      className="css-1fsdpfi"
                                       is={null}
                                     >
                                       Role
@@ -545,11 +342,11 @@ exports[
                                   className="guide-anchor-ping member_role"
                                 >
                                   <div
-                                    className="guide-anchor-ping member_role glamor-17 glamor-18"
+                                    className="guide-anchor-ping member_role css-1yndvnf-StyledGuideAnchor css-1aiyb4m1"
                                   >
                                     <StyledGuideAnchorRipples>
                                       <div
-                                        className="glamor-15 glamor-16"
+                                        className="css-1t9mqkr-StyledGuideAnchorRipples css-1aiyb4m2"
                                       />
                                     </StyledGuideAnchorRipples>
                                   </div>
@@ -1574,7 +1371,7 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                           type="invisible"
                         >
                           <div
-                            className="glamor-19 glamor-20"
+                            className="css-kaem6e-GuideAnchorContainer css-1aiyb4m0"
                             type="invisible"
                           >
                             <Button
@@ -1584,62 +1381,64 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                               size="small"
                               to="new"
                             >
-                              <Base
-                                align="center"
-                                className="button-label css-5ipae5"
+                              <Link
+                                className="button button-primary button-sm"
+                                disabled={false}
+                                onClick={[Function]}
+                                onlyActiveOnIndex={false}
+                                role="button"
+                                style={Object {}}
+                                to="new"
                               >
-                                <div
-                                  className="button-label css-5ipae5"
-                                  is={null}
+                                <a
+                                  className="button button-primary button-sm"
+                                  disabled={false}
+                                  onClick={[Function]}
+                                  role="button"
+                                  style={Object {}}
                                 >
                                   <Flex
                                     align="center"
                                     className="button-label"
                                   >
                                     <Base
-                                      className="css-11bwulm-Icon css-1vxxnb60"
-                                      size="small"
+                                      align="center"
+                                      className="button-label css-5ipae5"
                                     >
                                       <div
-                                        className="css-11bwulm-Icon css-1vxxnb60"
+                                        className="button-label css-5ipae5"
                                         is={null}
                                       >
                                         <Icon
                                           size="small"
                                         >
-                                          <InlineSvg
-                                            className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
-                                            size="12px"
-                                            src="icon-circle-add"
+                                          <Base
+                                            className="css-11bwulm-Icon css-1vxxnb60"
+                                            size="small"
                                           >
-                                            <StyledSvg
-                                              className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
-                                              height="12px"
-                                              viewBox={Object {}}
-                                              width="12px"
+                                            <div
+                                              className="css-11bwulm-Icon css-1vxxnb60"
+                                              is={null}
+                                              size="small"
                                             >
-                                              <svg
-                                                className="css-1vxxnb61 css-1rlza0i-StyledSvg css-adkcw30"
-                                                height="12px"
-                                                viewBox={Object {}}
-                                                width="12px"
+                                              <StyledInlineSvg
+                                                size="12px"
+                                                src="icon-circle-add"
                                               >
                                                 <InlineSvg
-                                                  className="glamor-5 glamor-2"
+                                                  className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
                                                   size="12px"
                                                   src="icon-circle-add"
                                                 >
                                                   <StyledSvg
-                                                    className="glamor-5 glamor-2"
+                                                    className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
                                                     height="12px"
-                                                    style={Object {}}
                                                     viewBox={Object {}}
                                                     width="12px"
                                                   >
                                                     <svg
-                                                      className="glamor-2 glamor-3 glamor-4"
+                                                      className="css-1vxxnb61 css-1rlza0i-StyledSvg css-adkcw30"
                                                       height="12px"
-                                                      style={Object {}}
                                                       viewBox={Object {}}
                                                       width="12px"
                                                     >
@@ -1666,11 +1465,11 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                               className="guide-anchor-ping member_add"
                             >
                               <div
-                                className="guide-anchor-ping member_add glamor-17 glamor-18"
+                                className="guide-anchor-ping member_add css-1yndvnf-StyledGuideAnchor css-1aiyb4m1"
                               >
                                 <StyledGuideAnchorRipples>
                                   <div
-                                    className="glamor-15 glamor-16"
+                                    className="css-1t9mqkr-StyledGuideAnchorRipples css-1aiyb4m2"
                                   />
                                 </StyledGuideAnchorRipples>
                               </div>
@@ -1741,26 +1540,25 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                             target="member_status"
                             type="text"
                           >
-                            <Base
-                              className="css-1pkva7q"
-                              px={2}
-                              w={180}
+                            <GuideAnchorContainer
+                              innerRef={[Function]}
+                              type="text"
                             >
                               <div
-                                className="css-1pkva7q"
-                                is={null}
+                                className="css-9u5for-GuideAnchorContainer css-1aiyb4m0"
+                                type="text"
                               >
                                 <Box
                                   px={2}
                                   w={180}
                                 >
                                   <Base
-                                    className="glamor-27"
+                                    className="css-1pkva7q"
                                     px={2}
                                     w={180}
                                   >
                                     <div
-                                      className="glamor-27"
+                                      className="css-1pkva7q"
                                       is={null}
                                     >
                                       Status
@@ -1772,11 +1570,11 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                   className="guide-anchor-ping member_status"
                                 >
                                   <div
-                                    className="guide-anchor-ping member_status glamor-17 glamor-18"
+                                    className="guide-anchor-ping member_status css-1yndvnf-StyledGuideAnchor css-1aiyb4m1"
                                   >
                                     <StyledGuideAnchorRipples>
                                       <div
-                                        className="glamor-15 glamor-16"
+                                        className="css-1t9mqkr-StyledGuideAnchorRipples css-1aiyb4m2"
                                       />
                                     </StyledGuideAnchorRipples>
                                   </div>
@@ -1788,26 +1586,25 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                             target="member_role"
                             type="text"
                           >
-                            <Base
-                              className="css-1fsdpfi"
-                              px={2}
-                              w={140}
+                            <GuideAnchorContainer
+                              innerRef={[Function]}
+                              type="text"
                             >
                               <div
-                                className="css-1fsdpfi"
-                                is={null}
+                                className="css-9u5for-GuideAnchorContainer css-1aiyb4m0"
+                                type="text"
                               >
                                 <Box
                                   px={2}
                                   w={140}
                                 >
                                   <Base
-                                    className="glamor-35"
+                                    className="css-1fsdpfi"
                                     px={2}
                                     w={140}
                                   >
                                     <div
-                                      className="glamor-35"
+                                      className="css-1fsdpfi"
                                       is={null}
                                     >
                                       Role
@@ -1819,11 +1616,11 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                   className="guide-anchor-ping member_role"
                                 >
                                   <div
-                                    className="guide-anchor-ping member_role glamor-17 glamor-18"
+                                    className="guide-anchor-ping member_role css-1yndvnf-StyledGuideAnchor css-1aiyb4m1"
                                   >
                                     <StyledGuideAnchorRipples>
                                       <div
-                                        className="glamor-15 glamor-16"
+                                        className="css-1t9mqkr-StyledGuideAnchorRipples css-1aiyb4m2"
                                       />
                                     </StyledGuideAnchorRipples>
                                   </div>
