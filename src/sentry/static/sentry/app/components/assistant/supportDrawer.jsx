@@ -106,7 +106,7 @@ const SupportDrawer = createReactClass({
       <StyledAssistantContainer hasResults={hasResults}>
         <StyledAssistantInputRow>
           <CueIcon />
-          <StyledSearchContainer onSubmit={this.handleSubmit}>
+          <StyledSearchContainer>
             <StyledSearchIcon src="icon-search" />
             <StyledInput
               type="text"
@@ -164,7 +164,7 @@ const StyledSearchIcon = styled(InlineSvg)`
   color: ${p => p.theme.gray1};
 `;
 
-const StyledSearchContainer = styled('form')`
+const StyledSearchContainer = styled('div')`
   position: relative;
   margin-left: 0.5em;
   display: flex;

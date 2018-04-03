@@ -1,5 +1,6 @@
 import {Client} from '../api';
 import GuideActions from '../actions/guideActions';
+import HookStore from '../stores/hookStore';
 
 const api = new Client();
 
@@ -24,11 +25,11 @@ export function nextStep() {
   GuideActions.nextStep();
 }
 
-export function closeGuide() {
-  GuideActions.closeGuide();
+export function closeGuideOrSupport() {
+  GuideActions.closeGuideOrSupport();
 }
 
-export function markUseful(guideId, useful) {
+export function recordFinish(guideId, useful) {
   api.request('/assistant/', {
     method: 'PUT',
     data: {
@@ -37,9 +38,15 @@ export function markUseful(guideId, useful) {
       useful,
     },
   });
+  HookStore.get('analytics:event').forEach(cb =>
+    cb('assistant.guide_finished', {
+      guide: guideId,
+      useful,
+    })
+  );
 }
 
-export function dismiss(guideId) {
+export function recordDismiss(guideId, step) {
   api.request('/assistant/', {
     method: 'PUT',
     data: {
@@ -47,4 +54,10 @@ export function dismiss(guideId) {
       status: 'dismissed',
     },
   });
+  HookStore.get('analytics:event').forEach(cb =>
+    cb('assistant.guide_dismissed', {
+      guide: guideId,
+      step,
+    })
+  );
 }

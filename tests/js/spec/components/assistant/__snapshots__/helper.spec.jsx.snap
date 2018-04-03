@@ -50,11 +50,3 @@ exports[`Helper renders guide drawer 1`] = `
   />
 </StyledHelper>
 `;
-
-exports[`Helper renders support drawer 1`] = `
-<StyledHelper>
-  <SupportDrawer
-    onClose={[Function]}
-  />
-</StyledHelper>
-`;

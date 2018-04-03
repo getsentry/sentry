@@ -52,7 +52,7 @@ describe('GuideStore', function() {
     expect(GuideStore.state.currentStep).toEqual(1);
     GuideStore.onNextStep();
     expect(GuideStore.state.currentStep).toEqual(2);
-    GuideStore.onCloseGuide();
+    GuideStore.onCloseGuideOrSupport();
     expect(GuideStore.state.guidesSeen).toEqual(new Set([1]));
   });
 });
