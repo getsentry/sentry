@@ -18,7 +18,7 @@ import {Panel, PanelHeader} from '../../../components/panels';
 import InlineSvg from '../../../components/inlineSvg';
 import EmptyMessage from '../components/emptyMessage';
 import {t} from '../../../locale';
-import styles from '../../../styles/index';
+import styles from '../../../styles';
 
 const TeamMembers = createReactClass({
   displayName: 'TeamMembers',

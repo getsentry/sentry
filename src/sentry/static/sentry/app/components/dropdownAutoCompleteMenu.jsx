@@ -6,7 +6,7 @@ import styled from 'react-emotion';
 
 import AutoComplete from './autoComplete';
 import Input from '../views/settings/components/forms/controls/input';
-import styles from '../styles/index';
+import styles from '../styles';
 
 class DropdownAutoCompleteMenu extends React.Component {
   static propTypes = {

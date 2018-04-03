@@ -2,7 +2,7 @@ import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import styles from '../../../styles/index';
+import styles from '../../../styles';
 
 const StyledPanelHeader = styled(({disablePadding, hasButtons, ...props}) => (
   <Flex align="center" justify="space-between" {...props} />

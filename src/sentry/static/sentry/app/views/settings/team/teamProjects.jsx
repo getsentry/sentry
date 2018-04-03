@@ -5,7 +5,7 @@ import styled from 'react-emotion';
 
 import ApiMixin from '../../../mixins/apiMixin';
 import {addErrorMessage, addSuccessMessage} from '../../../actionCreators/indicator';
-import styles from '../../../styles/index';
+import styles from '../../../styles';
 import Button from '../../../components/buttons/button';
 import DropdownAutoComplete from '../../../components/dropdownAutoComplete';
 import DropdownButton from '../../../components/dropdownButton';
