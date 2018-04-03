@@ -58,7 +58,7 @@ exports[`ProjectTeams renders 1`] = `
                   </TeamDropdownElement>,
 =======
                   "label": <div
-                    className="css-1i9ojym-styles"
+                    className="css-2q47zj-styles"
                   >
                     #
                     team-slug-2

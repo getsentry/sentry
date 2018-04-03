@@ -28,10 +28,13 @@ const styles = {
       ${styles.paddingTop(size)};
       ${styles.paddingBottom(size)};
     `,
-  paddingBoth: (vertical, horizontal) => css`
-    ${styles.paddingVertical(vertical)};
-    ${styles.paddingHorizontal(horizontal || vertical)};
-  `,
+  padding: (size, horizontal, bottom, left) =>
+    css`
+      ${styles.paddingTop(size)};
+      ${styles.paddingRight(horizontal || size)};
+      ${styles.paddingBottom(bottom || size)};
+      ${styles.paddingLeft(left || horizontal || size)};
+    `,
 };
 
 export default styles;

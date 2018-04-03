@@ -64,10 +64,9 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
   border-radius: 0 0;
   line-height: 1;
   padding-top: 4px;
+  padding-right: 4px;
   padding-bottom: 4px;
   padding-left: 10px;
-  padding-right: 10px;
-  padding-right: 4px;
 }
 
 .glamor-22 {
@@ -91,10 +90,9 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
   border-radius: 0 0;
   line-height: 1;
   padding-top: 4px;
+  padding-right: 4px;
   padding-bottom: 4px;
   padding-left: 10px;
-  padding-right: 10px;
-  padding-right: 4px;
 }
 
 .glamor-19 {

@@ -75,9 +75,9 @@ exports[
   border-radius: 0 0;
   line-height: 1;
   padding-top: 10px;
+  padding-right: 10px;
   padding-bottom: 10px;
   padding-left: 10px;
-  padding-right: 10px;
 }
 
 .glamor-11 {
@@ -101,9 +101,9 @@ exports[
   border-radius: 0 0;
   line-height: 1;
   padding-top: 10px;
+  padding-right: 10px;
   padding-bottom: 10px;
   padding-left: 10px;
-  padding-right: 10px;
 }
 
 .glamor-25 {

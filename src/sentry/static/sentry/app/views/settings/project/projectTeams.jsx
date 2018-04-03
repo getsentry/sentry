@@ -176,7 +176,7 @@ class ProjectTeams extends AsyncView {
       .map(team => ({
         value: team.id,
         searchKey: team.slug,
-        label: <div className={styles.paddingBoth(2, 1)}>#{team.slug}</div>,
+        label: <div className={styles.padding(2, 1)}>#{team.slug}</div>,
       }));
 
     let menuHeader = (

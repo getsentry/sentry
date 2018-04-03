@@ -49,9 +49,9 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   border-radius: 0 0;
   line-height: 1;
   padding-top: 10px;
+  padding-right: 10px;
   padding-bottom: 10px;
   padding-left: 10px;
-  padding-right: 10px;
   text-transform: none;
 }
 
@@ -76,9 +76,9 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   border-radius: 0 0;
   line-height: 1;
   padding-top: 10px;
+  padding-right: 10px;
   padding-bottom: 10px;
   padding-left: 10px;
-  padding-right: 10px;
   text-transform: none;
 }
 

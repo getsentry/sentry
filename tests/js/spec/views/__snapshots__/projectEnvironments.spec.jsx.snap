@@ -45,9 +45,9 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
   border-radius: 0 0;
   line-height: 1;
   padding-top: 10px;
+  padding-right: 10px;
   padding-bottom: 10px;
   padding-left: 10px;
-  padding-right: 10px;
 }
 
 .glamor-7 {
@@ -71,9 +71,9 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
   border-radius: 0 0;
   line-height: 1;
   padding-top: 10px;
+  padding-right: 10px;
   padding-bottom: 10px;
   padding-left: 10px;
-  padding-right: 10px;
 }
 
 .glamor-14 {
@@ -360,9 +360,9 @@ exports[`ProjectEnvironments render active renders environment list 1`] = `
   border-radius: 0 0;
   line-height: 1;
   padding-top: 10px;
+  padding-right: 10px;
   padding-bottom: 10px;
   padding-left: 10px;
-  padding-right: 10px;
 }
 
 .glamor-7 {
@@ -386,9 +386,9 @@ exports[`ProjectEnvironments render active renders environment list 1`] = `
   border-radius: 0 0;
   line-height: 1;
   padding-top: 10px;
+  padding-right: 10px;
   padding-bottom: 10px;
   padding-left: 10px;
-  padding-right: 10px;
 }
 
 .glamor-16 {
@@ -1006,9 +1006,9 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
   border-radius: 0 0;
   line-height: 1;
   padding-top: 10px;
+  padding-right: 10px;
   padding-bottom: 10px;
   padding-left: 10px;
-  padding-right: 10px;
 }
 
 .glamor-7 {
@@ -1032,9 +1032,9 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
   border-radius: 0 0;
   line-height: 1;
   padding-top: 10px;
+  padding-right: 10px;
   padding-bottom: 10px;
   padding-left: 10px;
-  padding-right: 10px;
 }
 
 .glamor-14 {
@@ -1318,9 +1318,9 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
   border-radius: 0 0;
   line-height: 1;
   padding-top: 10px;
+  padding-right: 10px;
   padding-bottom: 10px;
   padding-left: 10px;
-  padding-right: 10px;
 }
 
 .glamor-7 {
@@ -1344,9 +1344,9 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
   border-radius: 0 0;
   line-height: 1;
   padding-top: 10px;
+  padding-right: 10px;
   padding-bottom: 10px;
   padding-left: 10px;
-  padding-right: 10px;
 }
 
 .glamor-16 {

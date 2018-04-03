@@ -20,18 +20,20 @@ const styles = {
     `,
   marginHorizontal: size =>
     css`
-      ${styles.paddingLeft(size)};
-      ${styles.paddingRight(size)};
+      ${styles.marginLeft(size)};
+      ${styles.marginRight(size)};
     `,
   marginVertical: size =>
     css`
-      ${styles.paddingTop(size)};
-      ${styles.paddingBottom(size)};
+      ${styles.marginTop(size)};
+      ${styles.marginBottom(size)};
     `,
-  marginAll: size =>
+  margin: (size, horizontal, bottom, left) =>
     css`
-      ${styles.paddingHorizontal(size)};
-      ${styles.paddingVertical(size)};
+      ${styles.marginTop(size)};
+      ${styles.marginRight(horizontal || size)};
+      ${styles.marginBottom(bottom || size)};
+      ${styles.marginLeft(left || horizontal || size)};
     `,
 };
 

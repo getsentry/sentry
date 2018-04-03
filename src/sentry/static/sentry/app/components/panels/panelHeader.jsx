@@ -16,9 +16,8 @@ const StyledPanelHeader = styled(({disablePadding, hasButtons, ...props}) => (
   background: ${p => p.theme.offWhite};
   line-height: 1;
 
-  ${p => (p.hasButtons ? styles.paddingVertical(2) : styles.paddingVertical(4))};
-  ${p => !p.disablePadding && styles.paddingHorizontal(4)};
-  ${p => p.hasButtons && styles.paddingRight(2)};
+  ${p => (p.hasButtons ? styles.padding(2, 2, 2, 4) : styles.padding(4))};
+  ${p => p.disablePadding && styles.paddingHorizontal(0)};
 `;
 
 class PanelHeader extends React.Component {

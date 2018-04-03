@@ -18,10 +18,9 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   border-radius: 0 0;
   line-height: 1;
   padding-top: 4px;
+  padding-right: 4px;
   padding-bottom: 4px;
   padding-left: 10px;
-  padding-right: 10px;
-  padding-right: 4px;
 }
 
 .glamor-22 {
@@ -45,10 +44,9 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   border-radius: 0 0;
   line-height: 1;
   padding-top: 4px;
+  padding-right: 4px;
   padding-bottom: 4px;
   padding-left: 10px;
-  padding-right: 10px;
-  padding-right: 4px;
 }
 
 .glamor-17 {
@@ -97,9 +95,9 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   -ms-flex-pack: justify;
   justify-content: space-between;
   padding-top: 10px;
+  padding-right: 10px;
   padding-bottom: 10px;
   padding-left: 10px;
-  padding-right: 10px;
 }
 
 .glamor-50 {
@@ -123,9 +121,9 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   -ms-flex-pack: justify;
   justify-content: space-between;
   padding-top: 10px;
+  padding-right: 10px;
   padding-bottom: 10px;
   padding-left: 10px;
-  padding-right: 10px;
 }
 
 .glamor-50:last-child {

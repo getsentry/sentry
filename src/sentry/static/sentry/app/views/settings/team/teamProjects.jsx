@@ -162,7 +162,7 @@ const StyledPanelItem = styled(PanelItem)`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  ${styles.paddingBoth(4)};
+  ${styles.padding(4)};
 `;
 
 export default TeamProjects;

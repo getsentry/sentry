@@ -260,14 +260,14 @@ const StyledMemberContainer = styled('div')`
   display: flex;
   justify-content: space-between;
   border-bottom: 1px solid ${p => p.theme.borderLight};
-  ${styles.paddingBoth(6, 5)};
+  ${styles.padding(6, 5)};
 `;
 
 const StyledUserListElement = styled('div')`
   font-size: 0.875em;
   display: flex;
   align-items: center;
-  ${styles.paddingBoth(2)};
+  ${styles.padding(2)};
 `;
 
 const StyledNameOrEmail = styled('div')`

@@ -217,7 +217,7 @@ const StyledInput = styled(Input)`
     font-size: 13px;
     font-weight: normal;
     color: ${p => p.gray2};
-    ${styles.paddingBoth(4, 3)};
+    ${styles.padding(4, 3)};
   }
 `;
 
@@ -226,7 +226,7 @@ const AutoCompleteItem = styled('div')`
     p.index == p.highlightedIndex ? p.theme.offWhite : 'transparent'};
   cursor: pointer;
   border-bottom: 1px solid ${p => p.theme.borderLighter};
-  ${styles.paddingBoth(3)};
+  ${styles.padding(3)};
 
   &:last-child {
     border-bottom: none;
@@ -241,7 +241,7 @@ const StyledLabel = styled('div')`
   background-color: ${p => p.theme.offWhite};
   border: 1px solid ${p => p.theme.borderLight};
   border-width: 1px 0;
-  ${styles.paddingBoth(3)};
+  ${styles.padding(3)};
 
   &:first-child {
     border-top: none;

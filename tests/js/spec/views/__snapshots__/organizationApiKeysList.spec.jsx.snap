@@ -53,7 +53,11 @@ exports[`OrganizationApiKeysList renders 1`] = `
   border-radius: 0 0;
   line-height: 1;
   padding-top: 10px;
+  padding-right: 10px;
   padding-bottom: 10px;
+  padding-left: 10px;
+  padding-left: 0px;
+  padding-right: 0px;
 }
 
 .glamor-23 {
@@ -77,7 +81,11 @@ exports[`OrganizationApiKeysList renders 1`] = `
   border-radius: 0 0;
   line-height: 1;
   padding-top: 10px;
+  padding-right: 10px;
   padding-bottom: 10px;
+  padding-left: 10px;
+  padding-left: 0px;
+  padding-right: 0px;
 }
 
 .glamor-16 {
