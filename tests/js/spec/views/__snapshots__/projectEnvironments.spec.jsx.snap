@@ -1,89 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`ProjectEnvironments render active renders empty message 1`] = `
-.glamor-4 {
-  font-size: 14px;
-  box-shadow: inset 0 -1px 0;
-  margin: -20px 0 30px;
-}
-
-.glamor-2 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
-.glamor-0 {
-  font-size: 20px;
-  font-weight: bold;
-  margin: 20px 0;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-}
-
-.glamor-16 {
-  background: #fff;
-  border: 1px solid;
-  margin-bottom: NaNpx;
-  position: relative;
-}
-
-.glamor-10 {
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  line-height: 1;
-  padding: 15px 20px;
-}
-
-.glamor-7 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  -webkit-box-pack: justify;
-  -webkit-justify-content: space-between;
-  -ms-flex-pack: justify;
-  justify-content: space-between;
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  line-height: 1;
-  padding: 15px 20px;
-}
-
-.glamor-14 {
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  -webkit-flex-direction: column;
-  -ms-flex-direction: column;
-  flex-direction: column;
-  padding: NaNpx;
-  font-weight: bold;
-}
-
 <ProjectEnvironments
   params={
     Object {
@@ -159,22 +76,22 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
         }
       >
         <div
-          className="glamor-4 glamor-5"
+          className="css-foidy-Wrapper css-17jmgia0"
         >
           <Flex
             align="center"
           >
             <Base
               align="center"
-              className="glamor-2"
+              className="css-5ipae5"
             >
               <div
-                className="glamor-2"
+                className="css-5ipae5"
                 is={null}
               >
                 <Title>
                   <div
-                    className="glamor-0 glamor-1"
+                    className="css-zmdcxu-Title css-17jmgia1"
                   >
                     Manage Environments
                   </div>
@@ -245,25 +162,25 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
     <Panel>
       <StyledPanel>
         <div
-          className="glamor-16 glamor-17"
+          className="css-wfa8ap-StyledPanel css-5bw71w0"
         >
           <PanelHeader>
             <StyledPanelHeader>
               <Component
-                className="glamor-10 glamor-6"
+                className="css-wxaapd-StyledPanelHeader css-zott9u0"
               >
                 <Flex
                   align="center"
-                  className="glamor-10 glamor-6"
+                  className="css-wxaapd-StyledPanelHeader css-zott9u0"
                   justify="space-between"
                 >
                   <Base
                     align="center"
-                    className="glamor-6 glamor-7"
+                    className="css-zott9u0 css-1qscict"
                     justify="space-between"
                   >
                     <div
-                      className="glamor-6 glamor-7"
+                      className="css-zott9u0 css-1qscict"
                       is={null}
                     >
                       Active Environments
@@ -284,7 +201,7 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
               <EmptyMessage>
                 <Wrapper>
                   <div
-                    className="glamor-14 glamor-15"
+                    className="css-1v9jb7c-Wrapper css-toum0v0"
                   >
                     <div
                       className="ref-message"
@@ -304,95 +221,6 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
 `;
 
 exports[`ProjectEnvironments render active renders environment list 1`] = `
-.glamor-4 {
-  font-size: 14px;
-  box-shadow: inset 0 -1px 0;
-  margin: -20px 0 30px;
-}
-
-.glamor-2 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
-.glamor-0 {
-  font-size: 20px;
-  font-weight: bold;
-  margin: 20px 0;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-}
-
-.glamor-26 {
-  background: #fff;
-  border: 1px solid;
-  margin-bottom: NaNpx;
-  position: relative;
-}
-
-.glamor-10 {
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  line-height: 1;
-  padding: 15px 20px;
-}
-
-.glamor-7 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  -webkit-box-pack: justify;
-  -webkit-justify-content: space-between;
-  -ms-flex-pack: justify;
-  justify-content: space-between;
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  line-height: 1;
-  padding: 15px 20px;
-}
-
-.glamor-16 {
-  box-sizing: border-box;
-  padding: 16px;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  -webkit-box-pack: justify;
-  -webkit-justify-content: space-between;
-  -ms-flex-pack: justify;
-  justify-content: space-between;
-  border-bottom: 1px solid;
-}
-
-.glamor-16:last-child {
-  border: 0;
-}
-
 <ProjectEnvironments
   params={
     Object {
@@ -468,22 +296,22 @@ exports[`ProjectEnvironments render active renders environment list 1`] = `
         }
       >
         <div
-          className="glamor-4 glamor-5"
+          className="css-foidy-Wrapper css-17jmgia0"
         >
           <Flex
             align="center"
           >
             <Base
               align="center"
-              className="glamor-2"
+              className="css-5ipae5"
             >
               <div
-                className="glamor-2"
+                className="css-5ipae5"
                 is={null}
               >
                 <Title>
                   <div
-                    className="glamor-0 glamor-1"
+                    className="css-zmdcxu-Title css-17jmgia1"
                   >
                     Manage Environments
                   </div>
@@ -554,25 +382,25 @@ exports[`ProjectEnvironments render active renders environment list 1`] = `
     <Panel>
       <StyledPanel>
         <div
-          className="glamor-26 glamor-27"
+          className="css-wfa8ap-StyledPanel css-5bw71w0"
         >
           <PanelHeader>
             <StyledPanelHeader>
               <Component
-                className="glamor-10 glamor-6"
+                className="css-wxaapd-StyledPanelHeader css-zott9u0"
               >
                 <Flex
                   align="center"
-                  className="glamor-10 glamor-6"
+                  className="css-wxaapd-StyledPanelHeader css-zott9u0"
                   justify="space-between"
                 >
                   <Base
                     align="center"
-                    className="glamor-6 glamor-7"
+                    className="css-zott9u0 css-1qscict"
                     justify="space-between"
                   >
                     <div
-                      className="glamor-6 glamor-7"
+                      className="css-zott9u0 css-1qscict"
                       is={null}
                     >
                       Active Environments
@@ -603,12 +431,12 @@ exports[`ProjectEnvironments render active renders environment list 1`] = `
                 >
                   <Base
                     align="center"
-                    className="glamor-16 glamor-17"
+                    className="css-1eebujh-StyledPanelItem css-q9h14u0"
                     justify="space-between"
                     p={2}
                   >
                     <div
-                      className="glamor-16 glamor-17"
+                      className="css-1eebujh-StyledPanelItem css-q9h14u0"
                       is={null}
                     >
                       <span>
@@ -635,10 +463,10 @@ exports[`ProjectEnvironments render active renders environment list 1`] = `
                           >
                             <Base
                               align="center"
-                              className="button-label glamor-2"
+                              className="button-label css-5ipae5"
                             >
                               <div
-                                className="button-label glamor-2"
+                                className="button-label css-5ipae5"
                                 is={null}
                               >
                                 Hide
@@ -664,12 +492,12 @@ exports[`ProjectEnvironments render active renders environment list 1`] = `
                 >
                   <Base
                     align="center"
-                    className="glamor-16 glamor-17"
+                    className="css-1eebujh-StyledPanelItem css-q9h14u0"
                     justify="space-between"
                     p={2}
                   >
                     <div
-                      className="glamor-16 glamor-17"
+                      className="css-1eebujh-StyledPanelItem css-q9h14u0"
                       is={null}
                     >
                       <span>
@@ -696,10 +524,10 @@ exports[`ProjectEnvironments render active renders environment list 1`] = `
                           >
                             <Base
                               align="center"
-                              className="button-label glamor-2"
+                              className="button-label css-5ipae5"
                             >
                               <div
-                                className="button-label glamor-2"
+                                className="button-label css-5ipae5"
                                 is={null}
                               >
                                 Hide
@@ -722,89 +550,6 @@ exports[`ProjectEnvironments render active renders environment list 1`] = `
 `;
 
 exports[`ProjectEnvironments render hidden renders empty message 1`] = `
-.glamor-4 {
-  font-size: 14px;
-  box-shadow: inset 0 -1px 0;
-  margin: -20px 0 30px;
-}
-
-.glamor-2 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
-.glamor-0 {
-  font-size: 20px;
-  font-weight: bold;
-  margin: 20px 0;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-}
-
-.glamor-16 {
-  background: #fff;
-  border: 1px solid;
-  margin-bottom: NaNpx;
-  position: relative;
-}
-
-.glamor-10 {
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  line-height: 1;
-  padding: 15px 20px;
-}
-
-.glamor-7 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  -webkit-box-pack: justify;
-  -webkit-justify-content: space-between;
-  -ms-flex-pack: justify;
-  justify-content: space-between;
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  line-height: 1;
-  padding: 15px 20px;
-}
-
-.glamor-14 {
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  -webkit-flex-direction: column;
-  -ms-flex-direction: column;
-  flex-direction: column;
-  padding: NaNpx;
-  font-weight: bold;
-}
-
 <ProjectEnvironments
   params={
     Object {
@@ -880,22 +625,22 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
         }
       >
         <div
-          className="glamor-4 glamor-5"
+          className="css-foidy-Wrapper css-17jmgia0"
         >
           <Flex
             align="center"
           >
             <Base
               align="center"
-              className="glamor-2"
+              className="css-5ipae5"
             >
               <div
-                className="glamor-2"
+                className="css-5ipae5"
                 is={null}
               >
                 <Title>
                   <div
-                    className="glamor-0 glamor-1"
+                    className="css-zmdcxu-Title css-17jmgia1"
                   >
                     Manage Environments
                   </div>
@@ -966,25 +711,25 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
     <Panel>
       <StyledPanel>
         <div
-          className="glamor-16 glamor-17"
+          className="css-wfa8ap-StyledPanel css-5bw71w0"
         >
           <PanelHeader>
             <StyledPanelHeader>
               <Component
-                className="glamor-10 glamor-6"
+                className="css-wxaapd-StyledPanelHeader css-zott9u0"
               >
                 <Flex
                   align="center"
-                  className="glamor-10 glamor-6"
+                  className="css-wxaapd-StyledPanelHeader css-zott9u0"
                   justify="space-between"
                 >
                   <Base
                     align="center"
-                    className="glamor-6 glamor-7"
+                    className="css-zott9u0 css-1qscict"
                     justify="space-between"
                   >
                     <div
-                      className="glamor-6 glamor-7"
+                      className="css-zott9u0 css-1qscict"
                       is={null}
                     >
                       Hidden
@@ -1005,7 +750,7 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
               <EmptyMessage>
                 <Wrapper>
                   <div
-                    className="glamor-14 glamor-15"
+                    className="css-1v9jb7c-Wrapper css-toum0v0"
                   >
                     <div
                       className="ref-message"
@@ -1025,95 +770,6 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
 `;
 
 exports[`ProjectEnvironments render hidden renders environment list 1`] = `
-.glamor-4 {
-  font-size: 14px;
-  box-shadow: inset 0 -1px 0;
-  margin: -20px 0 30px;
-}
-
-.glamor-2 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
-.glamor-0 {
-  font-size: 20px;
-  font-weight: bold;
-  margin: 20px 0;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-}
-
-.glamor-20 {
-  background: #fff;
-  border: 1px solid;
-  margin-bottom: NaNpx;
-  position: relative;
-}
-
-.glamor-10 {
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  line-height: 1;
-  padding: 15px 20px;
-}
-
-.glamor-7 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  -webkit-box-pack: justify;
-  -webkit-justify-content: space-between;
-  -ms-flex-pack: justify;
-  justify-content: space-between;
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  line-height: 1;
-  padding: 15px 20px;
-}
-
-.glamor-16 {
-  box-sizing: border-box;
-  padding: 16px;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  -webkit-box-pack: justify;
-  -webkit-justify-content: space-between;
-  -ms-flex-pack: justify;
-  justify-content: space-between;
-  border-bottom: 1px solid;
-}
-
-.glamor-16:last-child {
-  border: 0;
-}
-
 <ProjectEnvironments
   params={
     Object {
@@ -1189,22 +845,22 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
         }
       >
         <div
-          className="glamor-4 glamor-5"
+          className="css-foidy-Wrapper css-17jmgia0"
         >
           <Flex
             align="center"
           >
             <Base
               align="center"
-              className="glamor-2"
+              className="css-5ipae5"
             >
               <div
-                className="glamor-2"
+                className="css-5ipae5"
                 is={null}
               >
                 <Title>
                   <div
-                    className="glamor-0 glamor-1"
+                    className="css-zmdcxu-Title css-17jmgia1"
                   >
                     Manage Environments
                   </div>
@@ -1275,25 +931,25 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
     <Panel>
       <StyledPanel>
         <div
-          className="glamor-20 glamor-21"
+          className="css-wfa8ap-StyledPanel css-5bw71w0"
         >
           <PanelHeader>
             <StyledPanelHeader>
               <Component
-                className="glamor-10 glamor-6"
+                className="css-wxaapd-StyledPanelHeader css-zott9u0"
               >
                 <Flex
                   align="center"
-                  className="glamor-10 glamor-6"
+                  className="css-wxaapd-StyledPanelHeader css-zott9u0"
                   justify="space-between"
                 >
                   <Base
                     align="center"
-                    className="glamor-6 glamor-7"
+                    className="css-zott9u0 css-1qscict"
                     justify="space-between"
                   >
                     <div
-                      className="glamor-6 glamor-7"
+                      className="css-zott9u0 css-1qscict"
                       is={null}
                     >
                       Hidden
@@ -1324,12 +980,12 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                 >
                   <Base
                     align="center"
-                    className="glamor-16 glamor-17"
+                    className="css-1eebujh-StyledPanelItem css-q9h14u0"
                     justify="space-between"
                     p={2}
                   >
                     <div
-                      className="glamor-16 glamor-17"
+                      className="css-1eebujh-StyledPanelItem css-q9h14u0"
                       is={null}
                     >
                       <span>
@@ -1356,10 +1012,10 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                           >
                             <Base
                               align="center"
-                              className="button-label glamor-2"
+                              className="button-label css-5ipae5"
                             >
                               <div
-                                className="button-label glamor-2"
+                                className="button-label css-5ipae5"
                                 is={null}
                               >
                                 Show

@@ -1,127 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`projectAlertRules renders 1`] = `
-.glamor-17 {
-  font-size: 14px;
-  box-shadow: inset 0 -1px 0;
-  margin: -20px 0 30px;
-}
-
-.glamor-13 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
-.glamor-0 {
-  font-size: 20px;
-  font-weight: bold;
-  margin: 20px 0;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-}
-
-.glamor-9 {
-  box-sizing: border-box;
-  margin-right: 6px;
-  margin-left: -2px;
-}
-
-.glamor-5 {
-  display: block;
-}
-
-.glamor-3 {
-  vertical-align: middle;
-  display: block;
-}
-
-.glamor-35 {
-  padding-top: 5px;
-  padding-bottom: 5px;
-}
-
-.glamor-47 {
-  background: #fff;
-  border: 1px solid;
-  margin-bottom: NaNpx;
-  position: relative;
-}
-
-.glamor-31 {
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  line-height: 1;
-  padding: 15px 20px;
-  padding-top: 5px;
-  padding-bottom: 5px;
-}
-
-.glamor-28 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  -webkit-box-pack: justify;
-  -webkit-justify-content: space-between;
-  -ms-flex-pack: justify;
-  justify-content: space-between;
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  line-height: 1;
-  padding: 15px 20px;
-  padding-top: 5px;
-  padding-bottom: 5px;
-}
-
-.glamor-45 {
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-}
-
-.glamor-39 {
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-  padding: NaNpx;
-  height: 100%;
-}
-
-.glamor-37 {
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-flex-direction: column;
-  -ms-flex-direction: column;
-  flex-direction: column;
-  -webkit-box-pack: justify;
-  -webkit-justify-content: space-between;
-  -ms-flex-pack: justify;
-  justify-content: space-between;
-  height: 100%;
-}
-
 <ProjectAlertRules
   params={
     Object {
@@ -199,22 +78,22 @@ exports[`projectAlertRules renders 1`] = `
         }
       >
         <div
-          className="glamor-17 glamor-18"
+          className="css-foidy-Wrapper css-17jmgia0"
         >
           <Flex
             align="center"
           >
             <Base
               align="center"
-              className="glamor-13"
+              className="css-5ipae5"
             >
               <div
-                className="glamor-13"
+                className="css-5ipae5"
                 is={null}
               >
                 <Title>
                   <div
-                    className="glamor-0 glamor-1"
+                    className="css-zmdcxu-Title css-17jmgia1"
                   >
                     Alerts
                   </div>
@@ -249,21 +128,21 @@ exports[`projectAlertRules renders 1`] = `
                         >
                           <Base
                             align="center"
-                            className="button-label glamor-13"
+                            className="button-label css-5ipae5"
                           >
                             <div
-                              className="button-label glamor-13"
+                              className="button-label css-5ipae5"
                               is={null}
                             >
                               <Icon
                                 size="small"
                               >
                                 <Base
-                                  className="glamor-9 glamor-10"
+                                  className="css-11bwulm-Icon css-geyqay0"
                                   size="small"
                                 >
                                   <div
-                                    className="glamor-9 glamor-10"
+                                    className="css-11bwulm-Icon css-geyqay0"
                                     is={null}
                                     size="small"
                                   >
@@ -272,18 +151,18 @@ exports[`projectAlertRules renders 1`] = `
                                       src="icon-circle-add"
                                     >
                                       <InlineSvg
-                                        className="glamor-5 glamor-2"
+                                        className="css-1ov3rcq-StyledInlineSvg css-geyqay1"
                                         size="12px"
                                         src="icon-circle-add"
                                       >
                                         <StyledSvg
-                                          className="glamor-5 glamor-2"
+                                          className="css-1ov3rcq-StyledInlineSvg css-geyqay1"
                                           height="12px"
                                           viewBox={Object {}}
                                           width="12px"
                                         >
                                           <svg
-                                            className="glamor-2 glamor-3 glamor-4"
+                                            className="css-geyqay1 css-1rlza0i-StyledSvg css-adkcw30"
                                             height="12px"
                                             viewBox={Object {}}
                                             width="12px"
@@ -405,48 +284,48 @@ exports[`projectAlertRules renders 1`] = `
         <Panel>
           <StyledPanel>
             <div
-              className="glamor-47 glamor-48"
+              className="css-wfa8ap-StyledPanel css-5bw71w0"
             >
               <PanelHeader
                 align="center"
-                className="glamor-35"
+                className="css-1lx593h"
                 justify="space-between"
               >
                 <StyledPanelHeader
                   align="center"
-                  className="glamor-35"
+                  className="css-1lx593h"
                   justify="space-between"
                 >
                   <Component
                     align="center"
-                    className="glamor-31 glamor-27"
+                    className="css-too9c5-StyledPanelHeader css-zott9u0"
                     justify="space-between"
                   >
                     <Flex
                       align="center"
-                      className="glamor-31 glamor-27"
+                      className="css-too9c5-StyledPanelHeader css-zott9u0"
                       justify="space-between"
                     >
                       <Base
                         align="center"
-                        className="glamor-27 glamor-28"
+                        className="css-zott9u0 css-1ij5e33"
                         justify="space-between"
                       >
                         <div
-                          className="glamor-27 glamor-28"
+                          className="css-zott9u0 css-1ij5e33"
                           is={null}
                         >
                           <TextColorLink
                             to="1/"
                           >
                             <Link
-                              className="glamor-19 glamor-20"
+                              className="css-1763h46-TextColorLink css-trpu9x0"
                               onlyActiveOnIndex={false}
                               style={Object {}}
                               to="1/"
                             >
                               <a
-                                className="glamor-19 glamor-20"
+                                className="css-1763h46-TextColorLink css-trpu9x0"
                                 onClick={[Function]}
                                 style={Object {}}
                               >
@@ -497,10 +376,10 @@ exports[`projectAlertRules renders 1`] = `
                                   >
                                     <Base
                                       align="center"
-                                      className="button-label glamor-13"
+                                      className="button-label css-5ipae5"
                                     >
                                       <div
-                                        className="button-label glamor-13"
+                                        className="button-label css-5ipae5"
                                         is={null}
                                       >
                                         Edit Rule
@@ -534,10 +413,10 @@ exports[`projectAlertRules renders 1`] = `
                                   >
                                     <Base
                                       align="center"
-                                      className="button-label glamor-13"
+                                      className="button-label css-5ipae5"
                                     >
                                       <div
-                                        className="button-label glamor-13"
+                                        className="button-label css-5ipae5"
                                         is={null}
                                       >
                                         <span
@@ -618,15 +497,15 @@ exports[`projectAlertRules renders 1`] = `
                 >
                   <RuleDescriptionRow>
                     <div
-                      className="glamor-45 glamor-46"
+                      className="css-16pvk6d-RuleDescriptionRow css-trpu9x1"
                     >
                       <RuleDescriptionColumn>
                         <div
-                          className="glamor-39 glamor-40"
+                          className="css-ta36pl-RuleDescriptionColumn css-trpu9x2"
                         >
                           <Condition>
                             <div
-                              className="glamor-37 glamor-38"
+                              className="css-1d9hhun-Condition css-trpu9x3"
                             >
                               <h6>
                                 When 
@@ -652,11 +531,11 @@ exports[`projectAlertRules renders 1`] = `
                       </RuleDescriptionColumn>
                       <RuleDescriptionColumn>
                         <div
-                          className="glamor-39 glamor-40"
+                          className="css-ta36pl-RuleDescriptionColumn css-trpu9x2"
                         >
                           <Condition>
                             <div
-                              className="glamor-37 glamor-38"
+                              className="css-1d9hhun-Condition css-trpu9x3"
                             >
                               <h6>
                                 Take these actions at most

@@ -17,18 +17,6 @@ exports[`Issues -> Merged View renders initially with loading component 1`] = `
 `;
 
 exports[`Issues -> Merged View renders with mocked data 1`] = `
-.glamor-0 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
 <GroupMergedView
   location={
     Object {
@@ -429,10 +417,10 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                             >
                               <Base
                                 align="center"
-                                className="button-label glamor-0"
+                                className="button-label css-5ipae5"
                               >
                                 <div
-                                  className="button-label glamor-0"
+                                  className="button-label css-5ipae5"
                                   is={null}
                                 >
                                   Compare
@@ -470,10 +458,10 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                             >
                               <Base
                                 align="center"
-                                className="button-label glamor-0"
+                                className="button-label css-5ipae5"
                               >
                                 <div
-                                  className="button-label glamor-0"
+                                  className="button-label css-5ipae5"
                                   is={null}
                                 >
                                   Collapse All
@@ -1376,18 +1364,6 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
 `;
 
 exports[`Issues -> Merged View renders with mocked data 2`] = `
-.glamor-0 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
 <GroupMergedView
   location={
     Object {
@@ -1788,10 +1764,10 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                             >
                               <Base
                                 align="center"
-                                className="button-label glamor-0"
+                                className="button-label css-5ipae5"
                               >
                                 <div
-                                  className="button-label glamor-0"
+                                  className="button-label css-5ipae5"
                                   is={null}
                                 >
                                   Compare
@@ -1829,10 +1805,10 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                             >
                               <Base
                                 align="center"
-                                className="button-label glamor-0"
+                                className="button-label css-5ipae5"
                               >
                                 <div
-                                  className="button-label glamor-0"
+                                  className="button-label css-5ipae5"
                                   is={null}
                                 >
                                   Collapse All

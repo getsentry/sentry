@@ -1,132 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
-.glamor-35 {
-  background: #fff;
-  border: 1px solid;
-  margin-bottom: NaNpx;
-  position: relative;
-}
-
-.glamor-4 {
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  line-height: 1;
-  padding: 15px 20px;
-}
-
-.glamor-1 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  -webkit-box-pack: justify;
-  -webkit-justify-content: space-between;
-  -ms-flex-pack: justify;
-  justify-content: space-between;
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  line-height: 1;
-  padding: 15px 20px;
-}
-
-.glamor-34 {
-  padding: 20px;
-}
-
-.glamor-8 {
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
-.glamor-18 {
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-flex-direction: column;
-  -ms-flex-direction: column;
-  flex-direction: column;
-  margin-bottom: 10px;
-}
-
-.glamor-12 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
-.glamor-16 {
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  padding: 0 15px;
-}
-
-.glamor-10 {
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-flex-wrap: wrap;
-  -ms-flex-wrap: wrap;
-  flex-wrap: wrap;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-  line-height: 40px;
-  margin: 5px 12px 5px 0;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
-.glamor-10 .control-group {
-  margin: 0 6px;
-}
-
-.glamor-10 .form-control {
-  padding: 3px 12px;
-}
-
-.glamor-10 .select2-container,
-.glamor-10 input {
-  min-width: 100px;
-}
-
-.glamor-14 {
-  margin-left: 6px;
-}
-
 <ProjectAlertRuleDetails
   params={
     Object {
@@ -216,25 +90,25 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
               className="rule-detail"
             >
               <div
-                className="rule-detail glamor-35 glamor-36"
+                className="rule-detail css-wfa8ap-StyledPanel css-5bw71w0"
               >
                 <PanelHeader>
                   <StyledPanelHeader>
                     <Component
-                      className="glamor-4 glamor-0"
+                      className="css-wxaapd-StyledPanelHeader css-zott9u0"
                     >
                       <Flex
                         align="center"
-                        className="glamor-4 glamor-0"
+                        className="css-wxaapd-StyledPanelHeader css-zott9u0"
                         justify="space-between"
                       >
                         <Base
                           align="center"
-                          className="glamor-0 glamor-1"
+                          className="css-zott9u0 css-1qscict"
                           justify="space-between"
                         >
                           <div
-                            className="glamor-0 glamor-1"
+                            className="css-zott9u0 css-1qscict"
                             is={null}
                           >
                             Edit Alert Rule
@@ -250,7 +124,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                   flex={false}
                 >
                   <div
-                    className="glamor-34"
+                    className="css-1pugmsu-padding"
                   >
                     <h6>
                       Rule name
@@ -288,7 +162,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                     <hr />
                     <AlertRuleRow>
                       <h6
-                        className="glamor-8 glamor-9"
+                        className="css-1pc4igl-AlertRuleRow css-70hiur0"
                       >
                         Every time 
                         <Select2Field
@@ -406,7 +280,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                       >
                         <RuleNodes>
                           <div
-                            className="glamor-18 glamor-19"
+                            className="css-wlwbnk-RuleNodes css-mr9tnj0"
                           >
                             <RuleNode
                               data={
@@ -428,11 +302,11 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                             >
                               <RuleNodeRow>
                                 <div
-                                  className="glamor-16 glamor-17"
+                                  className="css-1poe0fr-RuleNodeRow css-i92rqo0"
                                 >
                                   <RuleNodeForm>
                                     <div
-                                      className="glamor-10 glamor-11"
+                                      className="css-7h5qyd-RuleNodeForm css-i92rqo1"
                                     >
                                       <input
                                         name="id"
@@ -444,7 +318,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                   </RuleNodeForm>
                                   <RuleNodeControls>
                                     <div
-                                      className="glamor-14 glamor-15"
+                                      className="css-1d10zz4-RuleNodeControls css-i92rqo2"
                                     >
                                       <Button
                                         disabled={false}
@@ -467,10 +341,10 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                           >
                                             <Base
                                               align="center"
-                                              className="button-label glamor-12"
+                                              className="button-label css-5ipae5"
                                             >
                                               <div
-                                                className="button-label glamor-12"
+                                                className="button-label css-5ipae5"
                                                 is={null}
                                               >
                                                 <span
@@ -646,7 +520,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                       <div>
                         <RuleNodes>
                           <div
-                            className="glamor-18 glamor-19"
+                            className="css-wlwbnk-RuleNodes css-mr9tnj0"
                           >
                             <RuleNode
                               data={
@@ -668,11 +542,11 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                             >
                               <RuleNodeRow>
                                 <div
-                                  className="glamor-16 glamor-17"
+                                  className="css-1poe0fr-RuleNodeRow css-i92rqo0"
                                 >
                                   <RuleNodeForm>
                                     <div
-                                      className="glamor-10 glamor-11"
+                                      className="css-7h5qyd-RuleNodeForm css-i92rqo1"
                                     >
                                       <input
                                         name="id"
@@ -684,7 +558,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                   </RuleNodeForm>
                                   <RuleNodeControls>
                                     <div
-                                      className="glamor-14 glamor-15"
+                                      className="css-1d10zz4-RuleNodeControls css-i92rqo2"
                                     >
                                       <Button
                                         disabled={false}
@@ -707,10 +581,10 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                           >
                                             <Base
                                               align="center"
-                                              className="button-label glamor-12"
+                                              className="button-label css-5ipae5"
                                             >
                                               <div
-                                                className="button-label glamor-12"
+                                                className="button-label css-5ipae5"
                                                 is={null}
                                               >
                                                 <span
@@ -773,7 +647,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                     <hr />
                     <AlertRuleRow>
                       <h6
-                        className="glamor-8 glamor-9"
+                        className="css-1pc4igl-AlertRuleRow css-70hiur0"
                       >
                         Perform these actions at most once every 
                         <Select2Field
@@ -942,10 +816,10 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                           >
                             <Base
                               align="center"
-                              className="button-label glamor-12"
+                              className="button-label css-5ipae5"
                             >
                               <div
-                                className="button-label glamor-12"
+                                className="button-label css-5ipae5"
                                 is={null}
                               >
                                 Save Rule
@@ -968,84 +842,6 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
 `;
 
 exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
-.glamor-19 {
-  background: #fff;
-  border: 1px solid;
-  margin-bottom: NaNpx;
-  position: relative;
-}
-
-.glamor-4 {
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  line-height: 1;
-  padding: 15px 20px;
-}
-
-.glamor-1 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  -webkit-box-pack: justify;
-  -webkit-justify-content: space-between;
-  -ms-flex-pack: justify;
-  justify-content: space-between;
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  line-height: 1;
-  padding: 15px 20px;
-}
-
-.glamor-18 {
-  padding: 20px;
-}
-
-.glamor-8 {
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
-.glamor-10 {
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-flex-direction: column;
-  -ms-flex-direction: column;
-  flex-direction: column;
-  margin-bottom: 10px;
-}
-
-.glamor-16 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
 <ProjectAlertRuleDetails
   params={
     Object {
@@ -1133,25 +929,25 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
               className="rule-detail"
             >
               <div
-                className="rule-detail glamor-19 glamor-20"
+                className="rule-detail css-wfa8ap-StyledPanel css-5bw71w0"
               >
                 <PanelHeader>
                   <StyledPanelHeader>
                     <Component
-                      className="glamor-4 glamor-0"
+                      className="css-wxaapd-StyledPanelHeader css-zott9u0"
                     >
                       <Flex
                         align="center"
-                        className="glamor-4 glamor-0"
+                        className="css-wxaapd-StyledPanelHeader css-zott9u0"
                         justify="space-between"
                       >
                         <Base
                           align="center"
-                          className="glamor-0 glamor-1"
+                          className="css-zott9u0 css-1qscict"
                           justify="space-between"
                         >
                           <div
-                            className="glamor-0 glamor-1"
+                            className="css-zott9u0 css-1qscict"
                             is={null}
                           >
                             New Alert Rule
@@ -1167,7 +963,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                   flex={false}
                 >
                   <div
-                    className="glamor-18"
+                    className="css-1pugmsu-padding"
                   >
                     <h6>
                       Rule name
@@ -1205,7 +1001,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                     <hr />
                     <AlertRuleRow>
                       <h6
-                        className="glamor-8 glamor-9"
+                        className="css-1pc4igl-AlertRuleRow css-70hiur0"
                       >
                         Every time 
                         <Select2Field
@@ -1317,7 +1113,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                       >
                         <RuleNodes>
                           <div
-                            className="glamor-10 glamor-11"
+                            className="css-wlwbnk-RuleNodes css-mr9tnj0"
                           />
                         </RuleNodes>
                         <fieldset>
@@ -1471,7 +1267,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                       <div>
                         <RuleNodes>
                           <div
-                            className="glamor-10 glamor-11"
+                            className="css-wlwbnk-RuleNodes css-mr9tnj0"
                           />
                         </RuleNodes>
                         <fieldset>
@@ -1519,7 +1315,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                     <hr />
                     <AlertRuleRow>
                       <h6
-                        className="glamor-8 glamor-9"
+                        className="css-1pc4igl-AlertRuleRow css-70hiur0"
                       >
                         Perform these actions at most once every 
                         <Select2Field
@@ -1689,10 +1485,10 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                           >
                             <Base
                               align="center"
-                              className="button-label glamor-16"
+                              className="button-label css-5ipae5"
                             >
                               <div
-                                className="button-label glamor-16"
+                                className="button-label css-5ipae5"
                                 is={null}
                               >
                                 Save Rule

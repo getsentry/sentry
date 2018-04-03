@@ -1,6 +1,8 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`OrganizationDetails render() deletion in progress should render a deletion in progress prompt 1`] = `
+exports[
+  `OrganizationDetails render() deletion in progress should render a deletion in progress prompt 1`
+] = `
 <div
   class="app"
 >
@@ -82,19 +84,9 @@ exports[`OrganizationDetails render() deletion in progress should render a delet
 </div>
 `;
 
-exports[`OrganizationDetails render() pending deletion should render a restoration prompt 1`] = `
-.glamor-0 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
+exports[
+  `OrganizationDetails render() pending deletion should render a restoration prompt 1`
+] = `
 <div
   class="app"
 >
@@ -150,7 +142,7 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
                 role="button"
               >
                 <div
-                  class="button-label glamor-0"
+                  class="button-label css-5ipae5"
                 >
                   Restore Organization
                 </div>
@@ -201,7 +193,9 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
 </div>
 `;
 
-exports[`OrganizationDetails render() pending deletion should render a restoration prompt without action for members 1`] = `
+exports[
+  `OrganizationDetails render() pending deletion should render a restoration prompt without action for members 1`
+] = `
 <div
   class="app"
 >
