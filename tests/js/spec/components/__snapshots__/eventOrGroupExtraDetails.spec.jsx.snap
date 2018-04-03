@@ -4,11 +4,6 @@ exports[`EventOrGroupExtraDetails details when mentioned 1`] = `
 <GroupExtra>
   <Box
     mr={1}
-    style={
-      Object {
-        "opacity": 0.5,
-      }
-    }
   >
     <GroupExtraIcon
       className="icon icon-clock"
@@ -86,11 +81,6 @@ exports[`EventOrGroupExtraDetails renders all details 1`] = `
 <GroupExtra>
   <Box
     mr={1}
-    style={
-      Object {
-        "opacity": 0.5,
-      }
-    }
   >
     <GroupExtraIcon
       className="icon icon-clock"
@@ -164,11 +154,6 @@ exports[`EventOrGroupExtraDetails renders assignee and status 1`] = `
 <GroupExtra>
   <Box
     mr={1}
-    style={
-      Object {
-        "opacity": 0.5,
-      }
-    }
   >
     <GroupExtraIcon
       className="icon icon-clock"
@@ -258,11 +243,6 @@ exports[`EventOrGroupExtraDetails renders last and first seen 1`] = `
 <GroupExtra>
   <Box
     mr={1}
-    style={
-      Object {
-        "opacity": 0.5,
-      }
-    }
   >
     <GroupExtraIcon
       className="icon icon-clock"
@@ -281,11 +261,6 @@ exports[`EventOrGroupExtraDetails renders only last seen 1`] = `
 <GroupExtra>
   <Box
     mr={1}
-    style={
-      Object {
-        "opacity": 0.5,
-      }
-    }
   >
     <GroupExtraIcon
       className="icon icon-clock"
