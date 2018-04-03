@@ -1,9 +1,9 @@
+import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Link} from 'react-router';
 
-import Count from '../../../../components/count';
-import {t} from '../../../../locale';
+import {t} from '../../locale';
+import Count from '../../components/count';
 
 let getPercent = (item, total) => {
   if (total === 0) {

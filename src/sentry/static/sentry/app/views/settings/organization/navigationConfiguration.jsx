@@ -21,11 +21,6 @@ const organizationNavigation = [
         title: t('Teams'),
       },
       {
-        path: `${pathPrefix}/stats/`,
-        title: t('Stats'),
-        show: ({access}) => access.has('org:read'),
-      },
-      {
         path: `${pathPrefix}/members/`,
         title: t('Members'),
         // eslint-disable-next-line no-shadow
