@@ -1,8 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[
-  `OrganizationMembersView No Require Link does not have 2fa warning if user has 2fa 1`
-] = `
+exports[`OrganizationMembersView No Require Link does not have 2fa warning if user has 2fa 1`] = `
 <OrganizationMembersView
   canAddMembers={false}
   canRemoveMembers={false}
@@ -124,11 +122,11 @@ exports[
                                     size="small"
                                   >
                                     <Base
-                                      className="css-11bwulm-Icon css-geyqay0"
+                                      className="css-11bwulm-Icon css-1vxxnb60"
                                       size="small"
                                     >
                                       <div
-                                        className="css-11bwulm-Icon css-geyqay0"
+                                        className="css-11bwulm-Icon css-1vxxnb60"
                                         is={null}
                                         size="small"
                                       >
@@ -137,18 +135,18 @@ exports[
                                           src="icon-circle-add"
                                         >
                                           <InlineSvg
-                                            className="css-1ov3rcq-StyledInlineSvg css-geyqay1"
+                                            className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
                                             size="12px"
                                             src="icon-circle-add"
                                           >
                                             <StyledSvg
-                                              className="css-1ov3rcq-StyledInlineSvg css-geyqay1"
+                                              className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
                                               height="12px"
                                               viewBox={Object {}}
                                               width="12px"
                                             >
                                               <svg
-                                                className="css-geyqay1 css-1rlza0i-StyledSvg css-adkcw30"
+                                                className="css-1vxxnb61 css-1rlza0i-StyledSvg css-adkcw30"
                                                 height="12px"
                                                 viewBox={Object {}}
                                                 width="12px"
@@ -1184,9 +1182,7 @@ exports[
 </OrganizationMembersView>
 `;
 
-exports[
-  `OrganizationMembersView Require Link does not have 2fa warning if user has 2fa 1`
-] = `
+exports[`OrganizationMembersView Require Link does not have 2fa warning if user has 2fa 1`] = `
 <OrganizationMembersView
   canAddMembers={false}
   canRemoveMembers={false}
@@ -1308,11 +1304,11 @@ exports[
                                     size="small"
                                   >
                                     <Base
-                                      className="css-11bwulm-Icon css-geyqay0"
+                                      className="css-11bwulm-Icon css-1vxxnb60"
                                       size="small"
                                     >
                                       <div
-                                        className="css-11bwulm-Icon css-geyqay0"
+                                        className="css-11bwulm-Icon css-1vxxnb60"
                                         is={null}
                                         size="small"
                                       >
@@ -1321,18 +1317,18 @@ exports[
                                           src="icon-circle-add"
                                         >
                                           <InlineSvg
-                                            className="css-1ov3rcq-StyledInlineSvg css-geyqay1"
+                                            className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
                                             size="12px"
                                             src="icon-circle-add"
                                           >
                                             <StyledSvg
-                                              className="css-1ov3rcq-StyledInlineSvg css-geyqay1"
+                                              className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
                                               height="12px"
                                               viewBox={Object {}}
                                               width="12px"
                                             >
                                               <svg
-                                                className="css-geyqay1 css-1rlza0i-StyledSvg css-adkcw30"
+                                                className="css-1vxxnb61 css-1rlza0i-StyledSvg css-adkcw30"
                                                 height="12px"
                                                 viewBox={Object {}}
                                                 width="12px"

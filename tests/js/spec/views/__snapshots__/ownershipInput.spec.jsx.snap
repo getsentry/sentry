@@ -375,11 +375,11 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                       size="zero"
                     >
                       <Base
-                        className="css-l3pkcx-Icon css-geyqay0"
+                        className="css-l3pkcx-Icon css-1vxxnb60"
                         size="zero"
                       >
                         <div
-                          className="css-l3pkcx-Icon css-geyqay0"
+                          className="css-l3pkcx-Icon css-1vxxnb60"
                           is={null}
                           size="zero"
                         >
@@ -388,18 +388,18 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                             src="icon-circle-add"
                           >
                             <InlineSvg
-                              className="css-1ov3rcq-StyledInlineSvg css-geyqay1"
+                              className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
                               size="16px"
                               src="icon-circle-add"
                             >
                               <StyledSvg
-                                className="css-1ov3rcq-StyledInlineSvg css-geyqay1"
+                                className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
                                 height="16px"
                                 viewBox={Object {}}
                                 width="16px"
                               >
                                 <svg
-                                  className="css-geyqay1 css-1rlza0i-StyledSvg css-adkcw30"
+                                  className="css-1vxxnb61 css-1rlza0i-StyledSvg css-adkcw30"
                                   height="16px"
                                   viewBox={Object {}}
                                   width="16px"

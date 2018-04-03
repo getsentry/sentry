@@ -488,11 +488,11 @@ exports[`ApiTokens renders with result 1`] = `
                                                           size="small"
                                                         >
                                                           <Base
-                                                            className="css-11bwulm-Icon css-geyqay0"
+                                                            className="css-11bwulm-Icon css-1vxxnb60"
                                                             size="small"
                                                           >
                                                             <div
-                                                              className="css-11bwulm-Icon css-geyqay0"
+                                                              className="css-11bwulm-Icon css-1vxxnb60"
                                                               is={null}
                                                               size="small"
                                                             >
@@ -501,18 +501,18 @@ exports[`ApiTokens renders with result 1`] = `
                                                                 src="icon-circle-subtract"
                                                               >
                                                                 <InlineSvg
-                                                                  className="css-1ov3rcq-StyledInlineSvg css-geyqay1"
+                                                                  className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
                                                                   size="12px"
                                                                   src="icon-circle-subtract"
                                                                 >
                                                                   <StyledSvg
-                                                                    className="css-1ov3rcq-StyledInlineSvg css-geyqay1"
+                                                                    className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
                                                                     height="12px"
                                                                     viewBox={Object {}}
                                                                     width="12px"
                                                                   >
                                                                     <svg
-                                                                      className="css-geyqay1 css-1rlza0i-StyledSvg css-adkcw30"
+                                                                      className="css-1vxxnb61 css-1rlza0i-StyledSvg css-adkcw30"
                                                                       height="12px"
                                                                       viewBox={Object {}}
                                                                       width="12px"
