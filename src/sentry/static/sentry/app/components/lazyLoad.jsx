@@ -5,6 +5,7 @@ import React from 'react';
 import {t} from '../locale';
 import LoadingError from './loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
+import retryableImport from '../utils/retryableImport';
 
 class LazyLoad extends React.Component {
   static propTypes = {
@@ -75,7 +76,7 @@ class LazyLoad extends React.Component {
   fetchComponent = () => {
     let getComponent = this.getComponentGetter();
 
-    getComponent()
+    retryableImport(getComponent)
       .then(Component => {
         // Always load default export if available
         this.setState({
