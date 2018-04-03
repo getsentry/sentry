@@ -20,7 +20,7 @@ const GuideStore = Reflux.createStore({
       // or the guide is just cued but not opened.
       currentStep: 0,
 
-      currentOrgSlug: null,
+      currentOrg: null,
     };
     this.listenTo(GuideActions.fetchSucceeded, this.onFetchSucceeded);
     this.listenTo(GuideActions.closeGuideOrSupport, this.onCloseGuideOrSupport);
@@ -28,10 +28,15 @@ const GuideStore = Reflux.createStore({
     this.listenTo(GuideActions.registerAnchor, this.onRegisterAnchor);
     this.listenTo(GuideActions.unregisterAnchor, this.onUnregisterAnchor);
     this.listenTo(OrganizationsActions.setActive, this.onSetActiveOrganization);
+    this.listenTo(OrganizationsActions.changeSlug, this.onChangeSlug);
   },
 
   onSetActiveOrganization(data) {
-    this.setState({currentOrgSlug: data.slug});
+    this.state.currentOrg = data;
+  },
+
+  onChangeSlug(prev, next) {
+    this.state.currentOrg = next;
   },
 
   onFetchSucceeded(data) {
