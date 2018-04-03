@@ -43,77 +43,48 @@ exports[`Stream render() displays the group list 1`] = `
       searchId={null}
       sort="date"
     />
-    <StreamActions
-      allResultsVisible={false}
-      groupIds={
-        Array [
-          "1",
-        ]
-      }
-      hasReleases={false}
-      latestRelease={null}
-      onRealtimeChange={[Function]}
-      onSelectStatsPeriod={[Function]}
-      orgId="org-slug"
-      projectId="project-slug"
-      query="is:unresolved"
-      realtimeActive={false}
-      statsPeriod="24h"
-    />
-    <div
-      className="ref-group-list"
-    >
-      <StreamGroup
-        canSelect={true}
-        id="1"
-        key="1"
+    <Panel>
+      <StreamActions
+        allResultsVisible={false}
+        groupIds={
+          Array [
+            "1",
+          ]
+        }
+        hasReleases={false}
+        latestRelease={null}
+        onRealtimeChange={[Function]}
+        onSelectStatsPeriod={[Function]}
         orgId="org-slug"
         projectId="project-slug"
         query="is:unresolved"
-<<<<<<< HEAD
-        queryCount={0}
-        queryMaxCount={0}
-        savedSearchList={
-          Array [
-            Object {
-              "id": "789",
-              "name": "test",
-              "query": "is:unresolved",
-            },
-          ]
-        }
-        searchId={null}
-        sort="date"
-      />
-      <Sticky
-        bottomOffset={0}
-        disableCompensation={false}
-        disableHardwareAcceleration={false}
-        relative={false}
-        topOffset={59}
-      />
-      <ul
-        className="group-list"
-      >
-        <StreamGroup
-          canSelect={true}
-          hasGuideAnchor={false}
-          id="1"
-          key="1"
-          orgId="org-slug"
-          projectId="project-slug"
-          query="is:unresolved"
-          statsPeriod="24h"
-        />
-      </ul>
-      <Pagination
-        onCursor={[Function]}
-        pageLinks="<http://127.0.0.1:8000/api/0/projects/org-slug/project-slug/issues/?cursor=1443575731:0:1>; rel=\\"previous\\"; results=\\"false\\"; cursor=\\"1443575731:0:1\\", <http://127.0.0.1:8000/api/0/projects/org-slug/project-slug/issues/?cursor=1443575731:0:0>; rel=\\"next\\"; results=\\"true\\"; cursor=\\"1443575731:0:0"
-=======
+        realtimeActive={false}
         statsPeriod="24h"
->>>>>>> style: ckj's changes
       />
-    </div>
+      <PanelBody
+        direction="column"
+        disablePadding={true}
+        flex={false}
+      >
+        <PanelBody
+          className="ref-group-list"
+          direction="column"
+          disablePadding={true}
+          flex={false}
+        >
+          <StreamGroup
+            canSelect={true}
+            hasGuideAnchor={false}
+            id="1"
+            key="1"
+            orgId="org-slug"
+            projectId="project-slug"
+            query="is:unresolved"
+            statsPeriod="24h"
+          />
+        </PanelBody>
+      </PanelBody>
+    </Panel>
     <Pagination
       onCursor={[Function]}
       pageLinks="<http://127.0.0.1:8000/api/0/projects/org-slug/project-slug/issues/?cursor=1443575731:0:1>; rel=\\"previous\\"; results=\\"false\\"; cursor=\\"1443575731:0:1\\", <http://127.0.0.1:8000/api/0/projects/org-slug/project-slug/issues/?cursor=1443575731:0:0>; rel=\\"next\\"; results=\\"true\\"; cursor=\\"1443575731:0:0"
@@ -243,77 +214,48 @@ exports[`Stream toggles environment select all environments 1`] = `
       searchId={null}
       sort="date"
     />
-    <StreamActions
-      allResultsVisible={false}
-      groupIds={
-        Array [
-          "1",
-        ]
-      }
-      hasReleases={false}
-      latestRelease={null}
-      onRealtimeChange={[Function]}
-      onSelectStatsPeriod={[Function]}
-      orgId="org-slug"
-      projectId="project-slug"
-      query="is:unresolved"
-      realtimeActive={false}
-      statsPeriod="24h"
-    />
-    <div
-      className="ref-group-list"
-    >
-      <StreamGroup
-        canSelect={true}
-        id="1"
-        key="1"
+    <Panel>
+      <StreamActions
+        allResultsVisible={false}
+        groupIds={
+          Array [
+            "1",
+          ]
+        }
+        hasReleases={false}
+        latestRelease={null}
+        onRealtimeChange={[Function]}
+        onSelectStatsPeriod={[Function]}
         orgId="org-slug"
         projectId="project-slug"
         query="is:unresolved"
-<<<<<<< HEAD
-        queryCount={0}
-        queryMaxCount={0}
-        savedSearchList={
-          Array [
-            Object {
-              "id": "789",
-              "name": "test",
-              "query": "is:unresolved",
-            },
-          ]
-        }
-        searchId={null}
-        sort="date"
-      />
-      <Sticky
-        bottomOffset={0}
-        disableCompensation={false}
-        disableHardwareAcceleration={false}
-        relative={false}
-        topOffset={59}
-      />
-      <ul
-        className="group-list"
-      >
-        <StreamGroup
-          canSelect={true}
-          hasGuideAnchor={false}
-          id="1"
-          key="1"
-          orgId="org-slug"
-          projectId="project-slug"
-          query="is:unresolved"
-          statsPeriod="24h"
-        />
-      </ul>
-      <Pagination
-        onCursor={[Function]}
-        pageLinks="<http://127.0.0.1:8000/api/0/projects/org-slug/project-slug/issues/?cursor=1443575731:0:1>; rel=\\"previous\\"; results=\\"false\\"; cursor=\\"1443575731:0:1\\", <http://127.0.0.1:8000/api/0/projects/org-slug/project-slug/issues/?cursor=1443575731:0:0>; rel=\\"next\\"; results=\\"true\\"; cursor=\\"1443575731:0:0"
-=======
+        realtimeActive={false}
         statsPeriod="24h"
->>>>>>> style: ckj's changes
       />
-    </div>
+      <PanelBody
+        direction="column"
+        disablePadding={true}
+        flex={false}
+      >
+        <PanelBody
+          className="ref-group-list"
+          direction="column"
+          disablePadding={true}
+          flex={false}
+        >
+          <StreamGroup
+            canSelect={true}
+            hasGuideAnchor={false}
+            id="1"
+            key="1"
+            orgId="org-slug"
+            projectId="project-slug"
+            query="is:unresolved"
+            statsPeriod="24h"
+          />
+        </PanelBody>
+      </PanelBody>
+    </Panel>
     <Pagination
       onCursor={[Function]}
       pageLinks="<http://127.0.0.1:8000/api/0/projects/org-slug/project-slug/issues/?cursor=1443575731:0:1>; rel=\\"previous\\"; results=\\"false\\"; cursor=\\"1443575731:0:1\\", <http://127.0.0.1:8000/api/0/projects/org-slug/project-slug/issues/?cursor=1443575731:0:0>; rel=\\"next\\"; results=\\"true\\"; cursor=\\"1443575731:0:0"

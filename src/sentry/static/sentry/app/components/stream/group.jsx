@@ -20,6 +20,7 @@ import EventOrGroupHeader from '../eventOrGroupHeader';
 import EventOrGroupExtraDetails from '../eventOrGroupExtraDetails';
 import TimeSince from '../timeSince';
 import Tooltip from '../tooltip';
+import {PanelItem} from '../panels';
 
 import {t} from '../../locale';
 import {valueIsEqual} from '../../utils';
@@ -95,7 +96,7 @@ const StreamGroup = createReactClass({
     const {id, orgId, projectId, query, hasGuideAnchor} = this.props;
 
     return (
-      <Group onClick={this.toggleSelect} py={1}>
+      <Group onClick={this.toggleSelect} py={1} px={0} align="center">
         <Tooltip title={`Error level: ${capitalize(data.level)}`}>
           <GroupLevel level={data.level} />
         </Tooltip>
@@ -147,29 +148,8 @@ const StreamGroup = createReactClass({
   },
 });
 
-const Group = styled(Flex)`
+const Group = styled(PanelItem)`
   line-height: 1.1;
-  font-size: 16px;
-  position: relative;
-  align-items: center;
-  border-left: 1px solid ${p => p.theme.borderDark};
-  border-right: 1px solid ${p => p.theme.borderDark};
-  border-top: 1px solid ${p => p.theme.borderLight};
-  border-bottom: 1px solid ${p => p.theme.borderLight};
-  & + & {
-    margin-top: -1px;
-  }
-  &:first-child {
-    border-top-left-radius: 3px;
-    border-top-right-radius: 3px;
-    border-top: 1px solid ${p => p.theme.borderDark};
-  }
-  &:last-child {
-    border-bottom-left-radius: 3px;
-    border-bottom-right-radius: 3px;
-    border-bottom: 1px solid ${p => p.theme.borderDark};
-    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
-  }
 `;
 
 const GroupSummary = styled(Box)`

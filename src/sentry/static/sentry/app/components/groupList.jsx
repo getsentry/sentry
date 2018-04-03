@@ -149,9 +149,9 @@ const GroupList = createReactClass({
     let {orgId, projectId} = this.props;
 
     return (
-      <div className={wrapperClass}>
+      <Panel className={wrapperClass}>
         <GroupListHeader />
-        <ul className="group-list">
+        <PanelBody>
           {this.state.groupIds.map(id => {
             return (
               <StreamGroup
@@ -163,8 +163,8 @@ const GroupList = createReactClass({
               />
             );
           })}
-        </ul>
-      </div>
+        </PanelBody>
+      </Panel>
     );
   },
 });
