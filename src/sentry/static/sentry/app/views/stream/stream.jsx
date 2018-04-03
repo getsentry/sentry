@@ -638,16 +638,16 @@ const Stream = createReactClass({
   },
 
   renderGroupNodes(ids, statsPeriod) {
-    // Restrict this guide to only show on a project with less than two issues
-    // because anchors light up all issues on the page. Also restrict to new users (joined<30 days)
+    // Restrict this guide to only show for new users (joined<30 days) and add guide anhor only to the first issue
     let userDateJoined = new Date(ConfigStore.get('user').dateJoined);
     let dateCutoff = new Date();
     dateCutoff.setDate(dateCutoff.getDate() - 30);
 
-    let hasGuideAnchor = ids.length <= 2 && userDateJoined > dateCutoff;
+    let topIssue = ids[0];
 
     let {orgId, projectId} = this.props.params;
     let groupNodes = ids.map(id => {
+      let hasGuideAnchor = userDateJoined > dateCutoff && id === topIssue;
       return (
         <StreamGroup
           key={id}
