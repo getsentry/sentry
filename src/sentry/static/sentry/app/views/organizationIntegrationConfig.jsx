@@ -1,7 +1,7 @@
 import {Flex, Box} from 'grid-emotion';
+import {keyBy} from 'lodash';
 import React from 'react';
 import styled from 'react-emotion';
-import _ from 'lodash';
 
 import {sortArray} from '../utils';
 import {t} from '../locale';
@@ -157,7 +157,7 @@ export default class OrganizationIntegrationConfig extends AsyncView {
 
     // Merge the new integration into the list. If we're updating an
     // integration ovewrrite the old integration.
-    const keyedItems = _.keyBy(this.state.itemList, 'id');
+    const keyedItems = keyBy(this.state.itemList, i => i.id);
     const itemList = sortArray(
       Object.values({...keyedItems, [data.id]: data}),
       i => i.name
