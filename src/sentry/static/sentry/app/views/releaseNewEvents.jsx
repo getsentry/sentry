@@ -36,7 +36,6 @@ class ReleaseNewEvents extends React.Component {
           projectId={projectId}
           query={'first-release:"' + this.context.release.version + '"'}
           canSelectGroups={false}
-          bulkActions={false}
           environment={this.props.environment}
         />
       </div>

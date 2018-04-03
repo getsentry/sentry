@@ -25,7 +25,6 @@ const GroupList = createReactClass({
     canSelectGroups: PropTypes.bool,
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
-    bulkActions: PropTypes.bool.isRequired,
     environment: SentryTypes.Environment,
   },
 
@@ -140,16 +139,10 @@ const GroupList = createReactClass({
         </Panel>
       );
 
-    let wrapperClass;
-
-    if (!this.props.bulkActions) {
-      wrapperClass = 'stream-no-bulk-actions';
-    }
-
     let {orgId, projectId} = this.props;
 
     return (
-      <Panel className={wrapperClass}>
+      <Panel>
         <GroupListHeader />
         <PanelBody>
           {this.state.groupIds.map(id => {
