@@ -2,10 +2,12 @@ import {Flex, Box} from 'grid-emotion';
 import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
 import classNames from 'classnames';
+import styled from 'react-emotion';
 
+import ExternalLink from '../externalLink';
 import InlineSvg from '../inlineSvg';
+
 import '../../../less/components/button.less';
 
 const Icon = styled(Box)`
@@ -36,6 +38,10 @@ class Button extends React.Component {
      * Tooltip text
      */
     title: PropTypes.string,
+    /**
+     * Is an external link? (Will open in new tab)
+     */
+    external: PropTypes.bool,
     borderless: PropTypes.bool,
     onClick: PropTypes.func,
   };
@@ -75,6 +81,7 @@ class Button extends React.Component {
       title,
       borderless,
       icon,
+      external,
 
       // destructure from `buttonProps`
       // not necessary, but just in case someone re-orders props
@@ -133,6 +140,10 @@ class Button extends React.Component {
     // Handle react-router Links
     if (to) {
       return <Link to={this.getUrl()} {...componentProps} />;
+    }
+
+    if (href && external) {
+      return <ExternalLink href={this.getUrl()} {...componentProps} />;
     }
 
     // Handle traditional links

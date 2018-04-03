@@ -374,11 +374,15 @@ const projectSettingsRoutes = (
     />
     <Route
       path="install/"
-      name="Basic Configuration"
+      name="Configuration"
       component={errorHandler(ProjectDocsContext)}
     >
       <IndexRoute component={errorHandler(ProjectInstallOverview)} />
-      <Route path=":platform/" component={errorHandler(ProjectInstallPlatform)} />
+      <Route
+        path=":platform/"
+        name="Docs"
+        component={errorHandler(ProjectInstallPlatform)}
+      />
     </Route>
   </React.Fragment>
 );

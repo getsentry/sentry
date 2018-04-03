@@ -7,6 +7,7 @@ import AutoSelectText from '../../components/autoSelectText';
 import PlatformPicker from '../onboarding/project/platformpicker';
 import SettingsPageHeader from '../settings/components/settingsPageHeader';
 import TextBlock from '../settings/components/text/textBlock';
+import recreateRoute from '../../utils/recreateRoute';
 
 class ProjectInstallOverview extends React.Component {
   static propTypes = {
@@ -26,7 +27,8 @@ class ProjectInstallOverview extends React.Component {
 
   redirectToDocs = platform => {
     let {orgId, projectId} = this.props.params;
-    let rootUrl = `/${orgId}/${projectId}/settings/install`;
+    let prefix = recreateRoute('', {...this.props, stepBack: -3});
+    let rootUrl = `${prefix}install`;
 
     if (this.isGettingStarted()) {
       rootUrl = `/${orgId}/${projectId}/getting-started`;
