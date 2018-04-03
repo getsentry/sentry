@@ -36,7 +36,7 @@ class ProjectIssuesTest(AcceptanceTestCase):
             message='Foo bar',
         )
         self.browser.get(self.path)
-        self.browser.wait_until('.group-list')
+        self.browser.wait_until('.ref-group-list')
         self.browser.wait_until('.barchart')
         self.browser.snapshot('project issues with issues')
 
