@@ -20,7 +20,7 @@ const GuideStore = Reflux.createStore({
       currentStep: 0,
     };
     this.listenTo(GuideActions.fetchSucceeded, this.onFetchSucceeded);
-    this.listenTo(GuideActions.closeGuide, this.onCloseGuide);
+    this.listenTo(GuideActions.closeGuideOrSupport, this.onCloseGuideOrSupport);
     this.listenTo(GuideActions.nextStep, this.onNextStep);
     this.listenTo(GuideActions.registerAnchor, this.onRegisterAnchor);
     this.listenTo(GuideActions.unregisterAnchor, this.onUnregisterAnchor);
@@ -31,27 +31,27 @@ const GuideStore = Reflux.createStore({
     this.updateCurrentGuide();
   },
 
-  onCloseGuide() {
-    let {currentGuide, guidesSeen} = this.state;
-    guidesSeen.add(currentGuide.id);
+  // This handles both closing a guide and the support drawer.
+  onCloseGuideOrSupport() {
+    let {currentGuide} = this.state;
+    if (currentGuide) {
+      this.state.guidesSeen.add(currentGuide.id);
+    }
     this.updateCurrentGuide();
-    HookStore.get('analytics:event').forEach(cb =>
-      cb('assistant.guide_closed', {
-        guide: currentGuide.id,
-        cue: currentGuide.cue,
-      })
-    );
   },
 
   onNextStep() {
     this.state.currentStep += 1;
     this.trigger(this.state);
-    HookStore.get('analytics:event').forEach(cb =>
-      cb('assistant.guide_next', {
-        guide: this.state.currentGuide.id,
-        cue: this.state.currentGuide.cue,
-      })
-    );
+    if (this.state.currentGuide) {
+      let eventName =
+        this.state.currentStep == 1 ? 'assistant.guide_opened' : 'assistant.guide_next';
+      HookStore.get('analytics:event').forEach(cb =>
+        cb(eventName, {
+          guide: this.state.currentGuide.id,
+        })
+      );
+    }
   },
 
   onRegisterAnchor(anchor) {
@@ -87,11 +87,9 @@ const GuideStore = Reflux.createStore({
       );
     }
 
-    if (bestGuide !== this.state.currentGuide) {
-      this.state.currentGuide = bestGuide;
-      this.state.currentStep = 0;
-      this.trigger(this.state);
-    }
+    this.state.currentGuide = bestGuide;
+    this.state.currentStep = 0;
+    this.trigger(this.state);
   },
 });
 
