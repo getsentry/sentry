@@ -23,7 +23,7 @@ except ImportError:
 
 
 logger = logging.getLogger('sentry.api')
-ERR_FILE_EXISTS = 'A file matching this uuid already exists'
+ERR_FILE_EXISTS = 'A file matching this debug identifier already exists'
 
 
 class AssociateDsymSerializer(serializers.Serializer):
@@ -69,26 +69,26 @@ class DSymFilesEndpoint(ProjectEndpoint):
                 }, status=403
             )
 
-        dsym = ProjectDSymFile.objects.filter(
+        debug_file = ProjectDSymFile.objects.filter(
             id=project_dsym_id
         ).first()
 
-        if dsym is None:
+        if debug_file is None:
             raise Http404
 
         suffix = ".dSYM"
-        if dsym.dsym_type == 'proguard' and dsym.object_name == 'proguard-mapping':
+        if debug_file.dsym_type == 'proguard' and debug_file.object_name == 'proguard-mapping':
             suffix = ".txt"
 
         try:
-            fp = dsym.file.getfile()
+            fp = debug_file.file.getfile()
             response = StreamingHttpResponse(
                 iter(lambda: fp.read(4096), b''),
                 content_type='application/octet-stream'
             )
-            response['Content-Length'] = dsym.file.size
+            response['Content-Length'] = debug_file.file.size
             response['Content-Disposition'] = 'attachment; filename="%s%s"' % (posixpath.basename(
-                dsym.uuid
+                debug_file.debug_id
             ), suffix)
             return response
         except IOError:

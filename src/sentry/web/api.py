@@ -560,7 +560,6 @@ class MinidumpView(StoreView):
         # data from the event payload and set defaults for processing.
         extra.update(data.get('extra', {}))
         data['extra'] = extra
-        data['platform'] = 'native'
 
         # At this point, we only extract the bare minimum information
         # needed to continue processing. This requires to process the

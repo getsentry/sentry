@@ -138,7 +138,7 @@ class DifAssembleEndpoint(APITestCase):
             object_name='baz.dSYM',
             cpu_name='x86_64',
             project=self.project,
-            uuid='df449af8-0dcd-4320-9943-ec192134d593',
+            debug_id='df449af8-0dcd-4320-9943-ec192134d593',
         )
 
         # Request now tells us that everything is alright
@@ -260,7 +260,7 @@ class DifAssembleEndpoint(APITestCase):
         file_blob_index = FileBlobIndex.objects.all()
         assert len(file_blob_index) == 3
 
-    def test_dif_reponse(self):
+    def test_dif_response(self):
         sym_file = self.load_fixture('crash.sym')
         blob1 = FileBlob.from_file(ContentFile(sym_file))
         total_checksum = sha1(sym_file).hexdigest()
@@ -289,7 +289,7 @@ class DifAssembleEndpoint(APITestCase):
         assert response.data[total_checksum]['dif']['cpuName'] == 'x86_64'
         assert response.data[total_checksum]['dif']['uuid'] == '67e9247c-814e-392b-a027-dbde6748fcbf'
 
-    def test_dif_error_reponse(self):
+    def test_dif_error_response(self):
         sym_file = 'fail'
         blob1 = FileBlob.from_file(ContentFile(sym_file))
         total_checksum = sha1(sym_file).hexdigest()

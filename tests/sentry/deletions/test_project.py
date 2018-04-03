@@ -52,7 +52,7 @@ class DeleteProjectTest(TestCase):
         )
         dsym_file = ProjectDSymFile.objects.create(
             file=file,
-            uuid='uuid',
+            debug_id='uuid',
             cpu_name='cpu',
             object_name='object',
             project=project,

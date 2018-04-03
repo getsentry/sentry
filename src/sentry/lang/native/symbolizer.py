@@ -8,7 +8,7 @@ from symbolic import SymbolicError, ObjectLookup, LineInfo, parse_addr
 from sentry.utils.safe import trim
 from sentry.utils.compat import implements_to_string
 from sentry.models import EventError, ProjectDSymFile
-from sentry.lang.native.utils import rebase_addr
+from sentry.lang.native.utils import image_name, rebase_addr
 from sentry.constants import MAX_SYM, NATIVE_UNKNOWN_STRING
 
 FATAL_ERRORS = (EventError.NATIVE_MISSING_DSYM, EventError.NATIVE_BAD_DSYM, )
@@ -59,10 +59,10 @@ class SymbolicationFailed(Exception):
         self.image_name = None
         self.image_path = None
         if obj is not None:
-            self.image_uuid = six.text_type(obj.uuid)
+            self.image_uuid = six.text_type(obj.id)
             if obj.name:
                 self.image_path = obj.name
-                self.image_name = obj.name.rsplit('/', 1)[-1]
+                self.image_name = image_name(obj.name)
             self.image_arch = obj.arch
         else:
             self.image_uuid = None
@@ -218,13 +218,13 @@ class Symbolizer(object):
         return obj.name and _sim_platform_re.search(obj.name) is not None
 
     def _symbolize_app_frame(self, instruction_addr, obj, sdk_info=None):
-        symcache = self.symcaches.get(obj.uuid)
+        symcache = self.symcaches.get(obj.id)
         if symcache is None:
             # In case we know what error happened on symcache conversion
             # we can report it to the user now.
-            if obj.uuid in self.symcaches_conversion_errors:
+            if obj.id in self.symcaches_conversion_errors:
                 raise SymbolicationFailed(
-                    message=self.symcaches_conversion_errors[obj.uuid],
+                    message=self.symcaches_conversion_errors[obj.id],
                     type=EventError.NATIVE_BAD_DSYM,
                     obj=obj
                 )

@@ -26,7 +26,7 @@ from uuid import uuid4
 from sentry.models import (
     Activity, Environment, Event, EventError, EventMapping, Group, Organization, OrganizationMember,
     OrganizationMemberTeam, Project, Team, User, UserEmail, Release, Commit, ReleaseCommit,
-    CommitAuthor, Repository, CommitFileChange
+    CommitAuthor, Repository, CommitFileChange, ProjectDSymFile, File
 )
 
 loremipsum = Generator()
@@ -605,4 +605,13 @@ class Fixtures(object):
             )
         if 'short_id' not in kwargs:
             kwargs['short_id'] = project.next_short_id()
-        return Group.objects.create(project=project, **kwargs)
+        return Group.objects.create(project=project, ** kwargs)
+
+    def create_file(self, **kwargs):
+        return File.objects.create(**kwargs)
+
+    def create_dsym_file(self, project=None, **kwargs):
+        if project is None:
+            project = self.project
+
+        return ProjectDSymFile.objects.create(project=project, **kwargs)

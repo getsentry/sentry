@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import six
-import uuid
 
 from symbolic import ProguardMappingView
 from sentry.plugins import Plugin2
@@ -22,7 +21,7 @@ class JavaStacktraceProcessor(StacktraceProcessor):
             self.debug_meta = debug_meta
             for img in debug_meta['images']:
                 if img['type'] == 'proguard':
-                    self.images.add(uuid.UUID(img['uuid']))
+                    self.images.add(six.text_type(img['uuid']).lower())
         else:
             self.available = False
 
@@ -45,10 +44,10 @@ class JavaStacktraceProcessor(StacktraceProcessor):
         dsym_paths = ProjectDSymFile.dsymcache.fetch_dsyms(self.project, self.images)
         self.mapping_views = []
 
-        for image_uuid in self.images:
+        for debug_id in self.images:
             error_type = None
 
-            dsym_path = dsym_paths.get(image_uuid)
+            dsym_path = dsym_paths.get(debug_id)
             if dsym_path is None:
                 error_type = EventError.PROGUARD_MISSING_MAPPING
             else:
@@ -64,15 +63,15 @@ class JavaStacktraceProcessor(StacktraceProcessor):
             self.data.setdefault('errors',
                                  []).append({
                                      'type': error_type,
-                                     'mapping_uuid': six.text_type(image_uuid),
+                                     'mapping_uuid': debug_id,
                                  })
             report_processing_issue(
                 self.data,
                 scope='proguard',
-                object='mapping:%s' % image_uuid,
+                object='mapping:%s' % debug_id,
                 type=error_type,
                 data={
-                    'mapping_uuid': six.text_type(image_uuid),
+                    'mapping_uuid': debug_id,
                 }
             )
 

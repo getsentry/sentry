@@ -468,7 +468,7 @@ exports[`ProjectDebugSymbols renders 1`] = `
         <thead>
           <tr>
             <th>
-              UUID
+              Debug ID
             </th>
             <th>
               Object
@@ -613,7 +613,7 @@ exports[`ProjectDebugSymbols renders empty 1`] = `
         <thead>
           <tr>
             <th>
-              UUID
+              Debug ID
             </th>
             <th>
               Object
