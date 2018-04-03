@@ -1,117 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`OrganizationTeamProjects Should render 1`] = `
-.glamor-14 {
-  text-transform: none;
-}
-
-.glamor-4 {
-  font-size: 14px;
-  box-shadow: inset 0 -1px 0;
-  margin: -20px 0 30px;
-}
-
-.glamor-2 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
-.glamor-0 {
-  font-size: 20px;
-  font-weight: bold;
-  margin: 20px 0;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-}
-
-.glamor-26 {
-  background: #fff;
-  border: 1px solid;
-  margin-bottom: NaNpx;
-  position: relative;
-}
-
-.glamor-10 {
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  line-height: 1;
-  padding: 15px 20px;
-  text-transform: none;
-}
-
-.glamor-7 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  -webkit-box-pack: justify;
-  -webkit-justify-content: space-between;
-  -ms-flex-pack: justify;
-  justify-content: space-between;
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  line-height: 1;
-  padding: 15px 20px;
-  text-transform: none;
-}
-
-.glamor-22 {
-  box-sizing: border-box;
-  padding: 16px;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  border-bottom: 1px solid;
-}
-
-.glamor-22:last-child {
-  border: 0;
-}
-
-.glamor-16 {
-  box-sizing: border-box;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-box-pack: justify;
-  -webkit-justify-content: space-between;
-  -ms-flex-pack: justify;
-  justify-content: space-between;
-}
-
-.glamor-20 {
-  box-sizing: border-box;
-  margin-left: 16px;
-}
-
 <withTeams
   params={
     Object {
@@ -171,22 +60,22 @@ exports[`OrganizationTeamProjects Should render 1`] = `
         >
           <Wrapper>
             <div
-              className="glamor-4 glamor-5"
+              className="css-foidy-Wrapper css-17jmgia0"
             >
               <Flex
                 align="center"
               >
                 <Base
                   align="center"
-                  className="glamor-2"
+                  className="css-5ipae5"
                 >
                   <div
-                    className="glamor-2"
+                    className="css-5ipae5"
                     is={null}
                   >
                     <Title>
                       <div
-                        className="glamor-0 glamor-1"
+                        className="css-zmdcxu-Title css-17jmgia1"
                       >
                         Projects by Team
                       </div>
@@ -208,29 +97,29 @@ exports[`OrganizationTeamProjects Should render 1`] = `
             >
               <StyledPanel>
                 <div
-                  className="glamor-26 glamor-27"
+                  className="css-wfa8ap-StyledPanel css-5bw71w0"
                 >
                   <PanelHeader
-                    className="glamor-14"
+                    className="css-geruia"
                   >
                     <StyledPanelHeader
-                      className="glamor-14"
+                      className="css-geruia"
                     >
                       <Component
-                        className="glamor-10 glamor-6"
+                        className="css-bd4vcq-StyledPanelHeader css-zott9u0"
                       >
                         <Flex
                           align="center"
-                          className="glamor-10 glamor-6"
+                          className="css-bd4vcq-StyledPanelHeader css-zott9u0"
                           justify="space-between"
                         >
                           <Base
                             align="center"
-                            className="glamor-6 glamor-7"
+                            className="css-zott9u0 css-1pwilik"
                             justify="space-between"
                           >
                             <div
-                              className="glamor-6 glamor-7"
+                              className="css-zott9u0 css-1pwilik"
                               is={null}
                             >
                               Projects Without Teams
@@ -259,11 +148,11 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                         >
                           <Base
                             align="center"
-                            className="glamor-22 glamor-23"
+                            className="css-1m7dq2n-StyledPanelItem css-q9h14u0"
                             p={2}
                           >
                             <div
-                              className="glamor-22 glamor-23"
+                              className="css-1m7dq2n-StyledPanelItem css-q9h14u0"
                               is={null}
                             >
                               <Flex
@@ -271,12 +160,12 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                 justify="space-between"
                               >
                                 <Base
-                                  className="glamor-16"
+                                  className="css-b5qfy7"
                                   flex="1"
                                   justify="space-between"
                                 >
                                   <div
-                                    className="glamor-16"
+                                    className="css-b5qfy7"
                                     is={null}
                                   >
                                     <Link
@@ -334,11 +223,11 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                 ml={2}
                               >
                                 <Base
-                                  className="glamor-20"
+                                  className="css-1dvsqd3"
                                   ml={2}
                                 >
                                   <div
-                                    className="glamor-20"
+                                    className="css-1dvsqd3"
                                     is={null}
                                   >
                                     <Button
@@ -368,10 +257,10 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                           >
                                             <Base
                                               align="center"
-                                              className="button-label glamor-2"
+                                              className="button-label css-5ipae5"
                                             >
                                               <div
-                                                className="button-label glamor-2"
+                                                className="button-label css-5ipae5"
                                                 is={null}
                                               >
                                                 Manage Project

@@ -1,59 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`ResolveActions with confirmation step renders 1`] = `
-.glamor-4 {
-  display: inline-block;
-  position: relative;
-}
-
-.glamor-2 {
-  width: 20px;
-  height: 20px;
-  cursor: pointer;
-  z-index: 999;
-  position: absolute;
-  pointer-events: none;
-  visibility: hidden;
-}
-
-.glamor-0 {
-  -webkit-animation: animation-1vh9m9r-expandOut 1.5s ease-out infinite;
-  animation: animation-1vh9m9r-expandOut 1.5s ease-out infinite;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  left: 0;
-}
-
-.glamor-0,
-.glamor-0:before,
-.glamor-0:after {
-  position: absolute;
-  display: block;
-  left: calc(50% - 10px);
-  top: calc(50% - 10px);
-  border-radius: 50%;
-}
-
-.glamor-0:before,
-.glamor-0:after {
-  content: '';
-}
-
-.glamor-0:before {
-  width: 70%;
-  height: 70%;
-  left: calc(50% - 7px);
-  top: calc(50% - 7px);
-}
-
-.glamor-0:after {
-  width: 50%;
-  height: 50%;
-  left: calc(50% - 5px);
-  top: calc(50% - 5px);
-}
-
 <ResolveActions
   confirmLabel="Resolve"
   confirmMessage="Are you sure???"
@@ -174,7 +121,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                 type="text"
               >
                 <div
-                  className="glamor-4 glamor-5"
+                  className="css-9u5for-GuideAnchorContainer css-1aiyb4m0"
                   type="text"
                 >
                   <StyledGuideAnchor
@@ -182,11 +129,11 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                     className="guide-anchor-ping resolve"
                   >
                     <div
-                      className="guide-anchor-ping resolve glamor-2 glamor-3"
+                      className="guide-anchor-ping resolve css-1yndvnf-StyledGuideAnchor css-1aiyb4m1"
                     >
                       <StyledGuideAnchorRipples>
                         <div
-                          className="glamor-0 glamor-1"
+                          className="css-1t9mqkr-StyledGuideAnchorRipples css-1aiyb4m2"
                         />
                       </StyledGuideAnchorRipples>
                     </div>
@@ -503,59 +450,6 @@ exports[`ResolveActions with confirmation step renders 1`] = `
 `;
 
 exports[`ResolveActions without confirmation renders 1`] = `
-.glamor-4 {
-  display: inline-block;
-  position: relative;
-}
-
-.glamor-2 {
-  width: 20px;
-  height: 20px;
-  cursor: pointer;
-  z-index: 999;
-  position: absolute;
-  pointer-events: none;
-  visibility: hidden;
-}
-
-.glamor-0 {
-  -webkit-animation: animation-1vh9m9r-expandOut 1.5s ease-out infinite;
-  animation: animation-1vh9m9r-expandOut 1.5s ease-out infinite;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  left: 0;
-}
-
-.glamor-0,
-.glamor-0:before,
-.glamor-0:after {
-  position: absolute;
-  display: block;
-  left: calc(50% - 10px);
-  top: calc(50% - 10px);
-  border-radius: 50%;
-}
-
-.glamor-0:before,
-.glamor-0:after {
-  content: '';
-}
-
-.glamor-0:before {
-  width: 70%;
-  height: 70%;
-  left: calc(50% - 7px);
-  top: calc(50% - 7px);
-}
-
-.glamor-0:after {
-  width: 50%;
-  height: 50%;
-  left: calc(50% - 5px);
-  top: calc(50% - 5px);
-}
-
 <ResolveActions
   confirmLabel="Resolve"
   hasRelease={false}
@@ -665,7 +559,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
               type="text"
             >
               <div
-                className="glamor-4 glamor-5"
+                className="css-9u5for-GuideAnchorContainer css-1aiyb4m0"
                 type="text"
               >
                 <StyledGuideAnchor
@@ -673,11 +567,11 @@ exports[`ResolveActions without confirmation renders 1`] = `
                   className="guide-anchor-ping resolve"
                 >
                   <div
-                    className="guide-anchor-ping resolve glamor-2 glamor-3"
+                    className="guide-anchor-ping resolve css-1yndvnf-StyledGuideAnchor css-1aiyb4m1"
                   >
                     <StyledGuideAnchorRipples>
                       <div
-                        className="glamor-0 glamor-1"
+                        className="css-1t9mqkr-StyledGuideAnchorRipples css-1aiyb4m2"
                       />
                     </StyledGuideAnchorRipples>
                   </div>

@@ -1,22 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`IssueDiff can dynamically import SplitDiff 1`] = `
-.glamor-0 {
-  background-color: #f7f8f9;
-  overflow: auto;
-  padding: 10px;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-flex-direction: column;
-  -ms-flex-direction: column;
-  flex-direction: column;
-}
-
 <IssueDiff
   api={Client {}}
   baseEventId="latest"
@@ -28,7 +12,7 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
     loading={false}
   >
     <div
-      className="glamor-0 glamor-1"
+      className="css-no1ym5-IssueDiffWrapper css-dlc86z0"
     >
       <SplitDiff
         base="SyntaxError: Unexpected token else

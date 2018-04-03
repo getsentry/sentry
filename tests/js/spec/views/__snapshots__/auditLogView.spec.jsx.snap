@@ -1,162 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`AuditLogView renders 1`] = `
-.glamor-4 {
-  font-size: 14px;
-  box-shadow: inset 0 -1px 0;
-  margin: -20px 0 30px;
-}
-
-.glamor-2 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
-.glamor-0 {
-  font-size: 20px;
-  font-weight: bold;
-  margin: 20px 0;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-}
-
-.glamor-62 {
-  background: #fff;
-  border: 1px solid;
-  margin-bottom: NaNpx;
-  position: relative;
-}
-
-.glamor-18 {
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  line-height: 1;
-  padding: 15px 0;
-}
-
-.glamor-15 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  -webkit-box-pack: justify;
-  -webkit-justify-content: space-between;
-  -ms-flex-pack: justify;
-  justify-content: space-between;
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  line-height: 1;
-  padding: 15px 0;
-}
-
-.glamor-6 {
-  box-sizing: border-box;
-  padding-left: 16px;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-}
-
-.glamor-8 {
-  box-sizing: border-box;
-  width: 150px;
-}
-
-.glamor-10 {
-  box-sizing: border-box;
-  width: 130px;
-}
-
-.glamor-12 {
-  box-sizing: border-box;
-  width: 150px;
-  padding-left: 8px;
-  padding-right: 8px;
-}
-
-.glamor-38 {
-  box-sizing: border-box;
-  padding: 0px;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  border-bottom: 1px solid;
-}
-
-.glamor-38:last-child {
-  border: 0;
-}
-
-.glamor-28 {
-  box-sizing: border-box;
-  padding: 16px;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  line-height: 1.2;
-  font-size: 13px;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-}
-
-.glamor-26 {
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-flex-direction: column;
-  -ms-flex-direction: column;
-  flex-direction: column;
-  -webkit-box-pack: center;
-  -webkit-justify-content: center;
-  -ms-flex-pack: center;
-  justify-content: center;
-}
-
-.glamor-22 {
-  font-weight: 600;
-  font-size: 15px;
-}
-
-.glamor-24 {
-  font-size: 13px;
-}
-
-.glamor-36 {
-  box-sizing: border-box;
-  width: 150px;
-  padding: 8px;
-}
-
 <AuditLogView
   location={
     Object {
@@ -732,22 +576,22 @@ exports[`AuditLogView renders 1`] = `
             >
               <Wrapper>
                 <div
-                  className="glamor-4 glamor-5"
+                  className="css-foidy-Wrapper css-17jmgia0"
                 >
                   <Flex
                     align="center"
                   >
                     <Base
                       align="center"
-                      className="glamor-2"
+                      className="css-5ipae5"
                     >
                       <div
-                        className="glamor-2"
+                        className="css-5ipae5"
                         is={null}
                       >
                         <Title>
                           <div
-                            className="glamor-0 glamor-1"
+                            className="css-zmdcxu-Title css-17jmgia1"
                           >
                             Audit Log
                           </div>
@@ -957,7 +801,7 @@ exports[`AuditLogView renders 1`] = `
             <Panel>
               <StyledPanel>
                 <div
-                  className="glamor-62 glamor-63"
+                  className="css-wfa8ap-StyledPanel css-5bw71w0"
                 >
                   <PanelHeader
                     disablePadding={true}
@@ -966,21 +810,21 @@ exports[`AuditLogView renders 1`] = `
                       disablePadding={true}
                     >
                       <Component
-                        className="glamor-18 glamor-14"
+                        className="css-1ml1jfr-StyledPanelHeader css-zott9u0"
                         disablePadding={true}
                       >
                         <Flex
                           align="center"
-                          className="glamor-18 glamor-14"
+                          className="css-1ml1jfr-StyledPanelHeader css-zott9u0"
                           justify="space-between"
                         >
                           <Base
                             align="center"
-                            className="glamor-14 glamor-15"
+                            className="css-zott9u0 css-kam103"
                             justify="space-between"
                           >
                             <div
-                              className="glamor-14 glamor-15"
+                              className="css-zott9u0 css-kam103"
                               is={null}
                             >
                               <Box
@@ -988,12 +832,12 @@ exports[`AuditLogView renders 1`] = `
                                 pl={2}
                               >
                                 <Base
-                                  className="glamor-6"
+                                  className="css-1my0viv"
                                   flex="1"
                                   pl={2}
                                 >
                                   <div
-                                    className="glamor-6"
+                                    className="css-1my0viv"
                                     is={null}
                                   >
                                     Member
@@ -1004,11 +848,11 @@ exports[`AuditLogView renders 1`] = `
                                 w={150}
                               >
                                 <Base
-                                  className="glamor-8"
+                                  className="css-v9492v"
                                   w={150}
                                 >
                                   <div
-                                    className="glamor-8"
+                                    className="css-v9492v"
                                     is={null}
                                   >
                                     Action
@@ -1019,11 +863,11 @@ exports[`AuditLogView renders 1`] = `
                                 w={130}
                               >
                                 <Base
-                                  className="glamor-10"
+                                  className="css-y2sfni"
                                   w={130}
                                 >
                                   <div
-                                    className="glamor-10"
+                                    className="css-y2sfni"
                                     is={null}
                                   >
                                     IP
@@ -1035,12 +879,12 @@ exports[`AuditLogView renders 1`] = `
                                 w={150}
                               >
                                 <Base
-                                  className="glamor-12"
+                                  className="css-1czq49t"
                                   px={1}
                                   w={150}
                                 >
                                   <div
-                                    className="glamor-12"
+                                    className="css-1czq49t"
                                     is={null}
                                   >
                                     Time
@@ -1072,11 +916,11 @@ exports[`AuditLogView renders 1`] = `
                         >
                           <Base
                             align="center"
-                            className="glamor-38 glamor-39"
+                            className="css-e60paj-StyledPanelItem css-q9h14u0"
                             p={0}
                           >
                             <div
-                              className="glamor-38 glamor-39"
+                              className="css-e60paj-StyledPanelItem css-q9h14u0"
                               is={null}
                             >
                               <UserInfo
@@ -1084,12 +928,12 @@ exports[`AuditLogView renders 1`] = `
                                 p={2}
                               >
                                 <Base
-                                  className="glamor-28 glamor-29"
+                                  className="css-1ky4pgp-UserInfo css-1arz13t0"
                                   flex="1"
                                   p={2}
                                 >
                                   <div
-                                    className="glamor-28 glamor-29"
+                                    className="css-1ky4pgp-UserInfo css-1arz13t0"
                                     is={null}
                                   >
                                     <div>
@@ -1325,18 +1169,18 @@ exports[`AuditLogView renders 1`] = `
                                     </div>
                                     <NameContainer>
                                       <div
-                                        className="glamor-26 glamor-27"
+                                        className="css-q31npu-NameContainer css-1arz13t1"
                                       >
                                         <Name>
                                           <div
-                                            className="glamor-22 glamor-23"
+                                            className="css-1y9jqv7-Name css-1arz13t2"
                                           >
                                             billy vong
                                           </div>
                                         </Name>
                                         <Note>
                                           <div
-                                            className="glamor-24 glamor-25"
+                                            className="css-18wlwph-Note css-1arz13t3"
                                           >
                                             edited project ludic-science
                                           </div>
@@ -1350,11 +1194,11 @@ exports[`AuditLogView renders 1`] = `
                                 w={150}
                               >
                                 <Base
-                                  className="glamor-8"
+                                  className="css-v9492v"
                                   w={150}
                                 >
                                   <div
-                                    className="glamor-8"
+                                    className="css-v9492v"
                                     is={null}
                                   >
                                     project.edit
@@ -1365,11 +1209,11 @@ exports[`AuditLogView renders 1`] = `
                                 w={130}
                               >
                                 <Base
-                                  className="glamor-10"
+                                  className="css-y2sfni"
                                   w={130}
                                 >
                                   <div
-                                    className="glamor-10"
+                                    className="css-y2sfni"
                                     is={null}
                                   >
                                     127.0.0.1
@@ -1381,12 +1225,12 @@ exports[`AuditLogView renders 1`] = `
                                 w={150}
                               >
                                 <Base
-                                  className="glamor-36"
+                                  className="css-ss3uhf"
                                   p={1}
                                   w={150}
                                 >
                                   <div
-                                    className="glamor-36"
+                                    className="css-ss3uhf"
                                     is={null}
                                   >
                                     <DateTime
@@ -1415,11 +1259,11 @@ exports[`AuditLogView renders 1`] = `
                         >
                           <Base
                             align="center"
-                            className="glamor-38 glamor-39"
+                            className="css-e60paj-StyledPanelItem css-q9h14u0"
                             p={0}
                           >
                             <div
-                              className="glamor-38 glamor-39"
+                              className="css-e60paj-StyledPanelItem css-q9h14u0"
                               is={null}
                             >
                               <UserInfo
@@ -1427,12 +1271,12 @@ exports[`AuditLogView renders 1`] = `
                                 p={2}
                               >
                                 <Base
-                                  className="glamor-28 glamor-29"
+                                  className="css-1ky4pgp-UserInfo css-1arz13t0"
                                   flex="1"
                                   p={2}
                                 >
                                   <div
-                                    className="glamor-28 glamor-29"
+                                    className="css-1ky4pgp-UserInfo css-1arz13t0"
                                     is={null}
                                   >
                                     <div>
@@ -1668,18 +1512,18 @@ exports[`AuditLogView renders 1`] = `
                                     </div>
                                     <NameContainer>
                                       <div
-                                        className="glamor-26 glamor-27"
+                                        className="css-q31npu-NameContainer css-1arz13t1"
                                       >
                                         <Name>
                                           <div
-                                            className="glamor-22 glamor-23"
+                                            className="css-1y9jqv7-Name css-1arz13t2"
                                           >
                                             billy vong
                                           </div>
                                         </Name>
                                         <Note>
                                           <div
-                                            className="glamor-24 glamor-25"
+                                            className="css-18wlwph-Note css-1arz13t3"
                                           >
                                             edited the organization setting(s): accountRateLimit from 1000 to 0
                                           </div>
@@ -1693,11 +1537,11 @@ exports[`AuditLogView renders 1`] = `
                                 w={150}
                               >
                                 <Base
-                                  className="glamor-8"
+                                  className="css-v9492v"
                                   w={150}
                                 >
                                   <div
-                                    className="glamor-8"
+                                    className="css-v9492v"
                                     is={null}
                                   >
                                     org.edit
@@ -1708,11 +1552,11 @@ exports[`AuditLogView renders 1`] = `
                                 w={130}
                               >
                                 <Base
-                                  className="glamor-10"
+                                  className="css-y2sfni"
                                   w={130}
                                 >
                                   <div
-                                    className="glamor-10"
+                                    className="css-y2sfni"
                                     is={null}
                                   >
                                     127.0.0.1
@@ -1724,12 +1568,12 @@ exports[`AuditLogView renders 1`] = `
                                 w={150}
                               >
                                 <Base
-                                  className="glamor-36"
+                                  className="css-ss3uhf"
                                   p={1}
                                   w={150}
                                 >
                                   <div
-                                    className="glamor-36"
+                                    className="css-ss3uhf"
                                     is={null}
                                   >
                                     <DateTime
