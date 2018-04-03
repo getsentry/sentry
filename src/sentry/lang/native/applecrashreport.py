@@ -1,20 +1,14 @@
 from __future__ import absolute_import
 
 import posixpath
-import re
 
+from sentry.lang.native.utils import image_name
 from sentry.utils.compat import implements_to_string
 from sentry.constants import NATIVE_UNKNOWN_STRING
 
 from symbolic import parse_addr
 
 REPORT_VERSION = '104'
-WINDOWS_PATH_RE = re.compile(r'^[a-z]:\\', re.IGNORECASE)
-
-
-def package_name(pkg):
-    split = '\\' if WINDOWS_PATH_RE.match(pkg) else '/'
-    return pkg.rsplit(split, 1)[-1]
 
 
 @implements_to_string
@@ -152,7 +146,7 @@ class AppleCrashReport(object):
                 symbol = '[inlined] ' + symbol
         return '%s%s%s%s%s' % (
             str(number).ljust(4, ' '),
-            package_name(frame.get('package') or NATIVE_UNKNOWN_STRING).ljust(32, ' '),
+            image_name(frame.get('package') or NATIVE_UNKNOWN_STRING).ljust(32, ' '),
             hex(instruction_addr).ljust(20, ' '), symbol, offset
         )
 
@@ -180,6 +174,6 @@ class AppleCrashReport(object):
         image_addr = parse_addr(debug_image['image_addr']) + slide_value
         return '%s - %s %s %s  <%s> %s' % (
             hex(image_addr), hex(image_addr + debug_image['image_size'] - 1),
-            package_name(debug_image['name']), self.context['device']['arch'],
+            image_name(debug_image['name']), self.context['device']['arch'],
             debug_image['uuid'].replace('-', '').lower(), debug_image['name']
         )
