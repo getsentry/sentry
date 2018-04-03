@@ -282,6 +282,11 @@ const RemoveIcon = styled(props => (
   margin-right: ${space(3)};
 `;
 
+const TeamDropdownElement = styled('div')`
+  padding: ${space(2)} ${space(1)};
+  text-transform: none;
+`;
+
 const StyledPanelItem = styled(PanelItem)`
   display: flex;
   align-items: center;
@@ -291,17 +296,12 @@ const StyledPanelItem = styled(PanelItem)`
 const StyledTeamsLabel = styled('div')`
   width: 250px;
   font-size: 0.875em;
-  text-transform: uppercase;
   padding: ${space(2)};
+  text-transform: uppercase;
 `;
 
 const StyledCreateTeamLink = styled(Link)`
   float: right;
-`;
-
-const TeamDropdownElement = styled('div')`
-  padding: ${space(2)} ${space(1)};
-  text-transform: none;
 `;
 
 export default ProjectTeams;

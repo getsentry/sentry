@@ -215,18 +215,18 @@ const StyledInput = styled(Input)`
     border-radius: 0;
     box-shadow: none;
     font-size: 13px;
+    padding: ${space(4)} ${space(3)};
     font-weight: normal;
     color: ${p => p.gray2};
-    padding: ${space(4)} ${space(3)};
   }
 `;
 
 const AutoCompleteItem = styled('div')`
   background-color: ${p =>
     p.index == p.highlightedIndex ? p.theme.offWhite : 'transparent'};
+  padding: ${space(3)};
   cursor: pointer;
   border-bottom: 1px solid ${p => p.theme.borderLighter};
-  padding: ${space(3)};
 
   &:last-child {
     border-bottom: none;
@@ -238,10 +238,10 @@ const AutoCompleteItem = styled('div')`
 `;
 
 const StyledLabel = styled('div')`
+  padding: ${space(3)};
   background-color: ${p => p.theme.offWhite};
   border: 1px solid ${p => p.theme.borderLight};
   border-width: 1px 0;
-  padding: ${space(3)};
 
   &:first-child {
     border-top: none;

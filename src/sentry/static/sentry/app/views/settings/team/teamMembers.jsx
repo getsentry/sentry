@@ -260,8 +260,8 @@ const TeamMembers = createReactClass({
 const StyledMemberContainer = styled('div')`
   display: flex;
   justify-content: space-between;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
   padding: ${space(6)} ${space(5)};
+  border-bottom: 1px solid ${p => p.theme.borderLight};
 `;
 
 const StyledUserListElement = styled('div')`
