@@ -1,6 +1,7 @@
 export {default as ApiForm} from './apiForm';
 export {default as BooleanField} from './booleanField';
 export {default as EmailField} from './emailField';
+export {default as DateTimeField} from './dateTimeField';
 export {default as Form} from './form';
 export {default as FormState} from './state';
 export {default as GenericField} from './genericField';

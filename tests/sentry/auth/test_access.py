@@ -15,8 +15,7 @@ class FromUserTest(TestCase):
         user = self.create_user()
 
         result = access.from_user(user, organization)
-        assert not result.is_active
-        assert result.sso_is_valid
+        assert not result.sso_is_valid
         assert not result.requires_sso
         assert not result.scopes
         assert not result.has_team_access(team)
@@ -33,7 +32,6 @@ class FromUserTest(TestCase):
         team = self.create_team(organization=organization)
 
         result = access.from_user(user, organization)
-        assert result.is_active
         assert result.sso_is_valid
         assert not result.requires_sso
         assert result.scopes == member.get_scopes()
@@ -54,7 +52,6 @@ class FromUserTest(TestCase):
         team = self.create_team(organization=organization)
 
         result = access.from_user(user, organization)
-        assert result.is_active
         assert result.sso_is_valid
         assert not result.requires_sso
         assert result.scopes == member.get_scopes()
@@ -76,7 +73,6 @@ class FromUserTest(TestCase):
         team = self.create_team(organization=organization)
 
         result = access.from_user(user, organization)
-        assert result.is_active
         assert result.sso_is_valid
         assert not result.requires_sso
         assert result.scopes == member.get_scopes()
@@ -94,7 +90,6 @@ class FromUserTest(TestCase):
         )
 
         result = access.from_user(user, organization)
-        assert result.is_active
         assert result.sso_is_valid
         assert not result.requires_sso
         assert result.scopes == member.get_scopes()
@@ -150,8 +145,13 @@ class FromUserTest(TestCase):
         anon_user = AnonymousUser()
         organization = self.create_organization(owner=user)
         result = access.from_user(anon_user, organization)
+        assert result is access.DEFAULT
 
-        assert not result.is_active
+    def test_inactive_user(self):
+        user = self.create_user(is_active=False)
+        organization = self.create_organization(owner=user)
+        result = access.from_user(user, organization)
+        assert result is access.DEFAULT
 
 
 class DefaultAccessTest(TestCase):

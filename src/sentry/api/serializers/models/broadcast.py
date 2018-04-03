@@ -31,5 +31,6 @@ class BroadcastSerializer(Serializer):
             'link': obj.link,
             'isActive': obj.is_active,
             'dateCreated': obj.date_added,
+            'dateExpires': obj.date_expires,
             'hasSeen': attrs['seen'],
         }

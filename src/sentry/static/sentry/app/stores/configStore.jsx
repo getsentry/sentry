@@ -28,6 +28,7 @@ const ConfigStore = Reflux.createStore({
 
     // TODO(dcramer): abstract this out of ConfigStore
     if (config.user) {
+      config.user.permissions = new Set(config.user.permissions);
       moment.tz.setDefault(config.user.options.timezone);
       setLocale(config.user.options.language || 'en');
     }

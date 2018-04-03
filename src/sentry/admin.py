@@ -15,23 +15,13 @@ from django.template.response import TemplateResponse
 from django.utils.translation import ugettext, ugettext_lazy as _
 from pprint import saferepr
 from sentry.models import (
-    ApiKey, AuthIdentity, AuthProvider, AuditLogEntry, Broadcast, Option, Organization,
+    ApiKey, AuthIdentity, AuthProvider, AuditLogEntry, Option, Organization,
     OrganizationMember, Project, Team, User
 )
 from sentry.utils.html import escape
 
 csrf_protect_m = method_decorator(csrf_protect)
 sensitive_post_parameters_m = method_decorator(sensitive_post_parameters())
-
-
-class BroadcastAdmin(admin.ModelAdmin):
-    list_display = ('title', 'message', 'is_active', 'date_added')
-    list_filter = ('is_active', )
-    search_fields = ('title', 'message', 'link')
-    readonly_fields = ('upstream_id', 'date_added')
-
-
-admin.site.register(Broadcast, BroadcastAdmin)
 
 
 class OptionAdmin(admin.ModelAdmin):

@@ -94,6 +94,7 @@ export default {
       // all needed by sentry.io
       ApiForm: require('./components/forms/apiForm').default,
       BooleanField: require('./components/forms/booleanField').default,
+      DateTimeField: require('./components/forms/dateTimeField').default,
       EmailField: require('./components/forms/emailField').default,
       Form: require('./components/forms/form').default,
       RangeField: require('./components/forms/rangeField').default,
