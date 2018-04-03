@@ -821,10 +821,10 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                           >
                             <GroupExtra>
                               <Base
-                                className="css-1bdop2-GroupExtra css-th9dvp0"
+                                className="css-1bdop2-GroupExtra css-2blwlq0"
                               >
                                 <div
-                                  className="css-1bdop2-GroupExtra css-th9dvp0"
+                                  className="css-1bdop2-GroupExtra css-2blwlq0"
                                   is={null}
                                 >
                                   <Box
@@ -1906,10 +1906,10 @@ exports[`Issues Similar View renders with mocked data 2`] = `
                           >
                             <GroupExtra>
                               <Base
-                                className="css-1bdop2-GroupExtra css-th9dvp0"
+                                className="css-1bdop2-GroupExtra css-2blwlq0"
                               >
                                 <div
-                                  className="css-1bdop2-GroupExtra css-th9dvp0"
+                                  className="css-1bdop2-GroupExtra css-2blwlq0"
                                   is={null}
                                 >
                                   <Box

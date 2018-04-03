@@ -52,7 +52,7 @@ const EventOrGroupExtraDetails = createReactClass({
     return (
       <GroupExtra>
         {lastSeen && (
-          <Box mr={1} style={{opacity: 0.5}}>
+          <Box mr={1}>
             <GroupExtraIcon className="icon icon-clock" />
             <TimeSince date={lastSeen} suffix="ago" />
           </Box>
