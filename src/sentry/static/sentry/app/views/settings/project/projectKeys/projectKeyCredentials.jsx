@@ -12,7 +12,6 @@ class ProjectKeyCredentials extends React.Component {
   static propTypes = {
     projectId: PropTypes.string.isRequired,
     data: SentryTypes.ProjectKey,
-    features: PropTypes.object,
 
     showDsn: PropTypes.bool,
     showDsnPublic: PropTypes.bool,
@@ -35,7 +34,6 @@ class ProjectKeyCredentials extends React.Component {
 
   render() {
     let {
-      features,
       projectId,
       data,
       showDsn,
@@ -116,30 +114,29 @@ class ProjectKeyCredentials extends React.Component {
           </Field>
         )}
 
-        {showMinidump &&
-          features.has('minidump') && (
-            <Field
-              label={t('Minidump Endpoint')}
-              help={tct(
-                'Use this endpoint to upload minidump crash reports, for example with Electron, Crashpad or Breakpad.',
-                {
-                  /* TODO: add a link to minidump docs */
-                }
-              )}
-              inline={false}
-              flexibleControlStateSize
-            >
-              <TextCopyInput>
-                {getDynamicText({
-                  value: data.dsn.minidump,
-                  fixed: data.dsn.minidump.replace(
-                    new RegExp(`\/${projectId}$`),
-                    '/<<projectId>>'
-                  ),
-                })}
-              </TextCopyInput>
-            </Field>
-          )}
+        {showMinidump && (
+          <Field
+            label={t('Minidump Endpoint')}
+            help={tct(
+              'Use this endpoint to upload minidump crash reports, for example with Electron, Crashpad or Breakpad.',
+              {
+                /* TODO: add a link to minidump docs */
+              }
+            )}
+            inline={false}
+            flexibleControlStateSize
+          >
+            <TextCopyInput>
+              {getDynamicText({
+                value: data.dsn.minidump,
+                fixed: data.dsn.minidump.replace(
+                  new RegExp(`\/${projectId}$`),
+                  '/<<projectId>>'
+                ),
+              })}
+            </TextCopyInput>
+          </Field>
+        )}
 
         {showPublicKey && (
           <Field label={t('Public Key')} inline={true} flexibleControlStateSize>
