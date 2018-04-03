@@ -110,7 +110,8 @@ class Matcher(namedtuple('Matcher', 'type pattern')):
             # there isn't any optimization we can do here
             # by using fnmatch.translate before and compiling
             # our own regex.
-            if fnmatch(filename, self.pattern) or fnmatch(abs_path, self.pattern):
+            if filename and fnmatch(filename, self.pattern) or \
+               abs_path and fnmatch(abs_path, self.pattern):
                 return True
 
         return False
