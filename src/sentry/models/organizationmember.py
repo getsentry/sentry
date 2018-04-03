@@ -187,6 +187,10 @@ class OrganizationMember(Model):
             query=urlencode({'email': email}),
         )
 
+        # Nothing to send if this member isn't associated to a user
+        if not self.user_id:
+            return
+
         context = {
             'email': email,
             'recover_url': absolute_uri(recover_uri),
