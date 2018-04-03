@@ -3,7 +3,12 @@ import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 import {t} from '../../locale';
-import {dismiss, closeGuide, fetchGuides, nextStep} from '../../actionCreators/guides';
+import {
+  closeGuideOrSupport,
+  fetchGuides,
+  nextStep,
+  recordDismiss,
+} from '../../actionCreators/guides';
 import SupportDrawer from './supportDrawer';
 import GuideDrawer from './guideDrawer';
 import GuideStore from '../../stores/guideStore';
@@ -20,13 +25,10 @@ const AssistantHelper = createReactClass({
 
   getInitialState() {
     return {
-      isDrawerOpen: false,
-      // currentGuide and currentStep are obtained from GuideStore.
-      // Even though this component doesn't need currentStep, it's
-      // child GuideDrawer does, and it's cleaner for only the parent
-      // to subscribe to GuideStore and pass down the guide and step,
-      // rather than have both parent and child subscribe to GuideStore.
       currentGuide: null,
+      // currentStep is applicable to the Need-Help button too. When currentGuide
+      // is null, if currentStep is 0 the Need-Help button is cued, and if it's > 0
+      // the support widget is open.
       currentStep: 0,
     };
   },
@@ -35,100 +37,63 @@ const AssistantHelper = createReactClass({
     fetchGuides();
   },
 
-  onGuideStateChange(data) {
-    let newState = {
-      currentGuide: data.currentGuide,
-      currentStep: data.currentStep,
-    };
-    if (this.state.currentGuide != data.currentGuide) {
-      newState.isDrawerOpen = false;
-    }
-    this.setState(newState);
-  },
-
-  handleDrawerOpen() {
-    let {currentGuide} = this.state;
-    this.setState({
-      isDrawerOpen: true,
-    });
-    nextStep();
-    HookStore.get('analytics:event').forEach(cb =>
-      cb('assistant.guide_opened', {
-        guide: currentGuide.id,
-        cue: currentGuide.cue,
-      })
-    );
-  },
-
-  handleSupportDrawerClose() {
-    this.setState({
-      isDrawerOpen: false,
-    });
-  },
-
-  handleDismiss(e) {
-    dismiss(this.state.currentGuide.id);
-    closeGuide();
-    HookStore.get('analytics:event').forEach(cb =>
-      cb('assistant.guide_dismissed', {
-        guide: this.state.currentGuide.id,
-        cue: this.state.currentGuide.cue,
-        step: this.state.currentStep,
-      })
-    );
-  },
-
-  render() {
-    // isDrawerOpen and currentGuide/currentStep live in different places and are updated
-    // non-atomically. So we need to guard against the inconsistent state of the drawer
-    // being open and a guide being present, but currentStep not updated yet.
-    // If this gets too complicated, it would be better to move isDrawerOpen into
-    // GuideStore so we can update the state atomically in onGuideStateChange.
-    let showDrawer = false;
-    let {currentGuide, currentStep, isDrawerOpen} = this.state;
-    let isGuideCued = currentGuide !== null;
-
-    if (isGuideCued) {
+  componentDidUpdate(prevProps, prevState) {
+    if (this.state.currentGuide && !prevState.currentGuide) {
       HookStore.get('analytics:event').forEach(cb =>
         cb('assistant.guide_cued', {
-          guide: currentGuide.id,
-          cue: currentGuide.cue,
+          guide: this.state.currentGuide.id,
+          cue: this.state.currentGuide.cue,
         })
       );
     }
+  },
 
-    const cueText = isGuideCued ? currentGuide.cue : t('Need Help?');
-    if (isDrawerOpen && (!isGuideCued || currentStep > 0)) {
-      showDrawer = true;
-    }
+  onGuideStateChange(data) {
+    this.setState({
+      currentGuide: data.currentGuide,
+      currentStep: data.currentStep,
+    });
+  },
+
+  // Terminology:
+  // - A guide can be FINISHED by answering whether or not is was useful in the last step.
+  // - A guide can be DISMISSED by x-ing out of it at any time (including when it's cued).
+  // In both cases we consider it CLOSED.
+  handleGuideDismiss(e) {
+    e.stopPropagation();
+    recordDismiss(this.state.currentGuide.id, this.state.currentStep);
+    closeGuideOrSupport();
+  },
+
+  render() {
+    let {currentGuide, currentStep} = this.state;
+    const cueText = (currentGuide && currentGuide.cue) || t('Need Help?');
 
     return (
       <StyledHelper>
-        {showDrawer &&
-          this.state.currentGuide && (
+        {currentGuide !== null &&
+          currentStep > 0 && (
             <GuideDrawer
               guide={currentGuide}
               step={currentStep}
-              onFinish={closeGuide}
-              onDismiss={this.handleDismiss}
+              onFinish={closeGuideOrSupport}
+              onDismiss={this.handleGuideDismiss}
             />
           )}
 
-        {showDrawer &&
-          !this.state.currentGuide && (
-            <SupportDrawer onClose={this.handleSupportDrawerClose} />
-          )}
+        {currentGuide === null &&
+          currentStep > 0 && <SupportDrawer onClose={closeGuideOrSupport} />}
 
-        {!showDrawer && (
+        {!currentStep && (
           <StyledAssistantContainer
-            onClick={this.handleDrawerOpen}
+            onClick={nextStep}
             className="assistant-cue"
-            hasGuide={this.state.currentGuide}
+            hasGuide={currentGuide}
           >
-            <CueIcon hasGuide={this.state.currentGuide} />
-            <StyledCueText hasGuide={this.state.currentGuide}>{cueText}</StyledCueText>
-            {isGuideCued && (
-              <div style={{display: 'flex'}} onClick={this.handleDismiss}>
+            <CueIcon hasGuide={currentGuide} />
+            <StyledCueText hasGuide={currentGuide}>{cueText}</StyledCueText>
+            {currentGuide && (
+              <div style={{display: 'flex'}} onClick={this.handleGuideDismiss}>
                 <CloseIcon />
               </div>
             )}

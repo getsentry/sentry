@@ -1,5 +1,8 @@
+import {ThemeProvider} from 'emotion-theming';
+import theme from 'app/utils/theme';
+
 import React from 'react';
-import {shallow} from 'enzyme';
+import {shallow, mount} from 'enzyme';
 import AssistantHelper from 'app/components/assistant/helper';
 
 describe('Helper', function() {
@@ -8,13 +11,19 @@ describe('Helper', function() {
     expect(wrapper).toMatchSnapshot();
   });
 
-  it('renders support drawer', function() {
-    let wrapper = shallow(<AssistantHelper />);
+  it('renders support drawer', async function() {
+    let wrapper = mount(
+      <ThemeProvider theme={theme}>
+        <AssistantHelper />
+      </ThemeProvider>
+    );
     wrapper
       .find('.assistant-cue')
       .first()
       .simulate('click');
-    expect(wrapper).toMatchSnapshot();
+    await tick();
+    wrapper.update();
+    expect(wrapper.find('SupportDrawer')).toHaveLength(1);
   });
 
   it('renders guide drawer', function() {
