@@ -2,7 +2,7 @@ import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled, {css} from 'react-emotion';
-import space from '../../../styles/spacingScale';
+import space from '../../styles/spacingScale';
 
 const getPadding = ({disablePadding, hasButtons}) => css`
   padding: ${hasButtons ? space(3) : space(4)} ${disablePadding ? 0 : space(6)};
