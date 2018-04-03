@@ -50,6 +50,71 @@ exports[`Configure should render correctly render() should redirect to if no mat
 `;
 
 exports[`Configure should render correctly render() should render platform docs 1`] = `
+.glamor-17 {
+  background: #fff;
+  border: 1px solid;
+  margin-bottom: NaNpx;
+  position: relative;
+}
+
+.glamor-6 {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  border-bottom: 1px solid;
+  border-radius: 0 0;
+  line-height: 1;
+  padding: 8px 20px;
+}
+
+.glamor-3 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  -webkit-box-pack: justify;
+  -webkit-justify-content: space-between;
+  -ms-flex-pack: justify;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  border-bottom: 1px solid;
+  border-radius: 0 0;
+  line-height: 1;
+  padding: 8px 20px;
+}
+
+.glamor-0 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+}
+
+.glamor-16 {
+  padding: 20px;
+}
+
+.glamor-10 {
+  line-height: 1.5;
+  margin-bottom: 30px;
+}
+
+.glamor-14 p {
+  line-height: 1.5;
+}
+
 <Configure
   next={[Function]}
   params={
@@ -154,78 +219,162 @@ exports[`Configure should render correctly render() should render platform docs 
                     <div
                       className="install-content col-md-10"
                     >
-                      <div
-                        className="box"
-                      >
-                        <div
-                          className="box-header"
-                        >
+                      <Panel>
+                        <StyledPanel>
                           <div
-                            className="pull-right"
+                            className="glamor-17 glamor-18"
                           >
-                            <a
-                              className="btn btn-sm btn-default"
-                              href="https://docs.getsentry.com/hosted/clients/csharp/"
+                            <PanelHeader
+                              hasButtons={true}
                             >
-                              Full Documentation
-                            </a>
-                          </div>
-                          <h3>
-                            Configure node
-                          </h3>
-                        </div>
-                        <div
-                          className="box-content with-padding"
-                        >
-                          <p>
-                            <span
-                              key="8"
-                            >
-                              <span
-                                key="0"
+                              <StyledPanelHeader
+                                hasButtons={true}
                               >
-                                
+                                <Component
+                                  className="glamor-6 glamor-2"
+                                  hasButtons={true}
+                                >
+                                  <Flex
+                                    align="center"
+                                    className="glamor-6 glamor-2"
+                                    justify="space-between"
+                                  >
+                                    <Base
+                                      align="center"
+                                      className="glamor-2 glamor-3"
+                                      justify="space-between"
+                                    >
+                                      <div
+                                        className="glamor-2 glamor-3"
+                                        is={null}
+                                      >
+                                        Configure node
+                                        <Button
+                                          disabled={false}
+                                          external={true}
+                                          href="https://docs.getsentry.com/hosted/clients/csharp/"
+                                          size="small"
+                                        >
+                                          <ExternalLink
+                                            className="button button-default button-sm"
+                                            disabled={false}
+                                            href="https://docs.getsentry.com/hosted/clients/csharp/"
+                                            onClick={[Function]}
+                                            rel="noreferrer noopener"
+                                            role="button"
+                                            target="_blank"
+                                          >
+                                            <a
+                                              className="button button-default button-sm"
+                                              disabled={false}
+                                              href="https://docs.getsentry.com/hosted/clients/csharp/"
+                                              onClick={[Function]}
+                                              rel="noreferrer noopener"
+                                              role="button"
+                                              target="_blank"
+                                            >
+                                              <Flex
+                                                align="center"
+                                                className="button-label"
+                                              >
+                                                <Base
+                                                  align="center"
+                                                  className="button-label glamor-0"
+                                                >
+                                                  <div
+                                                    className="button-label glamor-0"
+                                                    is={null}
+                                                  >
+                                                    Full Documentation
+                                                  </div>
+                                                </Base>
+                                              </Flex>
+                                            </a>
+                                          </ExternalLink>
+                                        </Button>
+                                      </div>
+                                    </Base>
+                                  </Flex>
+                                </Component>
+                              </StyledPanelHeader>
+                            </PanelHeader>
+                            <PanelBody
+                              direction="column"
+                              disablePadding={false}
+                              flex={false}
+                            >
+                              <div
+                                className="glamor-16"
+                              >
+                                <TextBlock>
+                                  <Component
+                                    className="glamor-10 glamor-11"
+                                  >
+                                    <div
+                                      className="glamor-10 glamor-11"
+                                    >
+                                      <span
+                                        key="8"
+                                      >
+                                        <span
+                                          key="0"
+                                        >
+                                          
              This is a quick getting started guide. For in-depth instructions
              on integrating Sentry with 
-                              </span>
-                              <span
-                                key="2"
-                              >
-                                node
-                              </span>
-                              <span
-                                key="3"
-                              >
-                                , view
+                                        </span>
+                                        <span
+                                          key="2"
+                                        >
+                                          node
+                                        </span>
+                                        <span
+                                          key="3"
+                                        >
+                                          , view
              
-                              </span>
-                              <a
-                                href="https://docs.getsentry.com/hosted/clients/csharp/"
-                                key="5"
-                              >
-                                <span
-                                  key="4"
-                                >
-                                  our complete documentation
-                                </span>
-                              </a>
-                              <span
-                                key="6"
-                              >
-                                .
+                                        </span>
+                                        <a
+                                          href="https://docs.getsentry.com/hosted/clients/csharp/"
+                                          key="5"
+                                        >
+                                          <span
+                                            key="4"
+                                          >
+                                            our complete documentation
+                                          </span>
+                                        </a>
+                                        <span
+                                          key="6"
+                                        >
+                                          .
             
-                              </span>
-                            </span>
-                          </p>
-                          <div
-                            dangerouslySetInnerHTML={
-                              Object {
-                                "__html": undefined,
-                              }
-                            }
-                          />
-                        </div>
-                      </div>
+                                        </span>
+                                      </span>
+                                    </div>
+                                  </Component>
+                                </TextBlock>
+                                <DocumentationWrapper
+                                  dangerouslySetInnerHTML={
+                                    Object {
+                                      "__html": undefined,
+                                    }
+                                  }
+                                >
+                                  <div
+                                    className="glamor-14 glamor-15"
+                                    dangerouslySetInnerHTML={
+                                      Object {
+                                        "__html": undefined,
+                                      }
+                                    }
+                                  />
+                                </DocumentationWrapper>
+                              </div>
+                            </PanelBody>
+                          </div>
+                        </StyledPanel>
+                      </Panel>
                     </div>
                     <div
                       className="install-sidebar col-md-2"
