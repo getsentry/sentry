@@ -221,7 +221,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                                 src="http://example.com/integration_icon.png"
                               >
                                 <img
-                                  className="css-lx37iq-IntegrationIcon css-1slqebt0"
+                                  className="css-lx37iq-IntegrationIcon css-1iov4vb0"
                                   src="http://example.com/integration_icon.png"
                                 />
                               </IntegrationIcon>
@@ -243,14 +243,14 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                             >
                               <IntegrationName>
                                 <div
-                                  className="css-1daz7ru-IntegrationName css-1slqebt1"
+                                  className="css-1daz7ru-IntegrationName css-1iov4vb1"
                                 >
                                   Test Integration
                                 </div>
                               </IntegrationName>
                               <DomainName>
                                 <div
-                                  className="css-1y54ser-DomainName css-1slqebt2"
+                                  className="css-1y54ser-DomainName css-1iov4vb2"
                                 >
                                   gtithub.com/test-integration
                                 </div>
@@ -447,10 +447,10 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
       </h5>
       <Details>
         <Base
-          className="css-16wp28j-Details css-1slqebt3"
+          className="css-16wp28j-Details css-1iov4vb3"
         >
           <div
-            className="css-16wp28j-Details css-1slqebt3"
+            className="css-16wp28j-Details css-1iov4vb3"
             is={null}
           >
             <Box
@@ -473,7 +473,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                     }
                   >
                     <div
-                      className="css-i2iqfw-Description css-1slqebt4"
+                      className="css-i2iqfw-Description css-1iov4vb4"
                       dangerouslySetInnerHTML={
                         Object {
                           "__html": "<p><em>markdown</em> formatted <em>description</em></p>
@@ -484,7 +484,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                   </Description>
                   <AuthorName>
                     <div
-                      className="css-v0poyl-AuthorName css-1slqebt5"
+                      className="css-v0poyl-AuthorName css-1iov4vb5"
                     >
                       By Morty
                     </div>
@@ -507,7 +507,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                     href="http://example.com/integration_issue_url"
                   >
                     <a
-                      className="css-5qmaie-MetadataLink css-1slqebt6"
+                      className="css-5qmaie-MetadataLink css-1iov4vb6"
                       href="http://example.com/integration_issue_url"
                     >
                       Report an Issue
@@ -517,7 +517,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                     href="http://example.com/integration_source_url"
                   >
                     <a
-                      className="css-5qmaie-MetadataLink css-1slqebt6"
+                      className="css-5qmaie-MetadataLink css-1iov4vb6"
                       href="http://example.com/integration_source_url"
                     >
                       View Source
@@ -534,9 +534,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
 </OrganizationIntegrationConfig>
 `;
 
-exports[
-  `OrganizationIntegrationConfig render() without any integrations Displays an error for an invalid provider key 1`
-] = `
+exports[`OrganizationIntegrationConfig render() without any integrations Displays an error for an invalid provider key 1`] = `
 <SideEffect(DocumentTitle)
   title="Global Integrations - Sentry"
 >

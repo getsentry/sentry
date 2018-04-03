@@ -272,7 +272,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                 type="text"
               >
                 <div
-                  className="css-9u5for-GuideAnchorContainer css-6dkydx0"
+                  className="css-9u5for-GuideAnchorContainer css-1aiyb4m0"
                   type="text"
                 >
                   <StyledGuideAnchor
@@ -280,11 +280,11 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                     className="guide-anchor-ping ignore_delete_discard"
                   >
                     <div
-                      className="guide-anchor-ping ignore_delete_discard css-1yndvnf-StyledGuideAnchor css-6dkydx1"
+                      className="guide-anchor-ping ignore_delete_discard css-1yndvnf-StyledGuideAnchor css-1aiyb4m1"
                     >
                       <StyledGuideAnchorRipples>
                         <div
-                          className="css-1t9mqkr-StyledGuideAnchorRipples css-6dkydx2"
+                          className="css-1t9mqkr-StyledGuideAnchorRipples css-1aiyb4m2"
                         />
                       </StyledGuideAnchorRipples>
                     </div>
@@ -5278,7 +5278,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
               type="text"
             >
               <div
-                className="css-9u5for-GuideAnchorContainer css-6dkydx0"
+                className="css-9u5for-GuideAnchorContainer css-1aiyb4m0"
                 type="text"
               >
                 <StyledGuideAnchor
@@ -5286,11 +5286,11 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                   className="guide-anchor-ping ignore_delete_discard"
                 >
                   <div
-                    className="guide-anchor-ping ignore_delete_discard css-1yndvnf-StyledGuideAnchor css-6dkydx1"
+                    className="guide-anchor-ping ignore_delete_discard css-1yndvnf-StyledGuideAnchor css-1aiyb4m1"
                   >
                     <StyledGuideAnchorRipples>
                       <div
-                        className="css-1t9mqkr-StyledGuideAnchorRipples css-6dkydx2"
+                        className="css-1t9mqkr-StyledGuideAnchorRipples css-1aiyb4m2"
                       />
                     </StyledGuideAnchorRipples>
                   </div>
