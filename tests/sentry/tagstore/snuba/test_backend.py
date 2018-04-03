@@ -1,8 +1,11 @@
 from __future__ import absolute_import
 
 
+from datetime import datetime
 import json
+import requests
 import responses
+import time
 
 from sentry.utils import snuba
 from sentry.models import GroupHash
@@ -12,6 +15,9 @@ from sentry.tagstore.snuba.backend import SnubaTagStorage
 
 class TagStorage(TestCase):
     def setUp(self):
+        r = requests.post(snuba.SNUBA + '/tests/drop')
+        assert r.status_code == 200
+
         self.ts = SnubaTagStorage()
 
         self.proj1 = self.create_project()
@@ -69,3 +75,40 @@ class TagStorage(TestCase):
             rsps.add_callback(responses.POST, snuba.SNUBA + '/query', callback=snuba_response_2)
             result = self.ts.get_group_ids_for_search_filter(self.proj1.id, self.proj1env1.id, tags)
             assert result == [self.proj1group2.id]
+
+    def test_get_group_tag_keys_and_top_values(self):
+        now = datetime.now()
+        events = [{
+            'event_id': 'x' * 32,
+            'primary_hash': '1' * 32,  # proj1group1 hash
+            'project_id': self.proj1.id,
+            'message': 'message',
+            'platform': 'python',
+            'datetime': now.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+            'data': {
+                'received': time.mktime(now.timetuple()),
+                'tags': {
+                    'foo': 'bar',
+                    'baz': 'quux',
+                    'environment': self.proj1env1.name,
+                }
+            },
+        }] * 2
+
+        r = requests.post(snuba.SNUBA + '/tests/insert', data=json.dumps(events))
+        assert r.status_code == 200
+
+        result = self.ts.get_group_tag_keys_and_top_values(
+            self.proj1.id,
+            self.proj1group1.id,
+            self.proj1env1.id,
+        )
+        result.sort(key=lambda r: r['id'])
+        assert result[0]['key'] == 'baz'
+        assert result[1]['key'] == 'foo'
+
+        assert result[0]['uniqueValues'] == 1
+        assert result[0]['totalValues'] == 2
+
+        assert result[0]['topValues'][0]['key'] == 'quux'
+        assert result[1]['topValues'][0]['key'] == 'bar'

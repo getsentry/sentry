@@ -56,6 +56,41 @@ class SnubaTagStorage(TagStorage):
     def get_top_group_tag_values(self, project_id, group_id, environment_id, key, limit=3):
         pass
 
+    def get_group_tag_keys_and_top_values(self, project_id, group_id, environment_id, user=None):
+        from sentry import tagstore
+        end = datetime.utcnow().replace(tzinfo=pytz.UTC)
+        start = end - timedelta(days=90)
+        filters = {
+            'project_id': [project_id],
+            'environment': [environment_id],
+            'issue': [group_id],
+        }
+        aggregations = [
+            ['topK(10)', 'tags.value', 'top'],
+            ['count', '', 'count'],
+            ['uniq', 'tags.key', 'uniq'],
+        ]
+        results = snuba.query(start, end, ['tags.key'], None, filters,
+                              aggregations, arrayjoin='tags')
+
+        return [{
+            'id': key,
+            'name': tagstore.get_tag_key_label(key),
+            'key': tagstore.get_standardized_key(key),
+            'uniqueValues': res['uniq'],
+            'totalValues': res['count'],
+            'topValues': [{
+                'id': val,
+                'name': tagstore.get_tag_value_label(key, val),
+                'key': tagstore.get_standardized_key(val),
+                'value': val,
+                # TODO we don't know any of these without more queries
+                'count': 0,
+                'lastSeen': 0,
+                'firstSeen': 0,
+            } for val in res['top']],
+        } for key, res in six.iteritems(results)]
+
     # Releases
     def get_first_release(self, project_id, group_id):
         pass
