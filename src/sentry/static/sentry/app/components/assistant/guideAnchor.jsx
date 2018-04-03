@@ -4,6 +4,7 @@ import React from 'react';
 import styled, {keyframes} from 'react-emotion';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
+import $ from 'jquery';
 import {registerAnchor, unregisterAnchor} from '../../actionCreators/guides';
 import GuideStore from '../../stores/guideStore';
 import {expandOut} from '../../styles/animations';
@@ -35,8 +36,9 @@ const GuideAnchor = createReactClass({
 
   componentDidUpdate(prevProps, prevState) {
     if (!prevState.active && this.state.active && this.props.type !== 'invisible') {
-      this.anchorElement.scrollIntoView({
-        behavior: 'smooth',
+      let windowHeight = $(window).height();
+      $('html,body').animate({
+        scrollTop: $(this.anchorElement).offset().top - windowHeight / 4,
       });
     }
   },
