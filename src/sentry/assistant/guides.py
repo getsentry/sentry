@@ -124,7 +124,7 @@ GUIDES = {
         ]
     },
     'members': {
-        'id': 3,
+        'id': 4,
         'cue': _('Tips for inviting your team'),
         'required_targets': ['member_add'],
         'steps': [
