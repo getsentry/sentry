@@ -17,6 +17,7 @@ let getExclamation = () => {
 class ErrorBoundary extends React.Component {
   static propTypes = {
     mini: PropTypes.bool,
+    message: PropTypes.node,
   };
 
   static defaultProps = {
@@ -46,12 +47,12 @@ class ErrorBoundary extends React.Component {
 
   render() {
     if (this.state.error) {
-      let {mini} = this.props;
+      let {mini, message} = this.props;
 
       if (mini) {
         return (
           <Alert type="error" icon="icon-circle-exclamation">
-            {t('There was a problem rendering this component')}
+            {message || t('There was a problem rendering this component')}
           </Alert>
         );
       }
