@@ -50,17 +50,6 @@ const AssistantHelper = createReactClass({
   },
 
   onGuideStateChange(data) {
-    let newState = {
-      currentGuide: data.currentGuide,
-      currentStep: data.currentStep,
-      currentOrg: data.currentOrg,
-    };
-    if (this.state.currentGuide != data.currentGuide) {
-      newState.isDrawerOpen = false;
-    }
-  },
-
-  onGuideStateChange(data) {
     this.setState({
       currentGuide: data.currentGuide,
       currentStep: data.currentStep,
@@ -90,7 +79,9 @@ const AssistantHelper = createReactClass({
               step={currentStep}
               onFinish={closeGuideOrSupport}
               onDismiss={this.handleGuideDismiss}
-              orgSlug={GuideStore.state.currentOrg ? GuideStore.state.currentOrg.slug : null}
+              orgSlug={
+                GuideStore.state.currentOrg ? GuideStore.state.currentOrg.slug : null
+              }
             />
           )}
 
