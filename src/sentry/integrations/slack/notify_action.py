@@ -64,7 +64,7 @@ class SlackNotifyServiceForm(forms.Form):
 
 class SlackNotifyServiceAction(EventAction):
     form_cls = SlackNotifyServiceForm
-    label = u'Send a notification to the {workspace} Slack workspace to {channel} and include tags {tags}'
+    label = u'Send a notification to the {workspace} Slack workspace to {channel} and show tags {tags} in notification'
 
     def __init__(self, *args, **kwargs):
         super(SlackNotifyServiceAction, self).__init__(*args, **kwargs)

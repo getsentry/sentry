@@ -94,7 +94,7 @@ class SlackNotifyActionTest(RuleTestCase):
         })
 
         assert rule.render_label(
-        ) == 'Send a notification to the Awesome Team Slack workspace to #my-channel and include tags [one, two]'
+        ) == 'Send a notification to the Awesome Team Slack workspace to #my-channel and show tags [one, two] in notification'
 
     def test_render_label_without_integration(self):
         self.integration.delete()
@@ -106,7 +106,7 @@ class SlackNotifyActionTest(RuleTestCase):
         })
 
         label = rule.render_label()
-        assert label == 'Send a notification to the [removed] Slack workspace to #my-channel and include tags []'
+        assert label == 'Send a notification to the [removed] Slack workspace to #my-channel and show tags [] in notification'
 
     @responses.activate
     def test_valid_channel_selected(self):
