@@ -13,6 +13,7 @@ import ProjectState from '../mixins/projectState';
 import SettingsPageHeader from './settings/components/settingsPageHeader';
 import StackedBarChart from '../components/stackedBarChart';
 import TextBlock from './settings/components/text/textBlock';
+import EmptyStateWarning from '../components/emptyStateWarning';
 
 const DataForwardingStats = createReactClass({
   displayName: 'DataForwardingStats',
@@ -204,10 +205,9 @@ export default createReactClass({
 
   renderEmpty() {
     return (
-      <div className="box empty-stream">
-        <span className="icon icon-exclamation" />
+      <EmptyStateWarning>
         <p>{t('There are no integrations available for data forwarding.')}</p>
-      </div>
+      </EmptyStateWarning>
     );
   },
 

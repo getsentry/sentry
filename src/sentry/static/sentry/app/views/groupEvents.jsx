@@ -15,6 +15,7 @@ import withEnvironment from '../utils/withEnvironment';
 import {getQueryEnvironment, getQueryStringWithEnvironment} from '../utils/queryString';
 import EnvironmentStore from '../stores/environmentStore';
 import {setActiveEnvironment} from '../actionCreators/environments';
+import EmptyStateWarning from '../components/emptyStateWarning';
 
 const GroupEvents = createReactClass({
   displayName: 'GroupEvents',
@@ -139,10 +140,9 @@ const GroupEvents = createReactClass({
       : t('Sorry, no events match your search query.');
 
     return (
-      <div className="box empty-stream">
-        <span className="icon icon-exclamation" />
+      <EmptyStateWarning>
         <p>{message}</p>
-      </div>
+      </EmptyStateWarning>
     );
   },
 
@@ -154,10 +154,9 @@ const GroupEvents = createReactClass({
         })
       : t("There don't seem to be any events yet.");
     return (
-      <div className="box empty-stream">
-        <span className="icon icon-exclamation" />
+      <EmptyStateWarning>
         <p>{t(message)}</p>
-      </div>
+      </EmptyStateWarning>
     );
   },
 

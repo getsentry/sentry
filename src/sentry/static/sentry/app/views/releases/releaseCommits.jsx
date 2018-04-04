@@ -10,6 +10,7 @@ import ApiMixin from '../../mixins/apiMixin';
 import CommitRow from '../../components/commitRow';
 import {Panel, PanelHeader, PanelBody} from '../../components/panels';
 import {t} from '../../locale';
+import EmptyStateWarning from '../../components/emptyStateWarning';
 
 const ReleaseCommits = createReactClass({
   displayName: 'ReleaseCommits',
@@ -52,11 +53,10 @@ const ReleaseCommits = createReactClass({
 
   emptyState() {
     return (
-      <div className="box empty-stream m-y-0">
-        <span className="icon icon-exclamation" />
+      <EmptyStateWarning>
         <p>{t('There are no commits associated with this release.')}</p>
         {/* Todo: Should we link to repo settings from here?  */}
-      </div>
+      </EmptyStateWarning>
     );
   },
 

@@ -9,6 +9,7 @@ import SimilarItem from './similarItem';
 import SimilarSpectrum from '../../components/similarSpectrum';
 import SimilarToolbar from './similarToolbar';
 import SpreadLayout from '../../components/spreadLayout';
+import EmptyStateWarning from '../../components/emptyStateWarning';
 
 const SimilarItemPropType = PropTypes.shape({
   issue: Group,
@@ -41,10 +42,9 @@ class SimilarList extends React.Component {
 
   renderEmpty = () => {
     return (
-      <div className="box empty-stream">
-        <span className="icon icon-exclamation" />
+      <EmptyStateWarning>
         <p>{t('There are no similar issues.')}</p>
-      </div>
+      </EmptyStateWarning>
     );
   };
 

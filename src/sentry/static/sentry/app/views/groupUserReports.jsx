@@ -12,6 +12,7 @@ import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import {t, tct} from '../locale';
 import withEnvironmentInQueryString from '../utils/withEnvironmentInQueryString';
+import EmptyStateWarning from '../components/emptyStateWarning';
 
 const GroupUserReports = createReactClass({
   displayName: 'GroupUserReports',
@@ -122,15 +123,14 @@ const GroupUserReports = createReactClass({
       : t('No user reports have been collected.');
 
     return (
-      <div className="box empty-stream">
-        <span className="icon icon-exclamation" />
+      <EmptyStateWarning>
         <p>{emptyStateMessage}</p>
         <p>
           <Link to={this.getUserReportsUrl()}>
             {t('Learn how to integrate User Feedback')}
           </Link>
         </p>
-      </div>
+      </EmptyStateWarning>
     );
   },
 });

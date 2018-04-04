@@ -20,6 +20,7 @@ import ListLink from '../components/listLink';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from '../components/panels';
+import EmptyStateWarning from '../components/emptyStateWarning';
 import SettingsPageHeader from './settings/components/settingsPageHeader';
 import recreateRoute from '../utils/recreateRoute';
 import EnvironmentStore from '../stores/environmentStore';
@@ -238,10 +239,9 @@ const ProjectAlertRules = createReactClass({
 
   renderEmpty() {
     return (
-      <div className="box empty-stream">
-        <span className="icon icon-exclamation" />
+      <EmptyStateWarning>
         <p>{t('There are no alerts configured for this project.')}</p>
-      </div>
+      </EmptyStateWarning>
     );
   },
 

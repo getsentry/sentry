@@ -256,7 +256,7 @@ exports[`ProjectSavedSearches renders 1`] = `
                             >
                               <SearchTitle>
                                 <div
-                                  className="css-225nrx-SearchTitle css-ipros10"
+                                  className="css-225nrx-SearchTitle css-bn2ui0"
                                 >
                                   Needs Triage
                                 </div>
@@ -513,7 +513,7 @@ exports[`ProjectSavedSearches renders 1`] = `
                             >
                               <SearchTitle>
                                 <div
-                                  className="css-225nrx-SearchTitle css-ipros10"
+                                  className="css-225nrx-SearchTitle css-bn2ui0"
                                 >
                                   Unresolved Issues
                                 </div>
@@ -750,16 +750,176 @@ exports[`ProjectSavedSearches renders empty 1`] = `
         </div>
       </Wrapper>
     </SettingsPageHeading>
-    <div
-      className="box empty-stream"
-    >
-      <span
-        className="icon icon-exclamation"
-      />
-      <p>
-        There are no saved searches for this project.
-      </p>
-    </div>
+    <Panel>
+      <StyledPanel>
+        <div
+          className="css-wfa8ap-StyledPanel css-5bw71w0"
+        >
+          <PanelHeader
+            disablePadding={true}
+          >
+            <StyledPanelHeader
+              disablePadding={true}
+            >
+              <Component
+                className="css-18fb6u1-StyledPanelHeader css-1t1cqk30"
+                disablePadding={true}
+              >
+                <Flex
+                  align="center"
+                  className="css-18fb6u1-StyledPanelHeader css-1t1cqk30"
+                  justify="space-between"
+                >
+                  <Base
+                    align="center"
+                    className="css-1t1cqk30 css-1pqpjvf"
+                    justify="space-between"
+                  >
+                    <div
+                      className="css-1t1cqk30 css-1pqpjvf"
+                      is={null}
+                    >
+                      <Flex
+                        flex="1"
+                      >
+                        <Base
+                          className="css-z8nhq7"
+                          flex="1"
+                        >
+                          <div
+                            className="css-z8nhq7"
+                            is={null}
+                          >
+                            <Flex
+                              flex="1"
+                              px={2}
+                            >
+                              <Base
+                                className="css-1i4q2rt"
+                                flex="1"
+                                px={2}
+                              >
+                                <div
+                                  className="css-1i4q2rt"
+                                  is={null}
+                                >
+                                  Search
+                                </div>
+                              </Base>
+                            </Flex>
+                            <Flex
+                              flex="1"
+                            >
+                              <Base
+                                className="css-z8nhq7"
+                                flex="1"
+                              >
+                                <div
+                                  className="css-z8nhq7"
+                                  is={null}
+                                >
+                                  <InputColumn>
+                                    <Flex
+                                      flex="1"
+                                      justify="center"
+                                    >
+                                      <Base
+                                        className="css-k3hlac"
+                                        flex="1"
+                                        justify="center"
+                                      >
+                                        <div
+                                          className="css-k3hlac"
+                                          is={null}
+                                        >
+                                          My Default
+                                        </div>
+                                      </Base>
+                                    </Flex>
+                                  </InputColumn>
+                                  <InputColumn>
+                                    <Flex
+                                      flex="1"
+                                      justify="center"
+                                    >
+                                      <Base
+                                        className="css-k3hlac"
+                                        flex="1"
+                                        justify="center"
+                                      >
+                                        <div
+                                          className="css-k3hlac"
+                                          is={null}
+                                        >
+                                          Team Default
+                                        </div>
+                                      </Base>
+                                    </Flex>
+                                  </InputColumn>
+                                  <InputColumn>
+                                    <Flex
+                                      flex="1"
+                                      justify="center"
+                                    >
+                                      <Base
+                                        className="css-k3hlac"
+                                        flex="1"
+                                        justify="center"
+                                      >
+                                        <div
+                                          className="css-k3hlac"
+                                          is={null}
+                                        >
+                                          Remove
+                                        </div>
+                                      </Base>
+                                    </Flex>
+                                  </InputColumn>
+                                </div>
+                              </Base>
+                            </Flex>
+                          </div>
+                        </Base>
+                      </Flex>
+                    </div>
+                  </Base>
+                </Flex>
+              </Component>
+            </StyledPanelHeader>
+          </PanelHeader>
+          <PanelBody
+            direction="column"
+            disablePadding={true}
+            flex={false}
+          >
+            <div
+              className=""
+            >
+              <EmptyStateWarning>
+                <EmptyStreamWrapper
+                  className="ref-empty-state"
+                >
+                  <div
+                    className="ref-empty-state css-n38n5f-EmptyStreamWrapper css-tkh7440"
+                  >
+                    <Icon
+                      className="icon icon-exclamation"
+                    >
+                      <div
+                        className="icon icon-exclamation css-1xqhcr3-Icon css-tkh7441"
+                      />
+                    </Icon>
+                    <p>
+                      There are no saved searches for this project.
+                    </p>
+                  </div>
+                </EmptyStreamWrapper>
+              </EmptyStateWarning>
+            </div>
+          </PanelBody>
+        </div>
+      </StyledPanel>
+    </Panel>
   </div>
 </ProjectSavedSearches>
 `;

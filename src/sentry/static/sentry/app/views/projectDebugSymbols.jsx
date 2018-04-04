@@ -15,6 +15,7 @@ import {Panel, PanelBody, PanelHeader, PanelItem} from '../components/panels';
 import SettingsPageHeader from './settings/components/settingsPageHeader';
 import TextBlock from './settings/components/text/textBlock';
 import TimeSince from '../components/timeSince';
+import EmptyStateWarning from '../components/emptyStateWarning';
 
 const marginBottomStyle = {marginBottom: 40};
 
@@ -129,10 +130,9 @@ const ProjectDebugSymbols = createReactClass({
 
   renderEmpty() {
     return (
-      <div style={marginBottomStyle} className="box empty-stream">
-        <span className="icon icon-exclamation" />
+      <EmptyStateWarning>
         <p>{t('There are no debug symbols for this project.')}</p>
-      </div>
+      </EmptyStateWarning>
     );
   },
 

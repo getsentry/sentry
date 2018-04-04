@@ -28,6 +28,7 @@ import CommitLink from '../components/commitLink';
 import {t, tct} from '../locale';
 import {sortArray} from '../utils';
 import {Panel, PanelBody, PanelItem} from '../components/panels';
+import EmptyStateWarning from '../components/emptyStateWarning';
 
 class UnreleasedChanges extends AsyncComponent {
   getEndpoints() {
@@ -51,19 +52,17 @@ class UnreleasedChanges extends AsyncComponent {
 
   emptyState() {
     return (
-      <div className="box empty-stream">
-        <span className="icon icon-exclamation" />
+      <EmptyStateWarning>
         <p>
           {t("We couldn't find any unreleased commits associated with your account.")}
         </p>
-      </div>
+      </EmptyStateWarning>
     );
   }
 
   missingEmails() {
     return (
-      <div className="box empty-stream">
-        <span className="icon icon-exclamation" />
+      <EmptyStateWarning>
         <p>{t("We couldn't find any commits associated with your account.")}</p>
         <p>
           <small>
@@ -72,7 +71,7 @@ class UnreleasedChanges extends AsyncComponent {
             )}
           </small>
         </p>
-      </div>
+      </EmptyStateWarning>
     );
   }
 
