@@ -24,6 +24,7 @@ import CommitLink from '../components/commitLink';
 
 import {t, tct} from '../locale';
 import {sortArray} from '../utils';
+import {Panel, PanelBody, PanelItem} from '../components/panels';
 
 class UnreleasedChanges extends AsyncComponent {
   getEndpoints() {
@@ -125,7 +126,13 @@ class AssignedIssues extends React.Component {
   };
 
   renderEmpty = () => {
-    return <div className="box empty">{t('No issues have been assigned to you.')}</div>;
+    return (
+      <Panel>
+        <PanelBody>
+          <PanelItem>{t('No issues have been assigned to you.')}</PanelItem>
+        </PanelBody>
+      </Panel>
+    );
   };
 
   refresh = () => {
@@ -177,9 +184,11 @@ class NewIssues extends React.Component {
 
   renderEmpty = () => {
     return (
-      <div className="box empty">
-        {t('No new issues have been seen in the last week.')}
-      </div>
+      <Panel>
+        <PanelBody>
+          <PanelItem>{t('No new issues have been seen in the last week.')}</PanelItem>
+        </PanelBody>
+      </Panel>
     );
   };
 

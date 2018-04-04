@@ -19,6 +19,7 @@ import ApiMixin from '../../mixins/apiMixin';
 import {t} from '../../locale';
 import SentryTypes from '../../proptypes';
 import OrganizationState from '../../mixins/organizationState';
+import {Panel, PanelBody, PanelItem} from '../../components/panels';
 
 const ReleaseOverview = createReactClass({
   displayName: 'ReleaseOverview',
@@ -196,42 +197,44 @@ const ReleaseOverview = createReactClass({
         <div className="row" style={{paddingTop: 10}}>
           <div className="col-sm-8">
             <h5>{t('Issues Resolved in this Release')}</h5>
-            <IssueList
-              endpoint={`/projects/${orgId}/${projectId}/releases/${encodeURIComponent(
-                version
-              )}/resolved/`}
-              query={query}
-              pagination={false}
-              renderEmpty={() => (
-                <div className="box empty m-b-2" key="none">
-                  {t('No issues resolved')}
-                </div>
-              )}
-              ref="issueList"
-              showActions={false}
-              params={{orgId}}
-              className="m-b-2"
-            />
+            <Panel>
+              <PanelBody>
+                <IssueList
+                  endpoint={`/projects/${orgId}/${projectId}/releases/${encodeURIComponent(
+                    version
+                  )}/resolved/`}
+                  query={query}
+                  pagination={false}
+                  renderEmpty={() => (
+                    <PanelItem key="none">{t('No issues resolved')}</PanelItem>
+                  )}
+                  ref="issueList"
+                  showActions={false}
+                  params={{orgId}}
+                  className="m-b-2"
+                />
+              </PanelBody>
+            </Panel>
             <h5>{t('New Issues in this Release')}</h5>
-            <IssueList
-              endpoint={`/projects/${orgId}/${projectId}/issues/`}
-              query={{
-                ...query,
-                query: 'first-release:"' + version + '"',
-                limit: 5,
-              }}
-              statsPeriod="0"
-              pagination={false}
-              renderEmpty={() => (
-                <div className="box empty m-b-2" key="none">
-                  {t('No new issues')}
-                </div>
-              )}
-              ref="issueList"
-              showActions={false}
-              params={{orgId}}
-              className="m-b-2"
-            />
+            <Panel>
+              <PanelBody>
+                <IssueList
+                  endpoint={`/projects/${orgId}/${projectId}/issues/`}
+                  query={{
+                    ...query,
+                    query: 'first-release:"' + version + '"',
+                    limit: 5,
+                  }}
+                  statsPeriod="0"
+                  pagination={false}
+                  renderEmpty={() => <PanelItem>{t('No new issues')}</PanelItem>}
+                  ref="issueList"
+                  showActions={false}
+                  params={{orgId}}
+                  className="m-b-2"
+                />
+              </PanelBody>
+            </Panel>
             {hasRepos && (
               <div>
                 {Object.keys(filesByRepository).map((repository, i) => {

@@ -3,6 +3,7 @@ import React from 'react';
 
 import createReactClass from 'create-react-class';
 
+import {Panel, PanelBody} from './panels';
 import ApiMixin from '../mixins/apiMixin';
 import CompactIssue from './compactIssue';
 import LoadingError from './loadingError';
@@ -96,20 +97,24 @@ const IssueList = createReactClass({
     else if (this.state.error) body = <LoadingError onRetry={this.fetchData} />;
     else if (this.state.issueIds.length > 0) {
       body = (
-        <ul className="issue-list">
-          {this.state.data.map(issue => {
-            return (
-              <CompactIssue
-                key={issue.id}
-                id={issue.id}
-                data={issue}
-                orgId={params.orgId}
-                statsPeriod={this.props.statsPeriod}
-                showActions={this.props.showActions}
-              />
-            );
-          })}
-        </ul>
+        <Panel>
+          <PanelBody>
+            <div className="issue-list">
+              {this.state.data.map(issue => {
+                return (
+                  <CompactIssue
+                    key={issue.id}
+                    id={issue.id}
+                    data={issue}
+                    orgId={params.orgId}
+                    statsPeriod={this.props.statsPeriod}
+                    showActions={this.props.showActions}
+                  />
+                );
+              })}
+            </div>
+          </PanelBody>
+        </Panel>
       );
     } else body = (this.props.renderEmpty || this.renderEmpty)();
 
@@ -130,13 +135,13 @@ const IssueList = createReactClass({
 
   render() {
     return (
-      <div>
+      <React.Fragment>
         {this.renderResults()}
         {this.props.pagination &&
           this.state.pageLinks && (
             <Pagination pageLinks={this.state.pageLinks} {...this.props} />
           )}
-      </div>
+      </React.Fragment>
     );
   },
 });
