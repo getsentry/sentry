@@ -258,7 +258,7 @@ export default class ProjectGeneralSettings extends AsyncView {
           <JsonForm
             {...jsonFormProps}
             title={t('Event Settings')}
-            fields={[fields.defaultEnvironment, fields.resolveAge]}
+            fields={[fields.resolveAge]}
             renderFooter={() => <AutoResolveFooter />}
           />
 
