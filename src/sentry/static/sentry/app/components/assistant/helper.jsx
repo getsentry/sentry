@@ -90,7 +90,7 @@ const AssistantHelper = createReactClass({
               step={currentStep}
               onFinish={closeGuideOrSupport}
               onDismiss={this.handleGuideDismiss}
-              orgSlug={GuideStore.state.currentOrg ? GuideStore.state.currentOrg.slug}
+              orgSlug={GuideStore.state.currentOrg ? GuideStore.state.currentOrg.slug : null}
             />
           )}
 
