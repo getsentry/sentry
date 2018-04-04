@@ -98,21 +98,19 @@ const IssueList = createReactClass({
     else if (this.state.issueIds.length > 0) {
       body = (
         <Panel>
-          <PanelBody>
-            <div className="issue-list">
-              {this.state.data.map(issue => {
-                return (
-                  <CompactIssue
-                    key={issue.id}
-                    id={issue.id}
-                    data={issue}
-                    orgId={params.orgId}
-                    statsPeriod={this.props.statsPeriod}
-                    showActions={this.props.showActions}
-                  />
-                );
-              })}
-            </div>
+          <PanelBody className="issue-list">
+            {this.state.data.map(issue => {
+              return (
+                <CompactIssue
+                  key={issue.id}
+                  id={issue.id}
+                  data={issue}
+                  orgId={params.orgId}
+                  statsPeriod={this.props.statsPeriod}
+                  showActions={this.props.showActions}
+                />
+              );
+            })}
           </PanelBody>
         </Panel>
       );
