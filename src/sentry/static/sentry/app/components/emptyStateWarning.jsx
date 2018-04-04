@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from 'react-emotion';
-// import {Panel, PanelBody} from './panels';
 
 class EmptyStateWarning extends React.Component {
   render() {
