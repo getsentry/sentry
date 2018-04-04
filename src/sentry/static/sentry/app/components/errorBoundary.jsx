@@ -1,9 +1,11 @@
+import {browserHistory} from 'react-router';
+import PropTypes from 'prop-types';
 import Raven from 'raven-js';
 import React from 'react';
 import styled from 'react-emotion';
-import {browserHistory} from 'react-router';
 
 import {t} from '../locale';
+import Alert from './alert';
 import DetailedError from './errors/detailedError';
 
 let exclamation = ['Raspberries', 'Snap', 'Frig', 'Welp', 'Uhhhh', 'Hmmm'];
@@ -13,6 +15,14 @@ let getExclamation = () => {
 };
 
 class ErrorBoundary extends React.Component {
+  static propTypes = {
+    mini: PropTypes.bool,
+  };
+
+  static defaultProps = {
+    mini: false,
+  };
+
   constructor(props) {
     super(props);
     this.state = {error: null};
@@ -36,6 +46,16 @@ class ErrorBoundary extends React.Component {
 
   render() {
     if (this.state.error) {
+      let {mini} = this.props;
+
+      if (mini) {
+        return (
+          <Alert type="error" icon="icon-circle-exclamation">
+            {t('There was a problem rendering this component')}
+          </Alert>
+        );
+      }
+
       return (
         <Wrapper>
           <DetailedError
