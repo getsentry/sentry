@@ -2,9 +2,10 @@ import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled, {css} from 'react-emotion';
+import space from '../../styles/space';
 
 const getPadding = ({disablePadding, hasButtons}) => css`
-  padding: ${hasButtons ? '8px' : '15px'} ${disablePadding ? '0' : '20px'};
+  padding: ${hasButtons ? space(1) : space(2)} ${disablePadding ? 0 : space(2)};
 `;
 
 const StyledPanelHeader = styled(({disablePadding, hasButtons, ...props}) => (

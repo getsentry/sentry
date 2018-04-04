@@ -12,9 +12,7 @@ exports[`CreateProject render() should render loading 1`] = `
 </div>
 `;
 
-exports[
-  `CreateProject render() should render roles when available and allowed, and handle submitting 1`
-] = `
+exports[`CreateProject render() should render roles when available and allowed, and handle submitting 1`] = `
 <InviteMember
   location={
     Object {
@@ -145,20 +143,20 @@ exports[
               <PanelHeader>
                 <StyledPanelHeader>
                   <Component
-                    className="css-wxaapd-StyledPanelHeader css-zott9u0"
+                    className="css-kf498j-StyledPanelHeader css-1t1cqk30"
                   >
                     <Flex
                       align="center"
-                      className="css-wxaapd-StyledPanelHeader css-zott9u0"
+                      className="css-kf498j-StyledPanelHeader css-1t1cqk30"
                       justify="space-between"
                     >
                       <Base
                         align="center"
-                        className="css-zott9u0 css-1qscict"
+                        className="css-1t1cqk30 css-hj6snb"
                         justify="space-between"
                       >
                         <div
-                          className="css-zott9u0 css-1qscict"
+                          className="css-1t1cqk30 css-hj6snb"
                           is={null}
                         >
                           Role
@@ -384,20 +382,20 @@ exports[
               <PanelHeader>
                 <StyledPanelHeader>
                   <Component
-                    className="css-wxaapd-StyledPanelHeader css-zott9u0"
+                    className="css-kf498j-StyledPanelHeader css-1t1cqk30"
                   >
                     <Flex
                       align="center"
-                      className="css-wxaapd-StyledPanelHeader css-zott9u0"
+                      className="css-kf498j-StyledPanelHeader css-1t1cqk30"
                       justify="space-between"
                     >
                       <Base
                         align="center"
-                        className="css-zott9u0 css-1qscict"
+                        className="css-1t1cqk30 css-hj6snb"
                         justify="space-between"
                       >
                         <div
-                          className="css-zott9u0 css-1qscict"
+                          className="css-1t1cqk30 css-hj6snb"
                           is={null}
                         >
                           Team

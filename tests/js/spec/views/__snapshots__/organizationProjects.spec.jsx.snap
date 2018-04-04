@@ -158,21 +158,21 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                   hasButtons={true}
                 >
                   <Component
-                    className="css-1729ikd-StyledPanelHeader css-zott9u0"
+                    className="css-vzwv85-StyledPanelHeader css-1t1cqk30"
                     hasButtons={true}
                   >
                     <Flex
                       align="center"
-                      className="css-1729ikd-StyledPanelHeader css-zott9u0"
+                      className="css-vzwv85-StyledPanelHeader css-1t1cqk30"
                       justify="space-between"
                     >
                       <Base
                         align="center"
-                        className="css-zott9u0 css-sgens1"
+                        className="css-1t1cqk30 css-1h9uuh9"
                         justify="space-between"
                       >
                         <div
-                          className="css-zott9u0 css-sgens1"
+                          className="css-1t1cqk30 css-1h9uuh9"
                           is={null}
                         >
                           Projects
