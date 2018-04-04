@@ -3,7 +3,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import {Link} from 'react-router';
-import {Flex, Box} from 'grid-emotion';
+import {Flex} from 'grid-emotion';
 import {Sparklines, SparklinesLine} from 'react-sparklines';
 
 import ApiMixin from '../mixins/apiMixin';
@@ -120,27 +120,27 @@ class Resources extends React.Component {
       <div>
         <h4>Resources</h4>
         <Flex justify={'space-between'}>
-          <Box width={3 / 10}>
+          <Flex width={3 / 10}>
             <ResourceCard
               link={'https://blog.sentry.io/2018/03/06/the-sentry-workflow'}
               imgUrl={'images/releases.svg'}
               title={'The Sentry Workflow'}
             />
-          </Box>
-          <Box width={3 / 10}>
+          </Flex>
+          <Flex width={3 / 10}>
             <ResourceCard
               link={'https://sentry.io/vs/logging/'}
               imgUrl={'images/breadcrumbs-generic.svg'}
               title={'Sentry vs Logging'}
             />
-          </Box>
-          <Box width={3 / 10}>
+          </Flex>
+          <Flex width={3 / 10}>
             <ResourceCard
               link={'https://docs.sentry.io/'}
               imgUrl={'images/code-arguments-tags-mirrored.svg'}
               title={'Docs'}
             />
-          </Box>
+          </Flex>
         </Flex>
       </div>
     );

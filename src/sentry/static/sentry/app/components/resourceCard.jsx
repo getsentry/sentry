@@ -24,7 +24,7 @@ export default class ResourceCard extends React.Component {
     let {title, link, imgUrl} = this.props;
 
     return (
-      <div className="box p-x-2 p-y-1">
+      <div className="flex box p-x-2 p-y-1" style={{flexGrow: '1', alignItems: 'center'}}>
         <Link to={link}>
           <div className="m-b-1">
             <img src={mediaUrl + imgUrl} alt={title} />
