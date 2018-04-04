@@ -17,22 +17,17 @@ export default class ResourceCard extends React.Component {
     title: PropTypes.string.isRequired,
     link: PropTypes.string.isRequired,
     imgUrl: PropTypes.string.isRequired,
-    flipImage: PropTypes.bool,
   };
 
   render() {
     const mediaUrl = ConfigStore.get('mediaUrl');
-    let {title, link, imgUrl, flipImage} = this.props;
+    let {title, link, imgUrl} = this.props;
 
     return (
       <div className="box p-x-2 p-y-1">
         <Link to={link}>
           <div className="m-b-1">
-            <img
-              src={mediaUrl + imgUrl}
-              alt={title}
-              style={flipImage && {transform: 'scaleY(-1)'}}
-            />
+            <img src={mediaUrl + imgUrl} alt={title} />
           </div>
           <StyledTitle>{title}</StyledTitle>
         </Link>
