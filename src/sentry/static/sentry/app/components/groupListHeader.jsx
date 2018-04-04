@@ -19,7 +19,14 @@ class GroupListHeader extends React.Component {
         <Flex w={80} mx={2} justify="flex-end" className="toolbar-header">
           {t('users')}
         </Flex>
-        <Box w={80} mx={2} className="hidden-xs hidden-sm" />
+        <Flex
+          w={80}
+          mx={2}
+          justify="flex-end"
+          className="hidden-xs hidden-sm toolbar-header"
+        >
+          {t('Assignee')}
+        </Flex>
       </PanelHeader>
     );
   }
