@@ -8,7 +8,6 @@ import KeyValueList from '../interfaces/keyValueList';
 
 class ContextBlock extends React.Component {
   static propTypes = {
-    alias: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
     knownData: PropTypes.array,
   };
