@@ -6,14 +6,16 @@ import jQuery from 'jquery';
 
 import SentryTypes from '../proptypes';
 import ApiMixin from '../mixins/apiMixin';
-import GroupListHeader from '../components/groupListHeader';
+import GroupListHeader from './groupListHeader';
 import GroupStore from '../stores/groupStore';
-import LoadingError from '../components/loadingError';
-import LoadingIndicator from '../components/loadingIndicator';
+import LoadingError from './loadingError';
+import LoadingIndicator from './loadingIndicator';
 import ProjectState from '../mixins/projectState';
-import StreamGroup from '../components/stream/group';
+import StreamGroup from './stream/group';
 import utils from '../utils';
 import {t} from '../locale';
+import {Panel, PanelBody} from './panels';
+import EmptyStateWarning from '../components/emptyStateWarning';
 
 const GroupList = createReactClass({
   displayName: 'GroupList',
@@ -129,10 +131,13 @@ const GroupList = createReactClass({
     else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
     else if (this.state.groupIds.length === 0)
       return (
-        <div className="box empty-stream">
-          <span className="icon icon-exclamation" />
-          <p>{t("There doesn't seem to be any events fitting the query.")}</p>
-        </div>
+        <Panel>
+          <PanelBody>
+            <EmptyStateWarning>
+              {t("There doesn't seem to be any events fitting the query.")}
+            </EmptyStateWarning>
+          </PanelBody>
+        </Panel>
       );
 
     let wrapperClass;

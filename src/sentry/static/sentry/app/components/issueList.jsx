@@ -3,6 +3,7 @@ import React from 'react';
 
 import createReactClass from 'create-react-class';
 
+import {Panel, PanelBody} from './panels';
 import ApiMixin from '../mixins/apiMixin';
 import CompactIssue from './compactIssue';
 import LoadingError from './loadingError';
@@ -20,6 +21,7 @@ const IssueList = createReactClass({
     renderEmpty: PropTypes.func,
     statsPeriod: PropTypes.string,
     showActions: PropTypes.bool,
+    noBorder: PropTypes.bool,
   },
 
   mixins: [ApiMixin],
@@ -28,6 +30,7 @@ const IssueList = createReactClass({
     return {
       pagination: true,
       query: {},
+      noBorder: false,
     };
   },
 
@@ -90,26 +93,30 @@ const IssueList = createReactClass({
 
   renderResults() {
     let body;
-    let params = this.props.params;
+    const {params, noBorder} = this.props;
 
     if (this.state.loading) body = this.renderLoading();
     else if (this.state.error) body = <LoadingError onRetry={this.fetchData} />;
     else if (this.state.issueIds.length > 0) {
+      const panelStyle = noBorder ? {border: 0, borderRadius: 0} : {};
+
       body = (
-        <ul className="issue-list">
-          {this.state.data.map(issue => {
-            return (
-              <CompactIssue
-                key={issue.id}
-                id={issue.id}
-                data={issue}
-                orgId={params.orgId}
-                statsPeriod={this.props.statsPeriod}
-                showActions={this.props.showActions}
-              />
-            );
-          })}
-        </ul>
+        <Panel style={panelStyle}>
+          <PanelBody className="issue-list">
+            {this.state.data.map(issue => {
+              return (
+                <CompactIssue
+                  key={issue.id}
+                  id={issue.id}
+                  data={issue}
+                  orgId={params.orgId}
+                  statsPeriod={this.props.statsPeriod}
+                  showActions={this.props.showActions}
+                />
+              );
+            })}
+          </PanelBody>
+        </Panel>
       );
     } else body = (this.props.renderEmpty || this.renderEmpty)();
 
@@ -130,13 +137,13 @@ const IssueList = createReactClass({
 
   render() {
     return (
-      <div>
+      <React.Fragment>
         {this.renderResults()}
         {this.props.pagination &&
           this.state.pageLinks && (
             <Pagination pageLinks={this.state.pageLinks} {...this.props} />
           )}
-      </div>
+      </React.Fragment>
     );
   },
 });

@@ -12,6 +12,8 @@ import LoadingIndicator from '../components/loadingIndicator';
 import Pagination from '../components/pagination';
 import CompactIssue from '../components/compactIssue';
 import EventUserReport from '../components/events/userReport';
+import {Panel, PanelBody} from '../components/panels';
+import EmptyStateWarning from '../components/emptyStateWarning';
 import {t, tct} from '../locale';
 import withEnvironmentInQueryString from '../utils/withEnvironmentInQueryString';
 
@@ -144,32 +146,24 @@ const ProjectUserReports = createReactClass({
   },
 
   renderStreamBody() {
-    let body;
-
-    if (this.state.loading) body = this.renderLoading();
-    else if (this.state.error) body = <LoadingError onRetry={this.fetchData} />;
-    else if (this.state.reportList.length > 0) body = this.renderResults();
-    else if (this.state.query && this.state.query !== this.props.defaultQuery)
-      body = this.renderNoQueryResults();
-    else body = this.renderEmpty();
-
-    return body;
-  },
-
-  renderLoading() {
-    return (
-      <div className="box">
-        <LoadingIndicator />
-      </div>
-    );
+    if (this.state.loading) {
+      return <LoadingIndicator />;
+    } else if (this.state.error) {
+      return <LoadingError onRetry={this.fetchData} />;
+    } else if (this.state.reportList.length > 0) {
+      return this.renderResults();
+    } else if (this.state.query && this.state.query !== this.props.defaultQuery) {
+      return this.renderNoQueryResults();
+    } else {
+      return this.renderEmpty();
+    }
   },
 
   renderNoQueryResults() {
     return (
-      <div className="box empty-stream">
-        <span className="icon icon-exclamation" />
+      <EmptyStateWarning>
         <p>{t('Sorry, no results match your search query.')}</p>
-      </div>
+      </EmptyStateWarning>
     );
   },
 
@@ -181,23 +175,22 @@ const ProjectUserReports = createReactClass({
         })
       : t('No user reports have been collected.');
     return (
-      <div className="box empty-stream">
-        <span className="icon icon-exclamation" />
+      <EmptyStateWarning>
         <p>{message}</p>
         <p>
           <Link to={this.getUserReportsUrl()}>
             {t('Learn how to integrate User Feedback')}
           </Link>
         </p>
-      </div>
+      </EmptyStateWarning>
     );
   },
 
   renderResults() {
-    let {orgId, projectId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
 
-    let children = this.state.reportList.map((item, itemIdx) => {
-      let issue = item.issue;
+    const children = this.state.reportList.map(item => {
+      const issue = item.issue;
 
       return (
         <CompactIssue
@@ -217,7 +210,7 @@ const ProjectUserReports = createReactClass({
       );
     });
 
-    return <ul className="issue-list">{children}</ul>;
+    return <div className="issue-list">{children}</div>;
   },
 
   render() {
@@ -248,7 +241,9 @@ const ProjectUserReports = createReactClass({
             </div>
           </div>
         </div>
-        {this.renderStreamBody()}
+        <Panel>
+          <PanelBody>{this.renderStreamBody()}</PanelBody>
+        </Panel>
         <Pagination pageLinks={this.state.pageLinks} />
       </div>
     );

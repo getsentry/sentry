@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
+import {Flex, Box} from 'grid-emotion';
 
 import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
@@ -12,6 +13,7 @@ import GroupStore from '../stores/groupStore';
 import Link from './link';
 import ProjectLink from './projectLink';
 import {t} from '../locale';
+import {PanelItem} from './panels';
 
 class CompactIssueHeader extends React.Component {
   static propTypes = {
@@ -68,15 +70,19 @@ class CompactIssueHeader extends React.Component {
       styles = {color: '#57be8c'};
     }
     return (
-      <div>
-        <span className="error-level truncate" title={data.level} />
-        <h3 className="truncate">
-          <ProjectLink to={`/${orgId}/${projectId}/issues/${data.id}/`}>
-            <span className="icon icon-soundoff" />
-            <span className="icon icon-star-solid" />
-            {this.getTitle()}
-          </ProjectLink>
-        </h3>
+      <React.Fragment>
+        <Flex align="center">
+          <Box mr={1}>
+            <span className="error-level truncate" title={data.level} />
+          </Box>
+          <h3 className="truncate">
+            <ProjectLink to={`/${orgId}/${projectId}/issues/${data.id}/`}>
+              <span className="icon icon-soundoff" />
+              <span className="icon icon-star-solid" />
+              {this.getTitle()}
+            </ProjectLink>
+          </h3>
+        </Flex>
         <div className="event-extra">
           <span className="project-name">
             <ProjectLink to={`/${orgId}/${projectId}/`}>{data.project.slug}</ProjectLink>
@@ -94,7 +100,7 @@ class CompactIssueHeader extends React.Component {
           )}
           <span className="culprit">{this.getMessage()}</span>
         </div>
-      </div>
+      </React.Fragment>
     );
   }
 }
@@ -194,7 +200,7 @@ const CompactIssue = createReactClass({
     let title = <span className="icon-more" />;
 
     return (
-      <li className={className} onClick={this.toggleSelect}>
+      <PanelItem className={className} onClick={this.toggleSelect} direction="column">
         <CompactIssueHeader data={issue} orgId={orgId} projectId={projectId} />
         {this.props.statsPeriod && (
           <div className="event-graph">
@@ -248,7 +254,7 @@ const CompactIssue = createReactClass({
           </div>
         )}
         {this.props.children}
-      </li>
+      </PanelItem>
     );
   },
 });

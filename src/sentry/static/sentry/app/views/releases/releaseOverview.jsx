@@ -19,6 +19,7 @@ import ApiMixin from '../../mixins/apiMixin';
 import {t} from '../../locale';
 import SentryTypes from '../../proptypes';
 import OrganizationState from '../../mixins/organizationState';
+import {Panel, PanelBody, PanelItem} from '../../components/panels';
 
 const ReleaseOverview = createReactClass({
   displayName: 'ReleaseOverview',
@@ -203,9 +204,13 @@ const ReleaseOverview = createReactClass({
               query={query}
               pagination={false}
               renderEmpty={() => (
-                <div className="box empty m-b-2" key="none">
-                  {t('No issues resolved')}
-                </div>
+                <Panel>
+                  <PanelBody>
+                    <PanelItem key="none" justify="center">
+                      {t('No issues resolved')}
+                    </PanelItem>
+                  </PanelBody>
+                </Panel>
               )}
               ref="issueList"
               showActions={false}
@@ -223,9 +228,11 @@ const ReleaseOverview = createReactClass({
               statsPeriod="0"
               pagination={false}
               renderEmpty={() => (
-                <div className="box empty m-b-2" key="none">
-                  {t('No new issues')}
-                </div>
+                <Panel>
+                  <PanelBody>
+                    <PanelItem justify="center">{t('No new issues')}</PanelItem>
+                  </PanelBody>
+                </Panel>
               )}
               ref="issueList"
               showActions={false}
