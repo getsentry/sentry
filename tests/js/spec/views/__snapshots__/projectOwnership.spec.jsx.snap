@@ -37,8 +37,6 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
           <pre>
             * matches everything
 ? matches any single character
-[seq] matches any
-[!seq] matches any character not in seq
           </pre>
         </p>
         Examples:

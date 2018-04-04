@@ -23,8 +23,7 @@ class CreateOwnershipRuleModal extends React.Component {
     if (this.props.onClose) {
       this.props.onClose(data);
     }
-
-    this.props.closeModal();
+    window.setTimeout(this.props.closeModal, 2000);
   };
 
   render() {
@@ -36,7 +35,7 @@ class CreateOwnershipRuleModal extends React.Component {
           {t('Create Ownership Rule')}
         </Header>
         <Body>
-          <Ownership {...props} />
+          <Ownership {...props} onSave={this.handleSuccess} />
         </Body>
       </React.Fragment>
     );

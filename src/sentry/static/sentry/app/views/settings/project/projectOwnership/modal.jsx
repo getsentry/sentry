@@ -14,6 +14,7 @@ class Modal extends AsyncView {
     organization: SentryTypes.Organization,
     project: SentryTypes.Project,
     issueId: PropTypes.string,
+    onSave: PropTypes.func,
   };
 
   getEndpoints() {
@@ -27,8 +28,10 @@ class Modal extends AsyncView {
 
   renderBody() {
     let {ownership, urlTagData, eventData} = this.state;
-
-    let urls = urlTagData.topValues.map(i => i.value);
+    let urls = urlTagData.topValues
+      .sort((a, b) => a.count - b.count)
+      .map(i => i.value)
+      .slice(0, 5);
     let paths = uniq(
       idx(eventData.entries.find(({type}) => type == 'exception'), _ =>
         _.data.values[0].stacktrace.frames.map(frame => frame.filename || frame.absPath)
@@ -43,6 +46,7 @@ class Modal extends AsyncView {
           initialText={ownership.raw || ''}
           urls={urls}
           paths={paths}
+          onSave={this.props.onSave}
         />
       </React.Fragment>
     );

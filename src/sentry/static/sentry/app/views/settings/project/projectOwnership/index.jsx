@@ -65,9 +65,7 @@ class ProjectOwnership extends AsyncView {
               {t('Globbing Syntax:')}
               <pre>
                 {`* matches everything
-? matches any single character
-[seq] matches any
-[!seq] matches any character not in seq`}
+? matches any single character`}
               </pre>
             </p>
             Examples:

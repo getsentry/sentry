@@ -25,7 +25,7 @@ exports[`RuleBuilder render() renders 1`] = `
 >
   <BuilderBar>
     <div
-      className="css-1rsoebt-BuilderBar css-1dflkw1"
+      className="css-1b1z0sg-BuilderBar css-m0v8du3"
     >
       <BuilderSelect
         onChange={[Function]}
@@ -33,7 +33,7 @@ exports[`RuleBuilder render() renders 1`] = `
         value="path"
       >
         <SelectInput
-          className="css-1eslqkc-BuilderSelect css-1dflkw2"
+          className="css-1eslqkc-BuilderSelect css-m0v8du4"
           disabled={false}
           multiple={false}
           onChange={[Function]}
@@ -43,7 +43,7 @@ exports[`RuleBuilder render() renders 1`] = `
           value="path"
         >
           <select
-            className="css-1eslqkc-BuilderSelect css-1dflkw2"
+            className="css-1eslqkc-BuilderSelect css-m0v8du4"
             disabled={false}
             multiple={false}
             onChange={[Function]}
@@ -71,7 +71,7 @@ exports[`RuleBuilder render() renders 1`] = `
         value=""
       >
         <input
-          className="css-96rjg0-Input-BuilderInput css-1dflkw3"
+          className="css-1t4syiu-Input-BuilderInput css-m0v8du5"
           onChange={[Function]}
           placeholder="src/example/*"
           value=""
@@ -81,17 +81,17 @@ exports[`RuleBuilder render() renders 1`] = `
         src="icon-chevron-right"
       >
         <InlineSvg
-          className="css-oym5an-Divider css-1dflkw4"
+          className="css-a4tn6s-Divider css-m0v8du6"
           src="icon-chevron-right"
         >
           <StyledSvg
-            className="css-oym5an-Divider css-1dflkw4"
+            className="css-a4tn6s-Divider css-m0v8du6"
             height="1em"
             viewBox={Object {}}
             width="1em"
           >
             <svg
-              className="css-1dflkw4 css-1n8xwmp-StyledSvg css-adkcw30"
+              className="css-m0v8du6 css-5e2rei-StyledSvg css-adkcw30"
               height="1em"
               viewBox={Object {}}
               width="1em"
@@ -223,27 +223,27 @@ exports[`RuleBuilder render() renders 1`] = `
                               size="zero"
                             >
                               <DropdownButton
-                                className="css-1miqrq6-BuilderDropdownButton css-1dflkw6"
+                                className="css-agp1qb-BuilderDropdownButton css-m0v8du8"
                                 isOpen={false}
                                 size="zero"
                               >
                                 <StyledButton
-                                  className="css-1miqrq6-BuilderDropdownButton css-1dflkw6"
+                                  className="css-agp1qb-BuilderDropdownButton css-m0v8du8"
                                   isOpen={false}
                                   size="zero"
                                 >
                                   <Component
-                                    className="css-1dflkw6 css-1hasbse-StyledButton css-1pig06q1"
+                                    className="css-m0v8du8 css-vx22y2-StyledButton css-1pig06q1"
                                     isOpen={false}
                                     size="zero"
                                   >
                                     <Button
-                                      className="css-1dflkw6 css-1hasbse-StyledButton css-1pig06q1"
+                                      className="css-m0v8du8 css-vx22y2-StyledButton css-1pig06q1"
                                       disabled={false}
                                       size="zero"
                                     >
                                       <button
-                                        className="css-1dflkw6 css-1hasbse-StyledButton css-1pig06q1 button button-default button-zero"
+                                        className="css-m0v8du8 css-vx22y2-StyledButton css-1pig06q1 button button-default button-zero"
                                         disabled={false}
                                         onClick={[Function]}
                                         role="button"
@@ -262,7 +262,7 @@ exports[`RuleBuilder render() renders 1`] = `
                                             >
                                               <Owners>
                                                 <div
-                                                  className="css-1t34ifm-Owners css-1dflkw5"
+                                                  className="css-1t34ifm-Owners css-m0v8du7"
                                                 />
                                               </Owners>
                                               <div>
@@ -324,7 +324,7 @@ exports[`RuleBuilder render() renders 1`] = `
         size="zero"
       >
         <Button
-          className="css-3daogo-RuleAddButton css-1dflkw7"
+          className="css-3daogo-RuleAddButton css-m0v8du9"
           disabled={false}
           icon="icon-circle-add"
           onClick={[Function]}
@@ -332,7 +332,7 @@ exports[`RuleBuilder render() renders 1`] = `
           size="zero"
         >
           <button
-            className="css-3daogo-RuleAddButton css-1dflkw7 button button-primary button-zero"
+            className="css-3daogo-RuleAddButton css-m0v8du9 button button-primary button-zero"
             disabled={false}
             onClick={[Function]}
             role="button"

@@ -1,6 +1,8 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
+import {ThemeProvider} from 'emotion-theming';
+import theme from 'app/utils/theme';
 import {Client} from 'app/api';
 import OwnerInput from 'app/views/settings/project/projectOwnership/ownerInput';
 
@@ -24,12 +26,14 @@ describe('ProjectTeamsSettings', function() {
   describe('render()', function() {
     it('renders', function() {
       let wrapper = mount(
-        <OwnerInput
-          params={{orgId: org.slug, projectId: project.slug}}
-          organization={org}
-          initialText="url:src @dummy@example.com"
-          project={project}
-        />,
+        <ThemeProvider theme={theme}>
+          <OwnerInput
+            params={{orgId: org.slug, projectId: project.slug}}
+            organization={org}
+            initialText="url:src @dummy@example.com"
+            project={project}
+          />
+        </ThemeProvider>,
         TestStubs.routerContext()
       );
 
@@ -37,16 +41,20 @@ describe('ProjectTeamsSettings', function() {
 
       expect(put).not.toHaveBeenCalled();
 
-      // if text is inchange, submit button is disabled
+      // if text is unchanged, submit button is disabled
       submit.simulate('click');
       expect(put).not.toHaveBeenCalled();
 
-      wrapper.setState({text: 'new'});
+      wrapper
+        .find(OwnerInput)
+        .instance()
+        .onChange({target: {value: 'new'}});
+
       submit.simulate('click');
 
       expect(put).toHaveBeenCalled();
 
-      expect(wrapper).toMatchSnapshot();
+      expect(wrapper.find(OwnerInput)).toMatchSnapshot();
     });
   });
 });

@@ -18,78 +18,6 @@ import {addErrorMessage} from '../../../../actionCreators/indicator';
 
 import {t} from '../../../../locale';
 
-const IssueOwnerCandidate = styled('div')`
-  font-family: Monaco, Consolas, 'Courier New', monospace;
-  border: 1px solid ${p => p.theme.borderDark};
-  background-color: #f8fafd;
-  padding-left: 10px;
-  margin-bottom: 3px;
-  cursor: pointer;
-`;
-
-const AddIcon = styled(InlineSvg)`
-  color: ${p => p.theme.borderDark};
-  margin-right: 5px;
-`;
-
-const BuilderBar = styled('div')`
-  display: flex;
-  height: 40px;
-  align-items: center;
-  margin-bottom: 1em;
-`;
-
-const BuilderSelect = styled(SelectInput)`
-  padding: 0.5em;
-  margin-right: 5px;
-  width: 80px;
-  flex-shrink: 0;
-`;
-
-const BuilderInput = styled(Input)`
-  padding: 0.5em;
-  line-height: 19px;
-  margin-right: 5px;
-`;
-
-const Divider = styled(InlineSvg)`
-  color: ${p => p.theme.borderDark};
-  flex-shrink: 0;
-  margin-right: 5px;
-`;
-
-const Owners = styled('div')`
-  justify-content: flex-end;
-  display: flex;
-  padding: 3px;
-  span {
-    margin-right: 2px;
-  }
-
-  .avatar {
-    width: 28px;
-    height: 28px;
-  }
-`;
-
-const BuilderDropdownButton = styled(DropdownButton)`
-  margin-right: 5px;
-  padding-right: 8px !important;
-  padding-left: 3px !important;
-
-  flex: 1;
-  white-space: nowrap;
-  height: 37px;
-  color: ${p => p.theme.gray3} !important;
-`;
-
-const RuleAddButton = styled(Button)`
-  width: 37px;
-  height: 37px;
-  flex-shrink: 0;
-  padding: 10px 12px !important;
-`;
-
 const initialState = {
   text: '',
   type: 'path',
@@ -193,12 +121,28 @@ class RuleBuilder extends React.Component {
 
     return (
       <React.Fragment>
-        {((type === 'path' ? paths : urls) || []).map(v => (
-          <IssueOwnerCandidate key={v} onClick={() => this.setState({text: v})}>
-            <AddIcon src="icon-circle-add" />
-            {v}
-          </IssueOwnerCandidate>
-        ))}
+        {paths &&
+          paths.map(v => (
+            <IssueOwnerCandidate
+              key={v}
+              onClick={() => this.setState({text: v, type: 'path'})}
+            >
+              <AddIcon src="icon-circle-add" />
+              {v}
+              <TypeHint>[PATH]</TypeHint>
+            </IssueOwnerCandidate>
+          ))}
+        {urls &&
+          urls.map(v => (
+            <IssueOwnerCandidate
+              key={v}
+              onClick={() => this.setState({text: v, type: 'url'})}
+            >
+              <AddIcon src="icon-circle-add" />
+              {v}
+              <TypeHint>[URL]</TypeHint>
+            </IssueOwnerCandidate>
+          ))}
         <BuilderBar>
           <BuilderSelect value={type} showSearch={false} onChange={this.handleTypeChange}>
             <option value="path">Path</option>
@@ -256,5 +200,84 @@ class RuleBuilder extends React.Component {
     );
   }
 }
+
+const TypeHint = styled.div`
+  color: ${p => p.theme.borderDark};
+  float: right;
+`;
+
+const IssueOwnerCandidate = styled.div`
+  font-family: ${p => p.theme.text.familyMono};
+  border: 1px solid ${p => p.theme.borderDark};
+  background-color: #f8fafd;
+  padding-left: 5px;
+  margin-bottom: 3px;
+  cursor: pointer;
+  overflow: hidden;
+`;
+
+const AddIcon = styled(InlineSvg)`
+  color: ${p => p.theme.borderDark};
+  margin-right: 5px;
+`;
+
+const BuilderBar = styled.div`
+  display: flex;
+  height: 40px;
+  align-items: center;
+  margin-bottom: 1em;
+  margin-top: 5px;
+`;
+
+const BuilderSelect = styled(SelectInput)`
+  padding: 0.5em;
+  margin-right: 5px;
+  width: 80px;
+  flex-shrink: 0;
+`;
+
+const BuilderInput = styled(Input)`
+  padding: 0.5em;
+  line-height: 19px;
+  margin-right: 5px;
+`;
+
+const Divider = styled(InlineSvg)`
+  color: ${p => p.theme.borderDark};
+  flex-shrink: 0;
+  margin-right: 5px;
+`;
+
+const Owners = styled.div`
+  justify-content: flex-end;
+  display: flex;
+  padding: 3px;
+  span {
+    margin-right: 2px;
+  }
+
+  .avatar {
+    width: 28px;
+    height: 28px;
+  }
+`;
+
+const BuilderDropdownButton = styled(DropdownButton)`
+  margin-right: 5px;
+  padding-right: 8px !important;
+  padding-left: 3px !important;
+
+  flex: 1;
+  white-space: nowrap;
+  height: 37px;
+  color: ${p => p.theme.gray3} !important;
+`;
+
+const RuleAddButton = styled(Button)`
+  width: 37px;
+  height: 37px;
+  flex-shrink: 0;
+  padding: 10px 12px !important;
+`;
 
 export default RuleBuilder;
