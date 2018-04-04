@@ -113,14 +113,8 @@ const App = createReactClass({
       if (response && (response.sudoRequired || response.allowFail)) return;
 
       // If user must login via SSO, redirect to org login page
-      if (
-        response &&
-        response.detail &&
-        response.detail.message === 'Must login via SSO'
-      ) {
-        window.location.assign(
-          `/auth/login/${response.detail.orgId ? `${response.detail.orgId}/` : ''}`
-        );
+      if (response && response.detail && response.detail.ssoRequired) {
+        window.location.assign(response.detail.loginUrl);
         return;
       }
 

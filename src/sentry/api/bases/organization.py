@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from django.core.urlresolvers import reverse
 from rest_framework.exceptions import NotAuthenticated
 
 from sentry.api.base import Endpoint, logger
@@ -74,9 +75,11 @@ class OrganizationPermission(ScopedPermission):
                             'user_id': request.user.id,
                         }
                     )
-                    raise NotAuthenticated(detail={
+
+                    raise NotAuthenticated({
                         'message': 'Must login via SSO',
-                        'orgId': organization.slug,
+                        'ssoRequired': True,
+                        'loginUrl': reverse('sentry-auth-organization', args=[organization.slug]),
                     })
 
                 if self.is_not_2fa_compliant(
