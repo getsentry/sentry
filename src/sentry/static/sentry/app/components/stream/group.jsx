@@ -118,18 +118,18 @@ const StreamGroup = createReactClass({
             projectId={projectId}
           />
         </GroupSummary>
-        <Box w={120} mx={2} className="hidden-xs hidden-sm">
+        <Box w={160} mx={2} className="hidden-xs hidden-sm">
           <GroupChart id={data.id} statsPeriod={this.props.statsPeriod} data={data} />
         </Box>
-        <Flex w={50} mx={2} justify="flex-end">
+        <Flex w={80} mx={2} justify="flex-end">
           {hasGuideAnchor && <GuideAnchor target="events" type="text" />}
           <Count value={data.count} />
         </Flex>
-        <Flex w={50} mx={2} justify="flex-end">
+        <Flex w={80} mx={2} justify="flex-end">
           {hasGuideAnchor && <GuideAnchor target="users" type="text" />}
           <Count value={data.userCount} />
         </Flex>
-        <Box w={50} mx={2} className="hidden-xs hidden-sm">
+        <Box w={80} mx={2} className="hidden-xs hidden-sm">
           <StyledAssigneeSelector id={data.id} />
         </Box>
       </Group>

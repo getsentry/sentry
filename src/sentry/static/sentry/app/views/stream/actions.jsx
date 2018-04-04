@@ -387,7 +387,7 @@ const StreamActions = createReactClass({
               </Tooltip>
             </div>
           </ActionSet>
-          <Box w={120} mx={2} className="hidden-xs hidden-sm">
+          <Box w={160} mx={2} className="hidden-xs hidden-sm">
             <Flex>
               <StyledToolbarHeader>{t('Graph:')}</StyledToolbarHeader>
               <GraphToggle
@@ -405,13 +405,13 @@ const StreamActions = createReactClass({
               </GraphToggle>
             </Flex>
           </Box>
-          <Box w={50} mx={2} className="align-right">
+          <Box w={80} mx={2} className="align-right">
             <ToolbarHeader>{t('Events')}</ToolbarHeader>
           </Box>
-          <Box w={50} mx={2} className="align-right">
+          <Box w={80} mx={2} className="align-right">
             <ToolbarHeader>{t('Users')}</ToolbarHeader>
           </Box>
-          <Box w={50} mx={2} className="align-right hidden-xs hidden-sm">
+          <Box w={80} mx={2} className="align-right hidden-xs hidden-sm">
             <ToolbarHeader>{t('Owner')}</ToolbarHeader>
           </Box>
         </StyledFlex>
