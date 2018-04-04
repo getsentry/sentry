@@ -197,48 +197,48 @@ const ReleaseOverview = createReactClass({
         <div className="row" style={{paddingTop: 10}}>
           <div className="col-sm-8">
             <h5>{t('Issues Resolved in this Release')}</h5>
-            <Panel>
-              <PanelBody>
-                <IssueList
-                  endpoint={`/projects/${orgId}/${projectId}/releases/${encodeURIComponent(
-                    version
-                  )}/resolved/`}
-                  query={query}
-                  pagination={false}
-                  renderEmpty={() => (
+            <IssueList
+              endpoint={`/projects/${orgId}/${projectId}/releases/${encodeURIComponent(
+                version
+              )}/resolved/`}
+              query={query}
+              pagination={false}
+              renderEmpty={() => (
+                <Panel>
+                  <PanelBody>
                     <PanelItem key="none" justify="center">
                       {t('No issues resolved')}
                     </PanelItem>
-                  )}
-                  ref="issueList"
-                  showActions={false}
-                  params={{orgId}}
-                  className="m-b-2"
-                />
-              </PanelBody>
-            </Panel>
+                  </PanelBody>
+                </Panel>
+              )}
+              ref="issueList"
+              showActions={false}
+              params={{orgId}}
+              className="m-b-2"
+            />
             <h5>{t('New Issues in this Release')}</h5>
-            <Panel>
-              <PanelBody>
-                <IssueList
-                  endpoint={`/projects/${orgId}/${projectId}/issues/`}
-                  query={{
-                    ...query,
-                    query: 'first-release:"' + version + '"',
-                    limit: 5,
-                  }}
-                  statsPeriod="0"
-                  pagination={false}
-                  renderEmpty={() => (
+            <IssueList
+              endpoint={`/projects/${orgId}/${projectId}/issues/`}
+              query={{
+                ...query,
+                query: 'first-release:"' + version + '"',
+                limit: 5,
+              }}
+              statsPeriod="0"
+              pagination={false}
+              renderEmpty={() => (
+                <Panel>
+                  <PanelBody>
                     <PanelItem justify="center">{t('No new issues')}</PanelItem>
-                  )}
-                  ref="issueList"
-                  showActions={false}
-                  params={{orgId}}
-                  className="m-b-2"
-                />
-              </PanelBody>
-            </Panel>
+                  </PanelBody>
+                </Panel>
+              )}
+              ref="issueList"
+              showActions={false}
+              params={{orgId}}
+              className="m-b-2"
+            />
             {hasRepos && (
               <div>
                 {Object.keys(filesByRepository).map((repository, i) => {
