@@ -206,7 +206,7 @@ def get_latest_release(project, environment):
 class DjangoSearchBackend(SearchBackend):
     def query(self, project, tags=None, environment=None, sort_by='date', limit=100,
               cursor=None, count_hits=False, paginator_options=None, **parameters):
-        from sentry.models import (Environment, Event, Group, GroupEnvironment,
+        from sentry.models import (Environment, Event, Group, GroupEnvironment, GroupHash,
                                    GroupStatus, GroupSubscription, Release)
 
         if paginator_options is None:
@@ -279,6 +279,67 @@ class DjangoSearchBackend(SearchBackend):
             group_queryset = group_queryset.filter(last_seen__gte=retention_window_start)
         else:
             retention_window_start = None
+
+        # TODO: some flag to decide (per user/project?) whether snuba should be used for search
+        snuba = False
+
+        if snuba:
+            if tags or \
+                    environment is not None or \
+                    any(key in parameters for key in ('date_from', 'date_to')):
+                # if we're in this branch then Snuba can help us filter down the eligible group ids!
+
+                # TODO: apply existing logic from `get_group_ids_for_search_filter` to filter this query on tags
+                # TODO: translate to snuba.utils.query obviously :)
+                # TODO: only pass the necessary filters ('environment', 'date_from',
+                #       'date_to' are optional but one should be set)
+                hashes = [
+                    """
+                    select distinct primary_hash
+                    from sentry_dist
+                    where timestamp > %(date_from)s
+                    and timestamp < %(date_to)s
+                    and environment = %(environment)s
+                    and project_id = %(project_id)s
+                    """
+                ]
+
+                group_queryset = group_queryset.filter(
+                    id__in=GroupHash.objects.filter(
+                        project=project, hash__in=hashes).value_list(
+                        'group_id', flat=True)
+                )
+
+            # The following didn't change from the else branch below, except tags is handled above
+            group_queryset = QuerySetBuilder({
+                'first_release': CallbackCondition(
+                    lambda queryset, version: queryset.filter(
+                        first_release__organization_id=project.organization_id,
+                        first_release__version=version,
+                    ),
+                ),
+                'age_from': ScalarCondition('first_seen', 'gt'),
+                'age_to': ScalarCondition('first_seen', 'lt'),
+                'last_seen_from': ScalarCondition('last_seen', 'gt'),
+                'last_seen_to': ScalarCondition('last_seen', 'lt'),
+                'times_seen': CallbackCondition(
+                    lambda queryset, times_seen: queryset.filter(times_seen=times_seen),
+                ),
+                'times_seen_lower': ScalarCondition('times_seen', 'gt'),
+                'times_seen_upper': ScalarCondition('times_seen', 'lt'),
+            }).build(
+                group_queryset,
+                parameters,
+            ).extra(
+                select={
+                    'sort_value': get_sort_clause(sort_by),
+                },
+            )
+
+            paginator_cls, sort_clause = sort_strategies[sort_by]
+            group_queryset = group_queryset.order_by(sort_clause)
+            paginator = paginator_cls(group_queryset, sort_clause, **paginator_options)
+            return paginator.get_result(limit, cursor, count_hits=count_hits)
 
         if environment is not None:
             if 'environment' in tags:
