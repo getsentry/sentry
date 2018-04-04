@@ -260,16 +260,16 @@ class OrganizationMembersView extends OrganizationSettingsView {
             <Box px={2} flex="1">
               {t('Member')}
             </Box>
-            <GuideAnchor target="member_status" type="text">
-              <Box px={2} w={180}>
+            <Box px={2} w={180}>
+              <GuideAnchor target="member_status" type="text">
                 {t('Status')}
-              </Box>
-            </GuideAnchor>
-            <GuideAnchor target="member_role" type="text">
-              <Box px={2} w={140}>
+              </GuideAnchor>
+            </Box>
+            <Box px={2} w={140}>
+              <GuideAnchor target="member_role" type="text">
                 {t('Role')}
-              </Box>
-            </GuideAnchor>
+              </GuideAnchor>
+            </Box>
             <Box px={2} w={140}>
               {t('Actions')}
             </Box>

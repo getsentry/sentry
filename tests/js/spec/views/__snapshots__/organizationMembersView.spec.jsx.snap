@@ -262,98 +262,98 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                               </div>
                             </Base>
                           </Box>
-                          <GuideAnchor
-                            target="member_status"
-                            type="text"
+                          <Box
+                            px={2}
+                            w={180}
                           >
-                            <GuideAnchorContainer
-                              innerRef={[Function]}
-                              type="text"
+                            <Base
+                              className="css-1pkva7q"
+                              px={2}
+                              w={180}
                             >
                               <div
-                                className="css-9u5for-GuideAnchorContainer css-1aiyb4m0"
-                                type="text"
+                                className="css-1pkva7q"
+                                is={null}
                               >
-                                <Box
-                                  px={2}
-                                  w={180}
+                                <GuideAnchor
+                                  target="member_status"
+                                  type="text"
                                 >
-                                  <Base
-                                    className="css-1pkva7q"
-                                    px={2}
-                                    w={180}
+                                  <GuideAnchorContainer
+                                    innerRef={[Function]}
+                                    type="text"
                                   >
                                     <div
-                                      className="css-1pkva7q"
-                                      is={null}
+                                      className="css-9u5for-GuideAnchorContainer css-1aiyb4m0"
+                                      type="text"
                                     >
                                       Status
+                                      <StyledGuideAnchor
+                                        active={false}
+                                        className="guide-anchor-ping member_status"
+                                      >
+                                        <div
+                                          className="guide-anchor-ping member_status css-1yndvnf-StyledGuideAnchor css-1aiyb4m1"
+                                        >
+                                          <StyledGuideAnchorRipples>
+                                            <div
+                                              className="css-1t9mqkr-StyledGuideAnchorRipples css-1aiyb4m2"
+                                            />
+                                          </StyledGuideAnchorRipples>
+                                        </div>
+                                      </StyledGuideAnchor>
                                     </div>
-                                  </Base>
-                                </Box>
-                                <StyledGuideAnchor
-                                  active={false}
-                                  className="guide-anchor-ping member_status"
-                                >
-                                  <div
-                                    className="guide-anchor-ping member_status css-1yndvnf-StyledGuideAnchor css-1aiyb4m1"
-                                  >
-                                    <StyledGuideAnchorRipples>
-                                      <div
-                                        className="css-1t9mqkr-StyledGuideAnchorRipples css-1aiyb4m2"
-                                      />
-                                    </StyledGuideAnchorRipples>
-                                  </div>
-                                </StyledGuideAnchor>
+                                  </GuideAnchorContainer>
+                                </GuideAnchor>
                               </div>
-                            </GuideAnchorContainer>
-                          </GuideAnchor>
-                          <GuideAnchor
-                            target="member_role"
-                            type="text"
+                            </Base>
+                          </Box>
+                          <Box
+                            px={2}
+                            w={140}
                           >
-                            <GuideAnchorContainer
-                              innerRef={[Function]}
-                              type="text"
+                            <Base
+                              className="css-1fsdpfi"
+                              px={2}
+                              w={140}
                             >
                               <div
-                                className="css-9u5for-GuideAnchorContainer css-1aiyb4m0"
-                                type="text"
+                                className="css-1fsdpfi"
+                                is={null}
                               >
-                                <Box
-                                  px={2}
-                                  w={140}
+                                <GuideAnchor
+                                  target="member_role"
+                                  type="text"
                                 >
-                                  <Base
-                                    className="css-1fsdpfi"
-                                    px={2}
-                                    w={140}
+                                  <GuideAnchorContainer
+                                    innerRef={[Function]}
+                                    type="text"
                                   >
                                     <div
-                                      className="css-1fsdpfi"
-                                      is={null}
+                                      className="css-9u5for-GuideAnchorContainer css-1aiyb4m0"
+                                      type="text"
                                     >
                                       Role
+                                      <StyledGuideAnchor
+                                        active={false}
+                                        className="guide-anchor-ping member_role"
+                                      >
+                                        <div
+                                          className="guide-anchor-ping member_role css-1yndvnf-StyledGuideAnchor css-1aiyb4m1"
+                                        >
+                                          <StyledGuideAnchorRipples>
+                                            <div
+                                              className="css-1t9mqkr-StyledGuideAnchorRipples css-1aiyb4m2"
+                                            />
+                                          </StyledGuideAnchorRipples>
+                                        </div>
+                                      </StyledGuideAnchor>
                                     </div>
-                                  </Base>
-                                </Box>
-                                <StyledGuideAnchor
-                                  active={false}
-                                  className="guide-anchor-ping member_role"
-                                >
-                                  <div
-                                    className="guide-anchor-ping member_role css-1yndvnf-StyledGuideAnchor css-1aiyb4m1"
-                                  >
-                                    <StyledGuideAnchorRipples>
-                                      <div
-                                        className="css-1t9mqkr-StyledGuideAnchorRipples css-1aiyb4m2"
-                                      />
-                                    </StyledGuideAnchorRipples>
-                                  </div>
-                                </StyledGuideAnchor>
+                                  </GuideAnchorContainer>
+                                </GuideAnchor>
                               </div>
-                            </GuideAnchorContainer>
-                          </GuideAnchor>
+                            </Base>
+                          </Box>
                           <Box
                             px={2}
                             w={140}
@@ -1536,98 +1536,98 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                               </div>
                             </Base>
                           </Box>
-                          <GuideAnchor
-                            target="member_status"
-                            type="text"
+                          <Box
+                            px={2}
+                            w={180}
                           >
-                            <GuideAnchorContainer
-                              innerRef={[Function]}
-                              type="text"
+                            <Base
+                              className="css-1pkva7q"
+                              px={2}
+                              w={180}
                             >
                               <div
-                                className="css-9u5for-GuideAnchorContainer css-1aiyb4m0"
-                                type="text"
+                                className="css-1pkva7q"
+                                is={null}
                               >
-                                <Box
-                                  px={2}
-                                  w={180}
+                                <GuideAnchor
+                                  target="member_status"
+                                  type="text"
                                 >
-                                  <Base
-                                    className="css-1pkva7q"
-                                    px={2}
-                                    w={180}
+                                  <GuideAnchorContainer
+                                    innerRef={[Function]}
+                                    type="text"
                                   >
                                     <div
-                                      className="css-1pkva7q"
-                                      is={null}
+                                      className="css-9u5for-GuideAnchorContainer css-1aiyb4m0"
+                                      type="text"
                                     >
                                       Status
+                                      <StyledGuideAnchor
+                                        active={false}
+                                        className="guide-anchor-ping member_status"
+                                      >
+                                        <div
+                                          className="guide-anchor-ping member_status css-1yndvnf-StyledGuideAnchor css-1aiyb4m1"
+                                        >
+                                          <StyledGuideAnchorRipples>
+                                            <div
+                                              className="css-1t9mqkr-StyledGuideAnchorRipples css-1aiyb4m2"
+                                            />
+                                          </StyledGuideAnchorRipples>
+                                        </div>
+                                      </StyledGuideAnchor>
                                     </div>
-                                  </Base>
-                                </Box>
-                                <StyledGuideAnchor
-                                  active={false}
-                                  className="guide-anchor-ping member_status"
-                                >
-                                  <div
-                                    className="guide-anchor-ping member_status css-1yndvnf-StyledGuideAnchor css-1aiyb4m1"
-                                  >
-                                    <StyledGuideAnchorRipples>
-                                      <div
-                                        className="css-1t9mqkr-StyledGuideAnchorRipples css-1aiyb4m2"
-                                      />
-                                    </StyledGuideAnchorRipples>
-                                  </div>
-                                </StyledGuideAnchor>
+                                  </GuideAnchorContainer>
+                                </GuideAnchor>
                               </div>
-                            </GuideAnchorContainer>
-                          </GuideAnchor>
-                          <GuideAnchor
-                            target="member_role"
-                            type="text"
+                            </Base>
+                          </Box>
+                          <Box
+                            px={2}
+                            w={140}
                           >
-                            <GuideAnchorContainer
-                              innerRef={[Function]}
-                              type="text"
+                            <Base
+                              className="css-1fsdpfi"
+                              px={2}
+                              w={140}
                             >
                               <div
-                                className="css-9u5for-GuideAnchorContainer css-1aiyb4m0"
-                                type="text"
+                                className="css-1fsdpfi"
+                                is={null}
                               >
-                                <Box
-                                  px={2}
-                                  w={140}
+                                <GuideAnchor
+                                  target="member_role"
+                                  type="text"
                                 >
-                                  <Base
-                                    className="css-1fsdpfi"
-                                    px={2}
-                                    w={140}
+                                  <GuideAnchorContainer
+                                    innerRef={[Function]}
+                                    type="text"
                                   >
                                     <div
-                                      className="css-1fsdpfi"
-                                      is={null}
+                                      className="css-9u5for-GuideAnchorContainer css-1aiyb4m0"
+                                      type="text"
                                     >
                                       Role
+                                      <StyledGuideAnchor
+                                        active={false}
+                                        className="guide-anchor-ping member_role"
+                                      >
+                                        <div
+                                          className="guide-anchor-ping member_role css-1yndvnf-StyledGuideAnchor css-1aiyb4m1"
+                                        >
+                                          <StyledGuideAnchorRipples>
+                                            <div
+                                              className="css-1t9mqkr-StyledGuideAnchorRipples css-1aiyb4m2"
+                                            />
+                                          </StyledGuideAnchorRipples>
+                                        </div>
+                                      </StyledGuideAnchor>
                                     </div>
-                                  </Base>
-                                </Box>
-                                <StyledGuideAnchor
-                                  active={false}
-                                  className="guide-anchor-ping member_role"
-                                >
-                                  <div
-                                    className="guide-anchor-ping member_role css-1yndvnf-StyledGuideAnchor css-1aiyb4m1"
-                                  >
-                                    <StyledGuideAnchorRipples>
-                                      <div
-                                        className="css-1t9mqkr-StyledGuideAnchorRipples css-1aiyb4m2"
-                                      />
-                                    </StyledGuideAnchorRipples>
-                                  </div>
-                                </StyledGuideAnchor>
+                                  </GuideAnchorContainer>
+                                </GuideAnchor>
                               </div>
-                            </GuideAnchorContainer>
-                          </GuideAnchor>
+                            </Base>
+                          </Box>
                           <Box
                             px={2}
                             w={140}
