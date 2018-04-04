@@ -207,10 +207,10 @@ exports[`RuleBuilder render() renders 1`] = `
                   >
                     <AutoCompleteRoot>
                       <Component
-                        className="css-6v04yn-AutoCompleteRoot css-15ruqn40"
+                        className="css-6v04yn-AutoCompleteRoot css-1w01jf00"
                       >
                         <div
-                          className="css-6v04yn-AutoCompleteRoot css-15ruqn40"
+                          className="css-6v04yn-AutoCompleteRoot css-1w01jf00"
                         >
                           <div
                             onClick={[Function]}

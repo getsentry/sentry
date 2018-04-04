@@ -24,6 +24,7 @@ import InlineSvg from '../../../components/inlineSvg';
 import Link from '../../../components/link';
 import {Panel, PanelBody, PanelHeader, PanelItem} from '../../../components/panels';
 import SettingsPageHeader from '../components/settingsPageHeader';
+import space from '../../../styles/space';
 
 const TeamRow = createReactClass({
   displayName: 'TeamRow',
@@ -212,23 +213,19 @@ class ProjectTeams extends AsyncView {
     let {orgId, projectId} = this.props.params;
     let access = new Set(this.props.organization.access);
 
-    return (
-      <PanelBody>
-        {this.state.projectTeams.map(team => {
-          return (
-            <TeamRow
-              access={access}
-              key={team.id}
-              orgId={orgId}
-              projectId={projectId}
-              team={team}
-              onRemove={this.handleRemovedTeam.bind(this, team)}
-              teamCount={this.state.projectTeams.length}
-            />
-          );
-        })}
-      </PanelBody>
-    );
+    return this.state.projectTeams.map(team => {
+      return (
+        <TeamRow
+          access={access}
+          key={team.id}
+          orgId={orgId}
+          projectId={projectId}
+          team={team}
+          onRemove={this.handleRemovedTeam.bind(this, team)}
+          teamCount={this.state.projectTeams.length}
+        />
+      );
+    });
   }
 
   renderBody() {
@@ -268,7 +265,7 @@ class ProjectTeams extends AsyncView {
             <div>{t('Team')}</div>
             <div>{this.renderAddTeamToProject()}</div>
           </PanelHeader>
-          {body}
+          <PanelBody>{body}</PanelBody>
         </Panel>
       </div>
     );
@@ -282,15 +279,12 @@ const RemoveIcon = styled(props => (
 ))`
   min-height: 1.25em;
   min-width: 1.25em;
-  margin-right: 0.5em;
+  margin-right: ${space(1)};
 `;
 
 const TeamDropdownElement = styled('div')`
+  padding: ${space(0.5)} ${space(0.25)};
   text-transform: none;
-
-  &:hover {
-    cursor: pointer;
-  }
 `;
 
 const StyledPanelItem = styled(PanelItem)`
@@ -302,7 +296,7 @@ const StyledPanelItem = styled(PanelItem)`
 const StyledTeamsLabel = styled('div')`
   width: 250px;
   font-size: 0.875em;
-  padding: 0.75em 0;
+  padding: ${space(0.5)};
   text-transform: uppercase;
 `;
 
