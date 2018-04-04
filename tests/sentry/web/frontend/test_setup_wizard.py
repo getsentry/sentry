@@ -47,3 +47,29 @@ class SetupWizard(PermissionTestCase):
         resp = self.client.get(url)
 
         assert resp.status_code == 302
+
+    def test_project(self):
+        self.org = self.create_organization(owner=self.user)
+        self.team = self.create_team(organization=self.org, name='Mariachi Band')
+        self.project = self.create_project(
+            organization=self.org,
+            teams=[self.team],
+            name='Bengal',
+        )
+        self.login_as(self.user)
+
+        key = '%s%s' % (SETUP_WIZARD_CACHE_KEY, 'abc')
+        cache.set(key, 'test')
+
+        url = reverse('sentry-project-wizard-fetch', kwargs={
+            'wizard_hash': 'abc'
+        })
+        resp = self.client.get(url)
+
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, 'sentry/setup-wizard.html')
+        cached = cache.get(key)
+        assert cached.get('apiKeys').get('scopes')[0] == 'project:releases'
+        assert cached.get('projects')[0].get('status') == 'active'
+        assert cached.get('projects')[0].get('keys')[0].get('isActive')
+        assert cached.get('projects')[0].get('organization').get('status').get('id') == 'active'
