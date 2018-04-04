@@ -24,7 +24,7 @@ import InlineSvg from '../../../components/inlineSvg';
 import Link from '../../../components/link';
 import {Panel, PanelBody, PanelHeader, PanelItem} from '../../../components/panels';
 import SettingsPageHeader from '../components/settingsPageHeader';
-import space from '../../../styles/spacingScale';
+import space from '../../../styles/space';
 
 const TeamRow = createReactClass({
   displayName: 'TeamRow',

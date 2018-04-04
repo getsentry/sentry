@@ -18,7 +18,7 @@ import {Panel, PanelHeader} from '../../../components/panels';
 import InlineSvg from '../../../components/inlineSvg';
 import EmptyMessage from '../components/emptyMessage';
 import {t} from '../../../locale';
-import space from '../../../styles/spacingScale';
+import space from '../../../styles/space';
 import overflowEllipsis from '../../../styles/overflowEllipsis';
 
 const TeamMembers = createReactClass({

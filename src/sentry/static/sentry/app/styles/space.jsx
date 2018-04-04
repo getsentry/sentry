@@ -1,4 +1,4 @@
-export default size => {
+const space = size => {
   switch (size) {
     //Our spacing scale is based on a base unit of 8
     //We use a case switch to prevent odd numbers, decimals, and big numbers.
@@ -20,3 +20,5 @@ export default size => {
       return '8px';
   }
 };
+
+export default space;
