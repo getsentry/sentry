@@ -1,24 +1,39 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`StreamGroup renders with anchors 1`] = `
-<li
-  className="group row type-undefined level-undefined"
+<Group
+  align="center"
   onClick={[Function]}
+  px={0}
+  py={1}
 >
-  <div
-    className="col-md-7 col-xs-8 event-details"
+  <Tooltip
+    title="Error level: "
   >
-    <div
-      className="checkbox"
-    >
-      <GuideAnchor
-        target="issues"
-        type="text"
-      />
-      <GroupCheckBox
-        id="1337"
-      />
-    </div>
+    <GroupLevel />
+  </Tooltip>
+  <GroupCheckbox
+    ml={1}
+  >
+    <GuideAnchor
+      target="issues"
+      type="text"
+    />
+    <GroupCheckBox
+      id="1337"
+    />
+  </GroupCheckbox>
+  <GroupSummary
+    flex="1"
+    mx={1}
+    w={
+      Array [
+        0.6666666666666666,
+        0.6666666666666666,
+        0.5,
+      ]
+    }
+  >
     <EventOrGroupHeader
       data={
         Object {
@@ -96,17 +111,16 @@ exports[`StreamGroup renders with anchors 1`] = `
       }
       tags={Array []}
     />
-  </div>
-  <div
-    className="event-assignee col-md-1 hidden-sm hidden-xs"
-  >
-    <AssigneeSelector
-      id="1337"
-      size={24}
-    />
-  </div>
-  <div
-    className="col-md-2 hidden-sm hidden-xs event-graph align-right"
+  </GroupSummary>
+  <Box
+    className="hidden-xs"
+    mx={2}
+    w={130}
+  />
+  <Box
+    className="hidden-xs hidden-sm"
+    mx={2}
+    w={120}
   >
     <GroupChart
       data={
@@ -145,24 +159,37 @@ exports[`StreamGroup renders with anchors 1`] = `
       id="1337"
       statsPeriod="24h"
     />
-  </div>
-  <div
-    className="col-md-1 col-xs-2 event-count align-right"
+  </Box>
+  <Flex
+    justify="flex-end"
+    mx={2}
+    w={50}
   >
     <GuideAnchor
       target="events"
       type="text"
     />
     <count />
-  </div>
-  <div
-    className="col-md-1 col-xs-2 event-users align-right"
+  </Flex>
+  <Flex
+    justify="flex-end"
+    mx={2}
+    w={50}
   >
     <GuideAnchor
       target="users"
       type="text"
     />
     <count />
-  </div>
-</li>
+  </Flex>
+  <Box
+    className="hidden-xs hidden-sm"
+    mx={2}
+    w={50}
+  >
+    <StyledAssigneeSelector
+      id="1337"
+    />
+  </Box>
+</Group>
 `;
