@@ -289,10 +289,12 @@ class DjangoSearchBackend(SearchBackend):
                     any(key in parameters for key in ('date_from', 'date_to')):
                 # if we're in this branch then Snuba can help us filter down the eligible group ids!
 
-                # TODO: apply existing logic from `get_group_ids_for_search_filter` to filter this query on tags
+                # TODO: move existing logic from `get_group_ids_for_search_filter` to filter this query on tags
                 # TODO: translate to snuba.utils.query obviously :)
                 # TODO: only pass the necessary filters ('environment', 'date_from',
-                #       'date_to' are optional but one should be set)
+                #       'date_to' are optional)
+                # TODO: snuba's `get_group_ids_for_search_filter` and `get_event_tag_qs`
+                #       are no longer necessary
                 hashes = [
                     """
                     select distinct primary_hash
