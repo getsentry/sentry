@@ -58,7 +58,9 @@ class SearchResult extends React.Component {
     }
 
     if (sourceType === 'member') {
-      return <UserBadge userLink={false} orgId={params.orgId} user={model} />;
+      return (
+        <UserBadge userLink={false} orgId={params.orgId} user={model} avatarSize={32} />
+      );
     }
 
     if (sourceType === 'organization') {
