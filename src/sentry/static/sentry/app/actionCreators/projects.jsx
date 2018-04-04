@@ -6,16 +6,21 @@ export function update(api, params) {
   ProjectActions.update(params.projectId, params.data);
 
   let endpoint = `/projects/${params.orgId}/${params.projectId}/`;
-  api.request(endpoint, {
-    method: 'PUT',
-    data: params.data,
-    success: data => {
-      ProjectActions.updateSuccess(data);
-    },
-    error: data => {
-      ProjectActions.updateError(data);
-    },
-  });
+  return api
+    .requestPromise(endpoint, {
+      method: 'PUT',
+      data: params.data,
+    })
+    .then(
+      data => {
+        ProjectActions.updateSuccess(data);
+        return data;
+      },
+      err => {
+        ProjectActions.updateError(err);
+        throw err;
+      }
+    );
 }
 
 export function loadStats(api, params) {

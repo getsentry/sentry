@@ -79,13 +79,6 @@ export const fields = {
     help: t('Choose a custom prefix for emails from this project'),
   },
 
-  defaultEnvironment: {
-    name: 'defaultEnvironment',
-    type: 'string',
-    label: t('Default Environment'),
-    placeholder: t('production'),
-    help: t('The default selected environment when viewing issues'),
-  },
   resolveAge: {
     name: 'resolveAge',
     type: 'range',

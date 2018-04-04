@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 
 const TagTextStyled = styled('span')`
   display: inline;
-  padding: 0.3em 0.6em 0.4em;
+  padding: 0.4em 0.6em;
   font-size: 75%;
   font-weight: bold;
   line-height: 1;

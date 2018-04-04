@@ -40,7 +40,6 @@ describe('projectGeneralSettings', function() {
     expect(wrapper.find('Input[name="subjectTemplate"]').prop('value')).toBe(
       '[$project] ${tag:level}: $title'
     );
-    expect(wrapper.find('Input[name="defaultEnvironment"]').prop('value')).toBe('');
     expect(wrapper.find('RangeSlider[name="resolveAge"]').prop('value')).toBe(48);
     expect(wrapper.find('Switch[name="dataScrubber"]').prop('isActive')).toBeFalsy();
     expect(
