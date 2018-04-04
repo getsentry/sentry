@@ -24,7 +24,7 @@ def sudo_required(func):
         if not is_considered_sudo(request):
             # TODO(dcramer): support some kind of auth flow to allow this
             # externally
-            return SudoRequired(request.user)
+            raise SudoRequired(request.user)
         return func(self, request, *args, **kwargs)
 
     return wrapped

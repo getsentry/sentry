@@ -13,43 +13,45 @@ class ResourceMoved(APIException):
     status_code = status.HTTP_301_MOVED_PERMANENTLY
 
 
-class SsoRequired(APIException):
+class SentryAPIException(APIException):
+    code = ''
+    message = ''
+
+    def __init__(self, code=None, message=None, detail=None, **kwargs):
+        if detail is None:
+            detail = {
+                'code': code or self.code,
+                'message': message or self.message,
+                'extra': kwargs,
+            }
+
+        super(SentryAPIException, self).__init__(detail=detail)
+
+
+class SsoRequired(SentryAPIException):
     status_code = status.HTTP_401_UNAUTHORIZED
+    code = 'sso-required'
+    message = 'Must login via SSO'
 
     def __init__(self, organization):
-        detail = {
-            'code': 'sso-required',
-            'message': 'Must login via SSO',
-            'extra': {
-                'loginUrl': reverse('sentry-auth-organization', args=[organization.slug]),
-            }
-        }
-        super(SsoRequired, self).__init__(detail=detail)
+        super(SsoRequired, self).__init__(
+            loginUrl=reverse('sentry-auth-organization', args=[organization.slug])
+        )
 
 
-class SudoRequired(APIException):
+class SudoRequired(SentryAPIException):
     status_code = status.HTTP_401_UNAUTHORIZED
+    code = 'sudo-required'
+    message = 'Account verification required.'
 
     def __init__(self, user):
-        detail = {
-            'code': 'sudo-required',
-            "message": "Account verification required.",
-            'extra': {
-                "username": user.username,
-            }
-        }
-        super(SudoRequired, self).__init__(detail=detail)
+        super(SudoRequired, self).__init__(username=user.username)
 
 
 class TwoFactorRequired(APIException):
     status_code = status.HTTP_401_UNAUTHORIZED
-
-    def __init__(self, organization):
-        detail = {
-            'code': '2fa-required',
-            'message': 'Organization requires two-factor authentication to be enabled'
-        }
-        super(TwoFactorRequired, self).__init__(detail=detail)
+    code = '2fa-required'
+    message = 'Organization requires two-factor authentication to be enabled'
 
 
 class InvalidRepository(Exception):
