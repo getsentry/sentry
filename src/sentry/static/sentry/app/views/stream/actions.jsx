@@ -387,9 +387,6 @@ const StreamActions = createReactClass({
               </Tooltip>
             </div>
           </ActionSet>
-          <Box w={130} mx={2} className="hidden-xs">
-            <ToolbarHeader>{t('Issue ID')}</ToolbarHeader>
-          </Box>
           <Box w={120} mx={2} className="hidden-xs hidden-sm">
             <Flex>
               <StyledToolbarHeader>{t('Graph:')}</StyledToolbarHeader>

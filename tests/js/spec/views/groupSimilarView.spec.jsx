@@ -1,13 +1,11 @@
 /* eslint-env jest */
 import React from 'react';
 import {mount, shallow} from 'enzyme';
-import toJson from 'enzyme-to-json';
-
+import {ThemeProvider} from 'emotion-theming';
+import theme from 'app/utils/theme';
 import GroupSimilarView from 'app/views/groupSimilar/groupSimilarView';
-import {Client} from 'app/api';
 import issues from '../../mocks/issues';
 
-jest.mock('app/api');
 jest.mock('app/mixins/projectState', () => {
   return {
     getFeatures: () => new Set([]),
@@ -30,8 +28,9 @@ const mockData = {
 };
 
 describe('Issues Similar View', function() {
-  beforeAll(function() {
-    Client.addMockResponse({
+  let mock;
+  beforeEach(function() {
+    mock = MockApiClient.addMockResponse({
       url: '/issues/groupId/similar/?limit=50',
       body: mockData.similar,
     });
@@ -42,23 +41,21 @@ describe('Issues Similar View', function() {
       <GroupSimilarView params={{groupId: 'groupId'}} location={{}} />
     );
 
-    expect(toJson(component)).toMatchSnapshot();
+    expect(component).toMatchSnapshot();
   });
 
-  it('renders with mocked data', function(done) {
+  it('renders with mocked data', async function() {
     let wrapper = mount(
-      <GroupSimilarView
-        params={{orgId: 'orgId', projectId: 'projectId', groupId: 'groupId'}}
-        location={{}}
-      />
+      <ThemeProvider theme={theme}>
+        <GroupSimilarView
+          params={{orgId: 'orgId', projectId: 'projectId', groupId: 'groupId'}}
+          location={{}}
+        />
+      </ThemeProvider>
     );
 
-    wrapper.instance().componentDidUpdate = jest.fn(() => {
-      wrapper.update();
-      if (!wrapper.state('loading')) {
-        expect(toJson(wrapper)).toMatchSnapshot();
-        done();
-      }
-    });
+    await tick();
+    expect(mock).toHaveBeenCalled();
+    expect(wrapper).toMatchSnapshot();
   });
 });

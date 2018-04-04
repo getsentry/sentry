@@ -113,11 +113,6 @@ exports[`StreamGroup renders with anchors 1`] = `
     />
   </GroupSummary>
   <Box
-    className="hidden-xs"
-    mx={2}
-    w={130}
-  />
-  <Box
     className="hidden-xs hidden-sm"
     mx={2}
     w={120}

@@ -15,14 +15,11 @@ import ProjectState from '../../mixins/projectState';
 import GroupStore from '../../stores/groupStore';
 import GuideAnchor from '../../components/assistant/guideAnchor';
 import SelectedGroupStore from '../../stores/selectedGroupStore';
-import ShortId from '../shortId';
 import EventOrGroupHeader from '../eventOrGroupHeader';
 import EventOrGroupExtraDetails from '../eventOrGroupExtraDetails';
-import TimeSince from '../timeSince';
 import Tooltip from '../tooltip';
 import {PanelItem} from '../panels';
 
-import {t} from '../../locale';
 import {valueIsEqual} from '../../utils';
 
 const StreamGroup = createReactClass({
@@ -121,14 +118,6 @@ const StreamGroup = createReactClass({
             projectId={projectId}
           />
         </GroupSummary>
-        <Box w={130} mx={2} className="hidden-xs">
-          {data.shortId && <GroupShortId shortId={data.shortId} />}
-          {data.firstSeen && (
-            <GroupTimeSinceWrapper>
-              {t('first seen')} <TimeSince date={data.firstSeen} suffix={t('ago')} />
-            </GroupTimeSinceWrapper>
-          )}
-        </Box>
         <Box w={120} mx={2} className="hidden-xs hidden-sm">
           <GroupChart id={data.id} statsPeriod={this.props.statsPeriod} data={data} />
         </Box>
@@ -186,18 +175,6 @@ const GroupCheckbox = styled(Box)`
   & input[type='checkbox'] {
     margin: 0;
     display: block;
-  }
-`;
-
-const GroupTimeSinceWrapper = styled.span`
-  font-size: 12px;
-  color: ${p => p.theme.gray2};
-`;
-
-const GroupShortId = styled(ShortId)`
-  display: inline;
-  font-size: 15px;
-  margin-bottom: 4px;
   }
 `;
 
