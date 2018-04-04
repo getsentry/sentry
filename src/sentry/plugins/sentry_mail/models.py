@@ -21,7 +21,7 @@ from django.utils.safestring import mark_safe
 from sentry import features, options
 from sentry.models import ProjectOwnership, User
 
-from sentry.digests.utilities import get_digest_metadata
+from sentry.digests.utilities import get_digest_metadata, get_personalized_digests
 from sentry.plugins import register
 from sentry.plugins.base.structs import Notification
 from sentry.plugins.bases.notify import NotificationPlugin
@@ -289,6 +289,17 @@ class MailPlugin(NotificationPlugin):
         )
 
     def notify_digest(self, project, digest):
+        user_ids = self.get_send_to(project)
+        result = get_personalized_digests(project.id, digest, user_ids)
+        # TODO(LB): This looks weird. any ponters?
+        if result == ProjectOwnership.Everyone:
+            for user_id in user_ids:
+                self.notify_digest_for_user(project, user_id, digest)
+        else:
+            for user_id, user_digest in result:
+                self.notify_digest_for_user(project, user_id, user_digest)
+
+    def notify_digest_for_user(self, project, user_id, digest):
         start, end, counts = get_digest_metadata(digest)
 
         # If there is only one group in this digest (regardless of how many
@@ -321,19 +332,18 @@ class MailPlugin(NotificationPlugin):
         group = six.next(iter(counts))
         subject = self.get_digest_subject(group, counts, start)
 
-        for user_id in self.get_send_to(project):
-            self.add_unsubscribe_link(context, user_id, project)
-            self._send_mail(
-                subject=subject,
-                template='sentry/emails/digests/body.txt',
-                html_template='sentry/emails/digests/body.html',
-                project=project,
-                reference=project,
-                headers=headers,
-                type='notify.digest',
-                context=context,
-                send_to=[user_id],
-            )
+        self.add_unsubscribe_link(context, user_id, project)
+        self._send_mail(
+            subject=subject,
+            template='sentry/emails/digests/body.txt',
+            html_template='sentry/emails/digests/body.html',
+            project=project,
+            reference=project,
+            headers=headers,
+            type='notify.digest',
+            context=context,
+            send_to=[user_id],
+        )
 
     def notify_about_activity(self, activity):
         email_cls = emails.get(activity.type)
