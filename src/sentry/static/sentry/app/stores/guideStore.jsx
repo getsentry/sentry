@@ -43,11 +43,9 @@ const GuideStore = Reflux.createStore({
   onNextStep() {
     this.state.currentStep += 1;
     this.trigger(this.state);
-    if (this.state.currentGuide) {
-      let eventName =
-        this.state.currentStep == 1 ? 'assistant.guide_opened' : 'assistant.guide_next';
+    if (this.state.currentGuide && this.state.currentStep == 1) {
       HookStore.get('analytics:event').forEach(cb =>
-        cb(eventName, {
+        cb('assistant.guide_opened', {
           guide: this.state.currentGuide.id,
         })
       );
