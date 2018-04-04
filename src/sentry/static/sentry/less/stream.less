@@ -712,16 +712,8 @@
 */
 
 .issue-list {
-  .list-unstyled;
-  border: 1px solid @trim;
-  border-radius: 3px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-
+  padding: 0;
   .issue {
-    padding: 12px 40px 5px 35px;
-    border-bottom: 1px solid lighten(@trim, 5);
-    position: relative;
-
     h3 {
       .icon-star-solid,
       .icon-soundoff {
@@ -780,9 +772,12 @@
     .error-level {
       .square(12px);
       border-radius: 50%;
-      position: absolute;
       top: 13px;
       left: 12px;
+    }
+
+    .event-type {
+      position: absolute;
     }
 
     h3 {
@@ -798,6 +793,7 @@
     }
 
     .event-extra {
+      padding-left: 20px;
       overflow: hidden;
       white-space: nowrap;
       text-overflow: ellipsis;

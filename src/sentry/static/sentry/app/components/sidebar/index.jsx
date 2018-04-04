@@ -267,6 +267,7 @@ const Sidebar = createReactClass({
                 ref="issueList"
                 showActions={false}
                 params={{orgId: org.slug}}
+                noBorder
               />
             </SidebarPanel>
           )}
@@ -289,6 +290,7 @@ const Sidebar = createReactClass({
                 ref="issueList"
                 showActions={false}
                 params={{orgId: org.slug}}
+                noBorder
               />
             </SidebarPanel>
           )}
