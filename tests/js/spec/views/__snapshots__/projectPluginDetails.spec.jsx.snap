@@ -325,21 +325,21 @@ exports[`ProjectPluginDetails renders 1`] = `
                           hasButtons={true}
                         >
                           <Component
-                            className="css-1aolgz-StyledPanelHeader css-ma0kn80"
+                            className="css-vzwv85-StyledPanelHeader css-3defqi0"
                             hasButtons={true}
                           >
                             <Flex
                               align="center"
-                              className="css-1aolgz-StyledPanelHeader css-ma0kn80"
+                              className="css-vzwv85-StyledPanelHeader css-3defqi0"
                               justify="space-between"
                             >
                               <Base
                                 align="center"
-                                className="css-ma0kn80 css-1i7043a"
+                                className="css-3defqi0 css-1h9uuh9"
                                 justify="space-between"
                               >
                                 <div
-                                  className="css-ma0kn80 css-1i7043a"
+                                  className="css-3defqi0 css-1h9uuh9"
                                   is={null}
                                 >
                                   <Flex

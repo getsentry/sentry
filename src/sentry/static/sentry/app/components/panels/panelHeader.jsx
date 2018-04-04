@@ -5,7 +5,7 @@ import styled, {css} from 'react-emotion';
 import space from '../../styles/spacingScale';
 
 const getPadding = ({disablePadding, hasButtons}) => css`
-  padding: ${hasButtons ? space(3) : space(4)} ${disablePadding ? 0 : space(6)};
+  padding: ${hasButtons ? space(1) : space(2)} ${disablePadding ? 0 : space(2)};
 `;
 
 const StyledPanelHeader = styled(({disablePadding, hasButtons, ...props}) => (

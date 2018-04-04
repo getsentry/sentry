@@ -53,21 +53,21 @@ exports[`ProjectSavedSearches renders 1`] = `
               disablePadding={true}
             >
               <Component
-                className="css-gsi5u6-StyledPanelHeader css-ma0kn80"
+                className="css-18fb6u1-StyledPanelHeader css-3defqi0"
                 disablePadding={true}
               >
                 <Flex
                   align="center"
-                  className="css-gsi5u6-StyledPanelHeader css-ma0kn80"
+                  className="css-18fb6u1-StyledPanelHeader css-3defqi0"
                   justify="space-between"
                 >
                   <Base
                     align="center"
-                    className="css-ma0kn80 css-vszqlz"
+                    className="css-3defqi0 css-1pqpjvf"
                     justify="space-between"
                   >
                     <div
-                      className="css-ma0kn80 css-vszqlz"
+                      className="css-3defqi0 css-1pqpjvf"
                       is={null}
                     >
                       <Flex

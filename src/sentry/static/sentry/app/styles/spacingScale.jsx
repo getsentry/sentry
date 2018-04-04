@@ -1,20 +1,22 @@
 export default size => {
   switch (size) {
+    //Our spacing scale is based on a base unit of 8
+    //We use a case switch to prevent odd numbers, decimals, and big numbers.
     case 0:
       return '0';
-    case 1:
+    case 0.25:
       return '2px';
-    case 2:
+    case 0.5:
       return '4px';
+    case 1:
+      return '8px';
+    case 2:
+      return '16px';
     case 3:
-      return '6px';
+      return '24px';
     case 4:
-      return '10px';
-    case 5:
-      return '16px';
-    case 6:
-      return '20px';
+      return '36px';
     default:
-      return '16px';
+      return '8px';
   }
 };

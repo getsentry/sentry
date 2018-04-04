@@ -69,7 +69,7 @@ exports[`TeamMembers render() renders 1`] = `
         src="icon-circle-subtract"
         style={
           Object {
-            "marginRight": "10px",
+            "marginRight": "8px",
           }
         }
       />
@@ -113,7 +113,7 @@ exports[`TeamMembers render() renders 1`] = `
         src="icon-circle-subtract"
         style={
           Object {
-            "marginRight": "10px",
+            "marginRight": "8px",
           }
         }
       />
@@ -157,7 +157,7 @@ exports[`TeamMembers render() renders 1`] = `
         src="icon-circle-subtract"
         style={
           Object {
-            "marginRight": "10px",
+            "marginRight": "8px",
           }
         }
       />

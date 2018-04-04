@@ -94,22 +94,22 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                 hasButtons={true}
               >
                 <Component
-                  className="css-1l8bs2t-StyledPanelHeader css-ma0kn80"
+                  className="css-bx554z-StyledPanelHeader css-3defqi0"
                   disablePadding={true}
                   hasButtons={true}
                 >
                   <Flex
                     align="center"
-                    className="css-1l8bs2t-StyledPanelHeader css-ma0kn80"
+                    className="css-bx554z-StyledPanelHeader css-3defqi0"
                     justify="space-between"
                   >
                     <Base
                       align="center"
-                      className="css-ma0kn80 css-duthvj"
+                      className="css-3defqi0 css-1wxtvvf"
                       justify="space-between"
                     >
                       <div
-                        className="css-ma0kn80 css-duthvj"
+                        className="css-3defqi0 css-1wxtvvf"
                         is={null}
                       >
                         <Box

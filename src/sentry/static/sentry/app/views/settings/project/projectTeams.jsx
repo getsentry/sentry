@@ -279,11 +279,11 @@ const RemoveIcon = styled(props => (
 ))`
   min-height: 1.25em;
   min-width: 1.25em;
-  margin-right: ${space(3)};
+  margin-right: ${space(1)};
 `;
 
 const TeamDropdownElement = styled('div')`
-  padding: ${space(2)} ${space(1)};
+  padding: ${space(0.5)} ${space(0.25)};
   text-transform: none;
 `;
 
@@ -296,7 +296,7 @@ const StyledPanelItem = styled(PanelItem)`
 const StyledTeamsLabel = styled('div')`
   width: 250px;
   font-size: 0.875em;
-  padding: ${space(2)};
+  padding: ${space(0.5)};
   text-transform: uppercase;
 `;
 

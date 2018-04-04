@@ -95,20 +95,20 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                 <PanelHeader>
                   <StyledPanelHeader>
                     <Component
-                      className="css-1y7casb-StyledPanelHeader css-ma0kn80"
+                      className="css-kf498j-StyledPanelHeader css-3defqi0"
                     >
                       <Flex
                         align="center"
-                        className="css-1y7casb-StyledPanelHeader css-ma0kn80"
+                        className="css-kf498j-StyledPanelHeader css-3defqi0"
                         justify="space-between"
                       >
                         <Base
                           align="center"
-                          className="css-ma0kn80 css-1qsvam7"
+                          className="css-3defqi0 css-hj6snb"
                           justify="space-between"
                         >
                           <div
-                            className="css-ma0kn80 css-1qsvam7"
+                            className="css-3defqi0 css-hj6snb"
                             is={null}
                           >
                             Edit Alert Rule
@@ -934,20 +934,20 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                 <PanelHeader>
                   <StyledPanelHeader>
                     <Component
-                      className="css-1y7casb-StyledPanelHeader css-ma0kn80"
+                      className="css-kf498j-StyledPanelHeader css-3defqi0"
                     >
                       <Flex
                         align="center"
-                        className="css-1y7casb-StyledPanelHeader css-ma0kn80"
+                        className="css-kf498j-StyledPanelHeader css-3defqi0"
                         justify="space-between"
                       >
                         <Base
                           align="center"
-                          className="css-ma0kn80 css-1qsvam7"
+                          className="css-3defqi0 css-hj6snb"
                           justify="space-between"
                         >
                           <div
-                            className="css-ma0kn80 css-1qsvam7"
+                            className="css-3defqi0 css-hj6snb"
                             is={null}
                           >
                             New Alert Rule

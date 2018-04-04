@@ -106,20 +106,20 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                       className="css-geruia"
                     >
                       <Component
-                        className="css-118vghr-StyledPanelHeader css-ma0kn80"
+                        className="css-1u5qp3z-StyledPanelHeader css-3defqi0"
                       >
                         <Flex
                           align="center"
-                          className="css-118vghr-StyledPanelHeader css-ma0kn80"
+                          className="css-1u5qp3z-StyledPanelHeader css-3defqi0"
                           justify="space-between"
                         >
                           <Base
                             align="center"
-                            className="css-ma0kn80 css-vlq6qn"
+                            className="css-3defqi0 css-1g6jy3a"
                             justify="space-between"
                           >
                             <div
-                              className="css-ma0kn80 css-vlq6qn"
+                              className="css-3defqi0 css-1g6jy3a"
                               is={null}
                             >
                               Projects Without Teams

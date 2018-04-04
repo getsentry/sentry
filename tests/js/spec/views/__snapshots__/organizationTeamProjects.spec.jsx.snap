@@ -26,27 +26,27 @@ exports[`OrganizationTeamProjects Should render 1`] = `
           >
             <Component
               alignItems="center"
-              className="css-1aolgz-StyledPanelHeader css-ma0kn80"
+              className="css-vzwv85-StyledPanelHeader css-3defqi0"
               hasButtons={true}
               justifyContent="space-between"
             >
               <Flex
                 align="center"
                 alignItems="center"
-                className="css-1aolgz-StyledPanelHeader css-ma0kn80"
+                className="css-vzwv85-StyledPanelHeader css-3defqi0"
                 justify="space-between"
                 justifyContent="space-between"
               >
                 <Base
                   align="center"
                   alignItems="center"
-                  className="css-ma0kn80 css-1i7043a"
+                  className="css-3defqi0 css-1h9uuh9"
                   justify="space-between"
                   justifyContent="space-between"
                 >
                   <div
                     alignItems="center"
-                    className="css-ma0kn80 css-1i7043a"
+                    className="css-3defqi0 css-1h9uuh9"
                     is={null}
                     justifyContent="space-between"
                   >
@@ -102,10 +102,10 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                             >
                               <AutoCompleteRoot>
                                 <Component
-                                  className="css-6v04yn-AutoCompleteRoot css-m3vjbe0"
+                                  className="css-6v04yn-AutoCompleteRoot css-uwcmgm0"
                                 >
                                   <div
-                                    className="css-6v04yn-AutoCompleteRoot css-m3vjbe0"
+                                    className="css-6v04yn-AutoCompleteRoot css-uwcmgm0"
                                   >
                                     <div
                                       onClick={[Function]}
@@ -214,19 +214,19 @@ exports[`OrganizationTeamProjects Should render 1`] = `
               key="2"
             >
               <PanelItem
-                className="css-16q8m99-StyledPanelItem css-1i2pye51"
+                className="css-qjeif8-StyledPanelItem css-1s1ehwv1"
                 p={2}
               >
                 <StyledPanelItem
-                  className="css-16q8m99-StyledPanelItem css-1i2pye51"
+                  className="css-qjeif8-StyledPanelItem css-1s1ehwv1"
                   p={2}
                 >
                   <Base
-                    className="css-1i2pye51 css-18i8dpn-StyledPanelItem css-q9h14u0"
+                    className="css-1s1ehwv1 css-1mlpbpg-StyledPanelItem css-q9h14u0"
                     p={2}
                   >
                     <div
-                      className="css-1i2pye51 css-18i8dpn-StyledPanelItem css-q9h14u0"
+                      className="css-1s1ehwv1 css-1mlpbpg-StyledPanelItem css-q9h14u0"
                       is={null}
                     >
                       <ProjectItem
@@ -487,20 +487,20 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                               >
                                 <RemoveIcon>
                                   <Component
-                                    className="css-oqacg1-RemoveIcon css-1i2pye50"
+                                    className="css-1e2j5j0-RemoveIcon css-1s1ehwv0"
                                   >
                                     <InlineSvg
-                                      className="css-oqacg1-RemoveIcon css-1i2pye50"
+                                      className="css-1e2j5j0-RemoveIcon css-1s1ehwv0"
                                       src="icon-circle-subtract"
                                     >
                                       <StyledSvg
-                                        className="css-oqacg1-RemoveIcon css-1i2pye50"
+                                        className="css-1e2j5j0-RemoveIcon css-1s1ehwv0"
                                         height="1em"
                                         viewBox={Object {}}
                                         width="1em"
                                       >
                                         <svg
-                                          className="css-1i2pye50 css-8cdp67-StyledSvg css-adkcw30"
+                                          className="css-1s1ehwv0 css-1jgfaio-StyledSvg css-adkcw30"
                                           height="1em"
                                           viewBox={Object {}}
                                           width="1em"

@@ -155,18 +155,18 @@ const RemoveIcon = styled(props => (
 ))`
   min-height: 1.25em;
   min-width: 1.25em;
-  margin-right: ${space(3)};
+  margin-right: ${space(1)};
 `;
 
 const StyledPanelItem = styled(PanelItem)`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${space(4)};
+  padding: ${space(2)};
 `;
 
 const ProjectListElement = styled('div')`
-  padding: ${space(1)} 0;
+  padding: ${space(0.25)} 0;
 `;
 
 export default TeamProjects;
