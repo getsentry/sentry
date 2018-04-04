@@ -308,8 +308,8 @@ class DjangoSearchBackend(SearchBackend):
 
                 group_queryset = group_queryset.filter(
                     id__in=GroupHash.objects.filter(
-                        project=project, hash__in=hashes).value_list(
-                        'group_id', flat=True)
+                        project=project, hash__in=hashes
+                    ).value_list('group_id', flat=True).distinct()
                 )
 
             # The following didn't change from the else branch below, except tags is handled above
