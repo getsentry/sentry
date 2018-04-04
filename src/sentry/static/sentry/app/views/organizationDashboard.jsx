@@ -129,7 +129,9 @@ class AssignedIssues extends React.Component {
     return (
       <Panel>
         <PanelBody>
-          <PanelItem>{t('No issues have been assigned to you.')}</PanelItem>
+          <PanelItem justify="center">
+            {t('No issues have been assigned to you.')}
+          </PanelItem>
         </PanelBody>
       </Panel>
     );
@@ -186,7 +188,9 @@ class NewIssues extends React.Component {
     return (
       <Panel>
         <PanelBody>
-          <PanelItem>{t('No new issues have been seen in the last week.')}</PanelItem>
+          <PanelItem justify="center">
+            {t('No new issues have been seen in the last week.')}
+          </PanelItem>
         </PanelBody>
       </Panel>
     );

@@ -206,7 +206,9 @@ const ReleaseOverview = createReactClass({
                   query={query}
                   pagination={false}
                   renderEmpty={() => (
-                    <PanelItem key="none">{t('No issues resolved')}</PanelItem>
+                    <PanelItem key="none" justify="center">
+                      {t('No issues resolved')}
+                    </PanelItem>
                   )}
                   ref="issueList"
                   showActions={false}
@@ -227,7 +229,9 @@ const ReleaseOverview = createReactClass({
                   }}
                   statsPeriod="0"
                   pagination={false}
-                  renderEmpty={() => <PanelItem>{t('No new issues')}</PanelItem>}
+                  renderEmpty={() => (
+                    <PanelItem justify="center">{t('No new issues')}</PanelItem>
+                  )}
                   ref="issueList"
                   showActions={false}
                   params={{orgId}}
