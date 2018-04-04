@@ -90,7 +90,7 @@ class AcceptProjectTransferEndpoint(Endpoint):
 
         team_id = request.DATA.get('team')
         if team_id is None:
-            return Response({'detail': 'Chose a team to transfer project to'}, status=400)
+            return Response({'detail': 'Choose a team to transfer the project to'}, status=400)
 
         try:
             team = Team.objects.get(
