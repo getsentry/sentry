@@ -39,7 +39,7 @@ export default function getConfiguration({project}) {
         {
           path: `${pathPrefix}/environments/`,
           title: t('Environments'),
-          description: t('Manage then enviornments in a project'),
+          description: t('Manage environments in a project'),
         },
         {
           path: `${pathPrefix}/issue-tracking/`,
