@@ -19,12 +19,17 @@ import {addErrorMessage} from '../../../../actionCreators/indicator';
 import {t} from '../../../../locale';
 
 const IssueOwnerCandidate = styled('div')`
-  fontfamily: Monaco, Consolas, 'Courier New', monospace;
+  font-family: Monaco, Consolas, 'Courier New', monospace;
   border: 1px solid ${p => p.theme.borderDark};
   background-color: #f8fafd;
   padding-left: 10px;
   margin-bottom: 3px;
   cursor: pointer;
+`;
+
+const AddIcon = styled(InlineSvg)`
+  color: ${p => p.theme.borderDark};
+  margin-right: 5px;
 `;
 
 const BuilderBar = styled('div')`
@@ -190,7 +195,7 @@ class RuleBuilder extends React.Component {
       <React.Fragment>
         {((type === 'path' ? paths : urls) || []).map(v => (
           <IssueOwnerCandidate key={v} onClick={() => this.setState({text: v})}>
-            <InlineSvg src="icon-circle-add" />
+            <AddIcon src="icon-circle-add" />
             {v}
           </IssueOwnerCandidate>
         ))}

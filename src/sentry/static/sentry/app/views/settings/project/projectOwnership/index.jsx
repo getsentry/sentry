@@ -61,6 +61,15 @@ class ProjectOwnership extends AsyncView {
                 'Owners can be team identifiers starting with #, or user emails (use @ to input from list)'
               )}
             </p>
+            <p>
+              {t('Globbing Syntax:')}
+              <pre>
+                {`* matches everything
+? matches any single character
+[seq] matches any
+[!seq] matches any character not in seq`}
+              </pre>
+            </p>
             Examples:
             <CodeBlock>
               path:src/example/pipeline/* person@sentry.io #infrastructure

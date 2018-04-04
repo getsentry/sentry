@@ -222,7 +222,8 @@ const GroupDetailsActions = createReactClass({
     }
 
     let hasRelease = this.getProjectFeatures().has('releases');
-    let hasOwners = orgFeatures.has('code-owners');
+    let hasOwners =
+      orgFeatures.has('code-owners') && orgFeatures.has('internal-catchall');
 
     // account for both old and new style plugins
     let hasIssueTracking = group.pluginActions.length || group.pluginIssues.length;

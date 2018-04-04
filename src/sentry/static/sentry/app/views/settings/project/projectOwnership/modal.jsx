@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {uniq} from 'lodash';
+import idx from 'idx';
 
 import {t} from '../../../../locale';
 import AsyncView from '../../../asyncView';
@@ -29,14 +30,14 @@ class Modal extends AsyncView {
 
     let urls = urlTagData.topValues.map(i => i.value);
     let paths = uniq(
-      eventData.entries
-        .find(({type}) => type == 'exception')
-        .data.values[0].stacktrace.frames.map(frame => frame.filename || frame.absPath)
+      idx(eventData.entries.find(({type}) => type == 'exception'), _ =>
+        _.data.values[0].stacktrace.frames.map(frame => frame.filename || frame.absPath)
+      )
     );
 
     return (
       <React.Fragment>
-        <h3>{t('Create Ownership Rule for Issue:')}</h3>
+        <p>{t('Match against Issue Data: (globbing syntax *, ? supported)')}</p>
         <OwnerInput
           {...this.props}
           initialText={ownership.raw || ''}
