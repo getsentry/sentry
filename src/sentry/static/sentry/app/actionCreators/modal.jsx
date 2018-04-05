@@ -49,3 +49,17 @@ export function openCreateTeamModal(options = {}) {
       });
     });
 }
+
+/**
+ * @param Object options.organization The organization to create a rules for
+ * @param Object options.project The project to create a rules for
+ */
+export function openCreateOwnershipRule(options = {}) {
+  import(/* webpackChunkName: "CreateOwnershipRuleModal" */ '../components/modals/createOwnershipRuleModal')
+    .then(mod => mod.default)
+    .then(Modal => {
+      openModal(deps => <Modal {...deps} {...options} />, {
+        modalClassName: 'create-ownership-rule-modal',
+      });
+    });
+}

@@ -7,6 +7,7 @@ import memberListStore from '../../../../stores/memberListStore';
 import ProjectsStore from '../../../../stores/projectsStore';
 import Button from '../../../../components/buttons/button';
 import SelectInput from '../../../../components/selectInput';
+import TextOverflow from '../../../../components/textOverflow';
 import InlineSvg from '../../../../components/inlineSvg';
 import Input from '../../../../views/settings/components/forms/controls/input';
 import DropdownAutoComplete from '../../../../components/dropdownAutoComplete';
@@ -18,63 +19,6 @@ import {addErrorMessage} from '../../../../actionCreators/indicator';
 
 import {t} from '../../../../locale';
 
-const BuilderBar = styled('div')`
-  display: flex;
-  height: 40px;
-  align-items: center;
-  margin-bottom: 1em;
-`;
-
-const BuilderSelect = styled(SelectInput)`
-  padding: 0.5em;
-  margin-right: 5px;
-  width: 80px;
-  flex-shrink: 0;
-`;
-
-const BuilderInput = styled(Input)`
-  padding: 0.5em;
-  margin-right: 5px;
-`;
-
-const Divider = styled(InlineSvg)`
-  color: ${p => p.theme.borderDark};
-  flex-shrink: 0;
-  margin-right: 5px;
-`;
-
-const Owners = styled('div')`
-  justify-content: flex-end;
-  display: flex;
-  padding: 3px;
-  span {
-    margin-right: 2px;
-  }
-
-  .avatar {
-    width: 28px;
-    height: 28px;
-  }
-`;
-
-const BuilderDropdownButton = styled(DropdownButton)`
-  margin-right: 5px;
-  padding-right: 8px !important;
-  padding-left: 3px !important;
-
-  flex: 1;
-  white-space: nowrap;
-  height: 37px;
-  color: ${p => p.theme.gray3} !important;
-`;
-
-const RuleAddButton = styled(Button)`
-  width: 37px;
-  height: 37px;
-  flex-shrink: 0;
-  padding: 10px 12px !important;
-`;
-
 const initialState = {
   text: '',
   type: 'path',
@@ -85,6 +29,8 @@ class RuleBuilder extends React.Component {
   static propTypes = {
     project: SentryTypes.Project,
     onAddRule: PropTypes.func,
+    urls: PropTypes.arrayOf(PropTypes.string),
+    paths: PropTypes.arrayOf(PropTypes.string),
   };
 
   constructor(props) {
@@ -171,64 +117,180 @@ class RuleBuilder extends React.Component {
   };
 
   render() {
+    let {urls, paths} = this.props;
     let {type, text, owners} = this.state;
 
     return (
-      <BuilderBar>
-        <BuilderSelect value={type} showSearch={false} onChange={this.handleTypeChange}>
-          <option value="path">Path</option>
-          <option value="url">URL</option>
-        </BuilderSelect>
-        <BuilderInput
-          controlled
-          value={text}
-          onChange={this.handleChangeValue}
-          placeholder={type === 'path' ? 'src/example/*' : 'example.com/settings/*'}
-        />
-        <Divider src="icon-chevron-right" />
-        <Flex flex="1" align="center">
-          <DropdownAutoComplete
-            items={[
-              {
-                value: 'team',
-                label: 'Teams',
-                items: this.mentionableTeams(),
-              },
-              {
-                value: 'user',
-                label: 'Users',
-                items: this.mentionableUsers(),
-              },
-            ]}
-            onSelect={this.onAddActor}
-          >
-            {({isOpen, selectedItem}) => (
-              <BuilderDropdownButton isOpen={isOpen} size="zero">
-                <Owners>
-                  {owners.map(owner => (
-                    <span
-                      key={`${owner.type}-${owner.id}`}
-                      onClick={this.handleRemoveActor.bind(this, owner)}
-                    >
-                      <ActorAvatar actor={owner} />
-                    </span>
-                  ))}
-                </Owners>
-                <div>{t('Add Owners')}</div>
-              </BuilderDropdownButton>
-            )}
-          </DropdownAutoComplete>
-        </Flex>
+      <React.Fragment>
+        {(paths || urls) && (
+          <Candidates>
+            {paths &&
+              paths.map(v => (
+                <RuleCandidate
+                  key={v}
+                  onClick={() => this.setState({text: v, type: 'path'})}
+                >
+                  <AddIcon src="icon-circle-add" />
+                  <StyledTextOverflow>{v}</StyledTextOverflow>
+                  <TypeHint>[PATH]</TypeHint>
+                </RuleCandidate>
+              ))}
+            {urls &&
+              urls.map(v => (
+                <RuleCandidate
+                  key={v}
+                  onClick={() => this.setState({text: v, type: 'url'})}
+                >
+                  <AddIcon src="icon-circle-add" />
+                  <StyledTextOverflow>{v}</StyledTextOverflow>
+                  <TypeHint>[URL]</TypeHint>
+                </RuleCandidate>
+              ))}
+          </Candidates>
+        )}
+        <BuilderBar>
+          <BuilderSelect value={type} showSearch={false} onChange={this.handleTypeChange}>
+            <option value="path">Path</option>
+            <option value="url">URL</option>
+          </BuilderSelect>
+          <BuilderInput
+            controlled
+            value={text}
+            onChange={this.handleChangeValue}
+            placeholder={type === 'path' ? 'src/example/*' : 'example.com/settings/*'}
+          />
+          <Divider src="icon-chevron-right" />
+          <Flex flex="1" align="center">
+            <DropdownAutoComplete
+              items={[
+                {
+                  value: 'team',
+                  label: 'Teams',
+                  items: this.mentionableTeams(),
+                },
+                {
+                  value: 'user',
+                  label: 'Users',
+                  items: this.mentionableUsers(),
+                },
+              ]}
+              onSelect={this.onAddActor}
+            >
+              {({isOpen, selectedItem}) => (
+                <BuilderDropdownButton isOpen={isOpen} size="zero">
+                  <Owners>
+                    {owners.map(owner => (
+                      <span
+                        key={`${owner.type}-${owner.id}`}
+                        onClick={this.handleRemoveActor.bind(this, owner)}
+                      >
+                        <ActorAvatar actor={owner} />
+                      </span>
+                    ))}
+                  </Owners>
+                  <div>{t('Add Owners')}</div>
+                </BuilderDropdownButton>
+              )}
+            </DropdownAutoComplete>
+          </Flex>
 
-        <RuleAddButton
-          priority="primary"
-          onClick={this.handleAddRule}
-          icon="icon-circle-add"
-          size="zero"
-        />
-      </BuilderBar>
+          <RuleAddButton
+            priority="primary"
+            onClick={this.handleAddRule}
+            icon="icon-circle-add"
+            size="zero"
+          />
+        </BuilderBar>
+      </React.Fragment>
     );
   }
 }
+const Candidates = styled.div`
+  margin-bottom: 10px;
+`;
+
+const TypeHint = styled.div`
+  color: ${p => p.theme.borderDark};
+`;
+
+const StyledTextOverflow = styled(TextOverflow)`
+  flex: 1;
+`;
+
+const RuleCandidate = styled.div`
+  font-family: ${p => p.theme.text.familyMono};
+  border: 1px solid ${p => p.theme.borderDark};
+  background-color: #f8fafd;
+  padding-left: 5px;
+  margin-bottom: 3px;
+  cursor: pointer;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+`;
+
+const AddIcon = styled(InlineSvg)`
+  color: ${p => p.theme.borderDark};
+  margin-right: 5px;
+  flex-shrink: 0;
+`;
+
+const BuilderBar = styled.div`
+  display: flex;
+  height: 40px;
+  align-items: center;
+  margin-bottom: 1em;
+`;
+
+const BuilderSelect = styled(SelectInput)`
+  padding: 0.5em;
+  margin-right: 5px;
+  width: 80px;
+  flex-shrink: 0;
+`;
+
+const BuilderInput = styled(Input)`
+  padding: 0.5em;
+  line-height: 19px;
+  margin-right: 5px;
+`;
+
+const Divider = styled(InlineSvg)`
+  color: ${p => p.theme.borderDark};
+  flex-shrink: 0;
+  margin-right: 5px;
+`;
+
+const Owners = styled.div`
+  justify-content: flex-end;
+  display: flex;
+  padding: 3px;
+  span {
+    margin-right: 2px;
+  }
+
+  .avatar {
+    width: 28px;
+    height: 28px;
+  }
+`;
+
+const BuilderDropdownButton = styled(DropdownButton)`
+  margin-right: 5px;
+  padding-right: 8px !important;
+  padding-left: 3px !important;
+
+  flex: 1;
+  white-space: nowrap;
+  height: 37px;
+  color: ${p => p.theme.gray3} !important;
+`;
+
+const RuleAddButton = styled(Button)`
+  width: 37px;
+  height: 37px;
+  flex-shrink: 0;
+  padding: 10px 12px !important;
+`;
 
 export default RuleBuilder;

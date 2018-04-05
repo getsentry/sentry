@@ -89,7 +89,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
   >
     <BuilderBar>
       <div
-        className="css-1rsoebt-BuilderBar css-z41bgv0"
+        className="css-1rsoebt-BuilderBar css-wiuq245"
       >
         <BuilderSelect
           onChange={[Function]}
@@ -97,7 +97,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
           value="path"
         >
           <SelectInput
-            className="css-1eslqkc-BuilderSelect css-z41bgv1"
+            className="css-1eslqkc-BuilderSelect css-wiuq246"
             disabled={false}
             multiple={false}
             onChange={[Function]}
@@ -107,7 +107,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
             value="path"
           >
             <select
-              className="css-1eslqkc-BuilderSelect css-z41bgv1"
+              className="css-1eslqkc-BuilderSelect css-wiuq246"
               disabled={false}
               multiple={false}
               onChange={[Function]}
@@ -135,7 +135,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
           value=""
         >
           <input
-            className="css-1kjq5p2-Input-BuilderInput css-z41bgv2"
+            className="css-1t4syiu-Input-BuilderInput css-wiuq247"
             onChange={[Function]}
             placeholder="src/example/*"
             value=""
@@ -145,17 +145,17 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
           src="icon-chevron-right"
         >
           <InlineSvg
-            className="css-oym5an-Divider css-z41bgv3"
+            className="css-a4tn6s-Divider css-wiuq248"
             src="icon-chevron-right"
           >
             <StyledSvg
-              className="css-oym5an-Divider css-z41bgv3"
+              className="css-a4tn6s-Divider css-wiuq248"
               height="1em"
               viewBox={Object {}}
               width="1em"
             >
               <svg
-                className="css-z41bgv3 css-1n8xwmp-StyledSvg css-adkcw30"
+                className="css-wiuq248 css-5e2rei-StyledSvg css-adkcw30"
                 height="1em"
                 viewBox={Object {}}
                 width="1em"
@@ -245,27 +245,27 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                                 size="zero"
                               >
                                 <DropdownButton
-                                  className="css-1miqrq6-BuilderDropdownButton css-z41bgv5"
+                                  className="css-agp1qb-BuilderDropdownButton css-wiuq2410"
                                   isOpen={false}
                                   size="zero"
                                 >
                                   <StyledButton
-                                    className="css-1miqrq6-BuilderDropdownButton css-z41bgv5"
+                                    className="css-agp1qb-BuilderDropdownButton css-wiuq2410"
                                     isOpen={false}
                                     size="zero"
                                   >
                                     <Component
-                                      className="css-z41bgv5 css-1hasbse-StyledButton css-1pig06q1"
+                                      className="css-wiuq2410 css-vx22y2-StyledButton css-1pig06q1"
                                       isOpen={false}
                                       size="zero"
                                     >
                                       <Button
-                                        className="css-z41bgv5 css-1hasbse-StyledButton css-1pig06q1"
+                                        className="css-wiuq2410 css-vx22y2-StyledButton css-1pig06q1"
                                         disabled={false}
                                         size="zero"
                                       >
                                         <button
-                                          className="css-z41bgv5 css-1hasbse-StyledButton css-1pig06q1 button button-default button-zero"
+                                          className="css-wiuq2410 css-vx22y2-StyledButton css-1pig06q1 button button-default button-zero"
                                           disabled={false}
                                           onClick={[Function]}
                                           role="button"
@@ -284,7 +284,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                                               >
                                                 <Owners>
                                                   <div
-                                                    className="css-1t34ifm-Owners css-z41bgv4"
+                                                    className="css-1t34ifm-Owners css-wiuq249"
                                                   />
                                                 </Owners>
                                                 <div>
@@ -346,7 +346,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
           size="zero"
         >
           <Button
-            className="css-3daogo-RuleAddButton css-z41bgv6"
+            className="css-3daogo-RuleAddButton css-wiuq2411"
             disabled={false}
             icon="icon-circle-add"
             onClick={[Function]}
@@ -354,7 +354,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
             size="zero"
           >
             <button
-              className="css-3daogo-RuleAddButton css-z41bgv6 button button-primary button-zero"
+              className="css-3daogo-RuleAddButton css-wiuq2411 button button-primary button-zero"
               disabled={false}
               onClick={[Function]}
               role="button"
@@ -432,68 +432,48 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
       }
     }
   >
-    <TextareaAutosize
+    <StyledTextArea
       autoCapitalize="off"
       autoComplete="off"
       autoCorrect="off"
       onChange={[Function]}
       placeholder="#example usage
-
-path:src/example/pipeline/* person@sentry.io #infrastructure
-
+path:src/example/pipeline/* person@sentry.io #infra
 url:http://example.com/settings/* #product"
-      rows={1}
       spellCheck="false"
-      style={
-        Object {
-          "border": "1 solid",
-          "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
-          "margin": 0,
-          "minHeight": 140,
-          "outline": 0,
-          "overflow": "auto",
-          "padding": "5px 5px 0",
-          "resize": "none",
-          "whiteSpace": "pre-wrap",
-          "width": "100%",
-          "wordBreak": "break-all",
-        }
-      }
       value="new"
     >
-      <textarea
+      <TextareaAutosize
         autoCapitalize="off"
         autoComplete="off"
         autoCorrect="off"
+        className="css-e9agsp-StyledTextArea css-i52in62"
         onChange={[Function]}
         placeholder="#example usage
-
-path:src/example/pipeline/* person@sentry.io #infrastructure
-
+path:src/example/pipeline/* person@sentry.io #infra
 url:http://example.com/settings/* #product"
         rows={1}
         spellCheck="false"
-        style={
-          Object {
-            "border": "1 solid",
-            "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
-            "margin": 0,
-            "minHeight": 140,
-            "outline": 0,
-            "overflow": "auto",
-            "padding": "5px 5px 0",
-            "resize": "none",
-            "whiteSpace": "pre-wrap",
-            "width": "100%",
-            "wordBreak": "break-all",
-          }
-        }
         value="new"
-      />
-    </TextareaAutosize>
+      >
+        <textarea
+          autoCapitalize="off"
+          autoComplete="off"
+          autoCorrect="off"
+          className="css-e9agsp-StyledTextArea css-i52in62"
+          onChange={[Function]}
+          placeholder="#example usage
+path:src/example/pipeline/* person@sentry.io #infra
+url:http://example.com/settings/* #product"
+          rows={1}
+          spellCheck="false"
+          value="new"
+        />
+      </TextareaAutosize>
+    </StyledTextArea>
     <SaveButton>
       <div
-        className="css-5zvod-SaveButton css-1gtwpu71"
+        className="css-5zvod-SaveButton css-i52in61"
       >
         <Button
           disabled={false}
