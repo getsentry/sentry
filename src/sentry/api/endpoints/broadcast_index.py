@@ -11,7 +11,7 @@ from rest_framework.permissions import IsAuthenticated
 
 from sentry.api.base import Endpoint
 from sentry.api.paginator import DateTimePaginator
-from sentry.api.serializers import serialize
+from sentry.api.serializers import serialize, AdminBroadcastSerializer, BroadcastSerializer
 from sentry.api.validators import AdminBroadcastValidator, BroadcastValidator
 from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.query import in_icontains
@@ -24,13 +24,19 @@ logger = logging.getLogger('sentry')
 class BroadcastIndexEndpoint(Endpoint):
     permission_classes = (IsAuthenticated, )
 
+    def _serialize_objects(self, items, request):
+        if is_active_superuser(request):
+            serializer_cls = AdminBroadcastSerializer
+        else:
+            serializer_cls = BroadcastSerializer
+
+        return serialize(items, request.user, serializer=serializer_cls())
+
     def get(self, request):
         if request.GET.get('show') == 'all' and is_active_superuser(
                 request) and request.access.has_permission('broadcasts.admin'):
             # superusers can slice and dice
-            queryset = Broadcast.objects.filter(
-                Q(date_expires__isnull=True) | Q(date_expires__gt=timezone.now()),
-            )
+            queryset = Broadcast.objects.all()
         else:
             # only allow active broadcasts if they're not a superuser
             queryset = Broadcast.objects.filter(
@@ -84,7 +90,7 @@ class BroadcastIndexEndpoint(Endpoint):
             request=request,
             queryset=queryset,
             order_by=order_by,
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda x: self._serialize_objects(x, request),
             paginator_cls=paginator_cls,
         )
 
@@ -164,4 +170,4 @@ class BroadcastIndexEndpoint(Endpoint):
             except IntegrityError:
                 pass
 
-        return self.respond(serialize(broadcast, request.user))
+        return self.respond(self._serialize_objects(broadcast, request))
