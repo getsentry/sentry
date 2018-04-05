@@ -164,7 +164,7 @@ exports[`StreamGroup renders with anchors 1`] = `
       target="events"
       type="text"
     />
-    <count />
+    <StyledCount />
   </Flex>
   <Flex
     justify="flex-end"
@@ -175,7 +175,7 @@ exports[`StreamGroup renders with anchors 1`] = `
       target="users"
       type="text"
     />
-    <count />
+    <StyledCount />
   </Flex>
   <Box
     className="hidden-xs hidden-sm"
