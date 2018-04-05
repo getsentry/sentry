@@ -121,8 +121,8 @@ const SuggestedOwners = createReactClass({
                     <strong>{author.email}</strong>
                   </p>
                   <p>
-                    Sorry, we don't recognize this member. Make sure to link alternative
-                    emails in Account Settings.
+                    {t(`Sorry, we don't recognize this member. Make sure to link alternative
+                    emails in Account Settings.`)}
                   </p>
                   <hr />
                 </div>
