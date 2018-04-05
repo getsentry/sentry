@@ -1,9 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {Link} from 'react-router';
 import styled from 'react-emotion';
 
 import ConfigStore from '../stores/configStore';
+import ExternalLink from '../components/externalLink';
 
 const StyledTitle = styled('div')`
   color: #493e54;
@@ -25,12 +25,12 @@ export default class ResourceCard extends React.Component {
 
     return (
       <div className="flex box p-x-2 p-y-1" style={{flexGrow: '1', alignItems: 'center'}}>
-        <Link to={link}>
+        <ExternalLink href={link}>
           <div className="m-b-1">
             <img src={mediaUrl + imgUrl} alt={title} />
           </div>
           <StyledTitle>{title}</StyledTitle>
-        </Link>
+        </ExternalLink>
       </div>
     );
   }
