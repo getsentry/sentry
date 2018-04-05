@@ -31,7 +31,7 @@ class KeyValueList extends React.Component {
       data = Object.keys(data).map(key => [key, data[key]]);
     }
 
-    data = this.props.isSorted ? _.sortBy(data, [(key, value) => key]) : data;
+    data = this.props.isSorted ? _.sortBy(data, [([key]) => key]) : data;
     let raw = this.props.raw;
     const props = this.props.onClick ? {onClick: this.props.onClick} : {};
     return (
