@@ -39,6 +39,7 @@ class DashboardTest(AcceptanceTestCase):
         self.browser.wait_until('.organization-home')
         self.browser.wait_until('.dashboard-barchart')
         self.browser.wait_until_not('.loading-indicator')
+        self.browser.wait_until('.awaiting-events')
         self.browser.snapshot('org dash no issues')
 
     def test_one_issue(self):
