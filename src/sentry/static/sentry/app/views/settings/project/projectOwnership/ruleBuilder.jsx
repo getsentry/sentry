@@ -7,6 +7,7 @@ import memberListStore from '../../../../stores/memberListStore';
 import ProjectsStore from '../../../../stores/projectsStore';
 import Button from '../../../../components/buttons/button';
 import SelectInput from '../../../../components/selectInput';
+import TextOverflow from '../../../../components/textOverflow';
 import InlineSvg from '../../../../components/inlineSvg';
 import Input from '../../../../views/settings/components/forms/controls/input';
 import DropdownAutoComplete from '../../../../components/dropdownAutoComplete';
@@ -121,22 +122,32 @@ class RuleBuilder extends React.Component {
 
     return (
       <React.Fragment>
-        {paths &&
-          paths.map(v => (
-            <RuleCandidate key={v} onClick={() => this.setState({text: v, type: 'path'})}>
-              <AddIcon src="icon-circle-add" />
-              {v}
-              <TypeHint>[PATH]</TypeHint>
-            </RuleCandidate>
-          ))}
-        {urls &&
-          urls.map(v => (
-            <RuleCandidate key={v} onClick={() => this.setState({text: v, type: 'url'})}>
-              <AddIcon src="icon-circle-add" />
-              {v}
-              <TypeHint>[URL]</TypeHint>
-            </RuleCandidate>
-          ))}
+        {(paths || urls) && (
+          <Candidates>
+            {paths &&
+              paths.map(v => (
+                <RuleCandidate
+                  key={v}
+                  onClick={() => this.setState({text: v, type: 'path'})}
+                >
+                  <AddIcon src="icon-circle-add" />
+                  <StyledTextOverflow>{v}</StyledTextOverflow>
+                  <TypeHint>[PATH]</TypeHint>
+                </RuleCandidate>
+              ))}
+            {urls &&
+              urls.map(v => (
+                <RuleCandidate
+                  key={v}
+                  onClick={() => this.setState({text: v, type: 'url'})}
+                >
+                  <AddIcon src="icon-circle-add" />
+                  <StyledTextOverflow>{v}</StyledTextOverflow>
+                  <TypeHint>[URL]</TypeHint>
+                </RuleCandidate>
+              ))}
+          </Candidates>
+        )}
         <BuilderBar>
           <BuilderSelect value={type} showSearch={false} onChange={this.handleTypeChange}>
             <option value="path">Path</option>
@@ -194,10 +205,16 @@ class RuleBuilder extends React.Component {
     );
   }
 }
+const Candidates = styled.div`
+  margin-bottom: 10px;
+`;
 
 const TypeHint = styled.div`
   color: ${p => p.theme.borderDark};
-  float: right;
+`;
+
+const StyledTextOverflow = styled(TextOverflow)`
+  flex: 1;
 `;
 
 const RuleCandidate = styled.div`
@@ -208,11 +225,14 @@ const RuleCandidate = styled.div`
   margin-bottom: 3px;
   cursor: pointer;
   overflow: hidden;
+  display: flex;
+  align-items: center;
 `;
 
 const AddIcon = styled(InlineSvg)`
   color: ${p => p.theme.borderDark};
   margin-right: 5px;
+  flex-shrink: 0;
 `;
 
 const BuilderBar = styled.div`
@@ -220,7 +240,6 @@ const BuilderBar = styled.div`
   height: 40px;
   align-items: center;
   margin-bottom: 1em;
-  margin-top: 5px;
 `;
 
 const BuilderSelect = styled(SelectInput)`

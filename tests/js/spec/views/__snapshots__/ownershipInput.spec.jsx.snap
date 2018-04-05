@@ -89,7 +89,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
   >
     <BuilderBar>
       <div
-        className="css-1b1z0sg-BuilderBar css-1cwcuzb3"
+        className="css-1rsoebt-BuilderBar css-wiuq245"
       >
         <BuilderSelect
           onChange={[Function]}
@@ -97,7 +97,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
           value="path"
         >
           <SelectInput
-            className="css-1eslqkc-BuilderSelect css-1cwcuzb4"
+            className="css-1eslqkc-BuilderSelect css-wiuq246"
             disabled={false}
             multiple={false}
             onChange={[Function]}
@@ -107,7 +107,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
             value="path"
           >
             <select
-              className="css-1eslqkc-BuilderSelect css-1cwcuzb4"
+              className="css-1eslqkc-BuilderSelect css-wiuq246"
               disabled={false}
               multiple={false}
               onChange={[Function]}
@@ -135,7 +135,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
           value=""
         >
           <input
-            className="css-1t4syiu-Input-BuilderInput css-1cwcuzb5"
+            className="css-1t4syiu-Input-BuilderInput css-wiuq247"
             onChange={[Function]}
             placeholder="src/example/*"
             value=""
@@ -145,17 +145,17 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
           src="icon-chevron-right"
         >
           <InlineSvg
-            className="css-a4tn6s-Divider css-1cwcuzb6"
+            className="css-a4tn6s-Divider css-wiuq248"
             src="icon-chevron-right"
           >
             <StyledSvg
-              className="css-a4tn6s-Divider css-1cwcuzb6"
+              className="css-a4tn6s-Divider css-wiuq248"
               height="1em"
               viewBox={Object {}}
               width="1em"
             >
               <svg
-                className="css-1cwcuzb6 css-5e2rei-StyledSvg css-adkcw30"
+                className="css-wiuq248 css-5e2rei-StyledSvg css-adkcw30"
                 height="1em"
                 viewBox={Object {}}
                 width="1em"
@@ -245,27 +245,27 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                                 size="zero"
                               >
                                 <DropdownButton
-                                  className="css-agp1qb-BuilderDropdownButton css-1cwcuzb8"
+                                  className="css-agp1qb-BuilderDropdownButton css-wiuq2410"
                                   isOpen={false}
                                   size="zero"
                                 >
                                   <StyledButton
-                                    className="css-agp1qb-BuilderDropdownButton css-1cwcuzb8"
+                                    className="css-agp1qb-BuilderDropdownButton css-wiuq2410"
                                     isOpen={false}
                                     size="zero"
                                   >
                                     <Component
-                                      className="css-1cwcuzb8 css-vx22y2-StyledButton css-1pig06q1"
+                                      className="css-wiuq2410 css-vx22y2-StyledButton css-1pig06q1"
                                       isOpen={false}
                                       size="zero"
                                     >
                                       <Button
-                                        className="css-1cwcuzb8 css-vx22y2-StyledButton css-1pig06q1"
+                                        className="css-wiuq2410 css-vx22y2-StyledButton css-1pig06q1"
                                         disabled={false}
                                         size="zero"
                                       >
                                         <button
-                                          className="css-1cwcuzb8 css-vx22y2-StyledButton css-1pig06q1 button button-default button-zero"
+                                          className="css-wiuq2410 css-vx22y2-StyledButton css-1pig06q1 button button-default button-zero"
                                           disabled={false}
                                           onClick={[Function]}
                                           role="button"
@@ -284,7 +284,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                                               >
                                                 <Owners>
                                                   <div
-                                                    className="css-1t34ifm-Owners css-1cwcuzb7"
+                                                    className="css-1t34ifm-Owners css-wiuq249"
                                                   />
                                                 </Owners>
                                                 <div>
@@ -346,7 +346,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
           size="zero"
         >
           <Button
-            className="css-3daogo-RuleAddButton css-1cwcuzb9"
+            className="css-3daogo-RuleAddButton css-wiuq2411"
             disabled={false}
             icon="icon-circle-add"
             onClick={[Function]}
@@ -354,7 +354,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
             size="zero"
           >
             <button
-              className="css-3daogo-RuleAddButton css-1cwcuzb9 button button-primary button-zero"
+              className="css-3daogo-RuleAddButton css-wiuq2411 button button-primary button-zero"
               disabled={false}
               onClick={[Function]}
               role="button"
