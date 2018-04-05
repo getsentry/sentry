@@ -1,11 +1,14 @@
+import {channel, createBroadcast} from 'emotion-theming';
 import jQuery from 'jquery';
 import sinon from 'sinon';
-import ConfigStore from 'app/stores/configStore';
+import Adapter from 'enzyme-adapter-react-16';
+import Enzyme from 'enzyme';
 import MockDate from 'mockdate';
 import PropTypes from 'prop-types';
+
+import ConfigStore from 'app/stores/configStore';
 import SentryTypes from 'app/proptypes';
-import Enzyme from 'enzyme';
-import Adapter from 'enzyme-adapter-react-16';
+import theme from 'app/utils/theme';
 
 jest.mock('app/translations');
 jest.mock('app/api');
@@ -29,6 +32,9 @@ window.scrollTo = sinon.spy();
 
 // Instead of wrapping codeblocks in `setTimeout`
 window.tick = () => new Promise(res => setTimeout(res));
+
+// emotion context broadcast
+const broadcast = createBroadcast(theme);
 
 window.Raven = {
   captureMessage: sinon.spy(),
@@ -56,6 +62,10 @@ window.TestStubs = {
 
   routerContext: ([context, childContextTypes] = []) => ({
     context: {
+      [channel]: {
+        subscribe: broadcast.subscribe,
+        unsubscribe: broadcast.unsubscribe,
+      },
       location: TestStubs.location(),
       router: TestStubs.router(),
       organization: TestStubs.Organization(),
@@ -63,6 +73,7 @@ window.TestStubs = {
       ...context,
     },
     childContextTypes: {
+      [channel]: PropTypes.object,
       router: PropTypes.object,
       location: PropTypes.object,
       organization: PropTypes.object,
