@@ -1,10 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import ReactDOM from 'react-dom';
 import classNames from 'classnames';
-import jQuery from 'jquery';
 
 import FormField from './formField';
+import Tooltip from '../tooltip';
 
 import {defined} from '../../utils';
 
@@ -14,26 +13,6 @@ export default class MultipleCheckboxField extends FormField {
     hideLabelDivider: PropTypes.bool,
     choices: PropTypes.array.isRequired,
   };
-
-  // XXX(dcramer): this comes from TooltipMixin
-  componentDidMount() {
-    super.componentDidMount();
-    this.attachTooltips();
-  }
-
-  componentWillUnmount() {
-    this.removeTooltips();
-    jQuery(ReactDOM.findDOMNode(this)).unbind();
-    super.componentWillUnmount();
-  }
-
-  attachTooltips() {
-    jQuery('.tip', ReactDOM.findDOMNode(this)).tooltip();
-  }
-
-  removeTooltips() {
-    jQuery('.tip', ReactDOM.findDOMNode(this)).tooltip('destroy');
-  }
 
   onChange = (value, e) => {
     let allValues = this.state.value;
@@ -86,9 +65,11 @@ export default class MultipleCheckboxField extends FormField {
             >
               {label}
               {shouldShowDisabledReason && (
-                <span className="disabled-indicator tip" title={disabledReason}>
-                  <span className="icon-question" />
-                </span>
+                <Tooltip title={disabledReason}>
+                  <span className="disabled-indicator">
+                    <span className="icon-question" />
+                  </span>
+                </Tooltip>
               )}
             </label>
             {help && <p className="help-block">{help}</p>}

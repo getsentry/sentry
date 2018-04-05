@@ -73,7 +73,6 @@ export default class ResolveActions extends React.Component {
           <Tooltip title={t('Unresolve')}>
             <a
               className={this.getButtonClass('active')}
-              title={t('Unresolve')}
               onClick={() => onUpdate({status: 'unresolved'})}
             >
               <span className="icon-checkmark" />

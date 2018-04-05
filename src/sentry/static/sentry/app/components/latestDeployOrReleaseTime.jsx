@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import ApiMixin from '../mixins/apiMixin';
-import TooltipMixin from '../mixins/tooltip';
+import Tooltip from './tooltip';
 import TimeSince from './timeSince';
 import {t} from '../locale';
 
@@ -14,17 +14,7 @@ const LatestDeployOrReleaseTime = createReactClass({
     release: PropTypes.object.isRequired,
   },
 
-  mixins: [
-    ApiMixin,
-    TooltipMixin({
-      selector: '.tip',
-    }),
-  ],
-
-  componentDidUpdate(prevProps, prevState) {
-    this.removeTooltips();
-    this.attachTooltips();
-  },
+  mixins: [ApiMixin],
 
   render() {
     let {release} = this.props;
@@ -54,9 +44,9 @@ const LatestDeployOrReleaseTime = createReactClass({
               <span className="icon icon-clock" />{' '}
               <TimeSince date={latestDeploy.dateFinished} />
               {earlierDeploysNum > 0 && (
-                <span className="tip" title={earlierDeploysNum + t(' earlier deploys')}>
+                <Tooltip title={earlierDeploysNum + t(' earlier deploys')}>
                   <span className="badge">{earlierDeploysNum}</span>
-                </span>
+                </Tooltip>
               )}
             </p>
           </div>

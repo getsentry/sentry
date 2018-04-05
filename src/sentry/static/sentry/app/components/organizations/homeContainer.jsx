@@ -5,7 +5,7 @@ import createReactClass from 'create-react-class';
 import OrganizationHomeSidebar from './homeSidebar';
 import OrganizationState from '../../mixins/organizationState';
 import ProjectSelector from '../projectHeader/projectSelector';
-import TooltipMixin from '../../mixins/tooltip';
+import Tooltip from '../../components/tooltip';
 import {t} from '../../locale';
 
 import Button from '../../components/buttons/button';
@@ -13,12 +13,7 @@ import Button from '../../components/buttons/button';
 const HomeContainer = createReactClass({
   displayName: 'HomeContainer',
 
-  mixins: [
-    OrganizationState,
-    TooltipMixin({
-      selector: '.tip',
-    }),
-  ],
+  mixins: [OrganizationState],
 
   render() {
     let org = this.getOrganization();
@@ -40,31 +35,33 @@ const HomeContainer = createReactClass({
                 {t('New Project')}
               </Button>
             ) : (
-              <Button
-                priority="primary"
-                disabled
-                className="tip"
-                data-placement="bottom"
+              <Tooltip
                 title={t('You do not have enough permission to create new projects')}
-                style={{marginRight: 5}}
+                tooltipOptions={{placement: 'bottom'}}
               >
-                {t('New Project')}
-              </Button>
+                <Button
+                  priority="primary"
+                  disabled
+                  data-placement="bottom"
+                  style={{marginRight: 5}}
+                >
+                  {t('New Project')}
+                </Button>
+              </Tooltip>
             )}
             {access.has('team:write') ? (
               <Button to={`/organizations/${org.slug}/teams/new/`} priority="primary">
                 {t('New Team')}
               </Button>
             ) : (
-              <Button
-                priority="primary"
-                disabled
-                className="tip"
-                data-placement="bottom"
+              <Tooltip
                 title={t('You do not have enough permission to create new teams')}
+                tooltipOptions={{placement: 'bottom'}}
               >
-                {t('New Team')}
-              </Button>
+                <Button priority="primary" disabled>
+                  {t('New Team')}
+                </Button>
+              </Tooltip>
             )}
           </div>
         </div>
