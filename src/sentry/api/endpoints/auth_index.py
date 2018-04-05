@@ -38,7 +38,7 @@ class AuthIndexEndpoint(Endpoint):
 
     def get(self, request):
         if not request.user.is_authenticated():
-            return Response(status=400)
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
         user = extract_lazy_object(request._request.user)
         data = serialize(user, user)
@@ -67,7 +67,7 @@ class AuthIndexEndpoint(Endpoint):
             curl -X ###METHOD### -u username:password ###URL###
         """
         if not request.user.is_authenticated():
-            return Response(status=400)
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
         # If 2fa login is enabled then we cannot sign in with username and
         # password through this api endpoint.
@@ -77,7 +77,7 @@ class AuthIndexEndpoint(Endpoint):
                     '2fa_required': True,
                     'message': 'Cannot sign-in with basic auth when 2fa is enabled.'
                 },
-                status=403
+                status=status.HTTP_403_FORBIDDEN
             )
 
         try:
@@ -88,7 +88,7 @@ class AuthIndexEndpoint(Endpoint):
                 {
                     'message': 'Cannot sign-in with basic auth because password has expired.',
                 },
-                status=403
+                status=status.HTTP_403_FORBIDDEN
             )
 
         request.user = request._request.user
@@ -105,7 +105,7 @@ class AuthIndexEndpoint(Endpoint):
         :auth: required
         """
         if not request.user.is_authenticated():
-            return Response(status=401)
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
 
         validator = AuthVerifyValidator(data=request.DATA)
         if not validator.is_valid():
@@ -134,7 +134,7 @@ class AuthIndexEndpoint(Endpoint):
 
         # UI treats 401s by redirecting, this 401 should be ignored
         if not authenticated:
-            return Response({'detail': {'code': 'ignore'}}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({'detail': {'code': 'ignore'}}, status=status.HTTP_403_FORBIDDEN)
 
         try:
             # Must use the real request object that Django knows about
@@ -147,7 +147,7 @@ class AuthIndexEndpoint(Endpoint):
                     'code': 'password-expired',
                     'message': 'Cannot sign-in with basic auth because password has expired.',
                 },
-                status=403
+                status=status.HTTP_403_FORBIDDEN
             )
 
         request.user = request._request.user
@@ -163,4 +163,4 @@ class AuthIndexEndpoint(Endpoint):
         """
         logout(request._request)
         request.user = AnonymousUser()
-        return Response(status=204)
+        return Response(status=status.HTTP_204_NO_CONTENT)
