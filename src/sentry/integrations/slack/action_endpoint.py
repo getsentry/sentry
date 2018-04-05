@@ -101,7 +101,7 @@ class SlackActionEndpoint(Endpoint):
 
         dialog = {
             'callback_id': callback_id,
-            'title': u'Resolve {}'.format(group.qualified_short_id),
+            'title': u'Resolve Issue',
             'submit_label': 'Resolve',
             'elements': [RESOLVE_SELECTOR],
         }
