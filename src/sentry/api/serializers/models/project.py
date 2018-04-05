@@ -248,6 +248,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             'hasAccess': attrs['has_access'],
             'dateCreated': obj.date_added,
             'firstEvent': obj.first_event,
+            'platform': obj.platform,
         }
         if 'stats' in attrs:
             context['stats'] = attrs['stats']
