@@ -42,7 +42,7 @@ const GroupSeenBy = createReactClass({
           _.escape(moment(user.lastSeen).format('LL'));
         return (
           <li key={userIdx}>
-            <Tooltip title={title}>
+            <Tooltip title={title} tooltipOptions={{html: true}}>
               <Avatar size={28} user={user} />
             </Tooltip>
           </li>
