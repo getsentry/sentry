@@ -1,11 +1,12 @@
 import React from 'react';
 import {mount} from 'enzyme';
 import {browserHistory} from 'react-router';
+import recreateRoute from 'app/utils/recreateRoute';
 
 import OrganizationGeneralSettingsView from 'app/views/settings/organization/general/organizationGeneralSettingsView';
-import OrganizationsStore from 'app/stores/organizationsStore';
 
 jest.mock('jquery');
+jest.mock('app/utils/recreateRoute');
 
 jest.mock('react-router', () => {
   return {
@@ -29,7 +30,7 @@ describe('OrganizationGeneralSettingsView', function() {
     browserHistory.replace.mockReset();
   });
 
-  it('has LoadingError on error', function(done) {
+  it('has LoadingError on error', async function() {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: ENDPOINT,
@@ -41,15 +42,13 @@ describe('OrganizationGeneralSettingsView', function() {
       TestStubs.routerContext()
     );
 
-    setTimeout(() => {
-      wrapper.update();
-      expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
-      expect(wrapper.find('LoadingError')).toHaveLength(1);
-      done();
-    });
+    await tick();
+    wrapper.update();
+    expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
+    expect(wrapper.find('LoadingError')).toHaveLength(1);
   });
 
-  it('can enable "early adopter"', function(done) {
+  it('can enable "early adopter"', async function() {
     let wrapper = mount(
       <OrganizationGeneralSettingsView params={{orgId: org.slug}} />,
       TestStubs.routerContext()
@@ -60,20 +59,18 @@ describe('OrganizationGeneralSettingsView', function() {
     });
 
     wrapper.setState({loading: false});
-    setTimeout(() => {
-      wrapper.update();
-      wrapper.find('Switch[id="isEarlyAdopter"]').simulate('click');
-      expect(mock).toHaveBeenCalledWith(
-        ENDPOINT,
-        expect.objectContaining({
-          data: {isEarlyAdopter: true},
-        })
-      );
-      done();
-    });
+    await tick();
+    wrapper.update();
+    wrapper.find('Switch[id="isEarlyAdopter"]').simulate('click');
+    expect(mock).toHaveBeenCalledWith(
+      ENDPOINT,
+      expect.objectContaining({
+        data: {isEarlyAdopter: true},
+      })
+    );
   });
 
-  it('changes org slug and redirects to new slug', function(done) {
+  it('changes org slug and redirects to new slug', async function() {
     let wrapper = mount(
       <OrganizationGeneralSettingsView params={{orgId: org.slug}} />,
       TestStubs.routerContext()
@@ -85,64 +82,66 @@ describe('OrganizationGeneralSettingsView', function() {
 
     wrapper.setState({loading: false});
 
-    setTimeout(() => {
-      wrapper.update();
-      // Change slug
-      wrapper
-        .find('input[id="slug"]')
-        .simulate('change', {target: {value: 'new-slug'}})
-        .simulate('blur');
+    await tick();
+    wrapper.update();
+    // Change slug
+    wrapper
+      .find('input[id="slug"]')
+      .simulate('change', {target: {value: 'new-slug'}})
+      .simulate('blur');
 
-      wrapper.update();
-      expect(mock).toHaveBeenCalledWith(
-        ENDPOINT,
-        expect.objectContaining({
-          data: {slug: 'new-slug'},
-        })
-      );
+    wrapper.update();
+    expect(mock).toHaveBeenCalledWith(
+      ENDPOINT,
+      expect.objectContaining({
+        data: {slug: 'new-slug'},
+      })
+    );
 
-      setTimeout(() => {
-        // Not sure why this needs to be async, but it does
-        expect(browserHistory.replace).toHaveBeenCalledWith('/settings/new-slug/');
-        done();
-      });
-    });
+    await tick();
+    // Not sure why this needs to be async, but it does
+    expect(browserHistory.replace).toHaveBeenCalledWith('/settings/new-slug/');
   });
 
-  it('redirects to teams page if user does not have write access', function(done) {
+  it('redirects to teams page if user does not have write access', async function() {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: TestStubs.Organization({access: ['org:read']}),
     });
+    recreateRoute.mockReturnValueOnce('teams');
     let wrapper = mount(
       <OrganizationGeneralSettingsView routes={[]} params={{orgId: org.slug}} />,
       TestStubs.routerContext()
     );
 
     wrapper.setState({loading: false});
-    setTimeout(() => {
-      wrapper.update();
-      expect(browserHistory.replace).toHaveBeenCalledWith('teams');
-      done();
-    });
+    await tick();
+    wrapper.update();
+    expect(browserHistory.replace).toHaveBeenCalledWith('teams');
   });
 
-  it('does not have remove organization button', function(done) {
+  it('does not have remove organization button', async function() {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: ENDPOINT,
+      body: TestStubs.Organization({
+        projects: [{slug: 'project'}],
+        access: ['org:write'],
+      }),
+    });
     let wrapper = mount(
       <OrganizationGeneralSettingsView params={{orgId: org.slug}} />,
       TestStubs.routerContext()
     );
 
     wrapper.setState({loading: false});
-    setTimeout(() => {
-      wrapper.update();
-      expect(wrapper.find('Confirm[priority="danger"]')).toHaveLength(0);
-      done();
-    });
+    await tick();
+    wrapper.update();
+    expect(wrapper.find('Confirm[priority="danger"]')).toHaveLength(0);
   });
 
-  it('can remove organization when org admin and has > 1 org', function(done) {
+  it('can remove organization when org admin', async function() {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: ENDPOINT,
@@ -160,44 +159,26 @@ describe('OrganizationGeneralSettingsView', function() {
       method: 'DELETE',
     });
 
-    sinon.stub(OrganizationsStore, 'getAll', () => [1, 2]);
-
-    wrapper.setState({loading: false, organizations: [1, 2]});
-    setTimeout(() => {
-      wrapper.update();
-      wrapper.find('Confirm[priority="danger"]').simulate('click');
-
-      // Lists projects in modal
-      expect(wrapper.find('Modal .ref-projects')).toHaveLength(1);
-      expect(wrapper.find('Modal .ref-projects li').text()).toBe('project');
-
-      // Confirm delete
-      wrapper.find('Modal Portal Button[priority="danger"]').simulate('click');
-      expect(mock).toHaveBeenCalledWith(
-        ENDPOINT,
-        expect.objectContaining({
-          method: 'DELETE',
-        })
-      );
-      done();
-    });
-  });
-
-  it('can not remove organization if single org', function(done) {
-    let wrapper = mount(
-      <OrganizationGeneralSettingsView params={{orgId: org.slug}} />,
-      TestStubs.routerContext()
-    );
-
     wrapper.setState({loading: false});
-    setTimeout(() => {
-      wrapper.update();
-      expect(wrapper.find('Confirm[priority="danger"]')).toHaveLength(0);
-      done();
-    });
+    await tick();
+    wrapper.update();
+    wrapper.find('Confirm[priority="danger"]').simulate('click');
+
+    // Lists projects in modal
+    expect(wrapper.find('Modal .ref-projects')).toHaveLength(1);
+    expect(wrapper.find('Modal .ref-projects li').text()).toBe('project');
+
+    // Confirm delete
+    wrapper.find('Modal Portal Button[priority="danger"]').simulate('click');
+    expect(mock).toHaveBeenCalledWith(
+      ENDPOINT,
+      expect.objectContaining({
+        method: 'DELETE',
+      })
+    );
   });
 
-  it('shows require2fa switch w/ feature flag', function(done) {
+  it('shows require2fa switch w/ feature flag', async function() {
     let wrapper = mount(
       <OrganizationGeneralSettingsView params={{orgId: org.slug}} />,
       TestStubs.routerContext([
@@ -210,14 +191,12 @@ describe('OrganizationGeneralSettingsView', function() {
     );
 
     wrapper.setState({loading: false});
-    setTimeout(() => {
-      wrapper.update();
-      expect(wrapper.find('Switch[name="require2FA"]')).toHaveLength(1);
-      done();
-    });
+    await tick();
+    wrapper.update();
+    expect(wrapper.find('Switch[name="require2FA"]')).toHaveLength(1);
   });
 
-  it('enables require2fa but cancels confirm modal', function(done) {
+  it('enables require2fa but cancels confirm modal', async function() {
     let mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/',
       method: 'PUT',
@@ -234,25 +213,23 @@ describe('OrganizationGeneralSettingsView', function() {
     );
 
     wrapper.setState({loading: false});
-    setTimeout(() => {
-      wrapper.update();
-      expect(wrapper.find('Switch[name="require2FA"]')).toHaveLength(1);
-      wrapper.find('Switch[name="require2FA"]').simulate('click');
-      expect(wrapper.find('Field[name="require2FA"] ModalDialog')).toHaveLength(1);
+    await tick();
+    wrapper.update();
+    expect(wrapper.find('Switch[name="require2FA"]')).toHaveLength(1);
+    wrapper.find('Switch[name="require2FA"]').simulate('click');
+    expect(wrapper.find('Field[name="require2FA"] ModalDialog')).toHaveLength(1);
 
-      // Cancel
-      wrapper
-        .find('Field[name="require2FA"] ModalDialog .modal-footer Button')
-        .first()
-        .simulate('click');
-      expect(wrapper.find('Field[name="require2FA"] ModalDialog')).toHaveLength(0);
-      expect(wrapper.find('Switch[name="require2FA"]').prop('isActive')).toBe(false);
-      expect(mock).not.toHaveBeenCalled();
-      done();
-    });
+    // Cancel
+    wrapper
+      .find('Field[name="require2FA"] ModalDialog .modal-footer Button')
+      .first()
+      .simulate('click');
+    expect(wrapper.find('Field[name="require2FA"] ModalDialog')).toHaveLength(0);
+    expect(wrapper.find('Switch[name="require2FA"]').prop('isActive')).toBe(false);
+    expect(mock).not.toHaveBeenCalled();
   });
 
-  it('enables require2fa with confirm modal', function(done) {
+  it('enables require2fa with confirm modal', async function() {
     let mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/',
       method: 'PUT',
@@ -270,34 +247,32 @@ describe('OrganizationGeneralSettingsView', function() {
     );
 
     wrapper.setState({loading: false});
-    setTimeout(() => {
-      wrapper.update();
-      expect(wrapper.find('Switch[name="require2FA"]')).toHaveLength(1);
-      wrapper.find('Switch[name="require2FA"]').simulate('click');
-      expect(wrapper.find('Field[name="require2FA"] ModalDialog')).toHaveLength(1);
+    await tick();
+    wrapper.update();
+    expect(wrapper.find('Switch[name="require2FA"]')).toHaveLength(1);
+    wrapper.find('Switch[name="require2FA"]').simulate('click');
+    expect(wrapper.find('Field[name="require2FA"] ModalDialog')).toHaveLength(1);
 
-      // Confirm
-      wrapper
-        .find(
-          'Field[name="require2FA"] ModalDialog .modal-footer Button[priority="primary"]'
-        )
-        .simulate('click');
-      expect(wrapper.find('Field[name="require2FA"] ModalDialog')).toHaveLength(0);
-      expect(wrapper.find('Switch[name="require2FA"]').prop('isActive')).toBe(true);
-      expect(mock).toHaveBeenCalledWith(
-        '/organizations/org-slug/',
-        expect.objectContaining({
-          method: 'PUT',
-          data: {
-            require2FA: true,
-          },
-        })
-      );
-      done();
-    });
+    // Confirm
+    wrapper
+      .find(
+        'Field[name="require2FA"] ModalDialog .modal-footer Button[priority="primary"]'
+      )
+      .simulate('click');
+    expect(wrapper.find('Field[name="require2FA"] ModalDialog')).toHaveLength(0);
+    expect(wrapper.find('Switch[name="require2FA"]').prop('isActive')).toBe(true);
+    expect(mock).toHaveBeenCalledWith(
+      '/organizations/org-slug/',
+      expect.objectContaining({
+        method: 'PUT',
+        data: {
+          require2FA: true,
+        },
+      })
+    );
   });
 
-  it('returns to "off" if switch enable fails (e.g. API error)', function(done) {
+  it('returns to "off" if switch enable fails (e.g. API error)', async function() {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/',
       method: 'PUT',
@@ -316,22 +291,19 @@ describe('OrganizationGeneralSettingsView', function() {
     );
 
     wrapper.setState({loading: false});
-    setTimeout(() => {
-      wrapper.update();
-      wrapper.find('Switch[name="require2FA"]').simulate('click');
+    await tick();
+    wrapper.update();
+    wrapper.find('Switch[name="require2FA"]').simulate('click');
 
-      // Confirm but has API failure
-      wrapper
-        .find(
-          'Field[name="require2FA"] ModalDialog .modal-footer Button[priority="primary"]'
-        )
-        .simulate('click');
+    // Confirm but has API failure
+    wrapper
+      .find(
+        'Field[name="require2FA"] ModalDialog .modal-footer Button[priority="primary"]'
+      )
+      .simulate('click');
 
-      setTimeout(() => {
-        wrapper.update();
-        expect(wrapper.find('Switch[name="require2FA"]').prop('isActive')).toBe(false);
-        done();
-      });
-    });
+    await tick();
+    wrapper.update();
+    expect(wrapper.find('Switch[name="require2FA"]').prop('isActive')).toBe(false);
   });
 });
