@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import {t} from '../locale';
 
 class SidebarPanelItem extends React.Component {
   static propTypes = {
@@ -29,7 +30,7 @@ class SidebarPanelItem extends React.Component {
         {this.props.link && (
           <p className="link">
             <a href={this.props.link} target="_blank">
-              Read More
+              {t('Read More')}
             </a>
           </p>
         )}

@@ -49,7 +49,7 @@ const SeenInfo = createReactClass({
                     <br />
                   </dd>,
                 ]}
-                <dt key="1">Globally:</dt>
+                <dt key="1">{t('Globally:')}</dt>
                 <dd key="1.1">
                   <TimeSince date={dateGlobal} />
                   <br />
@@ -101,7 +101,7 @@ const SeenInfo = createReactClass({
             </small>
           </dd>
         ) : (
-          <dd key={1}>n/a</dd>
+          <dd key={1}>{t('n/a')}</dd>
         )}
         <dt key={4}>{t('Release')}:</dt>
         {defined(release) ? (
@@ -117,11 +117,11 @@ const SeenInfo = createReactClass({
         ) : !this.props.hasRelease ? (
           <dd key={5}>
             <small style={{marginLeft: 5, fontStyle: 'italic'}}>
-              <a href={this.getReleaseTrackingUrl()}>not configured</a>
+              <a href={this.getReleaseTrackingUrl()}>{t('not configured')}</a>
             </small>
           </dd>
         ) : (
-          <dd key={5}>n/a</dd>
+          <dd key={5}>{t('n/a')}</dd>
         )}
       </dl>
     );

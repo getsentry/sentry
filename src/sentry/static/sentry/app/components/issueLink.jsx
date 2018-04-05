@@ -7,6 +7,7 @@ import Hovercard from './hovercard';
 import Count from './count';
 import EventOrGroupTitle from './eventOrGroupTitle';
 import TimeSince from './timeSince';
+import {t} from '../locale';
 
 export default class IssueLink extends React.Component {
   static propTypes = {
@@ -77,21 +78,21 @@ export default class IssueLink extends React.Component {
         </div>
         <div className="row row-flex" style={{marginBottom: 15}}>
           <div className="col-xs-6">
-            <h6>First Seen</h6>
+            <h6>{t('First Seen')}</h6>
             <TimeSince date={issue.firstSeen} />
           </div>
           <div className="col-xs-6">
-            <h6>Last Seen</h6>
+            <h6>{t('Last Seen')}</h6>
             <TimeSince date={issue.lastSeen} />
           </div>
         </div>
         <div className="row row-flex">
           <div className="col-xs-6">
-            <h6>Occurrences</h6>
+            <h6>{t('Occurrences')}</h6>
             <Count value={issue.count} />
           </div>
           <div className="col-xs-6">
-            <h6>Users Affected</h6>
+            <h6>{t('Users Affected')}</h6>
             <Count value={issue.userCount} />
           </div>
         </div>
