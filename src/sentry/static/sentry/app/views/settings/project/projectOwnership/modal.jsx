@@ -9,7 +9,7 @@ import AsyncView from '../../../asyncView';
 import SentryTypes from '../../../../proptypes';
 import OwnerInput from './ownerInput';
 
-class Modal extends AsyncView {
+class ProjectOwnershipModal extends AsyncView {
   static propTypes = {
     organization: SentryTypes.Organization,
     project: SentryTypes.Project,
@@ -53,4 +53,4 @@ class Modal extends AsyncView {
   }
 }
 
-export default Modal;
+export default ProjectOwnershipModal;

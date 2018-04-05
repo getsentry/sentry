@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {t} from '../../locale';
-import Ownership from '../../views/settings/project/projectOwnership/modal';
+import ProjectOwnershipModal from '../../views/settings/project/projectOwnership/modal';
 import SentryTypes from '../../proptypes';
 
 class CreateOwnershipRuleModal extends React.Component {
@@ -35,7 +35,7 @@ class CreateOwnershipRuleModal extends React.Component {
           {t('Create Ownership Rule')}
         </Header>
         <Body>
-          <Ownership {...props} onSave={this.handleSuccess} />
+          <ProjectOwnershipModal {...props} onSave={this.handleSuccess} />
         </Body>
       </React.Fragment>
     );

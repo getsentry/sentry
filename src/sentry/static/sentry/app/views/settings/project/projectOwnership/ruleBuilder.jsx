@@ -123,25 +123,19 @@ class RuleBuilder extends React.Component {
       <React.Fragment>
         {paths &&
           paths.map(v => (
-            <IssueOwnerCandidate
-              key={v}
-              onClick={() => this.setState({text: v, type: 'path'})}
-            >
+            <RuleCandidate key={v} onClick={() => this.setState({text: v, type: 'path'})}>
               <AddIcon src="icon-circle-add" />
               {v}
               <TypeHint>[PATH]</TypeHint>
-            </IssueOwnerCandidate>
+            </RuleCandidate>
           ))}
         {urls &&
           urls.map(v => (
-            <IssueOwnerCandidate
-              key={v}
-              onClick={() => this.setState({text: v, type: 'url'})}
-            >
+            <RuleCandidate key={v} onClick={() => this.setState({text: v, type: 'url'})}>
               <AddIcon src="icon-circle-add" />
               {v}
               <TypeHint>[URL]</TypeHint>
-            </IssueOwnerCandidate>
+            </RuleCandidate>
           ))}
         <BuilderBar>
           <BuilderSelect value={type} showSearch={false} onChange={this.handleTypeChange}>
@@ -206,7 +200,7 @@ const TypeHint = styled.div`
   float: right;
 `;
 
-const IssueOwnerCandidate = styled.div`
+const RuleCandidate = styled.div`
   font-family: ${p => p.theme.text.familyMono};
   border: 1px solid ${p => p.theme.borderDark};
   background-color: #f8fafd;
