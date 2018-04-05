@@ -123,4 +123,32 @@ GUIDES = {
             },
         ]
     },
+    'members': {
+        'id': 4,
+        'cue': _('Tips for inviting your team'),
+        'required_targets': ['member_add'],
+        'steps': [
+            {
+                'title': _('Fix issues faster, together'),
+                'message': _('Sentry isn\'t logs. It\'s about shipping faster by immediately '
+                             'alerting, triaging, and assigning issues to the right engineer.'),
+                'target': 'member_add',
+            },
+            {
+                'title': _('What is status?'),
+                'message': _('You can enforce <a href="/settings/${orgSlug}/#require2FA">2-factor auth</a> or '
+                             '<a href="/settings/${orgSlug}/auth/">SSO</a> across your organization. Status lets you see '
+                             'which members haven\'t configured them yet.'),
+                'target': 'member_status',
+            },
+            {
+                'title': _('A tip for roles'),
+                'message': _('Consider having two owners, in case one person\'s out, and you '
+                             'need to adjust billing or a new hire.<br><br>'
+                             'Add finance as a billing member. They\'ll get access to '
+                             'invoices, so they won\'t email you for receipts.'),
+                'target': 'member_role',
+            },
+        ]
+    }
 }

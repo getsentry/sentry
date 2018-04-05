@@ -25,7 +25,7 @@ exports[`GuideDrawer gets dismissed 1`] = `
     <div
       dangerouslySetInnerHTML={
         Object {
-          "__html": "Message 1",
+          "__html": "Message 1 test",
         }
       }
     />

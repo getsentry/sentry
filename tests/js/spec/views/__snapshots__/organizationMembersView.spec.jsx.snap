@@ -47,16 +47,21 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
       <div>
         <SettingsPageHeading
           action={
-            <Button
-              disabled={false}
-              icon="icon-circle-add"
-              priority="primary"
-              size="small"
-              title={undefined}
-              to="new"
+            <GuideAnchor
+              target="member_add"
+              type="invisible"
             >
-              Invite Member
-            </Button>
+              <Button
+                disabled={false}
+                icon="icon-circle-add"
+                priority="primary"
+                size="small"
+                title={undefined}
+                to="new"
+              >
+                Invite Member
+              </Button>
+            </GuideAnchor>
           }
           title="Members"
         >
@@ -83,92 +88,121 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                       </div>
                     </Title>
                     <div>
-                      <Button
-                        disabled={false}
-                        icon="icon-circle-add"
-                        priority="primary"
-                        size="small"
-                        to="new"
+                      <GuideAnchor
+                        target="member_add"
+                        type="invisible"
                       >
-                        <Link
-                          className="button button-primary button-sm"
-                          disabled={false}
-                          onClick={[Function]}
-                          onlyActiveOnIndex={false}
-                          role="button"
-                          style={Object {}}
-                          to="new"
+                        <GuideAnchorContainer
+                          innerRef={[Function]}
+                          type="invisible"
                         >
-                          <a
-                            className="button button-primary button-sm"
-                            disabled={false}
-                            onClick={[Function]}
-                            role="button"
-                            style={Object {}}
+                          <div
+                            className="css-kaem6e-GuideAnchorContainer css-1aiyb4m0"
+                            type="invisible"
                           >
-                            <Flex
-                              align="center"
-                              className="button-label"
+                            <Button
+                              disabled={false}
+                              icon="icon-circle-add"
+                              priority="primary"
+                              size="small"
+                              to="new"
                             >
-                              <Base
-                                align="center"
-                                className="button-label css-5ipae5"
+                              <Link
+                                className="button button-primary button-sm"
+                                disabled={false}
+                                onClick={[Function]}
+                                onlyActiveOnIndex={false}
+                                role="button"
+                                style={Object {}}
+                                to="new"
                               >
-                                <div
-                                  className="button-label css-5ipae5"
-                                  is={null}
+                                <a
+                                  className="button button-primary button-sm"
+                                  disabled={false}
+                                  onClick={[Function]}
+                                  role="button"
+                                  style={Object {}}
                                 >
-                                  <Icon
-                                    size="small"
+                                  <Flex
+                                    align="center"
+                                    className="button-label"
                                   >
                                     <Base
-                                      className="css-11bwulm-Icon css-1vxxnb60"
-                                      size="small"
+                                      align="center"
+                                      className="button-label css-5ipae5"
                                     >
                                       <div
-                                        className="css-11bwulm-Icon css-1vxxnb60"
+                                        className="button-label css-5ipae5"
                                         is={null}
-                                        size="small"
                                       >
-                                        <StyledInlineSvg
-                                          size="12px"
-                                          src="icon-circle-add"
+                                        <Icon
+                                          size="small"
                                         >
-                                          <InlineSvg
-                                            className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
-                                            size="12px"
-                                            src="icon-circle-add"
+                                          <Base
+                                            className="css-11bwulm-Icon css-1vxxnb60"
+                                            size="small"
                                           >
-                                            <StyledSvg
-                                              className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
-                                              height="12px"
-                                              viewBox={Object {}}
-                                              width="12px"
+                                            <div
+                                              className="css-11bwulm-Icon css-1vxxnb60"
+                                              is={null}
+                                              size="small"
                                             >
-                                              <svg
-                                                className="css-1vxxnb61 css-1rlza0i-StyledSvg css-adkcw30"
-                                                height="12px"
-                                                viewBox={Object {}}
-                                                width="12px"
+                                              <StyledInlineSvg
+                                                size="12px"
+                                                src="icon-circle-add"
                                               >
-                                                <use
-                                                  href="#test"
-                                                  xlinkHref="#test"
-                                                />
-                                              </svg>
-                                            </StyledSvg>
-                                          </InlineSvg>
-                                        </StyledInlineSvg>
+                                                <InlineSvg
+                                                  className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
+                                                  size="12px"
+                                                  src="icon-circle-add"
+                                                >
+                                                  <StyledSvg
+                                                    className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
+                                                    height="12px"
+                                                    viewBox={Object {}}
+                                                    width="12px"
+                                                  >
+                                                    <svg
+                                                      className="css-1vxxnb61 css-1rlza0i-StyledSvg css-adkcw30"
+                                                      height="12px"
+                                                      viewBox={Object {}}
+                                                      width="12px"
+                                                    >
+                                                      <use
+                                                        href="#test"
+                                                        xlinkHref="#test"
+                                                      />
+                                                    </svg>
+                                                  </StyledSvg>
+                                                </InlineSvg>
+                                              </StyledInlineSvg>
+                                            </div>
+                                          </Base>
+                                        </Icon>
+                                        Invite Member
                                       </div>
                                     </Base>
-                                  </Icon>
-                                  Invite Member
-                                </div>
-                              </Base>
-                            </Flex>
-                          </a>
-                        </Link>
-                      </Button>
+                                  </Flex>
+                                </a>
+                              </Link>
+                            </Button>
+                            <StyledGuideAnchor
+                              active={false}
+                              className="guide-anchor-ping member_add"
+                            >
+                              <div
+                                className="guide-anchor-ping member_add css-1yndvnf-StyledGuideAnchor css-1aiyb4m1"
+                              >
+                                <StyledGuideAnchorRipples>
+                                  <div
+                                    className="css-1t9mqkr-StyledGuideAnchorRipples css-1aiyb4m2"
+                                  />
+                                </StyledGuideAnchorRipples>
+                              </div>
+                            </StyledGuideAnchor>
+                          </div>
+                        </GuideAnchorContainer>
+                      </GuideAnchor>
                     </div>
                   </div>
                 </Base>
@@ -241,7 +275,36 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                 className="css-1pkva7q"
                                 is={null}
                               >
-                                Status
+                                <GuideAnchor
+                                  target="member_status"
+                                  type="text"
+                                >
+                                  <GuideAnchorContainer
+                                    innerRef={[Function]}
+                                    type="text"
+                                  >
+                                    <div
+                                      className="css-9u5for-GuideAnchorContainer css-1aiyb4m0"
+                                      type="text"
+                                    >
+                                      Status
+                                      <StyledGuideAnchor
+                                        active={false}
+                                        className="guide-anchor-ping member_status"
+                                      >
+                                        <div
+                                          className="guide-anchor-ping member_status css-1yndvnf-StyledGuideAnchor css-1aiyb4m1"
+                                        >
+                                          <StyledGuideAnchorRipples>
+                                            <div
+                                              className="css-1t9mqkr-StyledGuideAnchorRipples css-1aiyb4m2"
+                                            />
+                                          </StyledGuideAnchorRipples>
+                                        </div>
+                                      </StyledGuideAnchor>
+                                    </div>
+                                  </GuideAnchorContainer>
+                                </GuideAnchor>
                               </div>
                             </Base>
                           </Box>
@@ -258,7 +321,36 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                 className="css-1fsdpfi"
                                 is={null}
                               >
-                                Role
+                                <GuideAnchor
+                                  target="member_role"
+                                  type="text"
+                                >
+                                  <GuideAnchorContainer
+                                    innerRef={[Function]}
+                                    type="text"
+                                  >
+                                    <div
+                                      className="css-9u5for-GuideAnchorContainer css-1aiyb4m0"
+                                      type="text"
+                                    >
+                                      Role
+                                      <StyledGuideAnchor
+                                        active={false}
+                                        className="guide-anchor-ping member_role"
+                                      >
+                                        <div
+                                          className="guide-anchor-ping member_role css-1yndvnf-StyledGuideAnchor css-1aiyb4m1"
+                                        >
+                                          <StyledGuideAnchorRipples>
+                                            <div
+                                              className="css-1t9mqkr-StyledGuideAnchorRipples css-1aiyb4m2"
+                                            />
+                                          </StyledGuideAnchorRipples>
+                                        </div>
+                                      </StyledGuideAnchor>
+                                    </div>
+                                  </GuideAnchorContainer>
+                                </GuideAnchor>
                               </div>
                             </Base>
                           </Box>
@@ -1229,16 +1321,21 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
       <div>
         <SettingsPageHeading
           action={
-            <Button
-              disabled={false}
-              icon="icon-circle-add"
-              priority="primary"
-              size="small"
-              title={undefined}
-              to="new"
+            <GuideAnchor
+              target="member_add"
+              type="invisible"
             >
-              Invite Member
-            </Button>
+              <Button
+                disabled={false}
+                icon="icon-circle-add"
+                priority="primary"
+                size="small"
+                title={undefined}
+                to="new"
+              >
+                Invite Member
+              </Button>
+            </GuideAnchor>
           }
           title="Members"
         >
@@ -1265,92 +1362,121 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                       </div>
                     </Title>
                     <div>
-                      <Button
-                        disabled={false}
-                        icon="icon-circle-add"
-                        priority="primary"
-                        size="small"
-                        to="new"
+                      <GuideAnchor
+                        target="member_add"
+                        type="invisible"
                       >
-                        <Link
-                          className="button button-primary button-sm"
-                          disabled={false}
-                          onClick={[Function]}
-                          onlyActiveOnIndex={false}
-                          role="button"
-                          style={Object {}}
-                          to="new"
+                        <GuideAnchorContainer
+                          innerRef={[Function]}
+                          type="invisible"
                         >
-                          <a
-                            className="button button-primary button-sm"
-                            disabled={false}
-                            onClick={[Function]}
-                            role="button"
-                            style={Object {}}
+                          <div
+                            className="css-kaem6e-GuideAnchorContainer css-1aiyb4m0"
+                            type="invisible"
                           >
-                            <Flex
-                              align="center"
-                              className="button-label"
+                            <Button
+                              disabled={false}
+                              icon="icon-circle-add"
+                              priority="primary"
+                              size="small"
+                              to="new"
                             >
-                              <Base
-                                align="center"
-                                className="button-label css-5ipae5"
+                              <Link
+                                className="button button-primary button-sm"
+                                disabled={false}
+                                onClick={[Function]}
+                                onlyActiveOnIndex={false}
+                                role="button"
+                                style={Object {}}
+                                to="new"
                               >
-                                <div
-                                  className="button-label css-5ipae5"
-                                  is={null}
+                                <a
+                                  className="button button-primary button-sm"
+                                  disabled={false}
+                                  onClick={[Function]}
+                                  role="button"
+                                  style={Object {}}
                                 >
-                                  <Icon
-                                    size="small"
+                                  <Flex
+                                    align="center"
+                                    className="button-label"
                                   >
                                     <Base
-                                      className="css-11bwulm-Icon css-1vxxnb60"
-                                      size="small"
+                                      align="center"
+                                      className="button-label css-5ipae5"
                                     >
                                       <div
-                                        className="css-11bwulm-Icon css-1vxxnb60"
+                                        className="button-label css-5ipae5"
                                         is={null}
-                                        size="small"
                                       >
-                                        <StyledInlineSvg
-                                          size="12px"
-                                          src="icon-circle-add"
+                                        <Icon
+                                          size="small"
                                         >
-                                          <InlineSvg
-                                            className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
-                                            size="12px"
-                                            src="icon-circle-add"
+                                          <Base
+                                            className="css-11bwulm-Icon css-1vxxnb60"
+                                            size="small"
                                           >
-                                            <StyledSvg
-                                              className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
-                                              height="12px"
-                                              viewBox={Object {}}
-                                              width="12px"
+                                            <div
+                                              className="css-11bwulm-Icon css-1vxxnb60"
+                                              is={null}
+                                              size="small"
                                             >
-                                              <svg
-                                                className="css-1vxxnb61 css-1rlza0i-StyledSvg css-adkcw30"
-                                                height="12px"
-                                                viewBox={Object {}}
-                                                width="12px"
+                                              <StyledInlineSvg
+                                                size="12px"
+                                                src="icon-circle-add"
                                               >
-                                                <use
-                                                  href="#test"
-                                                  xlinkHref="#test"
-                                                />
-                                              </svg>
-                                            </StyledSvg>
-                                          </InlineSvg>
-                                        </StyledInlineSvg>
+                                                <InlineSvg
+                                                  className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
+                                                  size="12px"
+                                                  src="icon-circle-add"
+                                                >
+                                                  <StyledSvg
+                                                    className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
+                                                    height="12px"
+                                                    viewBox={Object {}}
+                                                    width="12px"
+                                                  >
+                                                    <svg
+                                                      className="css-1vxxnb61 css-1rlza0i-StyledSvg css-adkcw30"
+                                                      height="12px"
+                                                      viewBox={Object {}}
+                                                      width="12px"
+                                                    >
+                                                      <use
+                                                        href="#test"
+                                                        xlinkHref="#test"
+                                                      />
+                                                    </svg>
+                                                  </StyledSvg>
+                                                </InlineSvg>
+                                              </StyledInlineSvg>
+                                            </div>
+                                          </Base>
+                                        </Icon>
+                                        Invite Member
                                       </div>
                                     </Base>
-                                  </Icon>
-                                  Invite Member
-                                </div>
-                              </Base>
-                            </Flex>
-                          </a>
-                        </Link>
-                      </Button>
+                                  </Flex>
+                                </a>
+                              </Link>
+                            </Button>
+                            <StyledGuideAnchor
+                              active={false}
+                              className="guide-anchor-ping member_add"
+                            >
+                              <div
+                                className="guide-anchor-ping member_add css-1yndvnf-StyledGuideAnchor css-1aiyb4m1"
+                              >
+                                <StyledGuideAnchorRipples>
+                                  <div
+                                    className="css-1t9mqkr-StyledGuideAnchorRipples css-1aiyb4m2"
+                                  />
+                                </StyledGuideAnchorRipples>
+                              </div>
+                            </StyledGuideAnchor>
+                          </div>
+                        </GuideAnchorContainer>
+                      </GuideAnchor>
                     </div>
                   </div>
                 </Base>
@@ -1423,7 +1549,36 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                 className="css-1pkva7q"
                                 is={null}
                               >
-                                Status
+                                <GuideAnchor
+                                  target="member_status"
+                                  type="text"
+                                >
+                                  <GuideAnchorContainer
+                                    innerRef={[Function]}
+                                    type="text"
+                                  >
+                                    <div
+                                      className="css-9u5for-GuideAnchorContainer css-1aiyb4m0"
+                                      type="text"
+                                    >
+                                      Status
+                                      <StyledGuideAnchor
+                                        active={false}
+                                        className="guide-anchor-ping member_status"
+                                      >
+                                        <div
+                                          className="guide-anchor-ping member_status css-1yndvnf-StyledGuideAnchor css-1aiyb4m1"
+                                        >
+                                          <StyledGuideAnchorRipples>
+                                            <div
+                                              className="css-1t9mqkr-StyledGuideAnchorRipples css-1aiyb4m2"
+                                            />
+                                          </StyledGuideAnchorRipples>
+                                        </div>
+                                      </StyledGuideAnchor>
+                                    </div>
+                                  </GuideAnchorContainer>
+                                </GuideAnchor>
                               </div>
                             </Base>
                           </Box>
@@ -1440,7 +1595,36 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                 className="css-1fsdpfi"
                                 is={null}
                               >
-                                Role
+                                <GuideAnchor
+                                  target="member_role"
+                                  type="text"
+                                >
+                                  <GuideAnchorContainer
+                                    innerRef={[Function]}
+                                    type="text"
+                                  >
+                                    <div
+                                      className="css-9u5for-GuideAnchorContainer css-1aiyb4m0"
+                                      type="text"
+                                    >
+                                      Role
+                                      <StyledGuideAnchor
+                                        active={false}
+                                        className="guide-anchor-ping member_role"
+                                      >
+                                        <div
+                                          className="guide-anchor-ping member_role css-1yndvnf-StyledGuideAnchor css-1aiyb4m1"
+                                        >
+                                          <StyledGuideAnchorRipples>
+                                            <div
+                                              className="css-1t9mqkr-StyledGuideAnchorRipples css-1aiyb4m2"
+                                            />
+                                          </StyledGuideAnchorRipples>
+                                        </div>
+                                      </StyledGuideAnchor>
+                                    </div>
+                                  </GuideAnchorContainer>
+                                </GuideAnchor>
                               </div>
                             </Base>
                           </Box>
