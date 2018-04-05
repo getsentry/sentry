@@ -116,9 +116,7 @@ class SlackActionEndpoint(Endpoint):
         req = session.post('https://slack.com/api/dialog.open', data=payload)
         resp = req.json()
         if not resp.get('ok'):
-            logger.error('slack.action.response-error', extra={
-                'error': resp.get('error'),
-            })
+            logger.error('slack.action.response-error', extra={'response': resp})
 
     def construct_reply(self, attachment, is_message=False):
         # XXX(epurkhiser): Slack is inconsistent about it's expected responses
@@ -248,9 +246,7 @@ class SlackActionEndpoint(Endpoint):
             req = session.post(callback_data['orig_response_url'], json=body)
             resp = req.json()
             if not resp.get('ok'):
-                logger.error('slack.action.response-error', extra={
-                    'error': resp.get('error'),
-                })
+                logger.error('slack.action.response-error', extra={'response': resp})
 
             return self.respond()
 
