@@ -1,5 +1,5 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+import {mount, shallow} from 'enzyme';
 
 import KeyValueList from 'app/components/events/interfaces/keyValueList';
 
@@ -99,6 +99,25 @@ describe('KeyValueList', function() {
           .at(1)
           .text()
       ).toEqual('y');
+    });
+
+    it('can sort key/value pairs with non-string values', function() {
+      let data = [['b', {foo: 'bar'}], ['a', [3, 2, 1]]];
+      let wrapper = mount(<KeyValueList isContextData data={data} />);
+
+      // Ignore values, more interested in if keys rendered + are sorted
+      expect(
+        wrapper
+          .find('.key')
+          .at(0)
+          .text()
+      ).toEqual('a');
+      expect(
+        wrapper
+          .find('.key')
+          .at(1)
+          .text()
+      ).toEqual('b');
     });
 
     it('should coerce non-strings into strings', function() {
