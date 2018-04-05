@@ -1,11 +1,12 @@
 import React from 'react';
-import SentryTypes from '../../proptypes';
 
 import {objectToArray} from '../../utils';
-import EventDataSection from './eventDataSection';
-import ClippedBox from '../clippedBox';
-import KeyValueList from './interfaces/keyValueList';
 import {t} from '../../locale';
+import ClippedBox from '../clippedBox';
+import ErrorBoundary from '../errorBoundary';
+import EventDataSection from './eventDataSection';
+import KeyValueList from './interfaces/keyValueList';
+import SentryTypes from '../../proptypes';
 
 class EventPackageData extends React.Component {
   static propTypes = {
@@ -28,7 +29,9 @@ class EventPackageData extends React.Component {
         title={t('Packages')}
       >
         <ClippedBox>
-          <KeyValueList data={packages} />
+          <ErrorBoundary mini>
+            <KeyValueList data={packages} />
+          </ErrorBoundary>
         </ClippedBox>
       </EventDataSection>
     );
