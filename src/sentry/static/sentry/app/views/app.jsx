@@ -110,11 +110,16 @@ const App = createReactClass({
 
       // 401s can also mean sudo is required or it's a request that is allowed to fail
       // Ignore if these are the cases
-      if (response && (response.sudoRequired || response.allowFail)) return;
+      if (
+        response &&
+        response.detail &&
+        (response.detail.code === 'sudo-required' || response.detail.code === 'ignore')
+      )
+        return;
 
       // If user must login via SSO, redirect to org login page
-      if (response && response.detail && response.detail.ssoRequired) {
-        window.location.assign(response.detail.loginUrl);
+      if (response && response.detail && response.detail.code === 'sso-required') {
+        window.location.assign(response.detail.extra.loginUrl);
         return;
       }
 
