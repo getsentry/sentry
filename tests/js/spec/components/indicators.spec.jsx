@@ -1,5 +1,4 @@
 import React from 'react';
-import {mount} from 'enzyme';
 import Indicators from 'app/components/indicators';
 import IndicatorStore from 'app/stores/indicatorStore';
 import {
@@ -8,6 +7,7 @@ import {
   addErrorMessage,
   addMessage,
 } from 'app/actionCreators/indicator';
+import {mountWithTheme} from '../../../helpers';
 
 // Make sure we use `duration: null` to test add/remove
 jest.useFakeTimers();
@@ -15,7 +15,7 @@ jest.useFakeTimers();
 describe('Indicators', function() {
   let wrapper;
   beforeEach(function() {
-    wrapper = mount(<Indicators />, TestStubs.routerContext());
+    wrapper = mountWithTheme(<Indicators />);
 
     clearIndicators();
     jest.runAllTimers();
