@@ -8,13 +8,6 @@ export default class AsyncView extends AsyncComponent {
     return '';
   }
 
-  getDefaultState() {
-    return {
-      ...super.getDefaultState(),
-      needsVerification: false,
-    };
-  }
-
   render() {
     let title = this.getTitle();
     return (
