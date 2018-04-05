@@ -27,7 +27,6 @@ from sentry.utils.http import absolute_uri, is_valid_origin
 from sentry.utils.audit import create_audit_entry
 
 from .authentication import ApiKeyAuthentication, TokenAuthentication
-from .exceptions import NeedSuperuserUpgrade
 from .paginator import Paginator
 from .permissions import NoPermission
 
@@ -169,10 +168,6 @@ class Endpoint(APIView):
                 request.access = access.from_request(request)
 
             response = handler(request, *args, **kwargs)
-
-        except NeedSuperuserUpgrade as exc:
-            response = self.handle_exception(request, exc)
-            response.data['needsSuperuser'] = True
 
         except Exception as exc:
             response = self.handle_exception(request, exc)

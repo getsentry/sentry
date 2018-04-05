@@ -74,10 +74,13 @@ export class Client {
       response &&
       response.responseJSON &&
       response.responseJSON.detail &&
-      response.responseJSON.detail.code === 'sudo-required';
+      (response.responseJSON.detail.code === 'sudo-required' ||
+        response.responseJSON.detail.code === 'superuser-required');
 
     if (isSudoRequired) {
       openSudo({
+        superuser: response.responseJSON.detail.code === 'superuser-required',
+        sudo: response.responseJSON.detail.code === 'sudo-required',
         retryRequest: () => {
           return this.requestPromise(path, requestOptions)
             .then((...args) => {

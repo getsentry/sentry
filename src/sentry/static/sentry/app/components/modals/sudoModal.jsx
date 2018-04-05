@@ -1,3 +1,4 @@
+import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
@@ -66,8 +67,8 @@ class SudoModal extends React.Component {
     this.setState({busy: true});
     // u2Interface expects this to return a promise
     return this.props.api
-      .requestPromise('/sudo/', {
-        method: 'POST',
+      .requestPromise('/auth/', {
+        method: 'PUT',
         data,
       })
       .then(() => {
@@ -86,8 +87,8 @@ class SudoModal extends React.Component {
 
     return (
       <ApiForm
-        apiMethod="POST"
-        apiEndpoint="/sudo/"
+        apiMethod="PUT"
+        apiEndpoint="/auth/"
         footerClass="modal-footer"
         submitLabel={t('Continue')}
         onSubmit={this.handleSubmit}
@@ -125,5 +126,5 @@ const SudoModalContainer = createReactClass({
   },
 });
 
-export default SudoModalContainer;
+export default withRouter(SudoModalContainer);
 export {SudoModal};
