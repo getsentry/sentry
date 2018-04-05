@@ -40,5 +40,5 @@ class SudoEndpoint(Endpoint):
             grant_sudo_privileges(request._request)
             return Response(status=status.HTTP_204_NO_CONTENT)
 
-        return Response({'allowFail': True}, content_type="application/json",
-                        status=status.HTTP_401_UNAUTHORIZED)
+        # UI treats 401s by redirecting, this 401 should be ignored
+        return Response({'detail': {'code': 'ignore'}}, status=status.HTTP_401_UNAUTHORIZED)

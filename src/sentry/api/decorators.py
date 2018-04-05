@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
-from rest_framework.response import Response
 from functools import wraps
 
+from sentry.api.exceptions import SudoRequired
 from sentry.models import ApiKey, ApiToken
 
 
@@ -24,12 +24,7 @@ def sudo_required(func):
         if not is_considered_sudo(request):
             # TODO(dcramer): support some kind of auth flow to allow this
             # externally
-            data = {
-                "error": "Account verification required.",
-                "sudoRequired": True,
-                "username": request.user.username,
-            }
-            return Response(data, status=401)
+            raise SudoRequired(request.user)
         return func(self, request, *args, **kwargs)
 
     return wrapped

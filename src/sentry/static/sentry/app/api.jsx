@@ -71,7 +71,10 @@ export class Client {
 
   handleRequestError({id, path, requestOptions}, response, ...responseArgs) {
     let isSudoRequired =
-      response && response.responseJSON && response.responseJSON.sudoRequired;
+      response &&
+      response.responseJSON &&
+      response.responseJSON.detail &&
+      response.responseJSON.detail.code === 'sudo-required';
 
     if (isSudoRequired) {
       openSudo({

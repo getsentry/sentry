@@ -1,9 +1,7 @@
 from __future__ import absolute_import
 
-from rest_framework.exceptions import NotAuthenticated
-
 from sentry.api.base import Endpoint, logger
-from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.exceptions import ResourceDoesNotExist, SsoRequired, TwoFactorRequired
 from sentry.api.permissions import ScopedPermission
 from sentry.app import raven
 from sentry.auth import access
@@ -74,7 +72,8 @@ class OrganizationPermission(ScopedPermission):
                             'user_id': request.user.id,
                         }
                     )
-                    raise NotAuthenticated(detail='Must login via SSO')
+
+                    raise SsoRequired(organization)
 
                 if self.is_not_2fa_compliant(
                         request.user, organization):
@@ -85,8 +84,7 @@ class OrganizationPermission(ScopedPermission):
                             'user_id': request.user.id,
                         }
                     )
-                    raise NotAuthenticated(
-                        detail='Organization requires two-factor authentication to be enabled')
+                    raise TwoFactorRequired()
 
         allowed_scopes = set(self.scope_map.get(request.method, []))
         return any(request.access.has_scope(s) for s in allowed_scopes)

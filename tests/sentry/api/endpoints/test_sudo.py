@@ -29,7 +29,9 @@ class SudoTest(APITestCase):
         with self.settings(MIDDLEWARE_CLASSES=tuple(middleware)):
             response = self.client.delete(url, is_sudo=False)
             assert response.status_code == 401
-            assert response.data['sudoRequired']
+            assert response.data['detail']['code'] == 'sudo-required'
+            assert response.data['detail']['message'] == 'Account verification required.'
+            assert response.data['detail']['extra']['username'] == 'foo@example.com'
 
             sudo_url = reverse('sentry-api-0-sudo', kwargs={})
             # Now try to gain sudo access

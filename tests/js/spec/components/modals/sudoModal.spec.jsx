@@ -4,7 +4,6 @@ import {mount} from 'enzyme';
 import {Client} from 'app/api';
 import ConfigStore from 'app/stores/configStore';
 import App from 'app/views/app';
-import {SudoModal} from 'app/components/modals/sudoModal';
 
 jest.mock('jquery');
 
@@ -32,7 +31,10 @@ describe('Sudo Modal', function() {
       method: 'DELETE',
       statusCode: 401,
       body: {
-        sudoRequired: true,
+        detail: {
+          code: 'sudo-required',
+          username: 'test@test.com',
+        },
       },
     });
     Client.addMockResponse({
@@ -46,8 +48,8 @@ describe('Sudo Modal', function() {
     ConfigStore.set('messages', []);
   });
 
-  it('can delete an org with sudo flow', function(done) {
-    mount(<App>{<div>placeholder content</div>}</App>);
+  it('can delete an org with sudo flow', async function() {
+    let wrapper = mount(<App>{<div>placeholder content</div>}</App>);
 
     let api = new Client();
     let successCb = jest.fn();
@@ -55,7 +57,7 @@ describe('Sudo Modal', function() {
     let orgDeleteMock;
 
     // No Modal
-    expect($('.modal input')).toHaveLength(0);
+    expect(wrapper.find('ModalDialog')).toHaveLength(0);
 
     // Should return w/ `sudoRequired`
     api.request('/organizations/org-slug/', {
@@ -64,69 +66,66 @@ describe('Sudo Modal', function() {
       error: errorCb,
     });
 
-    SudoModal.prototype.componentDidMount = function() {
-      try {
-        const $input = $('.modal input');
-        expect($input).toHaveLength(1);
-        // Original callbacks should not have been called
-        expect(successCb).not.toBeCalled();
-        expect(errorCb).not.toBeCalled();
+    await tick();
+    await tick();
+    wrapper.update();
 
-        // Clear mocks and allow DELETE
-        Client.clearMockResponses();
-        orgDeleteMock = Client.addMockResponse({
-          url: '/organizations/org-slug/',
-          method: 'DELETE',
-          statusCode: 200,
-        });
-        let sudoMock = Client.addMockResponse({
-          url: '/sudo/',
-          method: 'POST',
-          statusCode: 200,
-        });
+    // Should have Modal + input
+    expect(wrapper.find('ModalDialog input')).toHaveLength(1);
 
-        expect(sudoMock).not.toHaveBeenCalled();
+    // Original callbacks should not have been called
+    expect(successCb).not.toBeCalled();
+    expect(errorCb).not.toBeCalled();
 
-        // "Sudo" auth
-        $input.val('password');
+    // Clear mocks and allow DELETE
+    Client.clearMockResponses();
+    orgDeleteMock = Client.addMockResponse({
+      url: '/organizations/org-slug/',
+      method: 'DELETE',
+      statusCode: 200,
+    });
+    let sudoMock = Client.addMockResponse({
+      url: '/sudo/',
+      method: 'POST',
+      statusCode: 200,
+    });
 
-        $('.modal form').on('submit', () => {
-          setTimeout(() => {
-            expect(sudoMock).toHaveBeenCalledWith(
-              '/sudo/',
-              expect.objectContaining({
-                method: 'POST',
-                // XXX: This doesn't submit with password in tests because modal is rendered outside of
-                // react tree. So we can't simulate react events on input
-                // data: {
-                // password: 'password',
-                // },
-              })
-            );
+    expect(sudoMock).not.toHaveBeenCalled();
 
-            // Check for original API request to be retried
-            setTimeout(() => {
-              try {
-                // Retry API request
-                expect(successCb).toHaveBeenCalled();
-                expect(orgDeleteMock).toHaveBeenCalledWith(
-                  '/organizations/org-slug/',
-                  expect.objectContaining({
-                    method: 'DELETE',
-                  })
-                );
-              } catch (err) {
-                done(err);
-              }
-              done();
-            }, 1);
-          }, 1);
-        });
+    // "Sudo" auth
+    wrapper
+      .find('ModalDialog input[name="password"]')
+      .simulate('change', {target: {value: 'password'}});
 
-        $('.modal [type="submit"]').click();
-      } catch (err) {
-        done(err);
-      }
-    };
+    wrapper.find('ModalDialog form').simulate('submit');
+    wrapper.find('ModalDialog [type="submit"]').simulate('click');
+
+    await tick();
+    wrapper.update();
+
+    expect(sudoMock).toHaveBeenCalledWith(
+      '/sudo/',
+      expect.objectContaining({
+        method: 'POST',
+        data: {
+          password: 'password',
+        },
+      })
+    );
+
+    // Retry API request
+    expect(successCb).toHaveBeenCalled();
+    expect(orgDeleteMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/',
+      expect.objectContaining({
+        method: 'DELETE',
+      })
+    );
+
+    await tick();
+    wrapper.update();
+
+    // Sudo Modal should be closed
+    expect(wrapper.find('ModalDialog')).toHaveLength(0);
   });
 });
