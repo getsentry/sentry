@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`EventOrGroupExtraDetails details when mentioned 1`] = `
-<Flex
+<GroupExtra
   align="center"
 >
   <Box
@@ -11,28 +11,28 @@ exports[`EventOrGroupExtraDetails details when mentioned 1`] = `
       shortId="shortId"
     />
   </Box>
-  <GroupExtra>
-    <Flex
-      align="center"
-      mr={2}
-    >
-      <React.Fragment>
-        <GroupExtraIcon
-          className="icon icon-clock"
-        />
-        <TimeSince
-          date="2017-07-25T22:56:12Z"
-          suffix="ago"
-        />
-      </React.Fragment>
-      <span>
-         — 
-      </span>
-      <TimeSince
-        date="2017-07-01T02:06:02Z"
-        suffix="old"
+  <Flex
+    align="center"
+    mr={2}
+  >
+    <React.Fragment>
+      <GroupExtraIcon
+        className="icon icon-clock"
       />
-    </Flex>
+      <TimeSince
+        date="2017-07-25T22:56:12Z"
+        suffix="ago"
+      />
+    </React.Fragment>
+    <span>
+       — 
+    </span>
+    <TimeSince
+      date="2017-07-01T02:06:02Z"
+      suffix="old"
+    />
+  </Flex>
+  <GroupExtraCommentsAndLogger>
     <Box
       mr={2}
     >
@@ -76,30 +76,30 @@ exports[`EventOrGroupExtraDetails details when mentioned 1`] = `
         javascript logger
       </Link>
     </Box>
-    <Box
-      className="event-annotation"
-      dangerouslySetInnerHTML={
-        Object {
-          "__html": "annotation1",
-        }
+  </GroupExtraCommentsAndLogger>
+  <Box
+    className="event-annotation"
+    dangerouslySetInnerHTML={
+      Object {
+        "__html": "annotation1",
       }
-      key="0"
-    />
-    <Box
-      className="event-annotation"
-      dangerouslySetInnerHTML={
-        Object {
-          "__html": "annotation2",
-        }
+    }
+    key="0"
+  />
+  <Box
+    className="event-annotation"
+    dangerouslySetInnerHTML={
+      Object {
+        "__html": "annotation2",
       }
-      key="1"
-    />
-  </GroupExtra>
-</Flex>
+    }
+    key="1"
+  />
+</GroupExtra>
 `;
 
 exports[`EventOrGroupExtraDetails renders all details 1`] = `
-<Flex
+<GroupExtra
   align="center"
 >
   <Box
@@ -109,28 +109,28 @@ exports[`EventOrGroupExtraDetails renders all details 1`] = `
       shortId="shortId"
     />
   </Box>
-  <GroupExtra>
-    <Flex
-      align="center"
-      mr={2}
-    >
-      <React.Fragment>
-        <GroupExtraIcon
-          className="icon icon-clock"
-        />
-        <TimeSince
-          date="2017-07-25T22:56:12Z"
-          suffix="ago"
-        />
-      </React.Fragment>
-      <span>
-         — 
-      </span>
-      <TimeSince
-        date="2017-07-01T02:06:02Z"
-        suffix="old"
+  <Flex
+    align="center"
+    mr={2}
+  >
+    <React.Fragment>
+      <GroupExtraIcon
+        className="icon icon-clock"
       />
-    </Flex>
+      <TimeSince
+        date="2017-07-25T22:56:12Z"
+        suffix="ago"
+      />
+    </React.Fragment>
+    <span>
+       — 
+    </span>
+    <TimeSince
+      date="2017-07-01T02:06:02Z"
+      suffix="old"
+    />
+  </Flex>
+  <GroupExtraCommentsAndLogger>
     <Box
       mr={2}
     >
@@ -170,30 +170,30 @@ exports[`EventOrGroupExtraDetails renders all details 1`] = `
         javascript logger
       </Link>
     </Box>
-    <Box
-      className="event-annotation"
-      dangerouslySetInnerHTML={
-        Object {
-          "__html": "annotation1",
-        }
+  </GroupExtraCommentsAndLogger>
+  <Box
+    className="event-annotation"
+    dangerouslySetInnerHTML={
+      Object {
+        "__html": "annotation1",
       }
-      key="0"
-    />
-    <Box
-      className="event-annotation"
-      dangerouslySetInnerHTML={
-        Object {
-          "__html": "annotation2",
-        }
+    }
+    key="0"
+  />
+  <Box
+    className="event-annotation"
+    dangerouslySetInnerHTML={
+      Object {
+        "__html": "annotation2",
       }
-      key="1"
-    />
-  </GroupExtra>
-</Flex>
+    }
+    key="1"
+  />
+</GroupExtra>
 `;
 
 exports[`EventOrGroupExtraDetails renders assignee and status 1`] = `
-<Flex
+<GroupExtra
   align="center"
 >
   <Box
@@ -203,28 +203,28 @@ exports[`EventOrGroupExtraDetails renders assignee and status 1`] = `
       shortId="shortId"
     />
   </Box>
-  <GroupExtra>
-    <Flex
-      align="center"
-      mr={2}
-    >
-      <React.Fragment>
-        <GroupExtraIcon
-          className="icon icon-clock"
-        />
-        <TimeSince
-          date="2017-07-25T22:56:12Z"
-          suffix="ago"
-        />
-      </React.Fragment>
-      <span>
-         — 
-      </span>
-      <TimeSince
-        date="2017-07-01T02:06:02Z"
-        suffix="old"
+  <Flex
+    align="center"
+    mr={2}
+  >
+    <React.Fragment>
+      <GroupExtraIcon
+        className="icon icon-clock"
       />
-    </Flex>
+      <TimeSince
+        date="2017-07-25T22:56:12Z"
+        suffix="ago"
+      />
+    </React.Fragment>
+    <span>
+       — 
+    </span>
+    <TimeSince
+      date="2017-07-01T02:06:02Z"
+      suffix="old"
+    />
+  </Flex>
+  <GroupExtraCommentsAndLogger>
     <Box
       mr={2}
     >
@@ -264,111 +264,108 @@ exports[`EventOrGroupExtraDetails renders assignee and status 1`] = `
         javascript logger
       </Link>
     </Box>
-    <Box
-      className="event-annotation"
-      dangerouslySetInnerHTML={
-        Object {
-          "__html": "annotation1",
-        }
+  </GroupExtraCommentsAndLogger>
+  <Box
+    className="event-annotation"
+    dangerouslySetInnerHTML={
+      Object {
+        "__html": "annotation1",
       }
-      key="0"
-    />
-    <Box
-      className="event-annotation"
-      dangerouslySetInnerHTML={
-        Object {
-          "__html": "annotation2",
-        }
+    }
+    key="0"
+  />
+  <Box
+    className="event-annotation"
+    dangerouslySetInnerHTML={
+      Object {
+        "__html": "annotation2",
       }
-      key="1"
-    />
-    <Box>
+    }
+    key="1"
+  />
+  <Box>
+    <span
+      key="4"
+    >
       <span
-        key="4"
+        key="0"
       >
-        <span
-          key="0"
-        >
-          Assigned to 
-        </span>
-        <span
-          key="2"
-        >
-          Assignee Name
-        </span>
+        Assigned to 
       </span>
-    </Box>
-  </GroupExtra>
-</Flex>
+      <span
+        key="2"
+      >
+        Assignee Name
+      </span>
+    </span>
+  </Box>
+</GroupExtra>
 `;
 
 exports[`EventOrGroupExtraDetails renders last and first seen 1`] = `
-<Flex
+<GroupExtra
   align="center"
 >
-  <GroupExtra>
-    <Flex
-      align="center"
-      mr={2}
-    >
-      <React.Fragment>
-        <GroupExtraIcon
-          className="icon icon-clock"
-        />
-        <TimeSince
-          date="2017-07-25T22:56:12Z"
-          suffix="ago"
-        />
-      </React.Fragment>
-      <span>
-         — 
-      </span>
-      <TimeSince
-        date="2017-07-01T02:06:02Z"
-        suffix="old"
+  <Flex
+    align="center"
+    mr={2}
+  >
+    <React.Fragment>
+      <GroupExtraIcon
+        className="icon icon-clock"
       />
-    </Flex>
-  </GroupExtra>
-</Flex>
+      <TimeSince
+        date="2017-07-25T22:56:12Z"
+        suffix="ago"
+      />
+    </React.Fragment>
+    <span>
+       — 
+    </span>
+    <TimeSince
+      date="2017-07-01T02:06:02Z"
+      suffix="old"
+    />
+  </Flex>
+  <GroupExtraCommentsAndLogger />
+</GroupExtra>
 `;
 
 exports[`EventOrGroupExtraDetails renders only first seen 1`] = `
-<Flex
+<GroupExtra
   align="center"
 >
-  <GroupExtra>
-    <Flex
-      align="center"
-      mr={2}
-    >
-      <TimeSince
-        date="2017-07-01T02:06:02Z"
-        suffix="old"
-      />
-    </Flex>
-  </GroupExtra>
-</Flex>
+  <Flex
+    align="center"
+    mr={2}
+  >
+    <TimeSince
+      date="2017-07-01T02:06:02Z"
+      suffix="old"
+    />
+  </Flex>
+  <GroupExtraCommentsAndLogger />
+</GroupExtra>
 `;
 
 exports[`EventOrGroupExtraDetails renders only last seen 1`] = `
-<Flex
+<GroupExtra
   align="center"
 >
-  <GroupExtra>
-    <Flex
-      align="center"
-      mr={2}
-    >
-      <React.Fragment>
-        <GroupExtraIcon
-          className="icon icon-clock"
-        />
-        <TimeSince
-          date="2017-07-25T22:56:12Z"
-          suffix="ago"
-        />
-      </React.Fragment>
-    </Flex>
-  </GroupExtra>
-</Flex>
+  <Flex
+    align="center"
+    mr={2}
+  >
+    <React.Fragment>
+      <GroupExtraIcon
+        className="icon icon-clock"
+      />
+      <TimeSince
+        date="2017-07-25T22:56:12Z"
+        suffix="ago"
+      />
+    </React.Fragment>
+  </Flex>
+  <GroupExtraCommentsAndLogger />
+</GroupExtra>
 `;

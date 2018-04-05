@@ -55,23 +55,23 @@ const EventOrGroupExtraDetails = createReactClass({
     }
 
     return (
-      <Flex align="center">
+      <GroupExtra align="center">
         {shortId && (
           <Box mr={2}>
             <GroupShortId shortId={shortId} />
           </Box>
         )}
-        <GroupExtra>
-          <Flex align="center" mr={2}>
-            {lastSeen && (
-              <React.Fragment>
-                <GroupExtraIcon className="icon icon-clock" />
-                <TimeSince date={lastSeen} suffix={t('ago')} />
-              </React.Fragment>
-            )}
-            {firstSeen && lastSeen && <span>&nbsp;—&nbsp;</span>}
-            {firstSeen && <TimeSince date={firstSeen} suffix={t('old')} />}
-          </Flex>
+        <Flex align="center" mr={2}>
+          {lastSeen && (
+            <React.Fragment>
+              <GroupExtraIcon className="icon icon-clock" />
+              <TimeSince date={lastSeen} suffix={t('ago')} />
+            </React.Fragment>
+          )}
+          {firstSeen && lastSeen && <span>&nbsp;—&nbsp;</span>}
+          {firstSeen && <TimeSince date={firstSeen} suffix={t('old')} />}
+        </Flex>
+        <GroupExtraCommentsAndLogger>
           {numComments > 0 && (
             <Box mr={2}>
               <Link
@@ -97,23 +97,23 @@ const EventOrGroupExtraDetails = createReactClass({
               </Link>
             </Box>
           )}
-          {annotations &&
-            annotations.map((annotation, key) => {
-              return (
-                <Box
-                  className="event-annotation"
-                  dangerouslySetInnerHTML={{
-                    __html: annotation,
-                  }}
-                  key={key}
-                />
-              );
-            })}
+        </GroupExtraCommentsAndLogger>
+        {annotations &&
+          annotations.map((annotation, key) => {
+            return (
+              <Box
+                className="event-annotation"
+                dangerouslySetInnerHTML={{
+                  __html: annotation,
+                }}
+                key={key}
+              />
+            );
+          })}
 
-          {showAssignee &&
-            assignedTo && <Box>{tct('Assigned to [name]', {name: assignedTo.name})}</Box>}
-        </GroupExtra>
-      </Flex>
+        {showAssignee &&
+          assignedTo && <Box>{tct('Assigned to [name]', {name: assignedTo.name})}</Box>}
+      </GroupExtra>
     );
   },
 });
@@ -121,14 +121,21 @@ const EventOrGroupExtraDetails = createReactClass({
 const GroupExtra = styled(Flex)`
   color: ${p => p.theme.gray2}
   font-size: 12px;
+  a {
+    color: inherit;
+  }
+`;
+
+const GroupExtraCommentsAndLogger = styled(Flex)`
+  color: ${p => p.theme.gray5};
 `;
 
 const GroupShortId = styled(ShortId)`
+  font-size: 13px;
   font-weight: 600;
 `;
 
 const GroupExtraIcon = styled.span`
-  color: ${p => p.theme.gray2};
   font-size: 11px;
   margin-right: 4px;
 `;
