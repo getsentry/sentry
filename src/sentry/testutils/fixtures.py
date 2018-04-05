@@ -367,7 +367,8 @@ class Fixtures(object):
     def create_repo(self, project, name=None):
         repo = Repository.objects.create(
             organization_id=project.organization_id,
-            name=name or make_word(),
+            name=name or '{}-{}'.format(petname.Generate(2, '',
+                                                         letters=10), random.randint(1000, 9999)),
         )
         return repo
 
