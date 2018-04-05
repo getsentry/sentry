@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from django.contrib.auth import logout
 from django.contrib.auth.models import AnonymousUser
+from rest_framework import status
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.response import Response
 from sudo.utils import grant_sudo_privileges
@@ -108,33 +109,37 @@ class AuthIndexEndpoint(Endpoint):
 
         validator = AuthVerifyValidator(data=request.DATA)
         if not validator.is_valid():
-            return self.respond(validator.errors, status=400)
+            return self.respond(validator.errors, status=status.HTTP_400_BAD_REQUEST)
 
         authenticated = False
 
-        if 'challenge' in request.DATA and 'response' in request.DATA:
+        # See if we have a u2f challenge/response
+        if 'challenge' in validator.object and 'response' in validator.object:
             try:
                 interface = Authenticator.objects.get_interface(request.user, 'u2f')
                 if not interface.is_enrolled:
                     raise LookupError()
 
-                challenge = json.loads(request.DATA['challenge'])
-                response = json.loads(request.DATA['response'])
+                challenge = json.loads(validator.object['challenge'])
+                response = json.loads(validator.object['response'])
                 authenticated = interface.validate_response(request, challenge, response)
             except ValueError:
                 pass
             except LookupError:
                 pass
 
+        # attempt password authentication
         else:
             authenticated = request.user.check_password(validator.object['password'])
 
+        # UI treats 401s by redirecting, this 401 should be ignored
         if not authenticated:
-            return Response({'allowFail': True}, status=403)
+            return Response({'detail': {'code': 'ignore'}}, status=status.HTTP_401_UNAUTHORIZED)
 
         try:
             # Must use the real request object that Django knows about
             auth.login(request._request, request.user)
+            # Also can grant sudo
             grant_sudo_privileges(request._request)
         except auth.AuthUserPasswordExpired:
             return Response(
