@@ -4,10 +4,10 @@ import createReactClass from 'create-react-class';
 import _ from 'lodash';
 import classNames from 'classnames';
 
-import ClippedBox from '../../../components/clippedBox';
-import TooltipMixin from '../../../mixins/tooltip';
+import ClippedBox from '../../clippedBox';
+import Tooltip from '../../tooltip';
 import StrictClick from '../../strictClick';
-import Truncate from '../../../components/truncate';
+import Truncate from '../../truncate';
 import {t} from '../../../locale';
 import {defined, objectIsEmpty, isUrl} from '../../../utils';
 
@@ -33,14 +33,6 @@ const Frame = createReactClass({
     isOnlyFrame: PropTypes.bool,
     timesRepeated: PropTypes.number,
   },
-
-  mixins: [
-    TooltipMixin({
-      html: true,
-      selector: '.tip',
-      trigger: 'hover',
-    }),
-  ],
 
   getDefaultProps() {
     return {
@@ -144,13 +136,11 @@ const Frame = createReactClass({
       // we want to show a litle (?) icon that on hover shows the actual filename
       if (shouldPrioritizeModuleName && data.filename) {
         title.push(
-          <a
-            key="real-filename"
-            className="in-at tip real-filename"
-            data-title={_.escape(data.filename)}
-          >
-            <span className="icon-question" />
-          </a>
+          <Tooltip title={_.escape(data.filename)}>
+            <a className="in-at real-filename">
+              <span className="icon-question" />
+            </a>
+          </Tooltip>
         );
       }
 
@@ -216,13 +206,11 @@ const Frame = createReactClass({
 
     if (defined(data.origAbsPath)) {
       title.push(
-        <a
-          key="original-src"
-          className="in-at tip original-src"
-          data-title={this.renderOriginalSourceInfo()}
-        >
-          <span className="icon-question" />
-        </a>
+        <Tooltip title={this.renderOriginalSourceInfo()}>
+          <a className="in-at original-src">
+            <span className="icon-question" />
+          </a>
+        </Tooltip>
       );
     }
 

@@ -158,6 +158,7 @@ export default {
     TextBlock: require('./views/settings/components/text/textBlock').default,
     TimeSince: require('./components/timeSince').default,
     TodoList: require('./components/onboardingWizard/todos').default,
+    Tooltip: require('./components/tooltip').default,
     U2fEnrollment: require('./components/u2fenrollment').default,
     U2fSign: require('./components/u2fsign').default,
     Badge: require('./components/badge').default,
