@@ -960,7 +960,15 @@ class JavascriptIntegrationTest(TestCase):
                     {
                         'type': 'Error',
                         'stacktrace': {
+                            # Add two frames.  We only want to see the
+                            # error once though.
                             'frames': [
+                                {
+                                    'abs_path': 'http://example.com/file.min.js',
+                                    'filename': 'file.min.js',
+                                    'lineno': 1,
+                                    'colno': 39,
+                                },
                                 {
                                     'abs_path': 'http://example.com/file.min.js',
                                     'filename': 'file.min.js',
