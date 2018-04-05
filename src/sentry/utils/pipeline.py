@@ -4,6 +4,7 @@ from sentry.models import Organization
 from sentry.web.frontend.base import BaseView
 from sentry.utils.session_store import RedisSessionStore
 from sentry.utils.hashlib import md5_text
+from sentry.web.helpers import render_to_response
 
 
 class PipelineProvider(object):
@@ -198,8 +199,8 @@ class Pipeline(object):
         )
 
     def error(self, message):
-        # TODO: Implement this here
-        raise NotImplementedError
+        context = {'error': message}
+        return render_to_response('sentry/pipeline-error.html', context, self.request)
 
     def next_step(self):
         """
