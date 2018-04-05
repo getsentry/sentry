@@ -2730,9 +2730,11 @@ ul.radio-inputs {
 }
 
 .create-ownership-rule-modal {
-  .modal-dialog {
-    width: 80%;
-    margin-left: -40%;
+  @media (min-width: 767px) {
+    .modal-dialog {
+      width: 80%;
+      margin-left: -40%;
+    }
   }
   .modal-content {
     overflow: initial;
