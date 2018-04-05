@@ -169,10 +169,10 @@ let GroupEventToolbar = createReactClass({
         </h4>
         <span>
           <Tooltip title={this.getDateTooltip()} tooltipOptions={{html: true}}>
-            <React.Fragment>
+            <span>
               <DateTime date={evt.dateCreated} style={style} />
               {isOverLatencyThreshold && <span className="icon-alert" />}
-            </React.Fragment>
+            </span>
           </Tooltip>
           <a href={jsonUrl} target="_blank" className="json-link">
             {'JSON'} (<FileSize bytes={evt.size} />)
