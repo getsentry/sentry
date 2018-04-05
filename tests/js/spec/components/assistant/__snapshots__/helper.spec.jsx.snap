@@ -46,6 +46,7 @@ exports[`Helper renders guide drawer 1`] = `
     }
     onDismiss={[Function]}
     onFinish={[Function]}
+    orgSlug={null}
     step={1}
   />
 </StyledHelper>

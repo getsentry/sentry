@@ -15,6 +15,7 @@ import {Panel, PanelBody, PanelHeader} from '../../../../components/panels';
 import SentryTypes from '../../../../proptypes';
 import SettingsPageHeader from '../../components/settingsPageHeader';
 import recreateRoute from '../../../../utils/recreateRoute';
+import GuideAnchor from '../../../../components/assistant/guideAnchor';
 
 class OrganizationMembersView extends OrganizationSettingsView {
   static propTypes = {
@@ -236,6 +237,13 @@ class OrganizationMembersView extends OrganizationSettingsView {
       </Button>
     );
 
+    if (canAddMembers)
+      action = (
+        <GuideAnchor target="member_add" type="invisible">
+          {action}
+        </GuideAnchor>
+      );
+
     return (
       <div>
         <SettingsPageHeader title="Members" action={action} />
@@ -253,10 +261,14 @@ class OrganizationMembersView extends OrganizationSettingsView {
               {t('Member')}
             </Box>
             <Box px={2} w={180}>
-              {t('Status')}
+              <GuideAnchor target="member_status" type="text">
+                {t('Status')}
+              </GuideAnchor>
             </Box>
             <Box px={2} w={140}>
-              {t('Role')}
+              <GuideAnchor target="member_role" type="text">
+                {t('Role')}
+              </GuideAnchor>
             </Box>
             <Box px={2} w={140}>
               {t('Actions')}

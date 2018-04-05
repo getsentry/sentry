@@ -15,6 +15,7 @@ export default class GuideDrawer extends React.Component {
     step: PropTypes.number.isRequired,
     onFinish: PropTypes.func.isRequired,
     onDismiss: PropTypes.func.isRequired,
+    orgSlug: PropTypes.string,
   };
 
   handleFinish = useful => {
@@ -22,7 +23,18 @@ export default class GuideDrawer extends React.Component {
     this.props.onFinish();
   };
 
+  interpolate(template, variables) {
+    let regex = /\${([^{]+)}/g;
+    return template.replace(regex, (match, g1) => {
+      return variables[g1.trim()];
+    });
+  }
+
   render() {
+    let messageVariables = {
+      orgSlug: this.props.orgSlug,
+    };
+
     return (
       <StyledAssistantContainer>
         <StyledAssistantInputRow>
@@ -39,7 +51,10 @@ export default class GuideDrawer extends React.Component {
         <StyledContent>
           <div
             dangerouslySetInnerHTML={{
-              __html: this.props.guide.steps[this.props.step - 1].message,
+              __html: this.interpolate(
+                this.props.guide.steps[this.props.step - 1].message,
+                messageVariables
+              ),
             }}
           />
           <div style={{marginTop: '1em'}}>
