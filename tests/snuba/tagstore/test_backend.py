@@ -126,3 +126,11 @@ class TagStorage(TestCase):
         assert resp[0].key == 'foo'
         assert resp[0].value == 'bar'
         assert resp[0].group_id == self.proj1group1.id
+
+    def test_get_group_tag_value_count(self):
+        assert self.ts.get_group_tag_value_count(
+            self.proj1.id,
+            self.proj1group1.id,
+            self.proj1env1.id,
+            'foo'
+        ) == 2

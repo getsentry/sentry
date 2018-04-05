@@ -60,9 +60,20 @@ class SnubaTagStorage(TagStorage):
         pass
 
     def get_group_tag_value_count(self, project_id, group_id, environment_id, key):
-        pass
+        start, end = self.get_time_range()
+        tag = 'tags[{}]'.format(key)
+        filters = {
+            'project_id': [project_id],
+            'environment': [environment_id],
+            'issue': [group_id],
+        }
+        conditions = [[tag, '!=', '']]
+        aggregations = [['count', '', 'count']]
+
+        return snuba.query(start, end, [], conditions, filters, aggregations)
 
     def get_group_tag_values_for_users(self, event_users, limit=100):
+        # TODO this function needs to accept a project_id param
         pass
 
     def get_top_group_tag_values(self, project_id, group_id, environment_id, key, limit=3):
