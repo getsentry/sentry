@@ -36,10 +36,10 @@ const ProjectChart = createReactClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    // We only need to refetch data if environment or resolution timeframe is changing
     if (
       nextProps.environment !== this.props.environment ||
-      nextProps.resolution !== this.props.resolution
+      nextProps.resolution !== this.props.resolution ||
+      nextProps.dateSince !== this.props.dateSince
     ) {
       this.setState(
         {
