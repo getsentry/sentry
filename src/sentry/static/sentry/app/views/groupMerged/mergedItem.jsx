@@ -128,6 +128,7 @@ const MergedItem = createReactClass({
                     projectId={projectId}
                     data={event}
                     hideIcons
+                    hideLevel
                   />
                 </FlowLayout>
               </SpreadLayout>

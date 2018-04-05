@@ -2,10 +2,12 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled, {css} from 'react-emotion';
 import classNames from 'classnames';
+import {capitalize} from 'lodash';
 
 import ProjectLink from '../components/projectLink';
 import {Metadata} from '../proptypes';
 import EventOrGroupTitle from './eventOrGroupTitle';
+import Tooltip from '../components/tooltip';
 
 /**
  * Displays an event or group/issue title (i.e. in Stream)
@@ -26,6 +28,7 @@ class EventOrGroupHeader extends React.Component {
     }),
     includeLink: PropTypes.bool,
     hideIcons: PropTypes.bool,
+    hideLevel: PropTypes.bool,
     query: PropTypes.string,
   };
 
@@ -48,8 +51,8 @@ class EventOrGroupHeader extends React.Component {
   }
 
   getTitle() {
-    let {hideIcons, includeLink, orgId, projectId, data} = this.props;
-    let {id, groupID} = data || {};
+    let {hideIcons, hideLevel, includeLink, orgId, projectId, data} = this.props;
+    let {id, level, groupID} = data || {};
     let isEvent = !!data.eventID;
 
     let props = {};
@@ -71,6 +74,12 @@ class EventOrGroupHeader extends React.Component {
         {...props}
         style={data.status === 'resolved' ? {textDecoration: 'line-through'} : null}
       >
+        {!hideLevel &&
+          level && (
+            <Tooltip title={`Error level: ${capitalize(level)}`}>
+              <GroupLevel level={data.level} />
+            </Tooltip>
+          )}
         {!hideIcons && data.status === 'ignored' && <Muted className="icon-soundoff" />}
         {!hideIcons && data.isBookmarked && <Starred className="icon-star-solid" />}
         <EventOrGroupTitle
@@ -132,6 +141,31 @@ const Muted = styled.span`
 const Starred = styled.span`
   ${iconStyles};
   color: ${p => p.theme.yellowOrange};
+`;
+
+const GroupLevel = styled.div`
+  position: absolute;
+  left: -1px;
+  width: 9px;
+  height: 15px;
+  border-radius: 0 3px 3px 0;
+
+  background-color: ${p => {
+    switch (p.level) {
+      case 'sample':
+        return p.theme.purple;
+      case 'info':
+        return p.theme.blue;
+      case 'warning':
+        return p.theme.yellowOrange;
+      case 'error':
+        return p.theme.orange;
+      case 'fatal':
+        return p.theme.red;
+      default:
+        return p.theme.gray2;
+    }
+  }};
 `;
 
 export default EventOrGroupHeader;

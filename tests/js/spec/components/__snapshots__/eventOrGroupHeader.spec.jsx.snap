@@ -205,6 +205,13 @@ exports[`EventOrGroupHeader Group renders with \`type = csp\` 1`] = `
         }
       }
     >
+      <Tooltip
+        title="Error level: Error"
+      >
+        <GroupLevel
+          level="error"
+        />
+      </Tooltip>
       <EventOrGroupTitle
         data={
           Object {
@@ -253,6 +260,13 @@ exports[`EventOrGroupHeader Group renders with \`type = default\` 1`] = `
         }
       }
     >
+      <Tooltip
+        title="Error level: Error"
+      >
+        <GroupLevel
+          level="error"
+        />
+      </Tooltip>
       <EventOrGroupTitle
         data={
           Object {
@@ -301,6 +315,13 @@ exports[`EventOrGroupHeader Group renders with \`type = error\` 1`] = `
         }
       }
     >
+      <Tooltip
+        title="Error level: Error"
+      >
+        <GroupLevel
+          level="error"
+        />
+      </Tooltip>
       <EventOrGroupTitle
         data={
           Object {

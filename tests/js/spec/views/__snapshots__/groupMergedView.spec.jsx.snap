@@ -761,6 +761,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                             }
                           }
                           hideIcons={true}
+                          hideLevel={true}
                           includeLink={true}
                           orgId="orgId"
                           projectId="projectId"
@@ -770,7 +771,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                           >
                             <Title>
                               <div
-                                className="css-1dqh62j-Title css-ef8juq0"
+                                className="css-1dqh62j-Title css-1kpza350"
                               >
                                 <ProjectLink
                                   style={null}
@@ -889,6 +890,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                                         }
                                       }
                                       hideIcons={true}
+                                      hideLevel={true}
                                       includeLink={true}
                                       orgId="orgId"
                                       projectId="projectId"
@@ -914,7 +916,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                             </Title>
                             <Message>
                               <div
-                                className="css-ogpcmq-Message css-ef8juq1"
+                                className="css-ogpcmq-Message css-1kpza351"
                               >
                                 Cannot read property 'assignedTo' of undefined
                               </div>
@@ -1208,6 +1210,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                             }
                           }
                           hideIcons={true}
+                          hideLevel={true}
                           includeLink={true}
                           orgId="orgId"
                           projectId="projectId"
@@ -1217,7 +1220,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                           >
                             <Title>
                               <div
-                                className="css-1dqh62j-Title css-ef8juq0"
+                                className="css-1dqh62j-Title css-1kpza350"
                               >
                                 <ProjectLink
                                   style={null}
@@ -1336,6 +1339,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                                         }
                                       }
                                       hideIcons={true}
+                                      hideLevel={true}
                                       includeLink={true}
                                       orgId="orgId"
                                       projectId="projectId"
@@ -1361,7 +1365,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                             </Title>
                             <Message>
                               <div
-                                className="css-ogpcmq-Message css-ef8juq1"
+                                className="css-ogpcmq-Message css-1kpza351"
                               >
                                 Cannot read property 'assignedTo' of undefined
                               </div>
@@ -2130,6 +2134,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                             }
                           }
                           hideIcons={true}
+                          hideLevel={true}
                           includeLink={true}
                           orgId="orgId"
                           projectId="projectId"
@@ -2139,7 +2144,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                           >
                             <Title>
                               <div
-                                className="css-1dqh62j-Title css-ef8juq0"
+                                className="css-1dqh62j-Title css-1kpza350"
                               >
                                 <ProjectLink
                                   style={null}
@@ -2258,6 +2263,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                                         }
                                       }
                                       hideIcons={true}
+                                      hideLevel={true}
                                       includeLink={true}
                                       orgId="orgId"
                                       projectId="projectId"
@@ -2283,7 +2289,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                             </Title>
                             <Message>
                               <div
-                                className="css-ogpcmq-Message css-ef8juq1"
+                                className="css-ogpcmq-Message css-1kpza351"
                               >
                                 Cannot read property 'assignedTo' of undefined
                               </div>
@@ -2577,6 +2583,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                             }
                           }
                           hideIcons={true}
+                          hideLevel={true}
                           includeLink={true}
                           orgId="orgId"
                           projectId="projectId"
@@ -2586,7 +2593,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                           >
                             <Title>
                               <div
-                                className="css-1dqh62j-Title css-ef8juq0"
+                                className="css-1dqh62j-Title css-1kpza350"
                               >
                                 <ProjectLink
                                   style={null}
@@ -2705,6 +2712,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                                         }
                                       }
                                       hideIcons={true}
+                                      hideLevel={true}
                                       includeLink={true}
                                       orgId="orgId"
                                       projectId="projectId"
@@ -2730,7 +2738,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                             </Title>
                             <Message>
                               <div
-                                className="css-ogpcmq-Message css-ef8juq1"
+                                className="css-ogpcmq-Message css-1kpza351"
                               >
                                 Cannot read property 'assignedTo' of undefined
                               </div>

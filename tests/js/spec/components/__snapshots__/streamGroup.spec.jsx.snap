@@ -7,13 +7,8 @@ exports[`StreamGroup renders with anchors 1`] = `
   px={0}
   py={1}
 >
-  <Tooltip
-    title="Error level: "
-  >
-    <GroupLevel />
-  </Tooltip>
   <GroupCheckbox
-    ml={1}
+    ml={2}
   >
     <GuideAnchor
       target="issues"

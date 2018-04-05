@@ -5,7 +5,6 @@ import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import styled from 'react-emotion';
 import {Flex, Box} from 'grid-emotion';
-import {capitalize} from 'lodash';
 
 import AssigneeSelector from '../assigneeSelector';
 import Count from '../count';
@@ -17,7 +16,6 @@ import GuideAnchor from '../../components/assistant/guideAnchor';
 import SelectedGroupStore from '../../stores/selectedGroupStore';
 import EventOrGroupHeader from '../eventOrGroupHeader';
 import EventOrGroupExtraDetails from '../eventOrGroupExtraDetails';
-import Tooltip from '../tooltip';
 import {PanelItem} from '../panels';
 
 import {valueIsEqual} from '../../utils';
@@ -94,11 +92,8 @@ const StreamGroup = createReactClass({
 
     return (
       <Group onClick={this.toggleSelect} py={1} px={0} align="center">
-        <Tooltip title={`Error level: ${capitalize(data.level)}`}>
-          <GroupLevel level={data.level} />
-        </Tooltip>
         {this.props.canSelect && (
-          <GroupCheckbox ml={1}>
+          <GroupCheckbox ml={2}>
             {hasGuideAnchor && <GuideAnchor target="issues" type="text" />}
             <GroupCheckBox id={data.id} />
           </GroupCheckbox>
@@ -143,31 +138,6 @@ const Group = styled(PanelItem)`
 
 const GroupSummary = styled(Box)`
   overflow: hidden;
-`;
-
-const GroupLevel = styled.div`
-  margin-left: -1px;
-  width: 9px;
-  height: 15px;
-  border-radius: 0 3px 3px 0;
-  align-self: flex-start;
-
-  background-color: ${p => {
-    switch (p.level) {
-      case 'sample':
-        return p.theme.purple;
-      case 'info':
-        return p.theme.blue;
-      case 'warning':
-        return p.theme.yellowOrange;
-      case 'error':
-        return p.theme.orange;
-      case 'fatal':
-        return p.theme.red;
-      default:
-        return p.theme.gray2;
-    }
-  }};
 `;
 
 const GroupCheckbox = styled(Box)`
