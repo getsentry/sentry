@@ -33,6 +33,7 @@ class IdentityProvider(Model):
     type = models.CharField(max_length=64)
     organization = FlexibleForeignKey('sentry.Organization')
     config = EncryptedJsonField()
+    date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = 'sentry'

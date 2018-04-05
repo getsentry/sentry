@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from django.db import models, IntegrityError, transaction
+from django.utils import timezone
 
 from sentry.db.models import (
     BoundedPositiveIntegerField, EncryptedJsonField, FlexibleForeignKey, Model
@@ -14,6 +15,7 @@ class OrganizationIntegration(Model):
     integration = FlexibleForeignKey('sentry.Integration')
     config = EncryptedJsonField(default=lambda: {})
     default_auth_id = BoundedPositiveIntegerField(db_index=True, null=True)
+    date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = 'sentry'
@@ -50,6 +52,7 @@ class Integration(Model):
     # be used to store organization-specific information, as the Integration
     # instance is shared among multiple organizations
     metadata = EncryptedJsonField(default=lambda: {})
+    date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = 'sentry'
