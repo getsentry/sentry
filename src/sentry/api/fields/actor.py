@@ -84,6 +84,12 @@ class Actor(object):
             return False
         return (self.id, self.type) == (other.id, other.type)
 
+    def __hash__(self):
+        return hash((self.id, self.type))
+
+    def __repr__(self):
+        return '<Actor id=%s, type=%s>' % (six.text_type(self.id), six.text_type(self.type))
+
 
 class ActorField(serializers.WritableField):
     def to_native(self, obj):

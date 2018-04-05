@@ -78,12 +78,12 @@ def build_events_by_actor(project_id, events):
     for event in events:
         # TODO(LB): I Know this is inefficent. Just wanted to make as few changes
         # as possible for now. Can follow up with another PR
-        actors = ProjectOwnership.get_owners(project_id, event)
+        actors, __ = ProjectOwnership.get_owners(project_id, event.data)
         for actor in actors:
             if actor in events_by_actor:
-                events_by_actor[actor].update(event)
+                events_by_actor[actor].add(event)
             else:
-                events_by_actor[actor] = set(event)
+                events_by_actor[actor] = set([event])
     return events_by_actor
 
 
