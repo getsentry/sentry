@@ -6,7 +6,6 @@ from __future__ import absolute_import
 import logging
 import os
 import pytest
-import signal
 
 from datetime import datetime
 from django.conf import settings
@@ -288,13 +287,9 @@ def browser(request, percy, live_server):
     def fin():
         # Teardown Selenium.
         try:
-            driver.close()
+            driver.quit()
         except Exception:
             pass
-        # TODO: remove this when fixed in: https://github.com/seleniumhq/selenium/issues/767
-        if hasattr(driver, 'service'):
-            driver.service.process.send_signal(signal.SIGTERM)
-        driver.quit()
 
     request.node._driver = driver
     request.addfinalizer(fin)
