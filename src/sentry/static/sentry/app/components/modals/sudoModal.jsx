@@ -6,6 +6,8 @@ import createReactClass from 'create-react-class';
 import {t} from '../../locale';
 import ApiForm from '../forms/apiForm';
 import ApiMixin from '../../mixins/apiMixin';
+import Button from '../buttons/button';
+import ConfigStore from '../../stores/configStore';
 import LoadingIndicator from '../loadingIndicator';
 import SimplePasswordField from '../forms/simplePasswordField';
 import U2fContainer from '../u2fContainer';
@@ -18,6 +20,9 @@ class SudoModal extends React.Component {
      * expects a function that returns a Promise
      */
     retryRequest: PropTypes.func.isRequired,
+    superuser: PropTypes.bool,
+    router: PropTypes.object,
+    user: PropTypes.object,
 
     Header: PropTypes.oneOfType([PropTypes.func, PropTypes.node]).isRequired,
     Body: PropTypes.oneOfType([PropTypes.func, PropTypes.node]).isRequired,
@@ -36,8 +41,13 @@ class SudoModal extends React.Component {
   };
 
   handleSuccess = () => {
-    let {closeModal, retryRequest} = this.props;
+    let {closeModal, superuser, router, retryRequest} = this.props;
     if (!retryRequest) return;
+
+    if (superuser) {
+      router.replace({...router.getCurrentLocation(), state: {superuser: true}});
+      return;
+    }
 
     this.setState(
       {
@@ -83,7 +93,7 @@ class SudoModal extends React.Component {
   };
 
   render() {
-    let {closeModal, Header, Body} = this.props;
+    let {closeModal, user, Header, Body} = this.props;
 
     return (
       <ApiForm
@@ -102,15 +112,30 @@ class SudoModal extends React.Component {
         </Header>
 
         <Body>
-          {this.state.busy && <LoadingIndicator css={{zIndex: 1}} overlay />}
-          <p>{t('Help us keep your account safe by confirming your identity.')}</p>
-          {this.state.error && (
-            <div className="alert alert-error alert-block">{t('Incorrect password')}</div>
+          {user.hasPasswordAuth ? (
+            <div>
+              <p>{t('You will need to reauthenticate to continue.')}</p>
+              <Button
+                priority="primary"
+                href={`/auth/login/?next=${encodeURIComponent(location.pathname)}`}
+              >
+                {t('Continue')}
+              </Button>
+            </div>
+          ) : (
+            <React.Fragment>
+              {this.state.busy && <LoadingIndicator css={{zIndex: 1}} overlay />}
+              <p>{t('Help us keep your account safe by confirming your identity.')}</p>
+              {this.state.error && (
+                <div className="alert alert-error alert-block">
+                  {t('Incorrect password')}
+                </div>
+              )}
+
+              <SimplePasswordField label={t('Password')} required name="password" />
+              <U2fContainer displayMode="sudo" onTap={this.handleU2fTap} />
+            </React.Fragment>
           )}
-
-          <SimplePasswordField label={t('Password')} required name="password" />
-
-          <U2fContainer displayMode="sudo" onTap={this.handleU2fTap} />
         </Body>
       </ApiForm>
     );
@@ -122,7 +147,8 @@ const SudoModalContainer = createReactClass({
   mixins: [ApiMixin],
 
   render() {
-    return <SudoModal {...this.props} api={this.api} />;
+    let user = ConfigStore.get('user');
+    return <SudoModal {...this.props} user={user} api={this.api} />;
   },
 });
 

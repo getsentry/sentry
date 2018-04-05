@@ -85,8 +85,8 @@ describe('Sudo Modal', function() {
       statusCode: 200,
     });
     let sudoMock = Client.addMockResponse({
-      url: '/sudo/',
-      method: 'POST',
+      url: '/auth/',
+      method: 'PUT',
       statusCode: 200,
     });
 
@@ -104,9 +104,9 @@ describe('Sudo Modal', function() {
     wrapper.update();
 
     expect(sudoMock).toHaveBeenCalledWith(
-      '/sudo/',
+      '/auth/',
       expect.objectContaining({
-        method: 'POST',
+        method: 'PUT',
         data: {
           password: 'password',
         },

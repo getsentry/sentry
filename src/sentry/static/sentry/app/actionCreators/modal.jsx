@@ -16,12 +16,10 @@ export function closeModal() {
   ModalActions.closeModal();
 }
 
-export function openSudo({retryRequest, onClose} = {}) {
+export function openSudo({onClose, ...args} = {}) {
   import(/* webpackChunkName: "SudoModal" */ '../components/modals/sudoModal')
     .then(mod => mod.default)
-    .then(SudoModal =>
-      openModal(deps => <SudoModal {...deps} retryRequest={retryRequest} />, {onClose})
-    );
+    .then(SudoModal => openModal(deps => <SudoModal {...deps} {...args} />, {onClose}));
 }
 
 export function openDiffModal(options) {
