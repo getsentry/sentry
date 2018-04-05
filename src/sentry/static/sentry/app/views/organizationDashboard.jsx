@@ -3,6 +3,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import {Link} from 'react-router';
+import {Flex} from 'grid-emotion';
 import {Sparklines, SparklinesLine} from 'react-sparklines';
 
 import ApiMixin from '../mixins/apiMixin';
@@ -15,10 +16,12 @@ import TeamStore from '../stores/teamStore';
 
 import AsyncComponent from '../components/asyncComponent';
 import ActivityFeed from '../components/activity/feed';
+import ErrorRobot from '../components/errorRobot';
 import EventsPerHour from '../components/events/eventsPerHour';
 import IssueList from '../components/issueList';
 import OrganizationHomeContainer from '../components/organizations/homeContainer';
 import OrganizationState from '../mixins/organizationState';
+import ResourceCard from '../components/resourceCard';
 import TimeSince from '../components/timeSince';
 import CommitLink from '../components/commitLink';
 
@@ -106,6 +109,39 @@ class UnreleasedChanges extends AsyncComponent {
       <div>
         <h4>{t('Unreleased Changes')}</h4>
         {this.renderComponent()}
+      </div>
+    );
+  }
+}
+
+class Resources extends React.Component {
+  render() {
+    return (
+      <div>
+        <h4>Resources</h4>
+        <Flex justify={'space-between'}>
+          <Flex width={3 / 10}>
+            <ResourceCard
+              link={'https://blog.sentry.io/2018/03/06/the-sentry-workflow'}
+              imgUrl={'images/releases.svg'}
+              title={'The Sentry Workflow'}
+            />
+          </Flex>
+          <Flex width={3 / 10}>
+            <ResourceCard
+              link={'https://sentry.io/vs/logging/'}
+              imgUrl={'images/breadcrumbs-generic.svg'}
+              title={'Sentry vs Logging'}
+            />
+          </Flex>
+          <Flex width={3 / 10}>
+            <ResourceCard
+              link={'https://docs.sentry.io/'}
+              imgUrl={'images/code-arguments-tags-mirrored.svg'}
+              title={'Docs'}
+            />
+          </Flex>
+        </Flex>
       </div>
     );
   }
@@ -501,6 +537,11 @@ const OrganizationDashboard = createReactClass({
 
   render() {
     let org = this.getOrganization();
+    let projects = org.projects;
+    let showResources = false;
+    if (projects.length == 1 && !projects[0].firstEvent) {
+      showResources = true;
+    }
     let features = new Set(org.features);
 
     return (
@@ -508,9 +549,19 @@ const OrganizationDashboard = createReactClass({
         <div className="row">
           <div className="col-md-8">
             {features.has('unreleased-changes') && <UnreleasedChanges {...this.props} />}
-            <AssignedIssues {...this.props} />
-            <NewIssues {...this.props} />
-            <Activity {...this.props} />
+            {showResources && (
+              <div>
+                <ErrorRobot org={org} project={projects[0]} />
+                <Resources />
+              </div>
+            )}
+            {!showResources && (
+              <div>
+                <AssignedIssues {...this.props} />
+                <NewIssues {...this.props} />
+                <Activity {...this.props} />
+              </div>
+            )}
           </div>
           <div className="col-md-4">
             {this.state.hooks}

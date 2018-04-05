@@ -15,6 +15,7 @@ import ConfigStore from '../../stores/configStore';
 import GroupStore from '../../stores/groupStore';
 import EnvironmentStore from '../../stores/environmentStore';
 import HookStore from '../../stores/hookStore';
+import ErrorRobot from '../../components/errorRobot';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 import ProjectState from '../../mixins/projectState';
@@ -559,19 +560,6 @@ const Stream = createReactClass({
     });
   },
 
-  createSampleEvent() {
-    let params = this.props.params;
-    let url = `/projects/${params.orgId}/${params.projectId}/create-sample/`;
-    this.api.request(url, {
-      method: 'POST',
-      success: data => {
-        browserHistory.push(
-          `/${params.orgId}/${params.projectId}/issues/${data.groupID}/`
-        );
-      },
-    });
-  },
-
   renderProcessingIssuesHint() {
     let pi = this.state.processingIssues;
     if (!pi || this.showingProcessingIssues()) {
@@ -666,54 +654,17 @@ const Stream = createReactClass({
   renderAwaitingEvents() {
     let org = this.getOrganization();
     let project = this.getProject();
-    let sampleLink = null;
+    let sampleIssueId = null;
     if (this.state.groupIds.length > 0) {
-      let sampleIssueId = this.state.groupIds[0];
-
-      sampleLink = (
-        <p>
-          <Link to={`/${org.slug}/${project.slug}/issues/${sampleIssueId}/?sample`}>
-            {t('Or see your sample event')}
-          </Link>
-        </p>
-      );
-    } else {
-      sampleLink = (
-        <p>
-          <a onClick={this.createSampleEvent.bind(this, project.platform)}>
-            {t('Create a sample event')}
-          </a>
-        </p>
-      );
+      sampleIssueId = this.state.groupIds[0];
     }
-
     return (
-      <div className="box awaiting-events">
-        <div className="wrap">
-          <div className="robot">
-            <span className="eye" />
-          </div>
-          <h3>{t('Waiting for events…')}</h3>
-          <p>
-            {tct(
-              'Our error robot is waiting to [cross:devour] receive your first event.',
-              {
-                cross: <span className="strikethrough" />,
-              }
-            )}
-          </p>
-          <p>
-            <Link
-              to={`/${org.slug}/${project.slug}/getting-started/${project.platform ||
-                ''}`}
-              className="btn btn-primary btn-lg"
-            >
-              {t('Installation Instructions')}
-            </Link>
-          </p>
-          {sampleLink}
-        </div>
-      </div>
+      <ErrorRobot
+        org={org}
+        project={project}
+        sampleIssueId={sampleIssueId}
+        gradient={true}
+      />
     );
   },
 
