@@ -200,7 +200,12 @@ const CompactIssue = createReactClass({
     let title = <span className="icon-more" />;
 
     return (
-      <PanelItem className={className} onClick={this.toggleSelect} direction="column">
+      <PanelItem
+        className={className}
+        onClick={this.toggleSelect}
+        direction="column"
+        style={{padding: '12px 16px 6px'}}
+      >
         <CompactIssueHeader data={issue} orgId={orgId} projectId={projectId} />
         {this.props.statsPeriod && (
           <div className="event-graph">
