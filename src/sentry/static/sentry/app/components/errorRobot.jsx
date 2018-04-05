@@ -109,12 +109,13 @@ const ErrorRobot = createReactClass({
             </span>
           </p>
           <p>
-            <a
+            <Link
+              to={`/${org.slug}/${project.slug}/getting-started/${project.platform ||
+                ''}`}
               className="btn btn-primary btn-lg"
-              href="/tes/django/getting-started/python-django"
             >
-              Installation Instructions
-            </a>
+              {t('Installation Instructions')}
+            </Link>
           </p>
           {sampleLink}
         </div>
