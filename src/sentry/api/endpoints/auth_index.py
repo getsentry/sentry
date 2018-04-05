@@ -4,13 +4,14 @@ from django.contrib.auth import logout
 from django.contrib.auth.models import AnonymousUser
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.response import Response
+from sudo.utils import grant_sudo_privileges
 
 from sentry.api.authentication import QuietBasicAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.serializers import serialize
 from sentry.api.validators import AuthVerifyValidator
 from sentry.models import Authenticator
-from sentry.utils import auth
+from sentry.utils import auth, json
 from sentry.utils.functional import extract_lazy_object
 
 
@@ -109,15 +110,36 @@ class AuthIndexEndpoint(Endpoint):
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
 
-        if not request.user.check_password(validator.object['password']):
-            return Response(status=403)
+        authenticated = False
+
+        if 'challenge' in request.DATA and 'response' in request.DATA:
+            try:
+                interface = Authenticator.objects.get_interface(request.user, 'u2f')
+                if not interface.is_enrolled:
+                    raise LookupError()
+
+                challenge = json.loads(request.DATA['challenge'])
+                response = json.loads(request.DATA['response'])
+                authenticated = interface.validate_response(request, challenge, response)
+            except ValueError:
+                pass
+            except LookupError:
+                pass
+
+        else:
+            authenticated = request.user.check_password(validator.object['password'])
+
+        if not authenticated:
+            return Response({'allowFail': True}, status=403)
 
         try:
             # Must use the real request object that Django knows about
             auth.login(request._request, request.user)
+            grant_sudo_privileges(request._request)
         except auth.AuthUserPasswordExpired:
             return Response(
                 {
+                    'code': 'password-expired',
                     'message': 'Cannot sign-in with basic auth because password has expired.',
                 },
                 status=403
