@@ -46,7 +46,8 @@ class AsyncComponent extends React.Component {
     // re-fetch data when router params change
     if (
       !isEqual(this.props.params, nextProps.params) ||
-      currentLocation.search !== nextLocation.search
+      currentLocation.search !== nextLocation.search ||
+      currentLocation.state !== nextLocation.state
     ) {
       this.remountComponent();
     }
