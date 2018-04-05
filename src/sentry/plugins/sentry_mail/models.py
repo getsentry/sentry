@@ -290,60 +290,51 @@ class MailPlugin(NotificationPlugin):
 
     def notify_digest(self, project, digest):
         user_ids = self.get_send_to(project)
-        result = get_personalized_digests(project.id, digest, user_ids)
-        # TODO(LB): This looks weird. any ponters?
-        if result == ProjectOwnership.Everyone:
-            for user_id in user_ids:
-                self.notify_digest_for_user(project, user_id, digest)
-        else:
-            for user_id, user_digest in result:
-                self.notify_digest_for_user(project, user_id, user_digest)
+        for user_id, digest in get_personalized_digests(project.id, digest, user_ids):
+            start, end, counts = get_digest_metadata(digest)
 
-    def notify_digest_for_user(self, project, user_id, digest):
-        start, end, counts = get_digest_metadata(digest)
+            # If there is only one group in this digest (regardless of how many
+            # rules it appears in), we should just render this using the single
+            # notification template. If there is more than one record for a group,
+            # just choose the most recent one.
+            if len(counts) == 1:
+                group = six.next(iter(counts))
+                record = max(
+                    itertools.chain.from_iterable(
+                        groups.get(group, []) for groups in six.itervalues(digest)
+                    ),
+                    key=lambda record: record.timestamp,
+                )
+                notification = Notification(record.value.event, rules=record.value.rules)
+                return self.notify(notification)
 
-        # If there is only one group in this digest (regardless of how many
-        # rules it appears in), we should just render this using the single
-        # notification template. If there is more than one record for a group,
-        # just choose the most recent one.
-        if len(counts) == 1:
+            context = {
+                'start': start,
+                'end': end,
+                'project': project,
+                'digest': digest,
+                'counts': counts,
+            }
+
+            headers = {
+                'X-Sentry-Project': project.slug,
+            }
+
             group = six.next(iter(counts))
-            record = max(
-                itertools.chain.from_iterable(
-                    groups.get(group, []) for groups in six.itervalues(digest)
-                ),
-                key=lambda record: record.timestamp,
+            subject = self.get_digest_subject(group, counts, start)
+
+            self.add_unsubscribe_link(context, user_id, project)
+            self._send_mail(
+                subject=subject,
+                template='sentry/emails/digests/body.txt',
+                html_template='sentry/emails/digests/body.html',
+                project=project,
+                reference=project,
+                headers=headers,
+                type='notify.digest',
+                context=context,
+                send_to=[user_id],
             )
-            notification = Notification(record.value.event, rules=record.value.rules)
-            return self.notify(notification)
-
-        context = {
-            'start': start,
-            'end': end,
-            'project': project,
-            'digest': digest,
-            'counts': counts,
-        }
-
-        headers = {
-            'X-Sentry-Project': project.slug,
-        }
-
-        group = six.next(iter(counts))
-        subject = self.get_digest_subject(group, counts, start)
-
-        self.add_unsubscribe_link(context, user_id, project)
-        self._send_mail(
-            subject=subject,
-            template='sentry/emails/digests/body.txt',
-            html_template='sentry/emails/digests/body.html',
-            project=project,
-            reference=project,
-            headers=headers,
-            type='notify.digest',
-            context=context,
-            send_to=[user_id],
-        )
 
     def notify_about_activity(self, activity):
         email_cls = emails.get(activity.type)

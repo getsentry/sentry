@@ -31,27 +31,23 @@ def get_personalized_digests(project_id, digest, user_ids):
     get_personalized_digests(project: Project, digest: Digest, users: Set[User]) -> Iterator[User, Digest]
     """
     # TODO(LB): I Know this is inefficent.
-    if not ProjectOwnership.objects.filter(project_id=project_id).exists():
-        return ProjectOwnership.Everyone
-    records = get_records_from_digests(digest)
-    events = [record.value.event for record in records]
+    if ProjectOwnership.objects.filter(project_id=project_id).exists():
+        events = get_events_from_digest(digest)
+        events_by_actor = build_events_by_actor(project_id, events)
+        events_by_users = convert_actors_to_user_set(events_by_actor)
+        for user_id in user_ids:
+            yield user_id, build_custom_digest(digest, user_id, events_by_users)
+    else:
+        for user_id in user_ids:
+            yield user_id, digest
 
-    events_by_actor = build_events_by_actor(project_id, events)
-    events_by_users = convert_actors_to_user_set(events_by_actor)
 
-    for user_id in user_ids:
-        yield user_id, build_custom_digest(digest, user_id, events_by_users)
-
-
-def get_records_from_digests(digest):
-    """
-    get_records_from_digests(digest: Digest) -> Set(Records)
-    """
-    records = set()
-    for rule, rule_groups in six.iteritems(digest):
-        for group, group_records in six.iteritems(rule_groups):
-            records.update(group_records)
-    return records
+def get_events_from_digest(digest):
+    events = []
+    for rule_groups in six.itervalues(digest):
+        for group_records in six.itervalues(rule_groups):
+            events.append(group_records[0].value.event)
+    return set(events)
 
 
 def build_custom_digest(original_digest, user_id, events_by_users):
