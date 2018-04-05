@@ -8,33 +8,19 @@ import memberListStore from '../../../../stores/memberListStore';
 import ProjectsStore from '../../../../stores/projectsStore';
 import Button from '../../../../components/buttons/button';
 import SentryTypes from '../../../../proptypes';
-
 import {addErrorMessage, addSuccessMessage} from '../../../../actionCreators/indicator';
 import {t} from '../../../../locale';
+import {inputStyles} from '../../../../styles/input';
 import RuleBuilder from './ruleBuilder';
-
-const SyntaxOverlay = styled.div`
-  margin: 5px;
-  padding: 0px;
-  width: calc(100% - 10px);
-  height: 1em;
-  background-color: red;
-  opacity: 0.1;
-  pointer-events: none;
-  position: absolute;
-  top: ${({line}) => line}em;
-`;
-
-const SaveButton = styled.div`
-  text-align: end;
-  padding-top: 10px;
-`;
 
 class OwnerInput extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization,
     project: SentryTypes.Project,
     initialText: PropTypes.string,
+    urls: PropTypes.arrayOf(PropTypes.string),
+    paths: PropTypes.arrayOf(PropTypes.string),
+    onSave: PropTypes.func,
   };
 
   constructor(props) {
@@ -65,7 +51,7 @@ class OwnerInput extends React.Component {
   }
 
   handleUpdateOwnership = () => {
-    let {organization, project} = this.props;
+    let {organization, project, onSave} = this.props;
     let {text} = this.state;
     this.setState({error: null});
 
@@ -84,6 +70,7 @@ class OwnerInput extends React.Component {
         this.setState({
           initialText: text,
         });
+        onSave && onSave();
       })
       .catch(error => {
         this.setState({error: error.responseJSON});
@@ -140,12 +127,14 @@ class OwnerInput extends React.Component {
   }
 
   render() {
-    let {project, organization} = this.props;
+    let {project, organization, urls, paths} = this.props;
     let {text, error, initialText} = this.state;
 
     return (
       <React.Fragment>
         <RuleBuilder
+          urls={urls}
+          paths={paths}
           organization={organization}
           project={project}
           onAddRule={this.handleAddRule.bind(this)}
@@ -158,23 +147,10 @@ class OwnerInput extends React.Component {
             }
           }}
         >
-          <TextareaAutosize
+          <StyledTextArea
             placeholder={
-              '#example usage\n\npath:src/example/pipeline/* person@sentry.io #infrastructure\n\nurl:http://example.com/settings/* #product'
+              '#example usage\npath:src/example/pipeline/* person@sentry.io #infra\nurl:http://example.com/settings/* #product'
             }
-            style={{
-              padding: '5px 5px 0',
-              minHeight: 140,
-              overflow: 'auto',
-              outline: 0,
-              border: '1 solid',
-              width: '100%',
-              resize: 'none',
-              margin: 0,
-              fontFamily: 'Monaco, Consolas, "Courier New", monospace',
-              wordBreak: 'break-all',
-              whiteSpace: 'pre-wrap',
-            }}
             onChange={this.onChange.bind(this)}
             value={text}
             spellCheck="false"
@@ -198,5 +174,35 @@ class OwnerInput extends React.Component {
     );
   }
 }
+
+const SyntaxOverlay = styled.div`
+  ${inputStyles};
+  margin: 10px 0;
+  width: 100%;
+  height: 1em;
+  background-color: red;
+  opacity: 0.1;
+  pointer-events: none;
+  position: absolute;
+  top: ${({line}) => line}em;
+`;
+
+const SaveButton = styled.div`
+  text-align: end;
+  padding-top: 10px;
+`;
+
+const StyledTextArea = styled(TextareaAutosize)`
+  ${inputStyles};
+  min-height: 140px;
+  overflow: auto;
+  outline: 0;
+  width: 100%;
+  resize: none;
+  margin: 0;
+  font-family: ${p => p.theme.text.familyMono};
+  word-break: break-all;
+  white-space: pre-wrap;
+`;
 
 export default OwnerInput;

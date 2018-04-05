@@ -27,10 +27,10 @@ class ProjectOwnership extends AsyncView {
   }
 
   getEndpoints() {
-    let {orgId, projectId} = this.props.params;
+    let {organization, project} = this.props;
     return [
-      ['project', `/projects/${orgId}/${projectId}/`],
-      ['ownership', `/projects/${orgId}/${projectId}/ownership/`],
+      ['project', `/projects/${organization.slug}/${project.slug}/`],
+      ['ownership', `/projects/${organization.slug}/${project.slug}/ownership/`],
     ];
   }
 
@@ -60,6 +60,13 @@ class ProjectOwnership extends AsyncView {
               {t(
                 'Owners can be team identifiers starting with #, or user emails (use @ to input from list)'
               )}
+            </p>
+            <p>
+              {t('Globbing Syntax:')}
+              <pre>
+                {`* matches everything
+? matches any single character`}
+              </pre>
             </p>
             Examples:
             <CodeBlock>

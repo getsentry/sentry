@@ -1,6 +1,8 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
+import {ThemeProvider} from 'emotion-theming';
+import theme from 'app/utils/theme';
 import MemberListStore from 'app/stores/memberListStore';
 import TeamStore from 'app/stores/teamStore';
 
@@ -46,7 +48,9 @@ describe('RuleBuilder', function() {
   describe('render()', function() {
     it('renders', function() {
       let wrapper = mount(
-        <RuleBuilder project={project} onAddRule={handleAdd} />,
+        <ThemeProvider theme={theme}>
+          <RuleBuilder project={project} onAddRule={handleAdd} />
+        </ThemeProvider>,
         TestStubs.routerContext()
       );
 
@@ -68,7 +72,37 @@ describe('RuleBuilder', function() {
       add.simulate('click');
       expect(handleAdd).toHaveBeenCalled();
 
-      expect(wrapper).toMatchSnapshot();
+      expect(wrapper.find(RuleBuilder)).toMatchSnapshot();
+    });
+  });
+
+  describe('renders with suggestions', function() {
+    it('renders', function() {
+      let wrapper = mount(
+        <ThemeProvider theme={theme}>
+          <RuleBuilder
+            project={project}
+            onAddRule={handleAdd}
+            urls={['example.com/a', 'example.com/a/foo']}
+            paths={['a/bar', 'a/foo']}
+          />
+        </ThemeProvider>,
+        TestStubs.routerContext()
+      );
+
+      let openDropdown = wrapper.find('BuilderDropdownButton');
+      openDropdown.simulate('click');
+      let user = wrapper.find('AutoCompleteItem').first();
+      user.simulate('click');
+
+      let ruleCandidate = wrapper.find('RuleCandidate').first();
+      ruleCandidate.simulate('click');
+
+      let add = wrapper.find('RuleAddButton');
+      expect(wrapper.find(RuleBuilder)).toMatchSnapshot();
+
+      add.simulate('click');
+      expect(handleAdd).toHaveBeenCalled();
     });
   });
 });
