@@ -1,17 +1,16 @@
-import React from 'react';
 import PropTypes from 'prop-types';
+import React from 'react';
 
-import LoadingError from '../../../../components/loadingError';
-import LoadingIndicator from '../../../../components/loadingIndicator';
-import StackedBarChart from '../../../../components/stackedBarChart';
-import Pagination from '../../../../components/pagination';
-import {Panel, PanelBody, PanelHeader} from '../../../../components/panels';
-import SettingsPageHeader from '../../components/settingsPageHeader';
-import TextBlock from '../../components/text/textBlock';
-
+import {Panel, PanelBody, PanelHeader} from '../../components/panels';
+import {intcomma} from '../../utils';
+import {t} from '../../locale';
+import LoadingError from '../../components/loadingError';
+import LoadingIndicator from '../../components/loadingIndicator';
+import Pagination from '../../components/pagination';
 import ProjectTable from './projectTable';
-import {t} from '../../../../locale';
-import {intcomma} from '../../../../utils';
+import SettingsPageHeader from '../settings/components/settingsPageHeader';
+import StackedBarChart from '../../components/stackedBarChart';
+import TextBlock from '../settings/components/text/textBlock';
 
 class OrganizationStats extends React.Component {
   static propTypes = {

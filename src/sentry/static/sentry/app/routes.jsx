@@ -504,8 +504,6 @@ function routes() {
           />
         </Route>
       </Route>
-
-      <Route name="Stats" path="stats/" component={errorHandler(OrganizationStats)} />
     </React.Fragment>
   );
 
@@ -623,6 +621,7 @@ function routes() {
           />
           {hooksOrgRoutes}
           {orgSettingsRoutes}
+          <Route path="stats/" component={errorHandler(OrganizationStats)} />
         </Route>
 
         <Route
