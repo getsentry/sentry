@@ -3,6 +3,7 @@ from __future__ import absolute_import
 
 from datetime import datetime
 import json
+import pytest
 import requests
 import responses
 import time
@@ -134,3 +135,36 @@ class TagStorage(TestCase):
             self.proj1env1.id,
             'foo'
         ) == 2
+
+    def test_get_group_tag_value(self):
+        from sentry.tagstore.exceptions import GroupTagValueNotFound
+        with pytest.raises(GroupTagValueNotFound):
+            self.ts.get_group_tag_value(
+                project_id=self.proj1.id,
+                group_id=self.proj1group1.id,
+                environment_id=self.proj1env1.id,
+                key='foo',
+                value='notreal',
+            )
+
+        # assert self.ts.get_group_tag_values(
+        #    project_id=self.proj1.id,
+        #    group_id=self.proj1group1.id,
+        #    environment_id=self.proj1env1.id,
+        #    key='notreal',
+        # ) == []
+
+        # assert self.ts.get_group_tag_values(
+        #    project_id=self.proj1.id,
+        #    group_id=self.proj1group1.id,
+        #    environment_id=self.proj1env1.id,
+        #    key='foo',
+        # ) == []
+
+        assert self.ts.get_group_tag_value(
+            project_id=self.proj1.id,
+            group_id=self.proj1group1.id,
+            environment_id=self.proj1env1.id,
+            key='foo',
+            value='bar',
+        ).value == 'bar'

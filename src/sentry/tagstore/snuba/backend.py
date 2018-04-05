@@ -51,13 +51,38 @@ class SnubaTagStorage(TagStorage):
         pass
 
     def get_group_tag_value(self, project_id, group_id, environment_id, key, value):
-        pass
+        from sentry.tagstore.exceptions import GroupTagValueNotFound
+        result = self.get_group_list_tag_value(project_id, [group_id], environment_id, key, value)
+        if group_id in result:
+            return result[group_id]
+        else:
+            raise GroupTagValueNotFound()
 
     def get_group_tag_values(self, project_id, group_id, environment_id, key):
         pass
 
     def get_group_list_tag_value(self, project_id, group_id_list, environment_id, key, value):
-        pass
+        start, end = self.get_time_range()
+        tag = 'tags[{}]'.format(key)
+        filters = {
+            'project_id': [project_id],
+            'environment': [environment_id],
+            'issue': group_id_list,
+        }
+        conditions = [
+            [tag, '=', value]
+        ]
+        aggregations = [['count', '', 'count']]
+
+        result = snuba.query(start, end, ['issue'], conditions, filters, aggregations)
+
+        return {
+            issue: ObjectWrapper({
+                'times_seen': count,
+                'key': key,
+                'value': value,
+                'group_id': issue,
+            }) for issue, count in six.iteritems(result)}
 
     def get_group_tag_value_count(self, project_id, group_id, environment_id, key):
         start, end = self.get_time_range()
@@ -85,6 +110,7 @@ class SnubaTagStorage(TagStorage):
             'issue': [group_id],
         }
         conditions = [[tag, '!=', '']]
+        # TODO it should be simple to add min(time) max(time) to get first and last seen
         aggregations = [['count', '', 'count']]
 
         result = snuba.query(start, end, [tag], conditions, filters,
