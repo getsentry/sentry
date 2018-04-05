@@ -1,8 +1,9 @@
 import $ from 'jquery';
-import _ from 'lodash';
+import {isUndefined} from 'lodash';
+import idx from 'idx';
 
-import GroupActions from './actions/groupActions';
 import {openSudo} from './actionCreators/modal';
+import GroupActions from './actions/groupActions';
 
 export class Request {
   constructor(xhr) {
@@ -30,7 +31,7 @@ export function paramsToQueryArgs(params) {
 
 export class Client {
   constructor(options) {
-    if (_.isUndefined(options)) {
+    if (isUndefined(options)) {
       options = {};
     }
     this.baseUrl = options.baseUrl || '/api/0';
@@ -48,7 +49,7 @@ export class Client {
 
   wrapCallback(id, func, cleanup) {
     /*eslint consistent-return:0*/
-    if (_.isUndefined(func)) {
+    if (isUndefined(func)) {
       return;
     }
 
@@ -70,17 +71,13 @@ export class Client {
   }
 
   handleRequestError({id, path, requestOptions}, response, ...responseArgs) {
-    let isSudoRequired =
-      response &&
-      response.responseJSON &&
-      response.responseJSON.detail &&
-      (response.responseJSON.detail.code === 'sudo-required' ||
-        response.responseJSON.detail.code === 'superuser-required');
+    let code = response && idx(response, _ => _.responseJSON.detail.code);
+    let isSudoRequired = code === 'sudo-required' || code === 'superuser-required';
 
     if (isSudoRequired) {
       openSudo({
-        superuser: response.responseJSON.detail.code === 'superuser-required',
-        sudo: response.responseJSON.detail.code === 'sudo-required',
+        superuser: code === 'superuser-required',
+        sudo: code === 'sudo-required',
         retryRequest: () => {
           return this.requestPromise(path, requestOptions)
             .then((...args) => {
@@ -114,7 +111,7 @@ export class Client {
     let data = options.data;
     let id = this.uniqueId();
 
-    if (!_.isUndefined(data) && method !== 'GET') {
+    if (!isUndefined(data) && method !== 'GET') {
       data = JSON.stringify(data);
     }
 
@@ -174,7 +171,7 @@ export class Client {
   }
 
   _chain(...funcs) {
-    funcs = funcs.filter(f => !_.isUndefined(f) && f);
+    funcs = funcs.filter(f => !isUndefined(f) && f);
     return (...args) => {
       funcs.forEach(func => {
         func.apply(funcs, args);
@@ -183,7 +180,7 @@ export class Client {
   }
 
   _wrapRequest(path, options, extraParams) {
-    if (_.isUndefined(extraParams)) {
+    if (isUndefined(extraParams)) {
       extraParams = {};
     }
 
