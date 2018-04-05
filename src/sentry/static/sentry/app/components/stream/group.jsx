@@ -130,7 +130,7 @@ const StreamGroup = createReactClass({
           <StyledCount value={data.userCount} />
         </Flex>
         <Box w={80} mx={2} className="hidden-xs hidden-sm">
-          <StyledAssigneeSelector id={data.id} />
+          <AssigneeSelector id={data.id} />
         </Box>
       </Group>
     );
@@ -178,12 +178,9 @@ const GroupCheckbox = styled(Box)`
   }
 `;
 
-const StyledAssigneeSelector = styled(AssigneeSelector)`
-  color: ${p => p.theme.gray1};
-`;
-
 const StyledCount = styled(Count)`
   font-size: 18px;
+  color: ${p => p.theme.gray4};
 `;
 
 export default StreamGroup;
