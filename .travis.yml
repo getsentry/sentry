@@ -128,7 +128,7 @@ matrix:
         - redis-server
         - postgresql
     - python: 2.7
-      env: TEST_SUITE=snuba FLASK_DEBUG=1 CLICKHOUSE_TABLE=test SNUBA=http://localhost:8000
+      env: TEST_SUITE=snuba SNUBA=http://localhost:8000
       services:
         - docker
         - memcached
@@ -136,11 +136,11 @@ matrix:
         - postgresql
       before_install:
         - docker run -d --name clickhouse-server -p 9000:9000 -p 9009:9009 -p 8123:8123 --ulimit nofile=262144:262144 yandex/clickhouse-server
-        - docker run -d --env FLASK_DEBUG=1 --env CLICKHOUSE_TABLE=test --name snuba -p 8000:8000 --link clickhouse-server:clickhouse-server getsentry/snuba
+        - docker run -d --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=clickhouse-server:9000 --name snuba -p 8000:8000 --link clickhouse-server:clickhouse-server getsentry/snuba
         - docker ps -a
   allow_failures:
     - python: 2.7
-      env: TEST_SUITE=snuba FLASK_DEBUG=1 CLICKHOUSE_TABLE=test SNUBA=http://localhost:8000
+      env: TEST_SUITE=snuba SNUBA=http://localhost:8000
 notifications:
   webhooks:
     urls:
