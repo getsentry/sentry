@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from django.utils import timezone
 
 from sentry.testutils import AcceptanceTestCase
-
+from sentry.models import GroupAssignee
 from sentry.utils.samples import create_sample_event
 from datetime import datetime
 
@@ -50,9 +50,13 @@ class DashboardTest(AcceptanceTestCase):
             timestamp=1452683305,
         )
         event.group.update(
-            first_seen=datetime(2015, 8, 13, 3, 8, 25, tzinfo=timezone.utc),
-            last_seen=datetime(2016, 1, 13, 3, 8, 25, tzinfo=timezone.utc),
-            assigned_to=self.user,
+            first_seen=datetime(2018, 1, 12, 3, 8, 25, tzinfo=timezone.utc),
+            last_seen=datetime(2018, 1, 13, 3, 8, 25, tzinfo=timezone.utc),
+        )
+        GroupAssignee.objects.create(
+            user=self.user,
+            group=event.group,
+            project=self.project,
         )
         self.project.update(first_event=timezone.now())
         self.browser.get(self.path)
