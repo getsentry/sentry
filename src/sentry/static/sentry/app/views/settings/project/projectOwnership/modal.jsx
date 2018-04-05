@@ -32,11 +32,20 @@ class ProjectOwnershipModal extends AsyncView {
       .sort((a, b) => a.count - b.count)
       .map(i => i.value)
       .slice(0, 5);
+    // pull frame data out of exception or the stacktrace
+    let frames =
+      idx(
+        eventData.entries.find(({type}) => type == 'exception'),
+        _ => _.data.values[0].stacktrace.frames
+      ) ||
+      idx(eventData.entries.find(({type}) => type == 'stacktrace'), _ => _.data.frames);
+
     let paths = uniq(
-      idx(eventData.entries.find(({type}) => type == 'exception'), _ =>
-        _.data.values[0].stacktrace.frames.map(frame => frame.filename || frame.absPath)
-      )
-    );
+      frames
+        .filter(frame => frame.inApp)
+        .map(frame => frame.filename || frame.absPath)
+        .filter(i => i)
+    ).slice(0, 30);
 
     return (
       <React.Fragment>
