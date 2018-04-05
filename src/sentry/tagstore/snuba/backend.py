@@ -17,7 +17,19 @@ from sentry.tagstore.base import TagStorage
 from sentry.utils import snuba
 
 
+class ObjectWrapper(object):
+    def __init__(self, dictionary):
+        self.__dict__ = dictionary
+
+
 class SnubaTagStorage(TagStorage):
+
+    def get_time_range(self):
+        """
+        Returns the default (start, end) time range for querrying snuba.
+        """
+        end = datetime.utcnow().replace(tzinfo=pytz.UTC)
+        return (end - timedelta(days=90), end)
 
     # Tag keys and values
     def get_tag_key(self, project_id, environment_id, key, status=TagKeyStatus.VISIBLE):
@@ -54,12 +66,29 @@ class SnubaTagStorage(TagStorage):
         pass
 
     def get_top_group_tag_values(self, project_id, group_id, environment_id, key, limit=3):
-        pass
+        start, end = self.get_time_range()
+        tag = 'tags[{}]'.format(key)
+        filters = {
+            'project_id': [project_id],
+            'environment': [environment_id],
+            'issue': [group_id],
+        }
+        conditions = [[tag, '!=', '']]
+        aggregations = [['count', '', 'count']]
+
+        result = snuba.query(start, end, [tag], conditions, filters,
+                             aggregations, limit=limit, orderby='-count')
+
+        return [ObjectWrapper({
+            'times_seen': count,
+            'key': key,
+            'value': name,
+            'group_id': group_id,
+        }) for name, count in six.iteritems(result)]
 
     def get_group_tag_keys_and_top_values(self, project_id, group_id, environment_id, user=None):
         from sentry import tagstore
-        end = datetime.utcnow().replace(tzinfo=pytz.UTC)
-        start = end - timedelta(days=90)
+        start, end = self.get_time_range()
         filters = {
             'project_id': [project_id],
             'environment': [environment_id],
@@ -82,7 +111,7 @@ class SnubaTagStorage(TagStorage):
             'topValues': [{
                 'id': val,
                 'name': tagstore.get_tag_value_label(key, val),
-                'key': tagstore.get_standardized_key(val),
+                'key': tagstore.get_standardized_key(key),
                 'value': val,
                 # TODO we don't know any of these without more queries
                 'count': 0,

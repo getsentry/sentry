@@ -31,6 +31,27 @@ class TagStorage(TestCase):
         GroupHash.objects.create(project=self.proj1, group=self.proj1group1, hash='1' * 32)
         GroupHash.objects.create(project=self.proj1, group=self.proj1group2, hash='2' * 32)
 
+        now = datetime.now()
+        events = [{
+            'event_id': 'x' * 32,
+            'primary_hash': '1' * 32,  # proj1group1 hash
+            'project_id': self.proj1.id,
+            'message': 'message',
+            'platform': 'python',
+            'datetime': now.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+            'data': {
+                'received': time.mktime(now.timetuple()),
+                'tags': {
+                    'foo': 'bar',
+                    'baz': 'quux',
+                    'environment': self.proj1env1.name,
+                }
+            },
+        }] * 2
+
+        r = requests.post(snuba.SNUBA + '/tests/insert', data=json.dumps(events))
+        assert r.status_code == 200
+
     @responses.activate
     def test_get_group_ids_for_search_filter(self):
         from sentry.search.base import ANY
@@ -77,27 +98,6 @@ class TagStorage(TestCase):
             assert result == [self.proj1group2.id]
 
     def test_get_group_tag_keys_and_top_values(self):
-        now = datetime.now()
-        events = [{
-            'event_id': 'x' * 32,
-            'primary_hash': '1' * 32,  # proj1group1 hash
-            'project_id': self.proj1.id,
-            'message': 'message',
-            'platform': 'python',
-            'datetime': now.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
-            'data': {
-                'received': time.mktime(now.timetuple()),
-                'tags': {
-                    'foo': 'bar',
-                    'baz': 'quux',
-                    'environment': self.proj1env1.name,
-                }
-            },
-        }] * 2
-
-        r = requests.post(snuba.SNUBA + '/tests/insert', data=json.dumps(events))
-        assert r.status_code == 200
-
         result = self.ts.get_group_tag_keys_and_top_values(
             self.proj1.id,
             self.proj1group1.id,
@@ -110,5 +110,19 @@ class TagStorage(TestCase):
         assert result[0]['uniqueValues'] == 1
         assert result[0]['totalValues'] == 2
 
-        assert result[0]['topValues'][0]['key'] == 'quux'
-        assert result[1]['topValues'][0]['key'] == 'bar'
+        assert result[0]['topValues'][0]['value'] == 'quux'
+        assert result[1]['topValues'][0]['value'] == 'bar'
+
+    def test_get_top_group_tag_values(self):
+        resp = self.ts.get_top_group_tag_values(
+            self.proj1.id,
+            self.proj1group1.id,
+            self.proj1env1.id,
+            'foo',
+            1
+        )
+        assert len(resp) == 1
+        assert resp[0].times_seen == 2
+        assert resp[0].key == 'foo'
+        assert resp[0].value == 'bar'
+        assert resp[0].group_id == self.proj1group1.id

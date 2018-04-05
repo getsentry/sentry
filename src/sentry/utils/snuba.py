@@ -13,7 +13,7 @@ SNUBA = os.environ.get('SNUBA', 'http://localhost:5000')
 
 
 def query(start, end, groupby, conditions=None, filter_keys=None,
-          aggregations=None, rollup=None, arrayjoin=None):
+          aggregations=None, rollup=None, arrayjoin=None, limit=None, orderby=None):
     """
     Sends a query to snuba.
 
@@ -77,6 +77,8 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
         'granularity': rollup,
         'issues': issues,
         'arrayjoin': arrayjoin,
+        'limit': limit,
+        'orderby': orderby,
     }) if v is not None}
 
     response = requests.post(url, data=json.dumps(request))
