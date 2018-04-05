@@ -56,7 +56,11 @@ const EventOrGroupExtraDetails = createReactClass({
 
     return (
       <Flex align="center">
-        <Box mr={2}>{shortId && <GroupShortId shortId={shortId} />}</Box>
+        {shortId && (
+          <Box mr={2}>
+            <GroupShortId shortId={shortId} />
+          </Box>
+        )}
         <GroupExtra>
           <Flex align="center" mr={2}>
             {lastSeen && (

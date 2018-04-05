@@ -306,9 +306,6 @@ exports[`EventOrGroupExtraDetails renders last and first seen 1`] = `
 <Flex
   align="center"
 >
-  <Box
-    mr={2}
-  />
   <GroupExtra>
     <Flex
       align="center"
@@ -339,9 +336,6 @@ exports[`EventOrGroupExtraDetails renders only first seen 1`] = `
 <Flex
   align="center"
 >
-  <Box
-    mr={2}
-  />
   <GroupExtra>
     <Flex
       align="center"
@@ -360,9 +354,6 @@ exports[`EventOrGroupExtraDetails renders only last seen 1`] = `
 <Flex
   align="center"
 >
-  <Box
-    mr={2}
-  />
   <GroupExtra>
     <Flex
       align="center"
