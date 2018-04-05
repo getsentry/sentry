@@ -135,14 +135,14 @@ GUIDES = {
                 'target': 'member_add',
             },
             {
-                'title': _('What is status?'),
+                'title': _('Status'),
                 'message': _('You can enforce <a href="/settings/${orgSlug}/#require2FA">2-factor auth</a> or '
                              '<a href="/settings/${orgSlug}/auth/">SSO</a> across your organization. Status lets you see '
                              'which members haven\'t configured them yet.'),
                 'target': 'member_status',
             },
             {
-                'title': _('A tip for roles'),
+                'title': _('Roles'),
                 'message': _('Consider having two owners, in case one person\'s out, and you '
                              'need to adjust billing or a new hire.<br><br>'
                              'Add finance as a billing member. They\'ll get access to '
