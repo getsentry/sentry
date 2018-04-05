@@ -77,9 +77,8 @@ class SlackEventEndpoint(Endpoint):
         req.raise_for_status()
         resp = req.json()
         if not resp.get('ok'):
-            logger.error('slack.event.unfurl-error', extra={
-                'error': resp.get('error'),
-            })
+            logger.error('slack.event.unfurl-error', extra={'response': resp})
+
         return self.respond()
 
     # TODO(dcramer): implement app_uninstalled and tokens_revoked
