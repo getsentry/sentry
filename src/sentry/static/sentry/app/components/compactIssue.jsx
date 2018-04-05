@@ -204,7 +204,7 @@ const CompactIssue = createReactClass({
         className={className}
         onClick={this.toggleSelect}
         direction="column"
-        style={{padding: '12px 16px 6px'}}
+        style={{paddingTop: '12px', paddingBottom: '6px'}}
       >
         <CompactIssueHeader data={issue} orgId={orgId} projectId={projectId} />
         {this.props.statsPeriod && (
