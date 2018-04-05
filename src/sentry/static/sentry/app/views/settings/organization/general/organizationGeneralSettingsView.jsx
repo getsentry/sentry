@@ -1,9 +1,10 @@
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 
+import {Panel, PanelHeader} from '../../../../components/panels';
+import {addLoadingMessage} from '../../../../actionCreators/indicator';
 import {
   changeOrganizationSlug,
   removeAndRedirectToRemainingOrganization,
@@ -15,8 +16,6 @@ import Field from '../../components/forms/field';
 import LinkWithConfirmation from '../../../../components/linkWithConfirmation';
 import LoadingError from '../../../../components/loadingError';
 import LoadingIndicator from '../../../../components/loadingIndicator';
-import OrganizationsStore from '../../../../stores/organizationsStore';
-import {Panel, PanelHeader} from '../../../../components/panels';
 import SettingsPageHeader from '../../components/settingsPageHeader';
 import TextBlock from '../../components/text/textBlock';
 import recreateRoute from '../../../../utils/recreateRoute';
@@ -28,7 +27,7 @@ const OrganizationGeneralSettingsView = createReactClass({
     routes: PropTypes.arrayOf(PropTypes.object),
   },
 
-  mixins: [ApiMixin, Reflux.connect(OrganizationsStore, 'organizations')],
+  mixins: [ApiMixin],
 
   getInitialState() {
     return {
@@ -87,10 +86,7 @@ const OrganizationGeneralSettingsView = createReactClass({
     let {data} = this.state || {};
     if (!data) return;
 
-    // Can't remove if this is only org
-    let allOrgs = OrganizationsStore.getAll();
-    if (allOrgs && allOrgs.length < 2) return;
-
+    addLoadingMessage();
     removeAndRedirectToRemainingOrganization(this.api, {
       orgId: this.props.params.orgId,
       successMessage: `${data.name} is queued for deletion.`,
@@ -111,12 +107,11 @@ const OrganizationGeneralSettingsView = createReactClass({
   },
 
   render() {
-    let {data, loading, error, Form, organizations} = this.state;
+    let {data, loading, error, Form} = this.state;
     let orgId = this.props.params.orgId;
     let access = data && new Set(data.access);
 
     let hasProjects = data && data.projects && !!data.projects.length;
-    let hasMultipleOrgs = data && organizations.length > 1;
 
     return (
       <div>
@@ -137,8 +132,7 @@ const OrganizationGeneralSettingsView = createReactClass({
               />
 
               {access.has('org:admin') &&
-                !data.isDefault &&
-                hasMultipleOrgs && (
+                !data.isDefault && (
                   <Panel>
                     <PanelHeader>{t('Remove Organization')}</PanelHeader>
                     <Field
