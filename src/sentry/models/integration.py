@@ -15,7 +15,7 @@ class OrganizationIntegration(Model):
     integration = FlexibleForeignKey('sentry.Integration')
     config = EncryptedJsonField(default=lambda: {})
     default_auth_id = BoundedPositiveIntegerField(db_index=True, null=True)
-    date_added = models.DateTimeField(default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now, null=True)
 
     class Meta:
         app_label = 'sentry'
@@ -52,7 +52,7 @@ class Integration(Model):
     # be used to store organization-specific information, as the Integration
     # instance is shared among multiple organizations
     metadata = EncryptedJsonField(default=lambda: {})
-    date_added = models.DateTimeField(default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now, null=True)
 
     class Meta:
         app_label = 'sentry'
