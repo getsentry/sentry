@@ -68,8 +68,15 @@ const EventOrGroupExtraDetails = createReactClass({
               <TimeSince date={lastSeen} suffix={t('ago')} />
             </React.Fragment>
           )}
-          {firstSeen && lastSeen && <span>&nbsp;—&nbsp;</span>}
-          {firstSeen && <TimeSince date={firstSeen} suffix={t('old')} />}
+          {firstSeen &&
+            lastSeen && <span className="hidden-xs hidden-sm">&nbsp;—&nbsp;</span>}
+          {firstSeen && (
+            <TimeSince
+              date={firstSeen}
+              suffix={t('old')}
+              className="hidden-xs hidden-sm"
+            />
+          )}
         </Flex>
         <GroupExtraCommentsAndLogger>
           {numComments > 0 && (

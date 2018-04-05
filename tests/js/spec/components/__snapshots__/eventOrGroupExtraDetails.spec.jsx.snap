@@ -24,10 +24,13 @@ exports[`EventOrGroupExtraDetails details when mentioned 1`] = `
         suffix="ago"
       />
     </React.Fragment>
-    <span>
+    <span
+      className="hidden-xs hidden-sm"
+    >
        — 
     </span>
     <TimeSince
+      className="hidden-xs hidden-sm"
       date="2017-07-01T02:06:02Z"
       suffix="old"
     />
@@ -122,10 +125,13 @@ exports[`EventOrGroupExtraDetails renders all details 1`] = `
         suffix="ago"
       />
     </React.Fragment>
-    <span>
+    <span
+      className="hidden-xs hidden-sm"
+    >
        — 
     </span>
     <TimeSince
+      className="hidden-xs hidden-sm"
       date="2017-07-01T02:06:02Z"
       suffix="old"
     />
@@ -216,10 +222,13 @@ exports[`EventOrGroupExtraDetails renders assignee and status 1`] = `
         suffix="ago"
       />
     </React.Fragment>
-    <span>
+    <span
+      className="hidden-xs hidden-sm"
+    >
        — 
     </span>
     <TimeSince
+      className="hidden-xs hidden-sm"
       date="2017-07-01T02:06:02Z"
       suffix="old"
     />
@@ -319,10 +328,13 @@ exports[`EventOrGroupExtraDetails renders last and first seen 1`] = `
         suffix="ago"
       />
     </React.Fragment>
-    <span>
+    <span
+      className="hidden-xs hidden-sm"
+    >
        — 
     </span>
     <TimeSince
+      className="hidden-xs hidden-sm"
       date="2017-07-01T02:06:02Z"
       suffix="old"
     />
@@ -340,6 +352,7 @@ exports[`EventOrGroupExtraDetails renders only first seen 1`] = `
     mr={2}
   >
     <TimeSince
+      className="hidden-xs hidden-sm"
       date="2017-07-01T02:06:02Z"
       suffix="old"
     />
