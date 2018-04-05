@@ -9,7 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.serializers import serialize
+from sentry.api.serializers import serialize, AdminBroadcastSerializer, BroadcastSerializer
 from sentry.api.validators import AdminBroadcastValidator, BroadcastValidator
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import Broadcast, BroadcastSeen
@@ -22,7 +22,7 @@ class BroadcastDetailsEndpoint(Endpoint):
 
     def _get_broadcast(self, request, broadcast_id):
         if is_active_superuser(request) and request.access.has_permission('broadcasts.admin'):
-            queryset = Broadcast.objects
+            queryset = Broadcast.objects.all()
         else:
             queryset = Broadcast.objects.filter(
                 Q(date_expires__isnull=True) | Q(date_expires__gt=timezone.now()),
@@ -40,10 +40,11 @@ class BroadcastDetailsEndpoint(Endpoint):
         return BroadcastValidator
 
     def _serialize_response(self, request, broadcast):
-        context = serialize(broadcast, request.user)
         if is_active_superuser(request):
-            context['userCount'] = BroadcastSeen.objects.filter(broadcast=broadcast).count()
-        return self.respond(context)
+            serializer_cls = AdminBroadcastSerializer
+        else:
+            serializer_cls = BroadcastSerializer
+        return self.respond(serialize(broadcast, request.user, serializer=serializer_cls()))
 
     def get(self, request, broadcast_id):
         broadcast = self._get_broadcast(request, broadcast_id)
