@@ -169,7 +169,7 @@ class OAuth2CallbackView(PipelineView):
 
         if 'error' in data:
             pipeline.logger.info('identity.token-exchange-error', extra={'error': data['error']})
-            return pipeline.error('Failed to retrieve toek from the upstream service.')
+            return pipeline.error('Failed to retrieve token from the upstream service.')
 
         # we can either expect the API to be implicit and say "im looking for
         # blah within state data" or we need to pass implementation + call a
