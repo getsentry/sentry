@@ -51,8 +51,12 @@ describe('Helper', function() {
   });
 
   it('triggers guide drawer', function() {
-    const wrapper = shallow(<AssistantHelper />);
-    const component = wrapper.instance();
+    let wrapper = mount(
+      <ThemeProvider theme={theme}>
+        <AssistantHelper />
+      </ThemeProvider>
+    );
+    const component = wrapper.find('AssistantHelper').instance();
 
     component.onGuideStateChange({
       currentGuide: {
@@ -67,7 +71,7 @@ describe('Helper', function() {
       },
       currentStep: 1,
     });
-    wrapper.find('.assistant-cue').simulate('hashchange');
+    // wrapper.find('.assistant-cue').simulate('hashchange');
     expect(wrapper).toMatchSnapshot();
   });
 });
