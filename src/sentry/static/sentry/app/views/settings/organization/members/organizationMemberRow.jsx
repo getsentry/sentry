@@ -195,8 +195,9 @@ export default class OrganizationMemberRow extends React.PureComponent {
                   disabled
                   size="small"
                   title={t('You do not have access to remove member')}
+                  icon="icon-circle-subtract"
                 >
-                  <span className="icon icon-trash" /> {t('Remove')}
+                  {t('Remove')}
                 </Button>
               )}
 
