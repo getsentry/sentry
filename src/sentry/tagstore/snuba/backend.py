@@ -8,6 +8,7 @@ sentry.tagstore.snuba.backend
 
 from __future__ import absolute_import
 
+from collections import defaultdict
 from datetime import datetime, timedelta
 import pytz
 import six
@@ -138,13 +139,13 @@ class SnubaTagStorage(TagStorage):
             'group_id': group_id,
         }) for name, count in six.iteritems(result)]
 
-    def get_group_list_tag_value(self, project_id, group_id_list, environment_id, key, value):
+    def get_group_list_tag_value(self, project_id, group_ids, environment_id, key, value):
         start, end = self.get_time_range()
         tag = 'tags[{}]'.format(key)
         filters = {
             'project_id': [project_id],
             'environment': [environment_id],
-            'issue': group_id_list,
+            'issue': group_ids,
         }
         conditions = [
             [tag, '=', value]
@@ -251,7 +252,16 @@ class SnubaTagStorage(TagStorage):
         pass
 
     def get_groups_user_counts(self, project_id, group_ids, environment_id):
-        pass
+        start, end = self.get_time_range()
+        filters = {
+            'project_id': [project_id],
+            'environment': [environment_id],
+            'issue': group_ids,
+        }
+        aggregations = [['uniq', 'user_id', 'count']]
+
+        result = snuba.query(start, end, ['issue'], None, filters, aggregations)
+        return defaultdict(int, result.items())
 
     # Search
     def get_group_ids_for_search_filter(self, project_id, environment_id, tags):

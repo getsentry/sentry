@@ -16,28 +16,27 @@ from sentry.tagstore.snuba.backend import SnubaTagStorage
 
 class TagStorage(TestCase):
     def setUp(self):
-        r = requests.post(snuba.SNUBA + '/tests/drop')
-        assert r.status_code == 200
+        assert requests.post(snuba.SNUBA + '/tests/drop').status_code == 200
 
         self.ts = SnubaTagStorage()
 
         self.proj1 = self.create_project()
-
         self.proj1env1 = self.create_environment(project=self.proj1, name='test')
-        self.proj1env2 = self.create_environment(project=self.proj1, name='prod')
 
         self.proj1group1 = self.create_group(self.proj1)
         self.proj1group2 = self.create_group(self.proj1)
 
-        GroupHash.objects.create(project=self.proj1, group=self.proj1group1, hash='1' * 32)
-        GroupHash.objects.create(project=self.proj1, group=self.proj1group2, hash='2' * 32)
+        hash1 = '1' * 32
+        hash2 = '2' * 32
+        GroupHash.objects.create(project=self.proj1, group=self.proj1group1, hash=hash1)
+        GroupHash.objects.create(project=self.proj1, group=self.proj1group2, hash=hash2)
 
         now = datetime.now()
-        events = [{
+        data = json.dumps([{
             'event_id': 'x' * 32,
-            'primary_hash': '1' * 32,  # proj1group1 hash
+            'primary_hash': hash1,
             'project_id': self.proj1.id,
-            'message': 'message',
+            'message': 'message 1',
             'platform': 'python',
             'datetime': now.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
             'data': {
@@ -46,12 +45,31 @@ class TagStorage(TestCase):
                     'foo': 'bar',
                     'baz': 'quux',
                     'environment': self.proj1env1.name,
+                },
+                'sentry.interfaces.User': {
+                    'id': "user{}".format(r)
                 }
             },
-        }] * 2
+        } for r in range(1, 3)] + [{
+            'event_id': 'x' * 32,
+            'primary_hash': hash2,
+            'project_id': self.proj1.id,
+            'message': 'message 2',
+            'platform': 'python',
+            'datetime': now.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+            'data': {
+                'received': time.mktime(now.timetuple()),
+                'tags': {
+                    'browser': 'chrome',
+                    'environment': self.proj1env1.name,
+                },
+                'sentry.interfaces.User': {
+                    'id': "user1"
+                }
+            },
+        }])
 
-        r = requests.post(snuba.SNUBA + '/tests/insert', data=json.dumps(events))
-        assert r.status_code == 200
+        assert requests.post(snuba.SNUBA + '/tests/insert', data=data).status_code == 200
 
     @responses.activate
     def test_get_group_ids_for_search_filter(self):
@@ -176,19 +194,19 @@ class TagStorage(TestCase):
                 value='notreal',
             )
 
-        # assert self.ts.get_group_tag_values(
-        #    project_id=self.proj1.id,
-        #    group_id=self.proj1group1.id,
-        #    environment_id=self.proj1env1.id,
-        #    key='notreal',
-        # ) == []
+        assert self.ts.get_group_tag_values(
+            project_id=self.proj1.id,
+            group_id=self.proj1group1.id,
+            environment_id=self.proj1env1.id,
+            key='notreal',
+        ) == []
 
-        # assert self.ts.get_group_tag_values(
-        #    project_id=self.proj1.id,
-        #    group_id=self.proj1group1.id,
-        #    environment_id=self.proj1env1.id,
-        #    key='foo',
-        # ) == []
+        assert self.ts.get_group_tag_values(
+            project_id=self.proj1.id,
+            group_id=self.proj1group1.id,
+            environment_id=self.proj1env1.id,
+            key='foo',
+        )[0].value == 'bar'
 
         assert self.ts.get_group_tag_value(
             project_id=self.proj1.id,
@@ -197,3 +215,13 @@ class TagStorage(TestCase):
             key='foo',
             value='bar',
         ).value == 'bar'
+
+    def test_get_groups_user_counts(self):
+        assert self.ts.get_groups_user_counts(
+            project_id=self.proj1.id,
+            group_ids=[self.proj1group1.id, self.proj1group2.id],
+            environment_id=self.proj1env1.id
+        ) == {
+            self.proj1group1.id: 2,
+            self.proj1group2.id: 1,
+        }
