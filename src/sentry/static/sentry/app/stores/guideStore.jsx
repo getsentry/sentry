@@ -55,7 +55,9 @@ const GuideStore = Reflux.createStore({
   },
 
   onOpenDrawer() {
-    this.state.isDrawerOpen = true;
+    if (this.state.currentStep < 1) {
+      this.state.currentStep = 1;
+    }
     this.updateCurrentGuide();
   },
 
@@ -105,7 +107,6 @@ const GuideStore = Reflux.createStore({
     }
 
     this.state.currentGuide = bestGuide;
-    this.state.currentStep = window.location.hash === '#assistant' ? 1 : 0;
     this.trigger(this.state);
   },
 });
