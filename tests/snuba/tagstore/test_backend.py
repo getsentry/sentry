@@ -136,6 +136,35 @@ class TagStorage(TestCase):
             'foo'
         ) == 2
 
+    def test_get_group_tag_key(self):
+        from sentry.tagstore.exceptions import GroupTagKeyNotFound
+        with pytest.raises(GroupTagKeyNotFound):
+            self.ts.get_group_tag_key(
+                project_id=self.proj1.id,
+                group_id=self.proj1group1.id,
+                environment_id=self.proj1env1.id,
+                key='notreal',
+            )
+
+        assert self.ts.get_group_tag_key(
+            project_id=self.proj1.id,
+            group_id=self.proj1group1.id,
+            environment_id=self.proj1env1.id,
+            key='foo',
+        ).key == 'foo'
+
+        keys = self.ts.get_group_tag_keys(
+            project_id=self.proj1.id,
+            group_id=self.proj1group1.id,
+            environment_id=self.proj1env1.id,
+        )
+        keys.sort(key=lambda x: x.key)
+        assert len(keys) == 2
+        assert keys[0].key == 'baz'
+        assert keys[0].times_seen == 2
+        assert keys[1].key == 'foo'
+        assert keys[1].times_seen == 2
+
     def test_get_group_tag_value(self):
         from sentry.tagstore.exceptions import GroupTagValueNotFound
         with pytest.raises(GroupTagValueNotFound):

@@ -45,10 +45,45 @@ class SnubaTagStorage(TagStorage):
         pass
 
     def get_group_tag_key(self, project_id, group_id, environment_id, key):
-        pass
+        from sentry.tagstore.exceptions import GroupTagKeyNotFound
+        start, end = self.get_time_range()
+        tag = 'tags[{}]'.format(key)
+        filters = {
+            'project_id': [project_id],
+            'environment': [environment_id],
+            'issue': [group_id],
+        }
+        conditions = [[tag, '!=', '']]
+        aggregations = [['count', '', 'count']]
+
+        result = snuba.query(start, end, [], conditions, filters, aggregations)
+        if result == 0:
+            raise GroupTagKeyNotFound
+        else:
+            return ObjectWrapper({
+                'times_seen': result,
+                'key': key,
+                'group_id': group_id,
+            })
 
     def get_group_tag_keys(self, project_id, group_id, environment_id, limit=None):
-        pass
+        limit = limit or 1000
+        start, end = self.get_time_range()
+        filters = {
+            'project_id': [project_id],
+            'environment': [environment_id],
+            'issue': [group_id],
+        }
+        aggregations = [['count', '', 'count']]
+
+        result = snuba.query(start, end, ['tags.key'], [], filters,
+                             aggregations, limit=limit, orderby='-count', arrayjoin='tags')
+
+        return [ObjectWrapper({
+            'times_seen': count,
+            'key': name,
+            'group_id': group_id,
+        }) for name, count in six.iteritems(result)]
 
     def get_group_tag_value(self, project_id, group_id, environment_id, key, value):
         from sentry.tagstore.exceptions import GroupTagValueNotFound
@@ -56,7 +91,7 @@ class SnubaTagStorage(TagStorage):
         if group_id in result:
             return result[group_id]
         else:
-            raise GroupTagValueNotFound()
+            raise GroupTagValueNotFound
 
     def get_group_tag_values(self, project_id, group_id, environment_id, key):
         pass
