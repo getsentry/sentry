@@ -1,8 +1,16 @@
+import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
+import Reflux from 'reflux';
+import createReactClass from 'create-react-class';
 
+import {
+  changeProjectSlug,
+  removeProject,
+  transferProject,
+} from '../actionCreators/projects';
+import {fields} from '../data/forms/projectGeneralSettings';
 import {getOrganizationState} from '../mixins/organizationState';
-import {removeProject, transferProject} from '../actionCreators/projects';
 import {t, tct} from '../locale';
 import AsyncView from './asyncView';
 import Button from '../components/buttons/button';
@@ -11,10 +19,11 @@ import Field from './settings/components/forms/field';
 import Form from './settings/components/forms/form';
 import JsonForm from './settings/components/forms/jsonForm';
 import {Panel, PanelAlert, PanelHeader} from '../components/panels';
+import ProjectsStore from '../stores/projectsStore';
 import SettingsPageHeader from './settings/components/settingsPageHeader';
 import TextBlock from './settings/components/text/textBlock';
 import TextField from './settings/components/forms/textField';
-import {fields} from '../data/forms/projectGeneralSettings';
+import recreateRoute from '../utils/recreateRoute';
 
 const AutoResolveFooter = () => (
   <PanelAlert type="warning">
@@ -27,7 +36,11 @@ const AutoResolveFooter = () => (
   </PanelAlert>
 );
 
-export default class ProjectGeneralSettings extends AsyncView {
+class ProjectGeneralSettings extends AsyncView {
+  static propTypes = {
+    onChangeSlug: PropTypes.func,
+  };
+
   static contextTypes = {
     organization: PropTypes.object.isRequired,
   };
@@ -237,9 +250,10 @@ export default class ProjectGeneralSettings extends AsyncView {
           apiMethod="PUT"
           apiEndpoint={endpoint}
           onSubmitSuccess={resp => {
-            // Reload if slug has changed
             if (projectId !== resp.slug) {
-              window.location = `/${organization.slug}/${resp.slug}/settings/`;
+              changeProjectSlug(projectId, resp.slug);
+              // Container will redirect after stores get updated with new slug
+              this.props.onChangeSlug(resp.slug);
             }
           }}
         >
@@ -315,3 +329,34 @@ export default class ProjectGeneralSettings extends AsyncView {
     );
   }
 }
+
+const ProjectGeneralSettingsContainer = createReactClass({
+  mixins: [Reflux.listenTo(ProjectsStore, 'onProjectsUpdate')],
+  onProjectsUpdate(projects) {
+    if (!this.changedSlug) return;
+    let project = ProjectsStore.getBySlug(this.changedSlug);
+
+    if (!project) return;
+
+    browserHistory.replace(
+      recreateRoute('', {
+        ...this.props,
+        params: {
+          ...this.props.params,
+          projectId: this.changedSlug,
+        },
+      })
+    );
+  },
+
+  render() {
+    return (
+      <ProjectGeneralSettings
+        onChangeSlug={newSlug => (this.changedSlug = newSlug)}
+        {...this.props}
+      />
+    );
+  },
+});
+
+export default ProjectGeneralSettingsContainer;

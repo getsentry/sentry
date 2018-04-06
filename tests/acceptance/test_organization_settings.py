@@ -84,8 +84,9 @@ class OrganizationSettingsTest(AcceptanceTestCase):
             self.browser.wait_until_not('.loading-indicator')
             assert not self.browser.element_exists('.ref-organization-settings .error')
             self.browser.click('#require2FA')
+
             self.browser.wait_until('.modal')
             self.browser.click('.modal .button-primary')
             self.browser.wait_until_not('.modal')
-            self.load_organization_helper("setting 2fa without 2fa enabled")
             self.browser.wait_until('.ref-toast.ref-error')
+            self.load_organization_helper("setting 2fa without 2fa enabled")

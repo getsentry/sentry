@@ -1,23 +1,23 @@
+import {withRouter} from 'react-router';
+import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
-import DocumentTitle from 'react-document-title';
-import {withRouter} from 'react-router';
+import createReactClass from 'create-react-class';
 
-import ApiMixin from '../../mixins/apiMixin';
-
-import MemberListStore from '../../stores/memberListStore';
-import LoadingError from '../../components/loadingError';
-import LoadingIndicator from '../../components/loadingIndicator';
-import MissingProjectMembership from '../../components/missingProjectMembership';
-import OrganizationState from '../../mixins/organizationState';
-import SentryTypes from '../../proptypes';
-import ProjectsStore from '../../stores/projectsStore';
-import recreateRoute from '../../utils/recreateRoute';
 import {loadEnvironments} from '../../actionCreators/environments';
 import {setActiveProject} from '../../actionCreators/projects';
 import {t} from '../../locale';
+import ApiMixin from '../../mixins/apiMixin';
+import LoadingError from '../../components/loadingError';
+import LoadingIndicator from '../../components/loadingIndicator';
+import MemberListStore from '../../stores/memberListStore';
+import MissingProjectMembership from '../../components/missingProjectMembership';
+import OrganizationState from '../../mixins/organizationState';
+import ProjectsStore from '../../stores/projectsStore';
+import recreateRoute from '../../utils/recreateRoute';
+import SentryTypes from '../../proptypes';
+import withProjects from '../../utils/withProjects';
 
 const ERROR_TYPES = {
   MISSING_MEMBERSHIP: 'MISSING_MEMBERSHIP',
@@ -40,6 +40,7 @@ const ProjectContext = createReactClass({
      * If true, this will not change `state.loading` during `fetchData` phase
      */
     skipReload: PropTypes.bool,
+    projects: PropTypes.arrayOf(SentryTypes.Project),
     projectId: PropTypes.string,
     orgId: PropTypes.string,
     location: PropTypes.object,
@@ -104,7 +105,8 @@ const ProjectContext = createReactClass({
       prevState.project !== this.state.project ||
       prevState.organization !== this.state.organization
     ) {
-      let docTitle = this.refs.docTitle;
+      if (!this.docTitle) return;
+      let docTitle = this.docTitleRef.docTitle;
       if (docTitle) docTitle.forceUpdate();
     }
   },
@@ -128,16 +130,9 @@ const ProjectContext = createReactClass({
   },
 
   identifyProject() {
-    let {projectId} = this.props;
+    let {projects, projectId} = this.props;
     let projectSlug = projectId;
-    let activeProject = null;
-    let org = this.context.organization;
-    org.projects.forEach(project => {
-      if (project.slug == projectSlug) {
-        activeProject = project;
-      }
-    });
-    return activeProject;
+    return projects.find(({slug}) => slug === projectSlug) || null;
   },
 
   fetchData() {
@@ -277,7 +272,7 @@ const ProjectContext = createReactClass({
 
   render() {
     return (
-      <DocumentTitle ref="docTitle" title={this.getTitle()}>
+      <DocumentTitle ref={ref => (this.docTitleRef = ref)} title={this.getTitle()}>
         {this.renderBody()}
       </DocumentTitle>
     );
@@ -286,4 +281,4 @@ const ProjectContext = createReactClass({
 
 export {ProjectContext};
 
-export default withRouter(ProjectContext);
+export default withProjects(withRouter(ProjectContext));

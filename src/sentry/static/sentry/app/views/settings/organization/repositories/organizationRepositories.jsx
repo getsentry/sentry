@@ -1,5 +1,4 @@
 import {Box, Flex} from 'grid-emotion';
-import {withTheme} from 'emotion-theming';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -15,13 +14,13 @@ import SettingsPageHeader from '../../components/settingsPageHeader';
 import TextBlock from '../../components/text/textBlock';
 import AddRepositoryLink from './addRepositoryLink';
 
-const RepoRow = withTheme(styled(SpreadLayout)`
+const RepoRow = styled(SpreadLayout)`
   border-bottom: 1px solid ${p => p.theme.borderLight};
 
   &:last-child {
     border-bottom: none;
   }
-`);
+`;
 
 class OrganizationRepositories extends React.Component {
   static propTypes = {

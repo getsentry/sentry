@@ -12,4 +12,5 @@ export default Reflux.createActions([
   'removeProjectError',
   'removeProjectSuccess',
   'setActive',
+  'changeSlug',
 ]);
