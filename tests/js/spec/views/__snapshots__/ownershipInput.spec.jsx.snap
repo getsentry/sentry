@@ -447,7 +447,7 @@ url:http://example.com/settings/* #product"
         autoCapitalize="off"
         autoComplete="off"
         autoCorrect="off"
-        className="css-e9agsp-StyledTextArea css-i52in62"
+        className="css-e9agsp-StyledTextArea css-zed2xb2"
         onChange={[Function]}
         placeholder="#example usage
 path:src/example/pipeline/* person@sentry.io #infra
@@ -460,7 +460,7 @@ url:http://example.com/settings/* #product"
           autoCapitalize="off"
           autoComplete="off"
           autoCorrect="off"
-          className="css-e9agsp-StyledTextArea css-i52in62"
+          className="css-e9agsp-StyledTextArea css-zed2xb2"
           onChange={[Function]}
           placeholder="#example usage
 path:src/example/pipeline/* person@sentry.io #infra
@@ -473,7 +473,7 @@ url:http://example.com/settings/* #product"
     </StyledTextArea>
     <SaveButton>
       <div
-        className="css-5zvod-SaveButton css-i52in61"
+        className="css-5zvod-SaveButton css-zed2xb1"
       >
         <Button
           disabled={false}

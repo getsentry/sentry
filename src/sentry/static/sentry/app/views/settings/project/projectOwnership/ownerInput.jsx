@@ -51,7 +51,7 @@ class OwnerInput extends React.Component {
   }
 
   handleUpdateOwnership = () => {
-    let {organization, project, onSave} = this.props;
+    let {organization, project} = this.props;
     let {text} = this.state;
     this.setState({error: null});
 
@@ -70,7 +70,6 @@ class OwnerInput extends React.Component {
         this.setState({
           initialText: text,
         });
-        onSave && onSave();
       })
       .catch(error => {
         this.setState({error: error.responseJSON});
@@ -179,12 +178,12 @@ const SyntaxOverlay = styled.div`
   ${inputStyles};
   margin: 10px 0;
   width: 100%;
-  height: 1em;
+  height: 24px;
   background-color: red;
   opacity: 0.1;
   pointer-events: none;
   position: absolute;
-  top: ${({line}) => line}em;
+  top: ${({line}) => line * 24}px;
 `;
 
 const SaveButton = styled.div`
