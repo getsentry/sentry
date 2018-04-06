@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import AlertActions from '../actions/alertActions';
+import {addErrorMessage} from '../actionCreators/indicator';
 import {t} from '../locale';
 
 class AvatarCropper extends React.Component {
@@ -228,10 +228,7 @@ class AvatarCropper extends React.Component {
   };
 
   handleError = msg => {
-    AlertActions.addAlert({
-      message: t(msg),
-      type: 'error',
-    });
+    addErrorMessage(t(msg));
   };
 
   validateImage = () => {
