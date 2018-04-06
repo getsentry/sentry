@@ -35,6 +35,12 @@ export default createReactClass({
     this.fetchData();
   },
 
+  componentWillReceiveProps(nextProps) {
+    if (this.props.since !== nextProps.since) {
+      this.setState(this.getInitialState(), this.fetchData);
+    }
+  },
+
   fetchData() {
     let statNameList = ['events.total', 'events.dropped'];
 

@@ -8,13 +8,13 @@ export default class AdminBuffer extends AsyncView {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
-      since: new Date().getTime() / 1000 - 3600 * 24 * 7,
       resolution: '1h',
     };
   }
 
   renderBody() {
     // TODO(dcramer): show buffer configuration when its moved into option store
+    const since = new Date().getTime() / 1000 - 3600 * 24 * 7;
     return (
       <div>
         <h3>Buffers</h3>
@@ -40,7 +40,7 @@ export default class AdminBuffer extends AsyncView {
             <h4>Updates Processed</h4>
           </div>
           <InternalStatChart
-            since={this.state.since}
+            since={since}
             resolution={this.state.resolution}
             stat="jobs.finished.sentry.tasks.process_buffer.process_incr"
             label="Jobs"
@@ -52,7 +52,7 @@ export default class AdminBuffer extends AsyncView {
             <h4>Revoked Updates</h4>
           </div>
           <InternalStatChart
-            since={this.state.since}
+            since={since}
             resolution={this.state.resolution}
             stat="buffer.revoked"
             label="Jobs"
