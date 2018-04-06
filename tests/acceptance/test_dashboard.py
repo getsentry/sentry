@@ -3,6 +3,9 @@ from __future__ import absolute_import
 from django.utils import timezone
 
 from sentry.testutils import AcceptanceTestCase
+from sentry.models import GroupAssignee
+from sentry.utils.samples import create_sample_event
+from datetime import datetime
 
 
 class DashboardTest(AcceptanceTestCase):
@@ -35,11 +38,26 @@ class DashboardTest(AcceptanceTestCase):
         # so we bank on a few containers being enough of a check
         self.browser.wait_until('.organization-home')
         self.browser.wait_until('.dashboard-barchart')
-        self.browser.wait_until('.awaiting-events')
         self.browser.wait_until_not('.loading-indicator')
+        self.browser.wait_until('.awaiting-events')
         self.browser.snapshot('org dash no issues')
 
     def test_one_issue(self):
+        event = create_sample_event(
+            project=self.project,
+            platform='python',
+            event_id='d964fdbd649a4cf8bfc35d18082b6b0e',
+            timestamp=1452683305,
+        )
+        event.group.update(
+            first_seen=datetime(2018, 1, 12, 3, 8, 25, tzinfo=timezone.utc),
+            last_seen=datetime(2018, 1, 13, 3, 8, 25, tzinfo=timezone.utc),
+        )
+        GroupAssignee.objects.create(
+            user=self.user,
+            group=event.group,
+            project=self.project,
+        )
         self.project.update(first_event=timezone.now())
         self.browser.get(self.path)
         # dashboard is a bit complex to load since it has many subcomponents
