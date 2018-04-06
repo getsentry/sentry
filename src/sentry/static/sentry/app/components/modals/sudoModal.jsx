@@ -4,13 +4,15 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 
 import {t} from '../../locale';
-import ApiForm from '../forms/apiForm';
+import Alert from '../alert';
 import ApiMixin from '../../mixins/apiMixin';
 import Button from '../buttons/button';
 import ConfigStore from '../../stores/configStore';
-import LoadingIndicator from '../loadingIndicator';
-import SimplePasswordField from '../forms/simplePasswordField';
+import Form from '../../views/settings/components/forms/form';
+import InputField from '../../views/settings/components/forms/inputField';
+import TextBlock from '../../views/settings/components/text/textBlock';
 import U2fContainer from '../u2fContainer';
+import space from '../../styles/space';
 
 class SudoModal extends React.Component {
   static propTypes = {
@@ -36,16 +38,12 @@ class SudoModal extends React.Component {
     };
   }
 
-  handleSubmit = () => {
-    this.setState({busy: true});
-  };
-
   handleSuccess = () => {
     let {closeModal, superuser, router, retryRequest} = this.props;
     if (!retryRequest) return;
 
     if (superuser) {
-      router.replace({...router.getCurrentLocation(), state: {superuser: true}});
+      router.replace({...router.getCurrentLocation(), state: {forceUpdate: new Date()}});
       return;
     }
 
@@ -96,25 +94,15 @@ class SudoModal extends React.Component {
     let {closeModal, user, Header, Body} = this.props;
 
     return (
-      <ApiForm
-        apiMethod="PUT"
-        apiEndpoint="/auth/"
-        footerClass="modal-footer"
-        submitLabel={t('Continue')}
-        onSubmit={this.handleSubmit}
-        onSubmitSuccess={this.handleSuccess}
-        onSubmitError={this.handleError}
-        hideErrors
-        resetOnError
-      >
+      <React.Fragment>
         <Header closeButton onHide={closeModal}>
           {t('Confirm Your Identity')}
         </Header>
 
         <Body>
-          {user.hasPasswordAuth ? (
+          {!user.hasPasswordAuth ? (
             <div>
-              <p>{t('You will need to reauthenticate to continue.')}</p>
+              <TextBlock>{t('You will need to reauthenticate to continue.')}</TextBlock>
               <Button
                 priority="primary"
                 href={`/auth/login/?next=${encodeURIComponent(location.pathname)}`}
@@ -124,20 +112,49 @@ class SudoModal extends React.Component {
             </div>
           ) : (
             <React.Fragment>
-              {this.state.busy && <LoadingIndicator css={{zIndex: 1}} overlay />}
-              <p>{t('Help us keep your account safe by confirming your identity.')}</p>
+              <TextBlock css={{marginBottom: space(1)}}>
+                {t('Help us keep your account safe by confirming your identity.')}
+              </TextBlock>
+
               {this.state.error && (
-                <div className="alert alert-error alert-block">
+                <Alert
+                  css={{marginBottom: 0}}
+                  type="error"
+                  icon="icon-circle-exclamation"
+                >
                   {t('Incorrect password')}
-                </div>
+                </Alert>
               )}
 
-              <SimplePasswordField label={t('Password')} required name="password" />
-              <U2fContainer displayMode="sudo" onTap={this.handleU2fTap} />
+              <Form
+                apiMethod="PUT"
+                apiEndpoint="/auth/"
+                submitLabel={t('Continue')}
+                onSubmit={this.handleSubmit}
+                onSubmitSuccess={this.handleSuccess}
+                onSubmitError={this.handleError}
+                hideErrors
+                resetOnError
+                hideFooter={!user.hasPasswordAuth}
+              >
+                <InputField
+                  type="password"
+                  inline={false}
+                  label={t('Password')}
+                  flexibleControlStateSize
+                  name="password"
+                  css={{
+                    paddingLeft: 0,
+                    paddingRight: 0,
+                    borderBottom: 'none',
+                  }}
+                />
+                <U2fContainer displayMode="sudo" onTap={this.handleU2fTap} />
+              </Form>
             </React.Fragment>
           )}
         </Body>
-      </ApiForm>
+      </React.Fragment>
     );
   }
 }
