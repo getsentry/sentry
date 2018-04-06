@@ -12,6 +12,7 @@ from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
 from sentry.models import (
     GroupStatus, GroupAssignee, OrganizationMember, User, Identity, Team,
+    Release
 )
 
 logger = logging.getLogger('sentry.integrations.slack')
@@ -173,6 +174,18 @@ def build_attachment(group, event=None, tags=None, identity=None, actions=None, 
         'type': 'button',
         'text': 'Ignore',
     }
+
+    has_releases = Release.objects.filter(
+        projects=group.project,
+        organization_id=group.project.organization_id
+    ).exists()
+
+    if not has_releases:
+        resolve_button.update({
+            'name': 'status',
+            'text': 'Resolve',
+            'value': 'resolved',
+        })
 
     if status == GroupStatus.RESOLVED:
         resolve_button.update({
