@@ -30,6 +30,8 @@ describe('LazyLoad', function() {
     res(ResolvedComponent);
 
     await promise;
+    // Need to wait for `retryableImport` to resolve
+    await tick();
     wrapper.update();
     expect(wrapper.state('Component')).toEqual('button');
     expect(wrapper.find('button')).toHaveLength(1);
@@ -39,22 +41,20 @@ describe('LazyLoad', function() {
   it('renders with error message when promise is rejected', async function() {
     // eslint-disable-next-line no-console
     console.error = jest.fn();
-    let reject;
-    let promise = new Promise((resolve, rej) => {
-      reject = rej;
-    });
-    let getComponent = () => promise;
+    let getComponent = jest.fn(
+      () =>
+        new Promise((resolve, reject) => reject(new Error('Could not load component')))
+    );
     let wrapper;
 
     try {
       wrapper = mount(<LazyLoad component={getComponent} />);
-
-      reject(new Error('Could not load component'));
-      await promise;
     } catch (err) {
       // ignore
     }
 
+    // Need to wait for `retryableImport` to resolve
+    await tick();
     wrapper.update();
     expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
     expect(wrapper.find('LoadingError')).toHaveLength(1);

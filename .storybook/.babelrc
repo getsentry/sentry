@@ -1,0 +1,30 @@
+{
+  "presets": [
+    "react",
+    [
+      "latest",
+      {
+        "es2015": {
+          "modules": false
+        }
+      }
+    ]
+  ],
+  "plugins": [
+    "emotion",
+    "transform-decorators-legacy",
+    "transform-class-properties",
+    "transform-object-rest-spread",
+    "syntax-dynamic-import",
+    ["transform-runtime", {
+      "polyfill": false,
+      "regenerator": true
+    }],
+    [
+      "babel-plugin-transform-builtin-extend",
+      {
+        "globals": ["Array", "Error"]
+      }
+    ]
+  ]
+}
