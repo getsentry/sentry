@@ -4,12 +4,12 @@ import {uniq} from 'lodash';
 import idx from 'idx';
 
 import {t} from '../../../../locale';
-import AsyncView from '../../../asyncView';
+import AsyncComponent from '../../../../components/asyncComponent';
 
 import SentryTypes from '../../../../proptypes';
 import OwnerInput from './ownerInput';
 
-class ProjectOwnershipModal extends AsyncView {
+class ProjectOwnershipModal extends AsyncComponent {
   static propTypes = {
     organization: SentryTypes.Organization,
     project: SentryTypes.Project,
@@ -21,17 +21,29 @@ class ProjectOwnershipModal extends AsyncView {
     let {organization, project, issueId} = this.props;
     return [
       ['ownership', `/projects/${organization.slug}/${project.slug}/ownership/`],
-      ['urlTagData', `/issues/${issueId}/tags/url/`],
+      [
+        'urlTagData',
+        `/issues/${issueId}/tags/url/`,
+        {},
+        {
+          allowError: error => {
+            // Allow for 404s
+            return error.status === 404;
+          },
+        },
+      ],
       ['eventData', `/issues/${issueId}/events/latest/`],
     ];
   }
 
   renderBody() {
     let {ownership, urlTagData, eventData} = this.state;
-    let urls = urlTagData.topValues
-      .sort((a, b) => a.count - b.count)
-      .map(i => i.value)
-      .slice(0, 5);
+    let urls = urlTagData
+      ? urlTagData.topValues
+          .sort((a, b) => a.count - b.count)
+          .map(i => i.value)
+          .slice(0, 5)
+      : [];
     // pull frame data out of exception or the stacktrace
     let frames =
       idx(
