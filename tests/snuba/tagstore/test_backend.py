@@ -40,11 +40,12 @@ class TagStorage(TestCase):
             'platform': 'python',
             'datetime': now.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
             'data': {
-                'received': time.mktime(now.timetuple()),
+                'received': time.mktime(now.timetuple()) - r,
                 'tags': {
                     'foo': 'bar',
                     'baz': 'quux',
                     'environment': self.proj1env1.name,
+                    'sentry:release': 100 * r,
                 },
                 'sentry.interfaces.User': {
                     'id': "user{}".format(r)
@@ -58,7 +59,7 @@ class TagStorage(TestCase):
             'platform': 'python',
             'datetime': now.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
             'data': {
-                'received': time.mktime(now.timetuple()),
+                'received': time.mktime(now.timetuple()) - r,
                 'tags': {
                     'browser': 'chrome',
                     'environment': self.proj1env1.name,
@@ -225,3 +226,24 @@ class TagStorage(TestCase):
             self.proj1group1.id: 2,
             self.proj1group2.id: 1,
         }
+
+    def test_get_releases(self):
+        assert self.ts.get_first_release(
+            project_id=self.proj1.id,
+            group_id=self.proj1group1.id,
+        ) == '200'
+
+        assert self.ts.get_first_release(
+            project_id=self.proj1.id,
+            group_id=self.proj1group2.id,
+        ) is None
+
+        assert self.ts.get_last_release(
+            project_id=self.proj1.id,
+            group_id=self.proj1group1.id,
+        ) == '100'
+
+        assert self.ts.get_last_release(
+            project_id=self.proj1.id,
+            group_id=self.proj1group2.id,
+        ) is None

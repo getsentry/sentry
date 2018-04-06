@@ -236,11 +236,29 @@ class SnubaTagStorage(TagStorage):
         } for key, res in six.iteritems(results)]
 
     # Releases
+    def get_release(self, project_id, group_id, first=True):
+        start, end = self.get_time_range()
+        filters = {
+            'project_id': [project_id],
+        }
+        conditions = [['release', 'IS NOT NULL', None]]
+        if group_id is not None:
+            filters['issue'] = [group_id]
+        aggregations = [['min' if first else 'max', 'received', 'seen']]
+        orderby = 'seen' if first else '-seen'
+
+        result = snuba.query(start, end, ['release'], conditions, filters,
+                             aggregations, limit=1, orderby=orderby)
+        if not result:
+            return None
+        else:
+            return result.keys()[0]
+
     def get_first_release(self, project_id, group_id):
-        pass
+        return self.get_release(project_id, group_id, True)
 
     def get_last_release(self, project_id, group_id):
-        pass
+        return self.get_release(project_id, group_id, False)
 
     def get_release_tags(self, project_ids, environment_id, versions):
         pass
