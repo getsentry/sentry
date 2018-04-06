@@ -281,6 +281,10 @@ def truncate_denormalizations(group):
 
 
 def collect_group_environment_data(events):
+    """\
+    Find the first release for a each group and environment pair from a
+    date-descending sorted list of events.
+    """
     results = {}
     for event in events:
         results[(event.group_id, get_environment_name(event))] = event.get_tag('sentry:release')
