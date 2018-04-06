@@ -59,7 +59,8 @@ describe('OrganizationMemberRow', function() {
         }}
       />
     );
-    expect(wrapper.find('.icon-exclamation')).toHaveLength(0);
+    expect(wrapper.find('NoTwoFactorIcon')).toHaveLength(0);
+    expect(wrapper.find('HasTwoFactorIcon')).toHaveLength(1);
   });
 
   it('has 2fa warning if user does not have 2fa enabled', function() {
@@ -75,7 +76,8 @@ describe('OrganizationMemberRow', function() {
         }}
       />
     );
-    expect(wrapper.find('.icon-exclamation')).toHaveLength(1);
+    expect(wrapper.find('NoTwoFactorIcon')).toHaveLength(1);
+    expect(wrapper.find('HasTwoFactorIcon')).toHaveLength(0);
   });
 
   describe('Pending user', function() {
@@ -207,7 +209,8 @@ describe('OrganizationMemberRow', function() {
           }}
         />
       );
-      expect(wrapper.find('.icon-exclamation')).toHaveLength(1);
+      expect(wrapper.find('NoTwoFactorIcon')).toHaveLength(1);
+      expect(wrapper.find('HasTwoFactorIcon')).toHaveLength(0);
     });
   });
 
