@@ -32,6 +32,7 @@ describe('projectContext component', function() {
     const projectContext = (
       <ProjectContext
         params={{orgId: org.slug, projectId: project.slug}}
+        projects={[]}
         routes={routes}
         router={router}
         location={location}

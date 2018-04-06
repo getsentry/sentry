@@ -1,4 +1,3 @@
-import {withTheme} from 'emotion-theming';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -49,4 +48,4 @@ class PanelAlert extends React.Component {
   }
 }
 
-export default withTheme(PanelAlert);
+export default PanelAlert;

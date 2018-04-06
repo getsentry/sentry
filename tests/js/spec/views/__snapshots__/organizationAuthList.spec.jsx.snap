@@ -16,7 +16,7 @@ exports[`OrganizationAuthList renders 1`] = `
       disablePadding={true}
       flex={false}
     >
-      <WithTheme(PanelAlert)
+      <PanelAlert
         m={0}
         mb={0}
         type="info"
@@ -44,7 +44,7 @@ exports[`OrganizationAuthList renders 1`] = `
           </ExternalLink>
         </span>
         .
-      </WithTheme(PanelAlert)>
+      </PanelAlert>
       <form
         action="/organizations/org-slug/auth/configure/"
         method="POST"
@@ -87,7 +87,7 @@ exports[`OrganizationAuthList renders with no providers 1`] = `
       disablePadding={true}
       flex={false}
     >
-      <WithTheme(PanelAlert)
+      <PanelAlert
         m={0}
         mb={0}
         type="info"
@@ -115,7 +115,7 @@ exports[`OrganizationAuthList renders with no providers 1`] = `
           </ExternalLink>
         </span>
         .
-      </WithTheme(PanelAlert)>
+      </PanelAlert>
       <form
         action="/organizations/org-slug/auth/configure/"
         method="POST"

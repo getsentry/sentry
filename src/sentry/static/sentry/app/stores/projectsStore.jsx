@@ -9,6 +9,7 @@ const ProjectsStore = Reflux.createStore({
     this.listenTo(ProjectActions.createSuccess, this.onCreateSuccess);
     this.listenTo(ProjectActions.updateSuccess, this.onUpdateSuccess);
     this.listenTo(ProjectActions.loadStatsSuccess, this.onStatsLoadSuccess);
+    this.listenTo(ProjectActions.changeSlug, this.onChangeSlug);
   },
 
   reset() {
@@ -21,6 +22,28 @@ const ProjectsStore = Reflux.createStore({
       return map;
     }, {});
     this.trigger(new Set(Object.keys(this.itemsById)));
+  },
+
+  onChangeSlug(prevSlug, newSlug) {
+    let prevProject = this.getBySlug(prevSlug);
+
+    // This shouldn't happen
+    if (!prevProject) return;
+
+    const newProject = {
+      ...prevProject,
+      slug: newSlug,
+    };
+
+    this.itemsById = {
+      ...this.itemsById,
+    };
+
+    this.itemsById[newProject.id] = newProject;
+
+    // Ideally we'd always trigger this.itemsById, but following existing patterns
+    // so we don't break things
+    this.trigger(new Set([prevProject.id]));
   },
 
   onCreateSuccess(project) {

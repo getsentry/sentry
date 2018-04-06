@@ -1,25 +1,51 @@
-import React from 'react';
+import {browserHistory} from 'react-router';
 import {ThemeProvider} from 'emotion-theming';
+import React from 'react';
+
 import {mount} from 'enzyme';
-
-import {Client} from 'app/api';
-
 import ProjectGeneralSettings from 'app/views/projectGeneralSettings';
 import theme from 'app/utils/theme';
 
+import ProjectContext from 'app/views/projects/projectContext';
+import ProjectsStore from 'app/stores/projectsStore';
+
+jest.mock('app/utils/recreateRoute');
 jest.mock('jquery');
 
 describe('projectGeneralSettings', function() {
   let org = TestStubs.Organization();
   let project = TestStubs.ProjectDetails();
+  let routerContext;
+  let putMock;
 
   beforeEach(function() {
     sinon.stub(window.location, 'assign');
-    Client.clearMockResponses();
-    Client.addMockResponse({
+    routerContext = TestStubs.routerContext([
+      {
+        router: TestStubs.router({
+          params: {
+            projectId: project.slug,
+            orgId: org.slug,
+          },
+        }),
+      },
+    ]);
+
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
       method: 'GET',
       body: project,
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/environments/`,
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/members/`,
+      method: 'GET',
+      body: [],
     });
   });
 
@@ -66,7 +92,6 @@ describe('projectGeneralSettings', function() {
   });
 
   it('disables field when equivalent org setting is true', function() {
-    let routerContext = TestStubs.routerContext();
     routerContext.context.organization.dataScrubber = true;
     routerContext.context.organization.scrubIPAddresses = false;
     let wrapper = mount(
@@ -84,7 +109,7 @@ describe('projectGeneralSettings', function() {
   });
 
   it('project admins can remove project', function() {
-    let deleteMock = Client.addMockResponse({
+    let deleteMock = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
       method: 'DELETE',
     });
@@ -110,7 +135,7 @@ describe('projectGeneralSettings', function() {
   });
 
   it('project admins can transfer project', function() {
-    let deleteMock = Client.addMockResponse({
+    let deleteMock = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/transfer/`,
       method: 'POST',
     });
@@ -147,7 +172,6 @@ describe('projectGeneralSettings', function() {
   });
 
   it('displays transfer/remove message for non-admins', function() {
-    let routerContext = TestStubs.routerContext();
     routerContext.context.organization.access = ['org:read'];
     let wrapper = mount(
       <ThemeProvider theme={theme}>
@@ -162,5 +186,54 @@ describe('projectGeneralSettings', function() {
     expect(wrapper.html()).toContain(
       'You do not have the required permission to transfer this project.'
     );
+  });
+
+  it('changing slug updates ProjectsStore', async function() {
+    let params = {orgId: org.slug, projectId: project.slug};
+    ProjectsStore.loadInitialData([project]);
+    putMock = MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/`,
+      method: 'PUT',
+      body: {
+        ...project,
+        slug: 'new-project',
+      },
+    });
+    let wrapper = mount(
+      <ThemeProvider theme={theme}>
+        <ProjectContext orgId={org.slug} projectId={project.slug}>
+          <ProjectGeneralSettings
+            routes={[]}
+            location={routerContext.context.location}
+            params={params}
+          />
+        </ProjectContext>
+      </ThemeProvider>,
+      routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    // Change slug to new-slug
+    wrapper
+      .find('input[name="slug"]')
+      .simulate('change', {target: {value: 'new-project'}})
+      .simulate('blur');
+
+    expect(putMock).toHaveBeenCalled();
+
+    await tick();
+    // :(
+    await tick();
+    wrapper.update();
+    // updates ProjectsStore
+    expect(ProjectsStore.itemsById['2'].slug).toBe('new-project');
+    expect(browserHistory.replace).toHaveBeenCalled();
+    // We can't do this because of ThemeProvider (ProjectContext needs to be root in order to `setProps`)
+    // wrapper.find('ProjectContext').setProps({
+    // projectId: 'new-project',
+    // });
+    wrapper.update();
+    expect(wrapper.find('Input[name="slug"]').prop('value')).toBe('new-project');
   });
 });

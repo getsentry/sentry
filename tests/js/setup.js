@@ -10,6 +10,18 @@ import Adapter from 'enzyme-adapter-react-16';
 jest.mock('app/translations');
 jest.mock('app/api');
 jest.mock('scroll-to-element', () => {});
+jest.mock('react-router', () => {
+  const ReactRouter = require.requireActual('react-router');
+  return {
+    Link: ReactRouter.Link,
+    withRouter: ReactRouter.withRouter,
+    browserHistory: {
+      push: jest.fn(),
+      replace: jest.fn(),
+      listen: jest.fn(() => {}),
+    },
+  };
+});
 
 const constantDate = new Date('2017-10-17T04:41:20'); //National Pasta Day
 MockDate.set(constantDate);
@@ -37,7 +49,7 @@ window.Raven = {
 };
 window.TestStubs = {
   // react-router's 'router' context
-  router: () => ({
+  router: (params = {}) => ({
     push: sinon.spy(),
     replace: sinon.spy(),
     go: sinon.spy(),
@@ -47,6 +59,7 @@ window.TestStubs = {
     isActive: sinon.spy(),
     createHref: sinon.spy(),
     location: {query: {}},
+    ...params,
   }),
 
   location: () => ({
