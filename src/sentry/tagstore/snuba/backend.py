@@ -24,25 +24,27 @@ class ObjectWrapper(object):
 
 class SnubaTagStorage(TagStorage):
 
-    def get_time_range(self):
+    def get_time_range(self, days=90):
         """
         Returns the default (start, end) time range for querrying snuba.
         """
         end = datetime.utcnow().replace(tzinfo=pytz.UTC)
-        return (end - timedelta(days=90), end)
+        return (end - timedelta(days=days), end)
 
     # Tag keys and values
     def get_tag_key(self, project_id, environment_id, key, status=TagKeyStatus.VISIBLE):
-        pass
+        # TODO is status applicable?
+        return self.get_group_tag_key(project_id, None, environment_id, key)
 
     def get_tag_keys(self, project_id, environment_id, status=TagKeyStatus.VISIBLE):
-        pass
+        # TODO why is there no limit?
+        return self.get_group_tag_keys(project_id, None, environment_id)
 
     def get_tag_value(self, project_id, environment_id, key, value):
-        pass
+        return self.get_group_tag_value(project_id, None, environment_id, key, value)
 
     def get_tag_values(self, project_id, environment_id, key):
-        pass
+        return self.get_group_tag_values(project_id, None, environment_id, key)
 
     def get_group_tag_key(self, project_id, group_id, environment_id, key):
         from sentry.tagstore.exceptions import GroupTagKeyNotFound
@@ -51,8 +53,9 @@ class SnubaTagStorage(TagStorage):
         filters = {
             'project_id': [project_id],
             'environment': [environment_id],
-            'issue': [group_id],
         }
+        if group_id is not None:
+            filters['issue'] = [group_id]
         conditions = [[tag, '!=', '']]
         aggregations = [['count', '', 'count']]
 
@@ -72,8 +75,9 @@ class SnubaTagStorage(TagStorage):
         filters = {
             'project_id': [project_id],
             'environment': [environment_id],
-            'issue': [group_id],
         }
+        if group_id is not None:
+            filters['issue'] = [group_id]
         aggregations = [['count', '', 'count']]
 
         result = snuba.query(start, end, ['tags.key'], [], filters,
@@ -87,14 +91,52 @@ class SnubaTagStorage(TagStorage):
 
     def get_group_tag_value(self, project_id, group_id, environment_id, key, value):
         from sentry.tagstore.exceptions import GroupTagValueNotFound
-        result = self.get_group_list_tag_value(project_id, [group_id], environment_id, key, value)
-        if group_id in result:
-            return result[group_id]
-        else:
+        start, end = self.get_time_range()
+        tag = 'tags[{}]'.format(key)
+        filters = {
+            'project_id': [project_id],
+            'environment': [environment_id],
+        }
+        if group_id is not None:
+            filters['issue'] = [group_id]
+        conditions = [
+            [tag, '=', value]
+        ]
+        aggregations = [['count', '', 'count']]
+
+        result = snuba.query(start, end, [], conditions, filters, aggregations)
+
+        if result == 0:
             raise GroupTagValueNotFound
+        else:
+            return ObjectWrapper({
+                'times_seen': result,
+                'key': key,
+                'value': value,
+                'group_id': group_id,
+            })
 
     def get_group_tag_values(self, project_id, group_id, environment_id, key):
-        pass
+        start, end = self.get_time_range(7)
+        tag = 'tags[{}]'.format(key)
+        filters = {
+            'project_id': [project_id],
+            'environment': [environment_id],
+        }
+        if group_id is not None:
+            filters['issue'] = [group_id]
+        conditions = [[tag, '!=', '']]
+        aggregations = [['count', '', 'count']]
+
+        result = snuba.query(start, end, [tag], conditions, filters,
+                             aggregations)
+
+        return [ObjectWrapper({
+            'times_seen': count,
+            'key': key,
+            'value': name,
+            'group_id': group_id,
+        }) for name, count in six.iteritems(result)]
 
     def get_group_list_tag_value(self, project_id, group_id_list, environment_id, key, value):
         start, end = self.get_time_range()
@@ -120,7 +162,7 @@ class SnubaTagStorage(TagStorage):
             }) for issue, count in six.iteritems(result)}
 
     def get_group_tag_value_count(self, project_id, group_id, environment_id, key):
-        start, end = self.get_time_range()
+        start, end = self.get_time_range(7)
         tag = 'tags[{}]'.format(key)
         filters = {
             'project_id': [project_id],
@@ -137,7 +179,7 @@ class SnubaTagStorage(TagStorage):
         pass
 
     def get_top_group_tag_values(self, project_id, group_id, environment_id, key, limit=3):
-        start, end = self.get_time_range()
+        start, end = self.get_time_range(7)
         tag = 'tags[{}]'.format(key)
         filters = {
             'project_id': [project_id],
