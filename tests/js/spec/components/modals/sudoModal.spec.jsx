@@ -49,6 +49,7 @@ describe('Sudo Modal', function() {
   });
 
   it('can delete an org with sudo flow', async function() {
+    ConfigStore.set('user', {hasPasswordAuth: true});
     let wrapper = mount(<App>{<div>placeholder content</div>}</App>);
 
     let api = new Client();
@@ -98,7 +99,7 @@ describe('Sudo Modal', function() {
       .simulate('change', {target: {value: 'password'}});
 
     wrapper.find('ModalDialog form').simulate('submit');
-    wrapper.find('ModalDialog [type="submit"]').simulate('click');
+    wrapper.find('ModalDialog Button[type="submit"]').simulate('click');
 
     await tick();
     wrapper.update();
@@ -127,5 +128,32 @@ describe('Sudo Modal', function() {
 
     // Sudo Modal should be closed
     expect(wrapper.find('ModalDialog')).toHaveLength(0);
+  });
+
+  it('shows button to redirect if user does not have password auth', async function() {
+    ConfigStore.set('user', {hasPasswordAuth: false});
+    let wrapper = mount(<App>{<div>placeholder content</div>}</App>);
+
+    let api = new Client();
+    let successCb = jest.fn();
+    let errorCb = jest.fn();
+
+    // No Modal
+    expect(wrapper.find('ModalDialog')).toHaveLength(0);
+
+    // Should return w/ `sudoRequired`
+    api.request('/organizations/org-slug/', {
+      method: 'DELETE',
+      success: successCb,
+      error: errorCb,
+    });
+
+    await tick();
+    await tick();
+    wrapper.update();
+
+    // Should have Modal + input
+    expect(wrapper.find('ModalDialog input')).toHaveLength(0);
+    expect(wrapper.find('Button').prop('href')).toMatch('/auth/login/?next=blank');
   });
 });
