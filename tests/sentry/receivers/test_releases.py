@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
+import pytz
 import six
+from datetime import datetime
 from hashlib import sha1
 from mock import patch
 from uuid import uuid4
@@ -20,6 +22,7 @@ class EnsureReleaseExistsTest(TestCase):
             environment_id=self.environment.id,
             key='sentry:release',
             value='1.0',
+            first_seen=datetime(2018, 2, 1, tzinfo=pytz.utc),
         )
 
         tv = tagstore.get_tag_value(self.project.id, self.environment.id, 'sentry:release', '1.0')
@@ -29,9 +32,34 @@ class EnsureReleaseExistsTest(TestCase):
         assert release.version == tv.value
         assert release.projects.first() == self.project
         assert release.organization == self.project.organization
+        assert release.date_added == tv.first_seen
 
         # ensure we dont hit some kind of error saving it again
         tv.save()
+
+        tv2 = tagstore.create_tag_value(
+            project_id=self.create_project(
+                organization=self.project.organization,
+            ).id,
+            environment_id=self.environment.id,
+            key='sentry:release',
+            value='1.0',
+            first_seen=datetime(2018, 1, 1, tzinfo=pytz.utc),
+        )
+
+        assert Release.objects.get(id=release.id).date_added == tv2.first_seen
+
+        tagstore.create_tag_value(
+            project_id=self.create_project(
+                organization=self.project.organization,
+            ).id,
+            environment_id=self.environment.id,
+            key='sentry:release',
+            value='1.0',
+            first_seen=datetime(2018, 3, 1, tzinfo=pytz.utc),
+        )
+
+        assert Release.objects.get(id=release.id).date_added == tv2.first_seen
 
 
 class ResolveGroupResolutionsTest(TestCase):

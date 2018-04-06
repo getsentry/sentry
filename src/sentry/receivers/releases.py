@@ -21,26 +21,26 @@ def ensure_release_exists(instance, created, **kwargs):
 
     project = Project.objects.get_from_cache(id=instance.project_id)
 
-    try:
-        with transaction.atomic():
-            release = Release.objects.create(
-                organization_id=project.organization_id,
-                version=instance.value,
-                date_added=instance.first_seen,
-            )
-    except IntegrityError:
-        release = Release.objects.get(
-            organization_id=project.organization_id,
-            version=instance.value,
-        )
-        release.update(date_added=instance.first_seen)
-    else:
-        # Make sure we use our partition key since `instance` is a
-        # `TagValue`.
+    release, created = Release.objects.get_or_create(
+        organization_id=project.organization_id,
+        version=instance.value,
+        defaults={
+            'date_added': instance.first_seen,
+        },
+    )
+
+    if created:
         type(instance).objects.filter(
             id=instance.id,
             project_id=instance.project_id,
-        ).update(data={'release_id': release.id})
+        ).update(data={
+            'release_id': release.id,
+        })
+    elif release.date_added > instance.first_seen:
+        Release.objects.filter(
+            id=release.id,
+            date_added__gt=instance.first_seen,
+        ).update(date_added=instance.first_seen)
 
     release.add_project(project)
 
