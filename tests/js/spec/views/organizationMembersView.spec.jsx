@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 
 import {Client} from 'app/api';
@@ -9,7 +8,8 @@ import OrganizationMembersView from 'app/views/settings/organization/members/org
 jest.mock('app/api');
 
 describe('OrganizationMembersView', function() {
-  let currentUser = TestStubs.Members()[1];
+  let members = TestStubs.Members();
+  let currentUser = members[1];
   let defaultProps = {
     orgId: 'org-slug',
     orgName: 'Organization Name',
@@ -24,6 +24,9 @@ describe('OrganizationMembersView', function() {
     onRemove: () => {},
     onLeave: () => {},
   };
+  let organization = TestStubs.Organization({
+    access: ['member:admin', 'org:admin'],
+  });
 
   beforeAll(function() {
     sinon.stub(ConfigStore, 'get', () => currentUser);
@@ -45,75 +48,73 @@ describe('OrganizationMembersView', function() {
       method: 'GET',
       body: [],
     });
-  });
-
-  describe('Require Link', function() {
-    beforeEach(function() {
-      Client.addMockResponse({
-        url: '/organizations/org-id/auth-provider/',
-        method: 'GET',
-        body: {
-          ...TestStubs.AuthProvider(),
-          require_link: true,
-        },
-      });
-    });
-
-    it('does not have 2fa warning if user has 2fa', function() {
-      let wrapper = mount(
-        <OrganizationMembersView
-          {...defaultProps}
-          params={{
-            orgId: 'org-id',
-          }}
-        />,
-        {
-          childContextTypes: {
-            router: PropTypes.object,
-          },
-          context: {
-            organization: TestStubs.Organization(),
-            router: TestStubs.router(),
-          },
-        }
-      );
-
-      expect(wrapper).toMatchSnapshot();
+    Client.addMockResponse({
+      url: '/organizations/org-id/auth-provider/',
+      method: 'GET',
+      body: {
+        ...TestStubs.AuthProvider(),
+        require_link: true,
+      },
     });
   });
 
-  describe('No Require Link', function() {
-    beforeEach(function() {
-      Client.addMockResponse({
-        url: '/organizations/org-id/auth-provider/',
-        method: 'GET',
-        body: {
-          ...TestStubs.AuthProvider(),
-          require_link: false,
-        },
-      });
+  it('can remove a member', async function() {
+    let deleteMock = Client.addMockResponse({
+      url: `/organizations/org-id/members/${members[0].id}/`,
+      method: 'DELETE',
     });
 
-    it('does not have 2fa warning if user has 2fa', function() {
-      let wrapper = mount(
-        <OrganizationMembersView
-          {...defaultProps}
-          params={{
-            orgId: 'org-id',
-          }}
-        />,
-        {
-          childContextTypes: {
-            router: PropTypes.object,
-          },
-          context: {
-            organization: TestStubs.Organization(),
-            router: TestStubs.router(),
-          },
-        }
-      );
+    let wrapper = mount(
+      <OrganizationMembersView
+        {...defaultProps}
+        params={{
+          orgId: 'org-id',
+        }}
+      />,
+      TestStubs.routerContext([{organization}])
+    );
 
-      expect(wrapper).toMatchSnapshot();
+    wrapper
+      .find('Button[icon="icon-circle-subtract"]')
+      .at(0)
+      .simulate('click');
+
+    await tick();
+
+    // Confirm modal
+    wrapper.find('ModalDialog Button[priority="primary"]').simulate('click');
+    await tick();
+
+    expect(deleteMock).toHaveBeenCalled();
+  });
+
+  it('can leave org', async function() {
+    let deleteMock = Client.addMockResponse({
+      url: `/organizations/org-id/members/${members[1].id}/`,
+      method: 'DELETE',
     });
+
+    let wrapper = mount(
+      <OrganizationMembersView
+        {...defaultProps}
+        params={{
+          orgId: 'org-id',
+        }}
+      />,
+      TestStubs.routerContext([{organization}])
+    );
+
+    wrapper
+      .find('Button[priority="danger"]')
+      .at(0)
+      .simulate('click');
+
+    await tick();
+
+    // Confirm modal
+    wrapper.find('ModalDialog Button[priority="primary"]').simulate('click');
+    await tick();
+
+    expect(deleteMock).toHaveBeenCalled();
   });
 });
