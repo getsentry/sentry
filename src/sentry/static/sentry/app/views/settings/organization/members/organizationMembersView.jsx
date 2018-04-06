@@ -11,6 +11,7 @@ import ConfigStore from '../../../../stores/configStore';
 import GuideAnchor from '../../../../components/assistant/guideAnchor';
 import OrganizationAccessRequests from './organizationAccessRequests';
 import OrganizationMemberRow from './organizationMemberRow';
+import AsyncView from '../../../asyncView';
 import Pagination from '../../../../components/pagination';
 import SentryTypes from '../../../../proptypes';
 import SettingsPageHeader from '../../components/settingsPageHeader';

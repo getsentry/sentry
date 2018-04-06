@@ -14,10 +14,10 @@ exports[`AuditLogView renders 1`] = `
   }
 >
   <SideEffect(DocumentTitle)
-    title="Organization Name Audit Log"
+    title="Organization Name Audit Log - Sentry"
   >
     <DocumentTitle
-      title="Organization Name Audit Log"
+      title="Organization Name Audit Log - Sentry"
     >
       <LazyLoad
         component={[Function]}

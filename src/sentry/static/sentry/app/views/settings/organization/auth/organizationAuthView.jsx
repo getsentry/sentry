@@ -3,10 +3,10 @@ import React from 'react';
 import {t} from '../../../../locale';
 import IndicatorStore from '../../../../stores/indicatorStore';
 import OrganizationAuthList from './organizationAuthList';
-import OrganizationSettingsView from '../../../organizationSettingsView';
+import AsyncView from '../../../asyncView';
 import SentryTypes from '../../../../proptypes';
 
-class OrganizationAuthView extends OrganizationSettingsView {
+class OrganizationAuthView extends AsyncView {
   static contextTypes = {
     organization: SentryTypes.Organization,
   };

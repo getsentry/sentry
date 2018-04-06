@@ -6,7 +6,7 @@ import {t} from '../../../../locale';
 import ApiForm from '../../../../components/forms/apiForm';
 import IndicatorStore from '../../../../stores/indicatorStore';
 import MultipleCheckboxField from '../../../../components/forms/multipleCheckboxField';
-import OrganizationSettingsView from '../../../organizationSettingsView';
+import AsyncView from '../../../asyncView';
 import SentryTypes from '../../../../proptypes';
 import SplitLayout from '../../../../components/splitLayout';
 import TextField from '../../../../components/forms/textField';
@@ -15,7 +15,7 @@ import recreateRoute from '../../../../utils/recreateRoute';
 
 const API_CHOICES = API_SCOPES.map(s => [s, s]);
 
-class OrganizationApiKeyDetailsView extends OrganizationSettingsView {
+class OrganizationApiKeyDetailsView extends AsyncView {
   static contextTypes = {
     organization: SentryTypes.Organization,
   };

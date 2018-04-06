@@ -9,7 +9,7 @@ import {t} from '../../../../locale';
 import Button from '../../../../components/buttons/button';
 import EmptyMessage from '../../components/emptyMessage';
 import Input from '../../components/forms/controls/input';
-import OrganizationSettingsView from '../../../organizationSettingsView';
+import AsyncView from '../../../asyncView';
 import Pagination from '../../../../components/pagination';
 import {Panel, PanelBody, PanelHeader, PanelItem} from '../../../../components/panels';
 import ProjectListItem from '../../../settings/components/settingsProjectItem';
@@ -17,7 +17,7 @@ import ProjectStatsGraph from './projectStatsGraph';
 import SentryTypes from '../../../../proptypes';
 import SettingsPageHeader from '../../components/settingsPageHeader';
 
-export default class OrganizationProjectsView extends OrganizationSettingsView {
+export default class OrganizationProjectsView extends AsyncView {
   static contextTypes = {
     router: PropTypes.object.isRequired,
     organization: SentryTypes.Organization,
