@@ -39,10 +39,10 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
   status=""
 >
   <SideEffect(DocumentTitle)
-    title="Organization Name Members"
+    title="Organization Name Members - Sentry"
   >
     <DocumentTitle
-      title="Organization Name Members"
+      title="Organization Name Members - Sentry"
     >
       <div>
         <SettingsPageHeading
@@ -1313,10 +1313,10 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
   status=""
 >
   <SideEffect(DocumentTitle)
-    title="Organization Name Members"
+    title="Organization Name Members - Sentry"
   >
     <DocumentTitle
-      title="Organization Name Members"
+      title="Organization Name Members - Sentry"
     >
       <div>
         <SettingsPageHeading
