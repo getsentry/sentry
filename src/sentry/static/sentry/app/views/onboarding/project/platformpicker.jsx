@@ -1,11 +1,13 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import classnames from 'classnames';
+import _ from 'lodash';
 
 import ListLink from '../../../components/listLink';
 import {flattenedPlatforms, categoryList} from '../utils';
 import PlatformCard from './platformCard';
 import {t} from '../../../locale';
+import HookStore from '../../../stores/hookStore';
 
 const allCategories = categoryList.concat({id: 'all', name: t('All')});
 
@@ -26,58 +28,42 @@ class PlatformPicker extends React.Component {
     };
   }
 
-  renderPlatformList = () => {
-    let {tab} = this.state;
-    const currentCategory = categoryList.find(({id}) => id === tab);
+  logSearch = _.debounce(() => {
+    if (this.state.filter) {
+      HookStore.get('analytics:event').forEach(cb =>
+        cb('platformpicker.search', {
+          query: this.state.filter.toLowerCase(),
+          num_results: this.getPlatformList().length,
+        })
+      );
+    }
+  }, 300);
 
-    const tabSubset = flattenedPlatforms.filter(platform => {
-      return tab === 'all' || currentCategory.platforms.includes(platform.id);
-    });
-
+  getPlatformList = () => {
     let subsetMatch = ({id}) => id.includes(this.state.filter.toLowerCase());
-
-    let filtered = tabSubset.filter(subsetMatch);
+    let filtered;
 
     if (this.state.filter) {
       filtered = flattenedPlatforms.filter(subsetMatch);
+    } else {
+      let {tab} = this.state;
+      const currentCategory = categoryList.find(({id}) => id === tab);
+      const tabSubset = flattenedPlatforms.filter(platform => {
+        return tab === 'all' || currentCategory.platforms.includes(platform.id);
+      });
+      filtered = tabSubset.filter(subsetMatch);
     }
 
     if (!this.props.showOther) {
       filtered = filtered.filter(({id}) => id !== 'other');
     }
 
-    if (!filtered.length) {
-      return (
-        <p>
-          {t(
-            "Not finding your platform? There's a rich ecosystem of community supported SDKs as well (including Perl, CFML, Clojure, and ActionScript).\n Try searching for Sentry clients or contacting support."
-          )}
-        </p>
-      );
-    }
-
-    return (
-      <ul className="client-platform-list platform-tiles">
-        {filtered.map((platform, idx) => {
-          return (
-            <PlatformCard
-              platform={platform.id}
-              className={classnames({
-                selected: this.props.platform === platform.id,
-              })}
-              key={platform.id}
-              onClick={() => {
-                this.props.setPlatform(platform.id);
-              }}
-            />
-          );
-        })}
-      </ul>
-    );
+    return filtered;
   };
 
   render() {
     let {filter} = this.state;
+    let filtered = this.getPlatformList();
     return (
       <div className="platform-picker">
         <ul className="nav nav-tabs">
@@ -90,7 +76,7 @@ class PlatformPicker extends React.Component {
                 className="platform-filter"
                 label={t('Filter')}
                 placeholder="Filter"
-                onChange={e => this.setState({filter: e.target.value})}
+                onChange={e => this.setState({filter: e.target.value}, this.logSearch)}
               />
             </div>
           </li>
@@ -110,7 +96,30 @@ class PlatformPicker extends React.Component {
             );
           })}
         </ul>
-        {this.renderPlatformList()}
+        {filtered.length ? (
+          <ul className="client-platform-list platform-tiles">
+            {filtered.map((platform, idx) => {
+              return (
+                <PlatformCard
+                  platform={platform.id}
+                  className={classnames({
+                    selected: this.props.platform === platform.id,
+                  })}
+                  key={platform.id}
+                  onClick={() => {
+                    this.props.setPlatform(platform.id);
+                  }}
+                />
+              );
+            })}
+          </ul>
+        ) : (
+          <p>
+            {t(
+              "Not finding your platform? There's a rich ecosystem of community supported SDKs as well (including Perl, CFML, Clojure, and ActionScript).\n Try searching for Sentry clients or contacting support."
+            )}
+          </p>
+        )}
       </div>
     );
   }
