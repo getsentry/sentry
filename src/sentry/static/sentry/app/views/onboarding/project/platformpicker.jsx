@@ -85,6 +85,9 @@ class PlatformPicker extends React.Component {
               <ListLink
                 key={id}
                 onClick={e => {
+                  HookStore.get('analytics:event').forEach(cb =>
+                    cb('platformpicker.select_tab', {tab: id})
+                  );
                   this.setState({tab: id, filter: ''});
                   e.preventDefault();
                 }}
@@ -107,6 +110,9 @@ class PlatformPicker extends React.Component {
                   })}
                   key={platform.id}
                   onClick={() => {
+                    HookStore.get('analytics:event').forEach(cb =>
+                      cb('platformpicker.select_platform', {platform: platform.id})
+                    );
                     this.props.setPlatform(platform.id);
                   }}
                 />
