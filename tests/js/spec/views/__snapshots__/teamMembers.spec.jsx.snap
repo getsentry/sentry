@@ -40,13 +40,14 @@ exports[`TeamMembers render() renders 1`] = `
       orgId="org-slug"
       user={
         Object {
-          "email": "",
+          "email": "sentry1@test.com",
           "flags": Object {
             "sso:linked": false,
           },
           "id": "1",
-          "name": "",
+          "name": "Sentry 1 Name",
           "pending": false,
+          "role": "",
           "roleName": "",
           "user": Object {
             "email": "sentry1@test.com",
@@ -84,17 +85,18 @@ exports[`TeamMembers render() renders 1`] = `
       orgId="org-slug"
       user={
         Object {
-          "email": "",
+          "email": "sentry2@test.com",
           "flags": Object {
             "sso:linked": false,
           },
           "id": "2",
-          "name": "",
-          "pending": false,
+          "name": "Sentry 2 Name",
+          "pending": true,
+          "role": "",
           "roleName": "",
           "user": Object {
             "email": "sentry2@test.com",
-            "has2fa": true,
+            "has2fa": false,
             "id": "2",
             "name": "Sentry 2 Name",
             "username": "Sentry 2 Username",
@@ -128,20 +130,66 @@ exports[`TeamMembers render() renders 1`] = `
       orgId="org-slug"
       user={
         Object {
-          "email": "",
+          "email": "sentry3@test.com",
           "flags": Object {
             "sso:linked": true,
           },
           "id": "3",
-          "name": "",
+          "name": "Sentry 3 Name",
           "pending": false,
-          "roleName": "",
+          "role": "owner",
+          "roleName": "Owner",
           "user": Object {
             "email": "sentry3@test.com",
             "has2fa": true,
             "id": "3",
             "name": "Sentry 3 Name",
             "username": "Sentry 3 Username",
+          },
+        }
+      }
+      userLink={true}
+    />
+    <Button
+      disabled={false}
+      onClick={[Function]}
+      size="small"
+    >
+      <InlineSvg
+        size="1.25em"
+        src="icon-circle-subtract"
+        style={
+          Object {
+            "marginRight": "8px",
+          }
+        }
+      />
+      Remove
+    </Button>
+  </StyledMemberContainer>
+  <StyledMemberContainer
+    key="3"
+  >
+    <UserBadge
+      avatarSize={36}
+      orgId="org-slug"
+      user={
+        Object {
+          "email": "sentry4@test.com",
+          "flags": Object {
+            "sso:linked": true,
+          },
+          "id": "4",
+          "name": "Sentry 4 Name",
+          "pending": false,
+          "role": "owner",
+          "roleName": "Owner",
+          "user": Object {
+            "email": "sentry4@test.com",
+            "has2fa": true,
+            "id": "4",
+            "name": "Sentry 4 Name",
+            "username": "Sentry 4 Username",
           },
         }
       }
