@@ -1,5 +1,4 @@
 import {Box} from 'grid-emotion';
-import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 
@@ -177,25 +176,6 @@ class OrganizationMembersView extends AsyncView {
           invited: state.invited.set(id, null),
         }));
         addErrorMessage(t('Error sending invite'));
-      },
-    });
-  };
-
-  handleAddMember = () => {
-    this.setState({
-      busy: true,
-    });
-    this.api.request(`/organizations/${this.props.params.orgId}/members/`, {
-      method: 'POST',
-      data: {},
-      success: data => {
-        this.setState({busy: false});
-        browserHistory.push(
-          `/organizations/${this.props.params.orgId}/members/${data.id}`
-        );
-      },
-      error: () => {
-        this.setState({busy: false});
       },
     });
   };

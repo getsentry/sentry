@@ -4,8 +4,10 @@ import {Client} from 'app/api';
 import {mount} from 'enzyme';
 import ConfigStore from 'app/stores/configStore';
 import OrganizationMembersView from 'app/views/settings/organization/members/organizationMembersView';
+import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 
 jest.mock('app/api');
+jest.mock('app/actionCreators/indicator');
 
 describe('OrganizationMembersView', function() {
   let members = TestStubs.Members();
@@ -46,7 +48,22 @@ describe('OrganizationMembersView', function() {
     Client.addMockResponse({
       url: '/organizations/org-id/access-requests/',
       method: 'GET',
-      body: [],
+      body: [
+        {
+          id: 'pending-id',
+          member: {
+            id: 'pending-member-id',
+            email: '',
+            name: '',
+            roleName: '',
+            user: {
+              id: '',
+              name: 'sentry@test.com',
+            },
+          },
+          team: TestStubs.Team(),
+        },
+      ],
     });
     Client.addMockResponse({
       url: '/organizations/org-id/auth-provider/',
@@ -86,6 +103,39 @@ describe('OrganizationMembersView', function() {
     await tick();
 
     expect(deleteMock).toHaveBeenCalled();
+    expect(addSuccessMessage).toHaveBeenCalled();
+  });
+
+  it('displays error message when failing to remove member', async function() {
+    let deleteMock = Client.addMockResponse({
+      url: `/organizations/org-id/members/${members[0].id}/`,
+      method: 'DELETE',
+      statusCode: 500,
+    });
+
+    let wrapper = mount(
+      <OrganizationMembersView
+        {...defaultProps}
+        params={{
+          orgId: 'org-id',
+        }}
+      />,
+      TestStubs.routerContext([{organization}])
+    );
+
+    wrapper
+      .find('Button[icon="icon-circle-subtract"]')
+      .at(0)
+      .simulate('click');
+
+    await tick();
+
+    // Confirm modal
+    wrapper.find('ModalDialog Button[priority="primary"]').simulate('click');
+    await tick();
+    expect(deleteMock).toHaveBeenCalled();
+    await tick();
+    expect(addErrorMessage).toHaveBeenCalled();
   });
 
   it('can leave org', async function() {
@@ -116,5 +166,134 @@ describe('OrganizationMembersView', function() {
     await tick();
 
     expect(deleteMock).toHaveBeenCalled();
+    expect(addSuccessMessage).toHaveBeenCalled();
+  });
+
+  it('displays error message when failing to leave org', async function() {
+    let deleteMock = Client.addMockResponse({
+      url: `/organizations/org-id/members/${members[1].id}/`,
+      method: 'DELETE',
+      statusCode: 500,
+    });
+
+    let wrapper = mount(
+      <OrganizationMembersView
+        {...defaultProps}
+        params={{
+          orgId: 'org-id',
+        }}
+      />,
+      TestStubs.routerContext([{organization}])
+    );
+
+    wrapper
+      .find('Button[priority="danger"]')
+      .at(0)
+      .simulate('click');
+
+    await tick();
+
+    // Confirm modal
+    wrapper.find('ModalDialog Button[priority="primary"]').simulate('click');
+    await tick();
+    expect(deleteMock).toHaveBeenCalled();
+    await tick();
+    expect(addErrorMessage).toHaveBeenCalled();
+  });
+
+  it('can re-send invite to member', async function() {
+    let inviteMock = MockApiClient.addMockResponse({
+      url: `/organizations/org-id/members/${members[0].id}/`,
+      method: 'PUT',
+      body: {
+        id: '1234',
+      },
+    });
+    let wrapper = mount(
+      <OrganizationMembersView
+        {...defaultProps}
+        params={{
+          orgId: 'org-id',
+        }}
+      />,
+      TestStubs.routerContext()
+    );
+
+    expect(inviteMock).not.toHaveBeenCalled();
+
+    wrapper
+      .find('ResendInviteButton')
+      .first()
+      .simulate('click');
+
+    await tick();
+    expect(inviteMock).toHaveBeenCalled();
+  });
+
+  it('can approve pending access request', async function() {
+    let approveMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-id/access-requests/pending-id/',
+      method: 'PUT',
+    });
+    let wrapper = mount(
+      <OrganizationMembersView
+        {...defaultProps}
+        params={{
+          orgId: 'org-id',
+        }}
+      />,
+      TestStubs.routerContext()
+    );
+
+    expect(approveMock).not.toHaveBeenCalled();
+
+    wrapper
+      .find('OrganizationAccessRequests Button[priority="primary"]')
+      .simulate('click');
+
+    await tick();
+
+    expect(approveMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: {
+          isApproved: true,
+        },
+      })
+    );
+  });
+
+  it('can deny pending access request', async function() {
+    let denyMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-id/access-requests/pending-id/',
+      method: 'PUT',
+    });
+    let wrapper = mount(
+      <OrganizationMembersView
+        {...defaultProps}
+        params={{
+          orgId: 'org-id',
+        }}
+      />,
+      TestStubs.routerContext()
+    );
+
+    expect(denyMock).not.toHaveBeenCalled();
+
+    wrapper
+      .find('OrganizationAccessRequests Button')
+      .at(1)
+      .simulate('click');
+
+    await tick();
+
+    expect(denyMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: {
+          isApproved: false,
+        },
+      })
+    );
   });
 });

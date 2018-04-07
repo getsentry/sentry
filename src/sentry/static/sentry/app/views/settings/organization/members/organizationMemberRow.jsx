@@ -135,17 +135,13 @@ export default class OrganizationMemberRow extends React.PureComponent {
                 !isInviteSuccessful &&
                 canAddMembers &&
                 (pending || needsSso) && (
-                  <Button
+                  <ResendInviteButton
                     priority="primary"
                     size="xsmall"
                     onClick={this.handleSendInvite}
-                    style={{
-                      padding: '0 4px',
-                      marginTop: 2,
-                    }}
                   >
                     {t('Resend invite')}
-                  </Button>
+                  </ResendInviteButton>
                 )}
             </div>
           ) : (
@@ -252,4 +248,9 @@ const HasTwoFactorIcon = styled(props => (
 ))`
   color: ${p => p.theme.success};
   font-size: 18px;
+`;
+
+const ResendInviteButton = styled(Button)`
+  padding: 0 4px;
+  margin-top: 2px;
 `;
