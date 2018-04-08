@@ -1,16 +1,6 @@
-import {fromPairs, flatMap} from 'lodash';
+import {flatMap} from 'lodash';
 
 import {addSearchMap} from '../actionCreators/formSearch';
-
-// Create a simple search index for a field
-const createSearchIndex = field => {
-  let fields = [field.name, field.label, field.help];
-
-  return fields
-    .join('')
-    .toLowerCase()
-    .replace(' ', '');
-};
 
 // need to associate index -> form group -> route
 // so when we search for a term we need to find:
@@ -22,16 +12,13 @@ const createSearchMap = ({route, formGroups, fields, ...other}) => {
     ? flatMap(formGroups, formGroup => formGroup.fields)
     : Object.keys(fields).map(fieldName => fields[fieldName]);
 
-  return fromPairs(
-    listOfFields.map(field => [
-      createSearchIndex(field),
-      {
-        ...other,
-        route,
-        field,
-      },
-    ])
-  );
+  return listOfFields.map(field => ({
+    ...other,
+    route,
+    title: field.label,
+    description: field.help,
+    field,
+  }));
 };
 
 /**
