@@ -4,12 +4,13 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 
+import {createFuzzySearch} from '../../utils/createFuzzySearch';
 import FormSearchStore from '../../stores/formSearchStore';
 import replaceRouterParams from '../../utils/replaceRouterParams';
 
 class FormFieldSearch extends React.Component {
   static propTypes = {
-    searchMap: PropTypes.object,
+    searchMap: PropTypes.array,
 
     query: PropTypes.string,
     /**
@@ -21,27 +22,47 @@ class FormFieldSearch extends React.Component {
     children: PropTypes.func.isRequired,
   };
 
+  constructor(props, ...args) {
+    super(props, ...args);
+
+    this.state = {
+      fuzzy: null,
+    };
+
+    this.createSearch(props.searchMap);
+  }
+
+  componentWillReceiveProps(nextProps) {
+    if (this.props.searchMap !== nextProps.searchMap) {
+      this.createSearch(nextProps.searchMap);
+    }
+  }
+
+  async createSearch(searchMap) {
+    this.setState({
+      fuzzy: await createFuzzySearch(searchMap || [], {
+        keys: ['field.label', 'field.help'],
+      }),
+    });
+  }
+
   render() {
     let {searchMap, query, params, children} = this.props;
 
-    let results = searchMap
-      ? Object.keys(searchMap)
-          .filter(key => key.indexOf(query) > -1)
-          .map(key => searchMap[key])
-          .map(item => ({
-            sourceType: 'field',
-            resultType: 'field',
-            ...item,
-            title: item.field.label,
-            description: item.field.help,
-            searchIndex: `${replaceRouterParams(item.route, params)}#${encodeURIComponent(
-              item.field.name
-            )}`,
-            to: `${replaceRouterParams(item.route, params)}#${encodeURIComponent(
-              item.field.name
-            )}`,
+    let results =
+      searchMap && this.state.fuzzy
+        ? this.state.fuzzy.search(query).map(({item, ...rest}) => ({
+            item: {
+              ...item,
+              sourceType: 'field',
+              resultType: 'field',
+              to: `${replaceRouterParams(item.route, params)}#${encodeURIComponent(
+                item.field.name
+              )}`,
+            },
+            ...rest,
           })) || []
-      : null;
+        : null;
 
     return children({
       isLoading: searchMap === null,

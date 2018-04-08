@@ -1,6 +1,7 @@
 import {Flex} from 'grid-emotion';
 import {Link} from 'react-router';
 import {css} from 'emotion';
+import {flatten} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -14,92 +15,87 @@ import Avatar from '../../../components/avatar';
 import FormFieldSearch from '../../../components/search/formFieldSearch';
 import InlineSvg from '../../../components/inlineSvg';
 import LoadingIndicator from '../../../components/loadingIndicator';
+import RouteSearch from '../../../components/search/routeSearch';
 import SentryTypes from '../../../proptypes';
 import UserBadge from '../../../components/userBadge';
+import highlightFuseMatches from '../../../utils/highlightFuseMatches';
 import replaceRouterParams from '../../../utils/replaceRouterParams';
 
-const MIN_SEARCH_LENGTH = 2;
+const MIN_SEARCH_LENGTH = 1;
+const MAX_RESULTS = 10;
 
 class SearchResult extends React.Component {
   static propTypes = {
-    /**
+    item: PropTypes.shape({
+      /**
      * The source of the search result (i.e. a model type)
      */
-    sourceType: PropTypes.oneOf(['organization', 'project', 'team', 'member', 'field']),
-    /**
+      sourceType: PropTypes.oneOf([
+        'organization',
+        'project',
+        'team',
+        'member',
+        'field',
+        'route',
+      ]),
+      /**
      * The type of result this is, for example:
      * - can be a setting route,
      * - an application route (e.g. org dashboard)
      * - form field
      */
-    resultType: PropTypes.oneOf(['settings', 'route', 'field']),
-    title: PropTypes.string,
-    description: PropTypes.string,
-    model: PropTypes.oneOfType([
-      SentryTypes.Organization,
-      SentryTypes.Project,
-      SentryTypes.Team,
-      SentryTypes.Member,
-    ]),
+      resultType: PropTypes.oneOf(['settings', 'route', 'field']),
+      title: PropTypes.string,
+      description: PropTypes.string,
+      model: PropTypes.oneOfType([
+        SentryTypes.Organization,
+        SentryTypes.Project,
+        SentryTypes.Team,
+        SentryTypes.Member,
+      ]),
+    }),
+    matches: PropTypes.array,
   };
 
   renderContent() {
-    let {sourceType, resultType, title, description, model, params} = this.props;
+    let {item, matches, params} = this.props;
+    let {sourceType, title, description, model} = item;
 
-    let isSettings = resultType === 'settings';
-
-    if (sourceType === 'team') {
-      return (
-        <div>
-          <TeamAvatar team={model} size={32} />
-          #{model.slug}
-        </div>
-      );
-    }
+    let matchedTitle = matches.find(({key}) => key === 'title');
+    let matchedDescription = matches.find(({key}) => key === 'description');
+    let highlightedTitle = matchedTitle ? highlightFuseMatches(matchedTitle) : title;
+    let highlightedDescription = matchedDescription
+      ? highlightFuseMatches(matchedDescription)
+      : description;
 
     if (sourceType === 'member') {
       return (
-        <UserBadge useLink={false} orgId={params.orgId} user={model} avatarSize={32} />
+        <UserBadge
+          displayName={highlightedTitle}
+          displayEmail={highlightedDescription}
+          userLink={false}
+          orgId={params.orgId}
+          user={model}
+          avatarSize={32}
+        />
       );
     }
 
-    if (sourceType === 'organization') {
-      return (
-        <React.Fragment>
-          {model.slug}{' '}
-          <SearchDetail>
-            Organization {isSettings ? ' Settings' : ' Dashboard'}
-          </SearchDetail>
-        </React.Fragment>
-      );
-    }
+    return (
+      <React.Fragment>
+        <div>
+          {sourceType === 'team' && <TeamAvatar team={model} size={32} />}
+          <span>{highlightedTitle}</span>
+        </div>
 
-    if (sourceType === 'project') {
-      return (
-        <React.Fragment>
-          {model.slug}{' '}
-          <SearchDetail>Project {isSettings ? ' Settings' : ' Issues'}</SearchDetail>
-        </React.Fragment>
-      );
-    }
-
-    if (sourceType === 'field' || sourceType === 'route') {
-      return (
-        <React.Fragment>
-          <div>
-            <span>{title}</span>
-          </div>
-
-          <SearchDetail>{description}</SearchDetail>
-        </React.Fragment>
-      );
-    }
-
-    return null;
+        <SearchDetail>{highlightedDescription}</SearchDetail>
+      </React.Fragment>
+    );
   }
 
   renderResultType() {
-    let {resultType} = this.props;
+    let {item} = this.props;
+    let {resultType} = item;
 
     // let isRoute = resultType === 'route';
     let isSettings = resultType === 'settings';
@@ -168,7 +164,7 @@ class SettingsSearch extends React.Component {
           onChange,
         }) => {
           let searchQuery = inputValue.toLowerCase();
-          let isValidSearch = inputValue.length > MIN_SEARCH_LENGTH;
+          let isValidSearch = inputValue.length >= MIN_SEARCH_LENGTH;
 
           return (
             <SettingsSearchWrapper>
@@ -184,55 +180,58 @@ class SettingsSearch extends React.Component {
 
               {isValidSearch && isOpen ? (
                 <ApiSearch query={searchQuery}>
-                  {({isLoading: apiIsLoading, results: apiResults}) => {
-                    return (
-                      <FormFieldSearch params={params} query={searchQuery}>
-                        {({isLoading: fieldIsLoading, results: fieldResults}) => {
-                          let isLoading =
-                            apiIsLoading ||
-                            fieldIsLoading ||
-                            apiResults === null ||
-                            fieldResults === null;
-                          let hasApiResults =
-                            !isLoading && apiResults && !!apiResults.length;
-                          let hasFieldResults =
-                            !isLoading && fieldResults && !!fieldResults.length;
-                          let hasAnyResults = hasFieldResults || hasApiResults;
-                          let results = !isLoading
-                            ? (fieldResults || []).concat(apiResults || [])
-                            : [];
+                  {apiArgs => (
+                    <FormFieldSearch params={params} query={searchQuery}>
+                      {formFieldArgs => (
+                        <RouteSearch params={params} query={searchQuery}>
+                          {routeArgs => {
+                            let allArgs = [apiArgs, formFieldArgs, routeArgs];
+                            // loading means if any result has `isLoading` OR any result is null
+                            let isLoading = !!allArgs.find(
+                              arg => arg.isLoading || arg.results === null
+                            );
 
-                          return (
-                            <DropdownBox>
-                              {isLoading && (
-                                <Flex justify="center" align="center" p={1}>
-                                  <LoadingIndicator mini hideMessage relative />
-                                </Flex>
-                              )}
-                              {results.map((item, index) => {
-                                return (
-                                  <SearchItem
-                                    {...getItemProps({
-                                      item,
-                                    })}
-                                    highlighted={index === highlightedIndex}
-                                    key={`${item.searchIndex}:${item.sourceType}:${item.resultType}`}
-                                  >
-                                    <SearchResult {...item} {...this.props} />
-                                  </SearchItem>
-                                );
-                              })}
+                            // Only use first `MAX_RESULTS` after sorting by score
+                            let foundResults =
+                              (!isLoading &&
+                                flatten(allArgs.map(({results}) => results || []))
+                                  .sort((a, b) => a.score - b.score)
+                                  .slice(0, MAX_RESULTS)) ||
+                              [];
+                            let hasAnyResults = !!foundResults.length;
 
-                              {!isLoading &&
-                                !hasAnyResults && (
-                                  <EmptyItem>{t('No results found')}</EmptyItem>
+                            return (
+                              <DropdownBox>
+                                {isLoading && (
+                                  <Flex justify="center" align="center" p={1}>
+                                    <LoadingIndicator mini hideMessage relative />
+                                  </Flex>
                                 )}
-                            </DropdownBox>
-                          );
-                        }}
-                      </FormFieldSearch>
-                    );
-                  }}
+                                {foundResults.map((item, index) => {
+                                  return (
+                                    <SearchItem
+                                      {...getItemProps({
+                                        item: item.item,
+                                      })}
+                                      highlighted={index === highlightedIndex}
+                                      key={`${item.item.title}-${index}`}
+                                    >
+                                      <SearchResult {...item} {...this.props} />
+                                    </SearchItem>
+                                  );
+                                })}
+
+                                {!isLoading &&
+                                  !hasAnyResults && (
+                                    <EmptyItem>{t('No results found')}</EmptyItem>
+                                  )}
+                              </DropdownBox>
+                            );
+                          }}
+                        </RouteSearch>
+                      )}
+                    </FormFieldSearch>
+                  )}
                 </ApiSearch>
               ) : null}
             </SettingsSearchWrapper>

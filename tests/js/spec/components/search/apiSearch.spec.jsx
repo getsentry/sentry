@@ -86,61 +86,76 @@ describe('ApiSearch', function() {
       allResults: expect.anything(),
       results: expect.arrayContaining([
         expect.objectContaining({
-          searchIndex: 'foo-org',
-          model: expect.objectContaining({
-            slug: 'foo-org',
+          item: expect.objectContaining({
+            model: expect.objectContaining({
+              slug: 'foo-org',
+            }),
+            sourceType: 'organization',
+            resultType: 'settings',
+            to: '/settings/foo-org/',
           }),
-          sourceType: 'organization',
-          resultType: 'settings',
-          to: '/settings/foo-org/',
+          matches: expect.anything(),
+          score: expect.anything(),
         }),
         expect.objectContaining({
-          searchIndex: 'foo-org Dashboard',
-          model: expect.objectContaining({
-            slug: 'foo-org',
+          item: expect.objectContaining({
+            model: expect.objectContaining({
+              slug: 'foo-org',
+            }),
+            sourceType: 'organization',
+            resultType: 'route',
+            to: '/foo-org/',
           }),
-          sourceType: 'organization',
-          resultType: 'route',
-          to: '/foo-org/',
+          matches: expect.anything(),
+          score: expect.anything(),
         }),
         expect.objectContaining({
-          searchIndex: 'foo-project',
-          model: expect.objectContaining({
-            slug: 'foo-project',
+          item: expect.objectContaining({
+            model: expect.objectContaining({
+              slug: 'foo-project',
+            }),
+            sourceType: 'project',
+            resultType: 'settings',
+            to: '/settings/org-slug/foo-project/',
           }),
-          sourceType: 'project',
-          resultType: 'settings',
-          to: '/settings/org-slug/foo-project/',
+          matches: expect.anything(),
+          score: expect.anything(),
         }),
         expect.objectContaining({
-          searchIndex: 'foo-project Dashboard',
-          model: expect.objectContaining({
-            slug: 'foo-project',
+          item: expect.objectContaining({
+            model: expect.objectContaining({
+              slug: 'foo-project',
+            }),
+            sourceType: 'project',
+            resultType: 'route',
+            to: '/org-slug/foo-project/',
           }),
-          sourceType: 'project',
-          resultType: 'route',
-          to: '/org-slug/foo-project/',
+          matches: expect.anything(),
+          score: expect.anything(),
         }),
         expect.objectContaining({
-          searchIndex: 'foo-team',
-          model: expect.objectContaining({
-            slug: 'foo-team',
+          item: expect.objectContaining({
+            model: expect.objectContaining({
+              slug: 'foo-team',
+            }),
+            sourceType: 'team',
+            resultType: 'settings',
+            to: '/settings/org-slug/teams/foo-team/',
           }),
-          sourceType: 'team',
-          resultType: 'settings',
-          to: '/settings/org-slug/teams/foo-team/',
+          matches: expect.anything(),
+          score: expect.anything(),
         }),
       ]),
     });
 
     // There are no members that match
-    expect(mock.mock.calls[1][0].results.length).toBe(5);
+    expect(mock.mock.calls[1][0].results).toHaveLength(5);
   });
 
   it('render function is called with correct results when API requests partially succeed', async function() {
     let mock = jest.fn().mockReturnValue(null);
 
-    teamsMock = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       query: 'foo',
       statusCode: 500,
@@ -159,25 +174,31 @@ describe('ApiSearch', function() {
       allResults: expect.anything(),
       results: expect.arrayContaining([
         expect.objectContaining({
-          model: expect.objectContaining({
-            slug: 'foo-org',
+          item: expect.objectContaining({
+            model: expect.objectContaining({
+              slug: 'foo-org',
+            }),
           }),
         }),
         expect.objectContaining({
-          model: expect.objectContaining({
-            slug: 'foo-org',
+          item: expect.objectContaining({
+            model: expect.objectContaining({
+              slug: 'foo-org',
+            }),
           }),
         }),
         expect.objectContaining({
-          model: expect.objectContaining({
-            slug: 'foo-team',
+          item: expect.objectContaining({
+            model: expect.objectContaining({
+              slug: 'foo-team',
+            }),
           }),
         }),
       ]),
     });
 
     // There are no members that match
-    expect(mock.mock.calls[1][0].results.length).toBe(3);
+    expect(mock.mock.calls[1][0].results).toHaveLength(3);
   });
 
   it('render function is updated as query changes', async function() {
@@ -191,48 +212,77 @@ describe('ApiSearch', function() {
 
     await tick();
     wrapper.update();
-    expect(mock).toHaveBeenLastCalledWith({
-      isLoading: false,
-      allResults: expect.anything(),
-      results: expect.arrayContaining([
-        expect.objectContaining({
-          model: expect.objectContaining({
-            slug: 'foo-org',
-          }),
-        }),
-        expect.objectContaining({
-          model: expect.objectContaining({
-            slug: 'foo-project',
-          }),
-        }),
-        expect.objectContaining({
-          model: expect.objectContaining({
-            slug: 'foo-team',
-          }),
-        }),
-      ]),
-    });
 
     // There are no members that match
-    expect(mock.mock.calls[1][0].results.length).toBe(5);
+    expect(mock.mock.calls[1][0].results).toHaveLength(5);
+    expect(mock.mock.calls[1][0].results[0].item.model.slug).toBe('foo-org');
 
     mock.mockClear();
     wrapper.setProps({query: 'foo-t'});
     await tick();
     wrapper.update();
-    expect(mock).toHaveBeenLastCalledWith({
-      isLoading: false,
-      allResults: expect.anything(),
-      results: [
-        expect.objectContaining({
-          model: expect.objectContaining({
-            slug: 'foo-team',
-          }),
-        }),
-      ],
+
+    // Still have 5 results, but is re-ordered
+    expect(mock.mock.calls[0][0].results).toHaveLength(5);
+    expect(mock.mock.calls[0][0].results[0].item.model.slug).toBe('foo-team');
+  });
+
+  describe('API queries', function() {
+    let mock;
+    beforeAll(function() {
+      mock = jest.fn().mockReturnValue(null);
+      wrapper = mount(
+        <ApiSearch params={{orgId: org.slug}} query="">
+          {mock}
+        </ApiSearch>,
+        TestStubs.routerContext()
+      );
     });
 
-    // Should have two calls, first call is setLoading
-    expect(mock.mock.calls[1][0].results.length).toBe(1);
+    it('does not call API with empty query string', function() {
+      expect(projectsMock).not.toHaveBeenCalled();
+    });
+
+    it('calls API when query string length is 1 char', function() {
+      wrapper.setProps({query: 'f'});
+      wrapper.update();
+      expect(projectsMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('calls API when query string length increases from 1 -> 2', function() {
+      wrapper.setProps({query: 'fo'});
+      wrapper.update();
+      expect(projectsMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not query API when query string > 2 chars', function() {
+      // Should not query API when query is > 2 chars
+      wrapper.setProps({query: 'foo'});
+      wrapper.update();
+      expect(projectsMock).toHaveBeenCalledTimes(0);
+    });
+    it('does not query API when query string 3 -> 4 chars', function() {
+      wrapper.setProps({query: 'foob'});
+      wrapper.update();
+      expect(projectsMock).toHaveBeenCalledTimes(0);
+    });
+
+    it('re-queries API if first 2 characters are different', function() {
+      wrapper.setProps({query: 'ba'});
+      wrapper.update();
+      expect(projectsMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not requery if query string is the same', function() {
+      wrapper.setProps({query: 'ba'});
+      wrapper.update();
+      expect(projectsMock).toHaveBeenCalledTimes(0);
+    });
+
+    it('queries if we go from 2 chars -> 1 char', function() {
+      wrapper.setProps({query: 'b'});
+      wrapper.update();
+      expect(projectsMock).toHaveBeenCalledTimes(1);
+    });
   });
 });
