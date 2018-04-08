@@ -35,3 +35,15 @@ export const DEFAULT_TOAST_DURATION = 6000;
 export const CSRF_COOKIE_NAME = window.csrfCookieName || 'sc';
 
 export const ALL_ENVIRONMENTS_KEY = '__all_environments__';
+
+export const DEFAULT_FUSE_OPTIONS = {
+  includeScore: true,
+  includeMatches: true,
+  threshold: 0.4,
+  location: 0,
+  distance: 75,
+  maxPatternLength: 24,
+  minMatchCharLength: 1,
+  // tokenize: true,
+  // findAllMatches: true,
+};
