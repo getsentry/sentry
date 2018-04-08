@@ -2,6 +2,7 @@ import {Flex} from 'grid-emotion';
 import {Link} from 'react-router';
 import {css} from 'emotion';
 import {flatten} from 'lodash';
+import keydown from 'react-keydown';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -44,6 +45,15 @@ class SettingsSearch extends React.Component {
     navigateTo(nextPath, router);
   };
 
+  @keydown('/')
+  handleFocusSearch(e) {
+    if (!this.searchInput) return;
+    if (e.target === this.searchInput) return;
+
+    e.preventDefault();
+    this.searchInput.focus();
+  }
+
   render() {
     let {params} = this.props;
 
@@ -52,7 +62,6 @@ class SettingsSearch extends React.Component {
         defaultHighlightedIndex={0}
         itemToString={() => ''}
         onSelect={this.handleSelect}
-        onStateChange={this.handleStateChange}
       >
         {({
           getInputProps,
@@ -71,9 +80,10 @@ class SettingsSearch extends React.Component {
               <SearchInputWrapper>
                 <SearchInputIcon size="14px" />
                 <SearchInput
+                  innerRef={ref => (this.searchInput = ref)}
                   {...getInputProps({
                     type: 'text',
-                    placeholder: t('Search settings'),
+                    placeholder: t('Press "/" to search settings'),
                   })}
                 />
               </SearchInputWrapper>
