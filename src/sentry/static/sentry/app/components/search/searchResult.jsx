@@ -1,15 +1,16 @@
 import {Flex} from 'grid-emotion';
+import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import InlineSvg from '../../../../components/inlineSvg';
-import SentryTypes from '../../../../proptypes';
-import TeamAvatar from '../../../../components/avatar/teamAvatar';
-import UserBadge from '../../../../components/userBadge';
-import highlightFuseMatches from '../../../../utils/highlightFuseMatches';
+import Avatar from '../avatar';
+import InlineSvg from '../inlineSvg';
+import SentryTypes from '../../proptypes';
+import UserBadge from '../userBadge';
+import highlightFuseMatches from '../../utils/highlightFuseMatches';
 
-export default class SearchResult extends React.Component {
+class SearchResult extends React.Component {
   static propTypes = {
     item: PropTypes.shape({
       /**
@@ -46,8 +47,8 @@ export default class SearchResult extends React.Component {
     let {item, matches, params} = this.props;
     let {sourceType, title, description, model} = item;
 
-    let matchedTitle = matches.find(({key}) => key === 'title');
-    let matchedDescription = matches.find(({key}) => key === 'description');
+    let matchedTitle = matches && matches.find(({key}) => key === 'title');
+    let matchedDescription = matches && matches.find(({key}) => key === 'description');
     let highlightedTitle = matchedTitle ? highlightFuseMatches(matchedTitle) : title;
     let highlightedDescription = matchedDescription
       ? highlightFuseMatches(matchedDescription)
@@ -68,7 +69,7 @@ export default class SearchResult extends React.Component {
     return (
       <React.Fragment>
         <div>
-          {sourceType === 'team' && <StyledTeamAvatar team={model} size={32} />}
+          {sourceType === 'team' && <TeamAvatar team={model} size={32} />}
           <span>{highlightedTitle}</span>
         </div>
 
@@ -81,7 +82,6 @@ export default class SearchResult extends React.Component {
     let {item} = this.props;
     let {resultType} = item;
 
-    // let isRoute = resultType === 'route';
     let isSettings = resultType === 'settings';
     let isField = resultType === 'field';
 
@@ -106,12 +106,13 @@ export default class SearchResult extends React.Component {
   }
 }
 
+export default withRouter(SearchResult);
+
 const SearchDetail = styled.div`
   font-size: 0.8em;
   line-height: 1.3;
   margin-top: 4px;
-  opacity: 0.9;
-  color: ${p => p.theme.gray3};
+  opacity: 0.8;
 `;
 
 const Content = styled(props => <Flex direction="column" {...props} />)``;
@@ -122,6 +123,6 @@ const ResultTypeIcon = styled(InlineSvg)`
   flex-shrink: 0;
 `;
 
-const StyledTeamAvatar = styled(TeamAvatar)`
+const TeamAvatar = styled(Avatar)`
   margin-right: 0.5em;
 `;

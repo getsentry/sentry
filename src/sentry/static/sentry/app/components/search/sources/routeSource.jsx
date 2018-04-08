@@ -2,11 +2,11 @@ import {flattenDepth} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {createFuzzySearch} from '../../utils/createFuzzySearch';
-import accountSettingsNavigation from '../../views/settings/account/navigationConfiguration';
-import organizationSettingsNavigation from '../../views/settings/organization/navigationConfiguration';
-import projectSettingsNavigation from '../../views/settings/project/navigationConfiguration';
-import replaceRouterParams from '../../utils/replaceRouterParams';
+import {createFuzzySearch} from '../../../utils/createFuzzySearch';
+import accountSettingsNavigation from '../../../views/settings/account/navigationConfiguration';
+import organizationSettingsNavigation from '../../../views/settings/organization/navigationConfiguration';
+import projectSettingsNavigation from '../../../views/settings/project/navigationConfiguration';
+import replaceRouterParams from '../../../utils/replaceRouterParams';
 
 const navigationItems = flattenDepth(
   [
@@ -19,11 +19,17 @@ const navigationItems = flattenDepth(
   2
 );
 
-class RouteSearch extends React.Component {
+class RouteSource extends React.Component {
   static propTypes = {
+    // search term
+    query: PropTypes.string,
+
+    // fuse.js options
+    searchOptions: PropTypes.object,
+
+    // Array of routes to search
     searchMap: PropTypes.array,
 
-    query: PropTypes.string,
     /**
      * Render function that passes:
      * `isLoading` - loading state
@@ -35,6 +41,7 @@ class RouteSearch extends React.Component {
 
   static defaultProps = {
     searchMap: [],
+    searchOptions: {},
   };
 
   constructor(...args) {
@@ -50,6 +57,7 @@ class RouteSearch extends React.Component {
   async createSearch(searchMap) {
     this.setState({
       fuzzy: await createFuzzySearch(searchMap || [], {
+        ...this.props.searchOptions,
         keys: ['title', 'description'],
       }),
     });
@@ -79,4 +87,4 @@ class RouteSearch extends React.Component {
   }
 }
 
-export default RouteSearch;
+export default RouteSource;

@@ -1,22 +1,41 @@
-import FormSearchActions from '../actions/formSearchActions';
-import addForm from '../utils/addForm';
+import {flatten, flatMap} from 'lodash';
 
-export function addSearchMap(searchMap) {
-  FormSearchActions.addSearchMap(searchMap);
-}
+import FormSearchActions from '../actions/formSearchActions';
+
+const createSearchMap = ({route, formGroups, fields, ...other}) => {
+  let listOfFields = formGroups
+    ? flatMap(formGroups, formGroup => formGroup.fields)
+    : Object.keys(fields).map(fieldName => fields[fieldName]);
+
+  return listOfFields.map(field => ({
+    ...other,
+    route,
+    title: field.label,
+    description: field.help,
+    field,
+  }));
+};
 
 export function loadSearchMap() {
   // Load search map by directory via webpack
   let context = require.context('../data/forms', true, /\.jsx$/);
-  context.keys().forEach(function(key) {
-    let mod = context(key);
+  FormSearchActions.loadSearchMap(
+    flatten(
+      context
+        .keys()
+        .map(function(key) {
+          let mod = context(key);
 
-    if (!mod) return;
+          if (!mod) return null;
+          if (!mod.route) return null;
 
-    addForm({
-      formGroups: mod.default || mod.formGroups,
-      fields: mod.fields,
-      route: mod.route,
-    });
-  });
+          return createSearchMap({
+            formGroups: mod.default || mod.formGroups,
+            fields: mod.fields,
+            route: mod.route,
+          });
+        })
+        .filter(i => !!i)
+    )
+  );
 }

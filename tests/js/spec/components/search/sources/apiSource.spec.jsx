@@ -1,11 +1,11 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import {ApiSearch} from 'app/components/search/apiSearch';
+import {ApiSource} from 'app/components/search/sources/apiSource';
 
 jest.mock('lodash/debounce', () => jest.fn(fn => fn));
 
-describe('ApiSearch', function() {
+describe('ApiSource', function() {
   let wrapper;
   let org = TestStubs.Organization();
   let orgsMock;
@@ -43,9 +43,9 @@ describe('ApiSearch', function() {
   it('queries all API endpoints', function() {
     let mock = jest.fn().mockReturnValue(null);
     wrapper = mount(
-      <ApiSearch params={{orgId: org.slug}} query="foo">
+      <ApiSource params={{orgId: org.slug}} query="foo">
         {mock}
-      </ApiSearch>,
+      </ApiSource>,
       TestStubs.routerContext()
     );
 
@@ -58,9 +58,9 @@ describe('ApiSearch', function() {
   it('only queries org endpoint if there is no org in context', function() {
     let mock = jest.fn().mockReturnValue(null);
     wrapper = mount(
-      <ApiSearch params={{}} query="foo">
+      <ApiSource params={{}} query="foo">
         {mock}
-      </ApiSearch>,
+      </ApiSource>,
       TestStubs.routerContext()
     );
 
@@ -73,9 +73,9 @@ describe('ApiSearch', function() {
   it('render function is called with correct results', async function() {
     let mock = jest.fn().mockReturnValue(null);
     wrapper = mount(
-      <ApiSearch params={{orgId: org.slug}} query="foo">
+      <ApiSource params={{orgId: org.slug}} query="foo">
         {mock}
-      </ApiSearch>,
+      </ApiSource>,
       TestStubs.routerContext()
     );
 
@@ -161,9 +161,9 @@ describe('ApiSearch', function() {
       statusCode: 500,
     });
     wrapper = mount(
-      <ApiSearch params={{orgId: org.slug}} query="foo">
+      <ApiSource params={{orgId: org.slug}} query="foo">
         {mock}
-      </ApiSearch>,
+      </ApiSource>,
       TestStubs.routerContext()
     );
 
@@ -204,9 +204,9 @@ describe('ApiSearch', function() {
   it('render function is updated as query changes', async function() {
     let mock = jest.fn().mockReturnValue(null);
     wrapper = mount(
-      <ApiSearch params={{orgId: org.slug}} query="foo">
+      <ApiSource params={{orgId: org.slug}} query="foo">
         {mock}
-      </ApiSearch>,
+      </ApiSource>,
       TestStubs.routerContext()
     );
 
@@ -232,9 +232,9 @@ describe('ApiSearch', function() {
     beforeAll(function() {
       mock = jest.fn().mockReturnValue(null);
       wrapper = mount(
-        <ApiSearch params={{orgId: org.slug}} query="">
+        <ApiSource params={{orgId: org.slug}} query="">
           {mock}
-        </ApiSearch>,
+        </ApiSource>,
         TestStubs.routerContext()
       );
     });

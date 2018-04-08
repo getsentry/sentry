@@ -4,15 +4,21 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 
-import {createFuzzySearch} from '../../utils/createFuzzySearch';
-import FormSearchStore from '../../stores/formSearchStore';
-import replaceRouterParams from '../../utils/replaceRouterParams';
+import {createFuzzySearch} from '../../../utils/createFuzzySearch';
+import FormSearchStore from '../../../stores/formSearchStore';
+import replaceRouterParams from '../../../utils/replaceRouterParams';
 
-class FormFieldSearch extends React.Component {
+class FormSource extends React.Component {
   static propTypes = {
+    // search term
+    query: PropTypes.string,
+
+    // fuse.js options
+    searchOptions: PropTypes.object,
+
+    // list of form fields to search
     searchMap: PropTypes.array,
 
-    query: PropTypes.string,
     /**
      * Render function that passes:
      * `isLoading` - loading state
@@ -20,6 +26,10 @@ class FormFieldSearch extends React.Component {
      * `results` - Results array filtered by `this.props.query`: [searchIndex, model, type]
      */
     children: PropTypes.func.isRequired,
+  };
+
+  static defaultProps = {
+    searchOptions: {},
   };
 
   constructor(props, ...args) {
@@ -41,6 +51,7 @@ class FormFieldSearch extends React.Component {
   async createSearch(searchMap) {
     this.setState({
       fuzzy: await createFuzzySearch(searchMap || [], {
+        ...this.props.searchOptions,
         keys: ['field.label', 'field.help'],
       }),
     });
@@ -72,14 +83,14 @@ class FormFieldSearch extends React.Component {
   }
 }
 
-const FormFieldSearchContainer = withRouter(
+const FormSourceContainer = withRouter(
   createReactClass({
-    displayName: 'FormFieldSearchContainer',
+    displayName: 'FormSourceContainer',
     mixins: [Reflux.connect(FormSearchStore, 'searchMap')],
     render() {
-      return <FormFieldSearch searchMap={this.state.searchMap} {...this.props} />;
+      return <FormSource searchMap={this.state.searchMap} {...this.props} />;
     },
   })
 );
 
-export default FormFieldSearchContainer;
+export default FormSourceContainer;

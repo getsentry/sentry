@@ -1,14 +1,14 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import RouteSearch from 'app/components/search/routeSearch';
+import RouteSource from 'app/components/search/sources/routeSource';
 
-describe('RouteSearch', function() {
+describe('RouteSource', function() {
   let wrapper;
 
   it('can find a route', async function() {
     let mock = jest.fn().mockReturnValue(null);
-    wrapper = mount(<RouteSearch query="password">{mock}</RouteSearch>);
+    wrapper = mount(<RouteSource query="password">{mock}</RouteSource>);
 
     await tick();
     wrapper.update();
@@ -25,7 +25,7 @@ describe('RouteSearch', function() {
 
   it('does not find any form field ', async function() {
     let mock = jest.fn().mockReturnValue(null);
-    wrapper = mount(<RouteSearch query="invalid">{mock}</RouteSearch>);
+    wrapper = mount(<RouteSource query="invalid">{mock}</RouteSource>);
 
     await tick();
     wrapper.update();

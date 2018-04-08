@@ -4,13 +4,18 @@ import PropTypes from 'prop-types';
 import Raven from 'raven-js';
 import React from 'react';
 
-import {Client} from '../../api';
-import {createFuzzySearch} from '../../utils/createFuzzySearch';
-import withLatestContext from '../../utils/withLatestContext';
+import {Client} from '../../../api';
+import {createFuzzySearch} from '../../../utils/createFuzzySearch';
+import withLatestContext from '../../../utils/withLatestContext';
 
-class ApiSearch extends React.Component {
+class ApiSource extends React.Component {
   static propTypes = {
+    // search term
     query: PropTypes.string,
+
+    // fuse.js options
+    searchOptions: PropTypes.object,
+
     /**
      * Render function that passes:
      * `isLoading` - loading state
@@ -18,6 +23,10 @@ class ApiSearch extends React.Component {
      * `results` - Results array filtered by `this.props.query`: [searchIndex, model, type]
      */
     children: PropTypes.func.isRequired,
+  };
+
+  static defaultProps = {
+    searchOptions: {},
   };
 
   constructor(props, ...args) {
@@ -30,7 +39,7 @@ class ApiSearch extends React.Component {
 
     this.api = new Client();
 
-    if (props.query) this.doSearch(props.query);
+    if (typeof props.query !== 'undefined') this.doSearch(props.query);
   }
 
   componentWillReceiveProps(nextProps) {
@@ -45,7 +54,7 @@ class ApiSearch extends React.Component {
   }
 
   doSearch = debounce(async query => {
-    let {params, organization} = this.props;
+    let {params, searchOptions, organization} = this.props;
     let orgId = params.orgId || (organization && organization.slug);
     let urls = ['/organizations/'];
 
@@ -137,17 +146,16 @@ class ApiSearch extends React.Component {
     ];
 
     let fuzzy = createFuzzySearch(allResults, {
+      ...searchOptions,
       keys: ['title', 'description'],
     });
-
-    // await fuzzy;
 
     this.setState({
       loading: false,
       allResults,
       fuzzy: await fuzzy,
     });
-  }, 100);
+  }, 150);
 
   render() {
     let {children} = this.props;
@@ -161,5 +169,5 @@ class ApiSearch extends React.Component {
   }
 }
 
-export {ApiSearch};
-export default withLatestContext(withRouter(ApiSearch));
+export {ApiSource};
+export default withLatestContext(withRouter(ApiSource));

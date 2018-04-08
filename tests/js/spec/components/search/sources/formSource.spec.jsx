@@ -1,10 +1,10 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import FormFieldSearch from 'app/components/search/formFieldSearch';
-import {addSearchMap} from 'app/actionCreators/formSearch';
+import FormSource from 'app/components/search/sources/formSource';
+import FormSearchActions from 'app/actions/formSearchActions';
 
-describe('FormFieldSearch', function() {
+describe('FormSource', function() {
   let wrapper;
   let searchMap = [
     {
@@ -26,12 +26,12 @@ describe('FormFieldSearch', function() {
   ];
 
   beforeEach(function() {
-    addSearchMap(searchMap);
+    FormSearchActions.loadSearchMap(searchMap);
   });
 
   it('can find a form field', async function() {
     let mock = jest.fn().mockReturnValue(null);
-    wrapper = mount(<FormFieldSearch query="te">{mock}</FormFieldSearch>);
+    wrapper = mount(<FormSource query="te">{mock}</FormSource>);
 
     await tick();
     await tick();
@@ -52,7 +52,7 @@ describe('FormFieldSearch', function() {
 
   it('does not find any form field ', async function() {
     let mock = jest.fn().mockReturnValue(null);
-    wrapper = mount(<FormFieldSearch query="invalid">{mock}</FormFieldSearch>);
+    wrapper = mount(<FormSource query="invalid">{mock}</FormSource>);
 
     await tick();
     wrapper.update();
