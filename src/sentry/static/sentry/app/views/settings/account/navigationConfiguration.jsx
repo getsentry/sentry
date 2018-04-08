@@ -9,7 +9,9 @@ const accountNavigation = [
       {
         path: `${pathPrefix}/details/`,
         title: t('Account Details'),
-        description: t('Change your account details and preferences'),
+        description: t(
+          'Change your account details and preferences (e.g. timezone/clock, avatar, language)'
+        ),
       },
       {
         path: `${pathPrefix}/security/`,
