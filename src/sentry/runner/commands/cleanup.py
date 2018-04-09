@@ -250,10 +250,10 @@ def cleanup(days, project, concurrency, max_procs, silent, model, router, timed)
                     "NodeStore backend does not support cleanup operation", err=True)
 
     for bqd in BULK_QUERY_DELETES:
-        chunk_size = 10000
-        try:
+        if len(bqd) == 4:
             model, dtfield, order_by, chunk_size = bqd
-        except ValueError:
+        else:
+            chunk_size = 10000
             model, dtfield, order_by = bqd
 
         if not silent:
