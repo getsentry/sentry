@@ -149,6 +149,7 @@ class Confirm extends React.PureComponent {
               disabled={this.state.disableConfirmButton}
               priority={priority}
               onClick={this.handleConfirm}
+              autoFocus
             >
               {confirmText}
             </Button>

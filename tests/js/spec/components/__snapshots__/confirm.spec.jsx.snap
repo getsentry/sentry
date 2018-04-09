@@ -56,6 +56,7 @@ exports[`Confirm renders 1`] = `
         Cancel
       </Button>
       <Button
+        autoFocus={true}
         disabled={false}
         onClick={[Function]}
         priority="primary"
