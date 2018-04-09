@@ -17,6 +17,8 @@ from sentry.tagstore import TagKeyStatus
 from sentry.tagstore.base import TagStorage
 from sentry.utils import snuba
 
+SEEN_COLUMN = 'received'
+
 
 class ObjectWrapper(object):
     def __init__(self, dictionary):
@@ -188,18 +190,23 @@ class SnubaTagStorage(TagStorage):
             'issue': [group_id],
         }
         conditions = [[tag, '!=', '']]
-        # TODO it should be simple to add min(time) max(time) to get first and last seen
-        aggregations = [['count', '', 'count']]
+        aggregations = [
+            ['count', '', 'count'],
+            ['min', SEEN_COLUMN, 'first_seen'],
+            ['max', SEEN_COLUMN, 'last_seen'],
+        ]
 
         result = snuba.query(start, end, [tag], conditions, filters,
                              aggregations, limit=limit, orderby='-count')
 
         return [ObjectWrapper({
-            'times_seen': count,
+            'times_seen': val['count'],
+            'first_seen': val['first_seen'],
+            'last_seen': val['last_seen'],
             'key': key,
             'value': name,
             'group_id': group_id,
-        }) for name, count in six.iteritems(result)]
+        }) for name, val in six.iteritems(result)]
 
     def get_group_tag_keys_and_top_values(self, project_id, group_id, environment_id, user=None):
         from sentry import tagstore
@@ -244,7 +251,7 @@ class SnubaTagStorage(TagStorage):
         conditions = [['release', 'IS NOT NULL', None]]
         if group_id is not None:
             filters['issue'] = [group_id]
-        aggregations = [['min' if first else 'max', 'received', 'seen']]
+        aggregations = [['min' if first else 'max', SEEN_COLUMN, 'seen']]
         orderby = 'seen' if first else '-seen'
 
         result = snuba.query(start, end, ['release'], conditions, filters,
@@ -261,7 +268,30 @@ class SnubaTagStorage(TagStorage):
         return self.get_release(project_id, group_id, False)
 
     def get_release_tags(self, project_ids, environment_id, versions):
-        pass
+        start, end = self.get_time_range()
+        filters = {
+            'project_id': project_ids,
+            'environment': [environment_id],
+        }
+        # NB we add release as a condition rather than a filter because
+        # this method is already dealing with version strings rather than
+        # release ids which would need to be translated by the snuba util.
+        conditions = [['release', 'IN', versions]]
+        aggregations = [
+            ['count', '', 'count'],
+            ['min', SEEN_COLUMN, 'first_seen'],
+            ['max', SEEN_COLUMN, 'last_seen'],
+        ]
+
+        result = snuba.query(start, end, ['release'], conditions, filters, aggregations)
+
+        return [ObjectWrapper({
+            'times_seen': val['count'],
+            'first_seen': val['first_seen'],
+            'last_seen': val['last_seen'],
+            'key': 'release',
+            'value': name,
+        }) for name, val in six.iteritems(result)]
 
     def get_group_event_ids(self, project_id, group_id, environment_id, tags):
         pass
@@ -278,7 +308,7 @@ class SnubaTagStorage(TagStorage):
             ['username', 'IN', [eu.username for eu in event_users if eu.username]],
             ['ip_address', 'IN', [eu.ip_address for eu in event_users if eu.ip_address]],
         ] if cond[2] != []]
-        aggregations = [['max', 'received', 'seen']]  # TODO received or timestamp?
+        aggregations = [['max', SEEN_COLUMN, 'seen']]
 
         result = snuba.query(start, end, ['issue'], conditions, filters,
                              aggregations, limit=limit, orderby='-seen')

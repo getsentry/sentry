@@ -1,12 +1,12 @@
 from __future__ import absolute_import
 
 
-from datetime import datetime
+import calendar
+from datetime import datetime, timedelta
 import json
 import pytest
 import requests
 import responses
-import time
 
 from sentry.utils import snuba
 from sentry.models import GroupHash, EventUser
@@ -31,16 +31,16 @@ class TagStorage(TestCase):
         GroupHash.objects.create(project=self.proj1, group=self.proj1group1, hash=hash1)
         GroupHash.objects.create(project=self.proj1, group=self.proj1group2, hash=hash2)
 
-        now = datetime.now()
+        self.now = datetime.utcnow().replace(microsecond=0)
         data = json.dumps([{
             'event_id': 'x' * 32,
             'primary_hash': hash1,
             'project_id': self.proj1.id,
             'message': 'message 1',
             'platform': 'python',
-            'datetime': now.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+            'datetime': self.now.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
             'data': {
-                'received': time.mktime(now.timetuple()) - r,
+                'received': calendar.timegm(self.now.timetuple()) - r,
                 'tags': {
                     'foo': 'bar',
                     'baz': 'quux',
@@ -57,9 +57,9 @@ class TagStorage(TestCase):
             'project_id': self.proj1.id,
             'message': 'message 2',
             'platform': 'python',
-            'datetime': now.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+            'datetime': self.now.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
             'data': {
-                'received': time.mktime(now.timetuple()) - r,
+                'received': calendar.timegm(self.now.timetuple()) - r,
                 'tags': {
                     'browser': 'chrome',
                     'environment': self.proj1env1.name,
@@ -249,7 +249,6 @@ class TagStorage(TestCase):
         ) is None
 
     def test_get_group_ids_for_users(self):
-
         assert set(self.ts.get_group_ids_for_users(
             [self.proj1.id],
             [EventUser(project_id=self.proj1.id, ident='user1')]
@@ -259,3 +258,16 @@ class TagStorage(TestCase):
             [self.proj1.id],
             [EventUser(project_id=self.proj1.id, ident='user2')]
         )) == set([self.proj1group1.id])
+
+    def test_get_release_tags(self):
+        tags = self.ts.get_release_tags(
+            [self.proj1.id],
+            self.proj1env1.id,
+            ['100']
+        )
+
+        assert len(tags) == 1
+        one_second_ago = (self.now - timedelta(seconds=1)).strftime('%Y-%m-%dT%H:%M:%S+00:00')
+        assert tags[0].last_seen == one_second_ago
+        assert tags[0].first_seen == one_second_ago
+        assert tags[0].times_seen == 1
