@@ -379,7 +379,7 @@ class StatusActionTest(BaseEventTest):
 
         assert resp.data['response_type'] == 'ephemeral'
         assert not resp.data['replace_original']
-        assert resp.data['text'] == 'Action failed: You do not have permission to perform this action.'
+        assert resp.data['text'] == "Sentry can't perform that action right now on your behalf!"
 
     def test_invalid_token(self):
         resp = self.post_webhook(token='invalid')
