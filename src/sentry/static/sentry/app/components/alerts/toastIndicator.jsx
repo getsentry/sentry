@@ -22,32 +22,37 @@ const Toast = styled.div`
   border-radius: 44px 5px 5px 44px;
   box-shadow: 0 0 0 1px rgba(47, 40, 55, 0.12), 0 1px 2px 0 rgba(47, 40, 55, 0.12),
     0 4px 12px 0 rgba(47, 40, 55, 0.16);
-  transition: opacity 0.2s linear;
+  transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.25s linear;
   position: relative;
+  transform: translate3d(0, 0, 0);
 
   &.toast-enter {
     opacity: 0;
+    transform: translate3d(0, 70px, 0);
   }
 
   &.toast-enter-active {
     opacity: 1;
+    transform: translate3d(0, 0px, 0);
   }
 
   &.toast-leave {
     opacity: 1;
+    transform: translate3d(0, 0, 0);
   }
 
   &.toast-leave-active {
     opacity: 0;
+    transform: translate3d(0, 70px, 0);
   }
-
   &:before {
-    display: block;
     content: '';
+    transition: opacity 0.4s linear;
+    display: block;
     position: fixed;
-    right: 0;
-    bottom: 0;
-    left: 0;
+    right: -10000px;
+    bottom: -40px;
+    left: -10000px;
     height: 130px;
     background: linear-gradient(rgba(47, 40, 55, 0), rgba(47, 40, 55, 0.08));
     z-index: -1;
