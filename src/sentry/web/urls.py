@@ -391,6 +391,7 @@ urlpatterns += patterns(
         react_page_view, name='integration-installation'),
 
     # Organizations
+    url(r'^no-organizations/$', generic_react_page_view),
     url(r'^(?P<organization_slug>[\w_-]+)/$',
         react_page_view, name='sentry-organization-home'),
     url(r'^organizations/new/$', generic_react_page_view),

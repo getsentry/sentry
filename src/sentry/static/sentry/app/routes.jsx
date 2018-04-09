@@ -4,8 +4,8 @@ import React from 'react';
 import App from 'app/views/app';
 import CreateProject from 'app/views/onboarding/createProject';
 import GroupDetails from 'app/views/groupDetails';
-import GroupEvents from 'app/views/groupEvents';
 import GroupEventDetails from 'app/views/groupEventDetails';
+import GroupEvents from 'app/views/groupEvents';
 import GroupMergedView from 'app/views/groupMerged/groupMergedView';
 import GroupSimilarView from 'app/views/groupSimilar/groupSimilarView';
 import GroupTagValues from 'app/views/groupTagValues';
@@ -30,24 +30,24 @@ import OrganizationHomeContainer from 'app/components/organizations/homeContaine
 import OrganizationMembers from 'app/views/settings/organizationMembers';
 import OrganizationRoot from 'app/views/organizationRoot';
 import OrganizationStats from 'app/views/organizationStats';
-import ProjectEnvironments from 'app/views/projectEnvironments';
-import ProjectTags from 'app/views/projectTags';
 import ProjectChooser from 'app/views/projectChooser';
 import ProjectDashboard from 'app/views/projectDashboard';
 import ProjectDataForwarding from 'app/views/projectDataForwarding';
 import ProjectDebugSymbols from 'app/views/projectDebugSymbols';
 import ProjectDetails from 'app/views/projectDetails';
 import ProjectDocsContext from 'app/views/projectInstall/docsContext';
+import ProjectEnvironments from 'app/views/projectEnvironments';
 import ProjectEvents from 'app/views/projectEvents';
 import ProjectGettingStarted from 'app/views/projectInstall/gettingStarted';
 import ProjectInstallOverview from 'app/views/projectInstall/overview';
 import ProjectInstallPlatform from 'app/views/projectInstall/platform';
+import ProjectPluginDetails from 'app/views/projectPluginDetails';
+import ProjectPlugins from 'app/views/projectPlugins';
 import ProjectReleases from 'app/views/projectReleases';
 import ProjectSavedSearches from 'app/views/projectSavedSearches';
 import ProjectSettings from 'app/views/projectSettings';
+import ProjectTags from 'app/views/projectTags';
 import ProjectUserFeedback from 'app/views/projectUserFeedback';
-import ProjectPlugins from 'app/views/projectPlugins';
-import ProjectPluginDetails from 'app/views/projectPluginDetails';
 import ReleaseAllEvents from 'app/views/releaseAllEvents';
 import ReleaseArtifacts from 'app/views/releaseArtifacts';
 import ReleaseCommits from 'app/views/releases/releaseCommits';
@@ -723,6 +723,13 @@ function routes() {
         path="/share/issue/:shareId/"
         componentPromise={() =>
           import(/*webpackChunkName:"SharedGroupDetails"*/ './views/sharedGroupDetails')}
+        component={errorHandler(LazyLoad)}
+      />
+
+      <Route
+        path="/no-organizations/"
+        componentPromise={() =>
+          import(/*webpackChunkName:"OrganizationEmpty"*/ './views/organizationEmpty')}
         component={errorHandler(LazyLoad)}
       />
 

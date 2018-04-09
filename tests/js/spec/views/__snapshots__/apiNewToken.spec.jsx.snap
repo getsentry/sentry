@@ -4,7 +4,7 @@ exports[`ApiNewToken render() renders 1`] = `
 <SideEffect(DocumentTitle)
   title="Create API Token - Sentry"
 >
-  <WithTheme(NarrowLayout)>
+  <NarrowLayout>
     <h3>
       Create New Token
     </h3>
@@ -136,6 +136,6 @@ exports[`ApiNewToken render() renders 1`] = `
         required={true}
       />
     </ApiForm>
-  </WithTheme(NarrowLayout)>
+  </NarrowLayout>
 </SideEffect(DocumentTitle)>
 `;

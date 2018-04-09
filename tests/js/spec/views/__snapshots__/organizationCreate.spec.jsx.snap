@@ -4,7 +4,7 @@ exports[`OrganizationCreate render() renders with terms 1`] = `
 <SideEffect(DocumentTitle)
   title="Create Organization - Sentry"
 >
-  <WithTheme(NarrowLayout)>
+  <NarrowLayout>
     <h3>
       Create a New Organization
     </h3>
@@ -14,7 +14,7 @@ exports[`OrganizationCreate render() renders with terms 1`] = `
     <OrganizationCreateForm
       onSubmitSuccess={[Function]}
     />
-  </WithTheme(NarrowLayout)>
+  </NarrowLayout>
 </SideEffect(DocumentTitle)>
 `;
 
@@ -22,7 +22,7 @@ exports[`OrganizationCreate render() renders without terms 1`] = `
 <SideEffect(DocumentTitle)
   title="Create Organization - Sentry"
 >
-  <WithTheme(NarrowLayout)>
+  <NarrowLayout>
     <h3>
       Create a New Organization
     </h3>
@@ -32,6 +32,6 @@ exports[`OrganizationCreate render() renders without terms 1`] = `
     <OrganizationCreateForm
       onSubmitSuccess={[Function]}
     />
-  </WithTheme(NarrowLayout)>
+  </NarrowLayout>
 </SideEffect(DocumentTitle)>
 `;

@@ -14,7 +14,7 @@ export function redirectToRemainingOrganization({orgId}) {
   );
 
   if (!allOrgs.length) {
-    browserHistory.push('/organizations/new/');
+    browserHistory.push('/no-organizations/');
     return;
   }
 

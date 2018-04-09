@@ -1,10 +1,10 @@
-import {withTheme} from 'emotion-theming';
 import PropTypes from 'prop-types';
 import React from 'react';
 import jQuery from 'jquery';
 import styled, {cx} from 'react-emotion';
 
 import {t} from '../locale';
+import theme from '../utils/theme';
 
 class NarrowLayout extends React.Component {
   static propTypes = {
@@ -20,7 +20,8 @@ class NarrowLayout extends React.Component {
   }
 
   render() {
-    let {theme, showSignOut} = this.props;
+    let {showSignOut} = this.props;
+    // Inline style because CSS
 
     return (
       <div className="app">
@@ -49,7 +50,7 @@ class NarrowLayout extends React.Component {
   }
 }
 
-export default withTheme(NarrowLayout);
+export default NarrowLayout;
 
 const Header = styled(({className, ...props}) => (
   <div {...props} className={cx('box-header', className)} />
