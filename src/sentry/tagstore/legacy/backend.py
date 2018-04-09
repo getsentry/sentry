@@ -54,7 +54,7 @@ class LegacyTagStorage(TagStorage):
         cleanup.EXTRA_BULK_QUERY_DELETES += [
             (GroupTagValue, 'last_seen', None),
             (TagValue, 'last_seen', None),
-            (EventTag, 'date_added', 'date_added'),
+            (EventTag, 'date_added', 'date_added', 50000),
         ]
 
     def setup_deletions(self):
