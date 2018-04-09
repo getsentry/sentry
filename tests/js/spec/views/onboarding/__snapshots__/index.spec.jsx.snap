@@ -350,7 +350,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled csharp csharp "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-csharp"
@@ -381,7 +380,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled java java "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-java"
@@ -412,7 +410,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled javascript-angular javascript "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-javascript-angular"
@@ -443,7 +440,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled javascript javascript "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-javascript"
@@ -474,7 +470,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled javascript-react javascript "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-javascript-react"
@@ -505,7 +500,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled node-express node "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-node-express"
@@ -536,7 +530,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled node node "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-node"
@@ -567,7 +560,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled php-laravel php "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-php-laravel"
@@ -598,7 +590,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled php php "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-php"
@@ -629,7 +620,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled php-symfony2 php "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-php-symfony2"
@@ -660,7 +650,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled python-django python "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-python-django"
@@ -691,7 +680,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled python-flask python "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-python-flask"
@@ -722,7 +710,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled python python "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-python"
@@ -753,7 +740,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled cocoa cocoa "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-cocoa"
@@ -784,7 +770,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled ruby-rails ruby "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-ruby-rails"
@@ -815,7 +800,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled ruby ruby "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-ruby"
@@ -1230,7 +1214,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled csharp csharp "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-csharp"
@@ -1261,7 +1244,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled java java "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-java"
@@ -1292,7 +1274,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled javascript-angular javascript "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-javascript-angular"
@@ -1323,7 +1304,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled javascript javascript "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-javascript"
@@ -1354,7 +1334,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled javascript-react javascript "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-javascript-react"
@@ -1385,7 +1364,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled node-express node "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-node-express"
@@ -1416,7 +1394,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled node node "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-node"
@@ -1447,7 +1424,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled php-laravel php "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-php-laravel"
@@ -1478,7 +1454,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled php php "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-php"
@@ -1509,7 +1484,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled php-symfony2 php "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-php-symfony2"
@@ -1540,7 +1514,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled python-django python "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-python-django"
@@ -1571,7 +1544,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled python-flask python "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-python-flask"
@@ -1602,7 +1574,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled python python "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-python"
@@ -1633,7 +1604,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled cocoa cocoa "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-cocoa"
@@ -1664,7 +1634,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled ruby-rails ruby "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-ruby-rails"
@@ -1695,7 +1664,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled ruby ruby "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-ruby"

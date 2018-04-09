@@ -109,11 +109,12 @@ class PlatformPicker extends React.Component {
                     selected: this.props.platform === platform.id,
                   })}
                   key={platform.id}
-                  onClick={() => {
+                  onClick={e => {
                     HookStore.get('analytics:event').forEach(cb =>
                       cb('platformpicker.select_platform', {platform: platform.id})
                     );
                     this.props.setPlatform(platform.id);
+                    e.preventDefault();
                   }}
                 />
               );
