@@ -1,7 +1,13 @@
 import LazyLoad from 'react-lazy-load';
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
+
 import BarChart from '../barChart';
+
+const StyledBarChart = styled(BarChart)`
+  height: 24px;
+`;
 
 class GroupChart extends React.Component {
   static propTypes = {
@@ -29,7 +35,7 @@ class GroupChart extends React.Component {
 
     return (
       <LazyLoad>
-        <BarChart points={chartData} label="events" />
+        <StyledBarChart points={chartData} label="events" />
       </LazyLoad>
     );
   }

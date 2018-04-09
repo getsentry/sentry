@@ -58,7 +58,7 @@ class TimeSince extends React.PureComponent {
       return moment(date).fromNow(true);
     } else if (this.props.suffix === 'ago') {
       return moment(date).fromNow();
-    } else if (this.props.suffix == 'old') {
+    } else if (this.props.suffix === 'old') {
       return t('%(time)s old', {time: moment(date).fromNow(true)});
     } else {
       throw new Error('Unsupported time format suffix');

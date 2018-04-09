@@ -554,10 +554,12 @@ const OrganizationDashboard = createReactClass({
           <div className="col-md-8">
             {features.has('unreleased-changes') && <UnreleasedChanges {...this.props} />}
             {showResources && (
-              <div>
-                <ErrorRobot org={org} project={projects[0]} />
+              <React.Fragment>
+                <Panel>
+                  <ErrorRobot org={org} project={projects[0]} />
+                </Panel>
                 <Resources />
-              </div>
+              </React.Fragment>
             )}
             {!showResources && (
               <div>

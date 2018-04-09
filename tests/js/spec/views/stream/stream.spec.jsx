@@ -306,7 +306,7 @@ describe('Stream', function() {
         dataLoading: false,
       });
       expect(wrapper).toMatchSnapshot();
-      expect(wrapper.find('.group-list').length).toBeTruthy();
+      expect(wrapper.find('.ref-group-list').length).toBeTruthy();
     });
 
     it('displays empty with no ids', function() {

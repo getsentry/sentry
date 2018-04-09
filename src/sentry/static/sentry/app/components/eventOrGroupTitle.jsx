@@ -29,14 +29,14 @@ class EventOrGroupTitle extends React.Component {
 
     if (subtitle) {
       return (
-        <span>
+        <span style={this.props.style}>
           <span style={{marginRight: 10}}>{title}</span>
           <em>{subtitle}</em>
           <br />
         </span>
       );
     }
-    return <span>{title}</span>;
+    return <span style={this.props.style}>{title}</span>;
   }
 }
 

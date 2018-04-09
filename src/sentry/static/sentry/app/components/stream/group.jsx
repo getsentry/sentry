@@ -3,6 +3,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
+import styled from 'react-emotion';
+import {Flex, Box} from 'grid-emotion';
 
 import AssigneeSelector from '../assigneeSelector';
 import Count from '../count';
@@ -14,6 +16,7 @@ import GuideAnchor from '../../components/assistant/guideAnchor';
 import SelectedGroupStore from '../../stores/selectedGroupStore';
 import EventOrGroupHeader from '../eventOrGroupHeader';
 import EventOrGroupExtraDetails from '../eventOrGroupExtraDetails';
+import {PanelItem} from '../panels';
 
 import {valueIsEqual} from '../../utils';
 
@@ -84,43 +87,23 @@ const StreamGroup = createReactClass({
   },
 
   render() {
-    let data = this.state.data;
-    let userCount = data.userCount;
-
-    let className = 'group row';
-    if (data.isBookmarked) {
-      className += ' isBookmarked';
-    }
-    if (data.hasSeen) {
-      className += ' hasSeen';
-    }
-    if (data.status === 'resolved') {
-      className += ' isResolved';
-    }
-    if (data.status === 'ignored') {
-      className += ' isIgnored';
-    }
-
-    className += ' type-' + data.type;
-    className += ' level-' + data.level;
-
-    let {id, orgId, projectId, hasGuideAnchor} = this.props;
+    const {data} = this.state;
+    const {id, orgId, projectId, query, hasGuideAnchor} = this.props;
 
     return (
-      <li className={className} onClick={this.toggleSelect}>
-        <div className="col-md-7 col-xs-8 event-details">
-          {this.props.canSelect && (
-            <div className="checkbox">
-              {hasGuideAnchor && <GuideAnchor target="issues" type="text" />}
-              <GroupCheckBox id={data.id} />
-            </div>
-          )}
-
+      <Group onClick={this.toggleSelect} py={1} px={0} align="center">
+        {this.props.canSelect && (
+          <GroupCheckbox ml={2}>
+            {hasGuideAnchor && <GuideAnchor target="issues" type="text" />}
+            <GroupCheckBox id={data.id} />
+          </GroupCheckbox>
+        )}
+        <GroupSummary w={[8 / 12, 8 / 12, 6 / 12]} mx={1} flex="1">
           <EventOrGroupHeader
             data={data}
             orgId={orgId}
             projectId={projectId}
-            query={this.props.query}
+            query={query}
           />
           <EventOrGroupExtraDetails
             group
@@ -129,24 +112,45 @@ const StreamGroup = createReactClass({
             orgId={orgId}
             projectId={projectId}
           />
-        </div>
-        <div className="event-assignee col-md-1 hidden-sm hidden-xs">
-          <AssigneeSelector size={24} id={data.id} />
-        </div>
-        <div className="col-md-2 hidden-sm hidden-xs event-graph align-right">
+        </GroupSummary>
+        <Box w={160} mx={2} className="hidden-xs hidden-sm">
           <GroupChart id={data.id} statsPeriod={this.props.statsPeriod} data={data} />
-        </div>
-        <div className="col-md-1 col-xs-2 event-count align-right">
+        </Box>
+        <Flex w={[40, 60, 80, 80]} mx={2} justify="flex-end">
           {hasGuideAnchor && <GuideAnchor target="events" type="text" />}
-          <Count value={data.count} />
-        </div>
-        <div className="col-md-1 col-xs-2 event-users align-right">
+          <StyledCount value={data.count} />
+        </Flex>
+        <Flex w={[40, 60, 80, 80]} mx={2} justify="flex-end">
           {hasGuideAnchor && <GuideAnchor target="users" type="text" />}
-          <Count value={userCount} />
-        </div>
-      </li>
+          <StyledCount value={data.userCount} />
+        </Flex>
+        <Box w={80} mx={2} className="hidden-xs hidden-sm">
+          <AssigneeSelector id={data.id} />
+        </Box>
+      </Group>
     );
   },
 });
+
+const Group = styled(PanelItem)`
+  line-height: 1.1;
+`;
+
+const GroupSummary = styled(Box)`
+  overflow: hidden;
+`;
+
+const GroupCheckbox = styled(Box)`
+  align-self: flex-start;
+  & input[type='checkbox'] {
+    margin: 0;
+    display: block;
+  }
+`;
+
+const StyledCount = styled(Count)`
+  font-size: 18px;
+  color: ${p => p.theme.gray3};
+`;
 
 export default StreamGroup;
