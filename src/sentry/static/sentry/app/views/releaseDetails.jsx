@@ -116,7 +116,7 @@ const ReleaseDetails = createReactClass({
     let {orgId, projectId} = this.props.params;
     return (
       <DocumentTitle title={this.getTitle()}>
-        <div>
+        <div className="ref-release-details">
           <div className="release-details">
             <div className="row">
               <div className="col-sm-4 col-xs-12">
