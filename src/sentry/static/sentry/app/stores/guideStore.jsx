@@ -9,9 +9,6 @@ const GuideStore = Reflux.createStore({
     this.state = {
       // All guides returned to us from the server.
       guides: {},
-      // We record guides seen on the server, but immediately after a user dismisses a guide
-      // it may not have been synced yet, so the local copy helps in filtering correctly.
-      guidesSeen: new Set(),
       // All anchors that have been registered on this current view.
       anchors: new Set(),
       // The "on deck" guide.
@@ -27,7 +24,6 @@ const GuideStore = Reflux.createStore({
     this.listenTo(GuideActions.nextStep, this.onNextStep);
     this.listenTo(GuideActions.registerAnchor, this.onRegisterAnchor);
     this.listenTo(GuideActions.unregisterAnchor, this.onUnregisterAnchor);
-    this.listenTo(GuideActions.openDrawer, this.onOpenDrawer);
     this.listenTo(OrganizationsActions.setActive, this.onSetActiveOrganization);
     this.listenTo(OrganizationsActions.changeSlug, this.onChangeSlug);
   },
@@ -49,7 +45,7 @@ const GuideStore = Reflux.createStore({
   onCloseGuideOrSupport() {
     let {currentGuide} = this.state;
     if (currentGuide) {
-      this.state.guidesSeen.add(currentGuide.id);
+      this.state.guides[this.state.currentGuide.id].seen = true;
     }
     this.updateCurrentGuide();
   },
@@ -80,6 +76,9 @@ const GuideStore = Reflux.createStore({
 
   onUnregisterAnchor(anchor) {
     this.state.anchors.delete(anchor);
+
+    // If a user navigates away from the page mid-guide, automatically close the guide
+    this.state.currentStep = 0;
     this.updateCurrentGuide();
   },
 
@@ -90,11 +89,10 @@ const GuideStore = Reflux.createStore({
     // required anchors on the page.
     let bestGuideKey = Object.keys(this.state.guides).find(key => {
       let guide = this.state.guides[key];
-      let seen = this.state.guidesSeen.has(guide.id);
       let allTargetsPresent = guide.required_targets.every(
         t => availableTargets.indexOf(t) >= 0
       );
-      return !seen && allTargetsPresent;
+      return !guide.seen && allTargetsPresent;
     });
 
     let bestGuide = null;
@@ -107,6 +105,11 @@ const GuideStore = Reflux.createStore({
     }
 
     this.state.currentGuide = bestGuide;
+
+    if (window.location.hash === '#assistant') {
+      this.state.currentStep = this.state.currentStep || 1;
+    }
+
     this.trigger(this.state);
   },
 });

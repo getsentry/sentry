@@ -15,6 +15,7 @@ describe('GuideStore', function() {
         {message: 'Message 2', target: 'target 2', title: '2. Title 2'},
         {message: 'Message 3', target: 'target 3', title: '3. Title 3'},
       ],
+      seen: false,
     },
   };
 
@@ -48,11 +49,11 @@ describe('GuideStore', function() {
     GuideStore.onFetchSucceeded(data);
     // GuideStore should prune steps that don't have anchors.
     expect(GuideStore.state.currentGuide.steps).toHaveLength(2);
+    expect(GuideStore.state.currentGuide.seen).toEqual(false);
     GuideStore.onNextStep();
     expect(GuideStore.state.currentStep).toEqual(1);
     GuideStore.onNextStep();
     expect(GuideStore.state.currentStep).toEqual(2);
-    GuideStore.onCloseGuideOrSupport();
-    expect(GuideStore.state.guidesSeen).toEqual(new Set([1]));
+    // GuideStore.onCloseGuideOrSupport();
   });
 });

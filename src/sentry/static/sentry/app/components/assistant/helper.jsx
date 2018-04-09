@@ -7,7 +7,6 @@ import {
   closeGuideOrSupport,
   fetchGuides,
   nextStep,
-  openDrawer,
   recordDismiss,
 } from '../../actionCreators/guides';
 import SupportDrawer from './supportDrawer';
@@ -57,8 +56,8 @@ const AssistantHelper = createReactClass({
   },
 
   handleHashChange() {
-    if (window.location.hash === '#assistant') {
-      openDrawer();
+    if (window.location.hash === '#assistant' && this.state.currentStep < 1) {
+      nextStep();
     }
   },
 

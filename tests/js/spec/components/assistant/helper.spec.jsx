@@ -68,10 +68,11 @@ describe('Helper', function() {
           {message: 'Message 1', target: 'target 1', title: '1. Title 1'},
           {message: 'Message 2', target: 'target 2', title: '2. Title 2'},
         ],
+        seen: false,
       },
       currentStep: 1,
     });
-    // wrapper.find('.assistant-cue').simulate('hashchange');
+    component.handleHashChange();
     expect(wrapper).toMatchSnapshot();
   });
 });

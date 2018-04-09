@@ -165,7 +165,7 @@ exports[`Helper triggers guide drawer 1`] = `
   <AssistantHelper>
     <StyledHelper>
       <div
-        className="css-mm4rpy-StyledHelper css-161fneh0"
+        className="css-mm4rpy-StyledHelper css-jwmhdr0"
       >
         <StyledAssistantContainer
           className="assistant-cue"
@@ -173,7 +173,7 @@ exports[`Helper triggers guide drawer 1`] = `
           onClick={[Function]}
         >
           <div
-            className="assistant-cue css-ls7umo-AssistantContainer-StyledAssistantContainer css-161fneh2"
+            className="assistant-cue css-1njwugo-AssistantContainer-StyledAssistantContainer css-jwmhdr2"
             onClick={[Function]}
           >
             <QuestionMarkIcon
@@ -212,7 +212,7 @@ exports[`Helper triggers guide drawer 1`] = `
               hasGuide={null}
             >
               <span
-                className="css-190yiky-StyledCueText css-161fneh1"
+                className="css-190yiky-StyledCueText css-jwmhdr1"
               >
                 Need Help?
               </span>

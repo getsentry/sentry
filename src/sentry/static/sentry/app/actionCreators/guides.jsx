@@ -29,10 +29,6 @@ export function closeGuideOrSupport() {
   GuideActions.closeGuideOrSupport();
 }
 
-export function openDrawer() {
-  GuideActions.openDrawer();
-}
-
 export function recordFinish(guideId, useful) {
   api.request('/assistant/', {
     method: 'PUT',
