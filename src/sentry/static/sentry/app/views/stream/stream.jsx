@@ -614,7 +614,10 @@ const Stream = createReactClass({
       /* we should not go here but what do we know */ return null;
     }
     return (
-      <div className={classNames(className)}>
+      <div
+        className={classNames(className)}
+        style={{margin: '-1px -1px 0', padding: '10px 16px'}}
+      >
         {showButton && (
           <Link to={link} className="btn btn-default btn-sm pull-right">
             {t('Show details')}
