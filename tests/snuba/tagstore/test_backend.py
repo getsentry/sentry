@@ -9,7 +9,7 @@ import responses
 import time
 
 from sentry.utils import snuba
-from sentry.models import GroupHash
+from sentry.models import GroupHash, EventUser
 from sentry.testutils import TestCase
 from sentry.tagstore.snuba.backend import SnubaTagStorage
 
@@ -247,3 +247,15 @@ class TagStorage(TestCase):
             project_id=self.proj1.id,
             group_id=self.proj1group2.id,
         ) is None
+
+    def test_get_group_ids_for_users(self):
+
+        assert set(self.ts.get_group_ids_for_users(
+            [self.proj1.id],
+            [EventUser(project_id=self.proj1.id, ident='user1')]
+        )) == set([self.proj1group1.id, self.proj1group2.id])
+
+        assert set(self.ts.get_group_ids_for_users(
+            [self.proj1.id],
+            [EventUser(project_id=self.proj1.id, ident='user2')]
+        )) == set([self.proj1group1.id])

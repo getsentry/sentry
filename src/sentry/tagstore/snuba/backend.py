@@ -267,7 +267,22 @@ class SnubaTagStorage(TagStorage):
         pass
 
     def get_group_ids_for_users(self, project_ids, event_users, limit=100):
-        pass
+        start, end = self.get_time_range()
+        filters = {
+            'project_id': project_ids,
+        }
+        conditions = [cond for cond in [
+            # TODO OR these conditions
+            ['user_id', 'IN', [eu.ident for eu in event_users if eu.ident]],
+            ['email', 'IN', [eu.email for eu in event_users if eu.email]],
+            ['username', 'IN', [eu.username for eu in event_users if eu.username]],
+            ['ip_address', 'IN', [eu.ip_address for eu in event_users if eu.ip_address]],
+        ] if cond[2] != []]
+        aggregations = [['max', 'received', 'seen']]  # TODO received or timestamp?
+
+        result = snuba.query(start, end, ['issue'], conditions, filters,
+                             aggregations, limit=limit, orderby='-seen')
+        return result.keys()
 
     def get_groups_user_counts(self, project_id, group_ids, environment_id):
         start, end = self.get_time_range()
