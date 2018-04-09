@@ -40,10 +40,11 @@ class SlackActionEndpoint(Endpoint):
     permission_classes = ()
 
     def api_error(self, error):
+        logger.info('slack.action.api-error', extra=error)
         return self.respond({
             'response_type': 'ephemeral',
             'replace_original': False,
-            'text': u'Action failed: {}'.format(error.body['detail']),
+            'text': "Sentry can't perform that action right now on your behalf!",
         })
 
     def on_assign(self, request, identity, group, action):
