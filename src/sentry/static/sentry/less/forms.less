@@ -106,6 +106,7 @@ legend {
 .inputs-list label {
   padding-left: 18px;
 }
+
 .inputs-list label input[type='radio'],
 .inputs-list label input[type='checkbox'] {
   float: left;
@@ -124,6 +125,22 @@ label {
       top: 1px;
       left: 0;
       margin-left: 0 !important;
+    }
+  }
+}
+
+.boolean-radio-select .inputs-list ul {
+  list-style: none;
+  margin-bottom: 0;
+  padding-left: 0;
+
+  li {
+    margin-bottom: 5px;
+    &:last-child {
+      margin-bottom: 0;
+    }
+    label {
+      font-weight: normal;
     }
   }
 }
