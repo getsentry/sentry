@@ -46,8 +46,8 @@ class Indicators extends React.Component {
       <Toasts {...props} className={cx(className, 'ref-toasts')}>
         <ReactCSSTransitionGroup
           transitionName="toast"
-          transitionEnterTimeout={200}
-          transitionLeaveTimeout={200}
+          transitionEnterTimeout={400}
+          transitionLeaveTimeout={400}
         >
           {items.map((indicator, i) => {
             // We purposefully use `i` as key here because of transitions
