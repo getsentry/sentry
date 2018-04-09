@@ -71,18 +71,18 @@ describe('CreateProject', function() {
       });
 
       let node = wrapper.find('PlatformCard').first();
-      node.props().onClick();
+      node.simulate('click');
       expect(wrapper.state().projectName).toBe('C#');
 
       node = wrapper.find('PlatformCard').last();
-      node.props().onClick();
+      node.simulate('click');
       expect(wrapper.state().projectName).toBe('Ruby');
 
       //but not replace it when project name is something else:
       wrapper.setState({projectName: 'another'});
 
       node = wrapper.find('PlatformCard').first();
-      node.props().onClick();
+      node.simulate('click');
       expect(wrapper.state().projectName).toBe('another');
 
       expect(wrapper).toMatchSnapshot();

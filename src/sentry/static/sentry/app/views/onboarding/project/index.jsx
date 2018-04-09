@@ -6,6 +6,7 @@ import PlatformPicker from './platformpicker';
 import PlatformiconTile from './platformiconTile';
 import SelectInput from '../../../components/selectInput';
 import {t} from '../../../locale';
+import HookStore from '../../../stores/hookStore';
 
 class OnboardingProject extends React.Component {
   static propTypes = {
@@ -40,7 +41,10 @@ class OnboardingProject extends React.Component {
 
   submit = () => {
     this.setWarning(this.props.name);
-    if (this.props.name) this.props.next();
+    if (this.props.name) {
+      HookStore.get('analytics:event').forEach(cb => cb('platformpicker.create_project'));
+      this.props.next();
+    }
   };
 
   renderTeamPicker = () => {

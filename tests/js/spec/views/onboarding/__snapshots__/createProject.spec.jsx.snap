@@ -286,7 +286,6 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
                   >
                     <li
                       className="platform-tile list-unstyled csharp csharp "
-                      onClick={[Function]}
                     >
                       <span
                         className="platformicon platformicon-csharp"
@@ -317,7 +316,6 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
                   >
                     <li
                       className="platform-tile list-unstyled java java "
-                      onClick={[Function]}
                     >
                       <span
                         className="platformicon platformicon-java"
@@ -348,7 +346,6 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
                   >
                     <li
                       className="platform-tile list-unstyled javascript-angular javascript "
-                      onClick={[Function]}
                     >
                       <span
                         className="platformicon platformicon-javascript-angular"
@@ -379,7 +376,6 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
                   >
                     <li
                       className="platform-tile list-unstyled javascript javascript "
-                      onClick={[Function]}
                     >
                       <span
                         className="platformicon platformicon-javascript"
@@ -410,7 +406,6 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
                   >
                     <li
                       className="platform-tile list-unstyled javascript-react javascript "
-                      onClick={[Function]}
                     >
                       <span
                         className="platformicon platformicon-javascript-react"
@@ -441,7 +436,6 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
                   >
                     <li
                       className="platform-tile list-unstyled node-express node "
-                      onClick={[Function]}
                     >
                       <span
                         className="platformicon platformicon-node-express"
@@ -472,7 +466,6 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
                   >
                     <li
                       className="platform-tile list-unstyled node node "
-                      onClick={[Function]}
                     >
                       <span
                         className="platformicon platformicon-node"
@@ -503,7 +496,6 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
                   >
                     <li
                       className="platform-tile list-unstyled php-laravel php "
-                      onClick={[Function]}
                     >
                       <span
                         className="platformicon platformicon-php-laravel"
@@ -534,7 +526,6 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
                   >
                     <li
                       className="platform-tile list-unstyled php php "
-                      onClick={[Function]}
                     >
                       <span
                         className="platformicon platformicon-php"
@@ -565,7 +556,6 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
                   >
                     <li
                       className="platform-tile list-unstyled php-symfony2 php "
-                      onClick={[Function]}
                     >
                       <span
                         className="platformicon platformicon-php-symfony2"
@@ -596,7 +586,6 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
                   >
                     <li
                       className="platform-tile list-unstyled python-django python "
-                      onClick={[Function]}
                     >
                       <span
                         className="platformicon platformicon-python-django"
@@ -627,7 +616,6 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
                   >
                     <li
                       className="platform-tile list-unstyled python-flask python "
-                      onClick={[Function]}
                     >
                       <span
                         className="platformicon platformicon-python-flask"
@@ -658,7 +646,6 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
                   >
                     <li
                       className="platform-tile list-unstyled python python "
-                      onClick={[Function]}
                     >
                       <span
                         className="platformicon platformicon-python"
@@ -689,7 +676,6 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
                   >
                     <li
                       className="platform-tile list-unstyled cocoa cocoa "
-                      onClick={[Function]}
                     >
                       <span
                         className="platformicon platformicon-cocoa"
@@ -720,7 +706,6 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
                   >
                     <li
                       className="platform-tile list-unstyled ruby-rails ruby "
-                      onClick={[Function]}
                     >
                       <span
                         className="platformicon platformicon-ruby-rails"
@@ -751,7 +736,6 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
                   >
                     <li
                       className="platform-tile list-unstyled ruby ruby "
-                      onClick={[Function]}
                     >
                       <span
                         className="platformicon platformicon-ruby"
@@ -1088,7 +1072,6 @@ exports[`CreateProject render() should fill in platform name if its provided by 
                   >
                     <li
                       className="platform-tile list-unstyled ruby-rack ruby "
-                      onClick={[Function]}
                     >
                       <span
                         className="platformicon platformicon-ruby-rack"
@@ -1119,7 +1102,6 @@ exports[`CreateProject render() should fill in platform name if its provided by 
                   >
                     <li
                       className="platform-tile list-unstyled ruby-rails ruby "
-                      onClick={[Function]}
                     >
                       <span
                         className="platformicon platformicon-ruby-rails"
@@ -1150,7 +1132,6 @@ exports[`CreateProject render() should fill in platform name if its provided by 
                   >
                     <li
                       className="platform-tile list-unstyled ruby ruby selected"
-                      onClick={[Function]}
                     >
                       <span
                         className="platformicon platformicon-ruby"
@@ -1238,7 +1219,7 @@ exports[`CreateProject render() should fill in project name if its empty when pl
     <OnboardingProject
       name="another"
       next={[Function]}
-      platform="ruby"
+      platform="csharp"
       setName={[Function]}
       setPlatform={[Function]}
       setTeam={[Function]}
@@ -1263,7 +1244,7 @@ exports[`CreateProject render() should fill in project name if its empty when pl
         <PlatformPicker
           name="another"
           next={[Function]}
-          platform="ruby"
+          platform="csharp"
           setName={[Function]}
           setPlatform={[Function]}
           setTeam={[Function]}
@@ -1471,23 +1452,22 @@ exports[`CreateProject render() should fill in project name if its empty when pl
               className="client-platform-list platform-tiles"
             >
               <PlatformCard
-                className=""
+                className="selected"
                 key="csharp"
                 onClick={[Function]}
                 platform="csharp"
               >
                 <span
-                  className="platform-card"
+                  className="platform-card selected"
                   onClick={[Function]}
                 >
                   <PlatformiconTile
-                    className=""
+                    className="selected"
                     onClick={[Function]}
                     platform="csharp"
                   >
                     <li
-                      className="platform-tile list-unstyled csharp csharp "
-                      onClick={[Function]}
+                      className="platform-tile list-unstyled csharp csharp selected"
                     >
                       <span
                         className="platformicon platformicon-csharp"
@@ -1518,7 +1498,6 @@ exports[`CreateProject render() should fill in project name if its empty when pl
                   >
                     <li
                       className="platform-tile list-unstyled java java "
-                      onClick={[Function]}
                     >
                       <span
                         className="platformicon platformicon-java"
@@ -1549,7 +1528,6 @@ exports[`CreateProject render() should fill in project name if its empty when pl
                   >
                     <li
                       className="platform-tile list-unstyled javascript-angular javascript "
-                      onClick={[Function]}
                     >
                       <span
                         className="platformicon platformicon-javascript-angular"
@@ -1580,7 +1558,6 @@ exports[`CreateProject render() should fill in project name if its empty when pl
                   >
                     <li
                       className="platform-tile list-unstyled javascript javascript "
-                      onClick={[Function]}
                     >
                       <span
                         className="platformicon platformicon-javascript"
@@ -1611,7 +1588,6 @@ exports[`CreateProject render() should fill in project name if its empty when pl
                   >
                     <li
                       className="platform-tile list-unstyled javascript-react javascript "
-                      onClick={[Function]}
                     >
                       <span
                         className="platformicon platformicon-javascript-react"
@@ -1642,7 +1618,6 @@ exports[`CreateProject render() should fill in project name if its empty when pl
                   >
                     <li
                       className="platform-tile list-unstyled node-express node "
-                      onClick={[Function]}
                     >
                       <span
                         className="platformicon platformicon-node-express"
@@ -1673,7 +1648,6 @@ exports[`CreateProject render() should fill in project name if its empty when pl
                   >
                     <li
                       className="platform-tile list-unstyled node node "
-                      onClick={[Function]}
                     >
                       <span
                         className="platformicon platformicon-node"
@@ -1704,7 +1678,6 @@ exports[`CreateProject render() should fill in project name if its empty when pl
                   >
                     <li
                       className="platform-tile list-unstyled php-laravel php "
-                      onClick={[Function]}
                     >
                       <span
                         className="platformicon platformicon-php-laravel"
@@ -1735,7 +1708,6 @@ exports[`CreateProject render() should fill in project name if its empty when pl
                   >
                     <li
                       className="platform-tile list-unstyled php php "
-                      onClick={[Function]}
                     >
                       <span
                         className="platformicon platformicon-php"
@@ -1766,7 +1738,6 @@ exports[`CreateProject render() should fill in project name if its empty when pl
                   >
                     <li
                       className="platform-tile list-unstyled php-symfony2 php "
-                      onClick={[Function]}
                     >
                       <span
                         className="platformicon platformicon-php-symfony2"
@@ -1797,7 +1768,6 @@ exports[`CreateProject render() should fill in project name if its empty when pl
                   >
                     <li
                       className="platform-tile list-unstyled python-django python "
-                      onClick={[Function]}
                     >
                       <span
                         className="platformicon platformicon-python-django"
@@ -1828,7 +1798,6 @@ exports[`CreateProject render() should fill in project name if its empty when pl
                   >
                     <li
                       className="platform-tile list-unstyled python-flask python "
-                      onClick={[Function]}
                     >
                       <span
                         className="platformicon platformicon-python-flask"
@@ -1859,7 +1828,6 @@ exports[`CreateProject render() should fill in project name if its empty when pl
                   >
                     <li
                       className="platform-tile list-unstyled python python "
-                      onClick={[Function]}
                     >
                       <span
                         className="platformicon platformicon-python"
@@ -1890,7 +1858,6 @@ exports[`CreateProject render() should fill in project name if its empty when pl
                   >
                     <li
                       className="platform-tile list-unstyled cocoa cocoa "
-                      onClick={[Function]}
                     >
                       <span
                         className="platformicon platformicon-cocoa"
@@ -1921,7 +1888,6 @@ exports[`CreateProject render() should fill in project name if its empty when pl
                   >
                     <li
                       className="platform-tile list-unstyled ruby-rails ruby "
-                      onClick={[Function]}
                     >
                       <span
                         className="platformicon platformicon-ruby-rails"
@@ -1936,23 +1902,22 @@ exports[`CreateProject render() should fill in project name if its empty when pl
                 </span>
               </PlatformCard>
               <PlatformCard
-                className="selected"
+                className=""
                 key="ruby"
                 onClick={[Function]}
                 platform="ruby"
               >
                 <span
-                  className="platform-card selected"
+                  className="platform-card"
                   onClick={[Function]}
                 >
                   <PlatformiconTile
-                    className="selected"
+                    className=""
                     onClick={[Function]}
                     platform="ruby"
                   >
                     <li
-                      className="platform-tile list-unstyled ruby ruby selected"
-                      onClick={[Function]}
+                      className="platform-tile list-unstyled ruby ruby "
                     >
                       <span
                         className="platformicon platformicon-ruby"
@@ -1982,13 +1947,13 @@ exports[`CreateProject render() should fill in project name if its empty when pl
               className="project-name-wrapper"
             >
               <PlatformiconTile
-                platform="ruby"
+                platform="csharp"
               >
                 <li
-                  className="platform-tile list-unstyled ruby ruby undefined"
+                  className="platform-tile list-unstyled csharp csharp undefined"
                 >
                   <span
-                    className="platformicon platformicon-ruby"
+                    className="platformicon platformicon-csharp"
                   />
                 </li>
               </PlatformiconTile>
