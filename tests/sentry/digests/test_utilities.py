@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from datetime import timedelta
+from django.utils import timezone
 
 from sentry.api.fields.actor import Actor
 from sentry.digests.notifications import build_digest, event_to_record
@@ -34,6 +36,34 @@ class UtilitiesTestCase(TestCase):
             },
         }
         return data
+
+    def create_events(self, start_time, project, filenames=None, urls=None):
+        events = []
+        for index, label in enumerate(filenames or urls):
+            group = self.create_group(
+                project=project,
+                first_seen=start_time - timedelta(days=index + 1),
+                last_seen=start_time - timedelta(hours=index + 1),
+                message='group%d' % index
+            )
+            if filenames is not None:
+                event = self.create_event(
+                    group=group,
+                    message=group.message,
+                    datetime=group.last_seen,
+                    project=project,
+                    data=self.create_event_data(filename=label)
+                )
+            else:
+                event = self.create_event(
+                    group=group,
+                    message=group.message,
+                    datetime=group.last_seen,
+                    project=project,
+                    data=self.create_event_data('foo.bar', url=label)
+                )
+            events.append(event)
+        return events
 
     def test_get_events_from_digest(self):
         project = self.create_project()
@@ -217,42 +247,15 @@ class UtilitiesTestCase(TestCase):
         self.create_member(user=user3, organization=self.organization, teams=[team1, team2])
         self.create_member(user=user4, organization=self.organization, teams=[team3])
 
-        team1_events = [
-            self.create_event(
-                group=self.create_group(
-                    project=self.project),
-                data=self.create_event_data('hello.py')),
-            self.create_event(
-                group=self.create_group(
-                    project=self.project),
-                data=self.create_event_data('goodbye.py')),
-            self.create_event(
-                group=self.create_group(
-                    project=self.project),
-                data=self.create_event_data('hola.py')),
-            self.create_event(
-                group=self.create_group(
-                    project=self.project),
-                data=self.create_event_data('adios.py')),
-        ]
-        team2_events = [
-            self.create_event(
-                group=self.create_group(
-                    project=self.project),
-                data=self.create_event_data('old.cbl')),
-            self.create_event(
-                group=self.create_group(
-                    project=self.project),
-                data=self.create_event_data('retro.cbl')),
-            self.create_event(
-                group=self.create_group(
-                    project=self.project),
-                data=self.create_event_data('cool.cbl')),
-            self.create_event(
-                group=self.create_group(
-                    project=self.project),
-                data=self.create_event_data('gem.cbl')),
-        ]
+        start_time = timezone.now()
+
+        team1_events = self.create_events(
+            start_time, self.project, [
+                'hello.py', 'goodbye.py', 'hola.py', 'adios.py'])
+        team2_events = self.create_events(
+            start_time, self.project, [
+                'old.cbl', 'retro.cbl', 'cool.cbl', 'gem.cbl'])
+
         user4_events = [
             self.create_event(
                 group=self.create_group(
@@ -263,7 +266,6 @@ class UtilitiesTestCase(TestCase):
                     project=self.project), data=self.create_event_data(
                     'bar.foo', 'helloworld.org')),
         ]
-
         team1_matcher = Matcher('path', '*.py')
         team2_matcher = Matcher('path', '*.cbl')
         user4_matcher = Matcher('url', '*.org')
