@@ -7,6 +7,7 @@ import json
 import pytest
 import requests
 import responses
+import six
 
 from sentry.utils import snuba
 from sentry.models import GroupHash, EventUser
@@ -33,7 +34,7 @@ class TagStorage(TestCase):
 
         self.now = datetime.utcnow().replace(microsecond=0)
         data = json.dumps([{
-            'event_id': 'x' * 32,
+            'event_id': six.text_type(r) * 32,
             'primary_hash': hash1,
             'project_id': self.proj1.id,
             'message': 'message 1',
@@ -52,7 +53,7 @@ class TagStorage(TestCase):
                 }
             },
         } for r in range(1, 3)] + [{
-            'event_id': 'x' * 32,
+            'event_id': '3' * 32,
             'primary_hash': hash2,
             'project_id': self.proj1.id,
             'message': 'message 2',
@@ -262,7 +263,7 @@ class TagStorage(TestCase):
     def test_get_release_tags(self):
         tags = self.ts.get_release_tags(
             [self.proj1.id],
-            self.proj1env1.id,
+            None,
             ['100']
         )
 
@@ -271,3 +272,43 @@ class TagStorage(TestCase):
         assert tags[0].last_seen == one_second_ago
         assert tags[0].first_seen == one_second_ago
         assert tags[0].times_seen == 1
+
+    def test_get_group_event_ids(self):
+        assert sorted(self.ts.get_group_event_ids(
+            self.proj1.id,
+            self.proj1group1.id,
+            self.proj1env1.id,
+            {
+                'foo': 'bar',
+                'baz': 'quux',
+            }
+        )) == ["1" * 32, "2" * 32]
+
+        assert self.ts.get_group_event_ids(
+            self.proj1.id,
+            self.proj1group1.id,
+            self.proj1env1.id,
+            {
+                'foo': 'bar',
+                'baz': 'quux',
+                'release': '200'
+            }
+        ) == ["2" * 32]
+
+        assert self.ts.get_group_event_ids(
+            self.proj1.id,
+            self.proj1group2.id,
+            self.proj1env1.id,
+            {
+                'browser': 'chrome'
+            }
+        ) == ["3" * 32]
+
+        assert self.ts.get_group_event_ids(
+            self.proj1.id,
+            self.proj1group2.id,
+            self.proj1env1.id,
+            {
+                'browser': 'ie'
+            }
+        ) == []

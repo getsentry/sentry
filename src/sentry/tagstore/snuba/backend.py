@@ -294,7 +294,20 @@ class SnubaTagStorage(TagStorage):
         }) for name, val in six.iteritems(result)]
 
     def get_group_event_ids(self, project_id, group_id, environment_id, tags):
-        pass
+        start, end = self.get_time_range()
+        filters = {
+            'environment': [environment_id],
+            'project_id': [project_id],
+        }
+        # TODO implement environment_id exclusion, its a little bit more complex
+        # than adding a != condition because environment_ids need to be translated
+        # to filters in snuba.
+
+        # TODO OR conditions?
+        conditions = [['tags[{}]'.format(tag), '=', val] for tag, val in six.iteritems(tags)]
+
+        events = snuba.query(start, end, ['event_id'], conditions, filters)
+        return events.keys()
 
     def get_group_ids_for_users(self, project_ids, event_users, limit=100):
         start, end = self.get_time_range()
@@ -329,7 +342,7 @@ class SnubaTagStorage(TagStorage):
     # Search
     def get_group_ids_for_search_filter(self, project_id, environment_id, tags):
         from sentry.search.base import ANY, EMPTY
-
+        start, end = self.get_time_range()
         # Any EMPTY value means there can be no results for this query so
         # return an empty list immediately.
         if any(val == EMPTY for _, val in six.iteritems(tags)):
@@ -348,12 +361,5 @@ class SnubaTagStorage(TagStorage):
             else:
                 conditions.append((col, '=', val))
 
-        end = datetime.utcnow().replace(tzinfo=pytz.UTC)
-        start = end - timedelta(days=90)
         issues = snuba.query(start, end, ['issue'], conditions, filters)
-
-        # convert
-        #    {issue1: count, ...}
-        # into
-        #    [issue1, ...]
         return issues.keys()

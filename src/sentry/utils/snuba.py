@@ -44,9 +44,11 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
                      for col, keys in six.iteritems(snuba_map)}
 
     for col, keys in six.iteritems(filter_keys):
+        keys = [k for k in keys if k is not None]
         if col in snuba_map:
             keys = [snuba_map[col][k] for k in keys]
-        conditions.append((col, 'IN', keys))
+        if keys:
+            conditions.append((col, 'IN', keys))
 
     if 'project_id' in filter_keys:
         # If we are given a set of project ids, use those directly.
