@@ -88,29 +88,60 @@ class AcceptProjectTransferEndpoint(Endpoint):
 
         transaction_id = data['transaction_id']
 
+        org_slug = request.DATA.get('organization')
         team_id = request.DATA.get('team')
-        if team_id is None:
-            return Response({'detail': 'Choose a team to transfer the project to'}, status=400)
 
-        try:
-            team = Team.objects.get(
-                id=team_id,
-            )
-        except Team.DoesNotExist:
-            return Response({'detail': 'Invalid team'}, status=400)
+        if org_slug is not None and team_id is not None:
+            return Response({
+                'detail': 'Choose either a team or an organization, not both'
+            }, status=400)
 
-        # check if user is an owner of the team's org
-        is_team_org_owner = OrganizationMember.objects.filter(
-            user__is_active=True,
-            user=request.user,
-            role=roles.get_top_dog().id,
-            organization_id=team.organization_id,
-        ).exists()
+        if org_slug is None and team_id is None:
+            return Response({
+                'detail': 'Choose either a team or an organization to transfer the project to'
+            }, status=400)
 
-        if not is_team_org_owner:
-            return Response({'detail': 'Invalid team'}, status=400)
+        if team_id:
+            try:
+                team = Team.objects.get(
+                    id=team_id,
+                )
+            except Team.DoesNotExist:
+                return Response({'detail': 'Invalid team'}, status=400)
 
-        project.transfer_to(team)
+            # check if user is an owner of the team's org
+            is_team_org_owner = OrganizationMember.objects.filter(
+                user__is_active=True,
+                user=request.user,
+                role=roles.get_top_dog().id,
+                organization_id=team.organization_id,
+            ).exists()
+
+            if not is_team_org_owner:
+                return Response({'detail': 'Invalid team'}, status=400)
+
+            project.transfer_to(team=team)
+
+        if org_slug:
+            try:
+                organization = Organization.objects.get(
+                    slug=org_slug,
+                )
+            except Organization.DoesNotExist:
+                return Response({'detail': 'Invalid organization'}, status=400)
+
+            # check if user is an owner of the organization
+            is_org_owner = OrganizationMember.objects.filter(
+                user__is_active=True,
+                user=request.user,
+                role=roles.get_top_dog().id,
+                organization_id=organization.id,
+            ).exists()
+
+            if not is_org_owner:
+                return Response({'detail': 'Invalid organization'}, status=400)
+
+            project.transfer_to(organization=organization)
 
         self.create_audit_entry(
             request=request,

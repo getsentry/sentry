@@ -76,7 +76,7 @@ class AcceptTransferProjectTest(APITestCase):
         assert self.from_organization.slug in org_slugs
         assert self.to_organization.slug in org_slugs
 
-    def test_transfers_project_to_correct_organization(self):
+    def test_transfers_project_to_correct_team(self):
         self.login_as(self.owner)
         url_data = sign(
             actor_id=self.member.user_id,
@@ -120,3 +120,44 @@ class AcceptTransferProjectTest(APITestCase):
         resp = self.client.post(self.path, data={'team': self.to_team.id, 'data': url_data})
         resp = self.client.get(self.path + '?' + urlencode({'data': url_data}))
         assert resp.status_code == 400
+
+    def test_transfers_project_to_correct_organization(self):
+        self.login_as(self.owner)
+        url_data = sign(
+            actor_id=self.member.user_id,
+            from_organization_id=self.from_organization.id,
+            project_id=self.project.id,
+            user_id=self.owner.id,
+            transaction_id=self.transaction_id,
+        )
+
+        resp = self.client.post(
+            self.path,
+            data={'organization': self.to_organization.slug, 'data': url_data}
+        )
+        assert resp.status_code == 204
+        p = Project.objects.get(id=self.project.id)
+        assert p.organization_id == self.to_organization.id
+
+    def test_errors_when_team_and_org_provided(self):
+        self.login_as(self.owner)
+        url_data = sign(
+            actor_id=self.member.user_id,
+            from_organization_id=self.from_organization.id,
+            project_id=self.project.id,
+            user_id=self.owner.id,
+            transaction_id=self.transaction_id,
+        )
+
+        resp = self.client.post(
+            self.path,
+            data={
+                'organization': self.to_organization.slug,
+                'team': self.to_team.id,
+                'data': url_data,
+            },
+        )
+        assert resp.status_code == 400
+        assert resp.data == {'detail': 'Choose either a team or an organization, not both'}
+        p = Project.objects.get(id=self.project.id)
+        assert p.organization_id == self.from_organization.id
