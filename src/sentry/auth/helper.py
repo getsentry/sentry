@@ -785,7 +785,7 @@ class AuthHelper(object):
         return HttpResponseRedirect(redirect_uri)
 
     def bind_state(self, key, value):
-        data = self.state.data
+        data = self.state.data or {}
         data[key] = value
 
         self.state.data = data
