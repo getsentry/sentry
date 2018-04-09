@@ -89,7 +89,7 @@ const ErrorRobot = createReactClass({
     }
     return (
       <div
-        className="box awaiting-events"
+        className="awaiting-events"
         style={
           gradient && {backgroundImage: 'linear-gradient(to bottom, #F8F9FA, #ffffff)'}
         }

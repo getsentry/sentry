@@ -1,10 +1,13 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled, {css} from 'react-emotion';
 import classNames from 'classnames';
+import {capitalize} from 'lodash';
 
 import ProjectLink from '../components/projectLink';
 import {Metadata} from '../proptypes';
 import EventOrGroupTitle from './eventOrGroupTitle';
+import Tooltip from '../components/tooltip';
 
 /**
  * Displays an event or group/issue title (i.e. in Stream)
@@ -48,7 +51,7 @@ class EventOrGroupHeader extends React.Component {
   }
 
   getTitle() {
-    let {hideLevel, hideIcons, includeLink, orgId, projectId, data} = this.props;
+    let {hideIcons, hideLevel, includeLink, orgId, projectId, data} = this.props;
     let {id, level, groupID} = data || {};
     let isEvent = !!data.eventID;
 
@@ -67,11 +70,22 @@ class EventOrGroupHeader extends React.Component {
     }
 
     return (
-      <Wrapper {...props}>
-        {!hideLevel && level && <span className="error-level truncate">{level}</span>}
-        {!hideIcons && <span className="icon icon-soundoff" />}
-        {!hideIcons && <span className="icon icon-star-solid" />}
-        <EventOrGroupTitle {...this.props} />
+      <Wrapper
+        {...props}
+        style={data.status === 'resolved' ? {textDecoration: 'line-through'} : null}
+      >
+        {!hideLevel &&
+          level && (
+            <Tooltip title={`Error level: ${capitalize(level)}`}>
+              <GroupLevel level={data.level} />
+            </Tooltip>
+          )}
+        {!hideIcons && data.status === 'ignored' && <Muted className="icon-soundoff" />}
+        {!hideIcons && data.isBookmarked && <Starred className="icon-star-solid" />}
+        <EventOrGroupTitle
+          {...this.props}
+          style={{fontWeight: data.hasSeen ? 400 : 600}}
+        />
       </Wrapper>
     );
   }
@@ -83,15 +97,75 @@ class EventOrGroupHeader extends React.Component {
 
     return (
       <div className={cx}>
-        <h3 className="truncate">{this.getTitle()}</h3>
-        {message && (
-          <div className="event-message truncate">
-            <span className="message">{message}</span>
-          </div>
-        )}
+        <Title>{this.getTitle()}</Title>
+        {message && <Message>{message}</Message>}
       </div>
     );
   }
 }
+
+const truncateStyles = css`
+  overflow: hidden;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const Title = styled.div`
+  ${truncateStyles};
+  margin: 0 0 5px;
+  & em {
+    font-size: 14px;
+    font-style: normal;
+    font-weight: 300;
+    color: ${p => p.theme.gray3};
+  }
+`;
+
+const Message = styled.div`
+  ${truncateStyles};
+  font-size: 14px;
+  margin: 0 0 5px;
+`;
+
+const iconStyles = css`
+  font-size: 14px;
+  margin-right: 5px;
+`;
+
+const Muted = styled.span`
+  ${iconStyles};
+  color: ${p => p.theme.red};
+`;
+
+const Starred = styled.span`
+  ${iconStyles};
+  color: ${p => p.theme.yellowOrange};
+`;
+
+const GroupLevel = styled.div`
+  position: absolute;
+  left: -1px;
+  width: 9px;
+  height: 15px;
+  border-radius: 0 3px 3px 0;
+
+  background-color: ${p => {
+    switch (p.level) {
+      case 'sample':
+        return p.theme.purple;
+      case 'info':
+        return p.theme.blue;
+      case 'warning':
+        return p.theme.yellowOrange;
+      case 'error':
+        return p.theme.orange;
+      case 'fatal':
+        return p.theme.red;
+      default:
+        return p.theme.gray2;
+    }
+  }};
+`;
 
 export default EventOrGroupHeader;

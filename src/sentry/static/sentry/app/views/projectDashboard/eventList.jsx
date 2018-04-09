@@ -7,6 +7,7 @@ import ApiMixin from '../../mixins/apiMixin';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 import {t, tct} from '../../locale';
+import {Panel, PanelHeader, PanelBody} from '../../components/panels';
 
 import EventNode from './eventNode';
 
@@ -120,19 +121,17 @@ const EventList = createReactClass({
       : t('No data available.');
 
     return (
-      <div className="box dashboard-widget">
-        <div className="box-header clearfix">
-          <div className="row">
+      <Panel>
+        <PanelHeader>
+          <div className="row" style={{flex: 1}}>
             <div className="col-xs-8">
-              <h3>
-                {this.props.type === 'new' ? t('New issues') : t('Trending issues')}
-              </h3>
+              {this.props.type === 'new' ? t('New issues') : t('Trending issues')}
             </div>
             <div className="col-xs-2 align-right">{t('Events')}</div>
             <div className="col-xs-2 align-right">{t('Users')}</div>
           </div>
-        </div>
-        <div className="box-content">
+        </PanelHeader>
+        <PanelBody>
           <div className="tab-pane active">
             {this.state.loading ? (
               <LoadingIndicator />
@@ -144,8 +143,8 @@ const EventList = createReactClass({
               <div className="group-list-empty">{emptyStateMessage}</div>
             )}
           </div>
-        </div>
-      </div>
+        </PanelBody>
+      </Panel>
     );
   },
 });

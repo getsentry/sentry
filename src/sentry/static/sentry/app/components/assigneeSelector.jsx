@@ -351,53 +351,50 @@ const AssigneeSelector = createReactClass({
     });
 
     return (
-      <div>
-        <div className={className}>
-          <DropdownLink
-            className="assignee-selector-toggle"
-            onOpen={this.onDropdownOpen}
-            onClose={this.onDropdownClose}
-            isOpen={this.state.isOpen}
-            alwaysRenderMenu={false}
-            title={
-              assignedTo ? (
-                <ActorAvatar actor={assignedTo} className="avatar" size={24} />
-              ) : (
-                <span className="icon-user" />
-              )
-            }
-          >
-            {assigneeListLoading ? (
-              <li>
-                <FlowLayout center className="list-loading-container">
-                  <LoadingIndicator mini />
-                </FlowLayout>
-              </li>
+      <div className={className}>
+        <DropdownLink
+          className="assignee-selector-toggle"
+          onOpen={this.onDropdownOpen}
+          onClose={this.onDropdownClose}
+          isOpen={this.state.isOpen}
+          alwaysRenderMenu={false}
+          title={
+            assignedTo ? (
+              <ActorAvatar actor={assignedTo} className="avatar" size={24} />
             ) : (
-              this.renderDropdownItems()
+              <span className="icon-user" />
+            )
+          }
+        >
+          {assigneeListLoading ? (
+            <li>
+              <FlowLayout center className="list-loading-container">
+                <LoadingIndicator mini />
+              </FlowLayout>
+            </li>
+          ) : (
+            this.renderDropdownItems()
+          )}
+          {ConfigStore.get('invitesEnabled') &&
+            access.has('org:write') && (
+              <React.Fragment>
+                <Divider />
+                <MenuItem
+                  className="invite-member"
+                  disabled={!loading}
+                  to={`/settings/${this.context.organization.slug}/members/new/`}
+                  query={{referrer: 'assignee_selector'}}
+                >
+                  <MenuItemWrapper>
+                    <IconContainer>
+                      <InviteMemberIcon />
+                    </IconContainer>
+                    <Label>{t('Invite Member')}</Label>
+                  </MenuItemWrapper>
+                </MenuItem>
+              </React.Fragment>
             )}
-
-            {ConfigStore.get('invitesEnabled') &&
-              access.has('org:write') && (
-                <React.Fragment>
-                  <Divider />
-                  <MenuItem
-                    className="invite-member"
-                    disabled={!loading}
-                    to={`/settings/${this.context.organization.slug}/members/new/`}
-                    query={{referrer: 'assignee_selector'}}
-                  >
-                    <MenuItemWrapper>
-                      <IconContainer>
-                        <InviteMemberIcon />
-                      </IconContainer>
-                      <Label>{t('Invite Member')}</Label>
-                    </MenuItemWrapper>
-                  </MenuItem>
-                </React.Fragment>
-              )}
-          </DropdownLink>
-        </div>
+        </DropdownLink>
       </div>
     );
   },
