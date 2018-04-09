@@ -12,6 +12,7 @@ export function redirectToRemainingOrganization({orgId}) {
   let allOrgs = OrganizationsStore.getAll().filter(
     org => org.status.id === 'active' && org.slug !== orgId
   );
+
   if (!allOrgs.length) {
     browserHistory.push('/organizations/new/');
     return;
