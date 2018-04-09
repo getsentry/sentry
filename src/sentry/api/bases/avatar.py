@@ -37,7 +37,8 @@ class AvatarMixin(object):
     object_type = None
     model = None
 
-    def get(self, request, obj):
+    def get(self, request, **kwargs):
+        obj = kwargs[self.object_type]
         return Response(serialize(obj, request.user))
 
     def get_serializer_context(self, obj, **kwargs):
@@ -46,7 +47,8 @@ class AvatarMixin(object):
             'kwargs': {self.object_type: obj},
         }
 
-    def put(self, request, obj):
+    def put(self, request, **kwargs):
+        obj = kwargs[self.object_type]
         serializer = AvatarSerializer(
             data=request.DATA,
             context=self.get_serializer_context(obj),
