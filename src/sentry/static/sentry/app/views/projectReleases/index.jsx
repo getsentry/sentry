@@ -166,7 +166,7 @@ const ProjectReleases = createReactClass({
       : t("There don't seem to be any releases yet.");
 
     return (
-      <div className="empty-stream">
+      <div className="empty-stream ref-no-releases">
         <span className="icon icon-exclamation" />
         <p>{message}</p>
         <p>
@@ -180,7 +180,7 @@ const ProjectReleases = createReactClass({
 
   render() {
     return (
-      <div>
+      <div className="ref-project-releases">
         <GuideAnchor target="releases" type="invisible" />
         <div className="row release-list-header">
           <div className="col-sm-7">
