@@ -40,7 +40,7 @@ class SlackActionEndpoint(Endpoint):
     permission_classes = ()
 
     def api_error(self, error):
-        logger.info('slack.action.api-error', extra=error.body)
+        logger.info('slack.action.api-error', extra={'response': error.body})
         return self.respond({
             'response_type': 'ephemeral',
             'replace_original': False,
