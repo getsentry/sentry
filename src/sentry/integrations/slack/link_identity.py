@@ -92,10 +92,14 @@ class SlackLinkIdentitiyView(BaseView):
         session = http.build_session()
         req = session.post(params['response_url'], json=payload)
         resp = req.json()
-        if not resp.get('ok'):
-            logger.error('slack.link-notify.response-error', extra={
-                'error': resp.get('error'),
-            })
+
+        # If the user took their time to link their slack account, we may no
+        # longer be able to respond, and we're not gaurenteed able to post into
+        # the channel. Ignore Expired url errors.
+        #
+        # XXX(epurkhiser): Yes the error string has a space in it.
+        if not resp.get('ok') and resp.get('error') != 'Expired url':
+            logger.error('slack.link-notify.response-error', extra={'response': resp})
 
         return render_to_response('sentry/slack-linked.html', request=request, context={
             'channel_id': params['channel_id'],
