@@ -5,7 +5,7 @@ import DateTime from '../../components/dateTime';
 import TimeSince from '../../components/timeSince';
 import Version from '../../components/version';
 import VersionHoverCard from '../../components/versionHoverCard';
-import TooltipMixin from '../../mixins/tooltip';
+import Tooltip from '../../components/tooltip';
 import {defined, toTitleCase} from '../../utils';
 import componentToString from '../../utils/componentToString';
 import {t} from '../../locale';
@@ -23,44 +23,12 @@ const SeenInfo = createReactClass({
     }),
     environment: PropTypes.string,
     hasRelease: PropTypes.bool.isRequired,
+    title: PropTypes.string.isRequired,
   },
 
   contextTypes: {
     organization: PropTypes.object,
   },
-
-  mixins: [
-    TooltipMixin(function() {
-      let instance = this;
-
-      return {
-        html: true,
-        selector: '.tip',
-        title: function() {
-          let {date, dateGlobal, environment, title} = instance.props;
-          return componentToString(
-            <div style={{width: 170}}>
-              <div className="time-label">{title}</div>
-              <dl className="flat">
-                {environment && [
-                  <dt key="0">{toTitleCase(environment)}</dt>,
-                  <dd key="0.1">
-                    <TimeSince date={date} />
-                    <br />
-                  </dd>,
-                ]}
-                <dt key="1">{t('Globally:')}</dt>
-                <dd key="1.1">
-                  <TimeSince date={dateGlobal} />
-                  <br />
-                </dd>
-              </dl>
-            </div>
-          );
-        },
-      };
-    }),
-  ],
 
   shouldComponentUpdate(nextProps, nextState) {
     return (
@@ -75,6 +43,30 @@ const SeenInfo = createReactClass({
     return `/${orgId}/${projectId}/settings/release-tracking/`;
   },
 
+  getTooltipTitle() {
+    let {date, dateGlobal, environment, title} = this.props;
+
+    return componentToString(
+      <div style={{width: 170}}>
+        <div className="time-label">{title}</div>
+        <dl className="flat">
+          {environment && [
+            <dt key="0">{toTitleCase(environment)}</dt>,
+            <dd key="0.1">
+              <TimeSince date={date} />
+              <br />
+            </dd>,
+          ]}
+          <dt key="1">{t('Globally:')}</dt>
+          <dd key="1.1">
+            <TimeSince date={dateGlobal} />
+            <br />
+          </dd>
+        </dl>
+      </div>
+    );
+  },
+
   render() {
     let {date, dateGlobal, environment, release, orgId, projectId} = this.props;
     return (
@@ -82,9 +74,11 @@ const SeenInfo = createReactClass({
         <dt key={0}>{t('When')}:</dt>
         {date ? (
           <dd key={1}>
-            <span className="tip">
-              <TimeSince date={date} />
-            </span>
+            <Tooltip title={this.getTooltipTitle} tooltipOptions={{html: true}}>
+              <span>
+                <TimeSince date={date} />
+              </span>
+            </Tooltip>
             <br />
             <small>
               <DateTime date={date} seconds={true} />
@@ -92,9 +86,11 @@ const SeenInfo = createReactClass({
           </dd>
         ) : dateGlobal && environment === '' ? (
           <dd key={1}>
-            <span className="tip">
-              <TimeSince date={dateGlobal} />
-            </span>
+            <Tooltip title={this.getTooltipTitle()} tooltipOptions={{html: true}}>
+              <span>
+                <TimeSince date={dateGlobal} />
+              </span>
+            </Tooltip>
             <br />
             <small>
               <DateTime date={dateGlobal} seconds={true} />

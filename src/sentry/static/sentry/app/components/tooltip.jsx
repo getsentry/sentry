@@ -11,7 +11,7 @@ class Tooltip extends React.Component {
     children: PropTypes.node.isRequired,
     disabled: PropTypes.bool,
     tooltipOptions: PropTypes.object,
-    title: PropTypes.node,
+    title: PropTypes.oneOfType([PropTypes.node, PropTypes.func]),
   };
 
   componentWillReceiveProps(newProps) {
