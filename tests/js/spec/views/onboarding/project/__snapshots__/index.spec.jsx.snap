@@ -338,7 +338,6 @@ exports[`Project render() should set required class on empty submit 1`] = `
               >
                 <li
                   className="platform-tile list-unstyled csharp csharp "
-                  onClick={[Function]}
                 >
                   <span
                     className="platformicon platformicon-csharp"
@@ -369,7 +368,6 @@ exports[`Project render() should set required class on empty submit 1`] = `
               >
                 <li
                   className="platform-tile list-unstyled java java "
-                  onClick={[Function]}
                 >
                   <span
                     className="platformicon platformicon-java"
@@ -400,7 +398,6 @@ exports[`Project render() should set required class on empty submit 1`] = `
               >
                 <li
                   className="platform-tile list-unstyled javascript-angular javascript "
-                  onClick={[Function]}
                 >
                   <span
                     className="platformicon platformicon-javascript-angular"
@@ -431,7 +428,6 @@ exports[`Project render() should set required class on empty submit 1`] = `
               >
                 <li
                   className="platform-tile list-unstyled javascript javascript "
-                  onClick={[Function]}
                 >
                   <span
                     className="platformicon platformicon-javascript"
@@ -462,7 +458,6 @@ exports[`Project render() should set required class on empty submit 1`] = `
               >
                 <li
                   className="platform-tile list-unstyled javascript-react javascript "
-                  onClick={[Function]}
                 >
                   <span
                     className="platformicon platformicon-javascript-react"
@@ -493,7 +488,6 @@ exports[`Project render() should set required class on empty submit 1`] = `
               >
                 <li
                   className="platform-tile list-unstyled node-express node "
-                  onClick={[Function]}
                 >
                   <span
                     className="platformicon platformicon-node-express"
@@ -524,7 +518,6 @@ exports[`Project render() should set required class on empty submit 1`] = `
               >
                 <li
                   className="platform-tile list-unstyled node node "
-                  onClick={[Function]}
                 >
                   <span
                     className="platformicon platformicon-node"
@@ -555,7 +548,6 @@ exports[`Project render() should set required class on empty submit 1`] = `
               >
                 <li
                   className="platform-tile list-unstyled php-laravel php "
-                  onClick={[Function]}
                 >
                   <span
                     className="platformicon platformicon-php-laravel"
@@ -586,7 +578,6 @@ exports[`Project render() should set required class on empty submit 1`] = `
               >
                 <li
                   className="platform-tile list-unstyled php php "
-                  onClick={[Function]}
                 >
                   <span
                     className="platformicon platformicon-php"
@@ -617,7 +608,6 @@ exports[`Project render() should set required class on empty submit 1`] = `
               >
                 <li
                   className="platform-tile list-unstyled php-symfony2 php "
-                  onClick={[Function]}
                 >
                   <span
                     className="platformicon platformicon-php-symfony2"
@@ -648,7 +638,6 @@ exports[`Project render() should set required class on empty submit 1`] = `
               >
                 <li
                   className="platform-tile list-unstyled python-django python "
-                  onClick={[Function]}
                 >
                   <span
                     className="platformicon platformicon-python-django"
@@ -679,7 +668,6 @@ exports[`Project render() should set required class on empty submit 1`] = `
               >
                 <li
                   className="platform-tile list-unstyled python-flask python "
-                  onClick={[Function]}
                 >
                   <span
                     className="platformicon platformicon-python-flask"
@@ -710,7 +698,6 @@ exports[`Project render() should set required class on empty submit 1`] = `
               >
                 <li
                   className="platform-tile list-unstyled python python "
-                  onClick={[Function]}
                 >
                   <span
                     className="platformicon platformicon-python"
@@ -741,7 +728,6 @@ exports[`Project render() should set required class on empty submit 1`] = `
               >
                 <li
                   className="platform-tile list-unstyled cocoa cocoa "
-                  onClick={[Function]}
                 >
                   <span
                     className="platformicon platformicon-cocoa"
@@ -772,7 +758,6 @@ exports[`Project render() should set required class on empty submit 1`] = `
               >
                 <li
                   className="platform-tile list-unstyled ruby-rails ruby "
-                  onClick={[Function]}
                 >
                   <span
                     className="platformicon platformicon-ruby-rails"
@@ -803,7 +788,6 @@ exports[`Project render() should set required class on empty submit 1`] = `
               >
                 <li
                   className="platform-tile list-unstyled ruby ruby "
-                  onClick={[Function]}
                 >
                   <span
                     className="platformicon platformicon-ruby"
