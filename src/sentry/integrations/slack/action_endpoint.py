@@ -39,6 +39,14 @@ class SlackActionEndpoint(Endpoint):
     authentication_classes = ()
     permission_classes = ()
 
+    def api_error(self, error):
+        logger.info('slack.action.api-error', extra={'response': error.body})
+        return self.respond({
+            'response_type': 'ephemeral',
+            'replace_original': False,
+            'text': "Sentry can't perform that action right now on your behalf!",
+        })
+
     def on_assign(self, request, identity, group, action):
         assignee = action['selected_options'][0]['value']
 
@@ -234,9 +242,12 @@ class SlackActionEndpoint(Endpoint):
                 'value': data['submission']['resolve_type'],
             }
 
-            self.on_status(request, identity, group, action, data, integration)
-            group = Group.objects.get(id=group.id)
+            try:
+                self.on_status(request, identity, group, action, data, integration)
+            except client.ApiError as e:
+                return self.api_error(e)
 
+            group = Group.objects.get(id=group.id)
             attachment = build_attachment(group, identity=identity, actions=[action])
 
             body = self.construct_reply(attachment, is_message=callback_data['is_message'])
@@ -269,11 +280,7 @@ class SlackActionEndpoint(Endpoint):
                     self.open_resolve_dialog(data, group, integration)
                     defer_attachment_update = True
         except client.ApiError as e:
-            return self.respond({
-                'response_type': 'ephemeral',
-                'replace_original': False,
-                'text': u'Action failed: {}'.format(e.body['detail']),
-            })
+            return self.api_error(e)
 
         if defer_attachment_update:
             return self.respond()
