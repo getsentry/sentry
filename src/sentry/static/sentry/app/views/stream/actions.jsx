@@ -292,7 +292,7 @@ const StreamActions = createReactClass({
               confirmLabel={label('ignore')}
               disabled={!anySelected}
             />
-            <div className="btn-group hidden-sm">
+            <div className="btn-group hidden-sm hidden-xs">
               <ActionLink
                 className={'btn btn-default btn-sm action-merge'}
                 disabled={!multiSelected}
@@ -305,7 +305,7 @@ const StreamActions = createReactClass({
                 {t('Merge')}
               </ActionLink>
             </div>
-            <div className="btn-group">
+            <div className="btn-group hidden-xs">
               <ActionLink
                 className={'btn btn-default btn-sm action-bookmark'}
                 onAction={() => this.onUpdate({isBookmarked: true})}
@@ -405,10 +405,10 @@ const StreamActions = createReactClass({
               </GraphToggle>
             </Flex>
           </Box>
-          <Box w={80} mx={2} className="align-right">
+          <Box w={[40, 60, 80, 80]} mx={2} className="align-right">
             <ToolbarHeader>{t('Events')}</ToolbarHeader>
           </Box>
-          <Box w={80} mx={2} className="align-right">
+          <Box w={[40, 60, 80, 80]} mx={2} className="align-right">
             <ToolbarHeader>{t('Users')}</ToolbarHeader>
           </Box>
           <Box w={80} mx={2} className="align-right hidden-xs hidden-sm">
