@@ -94,7 +94,7 @@ class SlackLinkIdentitiyView(BaseView):
         resp = req.json()
 
         # If the user took their time to link their slack account, we may no
-        # longer be able to respond, and we're not gaurenteed able to post into
+        # longer be able to respond, and we're not guaranteed able to post into
         # the channel. Ignore Expired url errors.
         #
         # XXX(epurkhiser): Yes the error string has a space in it.
