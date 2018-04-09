@@ -27,7 +27,7 @@ const ShortId = createReactClass({
       return null;
     }
     return (
-      <StyledShortId onClick={this.preventPropagation}>
+      <StyledShortId onClick={this.preventPropagation} {...this.props}>
         <AutoSelectText>{shortId}</AutoSelectText>
       </StyledShortId>
     );

@@ -126,7 +126,7 @@ const EventOrGroupExtraDetails = createReactClass({
 });
 
 const GroupExtra = styled(Flex)`
-  color: ${p => p.theme.gray2}
+  color: ${p => p.theme.gray3}
   font-size: 12px;
   a {
     color: inherit;
@@ -134,12 +134,12 @@ const GroupExtra = styled(Flex)`
 `;
 
 const GroupExtraCommentsAndLogger = styled(Flex)`
-  color: ${p => p.theme.gray5};
+  color: ${p => p.theme.gray4};
 `;
 
 const GroupShortId = styled(ShortId)`
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12px;
+  color: ${p => p.theme.gray3};
 `;
 
 const GroupExtraIcon = styled.span`
