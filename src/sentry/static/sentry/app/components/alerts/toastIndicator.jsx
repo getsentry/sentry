@@ -22,7 +22,7 @@ const Toast = styled.div`
   border-radius: 44px 5px 5px 44px;
   box-shadow: 0 0 0 1px rgba(47, 40, 55, 0.12), 0 1px 2px 0 rgba(47, 40, 55, 0.12),
     0 4px 12px 0 rgba(47, 40, 55, 0.16);
-  transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.25s linear;
+  transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.4s linear;
   position: relative;
   transform: translate3d(0, 0, 0);
 
@@ -33,7 +33,7 @@ const Toast = styled.div`
 
   &.toast-enter-active {
     opacity: 1;
-    transform: translate3d(0, 0px, 0);
+    transform: translate3d(0, 0, 0);
   }
 
   &.toast-leave {
@@ -45,9 +45,10 @@ const Toast = styled.div`
     opacity: 0;
     transform: translate3d(0, 70px, 0);
   }
+
   &:before {
+    opacity: 1;
     content: '';
-    transition: opacity 0.4s linear;
     display: block;
     position: fixed;
     right: -10000px;
