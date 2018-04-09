@@ -230,6 +230,11 @@ class AuthHelper(object):
     def finish_pipeline(self):
         data = self.fetch_state()
 
+        # The state data may have expried, in which case the state data will
+        # simply be None.
+        if not data:
+            return self.error(ERR_INVALID_IDENTITY)
+
         try:
             identity = self.provider.build_identity(data)
         except IdentityNotValid:
