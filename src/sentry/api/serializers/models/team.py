@@ -11,7 +11,7 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
     OrganizationAccessRequest, OrganizationMember, OrganizationMemberTeam,
-    ProjectStatus, ProjectTeam, Team
+    ProjectStatus, ProjectTeam, Team, TeamAvatar
 )
 
 
@@ -61,6 +61,7 @@ class TeamSerializer(Serializer):
             access_requests = frozenset()
 
         org_roles = get_org_roles([t.organization_id for t in item_list], user)
+        avatars = {a.team_id: a for a in TeamAvatar.objects.filter(team__in=item_list)}
 
         is_superuser = (request and is_active_superuser(request) and request.user == user)
         result = {}
@@ -81,10 +82,18 @@ class TeamSerializer(Serializer):
                 'pending_request': team.id in access_requests,
                 'is_member': is_member,
                 'has_access': has_access,
+                'avatar': avatars.get(team.id),
             }
         return result
 
     def serialize(self, obj, attrs, user):
+        if attrs.get('avatar'):
+            avatar = {
+                'avatarType': attrs['avatar'].get_avatar_type_display(),
+                'avatarUuid': attrs['avatar'].ident if attrs['avatar'].file else None
+            }
+        else:
+            avatar = {'avatarType': 'letter_avatar', 'avatarUuid': None}
         return {
             'id': six.text_type(obj.id),
             'slug': obj.slug,
@@ -93,6 +102,7 @@ class TeamSerializer(Serializer):
             'isMember': attrs['is_member'],
             'hasAccess': attrs['has_access'],
             'isPending': attrs['pending_request'],
+            'avatar': avatar,
         }
 
 

@@ -25,6 +25,10 @@ class TeamSerializerTest(TestCase):
             'isPending': False,
             'isMember': False,
             'id': six.text_type(team.id),
+            'avatar': {
+                'avatarType': 'letter_avatar',
+                'avatarUuid': None,
+            },
         }
 
     def test_member_access(self):
@@ -155,4 +159,8 @@ class TeamWithProjectsSerializerTest(TestCase):
             'isMember': False,
             'id': six.text_type(team.id),
             'projects': serialized_projects,
+            'avatar': {
+                'avatarType': 'letter_avatar',
+                'avatarUuid': None,
+            },
         }

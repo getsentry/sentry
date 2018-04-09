@@ -12,11 +12,9 @@ class UserAvatarEndpoint(AvatarMixin, UserEndpoint):
     object_type = 'user'
     model = UserAvatar
 
-    def get(self, request, user):
-        return super(UserAvatarEndpoint, self).get(request, user)
-
-    def put(self, request, user):
+    def put(self, request, **kwargs):
+        user = kwargs['user']
         if user != request.user:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        return super(UserAvatarEndpoint, self).put(request, user)
+        return super(UserAvatarEndpoint, self).put(request, **kwargs)

@@ -134,6 +134,7 @@ from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from .endpoints.system_health import SystemHealthEndpoint
 from .endpoints.system_options import SystemOptionsEndpoint
 from .endpoints.sudo import SudoEndpoint
+from .endpoints.team_avatar import TeamAvatarEndpoint
 from .endpoints.team_details import TeamDetailsEndpoint
 from .endpoints.team_groups_new import TeamGroupsNewEndpoint
 from .endpoints.team_groups_trending import TeamGroupsTrendingEndpoint
@@ -533,6 +534,11 @@ urlpatterns = patterns(
         r'^teams/(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/stats/$',
         TeamStatsEndpoint.as_view(),
         name='sentry-api-0-team-stats'
+    ),
+    url(
+        r'^teams/(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/avatar/$',
+        TeamAvatarEndpoint.as_view(),
+        name='sentry-api-0-team-avatar'
     ),
 
     # Projects
