@@ -2,8 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {shallow, mount} from 'enzyme';
 import _ from 'lodash';
-import InviteMember from 'app/views/inviteMember/inviteMember';
-import {Client} from 'app/api';
+import {InviteMember} from 'app/views/inviteMember/inviteMember';
 import ConfigStore from 'app/stores/configStore';
 
 jest.mock('app/api');
@@ -15,7 +14,7 @@ describe('CreateProject', function() {
   beforeEach(function() {
     sandbox = sinon.sandbox.create();
     sandbox.stub(ConfigStore, 'getConfig').returns({id: 1, invitesEnabled: true});
-    Client.clearMockResponses();
+    MockApiClient.clearMockResponses();
   });
 
   afterEach(function() {
@@ -56,7 +55,7 @@ describe('CreateProject', function() {
     });
 
     it('should render no team select when there is only one option', function() {
-      Client.addMockResponse({
+      MockApiClient.addMockResponse({
         url: '/organizations/testOrg/members/me/',
         body: {
           roles: [
@@ -95,7 +94,7 @@ describe('CreateProject', function() {
     });
 
     it('should redirect when no roles available', function() {
-      Client.addMockResponse({
+      MockApiClient.addMockResponse({
         url: '/organizations/testOrg/members/me/',
         body: {
           roles: [
@@ -122,7 +121,7 @@ describe('CreateProject', function() {
     });
 
     it('should render roles when available and allowed, and handle submitting', function() {
-      Client.addMockResponse({
+      MockApiClient.addMockResponse({
         url: '/organizations/testOrg/members/me/',
         body: {
           roles: [
@@ -139,7 +138,7 @@ describe('CreateProject', function() {
         body: {},
       };
 
-      let mock = Client.addMockResponse(inviteRequest);
+      let mock = MockApiClient.addMockResponse(inviteRequest);
 
       let wrapper = mount(<InviteMember {...baseProps} />, baseContext);
 

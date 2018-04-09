@@ -3,13 +3,14 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import {PanelItem} from '../../../../components/panels';
 import {t, tct} from '../../../../locale';
 import Avatar from '../../../../components/avatar';
 import Button from '../../../../components/buttons/button';
 import Confirm from '../../../../components/confirm';
+import InlineSvg from '../../../../components/inlineSvg';
 import Link from '../../../../components/link';
 import LoadingIndicator from '../../../../components/loadingIndicator';
-import {PanelItem} from '../../../../components/panels';
 import SentryTypes from '../../../../proptypes';
 import Tooltip from '../../../../components/tooltip';
 import recreateRoute from '../../../../utils/recreateRoute';
@@ -134,27 +135,23 @@ export default class OrganizationMemberRow extends React.PureComponent {
                 !isInviteSuccessful &&
                 canAddMembers &&
                 (pending || needsSso) && (
-                  <Button
+                  <ResendInviteButton
                     priority="primary"
                     size="xsmall"
                     onClick={this.handleSendInvite}
-                    style={{
-                      padding: '0 4px',
-                      marginTop: 2,
-                    }}
                   >
                     {t('Resend invite')}
-                  </Button>
+                  </ResendInviteButton>
                 )}
             </div>
           ) : (
             <div>
               {!has2fa ? (
                 <Tooltip title={t('Two-factor auth not enabled')}>
-                  <span style={{color: '#B64236'}} className="icon-exclamation" />
+                  <NoTwoFactorIcon />
                 </Tooltip>
               ) : (
-                <span style={{color: 'green'}} className="icon-check" />
+                <HasTwoFactorIcon />
               )}
             </div>
           )}
@@ -195,8 +192,9 @@ export default class OrganizationMemberRow extends React.PureComponent {
                   disabled
                   size="small"
                   title={t('You do not have access to remove member')}
+                  icon="icon-circle-subtract"
                 >
-                  <span className="icon icon-trash" /> {t('Remove')}
+                  {t('Remove')}
                 </Button>
               )}
 
@@ -238,3 +236,21 @@ export default class OrganizationMemberRow extends React.PureComponent {
     );
   }
 }
+
+const NoTwoFactorIcon = styled(props => (
+  <InlineSvg {...props} src="icon-circle-exclamation" />
+))`
+  color: ${p => p.theme.error};
+  font-size: 18px;
+`;
+const HasTwoFactorIcon = styled(props => (
+  <InlineSvg {...props} src="icon-circle-check" />
+))`
+  color: ${p => p.theme.success};
+  font-size: 18px;
+`;
+
+const ResendInviteButton = styled(Button)`
+  padding: 0 4px;
+  margin-top: 2px;
+`;

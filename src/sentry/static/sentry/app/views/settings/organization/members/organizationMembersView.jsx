@@ -1,23 +1,22 @@
 import {Box} from 'grid-emotion';
-import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import {Panel, PanelBody, PanelHeader} from '../../../../components/panels';
+import {addErrorMessage, addSuccessMessage} from '../../../../actionCreators/indicator';
 import {t, tct} from '../../../../locale';
+import AsyncView from '../../../asyncView';
 import Button from '../../../../components/buttons/button';
 import ConfigStore from '../../../../stores/configStore';
-import IndicatorStore from '../../../../stores/indicatorStore';
+import GuideAnchor from '../../../../components/assistant/guideAnchor';
 import OrganizationAccessRequests from './organizationAccessRequests';
 import OrganizationMemberRow from './organizationMemberRow';
-import OrganizationSettingsView from '../../../organizationSettingsView';
 import Pagination from '../../../../components/pagination';
-import {Panel, PanelBody, PanelHeader} from '../../../../components/panels';
 import SentryTypes from '../../../../proptypes';
 import SettingsPageHeader from '../../components/settingsPageHeader';
 import recreateRoute from '../../../../utils/recreateRoute';
-import GuideAnchor from '../../../../components/assistant/guideAnchor';
 
-class OrganizationMembersView extends OrganizationSettingsView {
+class OrganizationMembersView extends AsyncView {
   static propTypes = {
     routes: PropTypes.array,
   };
@@ -120,46 +119,42 @@ class OrganizationMembersView extends OrganizationSettingsView {
 
   handleRemove = ({id, name}, e) => {
     let {organization} = this.context;
-    let {orgName} = organization;
+    let {slug: orgName} = organization;
 
     this.removeMember(id).then(
       () =>
-        IndicatorStore.add(
+        addSuccessMessage(
           tct('Removed [name] from [orgName]', {
             name,
             orgName,
-          }),
-          'success'
+          })
         ),
       () =>
-        IndicatorStore.add(
+        addErrorMessage(
           tct('Error removing [name] from [orgName]', {
             name,
             orgName,
-          }),
-          'error'
+          })
         )
     );
   };
 
   handleLeave = ({id}, e) => {
     let {organization} = this.context;
-    let {orgName} = organization;
+    let {slug: orgName} = organization;
 
     this.removeMember(id).then(
       () =>
-        IndicatorStore.add(
+        addSuccessMessage(
           tct('You left [orgName]', {
             orgName,
-          }),
-          'success'
+          })
         ),
       () =>
-        IndicatorStore.add(
+        addErrorMessage(
           tct('Error leaving [orgName]', {
             orgName,
-          }),
-          'error'
+          })
         )
     );
   };
@@ -180,26 +175,7 @@ class OrganizationMembersView extends OrganizationSettingsView {
         this.setState(state => ({
           invited: state.invited.set(id, null),
         }));
-        IndicatorStore.add(t('Error sending invite'), 'error');
-      },
-    });
-  };
-
-  handleAddMember = () => {
-    this.setState({
-      busy: true,
-    });
-    this.api.request(`/organizations/${this.props.params.orgId}/members/`, {
-      method: 'POST',
-      data: {},
-      success: data => {
-        this.setState({busy: false});
-        browserHistory.push(
-          `/organizations/${this.props.params.orgId}/members/${data.id}`
-        );
-      },
-      error: () => {
-        this.setState({busy: false});
+        addErrorMessage(t('Error sending invite'));
       },
     });
   };
