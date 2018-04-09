@@ -284,7 +284,7 @@ class Project(Model):
 
         # TODO(jess): remove this when new-teams is live for everyone
         # only support passing team or org not both
-        assert (team and not organization) or (organization and not team)
+        assert not (team and organization)
 
         # NOTE: this will only work properly if the new team is in a different
         # org than the existing one, which is currently the only use case in
