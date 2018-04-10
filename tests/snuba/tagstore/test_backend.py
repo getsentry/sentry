@@ -260,6 +260,21 @@ class TagStorage(TestCase):
             [EventUser(project_id=self.proj1.id, ident='user2')]
         )) == set([self.proj1group1.id])
 
+    def test_get_group_tag_values_for_users(self):
+        result = self.ts.get_group_tag_values_for_users(
+            [EventUser(project_id=self.proj1.id, ident='user1')]
+        )
+        one_second_ago = (self.now - timedelta(seconds=1)).strftime('%Y-%m-%dT%H:%M:%S+00:00')
+        assert result[0].value == 'user1'
+        assert result[0].last_seen == one_second_ago
+
+        result = self.ts.get_group_tag_values_for_users(
+            [EventUser(project_id=self.proj1.id, ident='user2')]
+        )
+        two_seconds_ago = (self.now - timedelta(seconds=2)).strftime('%Y-%m-%dT%H:%M:%S+00:00')
+        assert result[0].value == 'user2'
+        assert result[0].last_seen == two_seconds_ago
+
     def test_get_release_tags(self):
         tags = self.ts.get_release_tags(
             [self.proj1.id],

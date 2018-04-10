@@ -129,17 +129,23 @@ class SnubaTagStorage(TagStorage):
         if group_id is not None:
             filters['issue'] = [group_id]
         conditions = [[tag, '!=', '']]
-        aggregations = [['count', '', 'count']]
+        aggregations = [
+            ['count', '', 'count'],
+            ['min', SEEN_COLUMN, 'first_seen'],
+            ['max', SEEN_COLUMN, 'last_seen'],
+        ]
 
         result = snuba.query(start, end, [tag], conditions, filters,
                              aggregations)
 
         return [ObjectWrapper({
-            'times_seen': count,
+            'times_seen': val['count'],
+            'first_seen': val['first_seen'],
+            'last_seen': val['last_seen'],
             'key': key,
             'value': name,
             'group_id': group_id,
-        }) for name, count in six.iteritems(result)]
+        }) for name, val in six.iteritems(result)]
 
     def get_group_list_tag_value(self, project_id, group_ids, environment_id, key, value):
         start, end = self.get_time_range()
@@ -176,10 +182,6 @@ class SnubaTagStorage(TagStorage):
         aggregations = [['count', '', 'count']]
 
         return snuba.query(start, end, [], conditions, filters, aggregations)
-
-    def get_group_tag_values_for_users(self, event_users, limit=100):
-        # TODO this function needs to accept a project_id param
-        pass
 
     def get_top_group_tag_values(self, project_id, group_id, environment_id, key, limit=3):
         start, end = self.get_time_range(7)
@@ -326,6 +328,35 @@ class SnubaTagStorage(TagStorage):
         result = snuba.query(start, end, ['issue'], conditions, filters,
                              aggregations, limit=limit, orderby='-seen')
         return result.keys()
+
+    def get_group_tag_values_for_users(self, event_users, limit=100):
+        start, end = self.get_time_range()
+        filters = {
+            'project_id': [eu.project_id for eu in event_users]
+        }
+        conditions = [cond for cond in [
+            ['user_id', 'IN', [eu.ident for eu in event_users if eu.ident]],
+            ['email', 'IN', [eu.email for eu in event_users if eu.email]],
+            ['username', 'IN', [eu.username for eu in event_users if eu.username]],
+            ['ip_address', 'IN', [eu.ip_address for eu in event_users if eu.ip_address]],
+        ] if cond[2] != []]
+
+        aggregations = [
+            ['count', '', 'count'],
+            ['min', SEEN_COLUMN, 'first_seen'],
+            ['max', SEEN_COLUMN, 'last_seen'],
+        ]
+
+        result = snuba.query(start, end, ['user_id'], conditions, filters,
+                             aggregations, orderby='-last_seen', limit=limit)
+
+        return [ObjectWrapper({
+            'times_seen': val['count'],
+            'first_seen': val['first_seen'],
+            'last_seen': val['last_seen'],
+            'key': 'sentry:user',
+            'value': name,
+        }) for name, val in six.iteritems(result)]
 
     def get_groups_user_counts(self, project_id, group_ids, environment_id):
         start, end = self.get_time_range()
