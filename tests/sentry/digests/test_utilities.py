@@ -118,7 +118,7 @@ class UtilitiesHelpersTestCase(TestCase):
         assert convert_actors_to_user_set(events_by_actor, user_by_events.keys()) == user_by_events
 
 
-class UtilitiesTestCase(TestCase):
+class GetPersonalizedDigestsTestCase(TestCase):
     def setUp(self):
         self.user1 = self.create_user()
         self.user2 = self.create_user()
@@ -246,7 +246,7 @@ class UtilitiesTestCase(TestCase):
         }
         assert build_events_by_actor(self.project.id, events) == events_by_actor
 
-    def test_get_personalized_digests(self):
+    def test_simple(self):
         rule = self.project.rule_set.all()[0]
         records = [event_to_record(event, (rule, ))
                    for event in self.team1_events + self.team2_events + self.user4_events]
