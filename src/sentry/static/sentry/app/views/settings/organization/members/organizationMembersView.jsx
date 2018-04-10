@@ -206,7 +206,7 @@ class OrganizationMembersView extends AsyncView {
             ? t('You do not have enough permission to add new members')
             : undefined
         }
-        to={recreateRoute('new', {routes, params})}
+        to={recreateRoute('new/', {routes, params})}
         icon="icon-circle-add"
       >
         {t('Invite Member')}
