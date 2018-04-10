@@ -9,6 +9,58 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
       "ruleId": "1",
     }
   }
+  routes={
+    Array [
+      Object {
+        "path": "/",
+      },
+      Object {
+        "indexRoute": Object {},
+        "name": "Settings",
+        "newnew": true,
+        "path": "/settings/",
+      },
+      Object {
+        "name": "Organization",
+        "path": ":orgId/",
+      },
+      Object {
+        "name": "Project",
+        "path": ":projectId/",
+      },
+      Object {},
+      Object {
+        "indexRoute": Object {
+          "name": "General",
+        },
+      },
+      Object {
+        "indexRoute": Object {},
+        "name": "Alerts",
+        "path": "alerts/",
+      },
+      Object {
+        "childRoutes": Array [
+          Object {
+            "name": "New",
+            "path": "new/",
+          },
+          Object {
+            "name": "Edit",
+            "path": ":ruleId/",
+          },
+        ],
+        "component": null,
+        "indexRoute": Object {},
+        "name": "Rules",
+        "path": "rules/",
+      },
+      Object {
+        "name": "Edit",
+        "path": ":ruleId/",
+      },
+    ]
+  }
 >
   <SideEffect(DocumentTitle)
     title="Sentry"
@@ -78,6 +130,58 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
             "slug": "project-slug",
             "teams": Array [],
           }
+        }
+        routes={
+          Array [
+            Object {
+              "path": "/",
+            },
+            Object {
+              "indexRoute": Object {},
+              "name": "Settings",
+              "newnew": true,
+              "path": "/settings/",
+            },
+            Object {
+              "name": "Organization",
+              "path": ":orgId/",
+            },
+            Object {
+              "name": "Project",
+              "path": ":projectId/",
+            },
+            Object {},
+            Object {
+              "indexRoute": Object {
+                "name": "General",
+              },
+            },
+            Object {
+              "indexRoute": Object {},
+              "name": "Alerts",
+              "path": "alerts/",
+            },
+            Object {
+              "childRoutes": Array [
+                Object {
+                  "name": "New",
+                  "path": "new/",
+                },
+                Object {
+                  "name": "Edit",
+                  "path": ":ruleId/",
+                },
+              ],
+              "component": null,
+              "indexRoute": Object {},
+              "name": "Rules",
+              "path": "rules/",
+            },
+            Object {
+              "name": "Edit",
+              "path": ":ruleId/",
+            },
+          ]
         }
       >
         <form
@@ -162,7 +266,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                     <hr />
                     <AlertRuleRow>
                       <h6
-                        className="css-1pc4igl-AlertRuleRow css-svkcde0"
+                        className="css-1pc4igl-AlertRuleRow css-1qt54040"
                       >
                         Every time 
                         <Select2Field
@@ -647,7 +751,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                     <hr />
                     <AlertRuleRow>
                       <h6
-                        className="css-1pc4igl-AlertRuleRow css-svkcde0"
+                        className="css-1pc4igl-AlertRuleRow css-1qt54040"
                       >
                         Perform these actions at most once every 
                         <Select2Field
@@ -799,36 +903,50 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                     </AlertRuleRow>
                     <ActionBar>
                       <div
-                        className="css-wq91e7-ActionBar css-svkcde2"
+                        className="css-wq91e7-ActionBar css-1qt54042"
                       >
-                        <CancelButton>
+                        <CancelButton
+                          to="/settings/org-slug/project-slug/alerts/rules/"
+                        >
                           <Button
-                            className="css-1yc33o1-CancelButton css-svkcde1"
+                            className="css-1yc33o1-CancelButton css-1qt54041"
                             disabled={false}
+                            to="/settings/org-slug/project-slug/alerts/rules/"
                           >
-                            <button
-                              className="css-1yc33o1-CancelButton css-svkcde1 button button-default"
+                            <Link
+                              className="css-1yc33o1-CancelButton css-1qt54041 button button-default"
                               disabled={false}
                               onClick={[Function]}
+                              onlyActiveOnIndex={false}
                               role="button"
+                              style={Object {}}
+                              to="/settings/org-slug/project-slug/alerts/rules/"
                             >
-                              <Flex
-                                align="center"
-                                className="button-label"
+                              <a
+                                className="css-1yc33o1-CancelButton css-1qt54041 button button-default"
+                                disabled={false}
+                                onClick={[Function]}
+                                role="button"
+                                style={Object {}}
                               >
-                                <Base
+                                <Flex
                                   align="center"
-                                  className="button-label css-5ipae5"
+                                  className="button-label"
                                 >
-                                  <div
+                                  <Base
+                                    align="center"
                                     className="button-label css-5ipae5"
-                                    is={null}
                                   >
-                                    Cancel
-                                  </div>
-                                </Base>
-                              </Flex>
-                            </button>
+                                    <div
+                                      className="button-label css-5ipae5"
+                                      is={null}
+                                    >
+                                      Cancel
+                                    </div>
+                                  </Base>
+                                </Flex>
+                              </a>
+                            </Link>
                           </Button>
                         </CancelButton>
                         <Button
@@ -880,6 +998,58 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
       "orgId": "org-slug",
       "projectId": "project-slug",
     }
+  }
+  routes={
+    Array [
+      Object {
+        "path": "/",
+      },
+      Object {
+        "indexRoute": Object {},
+        "name": "Settings",
+        "newnew": true,
+        "path": "/settings/",
+      },
+      Object {
+        "name": "Organization",
+        "path": ":orgId/",
+      },
+      Object {
+        "name": "Project",
+        "path": ":projectId/",
+      },
+      Object {},
+      Object {
+        "indexRoute": Object {
+          "name": "General",
+        },
+      },
+      Object {
+        "indexRoute": Object {},
+        "name": "Alerts",
+        "path": "alerts/",
+      },
+      Object {
+        "childRoutes": Array [
+          Object {
+            "name": "New",
+            "path": "new/",
+          },
+          Object {
+            "name": "Edit",
+            "path": ":ruleId/",
+          },
+        ],
+        "component": null,
+        "indexRoute": Object {},
+        "name": "Rules",
+        "path": "rules/",
+      },
+      Object {
+        "name": "Edit",
+        "path": ":ruleId/",
+      },
+    ]
   }
 >
   <SideEffect(DocumentTitle)
@@ -949,6 +1119,58 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
             "slug": "project-slug",
             "teams": Array [],
           }
+        }
+        routes={
+          Array [
+            Object {
+              "path": "/",
+            },
+            Object {
+              "indexRoute": Object {},
+              "name": "Settings",
+              "newnew": true,
+              "path": "/settings/",
+            },
+            Object {
+              "name": "Organization",
+              "path": ":orgId/",
+            },
+            Object {
+              "name": "Project",
+              "path": ":projectId/",
+            },
+            Object {},
+            Object {
+              "indexRoute": Object {
+                "name": "General",
+              },
+            },
+            Object {
+              "indexRoute": Object {},
+              "name": "Alerts",
+              "path": "alerts/",
+            },
+            Object {
+              "childRoutes": Array [
+                Object {
+                  "name": "New",
+                  "path": "new/",
+                },
+                Object {
+                  "name": "Edit",
+                  "path": ":ruleId/",
+                },
+              ],
+              "component": null,
+              "indexRoute": Object {},
+              "name": "Rules",
+              "path": "rules/",
+            },
+            Object {
+              "name": "Edit",
+              "path": ":ruleId/",
+            },
+          ]
         }
       >
         <form
@@ -1033,7 +1255,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                     <hr />
                     <AlertRuleRow>
                       <h6
-                        className="css-1pc4igl-AlertRuleRow css-svkcde0"
+                        className="css-1pc4igl-AlertRuleRow css-1qt54040"
                       >
                         Every time 
                         <Select2Field
@@ -1347,7 +1569,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                     <hr />
                     <AlertRuleRow>
                       <h6
-                        className="css-1pc4igl-AlertRuleRow css-svkcde0"
+                        className="css-1pc4igl-AlertRuleRow css-1qt54040"
                       >
                         Perform these actions at most once every 
                         <Select2Field
@@ -1500,36 +1722,50 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                     </AlertRuleRow>
                     <ActionBar>
                       <div
-                        className="css-wq91e7-ActionBar css-svkcde2"
+                        className="css-wq91e7-ActionBar css-1qt54042"
                       >
-                        <CancelButton>
+                        <CancelButton
+                          to="/settings/org-slug/project-slug/alerts/rules/"
+                        >
                           <Button
-                            className="css-1yc33o1-CancelButton css-svkcde1"
+                            className="css-1yc33o1-CancelButton css-1qt54041"
                             disabled={false}
+                            to="/settings/org-slug/project-slug/alerts/rules/"
                           >
-                            <button
-                              className="css-1yc33o1-CancelButton css-svkcde1 button button-default"
+                            <Link
+                              className="css-1yc33o1-CancelButton css-1qt54041 button button-default"
                               disabled={false}
                               onClick={[Function]}
+                              onlyActiveOnIndex={false}
                               role="button"
+                              style={Object {}}
+                              to="/settings/org-slug/project-slug/alerts/rules/"
                             >
-                              <Flex
-                                align="center"
-                                className="button-label"
+                              <a
+                                className="css-1yc33o1-CancelButton css-1qt54041 button button-default"
+                                disabled={false}
+                                onClick={[Function]}
+                                role="button"
+                                style={Object {}}
                               >
-                                <Base
+                                <Flex
                                   align="center"
-                                  className="button-label css-5ipae5"
+                                  className="button-label"
                                 >
-                                  <div
+                                  <Base
+                                    align="center"
                                     className="button-label css-5ipae5"
-                                    is={null}
                                   >
-                                    Cancel
-                                  </div>
-                                </Base>
-                              </Flex>
-                            </button>
+                                    <div
+                                      className="button-label css-5ipae5"
+                                      is={null}
+                                    >
+                                      Cancel
+                                    </div>
+                                  </Base>
+                                </Flex>
+                              </a>
+                            </Link>
                           </Button>
                         </CancelButton>
                         <Button
