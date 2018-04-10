@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
-import {Flex} from 'grid-emotion';
+import {Box} from 'grid-emotion';
 
 import SentryTypes from '../../proptypes';
 import ApiMixin from '../../mixins/apiMixin';
@@ -197,10 +197,14 @@ const ProjectReleases = createReactClass({
         </div>
         <Panel>
           <PanelHeader>
-            <Flex flex="4">{t('Version')}</Flex>
-            <Flex flex="4" className="hidden-xs" />
-            <Flex flex="2">{t('New Issues')}</Flex>
-            <Flex flex="2">{t('Last Event')}</Flex>
+            <Box flex="1">{t('Version')}</Box>
+            <Box w={4 / 12} pl={2} className="hidden-xs" />
+            <Box w={2 / 12} pl={2}>
+              {t('New Issues')}
+            </Box>
+            <Box w={2 / 12} pl={2}>
+              {t('Last Event')}
+            </Box>
           </PanelHeader>
           <PanelBody>{this.renderStreamBody()}</PanelBody>
         </Panel>
