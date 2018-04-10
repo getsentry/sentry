@@ -124,9 +124,7 @@ class SettingsLayout extends React.Component {
         </SettingsHeader>
         <Container>
           {typeof renderNavigation === 'function' && (
-            <SidebarWrapper>
-              <StickySidebar>{renderNavigation()}</StickySidebar>
-            </SidebarWrapper>
+            <SidebarWrapper>{renderNavigation()}</SidebarWrapper>
           )}
           <Content>
             {children}
@@ -138,9 +136,4 @@ class SettingsLayout extends React.Component {
     );
   }
 }
-const StickySidebar = styled.div`
-  position: sticky;
-  top: ${p => p.theme.settings.headerHeight};
-`;
-
 export default SettingsLayout;
