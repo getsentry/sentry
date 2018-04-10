@@ -136,7 +136,7 @@ const Frame = createReactClass({
       // we want to show a litle (?) icon that on hover shows the actual filename
       if (shouldPrioritizeModuleName && data.filename) {
         title.push(
-          <Tooltip title={_.escape(data.filename)}>
+          <Tooltip title={_.escape(data.filename)} tooltipOptions={{html: true}}>
             <a className="in-at real-filename">
               <span className="icon-question" />
             </a>
@@ -206,7 +206,7 @@ const Frame = createReactClass({
 
     if (defined(data.origAbsPath)) {
       title.push(
-        <Tooltip title={this.renderOriginalSourceInfo()}>
+        <Tooltip title={this.renderOriginalSourceInfo()} tooltipOptions={{html: true}}>
           <a className="in-at original-src">
             <span className="icon-question" />
           </a>
