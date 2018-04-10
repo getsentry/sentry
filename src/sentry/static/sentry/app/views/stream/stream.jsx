@@ -657,10 +657,7 @@ const Stream = createReactClass({
   renderAwaitingEvents() {
     let org = this.getOrganization();
     let project = this.getProject();
-    let sampleIssueId = null;
-    if (this.state.groupIds.length > 0) {
-      sampleIssueId = this.state.groupIds[0];
-    }
+    let sampleIssueId = this.state.groupIds.length > 0 ? this.state.groupIds[0] : '';
     return (
       <ErrorRobot
         org={org}

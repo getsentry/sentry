@@ -12,6 +12,10 @@ const ErrorRobot = createReactClass({
   propTypes: {
     org: PropTypes.object.isRequired,
     project: PropTypes.object.isRequired,
+    // sampleIssueId can have 3 values:
+    // - empty string to indicate it doesn't exist (render "create sample event")
+    // - non-empty string to indicate it exists (render "see sample event")
+    // - null/undefined to indicate the project API should be consulted to find out
     sampleIssueId: PropTypes.string,
     gradient: PropTypes.bool,
   },
@@ -21,7 +25,8 @@ const ErrorRobot = createReactClass({
   getInitialState() {
     return {
       error: false,
-      loading: !this.props.sampleIssueId,
+      loading:
+        this.props.sampleIssueId === null || this.props.sampleIssueId === undefined,
       sampleIssueId: this.props.sampleIssueId,
     };
   },
@@ -34,7 +39,7 @@ const ErrorRobot = createReactClass({
     let {org, project} = this.props;
     let {sampleIssueId} = this.state;
 
-    if (!sampleIssueId) {
+    if (sampleIssueId === null || sampleIssueId === undefined) {
       let url = '/projects/' + org.slug + '/' + project.slug + '/issues/';
       let requestParams = {limit: 1};
       this.api.request(url, {
@@ -43,7 +48,7 @@ const ErrorRobot = createReactClass({
         success: (data, ignore, jqXHR) => {
           this.setState({
             loading: false,
-            sampleIssueId: data.length > 0 && data[0].id,
+            sampleIssueId: (data.length > 0 && data[0].id) || '',
           });
         },
         error: err => {
@@ -75,17 +80,18 @@ const ErrorRobot = createReactClass({
     let sampleLink;
 
     if (!loading && !error) {
-      sampleLink = sampleIssueId ? (
-        <p>
-          <Link to={`/${org.slug}/${project.slug}/issues/${sampleIssueId}/?sample`}>
-            {t('Or see your sample event')}
-          </Link>
-        </p>
-      ) : (
-        <p>
-          <a onClick={this.createSampleEvent}>{t('Create a sample event')}</a>
-        </p>
-      );
+      sampleLink =
+        sampleIssueId === '' ? (
+          <p>
+            <a onClick={this.createSampleEvent}>{t('Create a sample event')}</a>
+          </p>
+        ) : (
+          <p>
+            <Link to={`/${org.slug}/${project.slug}/issues/${sampleIssueId}/?sample`}>
+              {t('Or see your sample event')}
+            </Link>
+          </p>
+        );
     }
     return (
       <div
