@@ -473,7 +473,7 @@ const SearchBar = createReactClass({
     if (this.props.disabled) rootClassNames.push('disabled');
 
     return (
-      <div className={classNames(rootClassNames)} style={{zIndex: 1001}}>
+      <div className={classNames(rootClassNames)}>
         <form className="form-horizontal" ref="searchForm" onSubmit={this.onSubmit}>
           <div>
             <input
