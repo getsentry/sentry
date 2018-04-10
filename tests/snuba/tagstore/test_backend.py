@@ -12,6 +12,12 @@ import six
 from sentry.utils import snuba
 from sentry.models import GroupHash, EventUser
 from sentry.testutils import TestCase
+from sentry.tagstore.exceptions import (
+    GroupTagKeyNotFound,
+    GroupTagValueNotFound,
+    TagKeyNotFound,
+    TagValueNotFound,
+)
 from sentry.tagstore.snuba.backend import SnubaTagStorage
 
 
@@ -39,7 +45,7 @@ class TagStorage(TestCase):
             'project_id': self.proj1.id,
             'message': 'message 1',
             'platform': 'python',
-            'datetime': self.now.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+            'datetime': (self.now - timedelta(seconds=r)).strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
             'data': {
                 'received': calendar.timegm(self.now.timetuple()) - r,
                 'tags': {
@@ -58,7 +64,7 @@ class TagStorage(TestCase):
             'project_id': self.proj1.id,
             'message': 'message 2',
             'platform': 'python',
-            'datetime': self.now.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+            'datetime': (self.now - timedelta(seconds=r)).strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
             'data': {
                 'received': calendar.timegm(self.now.timetuple()) - r,
                 'tags': {
@@ -157,7 +163,6 @@ class TagStorage(TestCase):
         ) == 2
 
     def test_get_group_tag_key(self):
-        from sentry.tagstore.exceptions import GroupTagKeyNotFound
         with pytest.raises(GroupTagKeyNotFound):
             self.ts.get_group_tag_key(
                 project_id=self.proj1.id,
@@ -186,7 +191,6 @@ class TagStorage(TestCase):
         assert keys[1].times_seen == 2
 
     def test_get_group_tag_value(self):
-        from sentry.tagstore.exceptions import GroupTagValueNotFound
         with pytest.raises(GroupTagValueNotFound):
             self.ts.get_group_tag_value(
                 project_id=self.proj1.id,
@@ -217,6 +221,23 @@ class TagStorage(TestCase):
             key='foo',
             value='bar',
         ).value == 'bar'
+
+    def test_get_tag_key(self):
+        with pytest.raises(TagKeyNotFound):
+            self.ts.get_tag_key(
+                project_id=self.proj1.id,
+                environment_id=self.proj1env1.id,
+                key='notreal'
+            )
+
+    def test_get_tag_value(self):
+        with pytest.raises(TagValueNotFound):
+            self.ts.get_tag_value(
+                project_id=self.proj1.id,
+                environment_id=self.proj1env1.id,
+                key='foo',
+                value='notreal',
+            )
 
     def test_get_groups_user_counts(self):
         assert self.ts.get_groups_user_counts(

@@ -9,15 +9,21 @@ sentry.tagstore.snuba.backend
 from __future__ import absolute_import
 
 from collections import defaultdict
-from datetime import datetime, timedelta
-import pytz
+from datetime import timedelta
+from django.utils import timezone
 import six
 
 from sentry.tagstore import TagKeyStatus
 from sentry.tagstore.base import TagStorage
+from sentry.tagstore.exceptions import (
+    GroupTagKeyNotFound,
+    GroupTagValueNotFound,
+    TagKeyNotFound,
+    TagValueNotFound,
+)
 from sentry.utils import snuba
 
-SEEN_COLUMN = 'received'
+SEEN_COLUMN = 'timestamp'
 
 
 class ObjectWrapper(object):
@@ -31,26 +37,30 @@ class SnubaTagStorage(TagStorage):
         """
         Returns the default (start, end) time range for querrying snuba.
         """
-        end = datetime.utcnow().replace(tzinfo=pytz.UTC)
+        # TODO this should use the per-project retention figure to limit
+        # the query to looking at only the retention window for the project.
+        end = timezone.now()
         return (end - timedelta(days=days), end)
 
-    # Tag keys and values
     def get_tag_key(self, project_id, environment_id, key, status=TagKeyStatus.VISIBLE):
-        # TODO is status applicable?
-        return self.get_group_tag_key(project_id, None, environment_id, key)
+        try:
+            return self.get_group_tag_key(project_id, None, environment_id, key)
+        except GroupTagKeyNotFound:
+            raise TagKeyNotFound
 
     def get_tag_keys(self, project_id, environment_id, status=TagKeyStatus.VISIBLE):
-        # TODO why is there no limit?
         return self.get_group_tag_keys(project_id, None, environment_id)
 
     def get_tag_value(self, project_id, environment_id, key, value):
-        return self.get_group_tag_value(project_id, None, environment_id, key, value)
+        try:
+            return self.get_group_tag_value(project_id, None, environment_id, key, value)
+        except GroupTagValueNotFound:
+            raise TagValueNotFound
 
     def get_tag_values(self, project_id, environment_id, key):
         return self.get_group_tag_values(project_id, None, environment_id, key)
 
     def get_group_tag_key(self, project_id, group_id, environment_id, key):
-        from sentry.tagstore.exceptions import GroupTagKeyNotFound
         start, end = self.get_time_range()
         tag = 'tags[{}]'.format(key)
         filters = {
@@ -72,8 +82,7 @@ class SnubaTagStorage(TagStorage):
                 'group_id': group_id,
             })
 
-    def get_group_tag_keys(self, project_id, group_id, environment_id, limit=None):
-        limit = limit or 1000
+    def get_group_tag_keys(self, project_id, group_id, environment_id, limit=1000):
         start, end = self.get_time_range()
         filters = {
             'project_id': [project_id],
@@ -83,8 +92,8 @@ class SnubaTagStorage(TagStorage):
             filters['issue'] = [group_id]
         aggregations = [['count', '', 'count']]
 
-        result = snuba.query(start, end, ['tags.key'], [], filters,
-                             aggregations, limit=limit, orderby='-count', arrayjoin='tags')
+        result = snuba.query(start, end, ['tags.key'], [], filters, aggregations,
+                             limit=limit, orderby='-count', arrayjoin='tags')
 
         return [ObjectWrapper({
             'times_seen': count,
@@ -237,14 +246,9 @@ class SnubaTagStorage(TagStorage):
                 'name': tagstore.get_tag_value_label(key, val),
                 'key': tagstore.get_standardized_key(key),
                 'value': val,
-                # TODO we don't know any of these without more queries
-                'count': 0,
-                'lastSeen': 0,
-                'firstSeen': 0,
             } for val in res['top']],
         } for key, res in six.iteritems(results)]
 
-    # Releases
     def get_release(self, project_id, group_id, first=True):
         start, end = self.get_time_range()
         filters = {
