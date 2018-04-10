@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import LazyLoad from '../../../../components/lazyLoad';
-import OrganizationSettingsView from '../../../organizationSettingsView';
+import AsyncView from '../../../asyncView';
 import SentryTypes from '../../../../proptypes';
 
 const EVENT_TYPES = [
@@ -40,7 +40,7 @@ const EVENT_TYPES = [
   'api-key.remove',
 ].sort();
 
-class AuditLogView extends OrganizationSettingsView {
+class AuditLogView extends AsyncView {
   static propTypes = {
     routes: PropTypes.array,
   };

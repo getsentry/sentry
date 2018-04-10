@@ -3,11 +3,11 @@ import React from 'react';
 
 import {Client} from '../../../../api';
 import LazyLoad from '../../../../components/lazyLoad';
-import OrganizationSettingsView from '../../../organizationSettingsView';
+import AsyncView from '../../../asyncView';
 import SentryTypes from '../../../../proptypes';
 import recreateRoute from '../../../../utils/recreateRoute';
 
-class OrganizationApiKeysView extends OrganizationSettingsView {
+class OrganizationApiKeysView extends AsyncView {
   static contextTypes = {
     organization: SentryTypes.Organization,
   };

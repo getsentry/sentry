@@ -9,10 +9,10 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
   }
 >
   <SideEffect(DocumentTitle)
-    title="Organization Name Projects"
+    title="Organization Name Projects - Sentry"
   >
     <DocumentTitle
-      title="Organization Name Projects"
+      title="Organization Name Projects - Sentry"
     >
       <div>
         <SettingsPageHeading
