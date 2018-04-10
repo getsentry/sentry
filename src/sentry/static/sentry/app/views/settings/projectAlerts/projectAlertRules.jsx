@@ -13,14 +13,13 @@ import {
 } from '../../../actionCreators/indicator';
 import {t, tct} from '../../../locale';
 import ApiMixin from '../../../mixins/apiMixin';
+import AsyncView from '../../asyncView';
 import Button from '../../../components/buttons/button';
 import Confirm from '../../../components/confirm';
 import Duration from '../../../components/duration';
 import EmptyStateWarning from '../../../components/emptyStateWarning';
 import EnvironmentStore from '../../../stores/environmentStore';
 import ListLink from '../../../components/listLink';
-import LoadingError from '../../../components/loadingError';
-import LoadingIndicator from '../../../components/loadingIndicator';
 import SettingsPageHeader from '../components/settingsPageHeader';
 import recreateRoute from '../../../utils/recreateRoute';
 
@@ -173,68 +172,21 @@ const RuleRow = createReactClass({
   },
 });
 
-const ProjectAlertRules = createReactClass({
-  displayName: 'ProjectAlertRules',
-  propTypes: {
+class ProjectAlertRules extends AsyncView {
+  static propTypes = {
     routes: PropTypes.array.isRequired,
-  },
-  mixins: [ApiMixin],
+  };
 
-  getInitialState() {
-    return {
-      loading: true,
-      error: false,
-      ruleList: [],
-    };
-  },
-
-  componentDidMount() {
-    this.fetchData();
-  },
-
-  fetchData() {
+  getEndpoints() {
     let {orgId, projectId} = this.props.params;
-    this.api.request(`/projects/${orgId}/${projectId}/rules/`, {
-      success: data => {
-        this.setState({
-          error: false,
-          loading: false,
-          ruleList: data,
-        });
-      },
-      error: () => {
-        this.setState({
-          error: true,
-          loading: false,
-        });
-      },
-    });
-  },
+    return [['ruleList', `/projects/${orgId}/${projectId}/rules/`]];
+  }
 
-  onDeleteRule(rule) {
+  handleDeleteRule = rule => {
     this.setState({
       ruleList: this.state.ruleList.filter(r => r.id !== rule.id),
     });
-  },
-
-  renderBody() {
-    let body;
-
-    if (this.state.loading) body = this.renderLoading();
-    else if (this.state.error) body = <LoadingError onRetry={this.fetchData} />;
-    else if (this.state.ruleList.length) body = this.renderResults();
-    else body = this.renderEmpty();
-
-    return body;
-  },
-
-  renderLoading() {
-    return (
-      <div className="box">
-        <LoadingIndicator />
-      </div>
-    );
-  },
+  };
 
   renderEmpty() {
     return (
@@ -244,7 +196,7 @@ const ProjectAlertRules = createReactClass({
         </EmptyStateWarning>
       </Panel>
     );
-  },
+  }
 
   renderResults() {
     let {orgId, projectId} = this.props.params;
@@ -259,15 +211,17 @@ const ProjectAlertRules = createReactClass({
               projectId={projectId}
               params={this.props.params}
               routes={this.props.routes}
-              onDelete={this.onDeleteRule.bind(this, rule)}
+              onDelete={this.handleDeleteRule.bind(this, rule)}
             />
           );
         })}
       </div>
     );
-  },
+  }
 
-  render() {
+  renderBody() {
+    let {ruleList} = this.state;
+
     return (
       <React.Fragment>
         <SettingsPageHeader
@@ -291,10 +245,11 @@ const ProjectAlertRules = createReactClass({
             </ul>
           }
         />
-        {this.renderBody()}
+        {!!ruleList.length && this.renderResults()}
+        {!ruleList.length && this.renderEmpty()}
       </React.Fragment>
     );
-  },
-});
+  }
+}
 
 export default ProjectAlertRules;
