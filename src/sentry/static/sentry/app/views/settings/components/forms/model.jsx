@@ -286,11 +286,10 @@ class FormModel {
   @action
   updateShowReturnButtonState(id, value) {
     let isValueChanged = value !== this.initialData[id];
-    // Update field state to "show save" if save on blur is disabled for this field
     let shouldShowReturnButton = this.getDescriptor(id, 'showReturnButton');
 
-    // Only update display if changed
     if (!shouldShowReturnButton) return;
+    // Only update state if state has changed
     if (this.getFieldState(id, 'showReturnButton') === isValueChanged) return;
 
     this.setFieldState(id, 'showReturnButton', isValueChanged);
