@@ -10,14 +10,15 @@ from __future__ import absolute_import
 
 import functools
 from datetime import timedelta
+import six
 
 from django.db import router
 from django.db.models import Q
-from django.utils import timezone
+from django.utils import timezone, snuba
 
 from sentry import quotas, tagstore
 from sentry.api.paginator import DateTimePaginator, Paginator, SequencePaginator
-from sentry.search.base import SearchBackend
+from sentry.search.base import SearchBackend, ANY, EMPTY
 from sentry.search.django.constants import (
     MSSQL_ENGINES, MSSQL_SORT_CLAUSES, MYSQL_SORT_CLAUSES, ORACLE_SORT_CLAUSES, SORT_CLAUSES,
     SQLITE_SORT_CLAUSES
@@ -280,37 +281,41 @@ class DjangoSearchBackend(SearchBackend):
         else:
             retention_window_start = None
 
-        # TODO: some flag to decide (per user/project?) whether snuba should be used for search
-        snuba = False
+        use_snuba = bool(project.get_option('sentry:snuba', False))
+        if use_snuba and (tags or
+                          environment is not None or
+                          any(key in parameters for key in ('date_from', 'date_to'))):
+            # if we're in this branch then Snuba can help us filter down the eligible group ids
 
-        if snuba:
-            if tags or \
-                    environment is not None or \
-                    any(key in parameters for key in ('date_from', 'date_to')):
-                # if we're in this branch then Snuba can help us filter down the eligible group ids!
+            filters = {
+                'project_id': [project.id],
+            }
 
-                # TODO: move existing logic from `get_group_ids_for_search_filter` to filter this query on tags
-                # TODO: translate to snuba.utils.query obviously :)
-                # TODO: only pass the necessary filters ('environment', 'date_from',
-                #       'date_to' are optional)
-                # TODO: snuba's `get_group_ids_for_search_filter` and `get_event_tag_qs`
-                #       are no longer necessary
-                hashes = [
-                    """
-                    select distinct primary_hash
-                    from sentry_dist
-                    where timestamp > %(date_from)s
-                    and timestamp < %(date_to)s
-                    and environment = %(environment)s
-                    and project_id = %(project_id)s
-                    """
-                ]
+            if environment is not None:
+                filters['environment'] = [environment.name],
 
-                group_queryset = group_queryset.filter(
-                    id__in=GroupHash.objects.filter(
-                        project=project, hash__in=hashes
-                    ).value_list('group_id', flat=True).distinct()
-                )
+            conditions = []
+            for tag, val in six.iteritems(tags):
+                col = 'tags[{}]'.format(tag)
+                if val == ANY:
+                    conditions.append((col, 'IS NOT NULL', None))
+                else:
+                    conditions.append((col, '=', val))
+
+            now = timezone.now()
+            end = parameters.get('date_to') or now
+            # TODO: Presumably we want to search back to the project's full retention
+            #       but apparently `retention_window_start` can be None?
+            start = (parameters.get('date_from')
+                     or retention_window_start
+                     or (now - timedelta(days=90)))
+            hashes = snuba.query(start, end, ['primary_hash'], conditions, filters)
+
+            group_queryset = group_queryset.filter(
+                id__in=GroupHash.objects.filter(
+                    project=project, hash__in=hashes.keys()
+                ).value_list('group_id', flat=True).distinct()
+            )
 
             # The following didn't change from the else branch below, except tags is handled above
             group_queryset = QuerySetBuilder({
