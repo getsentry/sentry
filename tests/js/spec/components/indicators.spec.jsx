@@ -1,7 +1,4 @@
 import React from 'react';
-import {ThemeProvider} from 'emotion-theming';
-import {mount} from 'enzyme';
-import theme from 'app/utils/theme';
 import Indicators from 'app/components/indicators';
 import IndicatorStore from 'app/stores/indicatorStore';
 import {
@@ -10,6 +7,7 @@ import {
   addErrorMessage,
   addMessage,
 } from 'app/actionCreators/indicator';
+import {mountWithTheme} from '../../../helpers';
 
 // Make sure we use `duration: null` to test add/remove
 jest.useFakeTimers();
@@ -17,11 +15,7 @@ jest.useFakeTimers();
 describe('Indicators', function() {
   let wrapper;
   beforeEach(function() {
-    wrapper = mount(
-      <ThemeProvider theme={theme}>
-        <Indicators />
-      </ThemeProvider>
-    );
+    wrapper = mountWithTheme(<Indicators />);
 
     clearIndicators();
     jest.runAllTimers();

@@ -1,10 +1,8 @@
 import React from 'react';
-import {mount} from 'enzyme';
 
 import {Client} from 'app/api';
-import {ThemeProvider} from 'emotion-theming';
-import theme from 'app/utils/theme';
 import OrganizationRateLimits from 'app/views/settings/organization/rateLimit/rateLimitView';
+import {mountWithTheme} from '../../../helpers';
 
 const ENDPOINT = '/organizations/org-slug/';
 
@@ -18,9 +16,7 @@ describe('Organization Rate Limits', function() {
   };
 
   const creator = props => (
-    <ThemeProvider theme={theme}>
-      <OrganizationRateLimits organization={organization} {...props} />
-    </ThemeProvider>
+    <OrganizationRateLimits organization={organization} {...props} />
   );
 
   beforeEach(function() {
@@ -28,7 +24,7 @@ describe('Organization Rate Limits', function() {
   });
 
   it('renders with initialData', function() {
-    let wrapper = mount(creator(), TestStubs.routerContext());
+    let wrapper = mountWithTheme(creator(), TestStubs.routerContext());
 
     expect(
       wrapper
@@ -52,7 +48,7 @@ describe('Organization Rate Limits', function() {
         maxRateInterval: 60,
       },
     };
-    let wrapper = mount(creator({organization: org}), TestStubs.routerContext());
+    let wrapper = mountWithTheme(creator({organization: org}), TestStubs.routerContext());
 
     expect(wrapper.find('RangeSlider')).toHaveLength(1);
 
@@ -66,7 +62,7 @@ describe('Organization Rate Limits', function() {
       statusCode: 200,
     });
 
-    let wrapper = mount(creator(), TestStubs.routerContext());
+    let wrapper = mountWithTheme(creator(), TestStubs.routerContext());
 
     expect(mock).not.toHaveBeenCalled();
 
@@ -96,7 +92,7 @@ describe('Organization Rate Limits', function() {
       statusCode: 200,
     });
 
-    let wrapper = mount(creator(), TestStubs.routerContext());
+    let wrapper = mountWithTheme(creator(), TestStubs.routerContext());
 
     expect(mock).not.toHaveBeenCalled();
 
