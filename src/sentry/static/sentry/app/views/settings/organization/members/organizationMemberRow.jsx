@@ -5,24 +5,34 @@ import styled from 'react-emotion';
 
 import {PanelItem} from '../../../../components/panels';
 import {t, tct} from '../../../../locale';
+import Avatar from '../../../../components/avatar';
 import Button from '../../../../components/buttons/button';
-import UserBadge from '../../../../components/userBadge';
 import Confirm from '../../../../components/confirm';
 import InlineSvg from '../../../../components/inlineSvg';
+import Link from '../../../../components/link';
 import LoadingIndicator from '../../../../components/loadingIndicator';
 import SentryTypes from '../../../../proptypes';
 import Tooltip from '../../../../components/tooltip';
-import space from '../../../../styles/space';
+import recreateRoute from '../../../../utils/recreateRoute';
+
+const UserName = styled(Link)`
+  font-size: 16px;
+`;
+
+const Email = styled.div`
+  color: ${p => p.theme.gray3};
+  font-size: 14px;
+`;
 
 export default class OrganizationMemberRow extends React.PureComponent {
   static propTypes = {
+    routes: PropTypes.array,
     // XXX: Spreading this does not work :(
     member: SentryTypes.Member,
     onRemove: PropTypes.func.isRequired,
     onLeave: PropTypes.func.isRequired,
     onSendInvite: PropTypes.func.isRequired,
     orgName: PropTypes.string.isRequired,
-    orgId: PropTypes.string,
     memberCanLeave: PropTypes.bool,
     requireLink: PropTypes.bool,
     canRemoveMembers: PropTypes.bool,
@@ -64,9 +74,10 @@ export default class OrganizationMemberRow extends React.PureComponent {
 
   render() {
     let {
+      params,
+      routes,
       member,
       orgName,
-      orgId,
       status,
       requireLink,
       memberCanLeave,
@@ -75,7 +86,7 @@ export default class OrganizationMemberRow extends React.PureComponent {
       canAddMembers,
     } = this.props;
 
-    let {flags, email, name, roleName, pending, user} = member;
+    let {id, flags, email, name, roleName, pending, user} = member;
 
     // if member is not the only owner, they can leave
     let needsSso = !flags['sso:linked'] && requireLink;
@@ -86,12 +97,22 @@ export default class OrganizationMemberRow extends React.PureComponent {
     // member has a `user` property if they are registered with sentry
     // i.e. has accepted an invite to join org
     let has2fa = user && user.has2fa;
+    let detailsUrl = recreateRoute(id, {routes, params});
     let isInviteSuccessful = status === 'success';
     let isInviting = status === 'loading';
 
     return (
       <PanelItem align="center" p={0} py={2}>
-        <StyledUserBadge avatarSize={36} user={user} orgId={orgId} />
+        <Box pl={2}>
+          <Avatar size={32} user={user ? user : {email}} />
+        </Box>
+
+        <Box pl={1} pr={2} flex="1">
+          <h5 style={{margin: '0 0 3px'}}>
+            <UserName to={detailsUrl}>{name}</UserName>
+          </h5>
+          <Email>{email}</Email>
+        </Box>
 
         <Box px={2} w={180}>
           {needsSso || pending ? (
@@ -222,7 +243,6 @@ const NoTwoFactorIcon = styled(props => (
   color: ${p => p.theme.error};
   font-size: 18px;
 `;
-
 const HasTwoFactorIcon = styled(props => (
   <InlineSvg {...props} src="icon-circle-check" />
 ))`
@@ -233,9 +253,4 @@ const HasTwoFactorIcon = styled(props => (
 const ResendInviteButton = styled(Button)`
   padding: 0 4px;
   margin-top: 2px;
-`;
-
-const StyledUserBadge = styled(UserBadge)`
-  padding: 0 ${space(2)};
-  flex-grow: 1;
 `;
