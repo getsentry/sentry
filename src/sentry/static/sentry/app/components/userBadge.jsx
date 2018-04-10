@@ -15,15 +15,13 @@ const UserBadge = ({
   useLink,
   ...props
 }) => {
-  const LinkOrText = useLink
-    ? props => <StyledLink to={`/settings/${orgId}/members/${user.id}`} {...props} />
-    : 'div';
-
   return (
     <StyledUserBadge {...props}>
       <StyledAvatar user={user} size={avatarSize} />
       <StyledNameAndEmail>
-        <LinkOrText>{displayName || user.name || user.email}</LinkOrText>
+        <StyledName useLink={useLink} to={`/settings/${orgId}/members/${user.id}`}>
+          {displayName || user.name || user.email}
+        </StyledName>
         <StyledEmail>{displayEmail || user.email}</StyledEmail>
       </StyledNameAndEmail>
     </StyledUserBadge>
@@ -61,7 +59,9 @@ const StyledEmail = styled('div')`
   ${overflowEllipsis};
 `;
 
-const StyledLink = styled(Link)`
+const StyledName = styled(
+  ({useLink, ...props}) => (useLink ? <Link {...props} /> : <span {...props} />)
+)`
   font-weight: bold;
   margin-bottom: ${space(0.5)};
   ${overflowEllipsis};
