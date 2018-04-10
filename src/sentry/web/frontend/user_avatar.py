@@ -8,9 +8,6 @@ from sentry.web.frontend.generic import FOREVER_CACHE
 
 
 class UserAvatarPhotoView(View):
-    def get_file_name(self, user):
-        return '%s.png' % user.id
-
     def get(self, request, *args, **kwargs):
         avatar_id = kwargs['avatar_id']
         try:
