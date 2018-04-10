@@ -1,8 +1,8 @@
 import React from 'react';
-import {shallow, mount} from 'enzyme';
+import {shallow} from 'enzyme';
 
 import OrganizationAccessRequests from 'app/views/settings/organization/members/organizationAccessRequests';
-import {ThemeProvider} from 'emotion-theming';
+import {mountWithTheme} from '../../../helpers';
 
 describe('OrganizationAccessRequests', function() {
   beforeEach(function() {});
@@ -48,31 +48,29 @@ describe('OrganizationAccessRequests', function() {
 
   it('can approve', function() {
     let mock = jest.fn();
-    let wrapper = mount(
-      <ThemeProvider theme={{}}>
-        <OrganizationAccessRequests
-          params={{apiKey: 1, orgId: 'org-slug'}}
-          accessRequestBusy={new Map()}
-          requestList={[
-            {
-              id: 'id',
-              member: {
-                id: 'memberid',
-                email: '',
-                name: '',
-                roleName: '',
-                user: {
-                  id: '',
-                  name: 'sentry@test.com',
-                },
+    let wrapper = mountWithTheme(
+      <OrganizationAccessRequests
+        params={{apiKey: 1, orgId: 'org-slug'}}
+        accessRequestBusy={new Map()}
+        requestList={[
+          {
+            id: 'id',
+            member: {
+              id: 'memberid',
+              email: '',
+              name: '',
+              roleName: '',
+              user: {
+                id: '',
+                name: 'sentry@test.com',
               },
-              team: TestStubs.Team(),
             },
-          ]}
-          onApprove={mock}
-          onDeny={() => {}}
-        />
-      </ThemeProvider>
+            team: TestStubs.Team(),
+          },
+        ]}
+        onApprove={mock}
+        onDeny={() => {}}
+      />
     );
 
     wrapper
@@ -84,31 +82,29 @@ describe('OrganizationAccessRequests', function() {
 
   it('can deny', function() {
     let mock = jest.fn();
-    let wrapper = mount(
-      <ThemeProvider theme={{}}>
-        <OrganizationAccessRequests
-          params={{apiKey: 1, orgId: 'org-slug'}}
-          accessRequestBusy={new Map()}
-          requestList={[
-            {
-              id: 'id',
-              member: {
-                id: 'memberid',
-                email: '',
-                name: '',
-                roleName: '',
-                user: {
-                  id: '',
-                  name: 'sentry@test.com',
-                },
+    let wrapper = mountWithTheme(
+      <OrganizationAccessRequests
+        params={{apiKey: 1, orgId: 'org-slug'}}
+        accessRequestBusy={new Map()}
+        requestList={[
+          {
+            id: 'id',
+            member: {
+              id: 'memberid',
+              email: '',
+              name: '',
+              roleName: '',
+              user: {
+                id: '',
+                name: 'sentry@test.com',
               },
-              team: TestStubs.Team(),
             },
-          ]}
-          onApprove={() => {}}
-          onDeny={mock}
-        />
-      </ThemeProvider>
+            team: TestStubs.Team(),
+          },
+        ]}
+        onApprove={() => {}}
+        onDeny={mock}
+      />
     );
 
     wrapper
