@@ -845,13 +845,13 @@ table.integrations {
 
   .switch-toggle {
     top: 2px;
-    left: 2px;
+    transform: translate(2px, 0);
     .square(@switch-sm-height - 6); // (3*2) Room for border and padding on top and bottom
   }
 
   &.switch-on {
     .switch-toggle {
-      left: @switch-sm-height + 2;
+      transform: translate(@switch-sm-height + 2, 0);
     }
   }
 }
@@ -865,13 +865,13 @@ table.integrations {
 
   .switch-toggle {
     top: 4px;
-    left: 4px;
+    transform: translate(4px, 0);
     .square(@switch-lg-height - 10); // (10*2) Room for border and padding on top and bottom
   }
 
   &.switch-on {
     .switch-toggle {
-      left: @switch-lg-height + 4;
+      transform: translate(@switch-lg-height + 4, 0);
     }
   }
 }
