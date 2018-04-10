@@ -4,26 +4,25 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
-import {t, tct} from '../locale';
-import ApiMixin from '../mixins/apiMixin';
-import Button from '../components/buttons/button';
-import Confirm from '../components/confirm';
-import Duration from '../components/duration';
+import {Panel, PanelBody, PanelHeader} from '../../../components/panels';
 import {
   addSuccessMessage,
   addErrorMessage,
   addLoadingMessage,
   removeIndicator,
-} from '../actionCreators/indicator';
-
-import ListLink from '../components/listLink';
-import LoadingError from '../components/loadingError';
-import LoadingIndicator from '../components/loadingIndicator';
-import {Panel, PanelBody, PanelHeader} from '../components/panels';
-import EmptyStateWarning from '../components/emptyStateWarning';
-import SettingsPageHeader from './settings/components/settingsPageHeader';
-import recreateRoute from '../utils/recreateRoute';
-import EnvironmentStore from '../stores/environmentStore';
+} from '../../../actionCreators/indicator';
+import {t, tct} from '../../../locale';
+import ApiMixin from '../../../mixins/apiMixin';
+import Button from '../../../components/buttons/button';
+import Confirm from '../../../components/confirm';
+import Duration from '../../../components/duration';
+import EmptyStateWarning from '../../../components/emptyStateWarning';
+import EnvironmentStore from '../../../stores/environmentStore';
+import ListLink from '../../../components/listLink';
+import LoadingError from '../../../components/loadingError';
+import LoadingIndicator from '../../../components/loadingIndicator';
+import SettingsPageHeader from '../components/settingsPageHeader';
+import recreateRoute from '../../../utils/recreateRoute';
 
 const TextColorLink = styled(Link)`
   color: ${p => p.theme.gray3};
@@ -270,7 +269,7 @@ const ProjectAlertRules = createReactClass({
 
   render() {
     return (
-      <div>
+      <React.Fragment>
         <SettingsPageHeader
           title={t('Alerts')}
           action={
@@ -285,19 +284,15 @@ const ProjectAlertRules = createReactClass({
           }
           tabs={
             <ul className="nav nav-tabs" style={{borderBottom: '1px solid #ddd'}}>
-              <ListLink
-                to={recreateRoute('alerts/', {...this.props, stepBack: -1})}
-                index={true}
-              >
+              <ListLink to={recreateRoute('alerts', {...this.props, stepBack: -4})}>
                 {t('Settings')}
               </ListLink>
               <ListLink to={recreateRoute('', this.props)}>{t('Rules')}</ListLink>
             </ul>
           }
         />
-
         {this.renderBody()}
-      </div>
+      </React.Fragment>
     );
   },
 });

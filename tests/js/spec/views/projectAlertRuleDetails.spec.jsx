@@ -2,10 +2,11 @@ import React from 'react';
 import {mount} from 'enzyme';
 import {browserHistory} from 'react-router';
 
-import ProjectAlertRuleDetails from 'app/views/projectAlertRuleDetails';
+import ProjectAlertRuleDetails from 'app/views/settings/projectAlerts/projectAlertRuleDetails';
 import EnvironmentStore from 'app/stores/environmentStore';
 
 jest.mock('jquery');
+jest.mock('app/utils/recreateRoute');
 
 describe('ProjectAlertRuleDetails', function() {
   beforeEach(function() {

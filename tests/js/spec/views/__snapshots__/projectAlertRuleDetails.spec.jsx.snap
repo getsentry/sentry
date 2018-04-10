@@ -162,7 +162,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                     <hr />
                     <AlertRuleRow>
                       <h6
-                        className="css-1pc4igl-AlertRuleRow css-70hiur0"
+                        className="css-1pc4igl-AlertRuleRow css-svkcde0"
                       >
                         Every time 
                         <Select2Field
@@ -280,7 +280,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                       >
                         <RuleNodes>
                           <div
-                            className="css-wlwbnk-RuleNodes css-mr9tnj0"
+                            className="css-wlwbnk-RuleNodes css-e8p6eg0"
                           >
                             <RuleNode
                               data={
@@ -302,11 +302,11 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                             >
                               <RuleNodeRow>
                                 <div
-                                  className="css-1poe0fr-RuleNodeRow css-i92rqo0"
+                                  className="css-1poe0fr-RuleNodeRow css-1f92yv60"
                                 >
                                   <RuleNodeForm>
                                     <div
-                                      className="css-7h5qyd-RuleNodeForm css-i92rqo1"
+                                      className="css-7h5qyd-RuleNodeForm css-1f92yv61"
                                     >
                                       <input
                                         name="id"
@@ -318,7 +318,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                   </RuleNodeForm>
                                   <RuleNodeControls>
                                     <div
-                                      className="css-1d10zz4-RuleNodeControls css-i92rqo2"
+                                      className="css-1d10zz4-RuleNodeControls css-1f92yv62"
                                     >
                                       <Button
                                         disabled={false}
@@ -520,7 +520,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                       <div>
                         <RuleNodes>
                           <div
-                            className="css-wlwbnk-RuleNodes css-mr9tnj0"
+                            className="css-wlwbnk-RuleNodes css-e8p6eg0"
                           >
                             <RuleNode
                               data={
@@ -542,11 +542,11 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                             >
                               <RuleNodeRow>
                                 <div
-                                  className="css-1poe0fr-RuleNodeRow css-i92rqo0"
+                                  className="css-1poe0fr-RuleNodeRow css-1f92yv60"
                                 >
                                   <RuleNodeForm>
                                     <div
-                                      className="css-7h5qyd-RuleNodeForm css-i92rqo1"
+                                      className="css-7h5qyd-RuleNodeForm css-1f92yv61"
                                     >
                                       <input
                                         name="id"
@@ -558,7 +558,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                   </RuleNodeForm>
                                   <RuleNodeControls>
                                     <div
-                                      className="css-1d10zz4-RuleNodeControls css-i92rqo2"
+                                      className="css-1d10zz4-RuleNodeControls css-1f92yv62"
                                     >
                                       <Button
                                         disabled={false}
@@ -647,7 +647,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                     <hr />
                     <AlertRuleRow>
                       <h6
-                        className="css-1pc4igl-AlertRuleRow css-70hiur0"
+                        className="css-1pc4igl-AlertRuleRow css-svkcde0"
                       >
                         Perform these actions at most once every 
                         <Select2Field
@@ -797,38 +797,70 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                          for an issue.
                       </h6>
                     </AlertRuleRow>
-                    <div
-                      className="actions"
-                    >
-                      <Button
-                        disabled={false}
-                        priority="primary"
+                    <ActionBar>
+                      <div
+                        className="css-wq91e7-ActionBar css-svkcde2"
                       >
-                        <button
-                          className="button button-primary"
-                          disabled={false}
-                          onClick={[Function]}
-                          role="button"
-                        >
-                          <Flex
-                            align="center"
-                            className="button-label"
+                        <CancelButton>
+                          <Button
+                            className="css-1yc33o1-CancelButton css-svkcde1"
+                            disabled={false}
                           >
-                            <Base
-                              align="center"
-                              className="button-label css-5ipae5"
+                            <button
+                              className="css-1yc33o1-CancelButton css-svkcde1 button button-default"
+                              disabled={false}
+                              onClick={[Function]}
+                              role="button"
                             >
-                              <div
-                                className="button-label css-5ipae5"
-                                is={null}
+                              <Flex
+                                align="center"
+                                className="button-label"
                               >
-                                Save Rule
-                              </div>
-                            </Base>
-                          </Flex>
-                        </button>
-                      </Button>
-                    </div>
+                                <Base
+                                  align="center"
+                                  className="button-label css-5ipae5"
+                                >
+                                  <div
+                                    className="button-label css-5ipae5"
+                                    is={null}
+                                  >
+                                    Cancel
+                                  </div>
+                                </Base>
+                              </Flex>
+                            </button>
+                          </Button>
+                        </CancelButton>
+                        <Button
+                          disabled={false}
+                          priority="primary"
+                        >
+                          <button
+                            className="button button-primary"
+                            disabled={false}
+                            onClick={[Function]}
+                            role="button"
+                          >
+                            <Flex
+                              align="center"
+                              className="button-label"
+                            >
+                              <Base
+                                align="center"
+                                className="button-label css-5ipae5"
+                              >
+                                <div
+                                  className="button-label css-5ipae5"
+                                  is={null}
+                                >
+                                  Save Rule
+                                </div>
+                              </Base>
+                            </Flex>
+                          </button>
+                        </Button>
+                      </div>
+                    </ActionBar>
                   </div>
                 </PanelBody>
               </div>
@@ -1001,7 +1033,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                     <hr />
                     <AlertRuleRow>
                       <h6
-                        className="css-1pc4igl-AlertRuleRow css-70hiur0"
+                        className="css-1pc4igl-AlertRuleRow css-svkcde0"
                       >
                         Every time 
                         <Select2Field
@@ -1113,7 +1145,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                       >
                         <RuleNodes>
                           <div
-                            className="css-wlwbnk-RuleNodes css-mr9tnj0"
+                            className="css-wlwbnk-RuleNodes css-e8p6eg0"
                           />
                         </RuleNodes>
                         <fieldset>
@@ -1267,7 +1299,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                       <div>
                         <RuleNodes>
                           <div
-                            className="css-wlwbnk-RuleNodes css-mr9tnj0"
+                            className="css-wlwbnk-RuleNodes css-e8p6eg0"
                           />
                         </RuleNodes>
                         <fieldset>
@@ -1315,7 +1347,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                     <hr />
                     <AlertRuleRow>
                       <h6
-                        className="css-1pc4igl-AlertRuleRow css-70hiur0"
+                        className="css-1pc4igl-AlertRuleRow css-svkcde0"
                       >
                         Perform these actions at most once every 
                         <Select2Field
@@ -1466,38 +1498,70 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                          for an issue.
                       </h6>
                     </AlertRuleRow>
-                    <div
-                      className="actions"
-                    >
-                      <Button
-                        disabled={false}
-                        priority="primary"
+                    <ActionBar>
+                      <div
+                        className="css-wq91e7-ActionBar css-svkcde2"
                       >
-                        <button
-                          className="button button-primary"
-                          disabled={false}
-                          onClick={[Function]}
-                          role="button"
-                        >
-                          <Flex
-                            align="center"
-                            className="button-label"
+                        <CancelButton>
+                          <Button
+                            className="css-1yc33o1-CancelButton css-svkcde1"
+                            disabled={false}
                           >
-                            <Base
-                              align="center"
-                              className="button-label css-5ipae5"
+                            <button
+                              className="css-1yc33o1-CancelButton css-svkcde1 button button-default"
+                              disabled={false}
+                              onClick={[Function]}
+                              role="button"
                             >
-                              <div
-                                className="button-label css-5ipae5"
-                                is={null}
+                              <Flex
+                                align="center"
+                                className="button-label"
                               >
-                                Save Rule
-                              </div>
-                            </Base>
-                          </Flex>
-                        </button>
-                      </Button>
-                    </div>
+                                <Base
+                                  align="center"
+                                  className="button-label css-5ipae5"
+                                >
+                                  <div
+                                    className="button-label css-5ipae5"
+                                    is={null}
+                                  >
+                                    Cancel
+                                  </div>
+                                </Base>
+                              </Flex>
+                            </button>
+                          </Button>
+                        </CancelButton>
+                        <Button
+                          disabled={false}
+                          priority="primary"
+                        >
+                          <button
+                            className="button button-primary"
+                            disabled={false}
+                            onClick={[Function]}
+                            role="button"
+                          >
+                            <Flex
+                              align="center"
+                              className="button-label"
+                            >
+                              <Base
+                                align="center"
+                                className="button-label css-5ipae5"
+                              >
+                                <div
+                                  className="button-label css-5ipae5"
+                                  is={null}
+                                >
+                                  Save Rule
+                                </div>
+                              </Base>
+                            </Flex>
+                          </button>
+                        </Button>
+                      </div>
+                    </ActionBar>
                   </div>
                 </PanelBody>
               </div>

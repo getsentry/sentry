@@ -5,20 +5,22 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
-import {Select2Field, TextField} from '../../components/forms';
-import Button from '../../components/buttons/button';
+import {ALL_ENVIRONMENTS_KEY} from '../../../../constants';
+import {Panel, PanelBody, PanelHeader} from '../../../../components/panels';
+import {Select2Field, TextField} from '../../../../components/forms';
 import {
   addErrorMessage,
   addSuccessMessage,
   addMessage,
-} from '../../actionCreators/indicator';
-import {t} from '../../locale';
-import ApiMixin from '../../mixins/apiMixin';
-import EnvironmentStore from '../../stores/environmentStore';
-import LoadingIndicator from '../../components/loadingIndicator';
-import {Panel, PanelBody, PanelHeader} from '../../components/panels';
+} from '../../../../actionCreators/indicator';
+import {t} from '../../../../locale';
+import ApiMixin from '../../../../mixins/apiMixin';
+import Button from '../../../../components/buttons/button';
+import EnvironmentStore from '../../../../stores/environmentStore';
+import LoadingIndicator from '../../../../components/loadingIndicator';
 import RuleNodeList from './ruleNodeList';
-import {ALL_ENVIRONMENTS_KEY} from '../../constants';
+import recreateRoute from '../../../../utils/recreateRoute';
+import space from '../../../../styles/space';
 
 const FREQUENCY_CHOICES = [
   ['5', t('5 minutes')],
@@ -305,11 +307,14 @@ const RuleEditor = createReactClass({
               )}
             </AlertRuleRow>
 
-            <div className="actions">
+            <ActionBar>
+              <CancelButton to={recreateRoute('', {...this.props, stepBack: -1})}>
+                {t('Cancel')}
+              </CancelButton>
               <Button priority="primary" disabled={loading}>
                 {t('Save Rule')}
               </Button>
-            </div>
+            </ActionBar>
           </PanelBody>
         </Panel>
       </form>
@@ -318,3 +323,15 @@ const RuleEditor = createReactClass({
 });
 
 export default RuleEditor;
+
+const CancelButton = styled(Button)`
+  margin-right: ${space(1)};
+`;
+
+const ActionBar = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  padding: ${space(2)};
+  border-top: 1px solid ${p => p.theme.borderLight};
+  margin: 0 -20px -20px;
+`;

@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import SelectInput from '../../components/selectInput';
+import SelectInput from '../../../../components/selectInput';
 import RuleNode from './ruleNode';
 
 class RuleNodeList extends React.Component {

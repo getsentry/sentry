@@ -1,7 +1,7 @@
 import React from 'react';
 
-import SentryTypes from '../proptypes';
-import AsyncView from './asyncView';
+import SentryTypes from '../../../proptypes';
+import AsyncView from '../../asyncView';
 import RuleEditor from './ruleEditor';
 
 class ProjectAlertRuleDetails extends AsyncView {
@@ -27,6 +27,7 @@ class ProjectAlertRuleDetails extends AsyncView {
         actions={actions}
         conditions={conditions}
         params={this.props.params}
+        routes={this.props.routes}
       />
     );
   }
