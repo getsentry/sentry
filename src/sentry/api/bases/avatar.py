@@ -47,6 +47,9 @@ class AvatarMixin(object):
             'kwargs': {self.object_type: obj},
         }
 
+    def get_avatar_filename(self, obj):
+        return '{}.png'.format(obj.id)
+
     def put(self, request, **kwargs):
         obj = kwargs[self.object_type]
         serializer = AvatarSerializer(
@@ -62,7 +65,7 @@ class AvatarMixin(object):
             relation={self.object_type: obj},
             type=result['avatar_type'],
             avatar=result.get('avatar_photo'),
-            filename='{}.png'.format(obj.id),
+            filename=self.get_avatar_filename(obj),
         )
 
         return Response(serialize(obj, request.user))
