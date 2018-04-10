@@ -78,9 +78,8 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                     }, status=400
                 )
         else:
-            team_list = list(request.access.teams)
             queryset = Project.objects.filter(
-                teams__in=team_list,
+                organization=organization,
             ).prefetch_related('teams')
 
         query = request.GET.get('query')
