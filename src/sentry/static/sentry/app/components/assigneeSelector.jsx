@@ -122,7 +122,7 @@ const AssigneeSelector = createReactClass({
     return AssigneeSelector.filterAssignees(
       (ProjectsStore.getAll().find(p => p.slug == group.project.slug) || {
         teams: [],
-      }).teams.sort((a, b) => a.slug > b.slug),
+      }).teams.sort((a, b) => a.slug.localeCompare(b.slug)),
       this.state.filter
     ).map(team => ({
       id: buildTeamId(team.id),
