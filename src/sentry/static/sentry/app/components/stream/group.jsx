@@ -88,17 +88,17 @@ const StreamGroup = createReactClass({
 
   render() {
     const {data} = this.state;
-    const {id, orgId, projectId, query, hasGuideAnchor} = this.props;
+    const {id, orgId, projectId, query, hasGuideAnchor, canSelect} = this.props;
 
     return (
       <Group onClick={this.toggleSelect} py={1} px={0} align="center">
-        {this.props.canSelect && (
+        {canSelect && (
           <GroupCheckbox ml={2}>
             {hasGuideAnchor && <GuideAnchor target="issues" type="text" />}
             <GroupCheckBox id={data.id} />
           </GroupCheckbox>
         )}
-        <GroupSummary w={[8 / 12, 8 / 12, 6 / 12]} mx={1} flex="1">
+        <GroupSummary w={[8 / 12, 8 / 12, 6 / 12]} ml={canSelect ? 1 : 2} mr={1} flex="1">
           <EventOrGroupHeader
             data={data}
             orgId={orgId}
