@@ -86,6 +86,8 @@ def build_events_by_actor(project_id, events):
         # TODO(LB): I Know this is inefficent. Just wanted to make as few changes
         # as possible for now. Can follow up with another PR
         actors, __ = ProjectOwnership.get_owners(project_id, event.data)
+        if actors == ProjectOwnership.Everyone:
+            actors = [actors]
         for actor in actors:
             if actor in events_by_actor:
                 events_by_actor[actor].add(event)
@@ -98,7 +100,18 @@ def convert_actors_to_user_set(events_by_actor, user_ids):
     """
     convert_actors_to_user_set(events_by_actor: Map[Actor:Set(Events)], user_ids: List(Int)) -> Map[User_Id:Set(Events)]
     """
+    def add_user_id(user_id, events, user_by_events):
+        if user_id in user_by_events:
+            user_by_events[user_id].update(set(events))
+        else:
+            user_by_events[user_id] = set(events)
+
     user_by_events = {}
+    if ProjectOwnership.Everyone in events_by_actor:
+        for user_id in user_ids:
+            user_by_events[user_id] = set(events_by_actor[ProjectOwnership.Everyone])
+        del events_by_actor[ProjectOwnership.Everyone]
+
     team_actors = [actor for actor in six.iterkeys(events_by_actor) if actor.type == Team]
     teams_to_user_ids = team_actors_to_user_ids(team_actors, user_ids)
     for actor, events in six.iteritems(events_by_actor):
@@ -109,12 +122,9 @@ def convert_actors_to_user_set(events_by_actor, user_ids):
                 pass  # TODO(LB) Not certain what to do if a team has no members
             else:
                 for user_id in user_ids:
-                    if user_id in user_by_events:
-                        user_by_events[user_id].update(events)
-                    else:
-                        user_by_events[user_id] = events
+                    add_user_id(user_id, events, user_by_events)
         else:
-            user_by_events[actor.id] = events
+            add_user_id(actor.id, events, user_by_events)
     return user_by_events
 
 
