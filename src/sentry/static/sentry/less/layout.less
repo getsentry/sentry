@@ -203,6 +203,10 @@ body.auth {
   .environment-selector-toggle {
     color: @gray-darkest;
     font-weight: 600;
+
+    + .dropdown-menu {
+      z-index: @zindex-sticky-bar + 2;
+    }
   }
 
   .project-select {
