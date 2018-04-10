@@ -116,11 +116,11 @@ const InviteMember = createReactClass({
     // Get path to parent route (`/organizations/${slug}/members/`)
     // `recreateRoute` fucks up because of getsentry hooks
     let {params, router} = this.props;
-    let isNewSettings = /^settings/.test(router.location.pathname);
+    let isNewSettings = /^\/settings\//.test(router.location.pathname);
     let pathToParentRoute = isNewSettings
       ? '/settings/:orgId/members/'
       : '/organizations/:orgId/members/';
-    router.history.push(replaceRouterParams(pathToParentRoute, params));
+    router.push(replaceRouterParams(pathToParentRoute, params));
   },
 
   splitEmails(text) {
@@ -176,7 +176,7 @@ const InviteMember = createReactClass({
     Promise.all(emails.map(this.inviteUser))
       .then(() => this.redirectToMemberPage())
       .catch(error => {
-        if (!error.email && !error.role) {
+        if (error && !error.email && !error.role) {
           Raven.captureMessage('Unknown invite member api response', {
             extra: {error, state: this.state},
           });
