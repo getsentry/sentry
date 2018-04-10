@@ -76,10 +76,15 @@ class ProjectCrumb extends React.Component {
           </ProjectName>
         }
         onSelect={item => {
+          let lastRoute = routes[routes.length - 1];
+          // We have to make an exception for "Project Alerts Rule Edit" route
+          // Since these models are project specific, we need to traverse up a route when switching projects
+          let stepBack = lastRoute.path === ':ruleId/' ? -1 : undefined;
           browserHistory.push(
             recreateRoute('', {
               routes,
               params: {...params, projectId: item.value},
+              stepBack,
             })
           );
         }}
