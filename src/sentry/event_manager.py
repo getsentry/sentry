@@ -200,8 +200,7 @@ def process_timestamp(value, current_datetime=None):
         try:
             value = datetime.fromtimestamp(float(value))
         except Exception:
-            raise InvalidTimestamp(
-                'Invalid value for timestamp: %r' % value)
+            raise InvalidTimestamp(EventError.INVALID_DATA)
     elif not isinstance(value, datetime):
         # all timestamps are in UTC, but the marker is optional
         if value.endswith('Z'):
@@ -217,19 +216,16 @@ def process_timestamp(value, current_datetime=None):
         try:
             value = datetime.strptime(value, fmt)
         except Exception:
-            raise InvalidTimestamp(
-                'Invalid value for timestamp: %r' % value)
+            raise InvalidTimestamp(EventError.INVALID_DATA)
 
     if current_datetime is None:
         current_datetime = datetime.now()
 
     if value > current_datetime + timedelta(minutes=1):
-        raise InvalidTimestamp(
-            'Invalid value for timestamp (in future): %r' % value)
+        raise InvalidTimestamp(EventError.FUTURE_TIMESTAMP)
 
     if value < current_datetime - timedelta(days=30):
-        raise InvalidTimestamp(
-            'Invalid value for timestamp (too old): %r' % value)
+        raise InvalidTimestamp(EventError.PAST_TIMESTAMP)
 
     return float(value.strftime('%s'))
 
@@ -350,6 +346,9 @@ class EventManager(object):
             if c in data:
                 try:
                     data[c] = casts[c](data[c])
+                except InvalidTimestamp as it:
+                    errors.append({'type': it.args[0], 'name': c, 'value': data[c]})
+                    del data[c]
                 except Exception as e:
                     errors.append({'type': EventError.INVALID_DATA, 'name': c, 'value': data[c]})
                     del data[c]
