@@ -52,11 +52,14 @@ class ProjectOwnershipModal extends AsyncComponent {
       ) ||
       idx(eventData.entries.find(({type}) => type == 'stacktrace'), _ => _.data.frames);
 
+    //filter frames by inApp unless there would be 0
+    let inAppFrames = frames.filter(frame => frame.inApp);
+    if (inAppFrames.length > 0) {
+      frames = inAppFrames;
+    }
+
     let paths = uniq(
-      frames
-        .filter(frame => frame.inApp)
-        .map(frame => frame.filename || frame.absPath)
-        .filter(i => i)
+      frames.map(frame => frame.filename || frame.absPath).filter(i => i)
     ).slice(0, 30);
 
     return (
