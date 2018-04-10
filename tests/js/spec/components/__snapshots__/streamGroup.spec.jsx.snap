@@ -20,7 +20,8 @@ exports[`StreamGroup renders with anchors 1`] = `
   </GroupCheckbox>
   <GroupSummary
     flex="1"
-    mx={1}
+    ml={1}
+    mr={1}
     w={
       Array [
         0.6666666666666666,
