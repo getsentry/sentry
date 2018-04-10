@@ -10,10 +10,10 @@ exports[`OrganizationApiKeyDetailsView renders 1`] = `
   }
 >
   <SideEffect(DocumentTitle)
-    title="Organization Name Edit API Key"
+    title="Organization Name Edit API Key - Sentry"
   >
     <DocumentTitle
-      title="Organization Name Edit API Key"
+      title="Organization Name Edit API Key - Sentry"
     >
       <div>
         <div
