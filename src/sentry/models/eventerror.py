@@ -26,6 +26,8 @@ class EventError(object):
     UNKNOWN_ERROR = 'unknown_error'
     SECURITY_VIOLATION = 'security_violation'
     RESTRICTED_IP = 'restricted_ip'
+    FUTURE_TIMESTAMP = 'future_timestamp'
+    PAST_TIMESTAMP = 'past_timestamp'
 
     JS_GENERIC_FETCH_ERROR = 'js_generic_fetch_error'  # deprecated in favor of FETCH_GENERIC_ERROR
     FETCH_GENERIC_ERROR = 'fetch_generic_error'
@@ -63,6 +65,8 @@ class EventError(object):
         UNKNOWN_ERROR: u'Unknown error',
         SECURITY_VIOLATION: u'Cannot fetch resource due to security violation on {url}',
         RESTRICTED_IP: u'Cannot fetch resource due to restricted IP address on {url}',
+        FUTURE_TIMESTAMP: u'Invalid timestamp (in future)',
+        PAST_TIMESTAMP: u'Invalid timestamp (too old)',
         # deprecated in favor of FETCH_GENERIC_ERROR
         JS_GENERIC_FETCH_ERROR: u'Unable to fetch resource: {url}',
         FETCH_GENERIC_ERROR: u'Unable to fetch resource: {url}',

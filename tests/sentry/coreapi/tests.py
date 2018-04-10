@@ -2,6 +2,8 @@
 
 from __future__ import absolute_import
 
+from datetime import datetime, timedelta
+from functools import partial
 import six
 import mock
 import pytest
@@ -125,6 +127,40 @@ class ProjectIdFromAuthTest(BaseAPITest):
 
 
 class ValidateDataTest(BaseAPITest):
+    def test_timestamp(self):
+        from sentry.event_manager import process_timestamp
+        patched = partial(process_timestamp, current_datetime=datetime(2018, 4, 10, 14, 33, 18))
+        with mock.patch('sentry.event_manager.process_timestamp', patched):
+            data = self.validate_and_normalize({
+                'timestamp': '2018-04-10T14:33:18Z',
+            })
+            assert len(data['errors']) == 0
+
+        data = self.validate_and_normalize({
+            'timestamp': 'not-a-timestamp',
+        })
+        assert len(data['errors']) == 1
+
+        now = datetime.utcnow()
+        data = self.validate_and_normalize({
+            'timestamp': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+        })
+        assert len(data['errors']) == 0
+
+        future = now + timedelta(minutes=2)
+        data = self.validate_and_normalize({
+            'timestamp': future.strftime('%Y-%m-%dT%H:%M:%SZ'),
+        })
+        assert len(data['errors']) == 1
+        assert data['errors'][0]['type'] == 'future_timestamp'
+
+        past = now - timedelta(days=31)
+        data = self.validate_and_normalize({
+            'timestamp': past.strftime('%Y-%m-%dT%H:%M:%SZ'),
+        })
+        assert len(data['errors']) == 1
+        assert data['errors'][0]['type'] == 'past_timestamp'
+
     @mock.patch('uuid.uuid4', return_value=UUID('031667ea1758441f92c7995a428d2d14'))
     def test_empty_event_id(self, uuid4):
         data = self.validate_and_normalize({
