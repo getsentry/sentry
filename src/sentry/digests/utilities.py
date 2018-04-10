@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import six
 
 from collections import Counter, OrderedDict
-from sentry.models import OrganizationMemberTeam, ProjectOwnership, Team, User
+from sentry.models import OrganizationMemberTeam, ProjectOwnership, Team
 
 
 # TODO(tkaemming): This should probably just be part of `build_digest`.
@@ -31,6 +31,9 @@ def get_personalized_digests(project_id, digest, user_ids):
     get_personalized_digests(project: Project, digest: Digest, users: Set[User]) -> Iterator[User, Digest]
     """
     # TODO(LB): I Know this is inefficent.
+    # In the case that ProjectOwnership does exist, I do the same query twice.
+    # Once with this statement and again with the call to ProjectOwnership.get_actors()
+    # Will follow up with another PR to reduce the number of queries.
     if ProjectOwnership.objects.filter(project_id=project_id).exists():
         events = get_events_from_digest(digest)
         events_by_actor = build_events_by_actor(project_id, events)
@@ -83,8 +86,10 @@ def build_events_by_actor(project_id, events):
     """
     events_by_actor = {}
     for event in events:
-        # TODO(LB): I Know this is inefficent. Just wanted to make as few changes
-        # as possible for now. Can follow up with another PR
+        # TODO(LB): I Know this is inefficent.
+        # ProjectOwnership.get_owners is O(n) queries and I'm doing that O(len(events)) times
+        # I will create a follow-up PR to address this method's efficency problem
+        # Just wanted to make as few changes as possible for now.
         actors, __ = ProjectOwnership.get_owners(project_id, event.data)
         if actors == ProjectOwnership.Everyone:
             actors = [actors]
@@ -119,7 +124,9 @@ def convert_actors_to_user_set(events_by_actor, user_ids):
             try:
                 user_ids = teams_to_user_ids[actor.id]
             except KeyError:
-                pass  # TODO(LB) Not certain what to do if a team has no members
+                # TODO(LB): Not certain what to do if a team has no active members
+                # Created a Test to reflect my assumptions here.
+                pass
             else:
                 for user_id in user_ids:
                     add_user_id(user_id, events, user_by_events)
@@ -148,14 +155,3 @@ def team_actors_to_user_ids(team_actors, user_ids):
             team_members[member.team_id] = set([user_id])
 
     return team_members
-
-
-def team_to_user_ids(team_id):
-    """
-    Defunct first attempt but O(n) Queries. Switching to team_actors_to_user_id
-    team_to_user_ids(team_id:Int) -> List(User_ids)
-    """
-    return User.objects.filter(
-        is_active=True,
-        sentry_orgmember_set__organizationmemberteam__team_id=team_id,
-    ).values_list('id', flat=True)

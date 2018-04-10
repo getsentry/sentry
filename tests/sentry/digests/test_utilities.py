@@ -11,10 +11,9 @@ from sentry.digests.utilities import (
     get_events_from_digest,
     get_personalized_digests,
     sort_records,
-    team_to_user_ids,
     team_actors_to_user_ids,
 )
-from sentry.models import ProjectOwnership, Team, User
+from sentry.models import OrganizationMemberTeam, ProjectOwnership, Team, User
 from sentry.ownership.grammar import Rule, Owner, Matcher, dump_schema
 from sentry.testutils import TestCase
 
@@ -43,27 +42,11 @@ class UtilitiesHelpersTestCase(TestCase):
 
         assert get_events_from_digest(digest) == set(events)
 
-    def test_team_to_user_ids(self):
-        team1 = self.create_team()
-        team2 = self.create_team()
-        users = [self.create_user() for i in range(0, 6)]
-
-        self.create_member(user=users[0], organization=self.organization, teams=[team1])
-        self.create_member(user=users[1], organization=self.organization, teams=[team1])
-        self.create_member(user=users[2], organization=self.organization, teams=[team1])
-        self.create_member(user=users[3], organization=self.organization, teams=[team1, team2])
-        self.create_member(user=users[4], organization=self.organization, teams=[team2, self.team])
-        self.create_member(user=users[5], organization=self.organization, teams=[team2])
-
-        assert sorted(team_to_user_ids(team1.id)) == [
-            users[0].id, users[1].id, users[2].id, users[3].id]
-        assert sorted(team_to_user_ids(team2.id)) == [users[3].id, users[4].id, users[5].id]
-
-    # team without users not checked
     def test_team_actors_to_user_ids(self):
         team1 = self.create_team()
         team2 = self.create_team()
-        users = [self.create_user() for i in range(0, 6)]
+        team3 = self.create_team()  # team with no active members
+        users = [self.create_user() for i in range(0, 8)]
 
         self.create_member(user=users[0], organization=self.organization, teams=[team1])
         self.create_member(user=users[1], organization=self.organization, teams=[team1])
@@ -72,7 +55,20 @@ class UtilitiesHelpersTestCase(TestCase):
         self.create_member(user=users[4], organization=self.organization, teams=[team2, self.team])
         self.create_member(user=users[5], organization=self.organization, teams=[team2])
 
-        team_actors = [Actor(team1.id, Team), Actor(team2.id, Team)]
+        # Inactive member
+        member6 = self.create_member(
+            user=users[6],
+            organization=self.organization,
+            teams=[
+                team2,
+                team3])
+        team_member6 = OrganizationMemberTeam.objects.filter(organizationmember_id=member6.id)
+        for team_member in team_member6:
+            team_member.update(is_active=False)
+        # Member without teams
+        self.create_member(user=users[7], organization=self.organization, teams=[])
+
+        team_actors = [Actor(team1.id, Team), Actor(team2.id, Team), Actor(team3.id, Team)]
         user_ids = [user.id for user in users]
 
         assert team_actors_to_user_ids(team_actors, user_ids) == {
