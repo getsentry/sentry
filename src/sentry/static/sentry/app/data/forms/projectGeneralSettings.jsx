@@ -98,6 +98,15 @@ export const fields = {
       }
       return tn('%d hour', '%d hours', val);
     },
+    saveOnBlur: false,
+    saveMessage: tct(
+      '[Caution]: Enabling auto resolve will immediately resolve anything that has ' +
+        'not been seen within this period of time. There is no undo!',
+      {
+        Caution: <strong>Caution</strong>,
+      }
+    ),
+    saveMessageAlertType: 'warning',
   },
 
   dataScrubber: {

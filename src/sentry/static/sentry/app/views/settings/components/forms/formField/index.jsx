@@ -11,6 +11,7 @@ import Field from '../field';
 import FieldControl from '../field/fieldControl';
 import FormState from '../../../../../components/forms/state';
 import InlineSvg from '../../../../../components/inlineSvg';
+import PanelAlert from '../../../../../components/panels/panelAlert';
 import Spinner from '../spinner';
 import returnButton from '../returnButton';
 import space from '../../../../../styles/space';
@@ -146,6 +147,18 @@ class FormField extends React.Component {
     saveOnBlur: PropTypes.bool,
 
     /**
+     * If saveOnBlur is false, then an optional saveMessage can be used to let
+     * the user know what's going to happen when they save a field.
+     */
+    saveMessage: PropTypes.node,
+
+    /**
+     * The "alert type" to use for the save message.
+     * Probably only "info"/"warning" should be used.
+     */
+    saveMessageAlertType: PropTypes.oneOf(['', 'info', 'warning', 'success', 'error']),
+
+    /**
      * Should hide error message?
      */
     hideErrorMessage: PropTypes.bool,
@@ -275,6 +288,8 @@ class FormField extends React.Component {
       hideErrorMessage,
       flexibleControlStateSize,
       saveOnBlur,
+      saveMessage,
+      saveMessageAlertType,
       ...props
     } = this.props;
     let id = this.getId();
@@ -343,14 +358,19 @@ class FormField extends React.Component {
               if (!showFieldSave) return null;
 
               return (
-                <ExplicitSaveRow>
-                  <CancelButton onClick={this.handleCancelField}>
-                    {t('Cancel')}
-                  </CancelButton>
-                  <SaveButton priority="primary" onClick={this.handleSaveField}>
-                    {t('Save')}
-                  </SaveButton>
-                </ExplicitSaveRow>
+                <PanelAlert type={saveMessageAlertType}>
+                  <MessageAndActions>
+                    <Message>{saveMessage}</Message>
+                    <Actions>
+                      <CancelButton onClick={this.handleCancelField}>
+                        {t('Cancel')}
+                      </CancelButton>
+                      <SaveButton priority="primary" onClick={this.handleSaveField}>
+                        {t('Save')}
+                      </SaveButton>
+                    </Actions>
+                  </MessageAndActions>
+                </PanelAlert>
               );
             }}
           </Observer>
@@ -362,14 +382,22 @@ class FormField extends React.Component {
 
 export default FormField;
 
-const ExplicitSaveRow = styled('div')`
+const MessageAndActions = styled('div')`
   display: flex;
-  justify-content: flex-end;
-  padding: ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  justify-content: space-between;
 `;
 
-const CancelButton = styled(Button)``;
+const Message = styled('div')`
+  flex: 1;
+`;
+
+const Actions = styled('div')`
+  flex-shrink: 0;
+`;
+
+const CancelButton = styled(Button)`
+  margin-left: ${space(2)};
+`;
 const SaveButton = styled(Button)`
-  margin-left: ${space(0.5)};
+  margin-left: ${space(1)};
 `;
