@@ -4,6 +4,7 @@ import styled from 'react-emotion';
 import Avatar from './avatar';
 import Link from './link';
 import overflowEllipsis from '../styles/overflowEllipsis';
+import space from '../styles/space';
 
 const UserBadge = ({
   displayName,
@@ -14,17 +15,13 @@ const UserBadge = ({
   useLink,
   ...props
 }) => {
-  const LinkOrText = useLink ? (
-    <StyledLink to={`/settings/${orgId}/members/${user.id}`} />
-  ) : (
-    'div'
-  );
-
   return (
     <StyledUserBadge {...props}>
       <StyledAvatar user={user} size={avatarSize} />
       <StyledNameAndEmail>
-        <LinkOrText>{displayName || user.name || user.email}</LinkOrText>
+        <StyledName useLink={useLink} to={`/settings/${orgId}/members/${user.id}`}>
+          {displayName || user.name || user.email}
+        </StyledName>
         <StyledEmail>{displayEmail || user.email}</StyledEmail>
       </StyledNameAndEmail>
     </StyledUserBadge>
@@ -41,7 +38,7 @@ UserBadge.propTypes = {
 };
 
 UserBadge.defaultProps = {
-  userLink: true,
+  useLink: true,
 };
 
 const StyledUserBadge = styled('div')`
@@ -57,21 +54,23 @@ const StyledNameAndEmail = styled('div')`
 
 const StyledEmail = styled('div')`
   font-size: 0.875em;
+  margin-top: ${space(0.5)};
+  color: ${p => p.theme.gray2};
   ${overflowEllipsis};
 `;
 
-const StyledLink = styled(Link)`
+const StyledName = styled(
+  ({useLink, ...props}) => (useLink ? <Link {...props} /> : <span {...props} />)
+)`
   font-weight: bold;
-  margin-bottom: 0.2em;
+  margin-bottom: ${space(0.5)};
   ${overflowEllipsis};
 `;
 
 const StyledAvatar = styled(props => <Avatar {...props} />)`
-  width: 2em;
-  height: 2em;
-  min-width: 2em;
-  min-height: 2em;
-  margin-right: 0.5em;
+  min-width: ${space(3)};
+  min-height: ${space(3)};
+  margin-right: ${space(1)};
 `;
 
 export default UserBadge;
