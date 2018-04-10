@@ -7,6 +7,7 @@ import {
   saveOnBlurUndoMessage,
 } from '../../../../actionCreators/indicator';
 import {defined} from '../../../../utils';
+import {t} from '../../../../locale';
 import FormState from '../../../../components/forms/state';
 
 class FormModel {
@@ -255,14 +256,49 @@ class FormModel {
       this.options.onFieldChange(id, value);
     }
 
+    this.updateErrorState(id);
+    this.updateShowSaveState(id, value);
+    this.updateShowReturnButtonState(id, value);
+  }
+  @action
+  updateErrorState(id) {
+    let fieldIsRequiredMessage = t('Field is required');
+    let isValid = this.isValidRequiredField(id);
     // specifically check for empty string, 0 should be allowed
-    if (!this.isValidRequiredField(id)) {
-      this.setError(id, 'Field is required');
-    } else {
-      this.setError(id, false);
-    }
+    if (isValid && !this.errors.get(id)) return;
+    if (!isValid && this.errors.get(id) === fieldIsRequiredMessage) return;
+
+    this.setError(id, isValid ? false : fieldIsRequiredMessage);
   }
 
+  @action
+  updateShowSaveState(id, value) {
+    let isValueChanged = value !== this.initialData[id];
+    // Update field state to "show save" if save on blur is disabled for this field
+    // (only if contents of field differs from initial value)
+    let saveOnBlurFieldOverride = this.getDescriptor(id, 'saveOnBlur');
+    if (typeof saveOnBlurFieldOverride === 'undefined' || saveOnBlurFieldOverride) return;
+    if (this.getFieldState(id, 'showSave') === isValueChanged) return;
+
+    this.setFieldState(id, 'showSave', isValueChanged);
+  }
+
+  @action
+  updateShowReturnButtonState(id, value) {
+    let isValueChanged = value !== this.initialData[id];
+    // Update field state to "show save" if save on blur is disabled for this field
+    let shouldShowReturnButton = this.getDescriptor(id, 'showReturnButton');
+
+    // Only update display if changed
+    if (!shouldShowReturnButton) return;
+    if (this.getFieldState(id, 'showReturnButton') === isValueChanged) return;
+
+    this.setFieldState(id, 'showReturnButton', isValueChanged);
+  }
+
+  /**
+   * Changes form values to previous saved state
+   */
   @action
   undo() {
     // Always have initial data snapshot
@@ -275,7 +311,7 @@ class FormModel {
   }
 
   /**
-   * Attempts to save entire form
+   * Attempts to save entire form to server and saves a snapshot for undos
    */
   @action
   saveForm() {
@@ -323,6 +359,41 @@ class FormModel {
   }
 
   /**
+   * Attempts to save field and show undo message if necessary.
+   * Calls submit handlers.
+   */
+  @action
+  saveField(id, currentValue) {
+    let oldValue = this.initialData[id];
+    let savePromise = this.saveFieldRequest(id, currentValue);
+
+    if (!savePromise) return null;
+
+    return savePromise
+      .then(resp => {
+        let newValue = this.getValue(id);
+        let change = {old: oldValue, new: newValue};
+
+        // Only use `allowUndo` option if explicity defined
+        if (typeof this.options.allowUndo === 'undefined' || this.options.allowUndo) {
+          saveOnBlurUndoMessage(change, this, id);
+        }
+
+        if (this.options.onSubmitSuccess) {
+          this.options.onSubmitSuccess(resp, this, id, change);
+        }
+
+        return resp;
+      })
+      .catch(error => {
+        if (this.options.onSubmitError) {
+          this.options.onSubmitError(error, this, id);
+        }
+        return {};
+      });
+  }
+
+  /**
    * Saves a field with new value
    *
    * If field has changes, field does not have errors, then it will:
@@ -332,7 +403,7 @@ class FormModel {
    * If failed then: 1) reset save state, 2) add error state
    */
   @action
-  saveField(id, currentValue) {
+  saveFieldRequest(id, currentValue) {
     let initialValue = this.initialData[id];
 
     // Don't save if field hasn't changed
@@ -424,37 +495,36 @@ class FormModel {
    * If `saveOnBlur` is set then call `saveField` and handle form callbacks accordingly
    */
   @action
-  handleFieldBlur(id, currentValue) {
+  handleBlurField(id, currentValue) {
     // Nothing to do if `saveOnBlur` is not on
     if (!this.options.saveOnBlur) return null;
 
-    let oldValue = this.initialData[id];
-    let savePromise = this.saveField(id, currentValue);
+    // Fields can individually set `saveOnBlur` to `false` (note this is ignored when `undefined`)
+    let saveOnBlurFieldOverride = this.getDescriptor(id, 'saveOnBlur');
+    if (typeof saveOnBlurFieldOverride !== 'undefined' && !saveOnBlurFieldOverride) {
+      return null;
+    }
 
-    if (!savePromise) return null;
+    return this.saveField(id, currentValue);
+  }
 
-    return savePromise
-      .then(resp => {
-        let newValue = this.getValue(id);
-        let change = {old: oldValue, new: newValue};
+  /**
+   * This is called when a field does not saveOnBlur and has an individual "Save" button
+   */
+  @action
+  handleSaveField(id, currentValue) {
+    return this.saveField(id, currentValue).then(() => {
+      this.setFieldState(id, 'showSave', false);
+    });
+  }
 
-        // Only use `allowUndo` option if explicity defined
-        if (typeof this.options.allowUndo === 'undefined' || this.options.allowUndo) {
-          saveOnBlurUndoMessage(change, this, id);
-        }
-
-        if (this.options.onSubmitSuccess) {
-          this.options.onSubmitSuccess(resp, this, id, change);
-        }
-
-        return resp;
-      })
-      .catch(error => {
-        if (this.options.onSubmitError) {
-          this.options.onSubmitError(error, this, id);
-        }
-        return {};
-      });
+  /**
+   * Cancel "Save Field" state and revert form value back to initial value
+   */
+  @action
+  handleCancelSaveField(id) {
+    this.setValue(id, this.initialData[id]);
+    this.setFieldState(id, 'showSave', false);
   }
 
   @action
