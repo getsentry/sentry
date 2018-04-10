@@ -1,6 +1,9 @@
 from __future__ import absolute_import
 
+from copy import deepcopy
+
 from django.db import IntegrityError, transaction
+from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.permissions import IsAuthenticated
@@ -32,17 +35,6 @@ class AssistantSerializer(serializers.Serializer):
         return attrs
 
 
-def get_guides(user):
-    seen_ids = set(AssistantActivity.objects.filter(
-        user=user,
-    ).values_list('guide_id', flat=True))
-    result = {}
-    for k, v in GUIDES.items():
-        v['seen'] = k in seen_ids
-        result[k] = v
-    return result
-
-
 class AssistantEndpoint(Endpoint):
     permission_classes = (IsAuthenticated, )
 
@@ -53,7 +45,6 @@ class AssistantEndpoint(Endpoint):
             user=request.user,
         ).values_list('guide_id', flat=True))
         result = {k: v for k, v in guides.items() if v['id'] not in exclude_ids}
-
         return Response(result)
 
     def put(self, request):
@@ -91,4 +82,4 @@ class AssistantEndpoint(Endpoint):
         except IntegrityError:
             pass
 
-        return Response(get_guides(request.user), status=201)
+        return HttpResponse(status=201)

@@ -26,6 +26,18 @@ const GuideStore = Reflux.createStore({
     this.listenTo(GuideActions.unregisterAnchor, this.onUnregisterAnchor);
     this.listenTo(OrganizationsActions.setActive, this.onSetActiveOrganization);
     this.listenTo(OrganizationsActions.changeSlug, this.onChangeSlug);
+
+    window.addEventListener('hashchange', this.onHashChange, false);
+  },
+
+  onHashChange() {
+    if (
+      window.location.hash === '#assistant' &&
+      this.state.currentGuide &&
+      this.state.currentStep < 1
+    ) {
+      GuideActions.nextStep();
+    }
   },
 
   onSetActiveOrganization(data) {
@@ -45,14 +57,11 @@ const GuideStore = Reflux.createStore({
   onCloseGuideOrSupport() {
     let {currentGuide} = this.state;
     if (currentGuide) {
-      this.state.guides[this.state.currentGuide.id].seen = true;
-    }
-    this.updateCurrentGuide();
-  },
-
-  onOpenDrawer() {
-    if (this.state.currentStep < 1) {
-      this.state.currentStep = 1;
+      this.state.guides[
+        Object.keys(this.state.guides).find(key => {
+          return this.state.guides[key].id == currentGuide.id;
+        })
+      ].seen = true;
     }
     this.updateCurrentGuide();
   },
@@ -83,6 +92,7 @@ const GuideStore = Reflux.createStore({
   },
 
   updateCurrentGuide() {
+    let forceShow = window.location.hash === '#assistant';
     let availableTargets = [...this.state.anchors].map(a => a.props.target);
 
     // Select the first guide that hasn't been seen in this session and has all
@@ -92,7 +102,7 @@ const GuideStore = Reflux.createStore({
       let allTargetsPresent = guide.required_targets.every(
         t => availableTargets.indexOf(t) >= 0
       );
-      return !guide.seen && allTargetsPresent;
+      return (forceShow || !guide.seen) && allTargetsPresent;
     });
 
     let bestGuide = null;
@@ -106,7 +116,7 @@ const GuideStore = Reflux.createStore({
 
     this.state.currentGuide = bestGuide;
 
-    if (window.location.hash === '#assistant') {
+    if (forceShow && this.state.currentGuide) {
       this.state.currentStep = this.state.currentStep || 1;
     }
 

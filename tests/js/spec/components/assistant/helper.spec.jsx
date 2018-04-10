@@ -49,30 +49,4 @@ describe('Helper', function() {
       .simulate('click');
     expect(wrapper).toMatchSnapshot();
   });
-
-  it('triggers guide drawer', function() {
-    let wrapper = mount(
-      <ThemeProvider theme={theme}>
-        <AssistantHelper />
-      </ThemeProvider>
-    );
-    const component = wrapper.find('AssistantHelper').instance();
-
-    component.onGuideStateChange({
-      currentGuide: {
-        cue: 'Click here for a tour of the issue page',
-        id: 1,
-        page: 'issue',
-        required_targets: ['target 1'],
-        steps: [
-          {message: 'Message 1', target: 'target 1', title: '1. Title 1'},
-          {message: 'Message 2', target: 'target 2', title: '2. Title 2'},
-        ],
-        seen: false,
-      },
-      currentStep: 1,
-    });
-    component.handleHashChange();
-    expect(wrapper).toMatchSnapshot();
-  });
 });

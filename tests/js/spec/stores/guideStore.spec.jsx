@@ -54,6 +54,28 @@ describe('GuideStore', function() {
     expect(GuideStore.state.currentStep).toEqual(1);
     GuideStore.onNextStep();
     expect(GuideStore.state.currentStep).toEqual(2);
-    // GuideStore.onCloseGuideOrSupport();
+    GuideStore.onCloseGuideOrSupport();
+  });
+
+  it('should not show seen guides', function() {
+    data.issue.seen = true;
+    GuideStore.onRegisterAnchor(anchor1);
+    GuideStore.onRegisterAnchor(anchor2);
+    GuideStore.onFetchSucceeded(data);
+    // GuideStore should prune steps that don't have anchors.
+    expect(GuideStore.state.currentGuide).toEqual(null);
+  });
+
+  it('should force show a guide', function() {
+    window.location.hash = '#assistant';
+    data.issue.seen = true;
+    GuideStore.onRegisterAnchor(anchor1);
+    GuideStore.onRegisterAnchor(anchor2);
+    GuideStore.onFetchSucceeded(data);
+    expect(GuideStore.state.currentGuide.steps).toHaveLength(2);
+    expect(GuideStore.state.currentStep).toEqual(1);
+    GuideStore.onNextStep();
+    expect(GuideStore.state.currentStep).toEqual(2);
+    GuideStore.onCloseGuideOrSupport();
   });
 });

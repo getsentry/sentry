@@ -36,8 +36,6 @@ const AssistantHelper = createReactClass({
 
   componentDidMount() {
     fetchGuides();
-
-    window.addEventListener('hashchange', this.handleHashChange, false);
   },
 
   componentDidUpdate(prevProps, prevState) {
@@ -48,16 +46,6 @@ const AssistantHelper = createReactClass({
           cue: this.state.currentGuide.cue,
         })
       );
-    }
-  },
-
-  componentWillUnmount() {
-    window.removeEventListener('hashchange', this.handleHashChange, false);
-  },
-
-  handleHashChange() {
-    if (window.location.hash === '#assistant' && this.state.currentStep < 1) {
-      nextStep();
     }
   },
 
