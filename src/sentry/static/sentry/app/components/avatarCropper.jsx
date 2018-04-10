@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import AlertActions from '../actions/alertActions';
+import {addErrorMessage} from '../actionCreators/indicator';
 import {t} from '../locale';
 
 class AvatarCropper extends React.Component {
@@ -59,7 +59,9 @@ class AvatarCropper extends React.Component {
   };
 
   updateDimensions = ev => {
-    let $container = $(this.refs.cropContainer);
+    if (!this.cropContainer) return;
+
+    let $container = $(this.cropContainer);
     let resizeDimensions = this.state.resizeDimensions;
     let pageY = ev.pageY;
     let pageX = ev.pageX;
@@ -135,9 +137,11 @@ class AvatarCropper extends React.Component {
   };
 
   updateSize = ev => {
+    if (!this.cropContainer) return;
+
     let yDiff = ev.pageY - this.state.mousePosition.pageY;
     let xDiff = ev.pageX - this.state.mousePosition.pageX;
-    let $container = $(this.refs.cropContainer);
+    let $container = $(this.cropContainer);
 
     this.setState({
       resizeDimensions: this.getNewDimensions($container, yDiff, xDiff),
@@ -228,14 +232,12 @@ class AvatarCropper extends React.Component {
   };
 
   handleError = msg => {
-    AlertActions.addAlert({
-      message: t(msg),
-      type: 'error',
-    });
+    addErrorMessage(t(msg));
   };
 
   validateImage = () => {
-    let img = this.refs.image;
+    let img = this.image;
+    if (!img) return;
     if (img.naturalWidth < this.MIN_DIMENSION || img.naturalHeight < this.MIN_DIMENSION) {
       return (
         'Please upload an image larger than ' +
@@ -264,7 +266,9 @@ class AvatarCropper extends React.Component {
       this.handleError(error);
       return;
     }
-    let $img = $(this.refs.image);
+    if (!this.image) return;
+
+    let $img = $(this.image);
     let dimension = Math.min($img.height(), $img.width());
     this.setState(
       {
@@ -275,9 +279,11 @@ class AvatarCropper extends React.Component {
   };
 
   drawToCanvas = () => {
-    let canvas = this.refs.canvas;
+    let canvas = this.canvas;
+    if (!canvas) return;
+    if (!this.image) return;
     let resizeDimensions = this.state.resizeDimensions;
-    let img = this.refs.image;
+    let img = this.image;
     // Calculate difference between natural dimensions and rendered dimensions
     let imgRatio =
       (img.naturalHeight / $(img).height() + img.naturalWidth / $(img).width()) / 2;
@@ -300,7 +306,8 @@ class AvatarCropper extends React.Component {
   };
 
   finishCrop = () => {
-    let canvas = this.refs.canvas;
+    let canvas = this.canvas;
+    if (!canvas) return;
     this.props.updateDataUrlState({dataUrl: canvas.toDataURL()});
   };
 
@@ -328,11 +335,11 @@ class AvatarCropper extends React.Component {
     };
     return (
       <div className="image-cropper">
-        <div className="crop-container" ref="cropContainer">
+        <div className="crop-container" ref={ref => (this.cropContainer = ref)}>
           <div className="image-container">
             <img
               className="preview"
-              ref="image"
+              ref={ref => (this.image = ref)}
               src={src}
               onLoad={this.onLoad}
               onDragStart={this.onImgDrag}
@@ -351,7 +358,8 @@ class AvatarCropper extends React.Component {
 
   uploadClick = ev => {
     ev.preventDefault();
-    this.refs.file.click();
+    if (!this.file) return;
+    this.file.click();
   };
 
   renderCanvas = () => {
@@ -360,7 +368,7 @@ class AvatarCropper extends React.Component {
     }
     return (
       <div className="canvas-container">
-        <canvas ref="canvas" />
+        <canvas ref={ref => (this.canvas = ref)} />
       </div>
     );
   };
@@ -389,7 +397,7 @@ class AvatarCropper extends React.Component {
         <div className="form-group">
           {src && <a onClick={this.uploadClick}>{t('Change Photo')}</a>}
           <input
-            ref="file"
+            ref={ref => (this.file = ref)}
             type="file"
             accept="image/gif,image/jpeg,image/png"
             onChange={this.onChange}
