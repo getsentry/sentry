@@ -43,5 +43,5 @@ class ProjectIssuesTest(AcceptanceTestCase):
     def test_with_no_issues(self):
         self.project.update(first_event=timezone.now())
         self.browser.get(self.path)
-        self.browser.wait_until('.ref-empty-state')
+        self.browser.wait_until('.empty-stream')
         self.browser.snapshot('project issues without issues')

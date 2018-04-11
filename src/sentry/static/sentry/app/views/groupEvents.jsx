@@ -16,6 +16,7 @@ import {getQueryEnvironment, getQueryStringWithEnvironment} from '../utils/query
 import EnvironmentStore from '../stores/environmentStore';
 import {setActiveEnvironment} from '../actionCreators/environments';
 import EmptyStateWarning from '../components/emptyStateWarning';
+import {Panel, PanelBody} from '../components/panels';
 
 const GroupEvents = createReactClass({
   displayName: 'GroupEvents',
@@ -165,16 +166,11 @@ const GroupEvents = createReactClass({
     let tagList = group.tags.filter(tag => tag.key !== 'user') || [];
 
     return (
-      <div>
-        <div className="event-list">
-          <EventsTable
-            tagList={tagList}
-            events={this.state.eventList}
-            params={this.props.params}
-          />
-        </div>
-        <Pagination pageLinks={this.state.pageLinks} />
-      </div>
+      <EventsTable
+        tagList={tagList}
+        events={this.state.eventList}
+        params={this.props.params}
+      />
     );
   },
 
@@ -203,7 +199,10 @@ const GroupEvents = createReactClass({
             onSearch={this.handleSearch}
           />
         </div>
-        {this.renderBody()}
+        <Panel className="event-list">
+          <PanelBody>{this.renderBody()}</PanelBody>
+        </Panel>
+        <Pagination pageLinks={this.state.pageLinks} />
       </div>
     );
   },

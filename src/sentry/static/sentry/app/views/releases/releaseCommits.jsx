@@ -53,10 +53,12 @@ const ReleaseCommits = createReactClass({
 
   emptyState() {
     return (
-      <EmptyStateWarning>
-        <p>{t('There are no commits associated with this release.')}</p>
-        {/* Todo: Should we link to repo settings from here?  */}
-      </EmptyStateWarning>
+      <Panel>
+        <EmptyStateWarning>
+          <p>{t('There are no commits associated with this release.')}</p>
+          {/* Todo: Should we link to repo settings from here?  */}
+        </EmptyStateWarning>
+      </Panel>
     );
   },
 

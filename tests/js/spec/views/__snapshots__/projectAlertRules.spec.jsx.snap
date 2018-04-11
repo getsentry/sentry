@@ -319,13 +319,13 @@ exports[`projectAlertRules renders 1`] = `
                             to="1/"
                           >
                             <Link
-                              className="css-1763h46-TextColorLink css-itsfsl0"
+                              className="css-1763h46-TextColorLink css-fislzb0"
                               onlyActiveOnIndex={false}
                               style={Object {}}
                               to="1/"
                             >
                               <a
-                                className="css-1763h46-TextColorLink css-itsfsl0"
+                                className="css-1763h46-TextColorLink css-fislzb0"
                                 onClick={[Function]}
                                 style={Object {}}
                               >
@@ -497,15 +497,15 @@ exports[`projectAlertRules renders 1`] = `
                 >
                   <RuleDescriptionRow>
                     <div
-                      className="css-16pvk6d-RuleDescriptionRow css-itsfsl1"
+                      className="css-16pvk6d-RuleDescriptionRow css-fislzb1"
                     >
                       <RuleDescriptionColumn>
                         <div
-                          className="css-ta36pl-RuleDescriptionColumn css-itsfsl2"
+                          className="css-ta36pl-RuleDescriptionColumn css-fislzb2"
                         >
                           <Condition>
                             <div
-                              className="css-1d9hhun-Condition css-itsfsl3"
+                              className="css-1d9hhun-Condition css-fislzb3"
                             >
                               <h6>
                                 When 
@@ -531,11 +531,11 @@ exports[`projectAlertRules renders 1`] = `
                       </RuleDescriptionColumn>
                       <RuleDescriptionColumn>
                         <div
-                          className="css-ta36pl-RuleDescriptionColumn css-itsfsl2"
+                          className="css-ta36pl-RuleDescriptionColumn css-fislzb2"
                         >
                           <Condition>
                             <div
-                              className="css-1d9hhun-Condition css-itsfsl3"
+                              className="css-1d9hhun-Condition css-fislzb3"
                             >
                               <h6>
                                 Take these actions at most

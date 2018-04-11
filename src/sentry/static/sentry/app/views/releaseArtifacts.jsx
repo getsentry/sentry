@@ -112,9 +112,11 @@ const ReleaseArtifacts = createReactClass({
     else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
     else if (this.state.fileList.length === 0)
       return (
-        <EmptyStateWarning>
-          <p>{t('There are no artifacts uploaded for this release.')}</p>
-        </EmptyStateWarning>
+        <Panel>
+          <EmptyStateWarning>
+            <p>{t('There are no artifacts uploaded for this release.')}</p>
+          </EmptyStateWarning>
+        </Panel>
       );
 
     let access = this.getAccess();

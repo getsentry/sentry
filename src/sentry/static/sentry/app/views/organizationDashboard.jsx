@@ -52,26 +52,30 @@ class UnreleasedChanges extends AsyncComponent {
 
   emptyState() {
     return (
-      <EmptyStateWarning>
-        <p>
-          {t("We couldn't find any unreleased commits associated with your account.")}
-        </p>
-      </EmptyStateWarning>
+      <Panel>
+        <EmptyStateWarning>
+          <p>
+            {t("We couldn't find any unreleased commits associated with your account.")}
+          </p>
+        </EmptyStateWarning>
+      </Panel>
     );
   }
 
   missingEmails() {
     return (
-      <EmptyStateWarning>
-        <p>{t("We couldn't find any commits associated with your account.")}</p>
-        <p>
-          <small>
-            {t(
-              'Have you added (and verified) the email address associated with your activity?'
-            )}
-          </small>
-        </p>
-      </EmptyStateWarning>
+      <Panel>
+        <EmptyStateWarning>
+          <p>{t("We couldn't find any commits associated with your account.")}</p>
+          <p>
+            <small>
+              {t(
+                'Have you added (and verified) the email address associated with your activity?'
+              )}
+            </small>
+          </p>
+        </EmptyStateWarning>
+      </Panel>
     );
   }
 

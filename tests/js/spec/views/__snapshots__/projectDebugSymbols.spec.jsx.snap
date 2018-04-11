@@ -148,22 +148,22 @@ exports[`ProjectDebugSymbols renders 1`] = `
                         onClick={[Function]}
                       >
                         <PanelItem
-                          className="hoverable css-1mrkblk-HoverablePanelItem css-1ikmyhk2"
+                          className="hoverable css-1mrkblk-HoverablePanelItem css-15iqg1y2"
                           onClick={[Function]}
                           p={2}
                         >
                           <StyledPanelItem
-                            className="hoverable css-1mrkblk-HoverablePanelItem css-1ikmyhk2"
+                            className="hoverable css-1mrkblk-HoverablePanelItem css-15iqg1y2"
                             onClick={[Function]}
                             p={2}
                           >
                             <Base
-                              className="hoverable css-1ikmyhk2 css-bqgi4j-StyledPanelItem css-q9h14u0"
+                              className="hoverable css-15iqg1y2 css-bqgi4j-StyledPanelItem css-q9h14u0"
                               onClick={[Function]}
                               p={2}
                             >
                               <div
-                                className="hoverable css-1ikmyhk2 css-bqgi4j-StyledPanelItem css-q9h14u0"
+                                className="hoverable css-15iqg1y2 css-bqgi4j-StyledPanelItem css-q9h14u0"
                                 is={null}
                                 onClick={[Function]}
                               >
@@ -199,17 +199,17 @@ exports[`ProjectDebugSymbols renders 1`] = `
                                       >
                                         <Base
                                           align="center"
-                                          className="css-2qebs7-LastSeen css-1ikmyhk0"
+                                          className="css-2qebs7-LastSeen css-15iqg1y0"
                                         >
                                           <div
-                                            className="css-2qebs7-LastSeen css-1ikmyhk0"
+                                            className="css-2qebs7-LastSeen css-15iqg1y0"
                                             is={null}
                                           >
                                             <TimeIcon
                                               className="icon icon-clock"
                                             >
                                               <span
-                                                className="icon icon-clock css-3im64z-TimeIcon css-1ikmyhk1"
+                                                className="icon icon-clock css-3im64z-TimeIcon css-15iqg1y1"
                                               />
                                             </TimeIcon>
                                             <TimeSince
@@ -406,11 +406,9 @@ exports[`ProjectDebugSymbols renders empty 1`] = `
           look at releases instead.
         
   </TextBlock>
-  <div
-    className="box"
-  >
+  <Panel>
     <LoadingIndicator />
-  </div>
+  </Panel>
   <Modal
     animation={false}
     autoFocus={true}

@@ -10,6 +10,7 @@ import SimilarSpectrum from '../../components/similarSpectrum';
 import SimilarToolbar from './similarToolbar';
 import SpreadLayout from '../../components/spreadLayout';
 import EmptyStateWarning from '../../components/emptyStateWarning';
+import {Panel} from '../../components/panels';
 
 const SimilarItemPropType = PropTypes.shape({
   issue: Group,
@@ -42,9 +43,11 @@ class SimilarList extends React.Component {
 
   renderEmpty = () => {
     return (
-      <EmptyStateWarning>
-        <p>{t('There are no similar issues.')}</p>
-      </EmptyStateWarning>
+      <Panel>
+        <EmptyStateWarning>
+          <p>{t('There are no similar issues.')}</p>
+        </EmptyStateWarning>
+      </Panel>
     );
   };
 
@@ -69,7 +72,7 @@ class SimilarList extends React.Component {
     );
 
     if (!hasResults) {
-      return <div className="similar-list-container">{this.renderEmpty()}</div>;
+      return this.renderEmpty();
     }
 
     return (

@@ -205,9 +205,11 @@ export default createReactClass({
 
   renderEmpty() {
     return (
-      <EmptyStateWarning>
-        <p>{t('There are no integrations available for data forwarding.')}</p>
-      </EmptyStateWarning>
+      <Panel>
+        <EmptyStateWarning>
+          <p>{t('There are no integrations available for data forwarding.')}</p>
+        </EmptyStateWarning>
+      </Panel>
     );
   },
 

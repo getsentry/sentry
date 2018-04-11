@@ -122,17 +122,19 @@ const ProjectDebugSymbols = createReactClass({
 
   renderLoading() {
     return (
-      <div className="box">
+      <Panel>
         <LoadingIndicator />
-      </div>
+      </Panel>
     );
   },
 
   renderEmpty() {
     return (
-      <EmptyStateWarning>
-        <p>{t('There are no debug symbols for this project.')}</p>
-      </EmptyStateWarning>
+      <Panel>
+        <EmptyStateWarning>
+          <p>{t('There are no debug symbols for this project.')}</p>
+        </EmptyStateWarning>
+      </Panel>
     );
   },
 

@@ -13,6 +13,7 @@ import LoadingIndicator from '../components/loadingIndicator';
 import {t, tct} from '../locale';
 import withEnvironmentInQueryString from '../utils/withEnvironmentInQueryString';
 import EmptyStateWarning from '../components/emptyStateWarning';
+import {Panel} from '../components/panels';
 
 const GroupUserReports = createReactClass({
   displayName: 'GroupUserReports',
@@ -123,14 +124,16 @@ const GroupUserReports = createReactClass({
       : t('No user reports have been collected.');
 
     return (
-      <EmptyStateWarning>
-        <p>{emptyStateMessage}</p>
-        <p>
-          <Link to={this.getUserReportsUrl()}>
-            {t('Learn how to integrate User Feedback')}
-          </Link>
-        </p>
-      </EmptyStateWarning>
+      <Panel>
+        <EmptyStateWarning>
+          <p>{emptyStateMessage}</p>
+          <p>
+            <Link to={this.getUserReportsUrl()}>
+              {t('Learn how to integrate User Feedback')}
+            </Link>
+          </p>
+        </EmptyStateWarning>
+      </Panel>
     );
   },
 });

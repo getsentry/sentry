@@ -8,6 +8,7 @@ import MergedToolbar from './mergedToolbar';
 import Pagination from '../../components/pagination';
 import QueryCount from '../../components/queryCount';
 import EmptyStateWarning from '../../components/emptyStateWarning';
+import {Panel} from '../../components/panels';
 
 class MergedList extends React.Component {
   static propTypes = {
@@ -31,7 +32,7 @@ class MergedList extends React.Component {
     let hasResults = itemsWithLatestEvent.length > 0;
 
     if (!hasResults) {
-      return <div className="merged-list-container">{this.renderEmpty()}</div>;
+      return <Panel>{this.renderEmpty()}</Panel>;
     }
 
     return (

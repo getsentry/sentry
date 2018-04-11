@@ -239,9 +239,11 @@ const ProjectAlertRules = createReactClass({
 
   renderEmpty() {
     return (
-      <EmptyStateWarning>
-        <p>{t('There are no alerts configured for this project.')}</p>
-      </EmptyStateWarning>
+      <Panel>
+        <EmptyStateWarning>
+          <p>{t('There are no alerts configured for this project.')}</p>
+        </EmptyStateWarning>
+      </Panel>
     );
   },
 
