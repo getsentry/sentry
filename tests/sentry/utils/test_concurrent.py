@@ -86,33 +86,40 @@ def test_threaded_executor():
     initial_future = executor.submit(
         lambda: waiter(initial_ready, initial_waiting, 1),
         block=True,
+        timeout=1,
     )
 
-    initial_ready.wait()  # wait until the worker has removed this item from the queue
-    assert initial_future.running()
+    # wait until the worker has removed this item from the queue
+    assert initial_ready.wait(timeout=1), 'waiter not ready'
+    assert initial_future.running(), 'waiter did not get marked as started'
 
     low_priority_ready = Event()
     low_priority_waiting = Event()
     low_priority_future = executor.submit(
         lambda: waiter(low_priority_ready, low_priority_waiting, 2),
         block=True,
+        timeout=1,
         priority=10,
     )
+    assert not low_priority_future.done(), 'future should not be done (indicative of a full queue)'
 
     high_priority_ready = Event()
     high_priority_waiting = Event()
     high_priority_future = executor.submit(
         lambda: waiter(high_priority_ready, high_priority_waiting, 3),
         block=True,
+        timeout=1,
         priority=0,
     )
+    assert not high_priority_future.done(), 'future should not be done (indicative of a full queue)'
 
     queue_full_future = executor.submit(lambda: None, block=False)
+    assert queue_full_future.done()
     with pytest.raises(Full):
-        queue_full_future.result()
+        queue_full_future.result()  # will not block if completed
 
     initial_waiting.set()  # let the task finish
-    assert initial_future.result() is 1
+    assert initial_future.result(timeout=1) is 1
     assert initial_future.done()
 
     assert high_priority_ready.wait(timeout=1)  # this should be the next task to execute
@@ -120,12 +127,12 @@ def test_threaded_executor():
     assert not low_priority_future.running()
 
     high_priority_waiting.set()  # let the task finish
-    assert high_priority_future.result() is 3
+    assert high_priority_future.result(timeout=1) is 3
     assert high_priority_future.done()
 
     assert low_priority_ready.wait(timeout=1)  # this should be the next task to execute
     assert low_priority_future.running()
 
     low_priority_waiting.set()  # let the task finish
-    assert low_priority_future.result() is 2
+    assert low_priority_future.result(timeout=1) is 2
     assert low_priority_future.done()
