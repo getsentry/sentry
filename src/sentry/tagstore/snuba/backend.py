@@ -129,7 +129,7 @@ class SnubaTagStorage(TagStorage):
             })
 
     def get_group_tag_values(self, project_id, group_id, environment_id, key):
-        start, end = self.get_time_range(7)
+        start, end = self.get_time_range()
         tag = 'tags[{}]'.format(key)
         filters = {
             'project_id': [project_id],
@@ -180,7 +180,7 @@ class SnubaTagStorage(TagStorage):
             }) for issue, count in six.iteritems(result)}
 
     def get_group_tag_value_count(self, project_id, group_id, environment_id, key):
-        start, end = self.get_time_range(7)
+        start, end = self.get_time_range()
         tag = 'tags[{}]'.format(key)
         filters = {
             'project_id': [project_id],
@@ -193,7 +193,7 @@ class SnubaTagStorage(TagStorage):
         return snuba.query(start, end, [], conditions, filters, aggregations)
 
     def get_top_group_tag_values(self, project_id, group_id, environment_id, key, limit=3):
-        start, end = self.get_time_range(7)
+        start, end = self.get_time_range()
         tag = 'tags[{}]'.format(key)
         filters = {
             'project_id': [project_id],
