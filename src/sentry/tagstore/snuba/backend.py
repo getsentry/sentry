@@ -309,8 +309,8 @@ class SnubaTagStorage(TagStorage):
         # than adding a != condition because environment_ids need to be translated
         # to filters in snuba.
 
-        # TODO OR conditions?
-        conditions = [['tags[{}]'.format(tag), '=', val] for tag, val in six.iteritems(tags)]
+        or_conditions = [['tags[{}]'.format(tag), '=', val] for tag, val in six.iteritems(tags)]
+        conditions = [or_conditions]
 
         events = snuba.query(start, end, ['event_id'], conditions, filters)
         return events.keys()
@@ -320,13 +320,13 @@ class SnubaTagStorage(TagStorage):
         filters = {
             'project_id': project_ids,
         }
-        conditions = [cond for cond in [
-            # TODO OR these conditions
-            ['user_id', 'IN', [eu.ident for eu in event_users if eu.ident]],
-            ['email', 'IN', [eu.email for eu in event_users if eu.email]],
-            ['username', 'IN', [eu.username for eu in event_users if eu.username]],
-            ['ip_address', 'IN', [eu.ip_address for eu in event_users if eu.ip_address]],
+        or_conditions = [cond for cond in [
+            ('user_id', 'IN', [eu.ident for eu in event_users if eu.ident]),
+            ('email', 'IN', [eu.email for eu in event_users if eu.email]),
+            ('username', 'IN', [eu.username for eu in event_users if eu.username]),
+            ('ip_address', 'IN', [eu.ip_address for eu in event_users if eu.ip_address]),
         ] if cond[2] != []]
+        conditions = [or_conditions]
         aggregations = [['max', SEEN_COLUMN, 'seen']]
 
         result = snuba.query(start, end, ['issue'], conditions, filters,
@@ -338,13 +338,13 @@ class SnubaTagStorage(TagStorage):
         filters = {
             'project_id': [eu.project_id for eu in event_users]
         }
-        conditions = [cond for cond in [
-            ['user_id', 'IN', [eu.ident for eu in event_users if eu.ident]],
-            ['email', 'IN', [eu.email for eu in event_users if eu.email]],
-            ['username', 'IN', [eu.username for eu in event_users if eu.username]],
-            ['ip_address', 'IN', [eu.ip_address for eu in event_users if eu.ip_address]],
+        or_conditions = [cond for cond in [
+            ('user_id', 'IN', [eu.ident for eu in event_users if eu.ident]),
+            ('email', 'IN', [eu.email for eu in event_users if eu.email]),
+            ('username', 'IN', [eu.username for eu in event_users if eu.username]),
+            ('ip_address', 'IN', [eu.ip_address for eu in event_users if eu.ip_address]),
         ] if cond[2] != []]
-
+        conditions = [or_conditions]
         aggregations = [
             ['count', '', 'count'],
             ['min', SEEN_COLUMN, 'first_seen'],

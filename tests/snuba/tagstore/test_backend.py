@@ -55,7 +55,8 @@ class TagStorage(TestCase):
                     'sentry:release': 100 * r,
                 },
                 'sentry.interfaces.User': {
-                    'id': "user{}".format(r)
+                    'id': "user{}".format(r),
+                    'email': "user{}@sentry.io".format(r)
                 }
             },
         } for r in range(1, 3)] + [{
@@ -286,6 +287,7 @@ class TagStorage(TestCase):
             [EventUser(project_id=self.proj1.id, ident='user1')]
         )
         one_second_ago = (self.now - timedelta(seconds=1)).strftime('%Y-%m-%dT%H:%M:%S+00:00')
+        assert len(result) == 1
         assert result[0].value == 'user1'
         assert result[0].last_seen == one_second_ago
 
@@ -293,8 +295,23 @@ class TagStorage(TestCase):
             [EventUser(project_id=self.proj1.id, ident='user2')]
         )
         two_seconds_ago = (self.now - timedelta(seconds=2)).strftime('%Y-%m-%dT%H:%M:%S+00:00')
+        assert len(result) == 1
         assert result[0].value == 'user2'
         assert result[0].last_seen == two_seconds_ago
+
+        # Test that users identified by different means are collected.
+        # (effectively tests OR conditions in snuba API)
+        result = self.ts.get_group_tag_values_for_users([
+            EventUser(project_id=self.proj1.id, email='user1@sentry.io'),
+            EventUser(project_id=self.proj1.id, ident='user2')
+        ])
+        two_seconds_ago = (self.now - timedelta(seconds=2)).strftime('%Y-%m-%dT%H:%M:%S+00:00')
+        assert len(result) == 2
+        result.sort(key=lambda x: x.value)
+        assert result[0].value == 'user1'
+        assert result[0].last_seen == one_second_ago
+        assert result[1].value == 'user2'
+        assert result[1].last_seen == two_seconds_ago
 
     def test_get_release_tags(self):
         tags = self.ts.get_release_tags(
@@ -316,20 +333,18 @@ class TagStorage(TestCase):
             self.proj1env1.id,
             {
                 'foo': 'bar',
-                'baz': 'quux',
             }
         )) == ["1" * 32, "2" * 32]
 
-        assert self.ts.get_group_event_ids(
+        assert sorted(self.ts.get_group_event_ids(
             self.proj1.id,
             self.proj1group1.id,
             self.proj1env1.id,
             {
-                'foo': 'bar',
-                'baz': 'quux',
+                'foo': 'bar',  # OR
                 'release': '200'
             }
-        ) == ["2" * 32]
+        )) == ["1" * 32, "2" * 32]
 
         assert self.ts.get_group_event_ids(
             self.proj1.id,
