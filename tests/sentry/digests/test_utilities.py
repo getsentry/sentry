@@ -7,7 +7,7 @@ from sentry.api.fields.actor import Actor
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.digests.utilities import (
     build_events_by_actor,
-    convert_actors_to_user_set,
+    convert_actors_to_users,
     get_events_from_digest,
     get_personalized_digests,
     sort_records,
@@ -115,7 +115,7 @@ class UtilitiesHelpersTestCase(TestCase):
             user3.id: team1_events.union(team2_events),
             user4.id: user4_events,
         }
-        assert convert_actors_to_user_set(events_by_actor, user_by_events.keys()) == user_by_events
+        assert convert_actors_to_users(events_by_actor, user_by_events.keys()) == user_by_events
 
 
 class GetPersonalizedDigestsTestCase(TestCase):
@@ -124,6 +124,8 @@ class GetPersonalizedDigestsTestCase(TestCase):
         self.user2 = self.create_user()
         self.user3 = self.create_user()
         self.user4 = self.create_user()
+        self.user5 = self.create_user()  # this user has no events
+        self.user_ids = [self.user1.id, self.user2.id, self.user3.id, self.user4.id, self.user5.id]
 
         self.team1 = self.create_team()
         self.team2 = self.create_team()
@@ -140,6 +142,7 @@ class GetPersonalizedDigestsTestCase(TestCase):
                 self.team1,
                 self.team2])
         self.create_member(user=self.user4, organization=self.organization, teams=[self.team3])
+        self.create_member(user=self.user5, organization=self.organization, teams=[self.team3])
 
         start_time = timezone.now()
 
@@ -233,7 +236,7 @@ class GetPersonalizedDigestsTestCase(TestCase):
             assert expected_result[user_id] == get_events_from_digest(user_digest)
             result_user_ids.append(user_id)
 
-        assert sorted(user_ids) == sorted(result_user_ids)
+        assert sorted(expected_result.keys()) == sorted(result_user_ids)
 
     def test_build_events_by_actor(self):
         events = self.team1_events + self.team2_events + self.user4_events
@@ -258,8 +261,7 @@ class GetPersonalizedDigestsTestCase(TestCase):
             self.user3.id: set(self.team1_events + self.team2_events),
             self.user4.id: set(self.user4_events),
         }
-        user_ids = expected_result.keys()
-        self.assert_get_personalized_digests(self.project, digest, user_ids, expected_result)
+        self.assert_get_personalized_digests(self.project, digest, self.user_ids, expected_result)
 
     def test_team_without_members(self):
         team = self.create_team()
@@ -296,9 +298,9 @@ class GetPersonalizedDigestsTestCase(TestCase):
             self.user2.id: set(events),
             self.user3.id: set(events),
             self.user4.id: set(events),
+            self.user5.id: set(events),
         }
-        user_ids = expected_result.keys()
-        self.assert_get_personalized_digests(self.project, digest, user_ids, expected_result)
+        self.assert_get_personalized_digests(self.project, digest, self.user_ids, expected_result)
 
     def test_everyone_with_owners(self):
         rule = self.project.rule_set.all()[0]
@@ -312,6 +314,6 @@ class GetPersonalizedDigestsTestCase(TestCase):
             self.user2.id: set(events),
             self.user3.id: set(events + self.team1_events),
             self.user4.id: set(events),
+            self.user5.id: set(events),
         }
-        user_ids = expected_result.keys()
-        self.assert_get_personalized_digests(self.project, digest, user_ids, expected_result)
+        self.assert_get_personalized_digests(self.project, digest, self.user_ids, expected_result)
