@@ -115,19 +115,29 @@ class ServiceDelegator(Service):
         },
         # ... etc ...
 
-    The backends used for a method call are determined by a selector function.
-    The return value of the selector function is a list of strings, which
-    correspond to names in the backend mapping. The first item in the result
-    list is considered the "primary backend". The remainder of the items in the
-    result list are considered "secondary backends". The result value of the
-    primary backend will be the result value of the delegated method (to
-    callers, this appears as a synchronous method call.) The secondary backends
-    are called asynchronously in the background. (To receive the result values
-    of these method calls, provide a callback_func, described below.) If the
-    primary backend name returned by the selector function doesn't correspond
-    to any registered backend, the function will raise a ``InvalidBackend``
-    exception. If any referenced secondary backends are not registered names,
-    they will be discarded and logged.
+    The backends used for a method call are determined by a selector function
+    which is provided with the method name (as a string) and arguments (in the
+    form returned by ``inspect.getcallargs``) and expected to return a list of
+    strings which correspond to names in the backend mapping. (This list should
+    contain at least one member.) The first item in the result list is
+    considered the "primary backend". The remainder of the items in the result
+    list are considered "secondary backends". The result value of the primary
+    backend will be the result value of the delegated method (to callers, this
+    appears as a synchronous method call.) The secondary backends are called
+    asynchronously in the background.  (To receive the result values of these
+    method calls, provide a callback_func, described below.) If the primary
+    backend name returned by the selector function doesn't correspond to any
+    registered backend, the function will raise a ``InvalidBackend`` exception.
+    If any referenced secondary backends are not registered names, they will be
+    discarded and logged.
+
+    The members and ordering of the selector function result (and thus the
+    primary and secondary backends for a method call) may vary from call to
+    call based on the calling arguments or some other state. For example, some
+    calls may use a different primary backend based on some piece of global
+    state (e.g. some property of a web request), or a secondary backend
+    undergoing testing may be included based on the result of a random number
+    generator (essentially calling it in the background for a sample of calls.)
 
     The selector function and callback function are both provided as paths to a
     callable that will be imported at backend instantation.
