@@ -282,12 +282,15 @@ class DjangoSearchBackend(SearchBackend):
         else:
             retention_window_start = None
 
+        # TODO: This could also do something janky like switching based on the current
+        #       tagstore backend, or a global option, or a number of other things. Going
+        #       by the project seemed the best for now.
         use_snuba = bool(project.get_option('sentry:snuba', False))
         if use_snuba and (tags or
                           environment is not None or
                           any(key in parameters for key in ('date_from', 'date_to'))):
-            # if we're in this branch then Snuba can help us filter down the eligible group ids
 
+            # if we're in this branch then Snuba can help us filter down the eligible group ids
             filters = {
                 'project_id': [project.id],
             }
@@ -305,8 +308,9 @@ class DjangoSearchBackend(SearchBackend):
 
             now = timezone.now()
             end = parameters.get('date_to') or now
-            # TODO: Presumably we want to search back to the project's full retention
-            #       but apparently `retention_window_start` can be None?
+            # TODO: Presumably we want to search back to the project's full retention,
+            #       which may be higher than 90 days in the future, but apparently
+            #       `retention_window_start` can be None?
             start = (parameters.get('date_from')
                      or retention_window_start
                      or (now - timedelta(days=90)))
@@ -318,7 +322,10 @@ class DjangoSearchBackend(SearchBackend):
                 ).value_list('group_id', flat=True).distinct()
             )
 
-            # The following didn't change from the else branch below, except tags is handled above
+            # The following isn't diffeent from the original Django-only else branch
+            # below, except tags are handled above in Snuba code. From this point on
+            # we're just working with the `group_queryset` that has been filtered down
+            # to a set of `Group.id`s by Snuba.
             group_queryset = QuerySetBuilder({
                 'first_release': CallbackCondition(
                     lambda queryset, version: queryset.filter(
