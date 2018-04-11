@@ -38,7 +38,10 @@ describe('OrganizationProjectsView', function() {
   describe('render()', function() {
     it('Should render the projects in the store', function() {
       let wrapper = mount(
-        <OrganizationProjectsViewContainer params={{orgId: org.slug}} />,
+        <OrganizationProjectsViewContainer
+          params={{orgId: org.slug}}
+          location={{query: {}}}
+        />,
         TestStubs.routerOrganizationContext()
       );
       expect(wrapper).toMatchSnapshot();

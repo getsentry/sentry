@@ -2,7 +2,7 @@ import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import idx from 'idx';
+import {get} from 'lodash';
 
 import {defined} from '../../utils';
 import InlineSvg from '../inlineSvg';
@@ -89,7 +89,7 @@ export default class FormField extends React.PureComponent {
     if (defined(props.error)) {
       return props.error;
     }
-    return idx(form, _ => _.errors[props.name]) || null;
+    return get(form, ['errors', props.name]) || null;
   }
 
   getId() {

@@ -2,6 +2,11 @@
 
 exports[`OrganizationProjectsView render() Should render the projects in the store 1`] = `
 <OrganizationProjectsView
+  location={
+    Object {
+      "query": Object {},
+    }
+  }
   params={
     Object {
       "orgId": "org-slug",

@@ -969,10 +969,6 @@ babel-plugin-emotion@^8.0.12, babel-plugin-emotion@^8.0.2-11:
     source-map "^0.5.7"
     touch "^1.0.0"
 
-babel-plugin-idx@^1.5.1:
-  version "1.5.1"
-  resolved "https://registry.yarnpkg.com/babel-plugin-idx/-/babel-plugin-idx-1.5.1.tgz#29eff29f91b22e1f0a314827a94695bd6fbc8e00"
-
 babel-plugin-istanbul@^4.1.5:
   version "4.1.5"
   resolved "https://registry.yarnpkg.com/babel-plugin-istanbul/-/babel-plugin-istanbul-4.1.5.tgz#6760cdd977f411d3e175bb064f2bc327d99b2b6e"
@@ -4499,10 +4495,6 @@ icss-utils@^2.1.0:
   resolved "https://registry.yarnpkg.com/icss-utils/-/icss-utils-2.1.0.tgz#83f0a0ec378bf3246178b6c2ad9136f135b1c962"
   dependencies:
     postcss "^6.0.1"
-
-idx@^1.5.0:
-  version "1.5.0"
-  resolved "https://registry.yarnpkg.com/idx/-/idx-1.5.0.tgz#2ce9665945fdb36544308f930c78e3f1ef6c4315"
 
 ieee754@^1.1.4:
   version "1.1.8"

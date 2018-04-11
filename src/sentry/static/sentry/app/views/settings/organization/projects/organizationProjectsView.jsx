@@ -1,7 +1,6 @@
 import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import idx from 'idx';
 
 import {getOrganizationState} from '../../../../mixins/organizationState';
 import {sortProjects} from '../../../../utils';
@@ -24,14 +23,16 @@ export default class OrganizationProjectsView extends AsyncView {
   };
 
   getEndpoints() {
-    let {orgId} = this.props.params;
+    const {params, location} = this.props;
+    const {orgId} = params;
+
     return [
       [
         'projectList',
         `/organizations/${orgId}/projects/`,
         {
           query: {
-            query: idx(this.props, _ => _.location.query.query),
+            query: location.query.query,
           },
         },
       ],
@@ -52,7 +53,7 @@ export default class OrganizationProjectsView extends AsyncView {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
-      searchQuery: idx(this.props, _ => _.location.query.query),
+      searchQuery: this.props.location.query.query,
     };
   }
 

@@ -1,8 +1,8 @@
-import idx from 'idx';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 import {Flex} from 'grid-emotion';
+import {get} from 'lodash';
 
 import Avatar from './avatar';
 import TimeSince from './timeSince';
@@ -29,6 +29,7 @@ export default class CommitRow extends React.Component {
 
   render() {
     let {id, dateCreated, message, author, repository} = this.props.commit;
+
     return (
       <PanelItem key={id} align="center">
         <Flex mr={2}>
@@ -38,7 +39,7 @@ export default class CommitRow extends React.Component {
           <TruncatedText>{this.renderMessage(message)}</TruncatedText>
           <div style={{fontSize: 13}}>
             {tct('[author] committed [timeago]', {
-              author: <strong>{idx(author, _ => _.name) || t('Unknown author')}</strong>,
+              author: <strong>{get(author, 'name') || t('Unknown author')}</strong>,
               timeago: <TimeSince date={dateCreated} />,
             })}
           </div>
