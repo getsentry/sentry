@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import logging
 import threading
-from Queue import Queue
+from Queue import Full, Queue
 from concurrent.futures import Future
 
 
@@ -70,7 +70,7 @@ class ThreadedExecutor(object):
         future = Future()
         try:
             self.__queue.put((callable, future), *args, **kwargs)
-        except Queue.Full as error:
+        except Full as error:
             if future.set_running_or_notify_cancel():
                 future.set_exception(error)
         return future
