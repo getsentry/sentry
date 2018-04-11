@@ -165,9 +165,6 @@ class ServiceDelegator(Service):
         """
 
     def __init__(self, backend_base, backends, selector_func, callback_func=None):
-        if callback_func is not None:
-            callback_func = import_string(callback_func)
-
         self.__backend_base = import_string(backend_base)
 
         def load_executor(options):
@@ -186,7 +183,11 @@ class ServiceDelegator(Service):
             )
 
         self.__selector_func = import_string(selector_func)
-        self.__callback_func = callback_func
+
+        if callback_func is not None:
+            self.__callback_func = import_string(callback_func)
+        else:
+            self.__callback_func = None
 
     def validate(self):
         for backend, executor in self.__backends.values():
