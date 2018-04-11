@@ -132,8 +132,7 @@ class AuditLogEntry(Model):
             (AuditLogEntryEvent.RULE_ADD, 'rule.create'),
             (AuditLogEntryEvent.RULE_EDIT, 'rule.edit'),
             (AuditLogEntryEvent.RULE_REMOVE, 'rule.remove'),
-<<<<<<< HEAD
-            (AuditLogEntryEvent.SET_ONDEMAND, 'ondemand.edit'),
+
             (AuditLogEntryEvent.SERVICEHOOK_ADD, 'serivcehook.create'),
             (AuditLogEntryEvent.SERVICEHOOK_EDIT, 'serivcehook.edit'),
             (AuditLogEntryEvent.SERVICEHOOK_REMOVE, 'serivcehook.remove'),
@@ -141,11 +140,11 @@ class AuditLogEntry(Model):
             (AuditLogEntryEvent.SERVICEHOOK_DISABLE, 'serivcehook.disable'),
             (AuditLogEntryEvent.INTEGRATION_ADD, 'integration.add'),
             (AuditLogEntryEvent.INTEGRATION_EDIT, 'integration.edit'),
-            (AuditLogEntryEvent.INTEGRATION_REMOVE, 'integration.remove')
-=======
+            (AuditLogEntryEvent.INTEGRATION_REMOVE, 'integration.remove'),
+
+            (AuditLogEntryEvent.SET_ONDEMAND, 'ondemand.edit'),
             (AuditLogEntryEvent.TRIAL_STARTED, 'trial.started'),
             (AuditLogEntryEvent.PLAN_CHANGED, 'plan.changed'),
->>>>>>> feat(auditlog): Add Trial and Plan Events to Audit Log
         )
     )
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
