@@ -1,19 +1,21 @@
+import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import DocumentTitle from 'react-document-title';
 
+import {t} from '../locale';
 import ApiMixin from '../mixins/apiMixin';
 import Count from '../components/count';
+import ExternalLink from '../components/externalLink';
 import ListLink from '../components/listLink';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
-import ReleaseStats from '../components/releaseStats';
 import ProjectState from '../mixins/projectState';
+import ReleaseStats from '../components/releaseStats';
+import SentryTypes from '../proptypes';
+import TextOverflow from '../components/textOverflow';
 import TimeSince from '../components/timeSince';
 import Version from '../components/version';
-import {t} from '../locale';
-import SentryTypes from '../proptypes';
 import withEnvironmentInQueryString from '../utils/withEnvironmentInQueryString';
 
 const ReleaseDetails = createReactClass({
@@ -131,6 +133,13 @@ const ReleaseDetails = createReactClass({
                     />
                   </strong>
                 </h3>
+                {!!release.url && (
+                  <div>
+                    <ExternalLink href={release.url}>
+                      <TextOverflow>{release.url}</TextOverflow>
+                    </ExternalLink>
+                  </div>
+                )}
                 <div className="release-meta">
                   <span className="icon icon-clock" />{' '}
                   <TimeSince date={release.dateCreated} />
