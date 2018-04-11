@@ -142,12 +142,15 @@ class Search extends React.Component {
                           <LoadingIndicator mini hideMessage relative />
                         </Flex>
                       )}
-
                       {!isLoading &&
-                        results
-                          .splice(0, maxResults)
-                          .map(result => this.renderItem({...result, getItemProps}))}
-
+                        results.splice(0, maxResults).map((result, index) =>
+                          this.renderItem({
+                            ...result,
+                            index,
+                            highlightedIndex,
+                            getItemProps,
+                          })
+                        )}
                       {!isLoading &&
                         !hasAnyResults && <EmptyItem>{t('No results found')}</EmptyItem>}
                     </DropdownBox>

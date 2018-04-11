@@ -94,6 +94,20 @@ describe('Command Palette Modal', function() {
         .text()
     ).toBe('billy-org Settings');
 
+    expect(
+      wrapper
+        .find('ModalDialog CommandPaletteSearchResultWrapper')
+        .first()
+        .prop('highlighted')
+    ).toBe(true);
+
+    expect(
+      wrapper
+        .find('ModalDialog CommandPaletteSearchResultWrapper')
+        .at(1)
+        .prop('highlighted')
+    ).toBe(false);
+
     wrapper
       .find('ModalDialog SearchResult')
       .first()

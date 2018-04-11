@@ -110,7 +110,7 @@ class SearchResult extends React.Component {
 export default withRouter(SearchResult);
 
 // This is for tests
-const SearchTitle = styled.div``;
+const SearchTitle = styled.span``;
 
 const SearchDetail = styled.div`
   font-size: 0.8em;
