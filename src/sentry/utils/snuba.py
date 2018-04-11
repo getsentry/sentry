@@ -47,7 +47,7 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
     for col, keys in six.iteritems(filter_keys):
         keys = [k for k in keys if k is not None]
         if col in snuba_map:
-            keys = [snuba_map[col][k] for k in keys]
+            keys = [snuba_map[col][k] for k in keys if k in snuba_map[col]]
         if keys:
             conditions.append((col, 'IN', keys))
 

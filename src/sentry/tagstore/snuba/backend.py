@@ -13,6 +13,7 @@ from datetime import timedelta
 from django.utils import timezone
 import six
 
+from sentry.api.serializers import Serializer, register
 from sentry.tagstore import TagKeyStatus
 from sentry.tagstore.base import TagStorage
 from sentry.tagstore.exceptions import (
@@ -29,6 +30,12 @@ SEEN_COLUMN = 'timestamp'
 class ObjectWrapper(object):
     def __init__(self, dictionary):
         self.__dict__ = dictionary
+
+
+@register(ObjectWrapper)
+class ObjectWrapperSerializer(Serializer):
+    def serialize(self, obj, attrs, user):
+        return self.__dict__
 
 
 class SnubaTagStorage(TagStorage):
@@ -398,3 +405,100 @@ class SnubaTagStorage(TagStorage):
 
         issues = snuba.query(start, end, ['issue'], conditions, filters)
         return issues.keys()
+
+    # Everything from here down is basically no-ops
+    def create_tag_key(self, project_id, environment_id, key, **kwargs):
+        return ObjectWrapper({
+            'times_seen': 0,
+            'key': key,
+            'update': lambda *args, **kwargs: None
+        })
+
+    def get_or_create_tag_key(self, project_id, environment_id, key, **kwargs):
+        try:
+            return self.get_tag_key(project_id, environment_id, key)
+        except TagKeyNotFound:
+            return (self.create_tag_key(project_id, environment_id, key, **kwargs), True)
+
+    def create_tag_value(self, project_id, environment_id, key, value, **kwargs):
+        return ObjectWrapper({
+            'times_seen': 0,
+            'key': key,
+            'value': value,
+            'update': lambda *args, **kwargs: None
+        })
+
+    def get_or_create_tag_value(self, project_id, environment_id, key, value, **kwargs):
+        try:
+            return self.get_tag_value(project_id, environment_id, key, value)
+        except TagValueNotFound:
+            return (self.create_tag_value(project_id, environment_id, key, value, **kwargs), True)
+
+    def create_group_tag_key(self, project_id, group_id, environment_id, key, **kwargs):
+        return ObjectWrapper({
+            'times_seen': 0,
+            'key': key,
+            'group_id': group_id,
+            'update': lambda *args, **kwargs: None
+        })
+
+    def get_or_create_group_tag_key(self, project_id, group_id, environment_id, key, **kwargs):
+        try:
+            return self.get_group_tag_key(project_id, group_id, environment_id, key)
+        except GroupTagKeyNotFound:
+            return (self.create_group_tag_key(
+                project_id, group_id, environment_id, key, **kwargs), True)
+
+    def create_group_tag_value(self, project_id, group_id, environment_id,
+                               key, value, **kwargs):
+        return ObjectWrapper({
+            'times_seen': 0,
+            'key': key,
+            'value': value,
+            'group_id': group_id,
+            'update': lambda *args, **kwargs: None
+        })
+
+    def get_or_create_group_tag_value(self, project_id, group_id,
+                                      environment_id, key, value, **kwargs):
+        try:
+            return self.get_group_tag_value(project_id, group_id, environment_id, key, value)
+        except GroupTagValueNotFound:
+            return (self.create_group_tag_value(project_id, group_id,
+                                                environment_id, key, value, **kwargs), True)
+
+    def create_event_tags(self, project_id, group_id, environment_id,
+                          event_id, tags, date_added=None):
+        pass
+
+    def delete_tag_key(self, project_id, key):
+        return []
+
+    def delete_all_group_tag_keys(self, project_id, group_id):
+        pass
+
+    def delete_all_group_tag_values(self, project_id, group_id):
+        pass
+
+    def incr_tag_value_times_seen(self, project_id, environment_id,
+                                  key, value, extra=None, count=1):
+        pass
+
+    def incr_group_tag_value_times_seen(self, project_id, group_id, environment_id,
+                                        key, value, extra=None, count=1):
+        pass
+
+    def update_group_for_events(self, project_id, event_ids, destination_id):
+        pass
+
+    def update_group_tag_key_values_seen(self, project_id, group_ids):
+        pass
+
+    def get_tag_value_qs(self, project_id, environment_id, key, query=None):
+        return None
+
+    def get_group_tag_value_qs(self, project_id, group_id, environment_id, key, value=None):
+        return None
+
+    def get_event_tag_qs(self, project_id, environment_id, key, value):
+        return None
