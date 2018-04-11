@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import logging
 import threading
-from Queue import Full, Queue
+from Queue import Full, PriorityQueue
 from concurrent.futures import Future
 
 
@@ -14,7 +14,7 @@ class ThreadedExecutor(object):
     This executor provides a method of executing callables in a threaded worker
     pool. The number of outstanding requests can be limited by the ``maxsize``
     parameter, which has the same behavior as the parameter of the same name
-    for the ``Queue`` constructor.
+    for the ``PriorityQueue`` constructor.
 
     All threads are daemon threads and will remain alive until the main thread
     exits. Any items remaining in the queue at this point may not be executed!
@@ -30,7 +30,7 @@ class ThreadedExecutor(object):
         self.__worker_count = worker_count
         self.__workers = set([])
         self.__started = False
-        self.__queue = Queue(maxsize)
+        self.__queue = PriorityQueue(maxsize)
 
     def start(self):
         assert not self.__started
@@ -38,7 +38,7 @@ class ThreadedExecutor(object):
         def worker():
             queue = self.__queue
             while True:
-                function, future = queue.get(True)
+                priority, (function, future) = queue.get(True)
                 if not future.set_running_or_notify_cancel():
                     continue
                 try:
@@ -57,9 +57,13 @@ class ThreadedExecutor(object):
 
         self.__started = True
 
-    def submit(self, callable, *args, **kwargs):
+    def submit(self, callable, priority=0, block=True, timeout=None):
         """\
         Enqueue a task to be executed, returning a ``Future``.
+
+        Tasks can be prioritized by providing a value for the ``priority``
+        argument, which follows the same specification as the standard library
+        ``Queue.PriorityQueue`` (lowest valued entries are retrieved first.)
 
         If the worker pool has not already been started, calling this method
         will cause all of the worker threads to start running.
@@ -68,8 +72,9 @@ class ThreadedExecutor(object):
             self.start()
 
         future = Future()
+        task = (priority, (callable, future))
         try:
-            self.__queue.put((callable, future), *args, **kwargs)
+            self.__queue.put(task, block=block, timeout=timeout)
         except Full as error:
             if future.set_running_or_notify_cancel():
                 future.set_exception(error)
