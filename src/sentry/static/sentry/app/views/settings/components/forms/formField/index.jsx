@@ -361,7 +361,7 @@ class FormField extends React.Component {
               return (
                 <PanelAlert type={saveMessageAlertType}>
                   <MessageAndActions>
-                    <Message>{saveMessage}</Message>
+                    <div>{saveMessage}</div>
                     <Actions>
                       <CancelButton onClick={this.handleCancelField}>
                         {t('Cancel')}
@@ -386,14 +386,14 @@ export default FormField;
 const MessageAndActions = styled('div')`
   display: flex;
   justify-content: space-between;
-`;
-
-const Message = styled('div')`
-  flex: 1;
+  align-items: center;
 `;
 
 const Actions = styled('div')`
-  flex-shrink: 0;
+  height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
 `;
 
 const CancelButton = styled(Button)`
