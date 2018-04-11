@@ -50,7 +50,7 @@ class ThreadedExecutor(object):
                 queue.task_done()
 
         for i in xrange(self.__worker_count):
-            t = threading.Thread(None, worker)
+            t = threading.Thread(target=worker)
             t.daemon = True
             t.start()
             self.__workers.add(t)
