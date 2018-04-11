@@ -94,11 +94,11 @@ def convert_actors_to_users(events_by_actor, user_ids):
     """
     convert_actors_to_user_set(events_by_actor: Map[Actor:Set(Events)], user_ids: List(Int)) -> Map[User_Id:Set(Events)]
     """
-    user_by_events = defaultdict(set)
+    events_by_user = defaultdict(set)
     if ProjectOwnership.Everyone in events_by_actor:
         events = events_by_actor[ProjectOwnership.Everyone]
         for user_id in user_ids:
-            user_by_events[user_id] = set(events)
+            events_by_user[user_id] = set(events)
         del events_by_actor[ProjectOwnership.Everyone]
 
     team_actors = [actor for actor in six.iterkeys(events_by_actor) if actor.type == Team]
@@ -113,10 +113,10 @@ def convert_actors_to_users(events_by_actor, user_ids):
                 pass
             else:
                 for user_id in team_user_ids:
-                    user_by_events[user_id].update(events)
+                    events_by_user[user_id].update(events)
         elif actor.type == User:
-            user_by_events[actor.id].update(events)
-    return user_by_events
+            events_by_user[actor.id].update(events)
+    return events_by_user
 
 
 def team_actors_to_user_ids(team_actors, user_ids):
