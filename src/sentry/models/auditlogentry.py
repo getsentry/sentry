@@ -64,6 +64,8 @@ class AuditLogEntryEvent(object):
     RULE_REMOVE = 82
 
     SET_ONDEMAND = 90
+    TRIAL_STARTED = 91
+    PLAN_CHANGED = 92
 
     SERVICEHOOK_ADD = 100
     SERVICEHOOK_EDIT = 101
@@ -130,7 +132,7 @@ class AuditLogEntry(Model):
             (AuditLogEntryEvent.RULE_ADD, 'rule.create'),
             (AuditLogEntryEvent.RULE_EDIT, 'rule.edit'),
             (AuditLogEntryEvent.RULE_REMOVE, 'rule.remove'),
-            (AuditLogEntryEvent.SET_ONDEMAND, 'ondemand.edit'),
+
             (AuditLogEntryEvent.SERVICEHOOK_ADD, 'serivcehook.create'),
             (AuditLogEntryEvent.SERVICEHOOK_EDIT, 'serivcehook.edit'),
             (AuditLogEntryEvent.SERVICEHOOK_REMOVE, 'serivcehook.remove'),
@@ -138,7 +140,11 @@ class AuditLogEntry(Model):
             (AuditLogEntryEvent.SERVICEHOOK_DISABLE, 'serivcehook.disable'),
             (AuditLogEntryEvent.INTEGRATION_ADD, 'integration.add'),
             (AuditLogEntryEvent.INTEGRATION_EDIT, 'integration.edit'),
-            (AuditLogEntryEvent.INTEGRATION_REMOVE, 'integration.remove')
+            (AuditLogEntryEvent.INTEGRATION_REMOVE, 'integration.remove'),
+
+            (AuditLogEntryEvent.SET_ONDEMAND, 'ondemand.edit'),
+            (AuditLogEntryEvent.TRIAL_STARTED, 'trial.started'),
+            (AuditLogEntryEvent.PLAN_CHANGED, 'plan.changed'),
         )
     )
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
@@ -268,6 +274,10 @@ class AuditLogEntry(Model):
 
         elif self.event == AuditLogEntryEvent.SET_ONDEMAND:
             return 'changed on-demand max spend to $%d' % (self.data['ondemand'] / 100, )
+        elif self.event == AuditLogEntryEvent.TRIAL_STARTED:
+            return 'started trial'
+        elif self.event == AuditLogEntryEvent.PLAN_CHANGED:
+            return 'changed plan to %s' % (self.data['plan_name'], )
 
         elif self.event == AuditLogEntryEvent.SERVICEHOOK_ADD:
             return 'added a service hook for "%s"' % (truncatechars(self.data['url'], 64), )
