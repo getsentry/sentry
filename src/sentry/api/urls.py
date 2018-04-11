@@ -46,6 +46,7 @@ from .endpoints.organization_api_key_details import OrganizationApiKeyDetailsEnd
 from .endpoints.organization_auth_providers import OrganizationAuthProvidersEndpoint
 from .endpoints.organization_auth_provider_details import OrganizationAuthProviderDetailsEndpoint
 from .endpoints.organization_auth_provider_send_reminders import OrganizationAuthProviderSendRemindersEndpoint
+from .endpoints.organization_avatar import OrganizationAvatarEndpoint
 from .endpoints.organization_details import OrganizationDetailsEndpoint
 from .endpoints.organization_shortid import ShortIdLookupEndpoint
 from .endpoints.organization_slugs import SlugsUpdateEndpoint
@@ -364,6 +365,11 @@ urlpatterns = patterns(
         r'^organizations/(?P<organization_slug>[^\/]+)/auth-provider/send-reminders/$',
         OrganizationAuthProviderSendRemindersEndpoint.as_view(),
         name='sentry-api-0-organization-auth-provider-send-reminders'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/avatar/$',
+        OrganizationAvatarEndpoint.as_view(),
+        name='sentry-api-0-organization-avatar'
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/config/integrations/$',
