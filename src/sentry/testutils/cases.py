@@ -11,13 +11,14 @@ from __future__ import absolute_import
 __all__ = (
     'TestCase', 'TransactionTestCase', 'APITestCase', 'TwoFactorAPITestCase', 'AuthProviderTestCase', 'RuleTestCase',
     'PermissionTestCase', 'PluginTestCase', 'CliTestCase', 'AcceptanceTestCase',
-    'IntegrationTestCase', 'UserReportEnvironmentTestCase',
+    'IntegrationTestCase', 'UserReportEnvironmentTestCase', 'SnubaTestCase',
 )
 
 import base64
 import os
 import os.path
 import pytest
+import requests
 import six
 import types
 import logging
@@ -52,7 +53,7 @@ from sentry.models import (
 )
 from sentry.plugins import plugins
 from sentry.rules import EventState
-from sentry.utils import json
+from sentry.utils import json, snuba
 from sentry.utils.auth import SSO_SESSION_KEY
 
 from .fixtures import Fixtures
@@ -685,3 +686,16 @@ class IntegrationTestCase(TestCase):
 
     def assertDialogSuccess(self, resp):
         assert 'window.opener.postMessage(' in resp.content
+
+
+class SnubaTestCase(TestCase):
+    def setUp(self):
+        super(SnubaTestCase, self).setUp()
+
+        assert requests.post(snuba.SNUBA + '/tests/drop').status_code == 200
+
+    def snuba_insert(self, events):
+        assert requests.post(
+            snuba.SNUBA + '/tests/insert',
+            data=json.dumps(events)
+        ).status_code == 200

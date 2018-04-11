@@ -14,7 +14,7 @@ import six
 
 from django.db import router
 from django.db.models import Q
-from django.utils import timezone, snuba
+from django.utils import timezone
 
 from sentry import quotas, tagstore
 from sentry.api.paginator import DateTimePaginator, Paginator, SequencePaginator
@@ -23,6 +23,7 @@ from sentry.search.django.constants import (
     MSSQL_ENGINES, MSSQL_SORT_CLAUSES, MYSQL_SORT_CLAUSES, ORACLE_SORT_CLAUSES, SORT_CLAUSES,
     SQLITE_SORT_CLAUSES
 )
+from sentry.utils import snuba
 from sentry.utils.dates import to_timestamp
 from sentry.utils.db import get_db_engine
 

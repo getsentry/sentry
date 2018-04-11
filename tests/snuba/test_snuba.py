@@ -1,22 +1,13 @@
 from __future__ import absolute_import
 
 from datetime import datetime, timedelta
-import requests
-import json
 import time
 
-from exam import before
-
-from sentry.testutils import TestCase
-from sentry.utils.snuba import query, SNUBA
+from sentry.testutils import SnubaTestCase
+from sentry.utils import snuba
 
 
-class SnubaTest(TestCase):
-    @before
-    def setup(self):
-        r = requests.post(SNUBA + '/tests/drop')
-        assert r.status_code == 200
-
+class SnubaTest(SnubaTestCase):
     def test(self):
         now = datetime.now()
 
@@ -32,13 +23,11 @@ class SnubaTest(TestCase):
             }
         }]
 
-        r = requests.post(SNUBA + '/tests/insert', data=json.dumps(events))
-        assert r.status_code == 200
+        self.snuba_insert(events)
 
-        r = query(
+        assert snuba.query(
             start=now - timedelta(days=1),
             end=now + timedelta(days=1),
             groupby=['project_id'],
             filter_keys={'project_id': [1]},
-        )
-        assert r == {1: 1}
+        ) == {1: 1}
