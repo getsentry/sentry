@@ -5,13 +5,14 @@ import six
 
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseNotFound, HttpResponseRedirect
 from django.middleware.csrf import CsrfViewMiddleware
 from django.views.generic import View
 from django.views.decorators.csrf import csrf_exempt
 from sudo.views import redirect_to_sudo
 
 from sentry import roles
+from sentry.api.serializers import serialize
 from sentry.auth import access
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
@@ -21,7 +22,8 @@ from sentry.models import (
 from sentry.utils import auth
 from sentry.utils.audit import create_audit_entry
 from sentry.web.helpers import render_to_response
-from sentry.api.serializers import serialize
+from sentry.web.frontend.generic import FOREVER_CACHE
+
 
 logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger('sentry.audit.ui')
@@ -531,3 +533,32 @@ class ProjectView(OrganizationView):
         kwargs['organization'] = active_organization
 
         return (args, kwargs)
+
+
+class AvatarPhotoView(View):
+    model = None
+
+    def get(self, request, *args, **kwargs):
+        avatar_id = kwargs['avatar_id']
+        try:
+            avatar = self.model.objects.get(ident=avatar_id)
+        except self.model.DoesNotExist:
+            return HttpResponseNotFound()
+
+        photo = avatar.file
+        if not photo:
+            return HttpResponseNotFound()
+
+        size = request.GET.get('s')
+        photo_file = photo.getfile()
+        if size:
+            try:
+                size = int(size)
+            except ValueError:
+                return HttpResponseBadRequest()
+            else:
+                photo_file = avatar.get_cached_photo(size)
+
+        res = HttpResponse(photo_file, content_type='image/png')
+        res['Cache-Control'] = FOREVER_CACHE
+        return res
