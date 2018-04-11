@@ -133,11 +133,13 @@ const ReleaseDetails = createReactClass({
                     />
                   </strong>
                 </h3>
-                <div>
-                  <ExternalLink href={release.url}>
-                    <TextOverflow>{release.url}</TextOverflow>
-                  </ExternalLink>
-                </div>
+                {!!release.url && (
+                  <div>
+                    <ExternalLink href={release.url}>
+                      <TextOverflow>{release.url}</TextOverflow>
+                    </ExternalLink>
+                  </div>
+                )}
                 <div className="release-meta">
                   <span className="icon icon-clock" />{' '}
                   <TimeSince date={release.dateCreated} />
