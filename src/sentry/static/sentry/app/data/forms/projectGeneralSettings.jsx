@@ -58,6 +58,10 @@ export const fields = {
     label: t('Name'),
     placeholder: t('my-service-name'),
     help: t('A unique ID used to identify this project'),
+
+    saveOnBlur: false,
+    saveMessageAlertType: 'info',
+    saveMessage: t('You will be redirected to the new project slug after saving'),
   },
   team: {
     name: 'team',
@@ -200,13 +204,13 @@ export const fields = {
     placeholder: t('X-Sentry-Token'),
     label: t('Security Token Header'),
     help: t(
-      'Outbound requests matching Allowed Domains will have the header "{token_header}: {token}" appended.'
+      'Outbound requests matching Allowed Domains will have the header "{token_header}: {token}" appended'
     ),
   },
   verifySSL: {
     name: 'verifySSL',
     type: 'boolean',
     label: t('Verify TLS/SSL'),
-    help: t('Outbound requests will verify TLS (sometimes known as SSL) connections.'),
+    help: t('Outbound requests will verify TLS (sometimes known as SSL) connections'),
   },
 };

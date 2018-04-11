@@ -275,6 +275,7 @@ class FormField extends React.Component {
 
     model.handleSaveField(name, model.getValue(name));
   };
+
   handleCancelField = (...args) => {
     let {name} = this.props;
     let model = this.getModel();

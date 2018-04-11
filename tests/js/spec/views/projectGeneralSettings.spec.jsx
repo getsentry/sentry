@@ -205,7 +205,9 @@ describe('projectGeneralSettings', function() {
       .simulate('change', {target: {value: 'new-project'}})
       .simulate('blur');
 
-    expect(putMock).toHaveBeenCalled();
+    // Slug does not save on blur
+    expect(putMock).not.toHaveBeenCalled();
+    wrapper.find('SaveButton').simulate('click');
 
     await tick();
     // :(
@@ -220,5 +222,97 @@ describe('projectGeneralSettings', function() {
     // });
     wrapper.update();
     expect(wrapper.find('Input[name="slug"]').prop('value')).toBe('new-project');
+  });
+
+  describe('Non-"save on blur" Field', function() {
+    let wrapper;
+
+    beforeEach(function() {
+      let params = {orgId: org.slug, projectId: project.slug};
+      ProjectsStore.loadInitialData([project]);
+      putMock = MockApiClient.addMockResponse({
+        url: `/projects/${org.slug}/${project.slug}/`,
+        method: 'PUT',
+        body: {
+          ...project,
+          slug: 'new-project',
+        },
+      });
+      wrapper = mountWithTheme(
+        <ProjectContext orgId={org.slug} projectId={project.slug}>
+          <ProjectGeneralSettings
+            routes={[]}
+            location={routerContext.context.location}
+            params={params}
+          />
+        </ProjectContext>,
+        routerContext
+      );
+    });
+
+    it('can cancel unsaved changes for a field', async function() {
+      await tick();
+      wrapper.update();
+      // Initially does not have "Cancel" button
+      expect(wrapper.find('MessageAndActions CancelButton')).toHaveLength(0);
+      // Has initial value
+      expect(wrapper.find('input[name="resolveAge"]').prop('value')).toBe(19);
+
+      // Change value
+      wrapper
+        .find('input[name="resolveAge"]')
+        .simulate('input', {target: {value: 12}})
+        .simulate('mouseUp');
+
+      // Has updated value
+      expect(wrapper.find('input[name="resolveAge"]').prop('value')).toBe(12);
+      // Has "Cancel" button visible
+      expect(wrapper.find('MessageAndActions CancelButton')).toHaveLength(1);
+
+      // Click cancel
+      wrapper.find('MessageAndActions CancelButton').simulate('click');
+      // Cancel row should disappear
+      expect(wrapper.find('MessageAndActions CancelButton')).toHaveLength(0);
+      // Value should be reverted
+      expect(wrapper.find('input[name="resolveAge"]').prop('value')).toBe(19);
+      // PUT should not be called
+      expect(putMock).not.toHaveBeenCalled();
+    });
+
+    it('saves when value is changed and "Save" clicked', async function() {
+      await tick();
+      wrapper.update();
+      // Initially does not have "Save" button
+      expect(wrapper.find('MessageAndActions SaveButton')).toHaveLength(0);
+
+      // Change value
+      wrapper
+        .find('input[name="resolveAge"]')
+        .simulate('input', {target: {value: 12}})
+        .simulate('mouseUp');
+
+      // Has "Save" button visible
+      expect(wrapper.find('MessageAndActions SaveButton')).toHaveLength(1);
+
+      // Should not have put mock called yet
+      expect(putMock).not.toHaveBeenCalled();
+
+      // Click "Save"
+      wrapper.find('MessageAndActions SaveButton').simulate('click');
+      // API endpoint should have been called
+      expect(putMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {
+            resolveAge: 12,
+          },
+        })
+      );
+
+      // Should hide "Save" button after saving
+      await tick();
+      wrapper.update();
+      expect(wrapper.find('MessageAndActions SaveButton')).toHaveLength(0);
+    });
   });
 });

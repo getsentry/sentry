@@ -17,6 +17,10 @@ const formGroups = [
         label: t('Name'),
         placeholder: 'e.g. api-team',
         help: t('A unique ID used to identify the team'),
+
+        saveOnBlur: false,
+        saveMessageAlertType: 'info',
+        saveMessage: t('You will be redirected to the new team slug after saving'),
       },
       {
         name: 'name',
