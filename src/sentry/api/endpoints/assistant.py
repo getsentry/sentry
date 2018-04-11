@@ -41,10 +41,12 @@ class AssistantEndpoint(Endpoint):
     def get(self, request):
         """Return all the guides the user has not viewed or dismissed."""
         guides = manager.all()
-        exclude_ids = set(AssistantActivity.objects.filter(
+        seen_ids = set(AssistantActivity.objects.filter(
             user=request.user,
         ).values_list('guide_id', flat=True))
-        result = {k: v for k, v in guides.items() if v['id'] not in exclude_ids}
+        for k, v in guides.items():
+            v['seen'] = v['id'] in seen_ids
+        result = guides
         return Response(result)
 
     def put(self, request):
