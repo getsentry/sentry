@@ -6053,15 +6053,15 @@ mockdate@2.0.2:
   version "2.0.2"
   resolved "https://registry.yarnpkg.com/mockdate/-/mockdate-2.0.2.tgz#5ae0c0eaf8fe23e009cd01f9889b42c4f634af12"
 
-moment-timezone@0.4.1:
-  version "0.4.1"
-  resolved "https://registry.yarnpkg.com/moment-timezone/-/moment-timezone-0.4.1.tgz#81f598c3ad5e22cdad796b67ecd8d88d0f5baa06"
+moment-timezone@0.5.4:
+  version "0.5.4"
+  resolved "https://registry.yarnpkg.com/moment-timezone/-/moment-timezone-0.5.4.tgz#b6188b8f08557ea9ffb0d42899f5b171e1858e93"
   dependencies:
     moment ">= 2.6.0"
 
-moment@2.19.3:
-  version "2.19.3"
-  resolved "https://registry.yarnpkg.com/moment/-/moment-2.19.3.tgz#bdb99d270d6d7fda78cc0fbace855e27fe7da69f"
+moment@2.22.0:
+  version "2.22.0"
+  resolved "https://registry.yarnpkg.com/moment/-/moment-2.22.0.tgz#7921ade01017dd45186e7fee5f424f0b8663a730"
 
 "moment@>= 2.6.0":
   version "2.10.6"
