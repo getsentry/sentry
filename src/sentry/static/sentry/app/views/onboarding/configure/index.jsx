@@ -85,8 +85,11 @@ const Configure = createReactClass({
   },
 
   submit() {
-    this.redirectUrl();
     HookStore.get('analytics:onboarding-complete').forEach(cb => cb());
+    HookStore.get('analytics:event').forEach(cb =>
+      cb('onboarding.complete', {project: this.props.params.projectId})
+    );
+    this.redirectUrl();
   },
 
   redirectToNeutralDocs() {
