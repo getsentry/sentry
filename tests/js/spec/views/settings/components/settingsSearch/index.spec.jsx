@@ -4,14 +4,39 @@ import {mount} from 'enzyme';
 import SettingsSearch from 'app/views/settings/components/settingsSearch';
 import FormSearchStore from 'app/stores/formSearchStore';
 
-jest.mock('jquery');
-jest.mock('app/actionCreators/formSearch');
-jest.mock('lodash/debounce', () => jest.fn(fn => fn));
+import {navigateTo} from 'app/actionCreators/navigation';
 
+jest.mock('jquery');
+jest.mock('lodash/debounce', () => jest.fn(fn => fn));
+jest.mock('app/actionCreators/formSearch');
+jest.mock('app/actionCreators/navigation');
+
+const SETTINGS_SEARCH_PLACEHOLDER = 'Search';
 describe('SettingsSearch', function() {
+  let orgsMock;
+
   beforeEach(function() {
     FormSearchStore.onLoadSearchMap([]);
     MockApiClient.clearMockResponses();
+    orgsMock = MockApiClient.addMockResponse({
+      url: '/organizations/',
+      body: [TestStubs.Organization({slug: 'billy-org', name: 'billy org'})],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      query: 'foo',
+      body: [TestStubs.Project({slug: 'foo-project'})],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/teams/',
+      query: 'foo',
+      body: [TestStubs.Team({slug: 'foo-team'})],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      query: 'foo',
+      body: TestStubs.Members(),
+    });
   });
 
   it('renders', async function() {
@@ -19,9 +44,7 @@ describe('SettingsSearch', function() {
 
     // renders input
     expect(wrapper.find('SearchInput')).toHaveLength(1);
-    expect(wrapper.find('input').prop('placeholder')).toBe(
-      'Search (press "/" to start search)'
-    );
+    expect(wrapper.find('input').prop('placeholder')).toBe(SETTINGS_SEARCH_PLACEHOLDER);
   });
 
   it('can focus when `handleFocusSearch` is called and target is not search input', function() {
@@ -48,5 +71,50 @@ describe('SettingsSearch', function() {
     });
 
     expect(focusSpy).not.toHaveBeenCalled();
+  });
+
+  it('can search', async function() {
+    let wrapper = mount(<SettingsSearch params={{orgId: 'org-slug'}} />);
+
+    wrapper.find('input').simulate('change', {target: {value: 'bil'}});
+
+    await tick();
+    wrapper.update();
+
+    expect(orgsMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        // This nested 'query' is correct
+        query: {query: 'bil'},
+      })
+    );
+
+    expect(
+      wrapper
+        .find('SearchResult SearchTitle')
+        .first()
+        .text()
+    ).toBe('billy-org Settings');
+
+    expect(
+      wrapper
+        .find('SearchResultWrapper')
+        .first()
+        .prop('highlighted')
+    ).toBe(true);
+
+    expect(
+      wrapper
+        .find('SearchResultWrapper')
+        .at(1)
+        .prop('highlighted')
+    ).toBe(false);
+
+    wrapper
+      .find('SearchResult')
+      .first()
+      .simulate('click');
+
+    expect(navigateTo).toHaveBeenCalledWith('/settings/billy-org/', undefined);
   });
 });

@@ -32,7 +32,7 @@ class SettingsSearch extends React.Component {
               innerRef={ref => (this.searchInput = ref)}
               {...getInputProps({
                 type: 'text',
-                placeholder: t('Search (press "/" to start search)'),
+                placeholder: t('Search'),
               })}
             />
           </SearchInputWrapper>

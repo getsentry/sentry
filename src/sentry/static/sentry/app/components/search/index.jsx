@@ -49,9 +49,9 @@ class Search extends React.Component {
 
   static defaultProps = {
     // Default Search result rendering
-    renderItem: ({item, itemProps, highlighted}) => (
+    renderItem: ({item, matches, itemProps, highlighted}) => (
       <SearchResultWrapper {...itemProps} highlighted={highlighted}>
-        <SearchResult {...item} />
+        <SearchResult item={item} matches={matches} />
       </SearchResultWrapper>
     ),
   };
@@ -68,9 +68,11 @@ class Search extends React.Component {
     navigateTo(nextPath, router);
   };
 
-  renderItem = ({item, index, highlightedIndex, getItemProps}) => {
+  renderItem = ({resultObj, index, highlightedIndex, getItemProps}) => {
+    // resultObj is a fuse.js result object with {item, matches, score}
     let {renderItem} = this.props;
     let highlighted = index === highlightedIndex;
+    let {item, matches} = resultObj;
     let key = `${item.title}-${index}`;
     let itemProps = {
       ...getItemProps({
@@ -85,6 +87,7 @@ class Search extends React.Component {
     return React.cloneElement(
       renderItem({
         item,
+        matches,
         index,
         highlighted,
       }),
@@ -143,14 +146,14 @@ class Search extends React.Component {
                         </Flex>
                       )}
                       {!isLoading &&
-                        results.splice(0, maxResults).map((result, index) =>
-                          this.renderItem({
-                            ...result,
+                        results.splice(0, maxResults).map((resultObj, index) => {
+                          return this.renderItem({
+                            resultObj,
                             index,
                             highlightedIndex,
                             getItemProps,
-                          })
-                        )}
+                          });
+                        })}
                       {!isLoading &&
                         !hasAnyResults && <EmptyItem>{t('No results found')}</EmptyItem>}
                     </DropdownBox>
