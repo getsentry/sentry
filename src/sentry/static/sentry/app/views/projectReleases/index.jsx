@@ -13,6 +13,7 @@ import GuideAnchor from '../../components/assistant/guideAnchor';
 import SearchBar from '../../components/searchBar';
 import {t, tct} from '../../locale';
 import {Panel, PanelBody, PanelHeader} from '../../components/panels';
+import EmptyStateWarning from '../../components/emptyStateWarning';
 
 import ReleaseList from './releaseList';
 
@@ -150,10 +151,9 @@ const ProjectReleases = createReactClass({
 
   renderNoQueryResults() {
     return (
-      <div className="box empty-stream">
-        <span className="icon icon-exclamation" />
+      <EmptyStateWarning>
         <p>{t('Sorry, no releases match your filters.')}</p>
-      </div>
+      </EmptyStateWarning>
     );
   },
 
@@ -166,15 +166,14 @@ const ProjectReleases = createReactClass({
       : t("There don't seem to be any releases yet.");
 
     return (
-      <div className="empty-stream ref-no-releases">
-        <span className="icon icon-exclamation" />
+      <EmptyStateWarning>
         <p>{message}</p>
         <p>
           <a href={this.getReleaseTrackingUrl()}>
             {t('Learn how to integrate Release Tracking')}
           </a>
         </p>
-      </div>
+      </EmptyStateWarning>
     );
   },
 

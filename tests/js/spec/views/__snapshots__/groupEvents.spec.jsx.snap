@@ -16,9 +16,13 @@ exports[`groupEvents renders 1`] = `
       query=""
     />
   </div>
-  <div>
-    <div
-      className="event-list"
+  <Panel
+    className="event-list"
+  >
+    <PanelBody
+      direction="column"
+      disablePadding={true}
+      flex={false}
     >
       <EventsTable
         events={
@@ -47,10 +51,10 @@ exports[`groupEvents renders 1`] = `
         }
         tagList={Array []}
       />
-    </div>
-    <Pagination
-      onCursor={[Function]}
-    />
-  </div>
+    </PanelBody>
+  </Panel>
+  <Pagination
+    onCursor={[Function]}
+  />
 </div>
 `;
