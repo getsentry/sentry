@@ -25,37 +25,35 @@ class SearchSources extends React.Component {
     loadSearchMap();
   }
 
+  // `allSources` will be an array of all result objects from each source
+  renderResults(...allSources) {
+    let {children} = this.props;
+
+    // loading means if any result has `isLoading` OR any result is null
+    let isLoading = !!allSources.find(arg => arg.isLoading || arg.results === null);
+
+    let foundResults = isLoading
+      ? []
+      : flatten(allSources.map(({results}) => results || [])).sort(
+          (a, b) => a.score - b.score
+        );
+    let hasAnyResults = !!foundResults.length;
+
+    return children({
+      isLoading,
+      results: foundResults,
+      hasAnyResults,
+    });
+  }
+
   render() {
-    let {children, ...props} = this.props;
-
     return (
-      <ApiSource {...props}>
+      <ApiSource {...this.props}>
         {apiArgs => (
-          <FormSource {...props}>
+          <FormSource {...this.props}>
             {formFieldArgs => (
-              <RouteSource {...props}>
-                {routeArgs => {
-                  let allArgs = [apiArgs, formFieldArgs, routeArgs];
-                  // loading means if any result has `isLoading` OR any result is null
-                  let isLoading = !!allArgs.find(
-                    arg => arg.isLoading || arg.results === null
-                  );
-
-                  // Only use first `MAX_RESULTS` after sorting by score
-                  let foundResults =
-                    (!isLoading &&
-                      flatten(allArgs.map(({results}) => results || [])).sort(
-                        (a, b) => a.score - b.score
-                      )) ||
-                    [];
-                  let hasAnyResults = !!foundResults.length;
-
-                  return children({
-                    isLoading,
-                    results: foundResults,
-                    hasAnyResults,
-                  });
-                }}
+              <RouteSource {...this.props}>
+                {routeArgs => this.renderResults(apiArgs, formFieldArgs, routeArgs)}
               </RouteSource>
             )}
           </FormSource>

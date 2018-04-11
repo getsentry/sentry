@@ -17,12 +17,43 @@ import replaceRouterParams from '../../utils/replaceRouterParams';
 class Search extends React.Component {
   static propTypes = {
     router: PropTypes.object,
+    /**
+     * Render prop for the main input for the search
+     */
+    renderInput: PropTypes.func.isRequired,
+
+    /**
+     * Maximum number of results to display
+     */
     maxResults: PropTypes.number,
+
+    /**
+     * Minimum number of characters before search activates
+     */
     minSearch: PropTypes.number,
-    renderInput: PropTypes.func,
+
+    /**
+     * Render prop for search results
+     *
+     * Args: {
+     *  item: Search Item
+     *  index: item's index in results
+     *  highlighted: is item highlighted
+     *  itemProps: props that should be spread for root item
+     * }
+     */
     renderItem: PropTypes.func,
     dropdownStyle: PropTypes.string,
     searchOptions: PropTypes.object,
+  };
+
+  static defaultProps = {
+    // Default Search result rendering
+    renderItem: ({item, itemProps, highlighted}) => (
+      <SearchResultWrapper {...itemProps} highlighted={highlighted}>
+        <SearchResult {...item} />
+      </SearchResultWrapper>
+    ),
   };
 
   handleSelect = (item, state) => {
@@ -37,36 +68,32 @@ class Search extends React.Component {
     navigateTo(nextPath, router);
   };
 
-  renderItem({item, index, highlightedIndex, getItemProps}) {
+  renderItem = ({item, index, highlightedIndex, getItemProps}) => {
     let {renderItem} = this.props;
     let highlighted = index === highlightedIndex;
-    let key = `${item.item.title}-${index}`;
+    let key = `${item.title}-${index}`;
     let itemProps = {
       ...getItemProps({
-        item: item.item,
+        item,
       }),
     };
 
-    if (typeof renderItem === 'function') {
-      return React.cloneElement(
-        renderItem({
-          ...item,
-          index,
-          highlighted,
-        }),
-        {
-          ...itemProps,
-          key,
-        }
-      );
+    if (typeof renderItem !== 'function') {
+      throw new Error('Invalid `renderItem`');
     }
 
-    return (
-      <SearchResultWrapper {...itemProps} highlighted={highlighted} key={key}>
-        <SearchResult {...item} />
-      </SearchResultWrapper>
+    return React.cloneElement(
+      renderItem({
+        item,
+        index,
+        highlighted,
+      }),
+      {
+        ...itemProps,
+        key,
+      }
     );
-  }
+  };
 
   render() {
     let {
@@ -75,7 +102,6 @@ class Search extends React.Component {
       searchOptions,
       minSearch,
       maxResults,
-      renderItem,
       renderInput,
     } = this.props;
 
@@ -118,39 +144,9 @@ class Search extends React.Component {
                       )}
 
                       {!isLoading &&
-                        results.splice(0, maxResults).map((item, index) => {
-                          let highlighted = index === highlightedIndex;
-                          let key = `${item.item.title}-${index}`;
-                          let itemProps = {
-                            ...getItemProps({
-                              item: item.item,
-                            }),
-                          };
-
-                          if (typeof renderItem === 'function') {
-                            return React.cloneElement(
-                              renderItem({
-                                ...item,
-                                index,
-                                highlighted,
-                              }),
-                              {
-                                ...itemProps,
-                                key,
-                              }
-                            );
-                          }
-
-                          return (
-                            <SearchResultWrapper
-                              {...itemProps}
-                              highlighted={highlighted}
-                              key={key}
-                            >
-                              <SearchResult {...item} />
-                            </SearchResultWrapper>
-                          );
-                        })}
+                        results
+                          .splice(0, maxResults)
+                          .map(result => this.renderItem({...result, getItemProps}))}
 
                       {!isLoading &&
                         !hasAnyResults && <EmptyItem>{t('No results found')}</EmptyItem>}

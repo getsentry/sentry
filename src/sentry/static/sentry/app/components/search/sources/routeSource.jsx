@@ -8,6 +8,12 @@ import organizationSettingsNavigation from '../../../views/settings/organization
 import projectSettingsNavigation from '../../../views/settings/project/navigationConfiguration';
 import replaceRouterParams from '../../../utils/replaceRouterParams';
 
+// navigation configuration can currently be either:
+// * an array of {name: string, items: Array<{NavItem}>} OR
+// * a function that returns the above
+//   (some navigation items require additional context, e.g. a badge based on a `project` property)
+//
+// We need to go through all navigation configurations and get a flattened list of all navigation item objects
 const navigationItems = flattenDepth(
   [
     accountSettingsNavigation,

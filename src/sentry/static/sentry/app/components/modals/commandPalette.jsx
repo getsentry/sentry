@@ -35,33 +35,31 @@ class CommandPaletteModal extends React.Component {
     let {Body} = this.props;
 
     return (
-      <React.Fragment>
-        <Body>
-          <Search
-            {...this.props}
-            minSearch={1}
-            maxResults={10}
-            dropdownStyle={dropdownStyle}
-            renderInput={({getInputProps}) => (
-              <InputWrapper>
-                <Input
-                  autoFocus
-                  innerRef={ref => (this.searchInput = ref)}
-                  {...getInputProps({
-                    type: 'text',
-                    placeholder: t('Search for projects, teams, settings, etc...'),
-                  })}
-                />
-              </InputWrapper>
-            )}
-            renderItem={({item, matches, highlighted}) => (
-              <CommandPaletteSearchResultWrapper highlighted={highlighted}>
-                <SearchResult item={item} matches={matches} />
-              </CommandPaletteSearchResultWrapper>
-            )}
-          />
-        </Body>
-      </React.Fragment>
+      <Body>
+        <Search
+          {...this.props}
+          minSearch={1}
+          maxResults={10}
+          dropdownStyle={dropdownStyle}
+          renderInput={({getInputProps}) => (
+            <InputWrapper>
+              <Input
+                autoFocus
+                innerRef={ref => (this.searchInput = ref)}
+                {...getInputProps({
+                  type: 'text',
+                  placeholder: t('Search for projects, teams, settings, etc...'),
+                })}
+              />
+            </InputWrapper>
+          )}
+          renderItem={({item, matches, highlighted}) => (
+            <CommandPaletteSearchResultWrapper highlighted={highlighted}>
+              <SearchResult item={item} matches={matches} />
+            </CommandPaletteSearchResultWrapper>
+          )}
+        />
+      </Body>
     );
   }
 }

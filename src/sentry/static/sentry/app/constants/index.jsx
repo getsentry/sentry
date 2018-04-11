@@ -36,6 +36,7 @@ export const CSRF_COOKIE_NAME = window.csrfCookieName || 'sc';
 
 export const ALL_ENVIRONMENTS_KEY = '__all_environments__';
 
+// See http://fusejs.io/ for more information
 export const DEFAULT_FUSE_OPTIONS = {
   includeScore: true,
   includeMatches: true,

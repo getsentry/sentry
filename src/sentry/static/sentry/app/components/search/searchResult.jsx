@@ -62,6 +62,7 @@ class SearchResult extends React.Component {
           userLink={false}
           orgId={params.orgId}
           user={model}
+          avatarSize={32}
         />
       );
     }
@@ -70,7 +71,7 @@ class SearchResult extends React.Component {
       <React.Fragment>
         <div>
           {sourceType === 'team' && <TeamAvatar team={model} size={32} />}
-          <span>{highlightedTitle}</span>
+          <SearchTitle>{highlightedTitle}</SearchTitle>
         </div>
 
         <SearchDetail>{highlightedDescription}</SearchDetail>
@@ -107,6 +108,9 @@ class SearchResult extends React.Component {
 }
 
 export default withRouter(SearchResult);
+
+// This is for tests
+const SearchTitle = styled.div``;
 
 const SearchDetail = styled.div`
   font-size: 0.8em;

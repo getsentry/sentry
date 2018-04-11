@@ -1,36 +1,67 @@
 import React from 'react';
 
+/**
+ * Parses matches from fuse.js library
+ *
+ * Example `match` would be
+ * {
+ *  value: 'Authentication tokens allow you to perform actions',
+ *  indices: [[4, 6], [12, 13], [15, 16]],
+ * }
+ *
+ * So:
+ *  0-3 -> not highlighted,
+ *  4-6 -> highlighted,
+ *  7-11 -> not highlighted,
+ *  12-13 -> highlighted,
+ *  ...etc
+ *
+ * @param {Object} match The match object from fuse
+ * @param {String} match.value The entire string that has matches
+ * @param {Array<Number>} match.indices Array of indices that represent matches
+ * @return {Array<{highlight: Boolean, text: String}>} Returns an array of {highlight, text} objects.
+ */
 const getFuseMatches = ({value, indices}) => {
+  if (!indices.length) return [];
   let strLength = value.length;
-  let result = indices.reduce(
-    ({prev, text}, [start, end]) => {
-      // pop off the last stored value since we want to preserve string from prev.end to current start
-      text.pop();
+  let result = [];
+  let prev = [0, -1];
 
-      // If this is the first match index, get text from beginning of string to current start
-      // Otherwise, use previous `end`
-      text.push({
+  indices.forEach(([start, end]) => {
+    // Unhighlighted string before the match
+    let stringBeforeMatch = value.substring(prev[1] + 1, start);
+
+    // Only add to result if non-empty string
+    if (!!stringBeforeMatch) {
+      result.push({
         highlight: false,
-        text: value.substring(prev === null ? 0 : prev[1] + 1, start),
+        text: stringBeforeMatch,
       });
-
-      text.push({highlight: true, text: value.substring(start, end + 1)});
-
-      text.push({highlight: false, text: value.substring(end + 1, strLength)});
-
-      return {
-        prev: [start, end],
-        text,
-      };
-    },
-    {
-      prev: null,
-      text: [],
     }
-  );
-  return (result && result.text) || [];
+
+    // This is the matched string, which should be highlighted
+    let matchedString = value.substring(start, end + 1);
+    result.push({
+      highlight: true,
+      text: matchedString,
+    });
+
+    prev = [start, end];
+  });
+
+  // The rest of the string starting from the last match index
+  let restOfString = value.substring(prev[1] + 1, strLength);
+  // Only add to result if non-empty string
+  if (!!restOfString) {
+    result.push({highlight: false, text: restOfString});
+  }
+
+  return result;
 };
 
+/**
+ * Given a match object from fuse.js, returns an array of components with "highlighted" (bold) substrings.
+ */
 const highlightFuseMatches = matchObj => {
   return getFuseMatches(matchObj).map(({highlight, text}, index) => {
     if (!text) return null;

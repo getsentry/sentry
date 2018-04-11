@@ -43,7 +43,10 @@ class ApiSource extends React.Component {
   }
 
   componentWillReceiveProps(nextProps) {
-    // Only attempt to start API queries using first two characters
+    // Limit the number of times we perform API queries by only attempting API queries
+    // using first two characters, otherwise perform in-memory search.
+    //
+    // Otherwise it'd be constant :spinning_loading_wheel:
     if (
       nextProps.query.length <= 2 &&
       nextProps.query.substr(0, 2) !== this.props.query.substr(0, 2)
@@ -158,9 +161,10 @@ class ApiSource extends React.Component {
   }, 150);
 
   render() {
-    let {children} = this.props;
+    let {children, query} = this.props;
+    let {fuzzy} = this.state;
 
-    let results = (this.state.fuzzy && this.state.fuzzy.search(this.props.query)) || null;
+    let results = (fuzzy && fuzzy.search(query)) || null;
     return children({
       isLoading: this.state.loading,
       allResults: this.state.allResults,

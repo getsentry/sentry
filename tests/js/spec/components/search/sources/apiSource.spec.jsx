@@ -14,6 +14,7 @@ describe('ApiSource', function() {
   let membersMock;
 
   beforeEach(function() {
+    MockApiClient.clearMockResponses();
     orgsMock = MockApiClient.addMockResponse({
       url: '/organizations/',
       query: 'foo',
@@ -34,10 +35,6 @@ describe('ApiSource', function() {
       query: 'foo',
       body: TestStubs.Members(),
     });
-  });
-
-  afterEach(function() {
-    MockApiClient.clearMockResponses();
   });
 
   it('queries all API endpoints', function() {
