@@ -143,7 +143,7 @@ describe('NewTeamSettings', function() {
     ).not.toBe('Remove Team');
   });
 
-  xit('can remove team', async function() {
+  it('can remove team', async function() {
     let team = TestStubs.Team();
     let deleteMock = MockApiClient.addMockResponse({
       url: `/teams/org/${team.slug}/`,
@@ -183,6 +183,7 @@ describe('NewTeamSettings', function() {
       })
     );
 
+    await tick();
     await tick();
     expect(routerPushMock).toHaveBeenCalledWith('/settings/org/teams/');
 
