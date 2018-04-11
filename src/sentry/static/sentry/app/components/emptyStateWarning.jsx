@@ -4,7 +4,7 @@ import styled from 'react-emotion';
 class EmptyStateWarning extends React.Component {
   render() {
     return (
-      <EmptyStreamWrapper>
+      <EmptyStreamWrapper className="ref-empty-state">
         <Icon className="icon icon-exclamation" />
         {this.props.children}
       </EmptyStreamWrapper>

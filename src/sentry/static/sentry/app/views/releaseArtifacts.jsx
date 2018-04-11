@@ -15,6 +15,7 @@ import Pagination from '../components/pagination';
 import LinkWithConfirmation from '../components/linkWithConfirmation';
 import {t} from '../locale';
 import {Panel, PanelHeader, PanelBody, PanelItem} from '../components/panels';
+import EmptyStateWarning from '../components/emptyStateWarning';
 
 const ReleaseArtifacts = createReactClass({
   displayName: 'ReleaseArtifacts',
@@ -111,10 +112,11 @@ const ReleaseArtifacts = createReactClass({
     else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
     else if (this.state.fileList.length === 0)
       return (
-        <div className="box empty-stream">
-          <span className="icon icon-exclamation" />
-          <p>{t('There are no artifacts uploaded for this release.')}</p>
-        </div>
+        <Panel>
+          <EmptyStateWarning>
+            <p>{t('There are no artifacts uploaded for this release.')}</p>
+          </EmptyStateWarning>
+        </Panel>
       );
 
     let access = this.getAccess();

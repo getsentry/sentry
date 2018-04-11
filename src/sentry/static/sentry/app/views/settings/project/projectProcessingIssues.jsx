@@ -13,6 +13,8 @@ import OrganizationState from '../../../mixins/organizationState';
 import SettingsPageHeader from '../components/settingsPageHeader';
 import TextBlock from '../components/text/textBlock';
 import TimeSince from '../../../components/timeSince';
+import EmptyStateWarning from '../../../components/emptyStateWarning';
+import {Panel} from '../../../components/panels';
 
 const MESSAGES = {
   native_no_crashed_thread: t('No crashed thread found in crash report'),
@@ -211,10 +213,11 @@ const ProjectProcessingIssues = createReactClass({
 
   renderEmpty() {
     return (
-      <div className="box empty-stream">
-        <span className="icon icon-exclamation" />
-        <p>{t('Good news! There are no processing issues.')}</p>
-      </div>
+      <Panel>
+        <EmptyStateWarning>
+          <p>{t('Good news! There are no processing issues.')}</p>
+        </EmptyStateWarning>
+      </Panel>
     );
   },
 

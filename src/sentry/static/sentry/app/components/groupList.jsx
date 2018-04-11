@@ -14,8 +14,8 @@ import ProjectState from '../mixins/projectState';
 import StreamGroup from './stream/group';
 import utils from '../utils';
 import {t} from '../locale';
+import EmptyStateWarning from './emptyStateWarning';
 import {Panel, PanelBody} from './panels';
-import EmptyStateWarning from '../components/emptyStateWarning';
 
 const GroupList = createReactClass({
   displayName: 'GroupList',

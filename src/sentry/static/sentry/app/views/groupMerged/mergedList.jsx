@@ -7,6 +7,8 @@ import MergedItem from './mergedItem';
 import MergedToolbar from './mergedToolbar';
 import Pagination from '../../components/pagination';
 import QueryCount from '../../components/queryCount';
+import EmptyStateWarning from '../../components/emptyStateWarning';
+import {Panel} from '../../components/panels';
 
 class MergedList extends React.Component {
   static propTypes = {
@@ -18,10 +20,9 @@ class MergedList extends React.Component {
 
   renderEmpty = () => {
     return (
-      <div className="box empty-stream">
-        <span className="icon icon-exclamation" />
+      <EmptyStateWarning>
         <p>{t("There don't seem to be any hashes for this issue.")}</p>
-      </div>
+      </EmptyStateWarning>
     );
   };
 
@@ -31,7 +32,7 @@ class MergedList extends React.Component {
     let hasResults = itemsWithLatestEvent.length > 0;
 
     if (!hasResults) {
-      return <div className="merged-list-container">{this.renderEmpty()}</div>;
+      return <Panel>{this.renderEmpty()}</Panel>;
     }
 
     return (

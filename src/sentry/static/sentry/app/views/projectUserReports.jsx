@@ -210,7 +210,7 @@ const ProjectUserReports = createReactClass({
       );
     });
 
-    return <div className="issue-list">{children}</div>;
+    return children;
   },
 
   render() {
@@ -242,7 +242,7 @@ const ProjectUserReports = createReactClass({
           </div>
         </div>
         <Panel>
-          <PanelBody>{this.renderStreamBody()}</PanelBody>
+          <PanelBody className="issue-list">{this.renderStreamBody()}</PanelBody>
         </Panel>
         <Pagination pageLinks={this.state.pageLinks} />
       </div>
