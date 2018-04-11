@@ -97,6 +97,7 @@ const GuideStore = Reflux.createStore({
 
     // Select the first guide that hasn't been seen in this session and has all
     // required anchors on the page.
+    // If url hash is #assistant, show the first guide that has some required anchors.
     let bestGuideKey = Object.keys(this.state.guides).find(key => {
       let guide = this.state.guides[key];
       let allTargetsPresent = guide.required_targets.every(
@@ -116,9 +117,7 @@ const GuideStore = Reflux.createStore({
 
     this.state.currentGuide = bestGuide;
 
-    if (forceShow && this.state.currentGuide) {
-      this.state.currentStep = this.state.currentStep || 1;
-    }
+    this.state.currentStep = forceShow ? 1 : 0;
 
     this.trigger(this.state);
   },

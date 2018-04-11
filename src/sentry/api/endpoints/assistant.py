@@ -57,8 +57,6 @@ class AssistantEndpoint(Endpoint):
             'status': 'viewed' / 'dismissed',
             'useful' (optional): true / false,
         }
-
-        Response is the full list (same as a GET call)
         """
         serializer = AssistantSerializer(data=request.DATA, partial=True)
         if not serializer.is_valid():
