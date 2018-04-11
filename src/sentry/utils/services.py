@@ -122,7 +122,7 @@ class ServiceDelegator(Service):
     result list are considered "secondary backends". The result value of the
     primary backend will be the result value of the delegated method (to
     callers, this appears as a synchronous method call.) The secondary backends
-    are called asynchronously in the background. (To recieve the result values
+    are called asynchronously in the background. (To receive the result values
     of these method calls, provide a callback_func, described below.) If the
     primary backend name returned by the selector function doesn't correspond
     to any registered backend, the function will raise a ``InvalidBackend``
