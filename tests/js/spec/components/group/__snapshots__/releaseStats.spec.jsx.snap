@@ -247,7 +247,7 @@ exports[`GroupReleaseStats renders 1`] = `
                 <span>
                   <Tooltip
                     key="1517281200"
-                    title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 29th, 10:00 pm &#8594 Jan 30th, 5:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>2 events</dd><dt class=\\"environment\\"><span></span></dt><dd>2 events<small>in All Environments</small></dd></dl></div>"
+                    title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 29th, 7:00 pm &#8594 Jan 30th, 2:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>2 events</dd><dt class=\\"environment\\"><span></span></dt><dd>2 events<small>in All Environments</small></dd></dl></div>"
                     tooltipOptions={
                       Object {
                         "html": true,
@@ -263,7 +263,7 @@ exports[`GroupReleaseStats renders 1`] = `
                           "width": "50%",
                         }
                       }
-                      title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 29th, 10:00 pm &#8594 Jan 30th, 5:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>2 events</dd><dt class=\\"environment\\"><span></span></dt><dd>2 events<small>in All Environments</small></dd></dl></div>"
+                      title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 29th, 7:00 pm &#8594 Jan 30th, 2:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>2 events</dd><dt class=\\"environment\\"><span></span></dt><dd>2 events<small>in All Environments</small></dd></dl></div>"
                     >
                       <span
                         className="release"
@@ -308,7 +308,7 @@ exports[`GroupReleaseStats renders 1`] = `
                   </Tooltip>
                   <Tooltip
                     key="1517310000"
-                    title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 30th, 6:00 am &#8594 Jan 30th, 1:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd><dt class=\\"environment\\"><span></span></dt><dd>1 event<small>in All Environments</small></dd></dl></div>"
+                    title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 30th, 3:00 am &#8594 Jan 30th, 10:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd><dt class=\\"environment\\"><span></span></dt><dd>1 event<small>in All Environments</small></dd></dl></div>"
                     tooltipOptions={
                       Object {
                         "html": true,
@@ -324,7 +324,7 @@ exports[`GroupReleaseStats renders 1`] = `
                           "width": "50%",
                         }
                       }
-                      title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 30th, 6:00 am &#8594 Jan 30th, 1:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd><dt class=\\"environment\\"><span></span></dt><dd>1 event<small>in All Environments</small></dd></dl></div>"
+                      title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 30th, 3:00 am &#8594 Jan 30th, 10:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd><dt class=\\"environment\\"><span></span></dt><dd>1 event<small>in All Environments</small></dd></dl></div>"
                     >
                       <span
                         className="release"
@@ -509,7 +509,7 @@ exports[`GroupReleaseStats renders 1`] = `
                 <span>
                   <Tooltip
                     key="1514764800"
-                    title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Dec 31st, 7:00 pm &#8594 Jan 3rd, 6:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd><dt class=\\"environment\\"><span></span></dt><dd>1 event<small>in All Environments</small></dd></dl></div>"
+                    title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Dec 31st, 4:00 pm &#8594 Jan 3rd, 3:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd><dt class=\\"environment\\"><span></span></dt><dd>1 event<small>in All Environments</small></dd></dl></div>"
                     tooltipOptions={
                       Object {
                         "html": true,
@@ -525,7 +525,7 @@ exports[`GroupReleaseStats renders 1`] = `
                           "width": "50%",
                         }
                       }
-                      title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Dec 31st, 7:00 pm &#8594 Jan 3rd, 6:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd><dt class=\\"environment\\"><span></span></dt><dd>1 event<small>in All Environments</small></dd></dl></div>"
+                      title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Dec 31st, 4:00 pm &#8594 Jan 3rd, 3:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd><dt class=\\"environment\\"><span></span></dt><dd>1 event<small>in All Environments</small></dd></dl></div>"
                     >
                       <span
                         className="release"
@@ -570,7 +570,7 @@ exports[`GroupReleaseStats renders 1`] = `
                   </Tooltip>
                   <Tooltip
                     key="1515024000"
-                    title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 3rd, 7:00 pm &#8594 Jan 6th, 6:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>122 events</dd><dt class=\\"environment\\"><span></span></dt><dd>122 events<small>in All Environments</small></dd></dl></div>"
+                    title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 3rd, 4:00 pm &#8594 Jan 6th, 3:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>122 events</dd><dt class=\\"environment\\"><span></span></dt><dd>122 events<small>in All Environments</small></dd></dl></div>"
                     tooltipOptions={
                       Object {
                         "html": true,
@@ -586,7 +586,7 @@ exports[`GroupReleaseStats renders 1`] = `
                           "width": "50%",
                         }
                       }
-                      title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 3rd, 7:00 pm &#8594 Jan 6th, 6:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>122 events</dd><dt class=\\"environment\\"><span></span></dt><dd>122 events<small>in All Environments</small></dd></dl></div>"
+                      title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 3rd, 4:00 pm &#8594 Jan 6th, 3:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>122 events</dd><dt class=\\"environment\\"><span></span></dt><dd>122 events<small>in All Environments</small></dd></dl></div>"
                     >
                       <span
                         className="release"
