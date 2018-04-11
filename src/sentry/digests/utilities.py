@@ -45,14 +45,6 @@ def get_personalized_digests(project_id, digest, user_ids):
             yield user_id, digest
 
 
-def sort_records(records):
-    """
-    Sorts records for fetch_state method
-    fetch_state is expecting these records to be ordered from newest to oldest
-    """
-    return sorted(records, key=lambda r: r.value.event.datetime, reverse=True)
-
-
 def get_events_from_digest(digest):
     events = []
     for rule_groups in six.itervalues(digest):
@@ -74,7 +66,7 @@ def build_custom_digest(original_digest, events):
                 if record.value.event in events
             ]
             if user_group_records:
-                user_rule_groups[group] = sort_records(user_group_records)
+                user_rule_groups[group] = user_group_records
         if user_rule_groups:
             user_digest[rule] = user_rule_groups
     return user_digest
@@ -130,6 +122,8 @@ def convert_actors_to_users(events_by_actor, user_ids):
 def team_actors_to_user_ids(team_actors, user_ids):
     """
     team_actors_to_user_ids(team_actors: List(Actors), user_ids: List(Int)) -> Map[team_id:Int, user_ids:Set(Int)]
+
+    Will not include a team in the result if there are no active members in a team.
     """
     team_ids = [actor.id for actor in team_actors]
     members = OrganizationMemberTeam.objects.filter(

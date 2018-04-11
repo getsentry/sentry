@@ -10,7 +10,6 @@ from sentry.digests.utilities import (
     convert_actors_to_users,
     get_events_from_digest,
     get_personalized_digests,
-    sort_records,
     team_actors_to_user_ids,
 )
 from sentry.models import OrganizationMemberTeam, ProjectOwnership, Team, User
@@ -184,6 +183,13 @@ class GetPersonalizedDigestsTestCase(TestCase):
             fallthrough=True,
         )
 
+    def sort_records(self, records):
+        """
+        Sorts records for fetch_state method
+        fetch_state is expecting these records to be ordered from newest to oldest
+        """
+        return sorted(records, key=lambda r: r.value.event.datetime, reverse=True)
+
     def create_event_data(self, filename, url='http://example.com'):
         data = {
             'tags': [('level', 'error')],
@@ -253,7 +259,7 @@ class GetPersonalizedDigestsTestCase(TestCase):
         rule = self.project.rule_set.all()[0]
         records = [event_to_record(event, (rule, ))
                    for event in self.team1_events + self.team2_events + self.user4_events]
-        digest = build_digest(self.project, sort_records(records))
+        digest = build_digest(self.project, self.sort_records(records))
 
         expected_result = {
             self.user1.id: set(self.team1_events),
@@ -280,7 +286,7 @@ class GetPersonalizedDigestsTestCase(TestCase):
             event_to_record(event, (rule, )) for event in self.create_events(timezone.now(), project, [
                 'hello.py', 'goodbye.py', 'hola.py', 'adios.py'])
         ]
-        digest = build_digest(project, sort_records(records))
+        digest = build_digest(project, self.sort_records(records))
         user_ids = [member.user_id for member in team.member_set]
         assert not user_ids
         for user_id, user_digest in get_personalized_digests(project.id, digest, user_ids):
@@ -292,7 +298,7 @@ class GetPersonalizedDigestsTestCase(TestCase):
             timezone.now(), self.project, [
                 'hello.moz', 'goodbye.moz', 'hola.moz', 'adios.moz'])
         records = [event_to_record(event, (rule, )) for event in events]
-        digest = build_digest(self.project, sort_records(records))
+        digest = build_digest(self.project, self.sort_records(records))
         expected_result = {
             self.user1.id: set(events),
             self.user2.id: set(events),
@@ -308,7 +314,7 @@ class GetPersonalizedDigestsTestCase(TestCase):
             timezone.now(), self.project, [
                 'hello.moz', 'goodbye.moz', 'hola.moz', 'adios.moz'])
         records = [event_to_record(event, (rule, )) for event in events + self.team1_events]
-        digest = build_digest(self.project, sort_records(records))
+        digest = build_digest(self.project, self.sort_records(records))
         expected_result = {
             self.user1.id: set(events + self.team1_events),
             self.user2.id: set(events),
