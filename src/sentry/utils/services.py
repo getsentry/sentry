@@ -4,8 +4,8 @@ import functools
 import inspect
 import itertools
 import logging
+import operator
 
-from collections import OrderedDict
 from django.utils.functional import empty, LazyObject
 
 from sentry.utils import warnings
@@ -163,9 +163,12 @@ class ServiceDelegator(Service):
       request is rejected and the future will raise ``Queue.Full`` when
       attempting to retrieve the result.)
     - The ``callback_func`` is called after all futures have completed, either
-      successfully or unsuccessfully. The function is parameters are the method
-      name, calling arguments (as returned by ``inspect.getcallargs``) and a
-      mapping of backend name to ``Future`` objects.
+      successfully or unsuccessfully. The function parameters are:
+      - the method name (as a string),
+      - the calling arguments (as returned by ``inspect.getcallargs``),
+      - the backend names (as returned by the selector function),
+      - a list of results (as either a ``Future``, or ``None`` if the backend
+        was invalid) of the same length and ordering as the backend names.
     """
 
     class InvalidBackend(Exception):
@@ -235,32 +238,67 @@ class ServiceDelegator(Service):
             #    arguments that are supported by all backends.
             callargs = inspect.getcallargs(base_value, None, *args, **kwargs)
 
-            results = OrderedDict()
-            for i, backend_name in enumerate(self.__selector_func(attribute_name, callargs)):
-                is_primary = i == 0
+            selected_backend_names = list(self.__selector_func(attribute_name, callargs))
+            if not len(selected_backend_names) > 0:
+                raise self.InvalidBackend('No backends returned by selector!')
+
+            # Ensure that the primary backend is actually registered -- we
+            # don't want to schedule any work on the secondaries if the primary
+            # request is going to fail anyway.
+            if selected_backend_names[0] not in self.__backends:
+                raise self.InvalidBackend(
+                    '{!r} is not a registered backend.'.format(
+                        selected_backend_names[0]))
+
+            call_backend_method = operator.methodcaller(attribute_name, *args, **kwargs)
+
+            # Enqueue all of the secondary backend requests first since these
+            # are non-blocking queue insertions. (Since the primary backend
+            # executor queue insertion can block, if that queue was full the
+            # secondary requests would have to wait unnecessarily to be queued
+            # until the after the primary request can be enqueued.)
+            # NOTE: If the same backend is both the primary backend *and* in
+            # the secondary backend list -- this is unlikely, but possible --
+            # this means that one of the secondary requests will be queued and
+            # executed before the primary request is queued.  This is such a
+            # strange usage pattern that I don't think it's worth optimizing
+            # for.)
+            results = [None] * len(selected_backend_names)
+            for i, backend_name in enumerate(selected_backend_names[1:], 1):
                 try:
                     backend, executor = self.__backends[backend_name]
                 except KeyError:
-                    if is_primary:
-                        raise self.InvalidBackend(
-                            '{!r} is not a registered backend.'.format(backend_name))
-                    else:
-                        logger.warning(
-                            '%r is not a registered backend and will be ignored.',
-                            backend_name,
-                            exc_info=True)
-                        continue
+                    logger.warning(
+                        '%r is not a registered backend and will be ignored.',
+                        backend_name,
+                        exc_info=True)
+                else:
+                    results[i] = executor.submit(
+                        functools.partial(call_backend_method, backend),
+                        priority=1,
+                        block=False,
+                    )
 
-                results[backend_name] = executor.submit(
-                    functools.partial(getattr(backend, attribute_name), *args, **kwargs),
-                    block=is_primary,
-                )
+            # The primary backend is scheduled last since it may block the
+            # calling thread. (We don't have to protect this from ``KeyError``
+            # since we already ensured that the primary backend exists.)
+            backend, executor = self.__backends[selected_backend_names[0]]
+            results[0] = executor.submit(
+                functools.partial(call_backend_method, backend),
+                priority=0,
+                block=True,
+            )
 
             if self.__callback_func is not None:
-                FutureSet(results.values()).add_done_callback(
-                    lambda *a, **k: self.__callback_func(attribute_name, callargs, results)
+                FutureSet(filter(None, results)).add_done_callback(
+                    lambda *a, **k: self.__callback_func(
+                        attribute_name,
+                        callargs,
+                        selected_backend_names,
+                        results,
+                    )
                 )
 
-            return results.values()[0].result()
+            return results[0].result()
 
         return execute
