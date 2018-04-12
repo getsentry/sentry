@@ -16,26 +16,20 @@ class SnubaTSDB(BaseTSDB):
     Read methods are supported only for models based on group/event data and
     will return empty results for unsupported models.
     """
+    model_columns = {
+        TSDBModel.project: ('project_id', None),
+        TSDBModel.group: ('issue', None),
+        TSDBModel.release: ('release', None),
+        TSDBModel.users_affected_by_group: ('issue', 'user_id'),
+        TSDBModel.users_affected_by_project: ('project_id', 'user_id'),
+        TSDBModel.users_affected_by_project: ('project_id', 'user_id'),
+        TSDBModel.frequent_environments_by_group: ('issue', 'environment'),
+        TSDBModel.frequent_releases_by_group: ('issue', 'release'),
+        TSDBModel.frequent_issues_by_project: ('project_id', 'issue'),
+    }
 
     def __init__(self, **options):
         super(SnubaTSDB, self).__init__(**options)
-
-    def model_columns(self, model):
-        """
-        Translates TSDB models into the required columns for querying snuba.
-        Returns a tuple of (groupby_column, aggregateby_column)
-        """
-        return {
-            TSDBModel.project: ('project_id', None),
-            TSDBModel.group: ('issue', None),
-            TSDBModel.release: ('release', None),
-            TSDBModel.users_affected_by_group: ('issue', 'user_id'),
-            TSDBModel.users_affected_by_project: ('project_id', 'user_id'),
-            TSDBModel.users_affected_by_project: ('project_id', 'user_id'),
-            TSDBModel.frequent_environments_by_group: ('issue', 'environment'),
-            TSDBModel.frequent_releases_by_group: ('issue', 'release'),
-            TSDBModel.frequent_issues_by_project: ('project_id', 'issue'),
-        }.get(model, None)
 
     def get_data(self, model, keys, start, end, rollup=None, environment_id=None,
                  aggregation='count', group_on_model=True, group_on_time=False):
@@ -45,7 +39,7 @@ class SnubaTSDB(BaseTSDB):
         `group_on_time`: whether to add a GROUP BY clause on the 'time' field.
         `group_on_model`: whether to add a GROUP BY clause on the primary model.
         """
-        model_columns = self.model_columns(model)
+        model_columns = self.model_columns.get(model)
 
         if model_columns is None:
             raise Exception("Unsupported TSDBModel: {}".format(model.name))
