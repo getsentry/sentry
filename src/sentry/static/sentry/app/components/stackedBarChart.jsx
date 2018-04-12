@@ -275,7 +275,7 @@ const StackedBarChart = createReactClass({
 
     return (
       <Tooltip
-        title={() => tooltipFunc(this.state.pointIndex[pointIdx], pointIdx, this)}
+        title={tooltipFunc(this.state.pointIndex[pointIdx], pointIdx, this)}
         key={point.x}
         tooltipOptions={{html: true, placement: 'bottom'}}
       >
