@@ -52,10 +52,7 @@ class V2TagStorage(TagStorage):
             grouptagvalue_model=GroupTagValue,
         )
 
-        self.setup_receivers(
-            tagvalue_model=TagValue,
-            grouptagvalue_model=GroupTagValue,
-        )
+        self.setup_receivers()
 
     def setup_cleanup(self):
         # TODO: fix for sharded DB
@@ -146,9 +143,7 @@ class V2TagStorage(TagStorage):
 
         deletion_manager.register(TagKey, TagKeyDeletionTask)
 
-    def setup_receivers(self, **kwargs):
-        super(V2TagStorage, self).setup_receivers(**kwargs)
-
+    def setup_receivers(self):
         from django.db.models.signals import post_save
 
         def record_project_tag_count(instance, created, **kwargs):

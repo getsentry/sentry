@@ -43,10 +43,7 @@ class LegacyTagStorage(TagStorage):
             grouptagvalue_model=GroupTagValue,
         )
 
-        self.setup_receivers(
-            tagvalue_model=TagValue,
-            grouptagvalue_model=GroupTagValue,
-        )
+        self.setup_receivers()
 
     def setup_cleanup(self):
         from sentry.runner.commands import cleanup
@@ -122,9 +119,7 @@ class LegacyTagStorage(TagStorage):
 
         deletion_manager.register(TagKey, TagKeyDeletionTask)
 
-    def setup_receivers(self, **kwargs):
-        super(LegacyTagStorage, self).setup_receivers(**kwargs)
-
+    def setup_receivers(self):
         from sentry.signals import buffer_incr_complete
 
         # Legacy tag write flow:
