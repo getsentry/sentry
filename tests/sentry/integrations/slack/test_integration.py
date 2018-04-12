@@ -13,9 +13,10 @@ from sentry.testutils import IntegrationTestCase
 class SlackIntegrationTest(IntegrationTestCase):
     provider = SlackIntegration
 
-    @responses.activate
-    def test_basic_flow(self):
-        resp = self.client.get(self.path)
+    def assert_setup_flow(self, team_id='TXXXXXXX1', installer_user_id='UXXXXXXX1'):
+        responses.reset()
+
+        resp = self.client.get(self.init_path)
         assert resp.status_code == 302
         redirect = urlparse(resp['Location'])
         assert redirect.scheme == 'https'
@@ -35,11 +36,11 @@ class SlackIntegrationTest(IntegrationTestCase):
             responses.POST, 'https://slack.com/api/oauth.token',
             json={
                 'ok': True,
-                'user_id': 'UXXXXXXX1',
+                'user_id': installer_user_id,
                 'access_token': 'xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx',
-                'team_id': 'TXXXXXXX1',
+                'team_id': team_id,
                 'team_name': 'Example',
-                'installer_user_id': 'UXXXXXXX1',
+                'installer_user_id': installer_user_id,
             }
         )
 
@@ -55,7 +56,7 @@ class SlackIntegrationTest(IntegrationTestCase):
         )
 
         resp = self.client.get('{}?{}'.format(
-            self.path,
+            self.setup_path,
             urlencode({
                 'code': 'oauth-code',
                 'state': authorize_params['state'],
@@ -72,6 +73,10 @@ class SlackIntegrationTest(IntegrationTestCase):
 
         assert resp.status_code == 200
         self.assertDialogSuccess(resp)
+
+    @responses.activate
+    def test_basic_flow(self):
+        self.assert_setup_flow()
 
         integration = Integration.objects.get(provider=self.provider.key)
         assert integration.external_id == 'TXXXXXXX1'
@@ -96,5 +101,36 @@ class SlackIntegrationTest(IntegrationTestCase):
             idp=idp,
             user=self.user,
             external_id='UXXXXXXX1',
+        )
+        assert identity.status == IdentityStatus.VALID
+
+    @responses.activate
+    def test_multiple_integrations(self):
+        self.assert_setup_flow()
+        self.assert_setup_flow(team_id='TXXXXXXX2', installer_user_id='UXXXXXXX2')
+
+        integrations = Integration.objects.filter(provider=self.provider.key)
+
+        assert integrations.count() == 2
+        assert integrations[0].external_id == 'TXXXXXXX1'
+        assert integrations[1].external_id == 'TXXXXXXX2'
+
+        oi = OrganizationIntegration.objects.get(
+            integration=integrations[1],
+            organization=self.organization,
+        )
+        assert oi.config == {}
+
+        idps = IdentityProvider.objects.filter(
+            type='slack',
+            organization=self.organization,
+        )
+
+        assert idps.count() == 2
+
+        identity = Identity.objects.get(
+            idp=idps.get(id=2),
+            user=self.user,
+            external_id='UXXXXXXX2',
         )
         assert identity.status == IdentityStatus.VALID
