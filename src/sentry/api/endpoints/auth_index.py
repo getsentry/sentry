@@ -75,7 +75,7 @@ class AuthIndexEndpoint(Endpoint):
             return Response(
                 {
                     '2fa_required': True,
-                    'message': 'Cannot sign-in with basic auth when 2fa is enabled.'
+                    'message': 'Cannot sign-in with password authentication when 2fa is enabled.'
                 },
                 status=status.HTTP_403_FORBIDDEN
             )
@@ -86,7 +86,7 @@ class AuthIndexEndpoint(Endpoint):
         except auth.AuthUserPasswordExpired:
             return Response(
                 {
-                    'message': 'Cannot sign-in with basic auth because password has expired.',
+                    'message': 'Cannot sign-in with password authentication because password has expired.',
                 },
                 status=status.HTTP_403_FORBIDDEN
             )
