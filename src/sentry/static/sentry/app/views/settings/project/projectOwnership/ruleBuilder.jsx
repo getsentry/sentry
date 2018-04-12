@@ -2,7 +2,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 import {Flex} from 'grid-emotion';
-
 import memberListStore from '../../../../stores/memberListStore';
 import ProjectsStore from '../../../../stores/projectsStore';
 import Button from '../../../../components/buttons/button';
@@ -10,14 +9,10 @@ import SelectInput from '../../../../components/selectInput';
 import TextOverflow from '../../../../components/textOverflow';
 import InlineSvg from '../../../../components/inlineSvg';
 import Input from '../../../../views/settings/components/forms/controls/input';
-import DropdownAutoComplete from '../../../../components/dropdownAutoComplete';
-import DropdownButton from '../../../../components/dropdownButton';
-import ActorAvatar from '../../../../components/actorAvatar';
 import SentryTypes from '../../../../proptypes';
-import {buildUserId, buildTeamId, actorEquality} from '../../../../utils';
+import {buildUserId, buildTeamId} from '../../../../utils';
 import {addErrorMessage} from '../../../../actionCreators/indicator';
-
-import {t} from '../../../../locale';
+import SelectOwners from './selectOwners';
 
 const initialState = {
   text: '',
@@ -79,20 +74,9 @@ class RuleBuilder extends React.Component {
     this.setState({text: e.target.value});
   };
 
-  onAddActor = ({actor}) => {
-    this.setState(({owners}) => {
-      if (!owners.find(i => actorEquality(i, actor))) {
-        return {owners: [...owners, actor]};
-      } else return {};
-    });
+  handleChangeOwners = owners => {
+    this.setState({owners});
   };
-
-  handleRemoveActor(toRemove, e) {
-    this.setState(({owners}) => ({
-      owners: owners.filter(actor => !actorEquality(actor, toRemove)),
-    }));
-    e.stopPropagation();
-  }
 
   handleAddRule = () => {
     let {type, text, owners} = this.state;
@@ -104,10 +88,10 @@ class RuleBuilder extends React.Component {
 
     let ownerText = owners
       .map(
-        actor =>
-          actor.type == 'team'
-            ? `#${actor.name}`
-            : memberListStore.getById(actor.id).email
+        owner =>
+          owner.actor.type === 'team'
+            ? `#${owner.actor.name}`
+            : memberListStore.getById(owner.actor.id).email
       )
       .join(' ');
 
@@ -160,38 +144,12 @@ class RuleBuilder extends React.Component {
             placeholder={type === 'path' ? 'src/example/*' : 'example.com/settings/*'}
           />
           <Divider src="icon-chevron-right" />
-          <Flex flex="1" align="center">
-            <DropdownAutoComplete
-              items={[
-                {
-                  value: 'team',
-                  label: 'Teams',
-                  items: this.mentionableTeams(),
-                },
-                {
-                  value: 'user',
-                  label: 'Users',
-                  items: this.mentionableUsers(),
-                },
-              ]}
-              onSelect={this.onAddActor}
-            >
-              {({isOpen, selectedItem}) => (
-                <BuilderDropdownButton isOpen={isOpen} size="zero">
-                  <Owners>
-                    {owners.map(owner => (
-                      <span
-                        key={`${owner.type}-${owner.id}`}
-                        onClick={this.handleRemoveActor.bind(this, owner)}
-                      >
-                        <ActorAvatar actor={owner} />
-                      </span>
-                    ))}
-                  </Owners>
-                  <div>{t('Add Owners')}</div>
-                </BuilderDropdownButton>
-              )}
-            </DropdownAutoComplete>
+          <Flex flex="1" align="center" mr={1}>
+            <SelectOwners
+              options={[...this.mentionableTeams(), ...this.mentionableUsers()]}
+              value={owners}
+              onChange={this.handleChangeOwners}
+            />
           </Flex>
 
           <RuleAddButton
@@ -259,31 +217,6 @@ const Divider = styled(InlineSvg)`
   color: ${p => p.theme.borderDark};
   flex-shrink: 0;
   margin-right: 5px;
-`;
-
-const Owners = styled.div`
-  justify-content: flex-end;
-  display: flex;
-  padding: 3px;
-  span {
-    margin-right: 2px;
-  }
-
-  .avatar {
-    width: 28px;
-    height: 28px;
-  }
-`;
-
-const BuilderDropdownButton = styled(DropdownButton)`
-  margin-right: 5px;
-  padding-right: 8px !important;
-  padding-left: 3px !important;
-
-  flex: 1;
-  white-space: nowrap;
-  height: 37px;
-  color: ${p => p.theme.gray3} !important;
 `;
 
 const RuleAddButton = styled(Button)`
