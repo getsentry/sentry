@@ -296,7 +296,7 @@ class DjangoSearchBackend(SearchBackend):
             }
 
             if environment is not None:
-                filters['environment'] = [environment.name],
+                filters['environment'] = [environment.id]
 
             conditions = []
             for tag, val in six.iteritems(tags):
@@ -314,12 +314,13 @@ class DjangoSearchBackend(SearchBackend):
             start = (parameters.get('date_from')
                      or retention_window_start
                      or (now - timedelta(days=90)))
+
             hashes = snuba.query(start, end, ['primary_hash'], conditions, filters)
 
             group_queryset = group_queryset.filter(
                 id__in=GroupHash.objects.filter(
                     project=project, hash__in=hashes.keys()
-                ).value_list('group_id', flat=True).distinct()
+                ).values_list('group_id', flat=True).distinct()
             )
 
             # The following isn't diffeent from the original Django-only else branch
