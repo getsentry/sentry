@@ -63,10 +63,10 @@ class ProjectOwnership extends AsyncView {
             </p>
             <p>
               {t('Globbing Syntax:')}
-              <pre>
+              <CodeBlock>
                 {`* matches everything
 ? matches any single character`}
-              </pre>
+              </CodeBlock>
             </p>
             Examples:
             <CodeBlock>
