@@ -45,7 +45,7 @@ class OrganizationMembersView extends AsyncView {
       members: [],
       invited: new Map(),
       accessRequestBusy: new Map(),
-      searchQuery: idx(this.props, _ => _.location.query.query),
+      searchQuery: idx(this.props, _ => _.location.query.query) || '',
     };
   }
 
@@ -81,7 +81,7 @@ class OrganizationMembersView extends AsyncView {
     return `${org.name} Members`;
   }
 
-  onSearch = e => {
+  handleSearch = e => {
     let {router} = this.context;
     let {location} = this.props;
     e.preventDefault();
@@ -280,12 +280,12 @@ class OrganizationMembersView extends AsyncView {
         <Panel>
           <PanelHeader>
             {t('Member')}
-            <form onSubmit={this.onSearch}>
+            <form onSubmit={this.handleSearch}>
               <Input
                 value={this.state.searchQuery}
                 onChange={this.handleChange}
                 className="search"
-                placeholder="search"
+                placeholder={t('Search Members')}
               />
             </form>
           </PanelHeader>

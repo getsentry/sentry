@@ -67,7 +67,8 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                                                Q(user__emails__email__in=value))
                 elif key == 'query':
                     value = ' '.join(value)
-                    queryset = queryset.filter(Q(user__email__icontains=value))
+                    queryset = queryset.filter(Q(user__email__icontains=value) |
+                                               Q(user__name__icontains=value))
                 else:
                     queryset = queryset.none()
 
