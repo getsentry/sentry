@@ -1,6 +1,6 @@
 import styled from 'react-emotion';
-import space from '../../../../styles/space';
-import overflowEllipsis from '../../../../styles/overflowEllipsis';
+import space from '../../styles/space';
+import overflowEllipsis from '../../styles/overflowEllipsis';
 
 export const ProjectTableLayout = styled('div')`
   display: grid;

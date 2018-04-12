@@ -4,8 +4,8 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {ProjectTableLayout, ProjectTableDataElement} from './projectTableLayout';
-import Count from '../../../../components/count';
-import space from '../../../../styles/space';
+import Count from '../../components/count';
+import space from '../../styles/space';
 
 const ProjectTable = ({projectMap, projectTotals, orgTotal, organization}) => {
   const getPercent = (item, total) => {
