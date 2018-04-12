@@ -63,10 +63,13 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             tokens = tokenize_query(query)
             for key, value in six.iteritems(tokens):
                 if key == 'email':
-                    queryset = queryset.filter(
-                        Q(user__email__in=value) | Q(
-                            user__emails__email__in=value)
-                    )
+                    queryset = queryset.filter(Q(user__email__in=value) |
+                                               Q(user__emails__email__in=value))
+                elif key == 'query':
+                    value = ' '.join(value)
+                    queryset = queryset.filter(Q(user__email__icontains=value))
+                else:
+                    queryset = queryset.none()
 
         return self.paginate(
             request=request,
