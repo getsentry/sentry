@@ -6,6 +6,7 @@ sentry.models.auditlogentry
 :license: BSD, see LICENSE for more details.
 """
 from __future__ import absolute_import, print_function
+import six
 
 from django.db import models
 from django.utils import timezone
@@ -189,8 +190,10 @@ class AuditLogEntry(Model):
                 self.data.get('email') or self.target_user.get_display_name(),
             )
         elif self.event == AuditLogEntryEvent.MEMBER_EDIT:
-            return 'edited member %s' % (
+            return 'edited member %s (role: %s, teams: %s)' % (
                 self.data.get('email') or self.target_user.get_display_name(),
+                self.data.get('role') or 'N/A',
+                ', '.join(six.text_type(x) for x in self.data.get('team_slugs', [])) or 'N/A',
             )
         elif self.event == AuditLogEntryEvent.MEMBER_JOIN_TEAM:
             if self.target_user == self.actor:
