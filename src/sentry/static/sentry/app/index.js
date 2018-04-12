@@ -129,6 +129,7 @@ export default {
     DynamicWrapper: require('./components/dynamicWrapper').default,
     Form: require('./components/forms/form').default,
     FormState: require('./components/forms/index').FormState,
+    GuideAnchor: require('./components/assistant/guideAnchor').default,
     HookStore: require('./stores/hookStore').default,
     Indicators: require('./components/indicators').default,
     IndicatorStore: require('./stores/indicatorStore').default,
