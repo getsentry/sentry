@@ -8,10 +8,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
-from sentry.assistant.guides import GUIDES
 from sentry.models import AssistantActivity
+from sentry.assistant import manager
 
 
+GUIDES = manager.all()
 VALID_GUIDE_IDS = frozenset(v['id'] for v in GUIDES.values())
 VALID_STATUSES = frozenset(('viewed', 'dismissed'))
 
