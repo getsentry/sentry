@@ -3,10 +3,11 @@ from __future__ import absolute_import
 import mock
 import pytest
 from Queue import Full
-from concurrent.futures import Future
+from concurrent.futures import CancelledError, Future
+from contextlib import contextmanager
 from threading import Event
 
-from sentry.utils.concurrent import FutureSet, ThreadedExecutor
+from sentry.utils.concurrent import FutureSet, ThreadedExecutor, TimedFuture
 
 
 def test_future_set_callback_success():
@@ -73,8 +74,71 @@ def test_future_broken_callback():
     assert callback.call_args == mock.call(future_set)
 
 
+@contextmanager
+def timestamp(t):
+    with mock.patch('sentry.utils.concurrent.time') as mock_time:
+        mock_time.return_value = t
+        yield
+
+
+def test_timed_future_success():
+    future = TimedFuture()
+    assert future.get_timing() == (None, None)
+
+    with timestamp(1.0):
+        future.set_running_or_notify_cancel()
+        assert future.get_timing() == (1.0, None)
+
+    with timestamp(2.0):
+        future.set_result(None)
+        assert future.get_timing() == (1.0, 2.0)
+
+    with timestamp(3.0):
+        future.set_result(None)
+        assert future.get_timing() == (1.0, 3.0)
+
+
+def test_timed_future_error():
+    future = TimedFuture()
+    assert future.get_timing() == (None, None)
+
+    with timestamp(1.0):
+        future.set_running_or_notify_cancel()
+        assert future.get_timing() == (1.0, None)
+
+    with timestamp(2.0):
+        future.set_exception(None)
+        assert future.get_timing() == (1.0, 2.0)
+
+    with timestamp(3.0):
+        future.set_exception(None)
+        assert future.get_timing() == (1.0, 3.0)
+
+
+def test_timed_future_cancel():
+    future = TimedFuture()
+    assert future.get_timing() == (None, None)
+
+    with timestamp(1.0):
+        future.cancel()
+        assert future.get_timing() == (None, 1.0)
+
+    with timestamp(1.5):
+        future.cancel()
+        assert future.get_timing() == (None, 1.0)
+
+    with timestamp(2.0):
+        future.set_running_or_notify_cancel()
+        assert future.get_timing() == (2.0, 1.0)
+
+    with pytest.raises(RuntimeError):
+        future.set_running_or_notify_cancel()
+
+    assert future.get_timing() == (2.0, 1.0)
+
+
 def test_threaded_executor():
-    executor = ThreadedExecutor(worker_count=1, maxsize=2)
+    executor = ThreadedExecutor(worker_count=1, maxsize=3)
 
     def waiter(ready, waiting, result):
         ready.set()
@@ -102,6 +166,18 @@ def test_threaded_executor():
         priority=10,
     )
     assert not low_priority_future.done(), 'future should not be done (indicative of a full queue)'
+
+    cancelled_future = executor.submit(
+        lambda: None,
+        block=True,
+        timeout=1,
+        priority=5,
+    )
+    assert not cancelled_future.done(), 'future should not be done (indicative of a full queue)'
+    assert cancelled_future.cancel(), 'future should be able to be cancelled'
+    assert cancelled_future.done(), 'future should be completed'
+    with pytest.raises(CancelledError):
+        cancelled_future.result()
 
     high_priority_ready = Event()
     high_priority_waiting = Event()
