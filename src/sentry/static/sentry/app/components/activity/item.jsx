@@ -113,8 +113,8 @@ class ActivityItem extends React.Component {
           version: (
             <CommitLink
               inline={true}
-              commitId={data.commit.id}
-              repository={data.commit.repository}
+              commitId={data.commit && data.commit.id}
+              repository={data.commit && data.commit.repository}
             />
           ),
           issue: issueLink,

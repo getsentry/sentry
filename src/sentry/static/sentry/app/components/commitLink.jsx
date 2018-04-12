@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import {t} from '../locale';
 import InlineSvg from './inlineSvg';
 
 class CommitLink extends React.Component {
@@ -22,19 +23,25 @@ class CommitLink extends React.Component {
   };
 
   render() {
+    let {inline, commitId, repository} = this.props;
+
+    if (!commitId || !repository) {
+      return <span>{t('Unknown Commit')}</span>;
+    }
+
     let commitUrl = this.getCommitUrl();
-    let shortId = this.props.commitId.slice(0, 7);
+    let shortId = commitId.slice(0, 7);
 
     return commitUrl ? (
       <a
-        className={this.props.inline ? 'inline-commit' : 'btn btn-default btn-sm'}
+        className={inline ? 'inline-commit' : 'btn btn-default btn-sm'}
         href={commitUrl}
         target="_blank"
       >
-        {this.props.repository.provider.id == 'github' && (
+        {repository.provider.id == 'github' && (
           <InlineSvg src="icon-github" style={{verticalAlign: 'text-top'}} size="14px" />
         )}
-        {this.props.repository.provider.id == 'bitbucket' && (
+        {repository.provider.id == 'bitbucket' && (
           <InlineSvg
             src="icon-bitbucket"
             style={{verticalAlign: 'text-top'}}
@@ -42,7 +49,7 @@ class CommitLink extends React.Component {
           />
         )}
         &nbsp;
-        {this.props.inline ? '' : ' '}
+        {inline ? '' : ' '}
         {shortId}
       </a>
     ) : (
