@@ -709,7 +709,7 @@ class SnubaTestCase(TestCase):
             'platform': event.platform,
             'datetime': event.datetime,
             'data': data,
-            'primary_hash': 'primary_hash',
+            'primary_hash': primary_hash,
         }
 
     def create_event(self, *args, **kwargs):
@@ -747,7 +747,7 @@ class SnubaTestCase(TestCase):
             grouphash = GroupHash.objects.create(
                 project=event.project,
                 group=event.group,
-                hash=uuid.uuid4().hex
+                hash=uuid.uuid4().hex,
             )
 
         self.snuba_insert(self.__wrap_event(event, data, grouphash.hash))
