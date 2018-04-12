@@ -14,8 +14,11 @@ describe('ProviderItem', function() {
 
   it('calls configure callback', function() {
     let mock = jest.fn();
-    mount(<ProviderItem providerKey="dummy" providerName="Dummy" onConfigure={mock} />);
+    let wrapper = mount(
+      <ProviderItem providerKey="dummy" providerName="Dummy" onConfigure={mock} />
+    );
 
-    expect(mock).toHaveBeenCalledWith('dummy');
+    wrapper.find('Button').simulate('click');
+    expect(mock).toHaveBeenCalledWith('dummy', expect.anything());
   });
 });

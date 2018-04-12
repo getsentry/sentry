@@ -63,3 +63,13 @@ export function openCreateOwnershipRule(options = {}) {
       });
     });
 }
+
+export function openCommandPalette(options = {}) {
+  import(/* webpackChunkName: "CommandPalette" */ '../components/modals/commandPalette')
+    .then(mod => mod.default)
+    .then(Modal => {
+      openModal(deps => <Modal {...deps} {...options} />, {
+        modalClassName: 'command-palette',
+      });
+    });
+}

@@ -4,12 +4,18 @@ import PropTypes from 'prop-types';
 import Raven from 'raven-js';
 import React from 'react';
 
-import {Client} from '../../api';
-import withLatestContext from '../../utils/withLatestContext';
+import {Client} from '../../../api';
+import {createFuzzySearch} from '../../../utils/createFuzzySearch';
+import withLatestContext from '../../../utils/withLatestContext';
 
-class ApiSearch extends React.Component {
+class ApiSource extends React.Component {
   static propTypes = {
+    // search term
     query: PropTypes.string,
+
+    // fuse.js options
+    searchOptions: PropTypes.object,
+
     /**
      * Render function that passes:
      * `isLoading` - loading state
@@ -19,28 +25,39 @@ class ApiSearch extends React.Component {
     children: PropTypes.func.isRequired,
   };
 
+  static defaultProps = {
+    searchOptions: {},
+  };
+
   constructor(props, ...args) {
     super(props, ...args);
     this.state = {
       loading: false,
       allResults: null,
-      results: null,
+      fuzzy: null,
     };
 
     this.api = new Client();
 
-    if (props.query) this.doSearch(props.query);
+    if (typeof props.query !== 'undefined') this.doSearch(props.query);
   }
 
   componentWillReceiveProps(nextProps) {
-    if (nextProps.query !== this.props.query) {
+    // Limit the number of times we perform API queries by only attempting API queries
+    // using first two characters, otherwise perform in-memory search.
+    //
+    // Otherwise it'd be constant :spinning_loading_wheel:
+    if (
+      nextProps.query.length <= 2 &&
+      nextProps.query.substr(0, 2) !== this.props.query.substr(0, 2)
+    ) {
       this.setState({loading: true});
       this.doSearch(nextProps.query);
     }
   }
 
   doSearch = debounce(async query => {
-    let {params, organization} = this.props;
+    let {params, searchOptions, organization} = this.props;
     let orgId = params.orgId || (organization && organization.slug);
     let urls = ['/organizations/'];
 
@@ -76,14 +93,16 @@ class ApiSearch extends React.Component {
       ...flatten(
         organizations.map(org => [
           {
-            searchIndex: org.slug,
+            title: `${org.slug} Settings`,
+            description: 'Organization Settings',
             model: org,
             sourceType: 'organization',
             resultType: 'settings',
             to: `/settings/${org.slug}/`,
           },
           {
-            searchIndex: `${org.slug} Dashboard`,
+            title: `${org.slug} Dashboard`,
+            description: 'Organization Dashboard',
             model: org,
             sourceType: 'organization',
             resultType: 'route',
@@ -94,14 +113,16 @@ class ApiSearch extends React.Component {
       ...flatten(
         (projects || []).map(project => [
           {
-            searchIndex: project.slug,
+            title: `${project.slug} Settings`,
+            description: 'Project Settings',
             model: project,
             sourceType: 'project',
             resultType: 'settings',
             to: `/settings/${orgId}/${project.slug}/`,
           },
           {
-            searchIndex: `${project.slug} Dashboard`,
+            title: `${project.slug} Dashboard`,
+            description: 'Project Dashboard',
             model: project,
             sourceType: 'project',
             resultType: 'route',
@@ -110,14 +131,16 @@ class ApiSearch extends React.Component {
         ])
       ),
       ...(teams || []).map(team => ({
-        searchIndex: team.slug,
+        title: `#${team.slug}`,
+        description: 'Team Settings',
         model: team,
         sourceType: 'team',
         resultType: 'settings',
         to: `/settings/${orgId}/teams/${team.slug}/`,
       })),
       ...(members || []).map(member => ({
-        searchIndex: `${member.email}${member.name}`,
+        title: member.name,
+        description: member.email,
         model: member,
         sourceType: 'member',
         resultType: 'settings',
@@ -125,25 +148,30 @@ class ApiSearch extends React.Component {
       })),
     ];
 
-    let results = allResults.filter(({searchIndex}) => searchIndex.indexOf(query) > -1);
+    let fuzzy = createFuzzySearch(allResults, {
+      ...searchOptions,
+      keys: ['title', 'description'],
+    });
 
     this.setState({
       loading: false,
       allResults,
-      results,
+      fuzzy: await fuzzy,
     });
   }, 150);
 
   render() {
-    let {children} = this.props;
+    let {children, query} = this.props;
+    let {fuzzy} = this.state;
 
+    let results = (fuzzy && fuzzy.search(query)) || null;
     return children({
       isLoading: this.state.loading,
       allResults: this.state.allResults,
-      results: this.state.results,
+      results,
     });
   }
 }
 
-export {ApiSearch};
-export default withLatestContext(withRouter(ApiSearch));
+export {ApiSource};
+export default withLatestContext(withRouter(ApiSource));
