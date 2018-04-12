@@ -5,12 +5,16 @@ import styled from 'react-emotion';
 
 import {defined} from '../../../../../utils';
 import {pulse, fadeOut} from '../../../../../styles/animations';
+import {t} from '../../../../../locale';
+import Button from '../../../../../components/buttons/button';
 import Field from '../field';
 import FieldControl from '../field/fieldControl';
 import FormState from '../../../../../components/forms/state';
 import InlineSvg from '../../../../../components/inlineSvg';
+import PanelAlert from '../../../../../components/panels/panelAlert';
 import Spinner from '../spinner';
 import returnButton from '../returnButton';
+import space from '../../../../../styles/space';
 
 const FormFieldErrorReason = styled.div`
   color: ${p => p.theme.redDark};
@@ -138,9 +142,21 @@ class FormField extends React.Component {
     style: PropTypes.object,
 
     /**
-     * Should show a "return key" icon in input?
+     * Iff false, disable saveOnBlur for field, instead show a save/cancel button
      */
-    showReturnButton: PropTypes.bool,
+    saveOnBlur: PropTypes.bool,
+
+    /**
+     * If saveOnBlur is false, then an optional saveMessage can be used to let
+     * the user know what's going to happen when they save a field.
+     */
+    saveMessage: PropTypes.node,
+
+    /**
+     * The "alert type" to use for the save message.
+     * Probably only "info"/"warning" should be used.
+     */
+    saveMessageAlertType: PropTypes.oneOf(['', 'info', 'warning', 'success', 'error']),
 
     /**
      * Should hide error message?
@@ -168,11 +184,6 @@ class FormField extends React.Component {
     location: PropTypes.object,
     form: PropTypes.object,
   };
-
-  constructor(props) {
-    super(props);
-    this.state = {showReturnButton: false};
-  }
 
   componentDidMount() {
     // Tell model about this field's props
@@ -215,8 +226,6 @@ class FormField extends React.Component {
     let {value, event} = getValueFromEvent(...args);
     let model = this.getModel();
 
-    if (this.props.showReturnButton) this.setState({showReturnButton: true});
-
     if (onChange) {
       onChange(value, event);
     }
@@ -237,7 +246,7 @@ class FormField extends React.Component {
     }
 
     // Always call this, so model can decide what to do
-    model.handleFieldBlur(name, value);
+    model.handleBlurField(name, value);
   };
 
   /**
@@ -249,7 +258,7 @@ class FormField extends React.Component {
     let model = this.getModel();
 
     if (event.key === 'Enter') {
-      model.handleFieldBlur(name, value);
+      model.handleBlurField(name, value);
     }
 
     if (onKeyDown) {
@@ -257,70 +266,139 @@ class FormField extends React.Component {
     }
   };
 
+  /**
+   * Handle saving an individual field via UI button
+   */
+  handleSaveField = (...args) => {
+    let {name} = this.props;
+    let model = this.getModel();
+
+    model.handleSaveField(name, model.getValue(name));
+  };
+
+  handleCancelField = (...args) => {
+    let {name} = this.props;
+    let model = this.getModel();
+
+    model.handleCancelSaveField(name);
+  };
+
   render() {
     let {
       name,
-      showReturnButton,
       hideErrorMessage,
       flexibleControlStateSize,
+      saveOnBlur,
+      saveMessage,
+      saveMessageAlertType,
       ...props
     } = this.props;
     let id = this.getId();
     let model = this.getModel();
+    let saveOnBlurFieldOverride = typeof saveOnBlur !== 'undefined' && !saveOnBlur;
 
     return (
-      <Field id={id} name={name} {...props}>
-        {({alignRight, inline, disabled, disabledReason}) => (
-          <FieldControl
-            disabled={disabled}
-            disabledReason={disabledReason}
-            inline={inline}
-            alignRight={alignRight}
-            flexibleControlStateSize={flexibleControlStateSize}
-            controlState={<ControlState model={model} name={name} />}
-            errorState={
+      <React.Fragment>
+        <Field id={id} name={name} {...props}>
+          {({alignRight, inline, disabled, disabledReason}) => (
+            <FieldControl
+              disabled={disabled}
+              disabledReason={disabledReason}
+              inline={inline}
+              alignRight={alignRight}
+              flexibleControlStateSize={flexibleControlStateSize}
+              controlState={<ControlState model={model} name={name} />}
+              errorState={
+                <Observer>
+                  {() => {
+                    let error = this.getError();
+                    let shouldShowErrorMessage = error && !hideErrorMessage;
+                    if (!shouldShowErrorMessage) return null;
+                    return <FormFieldErrorReason>{error}</FormFieldErrorReason>;
+                  }}
+                </Observer>
+              }
+            >
               <Observer>
                 {() => {
                   let error = this.getError();
-                  let shouldShowErrorMessage = error && !hideErrorMessage;
-                  if (!shouldShowErrorMessage) return null;
-                  return <FormFieldErrorReason>{error}</FormFieldErrorReason>;
+                  let value = model.getValue(name);
+                  let showReturnButton = model.getFieldState(name, 'showReturnButton');
+
+                  return (
+                    <React.Fragment>
+                      <this.props.children
+                        innerRef={this.handleInputMount}
+                        {...{
+                          ...this.props,
+                          id,
+                          onKeyDown: this.handleKeyDown,
+                          onChange: this.handleChange,
+                          onBlur: this.handleBlur,
+                          // Fixes react warnings about input switching from controlled to uncontrolled
+                          // So force to empty string for null values
+                          value: value === null ? '' : value,
+                          error,
+                          disabled,
+                        }}
+                        initialData={model.initialData}
+                      />
+                      {showReturnButton && <ReturnButtonStyled />}
+                    </React.Fragment>
+                  );
                 }}
               </Observer>
-            }
-          >
-            <Observer>
-              {() => {
-                let error = this.getError();
-                let value = model.getValue(this.props.name);
+            </FieldControl>
+          )}
+        </Field>
+        {saveOnBlurFieldOverride && (
+          <Observer>
+            {() => {
+              let showFieldSave = model.getFieldState(name, 'showSave');
 
-                return (
-                  <this.props.children
-                    innerRef={this.handleInputMount}
-                    {...{
-                      ...this.props,
-                      id,
-                      onKeyDown: this.handleKeyDown,
-                      onChange: this.handleChange,
-                      onBlur: this.handleBlur,
-                      // Fixes react warnings about input switching from controlled to uncontrolled
-                      // So force to empty string for null values
-                      value: value === null ? '' : value,
-                      error,
-                      disabled,
-                    }}
-                    initialData={model.initialData}
-                  />
-                );
-              }}
-            </Observer>
+              if (!showFieldSave) return null;
 
-            {showReturnButton && this.state.showReturnButton && <ReturnButtonStyled />}
-          </FieldControl>
+              return (
+                <PanelAlert type={saveMessageAlertType}>
+                  <MessageAndActions>
+                    <div>{saveMessage}</div>
+                    <Actions>
+                      <CancelButton onClick={this.handleCancelField}>
+                        {t('Cancel')}
+                      </CancelButton>
+                      <SaveButton priority="primary" onClick={this.handleSaveField}>
+                        {t('Save')}
+                      </SaveButton>
+                    </Actions>
+                  </MessageAndActions>
+                </PanelAlert>
+              );
+            }}
+          </Observer>
         )}
-      </Field>
+      </React.Fragment>
     );
   }
 }
 
 export default FormField;
+
+const MessageAndActions = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const Actions = styled('div')`
+  height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+`;
+
+const CancelButton = styled(Button)`
+  margin-left: ${space(2)};
+`;
+const SaveButton = styled(Button)`
+  margin-left: ${space(1)};
+`;

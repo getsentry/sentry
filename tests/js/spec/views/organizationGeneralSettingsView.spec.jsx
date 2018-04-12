@@ -1,9 +1,11 @@
-import React from 'react';
-import {mount} from 'enzyme';
 import {browserHistory} from 'react-router';
+import React from 'react';
+
+import {mount} from 'enzyme';
+import OrganizationGeneralSettingsView from 'app/views/settings/organization/general/organizationGeneralSettingsView';
 import recreateRoute from 'app/utils/recreateRoute';
 
-import OrganizationGeneralSettingsView from 'app/views/settings/organization/general/organizationGeneralSettingsView';
+import {mountWithTheme} from '../../../helpers';
 
 jest.mock('jquery');
 jest.mock('app/utils/recreateRoute');
@@ -71,7 +73,7 @@ describe('OrganizationGeneralSettingsView', function() {
   });
 
   it('changes org slug and redirects to new slug', async function() {
-    let wrapper = mount(
+    let wrapper = mountWithTheme(
       <OrganizationGeneralSettingsView params={{orgId: org.slug}} />,
       TestStubs.routerContext()
     );
@@ -90,7 +92,7 @@ describe('OrganizationGeneralSettingsView', function() {
       .simulate('change', {target: {value: 'new-slug'}})
       .simulate('blur');
 
-    wrapper.update();
+    wrapper.find('SaveButton').simulate('click');
     expect(mock).toHaveBeenCalledWith(
       ENDPOINT,
       expect.objectContaining({
@@ -295,6 +297,8 @@ describe('OrganizationGeneralSettingsView', function() {
     wrapper.update();
     wrapper.find('Switch[name="require2FA"]').simulate('click');
 
+    // hide console.error for this test
+    sinon.stub(console, 'error');
     // Confirm but has API failure
     wrapper
       .find(
@@ -305,5 +309,7 @@ describe('OrganizationGeneralSettingsView', function() {
     await tick();
     wrapper.update();
     expect(wrapper.find('Switch[name="require2FA"]').prop('isActive')).toBe(false);
+    // eslint-disable-next-line no-console
+    console.error.restore();
   });
 });

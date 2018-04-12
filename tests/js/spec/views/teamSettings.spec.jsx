@@ -5,6 +5,7 @@ import {mount, shallow} from 'enzyme';
 import TeamSettings from 'app/views/settings/team/teamSettings.old';
 import TeamStore from 'app/stores/teamStore';
 import NewTeamSettings from 'app/views/settings/team/teamSettings';
+import {mountWithTheme} from '../../../helpers';
 
 const childContextTypes = {
   organization: PropTypes.object,
@@ -73,7 +74,7 @@ describe('NewTeamSettings', function() {
       method: 'PUT',
     });
 
-    let wrapper = mount(
+    let wrapper = mountWithTheme(
       <NewTeamSettings
         routes={[]}
         params={{orgId: 'org', teamId: team.slug}}
@@ -101,6 +102,8 @@ describe('NewTeamSettings', function() {
       .find('input[name="slug"]')
       .simulate('change', {target: {value: 'new-slug'}})
       .simulate('blur');
+
+    wrapper.find('SaveButton').simulate('click');
 
     expect(putMock).toHaveBeenCalledWith(
       `/teams/org/${team.slug}/`,
@@ -140,7 +143,7 @@ describe('NewTeamSettings', function() {
     ).not.toBe('Remove Team');
   });
 
-  xit('can remove team', async function() {
+  it('can remove team', async function() {
     let team = TestStubs.Team();
     let deleteMock = MockApiClient.addMockResponse({
       url: `/teams/org/${team.slug}/`,
@@ -180,6 +183,7 @@ describe('NewTeamSettings', function() {
       })
     );
 
+    await tick();
     await tick();
     expect(routerPushMock).toHaveBeenCalledWith('/settings/org/teams/');
 

@@ -25,17 +25,6 @@ import TextBlock from './settings/components/text/textBlock';
 import TextField from './settings/components/forms/textField';
 import recreateRoute from '../utils/recreateRoute';
 
-const AutoResolveFooter = () => (
-  <PanelAlert type="warning">
-    <strong>
-      {t(
-        'Note: Enabling auto resolve will immediately resolve anything that has ' +
-          'not been seen within this period of time. There is no undo!'
-      )}
-    </strong>
-  </PanelAlert>
-);
-
 class ProjectGeneralSettings extends AsyncView {
   static propTypes = {
     onChangeSlug: PropTypes.func,
@@ -273,7 +262,6 @@ class ProjectGeneralSettings extends AsyncView {
             {...jsonFormProps}
             title={t('Event Settings')}
             fields={[fields.resolveAge]}
-            renderFooter={() => <AutoResolveFooter />}
           />
 
           <JsonForm
