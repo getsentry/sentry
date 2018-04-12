@@ -36,6 +36,7 @@ from sentry.web.frontend.mailgun_inbound_webhook import \
 from sentry.web.frontend.oauth_authorize import OAuthAuthorizeView
 from sentry.web.frontend.oauth_token import OAuthTokenView
 from sentry.auth.providers.saml2 import SAML2AcceptACSView, SAML2SLSView, SAML2MetadataView
+from sentry.web.frontend.organization_avatar import OrganizationAvatarPhotoView
 from sentry.web.frontend.organization_auth_settings import \
     OrganizationAuthSettingsView
 from sentry.web.frontend.organization_integration_setup import \
@@ -439,6 +440,11 @@ urlpatterns += patterns(
         r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/transfer/$',
         TransferProjectView.as_view(),
         name='sentry-transfer-project'
+    ),
+    url(
+        r'^organization-avatar/(?P<avatar_id>[^\/]+)/$',
+        OrganizationAvatarPhotoView.as_view(),
+        name='sentry-organization-avatar-url'
     ),
     url(
         r'^avatar/(?P<avatar_id>[^\/]+)/$',
