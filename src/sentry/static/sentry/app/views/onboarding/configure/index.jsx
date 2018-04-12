@@ -34,12 +34,6 @@ const Configure = createReactClass({
     }, 2000);
   },
 
-  componentDidMount() {
-    HookStore.get('analytics:event').forEach(cb =>
-      cb('onboarding.show_instructions', {project: this.props.params.projectId})
-    );
-  },
-
   componentWillUpdate(nextProps, nextState) {
     if (
       !this.state.isFirstTimePolling &&
