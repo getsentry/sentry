@@ -22,14 +22,14 @@ class TimedFuture(Future):
 
         The ``started`` value can be either a timestamp or ``None`` (if the
         future has not been started.) The ``finished`` value can also be either
-        a timestamp or ``None`` (if the future has not been completed or
+        a timestamp or ``None`` (if the future has not been either completed or
         cancelled.)
 
         There are some idiosyncracies with the way the timings are recorded:
 
         - The ``started`` value will generally not be ``None`` if the
           ``finished`` value is also not ``None``. However, for a future that
-          is marked as cancelled and has yet to be attempted to be executed,
+          was marked as cancelled and has yet to be attempted to be executed,
           the ``finished`` value may be set while the ``started`` value is
           ``None``.
         - Similarly, the ``started`` value will generally be equal to or less
