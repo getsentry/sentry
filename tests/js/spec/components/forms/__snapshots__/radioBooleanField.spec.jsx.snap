@@ -8,7 +8,7 @@ exports[`RadioBooleanField render() renders with form context 1`] = `
     className="controls"
   >
     <div
-      className="control-group"
+      className="control-group radio-boolean"
     >
       <div
         className="radio"
@@ -67,7 +67,7 @@ exports[`RadioBooleanField render() renders without form context 1`] = `
     className="controls"
   >
     <div
-      className="control-group"
+      className="control-group radio-boolean"
     >
       <div
         className="radio"
