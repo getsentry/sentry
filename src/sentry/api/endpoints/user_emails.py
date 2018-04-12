@@ -4,24 +4,14 @@ import logging
 
 from django.db import IntegrityError, transaction
 from django.db.models import Q
-from rest_framework import serializers, status
-from rest_framework.response import Response
+from rest_framework import serializers
 
-from sentry import newsletter
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.models import User, UserEmail, UserOption
 
 logger = logging.getLogger('sentry.accounts')
-
-
-class InvalidEmailResponse(Response):
-    def __init__(self):
-        super(InvalidEmailResponse, self).__init__(
-            {'detail': 'Invalid email', 'email': 'Invalid email'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
 
 
 class InvalidEmailError(Exception):
@@ -32,12 +22,11 @@ class DuplicateEmailError(Exception):
     pass
 
 
-class EmailSerializer(serializers.Serializer):
+class EmailValidator(serializers.Serializer):
     email = serializers.EmailField(required=True)
-    newsletter = serializers.BooleanField(required=False, default=False)
 
 
-def add_email(email, user, subscribe_newsletter=False):
+def add_email(email, user):
     """
     Adds an email to user account
 
@@ -53,19 +42,11 @@ def add_email(email, user, subscribe_newsletter=False):
             new_email = UserEmail.objects.create(user=user, email=email)
     except IntegrityError:
         raise DuplicateEmailError
-    else:
-        new_email.set_hash()
-        new_email.save()
-        user.send_confirm_email_singular(new_email)
 
-        # Update newsletter subscription and mark as unverified
-        if subscribe_newsletter:
-            newsletter.create_or_update_subscription(
-                user=user,
-                verified=False,
-                list_id=newsletter.get_default_list_id(),
-            )
-        return new_email
+    new_email.set_hash()
+    new_email.save()
+    user.send_confirm_email_singular(new_email)
+    return new_email
 
 
 class UserEmailsEndpoint(UserEndpoint):
@@ -95,29 +76,31 @@ class UserEmailsEndpoint(UserEndpoint):
         :auth required:
         """
 
-        serializer = EmailSerializer(data=request.DATA)
+        validator = EmailValidator(data=request.DATA)
+        if not validator.is_valid():
+            return self.respond(validator.errors, status=400)
 
-        if not serializer.is_valid():
-            return InvalidEmailResponse()
+        result = validator.object
+        email = result['email'].lower().strip()
 
         try:
-            new_email = add_email(
-                serializer.object['email'].lower().strip(),
+            new_useremail = add_email(
+                email,
                 user,
-                serializer.object['newsletter'])
-        except (InvalidEmailError, DuplicateEmailError):
-            return InvalidEmailResponse()
+            )
+        except DuplicateEmailError:
+            new_useremail = user.emails.get(email__iexact=email)
+            return self.respond(serialize(new_useremail, user=request.user), status=200)
         else:
             logger.info(
                 'user.email.add',
                 extra={
                     'user_id': user.id,
                     'ip_address': request.META['REMOTE_ADDR'],
-                    'email': new_email.email,
+                    'email': new_useremail.email,
                 }
             )
-
-            return self.respond(serialize(new_email, user=request.user), status=201)
+            return self.respond(serialize(new_useremail, user=request.user), status=201)
 
     @sudo_required
     def put(self, request, user):
@@ -131,54 +114,51 @@ class UserEmailsEndpoint(UserEndpoint):
         :auth required:
         """
 
-        serializer = EmailSerializer(data=request.DATA)
+        validator = EmailValidator(data=request.DATA)
+        if not validator.is_valid():
+            return self.respond(validator.errors, status=400)
 
-        if not serializer.is_valid():
-            return InvalidEmailResponse()
+        result = validator.object
+        old_email = user.email.lower()
+        new_email = result['email'].lower()
 
-        old_email = user.email
-
-        if not serializer.is_valid():
-            return InvalidEmailResponse()
-
-        new_email = serializer.object['email'].lower().strip()
-        if new_email == old_email:
-            return InvalidEmailResponse()
+        new_useremail = user.emails.filter(
+            email__iexact=new_email
+        ).first()
 
         # If email doesn't exist for user, attempt to add new email
-        new_email_obj = UserEmail.objects.filter(
-            user=user, email__iexact=new_email
-        ).first()
-        if not new_email_obj:
+        if not new_useremail:
             try:
-                new_email_obj = add_email(new_email, user, serializer.object['newsletter'])
-            except InvalidEmailError:
-                return InvalidEmailResponse()
+                new_useremail = add_email(new_email, user)
             except DuplicateEmailError:
-                new_email_obj = UserEmail.objects.filter(
-                    user=user, email__iexact=new_email
-                ).first()
-                assert new_email_obj
+                new_useremail = user.emails.get(
+                    email__iexact=new_email
+                )
             else:
                 logger.info(
                     'user.email.add',
                     extra={
                         'user_id': user.id,
                         'ip_address': request.META['REMOTE_ADDR'],
-                        'email': new_email_obj.email,
+                        'email': new_useremail.email,
                     }
                 )
-                new_email = new_email_obj.email
+                new_email = new_useremail.email
 
         # Check if email is in use
-        # Is this a security/abuse concern?
-        if User.objects.filter(Q(email__iexact=new_email) | Q(username__iexact=new_email)
-                               ).exclude(id=user.id).exists():
-            return InvalidEmailResponse()
+        # TODO(dcramer): this needs rate limiting to avoid abuse
+        # TODO(dcramer): this needs a lock/constraint
+        if User.objects.filter(
+            Q(email__iexact=new_email) | Q(username__iexact=new_email)
+        ).exclude(id=user.id).exists():
+            return self.respond({
+                'email': 'That email address is already associated with another account.'
+            }, status=400)
 
-        if not new_email_obj.is_verified:
-            return self.respond(
-                {'email': 'You must verify your email address before marking it as primary.'}, status=400)
+        if not new_useremail.is_verified:
+            return self.respond({
+                'email': 'You must verify your email address before marking it as primary.'
+            }, status=400)
 
         # update notification settings for those set to primary email with new primary email
         alert_email = UserOption.objects.get_value(user=user, key='alert_email')
@@ -211,7 +191,7 @@ class UserEmailsEndpoint(UserEndpoint):
             }
         )
 
-        return self.respond(serialize(new_email_obj, user=request.user))
+        return self.respond(serialize(new_useremail, user=request.user))
 
     @sudo_required
     def delete(self, request, user):
@@ -224,15 +204,18 @@ class UserEmailsEndpoint(UserEndpoint):
         :param string email: email to remove
         :auth required:
         """
+        validator = EmailValidator(data=request.DATA)
+        if not validator.is_valid():
+            return self.respond(validator.errors, status=400)
 
-        email = request.DATA.get('email')
+        email = validator.object['email']
         primary_email = UserEmail.get_primary_email(user)
-        del_email = UserEmail.objects.filter(user=user, email=email)[0]
+        del_email = UserEmail.objects.filter(user=user, email__iexact=email).first()
 
         # Don't allow deleting primary email?
         if primary_email == del_email:
             return self.respond({'detail': 'Cannot remove primary email'},
-                                status=status.HTTP_400_BAD_REQUEST)
+                                status=400)
 
         del_email.delete()
 
@@ -245,4 +228,4 @@ class UserEmailsEndpoint(UserEndpoint):
             }
         )
 
-        return self.respond(status=status.HTTP_204_NO_CONTENT)
+        return self.respond(status=204)

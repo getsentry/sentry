@@ -946,11 +946,16 @@ window.MockApiClient = require.requireMock('app/api').Client;
 
 // default configuration
 ConfigStore.loadInitialData({
+  messages: [],
   user: {
     isAuthenticated: true,
     email: 'foo@example.com',
     options: {
       timezone: 'UTC',
+    },
+    hasPasswordAuth: true,
+    flags: {
+      newsletter_consent_prompt: false,
     },
   },
 });

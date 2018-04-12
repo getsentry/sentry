@@ -1,11 +1,7 @@
 from __future__ import absolute_import
 
-import pytest
-
-from django.conf import settings
 from django.core.urlresolvers import reverse
 
-from sentry import newsletter
 from sentry.models import User, UserEmail
 from sentry.testutils import APITestCase
 
@@ -13,14 +9,6 @@ from sentry.testutils import APITestCase
 class UserEmailsTest(APITestCase):
     def setUp(self):
         super(UserEmailsTest, self).setUp()
-
-        def disable_newsletter():
-            newsletter.backend.disable()
-
-        # disable newsletter by default
-        newsletter.backend.disable()
-
-        self.addCleanup(disable_newsletter)
         self.user = self.create_user(email='foo@example.com')
         self.login_as(user=self.user)
         self.url = reverse('sentry-api-0-user-emails', kwargs={'user_id': self.user.id})
@@ -45,7 +33,7 @@ class UserEmailsTest(APITestCase):
         response = self.client.post(self.url, data={
             'email': 'invalidemail',
         })
-        assert response.status_code == 400
+        assert response.status_code == 400, response.data
         assert not UserEmail.objects.filter(user=self.user, email='invalidemail').exists()
 
         # valid secondary email
@@ -53,47 +41,21 @@ class UserEmailsTest(APITestCase):
             'email': 'altemail1@example.com',
         })
 
-        assert response.status_code == 201
+        assert response.status_code == 201, response.data
         assert UserEmail.objects.filter(user=self.user, email='altemail1@example.com').exists()
 
-        # duplicate email
+        # duplicate email allows still succeeds, but has a diff response code
         response = self.client.post(self.url, data={
             'email': 'altemail1@example.com',
         })
-        assert response.status_code == 400
-
-    def test_add_secondary_email_with_newsletter_subscribe(self):
-        newsletter.backend.enable()
-        response = self.client.post(self.url, data={
-            'email': 'altemail1@example.com',
-            'newsletter': '1',
-        })
-
-        assert response.status_code == 201
-        assert UserEmail.objects.filter(user=self.user, email='altemail1@example.com').exists()
-        results = newsletter.get_subscriptions(self.user)['subscriptions']
-        assert len(results) == 1
-        assert results[0].list_id == newsletter.get_default_list_id()
-        assert results[0].subscribed
-        assert not results[0].verified
-
-    def test_add_secondary_email_with_newsletter_no_subscribe(self):
-        newsletter.backend.enable()
-        response = self.client.post(self.url, data={
-            'email': 'altemail1@example.com',
-            'newsletter': '0',
-        })
-
-        assert response.status_code == 201
-        assert UserEmail.objects.filter(user=self.user, email='altemail1@example.com').exists()
-        assert newsletter.get_subscriptions(self.user) == {'subscriptions': []}
+        assert response.status_code == 200, response.data
 
     def test_change_verified_secondary_to_primary(self):
         UserEmail.objects.create(user=self.user, email='altemail1@example.com', is_verified=True)
         response = self.client.put(self.url, data={
             'email': 'altemail1@example.com',
         })
-        assert response.status_code == 200
+        assert response.status_code == 200, response.data
 
         user = User.objects.get(id=self.user.id)
         assert user.email == 'altemail1@example.com'
@@ -104,7 +66,7 @@ class UserEmailsTest(APITestCase):
         response = self.client.put(self.url, data={
             'email': 'altemail1@example.com',
         })
-        assert response.status_code == 400
+        assert response.status_code == 400, response.data
 
         user = User.objects.get(id=self.user.id)
         assert user.email != 'altemail1@example.com'
@@ -116,7 +78,7 @@ class UserEmailsTest(APITestCase):
         response = self.client.delete(self.url, data={
             'email': 'altemail1@example.com',
         })
-        assert response.status_code == 204
+        assert response.status_code == 204, response.data
         assert not len(UserEmail.objects.filter(user=self.user, email='altemail1@example.com'))
 
     def test_cant_remove_primary_email(self):
@@ -136,43 +98,3 @@ class UserEmailsTest(APITestCase):
         })
 
         assert response.status_code == 403
-
-
-@pytest.mark.skipIf(lambda x: settings.SENTRY_NEWSLETTER != 'sentry.newsletter.dummy.DummyNewsletter')
-class UserEmailsNewsletterTest(APITestCase):
-    def setUp(self):
-        super(UserEmailsNewsletterTest, self).setUp()
-
-        def disable_newsletter():
-            newsletter.backend.disable()
-
-        newsletter.backend.enable()
-
-        self.addCleanup(disable_newsletter)
-        self.user = self.create_user(email='foo@example.com')
-        self.login_as(user=self.user)
-        self.url = reverse('sentry-api-0-user-emails', kwargs={'user_id': self.user.id})
-
-    def test_add_secondary_email_with_newsletter_subscribe(self):
-        response = self.client.post(self.url, data={
-            'email': 'altemail1@example.com',
-            'newsletter': '1',
-        })
-
-        assert response.status_code == 201
-        assert UserEmail.objects.filter(user=self.user, email='altemail1@example.com').exists()
-        results = newsletter.get_subscriptions(self.user)['subscriptions']
-        assert len(results) == 1
-        assert results[0].list_id == newsletter.get_default_list_id()
-        assert results[0].subscribed
-        assert not results[0].verified
-
-    def test_add_secondary_email_with_newsletter_no_subscribe(self):
-        response = self.client.post(self.url, data={
-            'email': 'altemail1@example.com',
-            'newsletter': '0',
-        })
-
-        assert response.status_code == 201
-        assert UserEmail.objects.filter(user=self.user, email='altemail1@example.com').exists()
-        assert newsletter.get_subscriptions(self.user) == {'subscriptions': []}
