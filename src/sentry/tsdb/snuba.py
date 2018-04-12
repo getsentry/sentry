@@ -160,7 +160,7 @@ class SnubaTSDB(BaseTSDB):
         top level or a `{level1_key: [level2_key, ...]}` dictionary->list map.
         """
         # Flatten keys
-        if isinstance(items, list):
+        if isinstance(items, (list, tuple)):
             return (items, None)
         elif isinstance(items, dict):
             return (items.keys(), list(set.union(*(set(v) for v in items.values()))))
