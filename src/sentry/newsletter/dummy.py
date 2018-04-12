@@ -10,12 +10,14 @@ from .base import Newsletter
 
 class NewsletterSubscription(object):
     def __init__(self, user, list_id, list_name=None, list_description=None, email=None, verified=None, subscribed=False, subscribed_date=None, unsubscribed_date=None, **kwargs):
+        from sentry.models import UserEmail
+
         self.email = user.email or email
         self.list_id = list_id
         self.list_description = list_description
         self.list_name = list_name
         # is the email address verified?
-        self.verified = user.email_set.get_or_create(email=user.email)[0].is_verified if verified is None else verified
+        self.verified = UserEmail.get_primary_email(user).is_verified if verified is None else verified
         # are they subscribed to ``list_id``
         self.subscribed = subscribed
         if subscribed:
