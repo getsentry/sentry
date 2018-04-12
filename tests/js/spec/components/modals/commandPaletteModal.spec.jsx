@@ -3,7 +3,6 @@ import React from 'react';
 import {mount} from 'enzyme';
 import {openCommandPalette} from 'app/actionCreators/modal';
 import App from 'app/views/app';
-import ConfigStore from 'app/stores/configStore';
 import FormSearchStore from 'app/stores/formSearchStore';
 
 import {navigateTo} from 'app/actionCreators/navigation';
@@ -17,7 +16,6 @@ describe('Command Palette Modal', function() {
   let orgsMock;
 
   beforeEach(function() {
-    ConfigStore.set('messages', []);
     FormSearchStore.onLoadSearchMap([]);
 
     MockApiClient.clearMockResponses();
@@ -52,11 +50,6 @@ describe('Command Palette Modal', function() {
       url: '/assistant/',
       body: [],
     });
-  });
-
-  afterEach(function() {
-    // trigger.mockReset();
-    ConfigStore.set('messages', []);
   });
 
   it('can open command palette modal and search', async function() {

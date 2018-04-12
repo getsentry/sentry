@@ -10,6 +10,7 @@ from __future__ import absolute_import
 import logging
 import warnings
 
+from bitfield import BitField
 from django.contrib.auth.models import AbstractBaseUser, UserManager
 from django.core.urlresolvers import reverse
 from django.db import IntegrityError, models, transaction
@@ -79,6 +80,17 @@ class User(BaseModel, AbstractBaseUser):
         _('date of last password change'),
         null=True,
         help_text=_('The date the password was changed last.')
+    )
+
+    flags = BitField(
+        flags=(
+            (
+                'newsletter_consent_prompt',
+                'Do we need to ask this user for newsletter consent?'
+            ),
+        ),
+        default=0,
+        null=True,
     )
 
     session_nonce = models.CharField(max_length=12, null=True)

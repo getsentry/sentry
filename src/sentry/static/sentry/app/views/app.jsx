@@ -5,6 +5,7 @@ import {ThemeProvider} from 'emotion-theming';
 import Cookies from 'js-cookie';
 import PropTypes from 'prop-types';
 import React from 'react';
+import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import keydown from 'react-keydown';
 import idx from 'idx';
@@ -21,6 +22,7 @@ import GlobalModal from '../components/globalModal';
 import Indicators from '../components/indicators';
 import InstallWizard from './installWizard';
 import LoadingIndicator from '../components/loadingIndicator';
+import NewsletterConsent from './newsletterConsent';
 import OrganizationsLoader from '../components/organizations/organizationsLoader';
 import OrganizationsStore from '../stores/organizationsStore';
 import theme from '../utils/theme';
@@ -43,13 +45,15 @@ const App = createReactClass({
     location: PropTypes.object,
   },
 
-  mixins: [ApiMixin],
+  mixins: [ApiMixin, Reflux.listenTo(ConfigStore, 'onConfigStoreChange')],
 
   getInitialState() {
+    let user = ConfigStore.get('user');
     return {
       loading: false,
       error: false,
-      needsUpgrade: ConfigStore.get('needsUpgrade'),
+      needsUpgrade: user && user.isSuperuser && ConfigStore.get('needsUpgrade'),
+      newsletterConsentPrompt: user && user.flags.newsletter_consent_prompt,
     };
   },
 
@@ -133,6 +137,13 @@ const App = createReactClass({
     OrganizationsStore.load([]);
   },
 
+  onConfigStoreChange(config) {
+    let newState = {};
+    if (config.needsUpgrade !== undefined) newState.needsUpgrade = config.needsUpgrade;
+    if (config.user !== undefined) newState.user = config.user;
+    if (Object.keys(newState).length > 0) this.setState(newState);
+  },
+
   @keydown('cmd+shift+p')
   openCommandPalette(e) {
     openCommandPalette();
@@ -144,19 +155,27 @@ const App = createReactClass({
     this.setState({needsUpgrade: false});
   },
 
-  render() {
-    let user = ConfigStore.get('user');
-    let needsUpgrade = this.state.needsUpgrade;
+  onNewsletterConsent() {
+    // this is somewhat hackish
+    this.setState({
+      newsletterConsentPrompt: false,
+    });
+  },
 
-    if (user && user.isSuperuser && needsUpgrade) {
-      return (
-        <div>
-          <Indicators className="indicators-container" />
-          <InstallWizard onConfigured={this.onConfigured} />
-        </div>
-      );
+  renderBody() {
+    let {needsUpgrade, newsletterConsentPrompt} = this.state;
+    if (needsUpgrade) {
+      return <InstallWizard onConfigured={this.onConfigured} />;
     }
 
+    if (newsletterConsentPrompt) {
+      return <NewsletterConsent onSubmitSuccess={this.onNewsletterConsent} />;
+    }
+
+    return this.props.children;
+  },
+
+  render() {
     if (this.state.loading) {
       return (
         <LoadingIndicator triangle={true}>
@@ -171,7 +190,7 @@ const App = createReactClass({
           <GlobalModal />
           <Alerts className="messages-container" />
           <Indicators className="indicators-container" />
-          <ErrorBoundary>{this.props.children}</ErrorBoundary>
+          <ErrorBoundary>{this.renderBody()}</ErrorBoundary>
           {ConfigStore.get('features').has('assistant') && <AssistantHelper />}
         </OrganizationsLoader>
       </ThemeProvider>
