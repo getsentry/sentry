@@ -17,18 +17,18 @@ const LetterAvatar = createReactClass({
   },
 
   COLORS: [
-    '#4674ca', // blue
-    '#315cac', // blue_dark
-    '#57be8c', // green
-    '#3fa372', // green_dark
-    '#f9a66d', // yellow_orange
-    '#ec5e44', // red
-    '#e63717', // red_dark
-    '#f868bc', // pink
-    '#6c5fc7', // purple
-    '#4e3fb4', // purple_dark
-    '#57b1be', // teal
-    '#847a8c', // gray
+    '#2C60BF', // blue
+    '#2551A2', // blue_dark
+    '#45BF84', // green
+    '#3AA16F', // green_dark
+    '#EB7738', // yellow_orange
+    '#E02919', // red
+    '#BD2215', // red_dark
+    '#D94AA2', // pink
+    '#5C4CC7', // purple
+    '#40358B', // purple_dark
+    '#3A90A6', // teal
+    '#9585A3', // gray
   ],
 
   getColor() {

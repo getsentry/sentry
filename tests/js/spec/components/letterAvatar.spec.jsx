@@ -67,22 +67,22 @@ describe('LetterAvatar', function() {
   describe('getColor()', function() {
     it('should return a color based on email', function() {
       let letterAvatar = TestUtils.renderIntoDocument(<LetterAvatar {...USER_1} />);
-      expect(letterAvatar.getColor()).toEqual('#f868bc');
+      expect(letterAvatar.getColor()).toEqual('#D94AA2');
     });
 
     it('should return a color based on username', function() {
       let letterAvatar = TestUtils.renderIntoDocument(<LetterAvatar {...USER_3} />);
-      expect(letterAvatar.getColor()).toEqual('#315cac');
+      expect(letterAvatar.getColor()).toEqual('#2551A2');
     });
 
     it('should return a color based on id', function() {
       let letterAvatar = TestUtils.renderIntoDocument(<LetterAvatar {...USER_4} />);
-      expect(letterAvatar.getColor()).toEqual('#57be8c');
+      expect(letterAvatar.getColor()).toEqual('#45BF84');
     });
 
     it('should return a color based on ip address', function() {
       let letterAvatar = TestUtils.renderIntoDocument(<LetterAvatar {...USER_5} />);
-      expect(letterAvatar.getColor()).toEqual('#ec5e44');
+      expect(letterAvatar.getColor()).toEqual('#E02919');
     });
   });
 });

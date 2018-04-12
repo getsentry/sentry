@@ -707,7 +707,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                                   priority="success"
                                 >
                                   <span
-                                    className="css-giy4xh-TagTextStyled css-3x95g0"
+                                    className="css-4q7hwt-TagTextStyled css-3x95g0"
                                   >
                                     Default
                                   </span>
