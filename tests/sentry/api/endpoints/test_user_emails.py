@@ -1,5 +1,8 @@
 from __future__ import absolute_import
 
+import pytest
+
+from django.conf import settings
 from django.core.urlresolvers import reverse
 
 from sentry import newsletter
@@ -133,3 +136,43 @@ class UserEmailsTest(APITestCase):
         })
 
         assert response.status_code == 403
+
+
+@pytest.mark.skipIf(lambda x: settings.SENTRY_NEWSLETTER != 'sentry.newsletter.dummy.DummyNewsletter')
+class UserEmailsNewsletterTest(APITestCase):
+    def setUp(self):
+        super(UserEmailsNewsletterTest, self).setUp()
+
+        def disable_newsletter():
+            newsletter.backend.disable()
+
+        newsletter.backend.enable()
+
+        self.addCleanup(disable_newsletter)
+        self.user = self.create_user(email='foo@example.com')
+        self.login_as(user=self.user)
+        self.url = reverse('sentry-api-0-user-emails', kwargs={'user_id': self.user.id})
+
+    def test_add_secondary_email_with_newsletter_subscribe(self):
+        response = self.client.post(self.url, data={
+            'email': 'altemail1@example.com',
+            'newsletter': '1',
+        })
+
+        assert response.status_code == 201
+        assert UserEmail.objects.filter(user=self.user, email='altemail1@example.com').exists()
+        results = newsletter.get_subscriptions(self.user)['subscriptions']
+        assert len(results) == 1
+        assert results[0].list_id == newsletter.get_default_list_id()
+        assert results[0].subscribed
+        assert not results[0].verified
+
+    def test_add_secondary_email_with_newsletter_no_subscribe(self):
+        response = self.client.post(self.url, data={
+            'email': 'altemail1@example.com',
+            'newsletter': '0',
+        })
+
+        assert response.status_code == 201
+        assert UserEmail.objects.filter(user=self.user, email='altemail1@example.com').exists()
+        assert newsletter.get_subscriptions(self.user) == {'subscriptions': []}
