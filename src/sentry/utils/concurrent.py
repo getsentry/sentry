@@ -25,9 +25,18 @@ class TimedFuture(Future):
         a timestamp or ``None`` (if the future has not been completed or
         cancelled.)
 
-        Generally, the ``started`` value will be non-``None`` if the
-        ``finished`` value is non-``None``, with the exception of a future that
-        was marked as cancelled and has yet to be attempted to be executed.
+        There are some idiosyncracies with the way the timings are recorded:
+
+        - The ``started`` value will generally not be ``None`` if the
+          ``finished`` value is also not ``None``. However, for a future that
+          is marked as cancelled and has yet to be attempted to be executed,
+          the ``finished`` value may be set while the ``started`` value is
+          ``None``.
+        - Similarly, the ``started`` value will generally be equal to or less
+          than the ``finished`` value (ignoring non-monotonic clock phenomena.)
+          However, for a future was is marked as cancelled prior to execution,
+          the ``finished`` time (when the future was cancelled) may be before
+          the ``started`` time (when the future was attempted to be executed.)
         """
         return tuple(self.__timing)
 
