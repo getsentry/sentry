@@ -11,13 +11,12 @@ from sentry.api.base import Endpoint
 from sentry.models import AssistantActivity
 from sentry.assistant import manager
 
-
-GUIDES = manager.all()
-VALID_GUIDE_IDS = frozenset(v['id'] for v in GUIDES.values())
 VALID_STATUSES = frozenset(('viewed', 'dismissed'))
 
 
 class AssistantSerializer(serializers.Serializer):
+    VALID_GUIDE_IDS = frozenset(manager.get_valid_ids())
+
     guide_id = serializers.ChoiceField(
         choices=zip(VALID_GUIDE_IDS, VALID_GUIDE_IDS),
         required=True,
@@ -34,6 +33,7 @@ class AssistantEndpoint(Endpoint):
 
     def get(self, request):
         """Return all the guides the user has not viewed or dismissed."""
+        GUIDES = manager.all()
         exclude_ids = set(AssistantActivity.objects.filter(
             user=request.user,
         ).values_list('guide_id', flat=True))

@@ -4,16 +4,14 @@ import six
 
 class AssistantManager(object):
     def __init__(self):
-        self._id_registry = {}
-        self._ids = set()
+        self._guides = {}
 
     def add(self, GUIDES):
         for k, v in six.iteritems(GUIDES):
-            self._id_registry[k] = v
-            self._ids.add(v['id'])
-
-    def all(self):
-        return self._id_registry
+            self._guides[k] = v
 
     def get_valid_ids(self):
-        return self._ids
+        return list(v['id'] for k, v in six.iteritems(self._guides))
+
+    def all(self):
+        return self._guides
