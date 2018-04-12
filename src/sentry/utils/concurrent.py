@@ -4,9 +4,69 @@ import logging
 import threading
 from Queue import Full, PriorityQueue
 from concurrent.futures import Future
+from concurrent.futures._base import RUNNING, FINISHED
+from time import time
 
 
 logger = logging.getLogger(__name__)
+
+
+class TimedFuture(Future):
+    def __init__(self, *args, **kwargs):
+        self.__timing = [None, None]  # [started, finished/cancelled]
+        super(TimedFuture, self).__init__(*args, **kwargs)
+
+    def get_timing(self):
+        """\
+        Return the timing data for this future in the form ``(started, finished)``.
+
+        The ``started`` value can be either a timestamp or ``None`` (if the
+        future has not been started.) The ``finished`` value can also be either
+        a timestamp or ``None`` (if the future has not been completed or
+        cancelled.)
+
+        Generally, the ``started`` value will be non-``None`` if the
+        ``finished`` value is non-``None``, with the exception of a future that
+        was marked as cancelled and has yet to be attempted to be executed.
+        """
+        return tuple(self.__timing)
+
+    def set_running_or_notify_cancel(self, *args, **kwargs):
+        result = super(TimedFuture, self).set_running_or_notify_cancel(*args, **kwargs)
+        # This method can only be called once (the second invocation will raise
+        # a ``RuntimeError``) so if we've gotten this far we can be reasonably
+        # confident that the start time hasn't been set.
+        self.__timing[0] = time()
+        return result
+
+    def cancel(self, *args, **kwargs):
+        with self._condition:
+            # Futures can only be marked as cancelled if they are neither
+            # running or finished (we have to duplicate this check that is also
+            # performed in the superclass to ensure the timing is set before
+            # callbacks are invoked.) As long as the future is in the correct
+            # state, this call is guaranteed to succeed. This method can be
+            # called multiple times, but we only record the first time the
+            # future was cancelled.
+            if self._state not in [RUNNING, FINISHED] and self.__timing[1] is None:
+                self.__timing[1] = time()
+            return super(TimedFuture, self).cancel(*args, **kwargs)
+
+    def set_result(self, *args, **kwargs):
+        with self._condition:
+            # This method always overwrites the result, so we always overwrite
+            # the timing, even if another timing was already recorded.
+            self.__timing[1] = time()
+            return super(TimedFuture, self).set_result(*args, **kwargs)
+
+    def set_exception_info(self, *args, **kwargs):
+        # XXX: This makes the potentially unsafe assumption that
+        # ``set_exception`` will always continue to call this function.
+        with self._condition:
+            # This method always overwrites the result, so we always overwrite
+            # the timing, even if another timing was already recorded.
+            self.__timing[1] = time()
+            return super(TimedFuture, self).set_exception_info(*args, **kwargs)
 
 
 class ThreadedExecutor(object):
@@ -59,7 +119,7 @@ class ThreadedExecutor(object):
 
     def submit(self, callable, priority=0, block=True, timeout=None):
         """\
-        Enqueue a task to be executed, returning a ``Future``.
+        Enqueue a task to be executed, returning a ``TimedFuture``.
 
         Tasks can be prioritized by providing a value for the ``priority``
         argument, which follows the same specification as the standard library
@@ -71,7 +131,7 @@ class ThreadedExecutor(object):
         if not self.__started:
             self.start()
 
-        future = Future()
+        future = TimedFuture()
         task = (priority, (callable, future))
         try:
             self.__queue.put(task, block=block, timeout=timeout)
