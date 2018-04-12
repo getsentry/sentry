@@ -146,7 +146,7 @@ class Search extends React.Component {
                         </Flex>
                       )}
                       {!isLoading &&
-                        results.splice(0, maxResults).map((resultObj, index) => {
+                        results.slice(0, maxResults).map((resultObj, index) => {
                           return this.renderItem({
                             resultObj,
                             index,
