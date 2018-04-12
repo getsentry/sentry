@@ -29,6 +29,7 @@ SEEN_COLUMN = 'timestamp'
 
 class ObjectWrapper(object):
     def __init__(self, dictionary):
+        dictionary['id'] = 0
         self.__dict__ = dictionary
 
 
@@ -174,17 +175,23 @@ class SnubaTagStorage(TagStorage):
         conditions = [
             [tag, '=', value]
         ]
-        aggregations = [['count', '', 'count']]
+        aggregations = [
+            ['count', '', 'count'],
+            ['min', SEEN_COLUMN, 'first_seen'],
+            ['max', SEEN_COLUMN, 'last_seen'],
+        ]
 
         result = snuba.query(start, end, ['issue'], conditions, filters, aggregations)
 
         return {
             issue: ObjectWrapper({
-                'times_seen': count,
+                'times_seen': val['count'],
+                'first_seen': val['first_seen'],
+                'last_seen': val['last_seen'],
                 'key': key,
                 'value': value,
                 'group_id': issue,
-            }) for issue, count in six.iteritems(result)}
+            }) for issue, val in six.iteritems(result)}
 
     def get_group_tag_value_count(self, project_id, group_id, environment_id, key):
         start, end = self.get_time_range()
