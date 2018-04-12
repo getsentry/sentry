@@ -104,8 +104,9 @@ def pytest_configure(config):
     settings.SENTRY_TSDB = 'sentry.tsdb.inmemory.InMemoryTSDB'
     settings.SENTRY_TSDB_OPTIONS = {}
 
-    settings.SENTRY_NEWSLETTER = 'sentry.newsletter.dummy.DummyNewsletter'
-    settings.SENTRY_NEWSLETTER_OPTIONS = {}
+    if settings.SENTRY_NEWSLETTER == 'sentry.newsletter.base.Newsletter':
+        settings.SENTRY_NEWSLETTER = 'sentry.newsletter.dummy.DummyNewsletter'
+        settings.SENTRY_NEWSLETTER_OPTIONS = {}
 
     settings.BROKER_BACKEND = 'memory'
     settings.BROKER_URL = None
@@ -207,7 +208,8 @@ def pytest_runtest_teardown(item):
 
     # XXX(dcramer): only works with DummyNewsletter
     from sentry import newsletter
-    newsletter.backend.clear()
+    if newsletter.backend.__class__.__name__ == 'DummyNewsletter':
+        newsletter.backend.clear()
 
     from sentry.utils.redis import clusters
 
