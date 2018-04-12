@@ -2,6 +2,11 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  removeIndicator,
+} from '../../actionCreators/indicator';
 import {t, tct, tn} from '../../locale';
 import ApiMixin from '../../mixins/apiMixin';
 import Avatar from '../../components/avatar';
@@ -16,7 +21,6 @@ import NoteContainer from '../../components/activity/noteContainer';
 import NoteInput from '../../components/activity/noteInput';
 import PullRequestLink from '../../views/releases/pullRequestLink';
 import TeamStore from '../../stores/teamStore';
-import IndicatorStore from '../../stores/indicatorStore';
 import TimeSince from '../../components/timeSince';
 import Version from '../../components/version';
 
@@ -215,17 +219,17 @@ const GroupActivity = createReactClass({
       return;
     }
 
-    let loadingIndicator = IndicatorStore.add(t('Removing comment..'));
+    addLoadingMessage(t('Removing comment...'));
 
     this.api.request('/issues/' + group.id + '/comments/' + item.id + '/', {
       method: 'DELETE',
-      error: error => {
-        // TODO(mattrobenolt): Show an actual error that this failed,
-        // but just bring it back in place for now
-        GroupStore.addActivity(group.id, item, index);
+      success: () => {
+        removeIndicator();
       },
-      complete: () => {
-        IndicatorStore.remove(loadingIndicator);
+      error: error => {
+        GroupStore.addActivity(group.id, item, index);
+        removeIndicator();
+        addErrorMessage(t('Failed to delete comment'));
       },
     });
   },
