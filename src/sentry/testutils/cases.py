@@ -698,6 +698,9 @@ class SnubaTestCase(TestCase):
         assert requests.post(snuba.SNUBA + '/tests/drop').status_code == 200
 
     def __wrap_event(self, event, data, primary_hash):
+        # TODO: Abstract and combine this with the stream code in
+        #       getsentry once it is merged, so that we don't alter one
+        #       without updating the other.
         return {
             'group_id': event.group_id,
             'event_id': event.event_id,
@@ -710,6 +713,16 @@ class SnubaTestCase(TestCase):
         }
 
     def create_event(self, *args, **kwargs):
+        """\
+        Takes the results from the existing `create_event` method and
+        inserts into the local test Snuba cluster so that tests can be
+        run against the same event data.
+
+        Note that we create a GroupHash as necessary because `create_event`
+        doesn't run them through the 'real' event pipeline. In a perfect
+        world all test events would go through the full regular pipeline.
+        """
+
         event = super(SnubaTestCase, self).create_event(*args, **kwargs)
 
         data = event.data.data
@@ -740,6 +753,8 @@ class SnubaTestCase(TestCase):
         self.snuba_insert(self.__wrap_event(event, data, grouphash.hash))
 
     def snuba_insert(self, events):
+        "Write a (wrapped) event (or events) to Snuba."
+
         if not isinstance(events, list):
             events = [events]
 
