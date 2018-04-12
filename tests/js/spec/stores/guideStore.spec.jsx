@@ -67,10 +67,10 @@ describe('GuideStore', function() {
   });
 
   it('should force show a guide', function() {
-    window.location.hash = '#assistant';
     data.issue.seen = true;
     GuideStore.onRegisterAnchor(anchor1);
     GuideStore.onRegisterAnchor(anchor2);
+    GuideStore.state.forceShow = true;
     GuideStore.onFetchSucceeded(data);
     expect(GuideStore.state.currentGuide.steps).toHaveLength(2);
     expect(GuideStore.state.currentStep).toEqual(1);

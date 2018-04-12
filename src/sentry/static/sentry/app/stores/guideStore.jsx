@@ -18,6 +18,8 @@ const GuideStore = Reflux.createStore({
       currentStep: 0,
 
       currentOrg: null,
+
+      forceShow: false,
     };
     this.listenTo(GuideActions.fetchSucceeded, this.onFetchSucceeded);
     this.listenTo(GuideActions.closeGuideOrSupport, this.onCloseGuideOrSupport);
@@ -31,13 +33,8 @@ const GuideStore = Reflux.createStore({
   },
 
   onHashChange() {
-    if (
-      window.location.hash === '#assistant' &&
-      this.state.currentGuide &&
-      this.state.currentStep < 1
-    ) {
-      GuideActions.nextStep();
-    }
+    this.state.forceShow = window.location.hash === '#assistant';
+    this.updateCurrentGuide();
   },
 
   onSetActiveOrganization(data) {
@@ -87,12 +84,10 @@ const GuideStore = Reflux.createStore({
     this.state.anchors.delete(anchor);
 
     // If a user navigates away from the page mid-guide, automatically close the guide
-    this.state.currentStep = 0;
     this.updateCurrentGuide();
   },
 
   updateCurrentGuide() {
-    let forceShow = window.location.hash === '#assistant';
     let availableTargets = [...this.state.anchors].map(a => a.props.target);
 
     // Select the first guide that hasn't been seen in this session and has all
@@ -103,7 +98,7 @@ const GuideStore = Reflux.createStore({
       let allTargetsPresent = guide.required_targets.every(
         t => availableTargets.indexOf(t) >= 0
       );
-      return (forceShow || !guide.seen) && allTargetsPresent;
+      return (this.state.forceShow || !guide.seen) && allTargetsPresent;
     });
 
     let bestGuide = null;
@@ -117,7 +112,7 @@ const GuideStore = Reflux.createStore({
 
     this.state.currentGuide = bestGuide;
 
-    this.state.currentStep = forceShow ? 1 : 0;
+    this.state.currentStep = this.state.forceShow ? 1 : 0;
 
     this.trigger(this.state);
   },
