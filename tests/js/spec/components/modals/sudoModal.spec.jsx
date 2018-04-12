@@ -2,15 +2,13 @@ import React from 'react';
 import {mount} from 'enzyme';
 
 import {Client} from 'app/api';
-import ConfigStore from 'app/stores/configStore';
 import App from 'app/views/app';
+import ConfigStore from 'app/stores/configStore';
 
 jest.mock('jquery');
 
 describe('Sudo Modal', function() {
   beforeEach(function() {
-    ConfigStore.set('messages', []);
-
     Client.clearMockResponses();
     Client.addMockResponse({
       url: '/internal/health/',
@@ -43,13 +41,11 @@ describe('Sudo Modal', function() {
     });
   });
 
-  afterEach(function() {
-    // trigger.mockReset();
-    ConfigStore.set('messages', []);
-  });
-
   it('can delete an org with sudo flow', async function() {
-    ConfigStore.set('user', {hasPasswordAuth: true});
+    ConfigStore.set('user', {
+      ...ConfigStore.get('user'),
+      hasPasswordAuth: true,
+    });
     let wrapper = mount(<App>{<div>placeholder content</div>}</App>);
 
     let api = new Client();
@@ -131,7 +127,10 @@ describe('Sudo Modal', function() {
   });
 
   it('shows button to redirect if user does not have password auth', async function() {
-    ConfigStore.set('user', {hasPasswordAuth: false});
+    ConfigStore.set('user', {
+      ...ConfigStore.get('user'),
+      hasPasswordAuth: false,
+    });
     let wrapper = mount(<App>{<div>placeholder content</div>}</App>);
 
     let api = new Client();

@@ -1,5 +1,7 @@
-import React from 'react';
 import PropTypes from 'prop-types';
+import React from 'react';
+
+import {defined} from '../../utils';
 
 import InputField from './inputField';
 
@@ -52,6 +54,29 @@ export default class RadioBooleanField extends InputField {
             />{' '}
             {this.props.noLabel}
           </label>
+        </div>
+      </div>
+    );
+  }
+
+  render() {
+    let {label, hideErrorMessage, help, style} = this.props;
+    let {error} = this.state;
+    let cx = this.getFinalClassNames();
+    let shouldShowErrorMessage = error && !hideErrorMessage;
+
+    return (
+      <div style={style} className={cx}>
+        <div className="controls">
+          {label && (
+            <label htmlFor={this.getId()} className="control-label">
+              {label}
+            </label>
+          )}
+          {defined(help) && <p className="help-block">{help}</p>}
+          {this.getField()}
+          {this.renderDisabledReason()}
+          {shouldShowErrorMessage && <p className="error">{error}</p>}
         </div>
       </div>
     );

@@ -97,6 +97,10 @@ class UserSerializer(Serializer):
 
             d['permissions'] = list(UserPermission.for_user(obj.id))
 
+            d['flags'] = {
+                'newsletter_consent_prompt': bool(obj.flags.newsletter_consent_prompt),
+            }
+
         if attrs.get('avatar'):
             avatar = {
                 'avatarType': attrs['avatar'].get_avatar_type_display(),
