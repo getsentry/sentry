@@ -16,6 +16,11 @@ class SnubaTSDB(BaseTSDB):
     Read methods are supported only for models based on group/event data and
     will return empty results for unsupported models.
     """
+
+    # The ``model_columns`` are translations of TSDB models into the required
+    # columns for querying snuba. Keys are ``TSDBModel`` enumeration values,
+    # values are in the form ``(groupby_column, aggregateby_column or None)``.
+    # Only the models that are listed in this mapping are supported.
     model_columns = {
         TSDBModel.project: ('project_id', None),
         TSDBModel.group: ('issue', None),
