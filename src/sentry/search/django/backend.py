@@ -317,11 +317,10 @@ class DjangoSearchBackend(SearchBackend):
 
             hashes = snuba.query(start, end, ['primary_hash'], conditions, filters)
 
-            group_queryset = group_queryset.filter(
-                id__in=GroupHash.objects.filter(
-                    project=project, hash__in=hashes.keys()
-                ).values_list('group_id', flat=True).distinct()
-            )
+            group_ids = GroupHash.objects.filter(
+                project=project, hash__in=hashes.keys()
+            ).values_list('group_id', flat=True).distinct()
+            group_queryset = group_queryset.filter(id__in=group_ids)
 
             # The following isn't diffeent from the original Django-only else branch
             # below, except tags are handled above in Snuba code. From this point on
