@@ -26,7 +26,7 @@ export default class RadioBooleanField extends InputField {
 
   getField() {
     return (
-      <div className="control-group">
+      <div className="control-group radio-boolean">
         <div className="radio">
           <label style={{fontWeight: 'normal'}}>
             <input

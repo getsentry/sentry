@@ -50,6 +50,13 @@
   }
 }
 
+.form-stacked .required .controls .radio label {
+  // it should only appear on the first label (e.g. multi inputs)
+  &:after {
+    content: '';
+  }
+}
+
 .form-group,
 .control-group {
   margin-bottom: 15px;
