@@ -5,7 +5,6 @@ from django.contrib.auth.models import AnonymousUser
 from rest_framework import status
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.response import Response
-from sudo.utils import grant_sudo_privileges
 
 from sentry.api.authentication import QuietBasicAuthentication
 from sentry.api.base import Endpoint
@@ -139,8 +138,6 @@ class AuthIndexEndpoint(Endpoint):
         try:
             # Must use the real request object that Django knows about
             auth.login(request._request, request.user)
-            # Also can grant sudo
-            grant_sudo_privileges(request._request)
         except auth.AuthUserPasswordExpired:
             return Response(
                 {
