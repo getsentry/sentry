@@ -51,12 +51,14 @@ class AuthenticationForm(forms.Form):
         max_length=128,
         widget=forms.TextInput(attrs={
             'placeholder': _('username or email'),
+            'tabindex': 1,
         }),
     )
     password = forms.CharField(
         label=_('Password'),
         widget=forms.PasswordInput(attrs={
             'placeholder': _('password'),
+            'tabindex': 2,
         }),
     )
 
