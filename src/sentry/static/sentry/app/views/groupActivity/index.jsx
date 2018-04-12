@@ -1,41 +1,34 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-
 import createReactClass from 'create-react-class';
 
+import {t, tct, tn} from '../../locale';
 import ApiMixin from '../../mixins/apiMixin';
-import GroupState from '../../mixins/groupState';
-
-import PullRequestLink from '../../views/releases/pullRequestLink';
-
-import CommitLink from '../../components/commitLink';
-import Duration from '../../components/duration';
 import Avatar from '../../components/avatar';
-import TimeSince from '../../components/timeSince';
-import Version from '../../components/version';
+import CommitLink from '../../components/commitLink';
+import ConfigStore from '../../stores/configStore';
+import Duration from '../../components/duration';
+import ErrorBoundary from '../../components/errorBoundary';
+import GroupState from '../../mixins/groupState';
+import GroupStore from '../../stores/groupStore';
+import MemberListStore from '../../stores/memberListStore';
 import NoteContainer from '../../components/activity/noteContainer';
 import NoteInput from '../../components/activity/noteInput';
-
-import ConfigStore from '../../stores/configStore';
-import GroupStore from '../../stores/groupStore';
+import PullRequestLink from '../../views/releases/pullRequestLink';
 import TeamStore from '../../stores/teamStore';
 import IndicatorStore from '../../stores/indicatorStore';
-import MemberListStore from '../../stores/memberListStore';
+import TimeSince from '../../components/timeSince';
+import Version from '../../components/version';
 
-import {t, tct, tn} from '../../locale';
+class GroupActivityItem extends React.Component {
+  static propTypes = {
+    author: PropTypes.node,
+    item: PropTypes.object,
+  };
 
-const GroupActivity = createReactClass({
-  displayName: 'GroupActivity',
-
-  // TODO(dcramer): only re-render on group/activity change
-  propTypes: {
-    group: PropTypes.object,
-  },
-
-  mixins: [GroupState, ApiMixin],
-
-  formatActivity(author, item, params) {
-    let data = item.data;
+  render() {
+    let {author, item, params} = this.props;
+    let {data} = item;
     let {orgId, projectId} = params;
 
     switch (item.type) {
@@ -62,8 +55,8 @@ const GroupActivity = createReactClass({
           version: (
             <CommitLink
               inline={true}
-              commitId={data.commit.id}
-              repository={data.commit.repository}
+              commitId={data.commit && data.commit.id}
+              repository={data.commit && data.commit.repository}
             />
           ),
         });
@@ -74,7 +67,7 @@ const GroupActivity = createReactClass({
             <PullRequestLink
               inline={true}
               pullRequest={data.pullRequest}
-              repository={data.pullRequest.repository}
+              repository={data.pullRequest && data.pullRequest.repository}
             />
           ),
         });
@@ -199,7 +192,18 @@ const GroupActivity = createReactClass({
       default:
         return ''; // should never hit (?)
     }
+  }
+}
+
+const GroupActivity = createReactClass({
+  displayName: 'GroupActivity',
+
+  // TODO(dcramer): only re-render on group/activity change
+  propTypes: {
+    group: PropTypes.object,
   },
+
+  mixins: [GroupState, ApiMixin],
 
   onNoteDelete(item) {
     let {group} = this.props;
@@ -268,14 +272,18 @@ const GroupActivity = createReactClass({
             <a name={'event_' + item.id} />
             <TimeSince date={item.dateCreated} />
             <div className="activity-item-content">
-              {this.formatActivity(
-                <span key="author">
-                  {avatar}
-                  <span className="activity-author">{author.name}</span>
-                </span>,
-                item,
-                this.props.params
-              )}
+              <ErrorBoundary mini>
+                <GroupActivityItem
+                  author={
+                    <span key="author">
+                      {avatar}
+                      <span className="activity-author">{author.name}</span>
+                    </span>
+                  }
+                  item={item}
+                  params={this.props.params}
+                />
+              </ErrorBoundary>
             </div>
           </li>
         );
