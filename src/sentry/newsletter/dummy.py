@@ -49,10 +49,10 @@ class DummyNewsletter(Newsletter):
     store for tracking subscriptions, which means its not suitable for any real production use-case.
     """
 
-    def __init__(self):
+    def __init__(self, enabled=False):
         self._subscriptions = defaultdict(dict)
         self._optout = set()
-        self._enabled = True
+        self._enabled = enabled
 
     def enable(self):
         self._enabled = True
