@@ -33,7 +33,7 @@ class DebugMetaInterface extends React.Component {
         version = (evt.release && evt.release.shortVersion) || 'unknown';
       } else
         version = `${img.major_version}.${img.minor_version}.${img.revision_version}`;
-    } else version = img.id || img.uuid;
+    } else version = img.id || img.uuid || '<none>';
 
     if (version) return [name, version];
 

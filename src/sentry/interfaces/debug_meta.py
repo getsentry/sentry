@@ -28,7 +28,7 @@ def _addr(x):
 def process_symbolic_image(image):
     try:
         symbolic_image = {
-            'id': normalize_debug_id(image['id']),
+            'id': normalize_debug_id(image.get('id')),
             'image_addr': _addr(image.get('image_addr')),
             'image_size': parse_addr(image['image_size']),
             'image_vmaddr': _addr(image.get('image_vmaddr') or 0),
