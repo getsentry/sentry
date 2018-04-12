@@ -208,7 +208,7 @@ def pytest_runtest_teardown(item):
 
     # XXX(dcramer): only works with DummyNewsletter
     from sentry import newsletter
-    if newsletter.backend.__class__.__name__ == 'DummyNewsletter':
+    if hasattr(newsletter.backend, 'clear'):
         newsletter.backend.clear()
 
     from sentry.utils.redis import clusters
