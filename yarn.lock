@@ -4029,7 +4029,7 @@ functional-red-black-tree@^1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/functional-red-black-tree/-/functional-red-black-tree-1.0.1.tgz#1b0ab3bd553b2a0d6399d29c0e3ea0b252078327"
 
-fuse.js@^3.0.1:
+fuse.js@^3.0.1, fuse.js@^3.2.0:
   version "3.2.0"
   resolved "https://registry.yarnpkg.com/fuse.js/-/fuse.js-3.2.0.tgz#f0448e8069855bf2a3e683cdc1d320e7e2a07ef4"
 
@@ -7473,6 +7473,12 @@ react-inspector@^2.2.1:
   dependencies:
     babel-runtime "^6.26.0"
     is-dom "^1.0.9"
+
+react-keydown@^1.9.7:
+  version "1.9.7"
+  resolved "https://registry.yarnpkg.com/react-keydown/-/react-keydown-1.9.7.tgz#cd168d4b0194b6ef71bca47e5c1cbc5d24ab5498"
+  dependencies:
+    core-js "^2.5.0"
 
 react-lazy-load@3.0.13:
   version "3.0.13"

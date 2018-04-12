@@ -102,7 +102,7 @@ class SettingsLayout extends React.Component {
     let childRoutes = childProps.routes || routes || [];
     let childRoute = childProps.route || route || {};
     return (
-      <div>
+      <React.Fragment>
         <SettingsHeader>
           <SettingsSubheader>
             <Container>
@@ -132,7 +132,7 @@ class SettingsLayout extends React.Component {
           </Content>
         </Container>
         <Footer />
-      </div>
+      </React.Fragment>
     );
   }
 }

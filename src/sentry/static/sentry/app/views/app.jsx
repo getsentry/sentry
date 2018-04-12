@@ -6,21 +6,23 @@ import Cookies from 'js-cookie';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
+import keydown from 'react-keydown';
 
+import {openCommandPalette} from '../actionCreators/modal';
 import {t} from '../locale';
 import AlertActions from '../actions/alertActions';
 import Alerts from '../components/alerts';
 import ApiMixin from '../mixins/apiMixin';
+import AssistantHelper from '../components/assistant/helper';
 import ConfigStore from '../stores/configStore';
+import ErrorBoundary from '../components/errorBoundary';
+import GlobalModal from '../components/globalModal';
 import Indicators from '../components/indicators';
 import InstallWizard from './installWizard';
-import AssistantHelper from '../components/assistant/helper';
 import LoadingIndicator from '../components/loadingIndicator';
 import OrganizationsLoader from '../components/organizations/organizationsLoader';
 import OrganizationsStore from '../stores/organizationsStore';
-import GlobalModal from '../components/globalModal';
 import theme from '../utils/theme';
-import ErrorBoundary from '../components/errorBoundary';
 
 if (window.globalStaticUrl) __webpack_public_path__ = window.globalStaticUrl; // defined in layout.html
 
@@ -132,6 +134,13 @@ const App = createReactClass({
 
   componentWillUnmount() {
     OrganizationsStore.load([]);
+  },
+
+  @keydown('cmd+shift+p')
+  openCommandPalette(e) {
+    openCommandPalette();
+    e.preventDefault();
+    e.stopPropagation();
   },
 
   onConfigured() {
