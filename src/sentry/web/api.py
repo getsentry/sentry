@@ -3,6 +3,7 @@ from __future__ import absolute_import, print_function
 import base64
 import jsonschema
 import logging
+import os
 import six
 import traceback
 import uuid
@@ -54,6 +55,8 @@ logger = logging.getLogger('sentry')
 PIXEL = base64.b64decode('R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=')
 
 PROTOCOL_VERSIONS = frozenset(('2.0', '3', '4', '5', '6', '7'))
+MINIDUMP_TMP_PATH = '/tmp/minidump'
+
 
 pubsub = QueuedPublisher(
     RedisPublisher(getattr(settings, 'REQUESTS_PUBSUB_CONNECTION', None))
@@ -561,6 +564,12 @@ class MinidumpView(StoreView):
         extra.update(data.get('extra', {}))
         data['extra'] = extra
 
+        # Assign our own UUID so we can track this minidump. We cannot trust the
+        # uploaded filename, and if reading the minidump fails there is no way
+        # we can ever retrieve the original UUID from the minidump.
+        event_id = uuid.uuid4().hex
+        data['event_id'] = event_id
+
         # At this point, we only extract the bare minimum information
         # needed to continue processing. This requires to process the
         # minidump without symbols and CFI to obtain an initial stack
@@ -570,6 +579,14 @@ class MinidumpView(StoreView):
             minidump = request.FILES['upload_file_minidump']
         except KeyError:
             raise APIError('Missing minidump upload')
+
+        # Save the minidump on the local filesystem for debugging purposes, e.g.
+        # if reading it fails. The folder will be cleaned every 24 hours.
+        if not os.path.exists(MINIDUMP_TMP_PATH):
+            os.mkdir(MINIDUMP_TMP_PATH, 0744)
+        with open('%s/%s.dmp' % (MINIDUMP_TMP_PATH, event_id), 'wb') as out:
+            for chunk in minidump.chunks():
+                out.write(chunk)
 
         merge_minidump_event(data, minidump)
         response_or_event_id = self.process(request, data=data, **kwargs)
