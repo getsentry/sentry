@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import mock
 import pytest
 from Queue import Full
-from concurrent.futures import Future
+from concurrent.futures import CancelledError, Future
 from threading import Event
 
 from sentry.utils.concurrent import FutureSet, ThreadedExecutor
@@ -74,7 +74,7 @@ def test_future_broken_callback():
 
 
 def test_threaded_executor():
-    executor = ThreadedExecutor(worker_count=1, maxsize=2)
+    executor = ThreadedExecutor(worker_count=1, maxsize=3)
 
     def waiter(ready, waiting, result):
         ready.set()
@@ -102,6 +102,18 @@ def test_threaded_executor():
         priority=10,
     )
     assert not low_priority_future.done(), 'future should not be done (indicative of a full queue)'
+
+    cancelled_future = executor.submit(
+        lambda: None,
+        block=True,
+        timeout=1,
+        priority=5,
+    )
+    assert not cancelled_future.done(), 'future should not be done (indicative of a full queue)'
+    assert cancelled_future.cancel(), 'future should be able to be cancelled'
+    assert cancelled_future.done(), 'future should be completed'
+    with pytest.raises(CancelledError):
+        cancelled_future.result()
 
     high_priority_ready = Event()
     high_priority_waiting = Event()
