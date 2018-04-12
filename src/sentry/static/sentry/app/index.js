@@ -97,6 +97,7 @@ export default {
       DateTimeField: require('./components/forms/dateTimeField').default,
       EmailField: require('./components/forms/emailField').default,
       Form: require('./components/forms/form').default,
+      RadioBooleanField: require('./components/forms/radioBooleanField').default,
       RangeField: require('./components/forms/rangeField').default,
       Select2Field: require('./components/forms/select2Field').default,
       TextField: require('./components/forms/textField').default,
