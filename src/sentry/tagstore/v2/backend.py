@@ -824,6 +824,7 @@ class V2TagStorage(TagStorage):
 
     def get_group_ids_for_search_filter(
             self, project_id, environment_id, tags, start, end, candidates=None, limit=1000):
+
         from sentry.search.base import ANY
         # Django doesnt support union, so we limit results and try to find
         # reasonable matches

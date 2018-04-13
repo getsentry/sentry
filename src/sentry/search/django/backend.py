@@ -302,10 +302,10 @@ class DjangoSearchBackend(SearchBackend):
 
             group_ids = tagstore.get_group_ids_for_search_filter(
                 project.id,
-                environment.id,
+                environment and environment.id,
                 tags,
-                start=start,
-                end=end,
+                start,
+                end,
             )
 
             group_queryset = group_queryset.filter(id__in=group_ids)
@@ -577,7 +577,8 @@ class DjangoSearchBackend(SearchBackend):
             )
 
             if tags:
-                matches = tagstore.get_group_ids_for_search_filter(project.id, None, tags)
+                matches = tagstore.get_group_ids_for_search_filter(
+                    project.id, None, tags, start, end)
                 if matches:
                     group_queryset = group_queryset.filter(id__in=matches)
                 else:
