@@ -27,9 +27,9 @@ class AssistantSerializer(serializers.Serializer):
         valid_ids = manager.get_valid_ids()
 
         if not value:
-            return serializers.ValidationError('Assistant guide id is required')
+            raise serializers.ValidationError('Assistant guide id is required')
         if value not in valid_ids:
-            return serializers.ValidationError('Not a valid assistant guide id')
+            raise serializers.ValidationError('Not a valid assistant guide id')
         return attrs
 
 
