@@ -46,7 +46,6 @@ class AssistantEndpoint(Endpoint):
         ).values_list('guide_id', flat=True))
         for k, v in guides.items():
             v['seen'] = v['id'] in seen_ids
-        result = guides
         return Response(result)
 
     def put(self, request):
