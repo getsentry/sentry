@@ -18,7 +18,7 @@ export default class FormField extends React.PureComponent {
     /** Inline style */
     style: PropTypes.object,
 
-    label: PropTypes.string,
+    label: PropTypes.node,
 
     // This is actually used but eslint doesn't parse it correctly
     // eslint-disable-next-line react/no-unused-prop-types
