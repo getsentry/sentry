@@ -128,9 +128,8 @@ class SlackIntegrationTest(IntegrationTestCase):
 
         assert idps.count() == 2
 
-        identity = Identity.objects.get(
-            idp=idps.get(id=2),
-            user=self.user,
-            external_id='UXXXXXXX2',
-        )
-        assert identity.status == IdentityStatus.VALID
+        identities = Identity.objects.all()
+
+        assert identities.count() == 2
+        assert identities[0].external_id != identities[1].external_id
+        assert identities[0].idp != identities[1].idp
