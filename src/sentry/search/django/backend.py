@@ -207,8 +207,8 @@ def get_latest_release(project, environment):
 class DjangoSearchBackend(SearchBackend):
     def query(self, project, tags=None, environment=None, sort_by='date', limit=100,
               cursor=None, count_hits=False, paginator_options=None, **parameters):
-        from sentry.models import (Environment, Event, Group, GroupEnvironment,
-                                   GroupStatus, GroupSubscription, Release)
+
+        from sentry.models import Group, GroupStatus, GroupSubscription
 
         if paginator_options is None:
             paginator_options = {}
@@ -290,59 +290,18 @@ class DjangoSearchBackend(SearchBackend):
                  or retention_window_start
                  or (now - timedelta(days=90)))
 
-        # TODO: This could also do something janky like switching based on the current
-        #       tagstore backend, or a global option, or a number of other things. Going
-        #       by the project seemed the best for now.
-        use_snuba = bool(project.get_option('sentry:snuba', False))
-        if use_snuba and (tags or
-                          environment is not None or
-                          any(key in parameters for key in ('date_from', 'date_to'))):
+        # This is a punt because the SnubaSearchBackend (a subclass) shares so much that it
+        # seemed better to handle all the shared initialization and then handoff to the
+        # actual backend.
+        return self._query(project, start, end, retention_window_start, group_queryset, tags,
+                           environment, sort_by, limit, cursor, count_hits, paginator_options,
+                           **parameters)
 
-            # if we're in this branch then Snuba can help us filter down the eligible group ids
+    def _query(self, project, start, end, retention_window_start, group_queryset, tags=None,
+               environment=None, sort_by='date', limit=100, cursor=None, count_hits=False,
+               paginator_options=None, **parameters):
 
-            group_ids = tagstore.get_group_ids_for_search_filter(
-                project.id,
-                environment and environment.id,
-                tags,
-                start,
-                end,
-            )
-
-            group_queryset = group_queryset.filter(id__in=group_ids)
-
-            # The following isn't different from the original Django-only else branch
-            # below, except tags are handled above in Snuba code. From this point on
-            # we're just working with the `group_queryset` that has been filtered down
-            # to a set of `Group.id`s by Snuba.
-            group_queryset = QuerySetBuilder({
-                'first_release': CallbackCondition(
-                    lambda queryset, version: queryset.filter(
-                        first_release__organization_id=project.organization_id,
-                        first_release__version=version,
-                    ),
-                ),
-                'age_from': ScalarCondition('first_seen', 'gt'),
-                'age_to': ScalarCondition('first_seen', 'lt'),
-                'last_seen_from': ScalarCondition('last_seen', 'gt'),
-                'last_seen_to': ScalarCondition('last_seen', 'lt'),
-                'times_seen': CallbackCondition(
-                    lambda queryset, times_seen: queryset.filter(times_seen=times_seen),
-                ),
-                'times_seen_lower': ScalarCondition('times_seen', 'gt'),
-                'times_seen_upper': ScalarCondition('times_seen', 'lt'),
-            }).build(
-                group_queryset,
-                parameters,
-            ).extra(
-                select={
-                    'sort_value': get_sort_clause(sort_by),
-                },
-            )
-
-            paginator_cls, sort_clause = sort_strategies[sort_by]
-            group_queryset = group_queryset.order_by(sort_clause)
-            paginator = paginator_cls(group_queryset, sort_clause, **paginator_options)
-            return paginator.get_result(limit, cursor, count_hits=count_hits)
+        from sentry.models import Environment, Event, Group, GroupEnvironment, Release
 
         if environment is not None:
             if 'environment' in tags:
@@ -578,7 +537,8 @@ class DjangoSearchBackend(SearchBackend):
 
             if tags:
                 matches = tagstore.get_group_ids_for_search_filter(
-                    project.id, None, tags, start, end)
+                    project.id, None, tags, start, end
+                )
                 if matches:
                     group_queryset = group_queryset.filter(id__in=matches)
                 else:

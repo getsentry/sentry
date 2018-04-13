@@ -8,7 +8,7 @@ from sentry.models import (
     Environment, GroupAssignee, GroupBookmark, GroupStatus, GroupSubscription,
 )
 from sentry.search.base import ANY
-from sentry.search.django.backend import DjangoSearchBackend
+from sentry.search.snuba.backend import SnubaSearchBackend
 from sentry.testutils import SnubaTestCase
 
 
@@ -16,8 +16,7 @@ class SnubaSearchTest(SnubaTestCase):
     def setUp(self):
         super(SnubaSearchTest, self).setUp()
 
-        self.project.update_option('sentry:snuba', True)
-        self.backend = DjangoSearchBackend()
+        self.backend = SnubaSearchBackend()
 
         now = datetime.utcnow()
         self.group1 = self.create_group(
