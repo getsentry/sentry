@@ -82,8 +82,6 @@ const GuideStore = Reflux.createStore({
 
   onUnregisterAnchor(anchor) {
     this.state.anchors.delete(anchor);
-
-    // If a user navigates away from the page mid-guide, automatically close the guide
     this.updateCurrentGuide();
   },
 
@@ -92,7 +90,8 @@ const GuideStore = Reflux.createStore({
 
     // Select the first guide that hasn't been seen in this session and has all
     // required anchors on the page.
-    // If url hash is #assistant, show the first guide that has some required anchors.
+    // If url hash is #assistant, show the first guide regardless of seen and has
+    // all required anchors.
     let bestGuideKey = Object.keys(this.state.guides).find(key => {
       let guide = this.state.guides[key];
       let allTargetsPresent = guide.required_targets.every(

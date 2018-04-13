@@ -36,7 +36,7 @@ class AssistantActivity(APITestCase):
 
         resp = self.client.get(self.path)
         assert resp.status_code == 200
-        assert resp.data == self.guides
+        assert resp.data == guides_with_seen
 
         # Dismiss the guide and make sure it is not returned again.
         resp = self.client.put(self.path, {
