@@ -10,7 +10,7 @@ class ResourceDoesNotExist(APIException):
 
 
 class ResourceMoved(APIException):
-    status_code = status.HTTP_301_MOVED_PERMANENTLY
+    status_code = status.HTTP_302_FOUND
 
 
 class SentryAPIException(APIException):
