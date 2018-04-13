@@ -215,6 +215,7 @@ class ContextPickerModal extends React.Component {
               </div>
               {needOrg && (
                 <Select2Field
+                  tabIndex={1}
                   placeholder="Select an Organization"
                   name="organization"
                   choices={[['', ''], ...orgChoices]}
@@ -229,6 +230,7 @@ class ContextPickerModal extends React.Component {
                 needProject &&
                 projects && (
                   <Select2Field
+                    tabIndex={2}
                     placeholder="Select a Project"
                     name="project"
                     allowEmpty

@@ -24,11 +24,13 @@ export default class Select2Field extends InputField {
   };
 
   getField() {
+    let {tabIndex} = this.props;
     return (
       <select
         id={this.getId()}
         className="form-control"
         ref="input"
+        tabIndex={tabIndex}
         placeholder={this.props.placeholder}
         onChange={this.onChange.bind(this)}
         disabled={this.props.disabled}
