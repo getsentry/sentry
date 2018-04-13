@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from dateutil.parser import parse as parse_datetime
+from itertools import chain
 import json
 import requests
 import six
@@ -13,7 +14,7 @@ SNUBA = os.environ.get('SNUBA', 'http://localhost:5000')
 
 
 def query(start, end, groupby, conditions=None, filter_keys=None,
-          aggregations=None, rollup=None, arrayjoin=None):
+          aggregations=None, rollup=None, arrayjoin=None, limit=None, orderby=None):
     """
     Sends a query to snuba.
 
@@ -44,9 +45,11 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
                      for col, keys in six.iteritems(snuba_map)}
 
     for col, keys in six.iteritems(filter_keys):
+        keys = [k for k in keys if k is not None]
         if col in snuba_map:
-            keys = [snuba_map[col][k] for k in keys]
-        conditions.append((col, 'IN', keys))
+            keys = [snuba_map[col][k] for k in keys if k in snuba_map[col]]
+        if keys:
+            conditions.append((col, 'IN', keys))
 
     if 'project_id' in filter_keys:
         # If we are given a set of project ids, use those directly.
@@ -63,7 +66,10 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
 
     # If the grouping, aggregation, or any of the conditions reference `issue`
     # we need to fetch the issue definitions (issue -> fingerprint hashes)
-    get_issues = 'issue' in groupby + [a[1] for a in aggregations] + [c[0] for c in conditions]
+    aggregate_cols = [a[1] for a in aggregations]
+    condition_cols = [c[0] for c in flat_conditions(conditions)]
+    all_cols = groupby + aggregate_cols + condition_cols
+    get_issues = 'issue' in all_cols
     issues = get_project_issues(project_ids, filter_keys.get('issue')) if get_issues else None
 
     url = '{0}/query'.format(SNUBA)
@@ -77,6 +83,8 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
         'granularity': rollup,
         'issues': issues,
         'arrayjoin': arrayjoin,
+        'limit': limit,
+        'orderby': orderby,
     }) if v is not None}
 
     response = requests.post(url, data=json.dumps(request))
@@ -117,6 +125,14 @@ def nest_groups(data, groups, aggregate_cols):
         for d in data:
             inter.setdefault(d[g], []).append(d)
         return {k: nest_groups(v, rest, aggregate_cols) for k, v in six.iteritems(inter)}
+
+
+def is_condition(cond_or_list):
+    return len(cond_or_list) == 3 and isinstance(cond_or_list[0], six.string_types)
+
+
+def flat_conditions(conditions):
+    return list(chain(*[[c] if is_condition(c) else c for c in conditions]))
 
 # The following are functions for resolving information from sentry models
 # about projects, environments, and issues (groups). Having this snuba

@@ -24,6 +24,8 @@ class SentryCleanupTest(CliTestCase):
     elif settings.SENTRY_TAGSTORE.startswith('sentry.tagstore.multi'):
         fixtures += ['tests/fixtures/cleanup-tagstore-legacy.json',
                      'tests/fixtures/cleanup-tagstore-v2.json']
+    elif settings.SENTRY_TAGSTORE.startswith('sentry.tagstore.snuba'):
+        pass
     else:
         raise NotImplementedError
 

@@ -26,5 +26,8 @@ elif settings.SENTRY_TAGSTORE.startswith('sentry.tagstore.multi'):
             from sentry.tagstore.legacy.models import *  # NOQA
         elif backend[0].startswith('sentry.tagstore.v2'):
             from sentry.tagstore.v2 import models as _v2_models  # NOQA
+elif settings.SENTRY_TAGSTORE.startswith('sentry.tagstore.snuba'):
+    # TODO this shouldn't really be required but some tests depend on importing them
+    from sentry.tagstore.v2.models import *  # NOQA
 else:
     raise ImproperlyConfigured("Found unknown tagstore backend '%s'" % settings.SENTRY_TAGSTORE)
