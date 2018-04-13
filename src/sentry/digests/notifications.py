@@ -53,7 +53,18 @@ def event_to_record(event, rules):
     )
 
 
+def sort_records(records):
+    """
+    Sorts records for fetch_state method
+    fetch_state is expecting these records to be ordered from newest to oldest
+    """
+    return sorted(records, key=lambda r: r.value.event.datetime, reverse=True)
+
+
 def fetch_state(project, records):
+    # Sort records added to ensure that records are returned in reverse chronological order
+    records = sort_records(records)
+
     # This reads a little strange, but remember that records are returned in
     # reverse chronological order, and we query the database in chronological
     # order.
