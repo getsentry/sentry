@@ -6,8 +6,8 @@ class AssistantManager(object):
     def __init__(self):
         self._guides = {}
 
-    def add(self, GUIDES):
-        for k, v in six.iteritems(GUIDES):
+    def add(self, guides):
+        for k, v in six.iteritems(guides):
             self._guides[k] = v
 
     def get_valid_ids(self):

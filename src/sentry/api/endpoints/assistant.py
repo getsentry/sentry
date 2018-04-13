@@ -15,17 +15,22 @@ VALID_STATUSES = frozenset(('viewed', 'dismissed'))
 
 
 class AssistantSerializer(serializers.Serializer):
-    VALID_GUIDE_IDS = frozenset(manager.get_valid_ids())
-
-    guide_id = serializers.ChoiceField(
-        choices=zip(VALID_GUIDE_IDS, VALID_GUIDE_IDS),
-        required=True,
-    )
+    guide_id = serializers.IntegerField(required=True)
     status = serializers.ChoiceField(
         choices=zip(VALID_STATUSES, VALID_STATUSES),
         required=True,
     )
     useful = serializers.BooleanField()
+
+    def validate_guide_id(self, attrs, source):
+        value = attrs[source]
+        valid_ids = manager.get_valid_ids()
+
+        if not value:
+            return serializers.ValidationError('Assistant guide id is required')
+        if value not in valid_ids:
+            return serializers.ValidationError('Not a valid assistant guide id')
+        return attrs
 
 
 class AssistantEndpoint(Endpoint):
@@ -33,11 +38,11 @@ class AssistantEndpoint(Endpoint):
 
     def get(self, request):
         """Return all the guides the user has not viewed or dismissed."""
-        GUIDES = manager.all()
+        guides = manager.all()
         exclude_ids = set(AssistantActivity.objects.filter(
             user=request.user,
         ).values_list('guide_id', flat=True))
-        result = {k: v for k, v in GUIDES.items() if v['id'] not in exclude_ids}
+        result = {k: v for k, v in guides.items() if v['id'] not in exclude_ids}
 
         return Response(result)
 
