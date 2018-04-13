@@ -22,7 +22,7 @@ const LetterAvatar = createReactClass({
     '#45BF84', // green
     '#3AA16F', // green_dark
     '#EB7738', // yellow_orange
-    '#E02919', // red
+    '#de3a2b', // red
     '#BD2215', // red_dark
     '#D94AA2', // pink
     '#5C4CC7', // purple

@@ -82,7 +82,7 @@ describe('LetterAvatar', function() {
 
     it('should return a color based on ip address', function() {
       let letterAvatar = TestUtils.renderIntoDocument(<LetterAvatar {...USER_5} />);
-      expect(letterAvatar.getColor()).toEqual('#E02919');
+      expect(letterAvatar.getColor()).toEqual('#de3a2b');
     });
   });
 });
