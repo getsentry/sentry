@@ -3,7 +3,9 @@ from __future__ import absolute_import
 import pytest
 
 from collections import OrderedDict
-from datetime import datetime
+from datetime import datetime, timedelta
+
+from django.utils import timezone
 
 from sentry.search.base import ANY
 from sentry.testutils import TestCase
@@ -635,8 +637,10 @@ class TagStorage(TestCase):
                 k,
                 v)
 
+        end = timezone.now()
+        start = end - timedelta(hours=1)
         assert self.ts.get_group_ids_for_search_filter(
-            self.proj1.id, self.proj1env1.id, tags) == [self.proj1group1.id]
+            self.proj1.id, self.proj1env1.id, tags, start, end) == [self.proj1group1.id]
 
     def test_get_group_ids_for_search_filter_predicate_order(self):
         """
@@ -660,10 +664,14 @@ class TagStorage(TestCase):
                 'divides', 'even' if i % 2 == 0 else 'odd'
             )
 
+        end = timezone.now()
+        start = end - timedelta(hours=1)
         assert len(self.ts.get_group_ids_for_search_filter(
             self.proj1.id,
             self.proj1env1.id,
             OrderedDict([('foo', ANY), ('divides', 'even')]),
+            start,
+            end,
             limit=2
         )) == 2
 
