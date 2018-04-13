@@ -567,7 +567,7 @@ class MinidumpView(StoreView):
         # Assign our own UUID so we can track this minidump. We cannot trust the
         # uploaded filename, and if reading the minidump fails there is no way
         # we can ever retrieve the original UUID from the minidump.
-        event_id = uuid.uuid4().hex
+        event_id = data.get('event_id') or uuid.uuid4().hex
         data['event_id'] = event_id
 
         # At this point, we only extract the bare minimum information
