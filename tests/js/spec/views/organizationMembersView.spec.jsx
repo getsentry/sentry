@@ -8,6 +8,7 @@ import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 
 jest.mock('app/api');
 jest.mock('app/actionCreators/indicator');
+jest.mock('lodash/debounce', () => jest.fn(fn => fn));
 
 describe('OrganizationMembersView', function() {
   let members = TestStubs.Members();
@@ -295,5 +296,40 @@ describe('OrganizationMembersView', function() {
         },
       })
     );
+  });
+
+  it('can search organization members', async function() {
+    let searchMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-id/members/?query=member',
+      body: [],
+    });
+    let routerContext = TestStubs.routerContext();
+    let wrapper = mount(
+      <OrganizationMembersView
+        {...defaultProps}
+        location={{}}
+        params={{
+          orgId: 'org-id',
+        }}
+      />,
+      routerContext
+    );
+
+    expect(searchMock).not.toHaveBeenCalled();
+
+    wrapper.find('Input').simulate('change', {target: {value: 'member'}});
+
+    expect(wrapper.state('searchQuery')).toBe('member');
+    expect(searchMock).toHaveBeenCalled();
+    expect(searchMock).toHaveBeenCalledWith(
+      '/organizations/org-id/members/?query=member',
+      expect.objectContaining({
+        method: 'GET',
+      })
+    );
+
+    wrapper.find('PanelHeader form').simulate('submit');
+
+    expect(routerContext.context.router.push.calledOnce).toBe(true);
   });
 });

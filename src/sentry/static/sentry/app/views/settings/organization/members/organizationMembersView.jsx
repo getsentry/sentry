@@ -1,6 +1,7 @@
-import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
+import {debounce} from 'lodash';
+import idx from 'idx';
 
 import {Panel, PanelBody, PanelHeader} from '../../../../components/panels';
 import {addErrorMessage, addSuccessMessage} from '../../../../actionCreators/indicator';
@@ -9,6 +10,7 @@ import AsyncView from '../../../asyncView';
 import Button from '../../../../components/buttons/button';
 import ConfigStore from '../../../../stores/configStore';
 import GuideAnchor from '../../../../components/assistant/guideAnchor';
+import Input from '../../components/forms/controls/input';
 import OrganizationAccessRequests from './organizationAccessRequests';
 import OrganizationMemberRow from './organizationMemberRow';
 import Pagination from '../../../../components/pagination';
@@ -22,8 +24,17 @@ class OrganizationMembersView extends AsyncView {
   };
 
   static contextTypes = {
+    router: PropTypes.object.isRequired,
     organization: SentryTypes.Organization,
   };
+
+  componentWillReceiveProps(nextProps, nextContext) {
+    super.componentWillReceiveProps(nextProps, nextContext);
+    let searchQuery = idx(nextProps, _ => _.location.query.query);
+    if (searchQuery !== idx(this.props, _ => _.location.query.query)) {
+      this.setState({searchQuery});
+    }
+  }
 
   // XXX(billy): setState causes re-render of the entire view...
   // we should not do this
@@ -34,6 +45,7 @@ class OrganizationMembersView extends AsyncView {
       members: [],
       invited: new Map(),
       accessRequestBusy: new Map(),
+      searchQuery: idx(this.props, _ => _.location.query.query) || '',
     };
   }
 
@@ -42,7 +54,11 @@ class OrganizationMembersView extends AsyncView {
       [
         'members',
         `/organizations/${this.props.params.orgId}/members/`,
-        {},
+        {
+          query: {
+            query: idx(this.props, _ => _.location.query.query),
+          },
+        },
         {paginate: true},
       ],
       [
@@ -64,6 +80,18 @@ class OrganizationMembersView extends AsyncView {
     let org = this.context.organization;
     return `${org.name} Members`;
   }
+
+  handleSearch = e => {
+    let {router} = this.context;
+    let {location} = this.props;
+    e.preventDefault();
+    router.push({
+      pathname: location.pathname,
+      query: {
+        query: this.state.searchQuery,
+      },
+    });
+  };
 
   removeMember = id => {
     let {params} = this.props;
@@ -180,6 +208,24 @@ class OrganizationMembersView extends AsyncView {
     });
   };
 
+  handleChange = evt => {
+    let searchQuery = evt.target.value;
+    this.setState({searchQuery}, this.getMembers);
+  };
+
+  getMembers = debounce(() => {
+    let {params} = this.props;
+    let {orgId} = params || {};
+    let {searchQuery} = this.state;
+
+    this.api.request(`/organizations/${orgId}/members/?query=${searchQuery}`, {
+      method: 'GET',
+      success: data => {
+        this.setState({members: data});
+      },
+    });
+  }, 200);
+
   renderBody() {
     let {params, routes} = this.props;
     let {membersPageLinks, members, requestList} = this.state;
@@ -232,23 +278,16 @@ class OrganizationMembersView extends AsyncView {
         />
 
         <Panel>
-          <PanelHeader disablePadding>
-            <Box px={2} flex="1">
-              {t('Member')}
-            </Box>
-            <Box px={2} w={180}>
-              <GuideAnchor target="member_status" type="text">
-                {t('Status')}
-              </GuideAnchor>
-            </Box>
-            <Box px={2} w={140}>
-              <GuideAnchor target="member_role" type="text">
-                {t('Role')}
-              </GuideAnchor>
-            </Box>
-            <Box px={2} w={140}>
-              {t('Actions')}
-            </Box>
+          <PanelHeader hasButtons>
+            {t('Member')}
+            <form onSubmit={this.handleSearch}>
+              <Input
+                value={this.state.searchQuery}
+                onChange={this.handleChange}
+                className="search"
+                placeholder={t('Search Members')}
+              />
+            </form>
           </PanelHeader>
 
           <PanelBody>
