@@ -8,9 +8,9 @@ const theme = {
   gray4: '#4A3E56',
   gray5: '#302839',
 
-  blue: '#2C60BF',
-  blueLight: '#698ED1',
-  blueDark: '#2551A2',
+  blue: '#3B6ECC',
+  blueLight: '#628BD6',
+  blueDark: '#2F58A3',
 
   green: '#57be8c',
   greenLight: '#71D8A6',
