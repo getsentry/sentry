@@ -40,13 +40,13 @@ class AssistantEndpoint(Endpoint):
 
     def get(self, request):
         """Return all the guides with a 'seen' attribute if it has been 'viewed' or 'dismissed'."""
-        guides = manager.all()
+        guides = deepcopy(manager.all())
         seen_ids = set(AssistantActivity.objects.filter(
             user=request.user,
         ).values_list('guide_id', flat=True))
         for k, v in guides.items():
             v['seen'] = v['id'] in seen_ids
-        return Response(result)
+        return Response(guides)
 
     def put(self, request):
         """Mark a guide as viewed or dismissed.
