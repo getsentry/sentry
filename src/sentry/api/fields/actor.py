@@ -84,7 +84,7 @@ class Actor(object):
             return False
         return (self.id, self.type) == (other.id, other.type)
 
-    def __neq__(self, other):
+    def __ne__(self, other):
         return not self.__eq__(other)
 
     def __hash__(self):

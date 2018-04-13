@@ -4,6 +4,7 @@ import six
 
 from collections import Counter, defaultdict, OrderedDict
 from sentry.models import OrganizationMemberTeam, ProjectOwnership, Team, User
+from sentry.api.fields.actor import Actor
 
 
 # TODO(tkaemming): This should probably just be part of `build_digest`.
@@ -28,7 +29,7 @@ def get_digest_metadata(digest):
 
 def get_personalized_digests(project_id, digest, user_ids):
     """
-    get_personalized_digests(project: Project, digest: Digest, user_ids: Set[Int]) -> Iterator[user_id: Int, digest: Digest]
+    get_personalized_digests(project_id: Int, digest: Digest, user_ids: Set[Int]) -> Iterator[user_id: Int, digest: Digest]
     """
     # TODO(LB): I Know this is inefficent.
     # In the case that ProjectOwnership does exist, I do the same query twice.
@@ -36,7 +37,7 @@ def get_personalized_digests(project_id, digest, user_ids):
     # Will follow up with another PR to reduce the number of queries.
     if ProjectOwnership.objects.filter(project_id=project_id).exists():
         events = get_events_from_digest(digest)
-        events_by_actor = build_events_by_actor(project_id, events)
+        events_by_actor = build_events_by_actor(project_id, events, user_ids)
         events_by_user = convert_actors_to_users(events_by_actor, user_ids)
         for user_id in six.iterkeys(events_by_user):
             yield user_id, build_custom_digest(digest, events_by_user[user_id])
@@ -55,7 +56,7 @@ def get_events_from_digest(digest):
 
 def build_custom_digest(original_digest, events):
     """
-    build_custom_digest(original_digest: Digest, user_id: Int, events_by_users: Map[User_Id:Set(Events)]) -> Digest
+    build_custom_digest(original_digest: Digest, events: Set[Events]) -> Digest
     """
     user_digest = OrderedDict()
     for rule, rule_groups in six.iteritems(original_digest):
@@ -72,9 +73,9 @@ def build_custom_digest(original_digest, events):
     return user_digest
 
 
-def build_events_by_actor(project_id, events):
+def build_events_by_actor(project_id, events, user_ids):
     """
-    build_events_by_actor(project_id: Int, events: Set(Events)) -> Map[Actor:Set(Events)]
+    build_events_by_actor(project_id: Int, events: Set[Event], user_ids: Set[Int]) -> Map[Actor:Set(Event)]
     """
     events_by_actor = defaultdict(set)
     for event in events:
@@ -84,7 +85,7 @@ def build_events_by_actor(project_id, events):
         # Just wanted to make as few changes as possible for now.
         actors, __ = ProjectOwnership.get_owners(project_id, event.data)
         if actors == ProjectOwnership.Everyone:
-            actors = [actors]
+            actors = [Actor(user_id, User) for user_id in user_ids]
         for actor in actors:
             events_by_actor[actor].add(event)
     return events_by_actor
@@ -92,15 +93,9 @@ def build_events_by_actor(project_id, events):
 
 def convert_actors_to_users(events_by_actor, user_ids):
     """
-    convert_actors_to_user_set(events_by_actor: Map[Actor:Set(Events)], user_ids: List(Int)) -> Map[User_Id:Set(Events)]
+    convert_actors_to_user_set(events_by_actor: Map[Actor:Set(Events)], user_ids: List(Int)) -> Map[user_id:Int, Set(Event)]
     """
     events_by_user = defaultdict(set)
-    if ProjectOwnership.Everyone in events_by_actor:
-        events = events_by_actor[ProjectOwnership.Everyone]
-        for user_id in user_ids:
-            events_by_user[user_id] = set(events)
-        del events_by_actor[ProjectOwnership.Everyone]
-
     team_actors = [actor for actor in six.iterkeys(events_by_actor) if actor.type == Team]
     teams_to_user_ids = team_actors_to_user_ids(team_actors, user_ids)
     for actor, events in six.iteritems(events_by_actor):
@@ -116,6 +111,8 @@ def convert_actors_to_users(events_by_actor, user_ids):
                     events_by_user[user_id].update(events)
         elif actor.type == User:
             events_by_user[actor.id].update(events)
+        else:
+            raise ValueError('Unknown Actor type')
     return events_by_user
 
 

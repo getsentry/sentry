@@ -253,7 +253,7 @@ class GetPersonalizedDigestsTestCase(TestCase):
             Actor(self.user3.id, User): set(self.team1_events),
             Actor(self.user4.id, User): set(self.user4_events),
         }
-        assert build_events_by_actor(self.project.id, events) == events_by_actor
+        assert build_events_by_actor(self.project.id, events, self.user_ids) == events_by_actor
 
     def test_simple(self):
         rule = self.project.rule_set.all()[0]
