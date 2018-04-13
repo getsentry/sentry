@@ -39,8 +39,8 @@ def get_personalized_digests(project_id, digest, user_ids):
         events = get_events_from_digest(digest)
         events_by_actor = build_events_by_actor(project_id, events, user_ids)
         events_by_user = convert_actors_to_users(events_by_actor, user_ids)
-        for user_id in six.iterkeys(events_by_user):
-            yield user_id, build_custom_digest(digest, events_by_user[user_id])
+        for user_id, user_events in six.iteritems(events_by_user):
+            yield user_id, build_custom_digest(digest, user_events)
     else:
         for user_id in user_ids:
             yield user_id, digest
@@ -75,7 +75,7 @@ def build_custom_digest(original_digest, events):
 
 def build_events_by_actor(project_id, events, user_ids):
     """
-    build_events_by_actor(project_id: Int, events: Set[Event], user_ids: Set[Int]) -> Map[Actor:Set(Event)]
+    build_events_by_actor(project_id: Int, events: Set(Events), user_ids: Set[]) -> Map[Actor:Set(Events)]
     """
     events_by_actor = defaultdict(set)
     for event in events:
@@ -93,7 +93,7 @@ def build_events_by_actor(project_id, events, user_ids):
 
 def convert_actors_to_users(events_by_actor, user_ids):
     """
-    convert_actors_to_user_set(events_by_actor: Map[Actor:Set(Events)], user_ids: List(Int)) -> Map[user_id:Int, Set(Event)]
+    convert_actors_to_user_set(events_by_actor: Map[Actor:Set(Events)], user_ids: List(Int)) -> Map[User_Id:Set(Events)]
     """
     events_by_user = defaultdict(set)
     team_actors = [actor for actor in six.iterkeys(events_by_actor) if actor.type == Team]
