@@ -232,7 +232,7 @@ exports[`RuleBuilder render() renders 1`] = `
                     autosize={true}
                     backspaceRemoves={true}
                     backspaceToRemoveMessage="Press backspace to remove {label}"
-                    className="css-1dudj3e-MultiSelect css-2nqvrk0"
+                    className="css-1yznv6y-MultiSelect css-1ve8low0"
                     clearAllText="Clear all"
                     clearRenderer={[Function]}
                     clearValueText="Clear value"
@@ -307,7 +307,7 @@ exports[`RuleBuilder render() renders 1`] = `
                     valueKey="value"
                   >
                     <div
-                      className="Select css-1dudj3e-MultiSelect css-2nqvrk0 is-clearable is-searchable Select--multi"
+                      className="Select css-1yznv6y-MultiSelect css-1ve8low0 is-clearable is-searchable Select--multi"
                     >
                       <div
                         className="Select-control"
@@ -979,7 +979,7 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
                     autosize={true}
                     backspaceRemoves={true}
                     backspaceToRemoveMessage="Press backspace to remove {label}"
-                    className="css-1dudj3e-MultiSelect css-2nqvrk0"
+                    className="css-1yznv6y-MultiSelect css-1ve8low0"
                     clearAllText="Clear all"
                     clearRenderer={[Function]}
                     clearValueText="Clear value"
@@ -1067,7 +1067,7 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
                     valueKey="value"
                   >
                     <div
-                      className="Select css-1dudj3e-MultiSelect css-2nqvrk0 has-value is-clearable is-searchable Select--multi"
+                      className="Select css-1yznv6y-MultiSelect css-1ve8low0 has-value is-clearable is-searchable Select--multi"
                     >
                       <div
                         className="Select-control"

@@ -48,6 +48,9 @@ export default class MultiSelectField extends InputField {
 
 const MultiSelect = styled(Select)`
   font-size: 15px;
+  .Select-control {
+    overflow: visible;
+  }
   .Select-input {
     height: 37px;
     input {
@@ -58,6 +61,9 @@ const MultiSelect = styled(Select)`
   .Select-placeholder,
   .Select--single > .Select-control .Select-value {
     height: 37px;
+    &:focus {
+      border: 1px solid ${p => p.theme.gray};
+    }
   }
 
   .Select-option.is-focused {
@@ -65,7 +71,7 @@ const MultiSelect = styled(Select)`
     background-color: ${p => p.theme.purple};
   }
   .Select-multi-value-wrapper {
-    > * {
+    > a {
       margin-left: 4px;
     }
   }
