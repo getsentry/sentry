@@ -150,18 +150,28 @@ const GroupLevel = styled.div`
   height: 15px;
   border-radius: 0 3px 3px 0;
 
-  background-color: ${p => {
+  background: ${p => {
     switch (p.level) {
       case 'sample':
         return p.theme.purple;
       case 'info':
         return p.theme.blue;
       case 'warning':
-        return p.theme.yellowOrange;
+        return p.theme.yellow;
       case 'error':
-        return p.theme.orange;
+        return p.theme.yellowOrange;
       case 'fatal':
         return p.theme.red;
+      case 'fatal-alt':
+        return css`
+        repeating-linear-gradient(
+          45deg,
+          ${p.theme.red},
+          ${p.theme.red} 3px,
+          #fff 3px,
+          #fff 6px
+        )
+        `;
       default:
         return p.theme.gray2;
     }
