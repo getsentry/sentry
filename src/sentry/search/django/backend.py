@@ -18,12 +18,11 @@ from django.utils import timezone
 
 from sentry import quotas, tagstore
 from sentry.api.paginator import DateTimePaginator, Paginator, SequencePaginator
-from sentry.search.base import SearchBackend, ANY, EMPTY
+from sentry.search.base import SearchBackend, EMPTY
 from sentry.search.django.constants import (
     MSSQL_ENGINES, MSSQL_SORT_CLAUSES, MYSQL_SORT_CLAUSES, ORACLE_SORT_CLAUSES, SORT_CLAUSES,
     SQLITE_SORT_CLAUSES
 )
-from sentry.utils import snuba
 from sentry.utils.dates import to_timestamp
 from sentry.utils.db import get_db_engine
 
@@ -208,7 +207,7 @@ def get_latest_release(project, environment):
 class DjangoSearchBackend(SearchBackend):
     def query(self, project, tags=None, environment=None, sort_by='date', limit=100,
               cursor=None, count_hits=False, paginator_options=None, **parameters):
-        from sentry.models import (Environment, Event, Group, GroupEnvironment, GroupHash,
+        from sentry.models import (Environment, Event, Group, GroupEnvironment,
                                    GroupStatus, GroupSubscription, Release)
 
         if paginator_options is None:
@@ -282,6 +281,15 @@ class DjangoSearchBackend(SearchBackend):
         else:
             retention_window_start = None
 
+        now = timezone.now()
+        end = parameters.get('date_to') or (now + timedelta(minutes=1))
+        # TODO: Presumably we want to search back to the project's full retention,
+        #       which may be higher than 90 days in the future, but apparently
+        #       `retention_window_start` can be None?
+        start = (parameters.get('date_from')
+                 or retention_window_start
+                 or (now - timedelta(days=90)))
+
         # TODO: This could also do something janky like switching based on the current
         #       tagstore backend, or a global option, or a number of other things. Going
         #       by the project seemed the best for now.
@@ -291,35 +299,15 @@ class DjangoSearchBackend(SearchBackend):
                           any(key in parameters for key in ('date_from', 'date_to'))):
 
             # if we're in this branch then Snuba can help us filter down the eligible group ids
-            filters = {
-                'project_id': [project.id],
-            }
 
-            if environment is not None:
-                filters['environment'] = [environment.id]
+            group_ids = tagstore.get_group_ids_for_search_filter(
+                project.id,
+                environment.id,
+                tags,
+                start=start,
+                end=end,
+            )
 
-            conditions = []
-            for tag, val in six.iteritems(tags):
-                col = 'tags[{}]'.format(tag)
-                if val == ANY:
-                    conditions.append((col, 'IS NOT NULL', None))
-                else:
-                    conditions.append((col, '=', val))
-
-            now = timezone.now()
-            end = parameters.get('date_to') or now
-            # TODO: Presumably we want to search back to the project's full retention,
-            #       which may be higher than 90 days in the future, but apparently
-            #       `retention_window_start` can be None?
-            start = (parameters.get('date_from')
-                     or retention_window_start
-                     or (now - timedelta(days=90)))
-
-            hashes = snuba.query(start, end, ['primary_hash'], conditions, filters)
-
-            group_ids = GroupHash.objects.filter(
-                project=project, hash__in=hashes.keys()
-            ).values_list('group_id', flat=True).distinct()
             group_queryset = group_queryset.filter(id__in=group_ids)
 
             # The following isn't different from the original Django-only else branch
@@ -530,6 +518,8 @@ class DjangoSearchBackend(SearchBackend):
                     project.id,
                     environment.id,
                     tags,
+                    start,
+                    end,
                     candidates.keys(),
                     limit=len(candidates),
                 )
