@@ -155,6 +155,7 @@ def merge_group(
             environment_ids=environment_ids if model in tsdb.models_with_environment_support else None,
         )
 
+    decrement_new_issue_count(group)
     previous_group_id = group.id
 
     group.delete()
@@ -226,6 +227,44 @@ def rehash_group_events(group_id, transaction_id=None, **kwargs):
     )
 
     delete_group.delay(group.id)
+
+
+def decrement_new_issue_count(group):
+    """
+    Updates the new issue/groups count
+
+    Should be called with the old group from merge_group.
+    That will be deleted, and so the count is decremented by 1.
+    """
+    from sentry.models import GroupRelease, ReleaseProject, ReleaseProjectEnvironment
+    release = group.first_release
+    release.update(new_groups=release.new_groups - 1)
+
+    try:
+        release_project = ReleaseProject.objects.get(
+            release_id=release.id,
+            project_id=release.project_id,
+        )
+    except ReleaseProject.DoesNotExist:
+        # Done updating can't have a ReleaseProjectEnvironment without a ReleaseProject
+        return
+
+    release_project.update(new_groups=release_project.new_groups - 1)
+    release_project_envs = ReleaseProjectEnvironment.objects.filter(
+        release_id=release.id,
+        project_id=release.project_id,
+    ).select_related('environment')
+    group_releases_env_names = GroupRelease.objects.filter(
+        group_id=group.id,
+        release_id=release.id,
+        project_id=release.project_id,  # not index on should this work?
+    ).values_list('environment', flat=True)
+
+    for release_project_env in release_project_envs:
+        env_name = release_project_env.environment.name
+        if env_name in group_releases_env_names:
+            count = release_project_env.new_issues_count - 1
+            release_project_env.update(new_issues_count=count)
 
 
 def _get_event_environment(event, project, cache):

@@ -180,6 +180,7 @@ class Release(Model):
         # ReleaseCommit.release
         # ReleaseEnvironment.release_id
         # ReleaseProject.release
+        # ReleaseProjectEnvironment.release
         # GroupRelease.release_id
         # GroupResolution.release
         # Group.first_release

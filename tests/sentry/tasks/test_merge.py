@@ -3,10 +3,12 @@ from __future__ import absolute_import
 from collections import defaultdict
 from mock import patch
 
+from django.utils import timezone
+
 from sentry import tagstore
 from sentry.tagstore.models import GroupTagValue
 from sentry.tasks.merge import merge_group, rehash_group_events
-from sentry.models import Event, Group, GroupEnvironment, GroupMeta, GroupRedirect, UserReport
+from sentry.models import Environment, Event, Group, GroupEnvironment, GroupMeta, GroupRedirect, GroupRelease, Release, ReleaseEnvironment, ReleaseProject, ReleaseProjectEnvironment, UserReport
 from sentry.similarity import _make_index_backend
 from sentry.testutils import TestCase
 from sentry.utils import redis
@@ -237,6 +239,107 @@ class MergeGroupTest(TestCase):
         assert not Group.objects.filter(id=group1.id).exists()
 
         assert UserReport.objects.get(id=ur.id).group_id == group2.id
+
+    def test_merge_group_release(self):
+        new_groups = 10
+        new_issues_count_env1 = 3
+        new_issues_count_env2 = 7
+
+        datetime_now = timezone.now()
+        project = self.create_project()
+        release = Release.objects.create(
+            organization_id=project.organization_id,
+            version='1',
+            new_groups=new_groups,
+            project_id=project.id,
+        )
+        release.add_project(project)
+        release_project = ReleaseProject.objects.get(
+            project=project,
+            release=release,
+        )
+        release_project.update(new_groups=new_groups)
+
+        # Environments
+        environment1 = Environment.objects.create(
+            project_id=project.id,
+            organization_id=project.organization_id,
+            name='prod',
+        )
+        environment2 = Environment.objects.create(
+            project_id=project.id,
+            organization_id=project.organization_id,
+            name='staging',
+        )
+        ReleaseEnvironment.get_or_create(
+            project=project,
+            release=release,
+            environment=environment1,
+            datetime=datetime_now,
+        )
+        release_project_env1 = ReleaseProjectEnvironment.objects.create(
+            project=project,
+            release=release,
+            environment=environment1,
+            first_seen=datetime_now,
+            last_seen=datetime_now,
+            new_issues_count=new_issues_count_env1,
+        )
+        ReleaseEnvironment.get_or_create(
+            project=project,
+            release=release,
+            environment=environment2,
+            datetime=datetime_now,
+        )
+        release_project_env2 = ReleaseProjectEnvironment.objects.create(
+            project=project,
+            release=release,
+            environment=environment2,
+            first_seen=datetime_now,
+            last_seen=datetime_now,
+            new_issues_count=new_issues_count_env2,
+        )
+
+        # Groups
+        group1 = self.create_group(
+            project=project,
+            times_seen=1,
+            first_seen=datetime_now,
+            last_seen=datetime_now,
+            first_release=release,
+        )
+        group2 = self.create_group(
+            project=project,
+            times_seen=1,
+            first_seen=datetime_now,
+            last_seen=datetime_now,
+            first_release=release,
+        )
+        GroupRelease.get_or_create(
+            group=group1,
+            release=release,
+            environment=environment1,
+            datetime=datetime_now,
+        )
+        GroupRelease.get_or_create(
+            group=group1,
+            release=release,
+            environment=environment2,
+            datetime=datetime_now,
+        )
+
+        with self.tasks():
+            merge_group(group1.id, group2.id)
+
+        assert not Group.objects.filter(id=group1.id).exists()
+
+        assert Release.objects.get(id=release.id).new_groups == new_groups - 1
+        assert ReleaseProject.objects.get(
+            id=release_project.id).new_groups == new_groups - 1
+        assert ReleaseProjectEnvironment.objects.get(
+            id=release_project_env1.id).new_issues_count == new_issues_count_env1 - 1
+        assert ReleaseProjectEnvironment.objects.get(
+            id=release_project_env2.id).new_issues_count == new_issues_count_env2 - 1
 
 
 class RehashGroupEventsTest(TestCase):
