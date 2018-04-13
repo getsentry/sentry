@@ -278,7 +278,7 @@ class OrganizationMembersView extends AsyncView {
         />
 
         <Panel>
-          <PanelHeader>
+          <PanelHeader hasButtons>
             {t('Member')}
             <form onSubmit={this.handleSearch}>
               <Input
