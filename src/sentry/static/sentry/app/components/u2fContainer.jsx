@@ -31,10 +31,11 @@ class U2fContainer extends React.Component {
   }
 
   render() {
-    if (this.state.authenticators) {
+    let {className, authenticators} = this.state;
+    if (authenticators && authenticators.length) {
       return (
-        <div>
-          {this.state.authenticators.map(({id, ...other}) => {
+        <div className={className}>
+          {authenticators.map(({id, ...other}) => {
             if (id === 'u2f' && other.challenge) {
               return <U2fSign key={id} {...this.props} challengeData={other.challenge} />;
             }

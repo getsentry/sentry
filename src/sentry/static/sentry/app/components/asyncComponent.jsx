@@ -46,7 +46,8 @@ class AsyncComponent extends React.Component {
     // re-fetch data when router params change
     if (
       !isEqual(this.props.params, nextProps.params) ||
-      currentLocation.search !== nextLocation.search
+      currentLocation.search !== nextLocation.search ||
+      currentLocation.state !== nextLocation.state
     ) {
       this.remountComponent();
     }
@@ -125,22 +126,26 @@ class AsyncComponent extends React.Component {
             error = null;
           }
 
-          this.setState(prevState => {
-            return {
-              [stateKey]: null,
-              errors: {
-                ...prevState.errors,
-                [stateKey]: error,
-              },
-              remainingRequests: prevState.remainingRequests - 1,
-              loading: prevState.remainingRequests > 1,
-              error: prevState.error || !!error,
-            };
-          });
+          this.handleError(error, [stateKey, endpoint, params, options]);
         },
       });
     });
   };
+
+  handleError(error, [stateKey]) {
+    this.setState(prevState => {
+      return {
+        [stateKey]: null,
+        errors: {
+          ...prevState.errors,
+          [stateKey]: error,
+        },
+        remainingRequests: prevState.remainingRequests - 1,
+        loading: prevState.remainingRequests > 1,
+        error: prevState.error || !!error,
+      };
+    });
+  }
 
   // DEPRECATED: use getEndpoints()
   getEndpointParams() {

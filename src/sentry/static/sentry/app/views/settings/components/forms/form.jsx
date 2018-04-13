@@ -21,11 +21,17 @@ export default class Form extends React.Component {
     footerStyle: PropTypes.object,
     extraButton: PropTypes.element,
     initialData: PropTypes.object,
+    // Require changes before able to submit form
     requireChanges: PropTypes.bool,
+    // Reset form when there are errors, after submit
+    resetOnError: PropTypes.bool,
+    // Hide Footer
     hideFooter: PropTypes.bool,
-    model: PropTypes.object,
+    // Allow undo
     allowUndo: PropTypes.bool,
+    // Save field on control blur
     saveOnBlur: PropTypes.bool,
+    model: PropTypes.object,
     apiMethod: PropTypes.string,
     apiEndpoint: PropTypes.string,
   };
@@ -55,6 +61,7 @@ export default class Form extends React.Component {
       saveOnBlur,
       apiEndpoint,
       apiMethod,
+      resetOnError,
       onSubmitSuccess,
       onSubmitError,
       onFieldChange,
@@ -66,6 +73,7 @@ export default class Form extends React.Component {
     this.model = model || new FormModel();
     this.model.setInitialData(initialData);
     this.model.setFormOptions({
+      resetOnError,
       allowUndo,
       onFieldChange,
       onSubmitSuccess,
