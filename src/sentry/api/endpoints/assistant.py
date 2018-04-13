@@ -39,7 +39,7 @@ class AssistantEndpoint(Endpoint):
     permission_classes = (IsAuthenticated, )
 
     def get(self, request):
-        """Return all the guides the user has not viewed or dismissed."""
+        """Return all the guides with a 'seen' attribute if it has been 'viewed' or 'dismissed'."""
         guides = manager.all()
         seen_ids = set(AssistantActivity.objects.filter(
             user=request.user,
