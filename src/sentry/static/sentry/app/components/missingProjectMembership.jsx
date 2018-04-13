@@ -63,6 +63,9 @@ const MissingProjectMembership = createReactClass({
   },
 
   renderJoinTeam(team, features) {
+    if (!team) {
+      return null;
+    }
     if (this.state.loading) {
       return <a className="btn btn-default btn-loading btn-disabled">...</a>;
     } else if (team.isPending) {
@@ -94,13 +97,20 @@ const MissingProjectMembership = createReactClass({
 
     let {project} = this.state;
     let {team} = project;
-    if (features.has('open-membership')) {
-      return t('To view this data you must first join the %s team.', team.name);
+
+    if (team) {
+      if (features.has('open-membership')) {
+        return t('To view this data you must first join the %s team.', team.name);
+      }
+
+      return t(
+        'To view this data you must first request access to the %s team.',
+        team.name
+      );
     }
 
     return t(
-      'To view this data you must first request access to the %s team.',
-      team.name
+      'This project is not associated with any teams. To view this data, an administrator must grant access to a team you are on.'
     );
   },
 
