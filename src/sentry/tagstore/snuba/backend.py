@@ -24,8 +24,6 @@ from sentry.tagstore.exceptions import (
 )
 from sentry.utils import snuba
 from sentry.models import GroupHash
-from sentry.tagstore import TagKeyStatus
-from sentry.tagstore.base import TagStorage
 
 
 SEEN_COLUMN = 'timestamp'
