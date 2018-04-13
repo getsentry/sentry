@@ -9,7 +9,7 @@ import DateTime from '../../../../components/dateTime';
 import EmptyMessage from '../../components/emptyMessage';
 import Pagination from '../../../../components/pagination';
 import {Panel, PanelBody, PanelHeader, PanelItem} from '../../../../components/panels';
-import SelectInput from '../../../../components/selectInput';
+import SelectField from '../../../../components/forms/selectField';
 import SettingsPageHeader from '../../components/settingsPageHeader';
 
 const UserInfo = styled(Box)`
@@ -52,21 +52,20 @@ class AuditLogList extends React.Component {
     let {pageLinks, entries, eventType, eventTypes, onEventSelect} = this.props;
     let hasEntries = entries && entries.length > 0;
 
+    let options = [
+      {value: '', label: t('Any action')},
+      ...eventTypes.map(type => ({label: type, value: type})),
+    ];
+
     let action = (
       <form>
-        <SelectInput
+        <SelectField
           name="event"
           onChange={onEventSelect}
           value={eventType}
           style={{width: 250}}
-        >
-          <option key="any" value="">
-            {t('Any action')}
-          </option>
-          {eventTypes.map(type => {
-            return <option key={type}>{type}</option>;
-          })}
-        </SelectInput>
+          options={options}
+        />
       </form>
     );
 

@@ -5,7 +5,7 @@ import {Flex} from 'grid-emotion';
 import memberListStore from '../../../../stores/memberListStore';
 import ProjectsStore from '../../../../stores/projectsStore';
 import Button from '../../../../components/buttons/button';
-import SelectInput from '../../../../components/selectInput';
+import SelectField from '../../../../components/forms/selectField';
 import TextOverflow from '../../../../components/textOverflow';
 import InlineSvg from '../../../../components/inlineSvg';
 import Input from '../../../../views/settings/components/forms/controls/input';
@@ -13,6 +13,7 @@ import SentryTypes from '../../../../proptypes';
 import {buildUserId, buildTeamId} from '../../../../utils';
 import {addErrorMessage} from '../../../../actionCreators/indicator';
 import SelectOwners from './selectOwners';
+import {t} from '../../../../locale';
 
 const initialState = {
   text: '',
@@ -66,8 +67,8 @@ class RuleBuilder extends React.Component {
     }));
   }
 
-  handleTypeChange = e => {
-    this.setState({type: e[0].value});
+  handleTypeChange = val => {
+    this.setState({type: val});
   };
 
   handleChangeValue = e => {
@@ -133,10 +134,15 @@ class RuleBuilder extends React.Component {
           </Candidates>
         )}
         <BuilderBar>
-          <BuilderSelect value={type} showSearch={false} onChange={this.handleTypeChange}>
-            <option value="path">Path</option>
-            <option value="url">URL</option>
-          </BuilderSelect>
+          <BuilderSelect
+            name="select-type"
+            value={type}
+            showSearch={false}
+            onChange={this.handleTypeChange}
+            options={[{value: 'path', label: t('Path')}, {value: 'url', label: t('URL')}]}
+            style={{width: 140}}
+            clearable={false}
+          />
           <BuilderInput
             controlled
             value={text}
@@ -200,7 +206,7 @@ const BuilderBar = styled.div`
   margin-bottom: 1em;
 `;
 
-const BuilderSelect = styled(SelectInput)`
+const BuilderSelect = styled(SelectField)`
   padding: 0.5em;
   margin-right: 5px;
   width: 80px;

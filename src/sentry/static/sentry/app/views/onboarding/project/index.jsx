@@ -4,7 +4,7 @@ import classnames from 'classnames';
 
 import PlatformPicker from './platformpicker';
 import PlatformiconTile from './platformiconTile';
-import SelectInput from '../../../components/selectInput';
+import SelectField from '../../../components/forms/selectField';
 import {t} from '../../../locale';
 import HookStore from '../../../stores/hookStore';
 
@@ -53,19 +53,17 @@ class OnboardingProject extends React.Component {
     return (
       <div className="new-project-team">
         <h4>{t('Team') + ':'}</h4>
-        <div className="project-team-wrapper">
-          <SelectInput
+        <div>
+          <SelectField
+            name="select-team"
             value={team}
-            style={{width: 180, padding: '10px'}}
-            required={true}
-            onChange={e => setTeam(e[0].value)}
-          >
-            {teams.map(({slug, name, id}, i) => (
-              <option key={id} value={slug}>
-                #{slug}
-              </option>
-            ))}
-          </SelectInput>
+            style={{width: 180}}
+            onChange={val => setTeam(val)}
+            options={teams.map(({slug}) => ({
+              label: `#${slug}`,
+              value: slug,
+            }))}
+          />
         </div>
       </div>
     );
