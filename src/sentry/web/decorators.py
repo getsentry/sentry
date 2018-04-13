@@ -45,6 +45,9 @@ def requires_admin(func):
     @wraps(func)
     def wrapped(request, *args, **kwargs):
         if not is_active_superuser(request):
+            if request.user.is_superuser:
+                auth.initiate_login(request, next_url=request.get_full_path())
+                return HttpResponseRedirect(auth.get_login_url())
             return render_to_response('sentry/missing_permissions.html', {}, request, status=400)
         return func(request, *args, **kwargs)
 

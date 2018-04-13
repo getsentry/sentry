@@ -133,7 +133,6 @@ from .endpoints.dif_files import DifAssembleEndpoint
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from .endpoints.system_health import SystemHealthEndpoint
 from .endpoints.system_options import SystemOptionsEndpoint
-from .endpoints.sudo import SudoEndpoint
 from .endpoints.team_avatar import TeamAvatarEndpoint
 from .endpoints.team_details import TeamDetailsEndpoint
 from .endpoints.team_groups_new import TeamGroupsNewEndpoint
@@ -196,9 +195,6 @@ urlpatterns = patterns(
     url(r'^authenticators/$',
         AuthenticatorIndexEndpoint.as_view(),
         name='sentry-api-0-authenticator-index'),
-
-    # Sudo
-    url(r'^sudo/$', SudoEndpoint.as_view(), name='sentry-api-0-sudo'),
 
     # Broadcasts
     url(r'^broadcasts/$', BroadcastIndexEndpoint.as_view(),

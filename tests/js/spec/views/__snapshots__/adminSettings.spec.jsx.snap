@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports['AdminSettings render() renders 1'] = `
+exports[`AdminSettings render() renders 1`] = `
 <SideEffect(DocumentTitle)
   title="Sentry"
 >
@@ -33,7 +33,9 @@ exports['AdminSettings render() renders 1'] = `
       requireChanges={true}
       resetOnError={false}
       submitDisabled={false}
+      submitErrorMessage="There was an error saving your changes."
       submitLabel="Save Changes"
+      submitLoadingMessage="Saving changes.."
     >
       <h4>
         General

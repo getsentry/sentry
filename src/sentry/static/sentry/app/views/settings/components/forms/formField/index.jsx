@@ -285,6 +285,7 @@ class FormField extends React.Component {
 
   render() {
     let {
+      className,
       name,
       hideErrorMessage,
       flexibleControlStateSize,
@@ -299,7 +300,7 @@ class FormField extends React.Component {
 
     return (
       <React.Fragment>
-        <Field id={id} name={name} {...props}>
+        <Field id={id} name={name} className={className} {...props}>
           {({alignRight, inline, disabled, disabledReason}) => (
             <FieldControl
               disabled={disabled}
@@ -331,6 +332,7 @@ class FormField extends React.Component {
                         innerRef={this.handleInputMount}
                         {...{
                           ...this.props,
+                          name,
                           id,
                           onKeyDown: this.handleKeyDown,
                           onChange: this.handleChange,

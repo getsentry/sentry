@@ -39,6 +39,12 @@ class SsoRequired(SentryAPIException):
         )
 
 
+class SuperuserRequired(SentryAPIException):
+    status_code = status.HTTP_403_FORBIDDEN
+    code = 'superuser-required'
+    message = 'You need to re-authenticate for superuser.'
+
+
 class SudoRequired(SentryAPIException):
     status_code = status.HTTP_401_UNAUTHORIZED
     code = 'sudo-required'

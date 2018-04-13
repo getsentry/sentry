@@ -94,6 +94,7 @@ def get_react_config(context):
 
     if user:
         user = extract_lazy_object(user)
+        is_superuser = user.is_superuser
 
     enabled_features = []
     if features.has('organizations:create', actor=user):

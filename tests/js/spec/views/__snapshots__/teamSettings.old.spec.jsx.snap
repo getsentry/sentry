@@ -28,7 +28,9 @@ exports[`TeamSettings (Old) render() renders 1`] = `
         requireChanges={true}
         resetOnError={false}
         submitDisabled={false}
+        submitErrorMessage="There was an error saving your changes."
         submitLabel="Save Changes"
+        submitLoadingMessage="Saving changes.."
       >
         <TextField
           disabled={false}

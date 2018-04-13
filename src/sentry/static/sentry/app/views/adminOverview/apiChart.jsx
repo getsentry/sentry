@@ -34,6 +34,12 @@ export default createReactClass({
     this.fetchData();
   },
 
+  componentWillReceiveProps(nextProps) {
+    if (this.props.since !== nextProps.since) {
+      this.setState(this.getInitialState(), this.fetchData);
+    }
+  },
+
   fetchData() {
     let statNameList = [
       'client-api.all-versions.responses.2xx',
@@ -46,7 +52,7 @@ export default createReactClass({
         method: 'GET',
         data: {
           since: this.props.since,
-          resolution: '1h',
+          resolution: this.props.resolution,
           key: statName,
         },
         success: data => {

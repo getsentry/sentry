@@ -82,6 +82,11 @@ class Field extends React.Component {
      */
     children: PropTypes.oneOfType([PropTypes.node, PropTypes.func]),
 
+    /**
+     * Class name for inner control
+     */
+    controlClassName: PropTypes.string,
+
     /** Inline style */
     style: PropTypes.object,
   };
@@ -95,7 +100,9 @@ class Field extends React.Component {
   };
 
   render() {
+    let {className, ...otherProps} = this.props;
     let {
+      controlClassName,
       alignRight,
       inline,
       highlighted,
@@ -110,7 +117,7 @@ class Field extends React.Component {
       p,
       children,
       style,
-    } = this.props;
+    } = otherProps;
     let isDisabled = typeof disabled === 'function' ? disabled(this.props) : disabled;
     let isVisible = typeof visible === 'function' ? visible(this.props) : visible;
     let Control;
@@ -120,6 +127,7 @@ class Field extends React.Component {
     }
 
     let controlProps = {
+      className: controlClassName,
       inline,
       alignRight,
       disabled: isDisabled,
@@ -130,7 +138,7 @@ class Field extends React.Component {
     // See comments in prop types
     if (typeof children === 'function') {
       Control = children({
-        ...this.props,
+        ...otherProps,
         ...controlProps,
       });
     } else {
@@ -140,6 +148,7 @@ class Field extends React.Component {
     return (
       <FieldWrapper
         p={p}
+        className={className}
         inline={inline}
         highlighted={highlighted}
         hasControlState={!flexibleControlStateSize}

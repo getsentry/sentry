@@ -28,7 +28,7 @@ export default class extends React.Component {
   render() {
     return (
       <DocumentTitle title={this.getTitle()}>
-        <div className="app">
+        <div className="app" css={{paddingTop: 20}}>
           <Sidebar />
           <div className="container">
             <div className="content">

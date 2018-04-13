@@ -2,19 +2,22 @@
 import React from 'react';
 
 import ApiChart from './apiChart';
+import AsyncView from '../asyncView';
 import EventChart from './eventChart';
 import {t} from '../../locale';
 
-export default class extends React.Component {
-  constructor(...args) {
-    super(...args);
-    this.state = {
-      since: new Date().getTime() / 1000 - 3600 * 24 * 7,
-      resolution: '1h',
-    };
+export default class AdminOverview extends AsyncView {
+  getTitle() {
+    return 'Admin Overview';
   }
 
-  render() {
+  getEndpoints() {
+    return [];
+  }
+
+  renderBody() {
+    const resolution = '1h';
+    const since = new Date().getTime() / 1000 - 3600 * 24 * 7;
     return (
       <div>
         <h3>{t('System Overview')}</h3>
@@ -26,14 +29,14 @@ export default class extends React.Component {
               <span id="rate" className="pull-right" />
             </h4>
           </div>
-          <EventChart since={this.state.since} resolution={this.state.resolution} />
+          <EventChart since={since} resolution={resolution} />
         </div>
 
         <div className="box">
           <div className="box-header">
             <h4>{t('API Responses')}</h4>
           </div>
-          <ApiChart since={this.state.since} resolution={this.state.resolution} />
+          <ApiChart since={since} resolution={resolution} />
         </div>
       </div>
     );

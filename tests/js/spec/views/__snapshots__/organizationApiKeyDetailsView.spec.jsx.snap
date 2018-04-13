@@ -52,7 +52,9 @@ exports[`OrganizationApiKeyDetailsView renders 1`] = `
           requireChanges={false}
           resetOnError={false}
           submitDisabled={false}
+          submitErrorMessage="There was an error saving your changes."
           submitLabel="Save Changes"
+          submitLoadingMessage="Saving changes.."
         >
           <form
             className="form-stacked"

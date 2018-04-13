@@ -6,15 +6,16 @@ import {TextField} from '../components/forms';
 import InternalStatChart from '../components/internalStatChart';
 
 export default class AdminQuotas extends AsyncView {
-  getEndpoints() {
-    return [['config', '/internal/quotas/']];
-  }
-
   getDefaultState() {
     return {
+      ...super.getDefaultState(),
       since: new Date().getTime() / 1000 - 3600 * 24 * 7,
       resolution: '1h',
     };
+  }
+
+  getEndpoints() {
+    return [['config', '/internal/quotas/']];
   }
 
   renderBody() {

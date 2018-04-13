@@ -82,7 +82,9 @@ exports[`OrganizationAuthProvider renders 1`] = `
         requireChanges={false}
         resetOnError={false}
         submitDisabled={false}
+        submitErrorMessage="There was an error saving your changes."
         submitLabel="Save Settings"
+        submitLoadingMessage="Saving changes.."
       >
         <BooleanField
           disabled={false}
@@ -335,7 +337,9 @@ exports[`OrganizationAuthProvider renders with Unlinked members  1`] = `
         requireChanges={false}
         resetOnError={false}
         submitDisabled={false}
+        submitErrorMessage="There was an error saving your changes."
         submitLabel="Save Settings"
+        submitLoadingMessage="Saving changes.."
       >
         <BooleanField
           disabled={false}
@@ -519,7 +523,9 @@ Array [
       requireChanges={false}
       resetOnError={false}
       submitDisabled={false}
+      submitErrorMessage="There was an error saving your changes."
       submitLabel="Save Settings"
+      submitLoadingMessage="Saving changes.."
     >
       <BooleanField
         disabled={false}

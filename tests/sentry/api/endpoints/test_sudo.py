@@ -33,13 +33,13 @@ class SudoTest(APITestCase):
             assert response.data['detail']['message'] == 'Account verification required.'
             assert response.data['detail']['extra']['username'] == 'foo@example.com'
 
-            sudo_url = reverse('sentry-api-0-sudo', kwargs={})
+            sudo_url = reverse('sentry-api-0-auth', kwargs={})
             # Now try to gain sudo access
             response = self.client.post(sudo_url, {
                 'username': 'foo@example.com',
                 'password': 'admin',
             })
-            assert response.status_code == 204
+            assert response.status_code == 200
 
             # This should now work
             response = self.client.delete(url, is_sudo=False)

@@ -348,6 +348,9 @@ class FormModel {
       .catch((resp, ...args) => {
         // should we revert field value to last known state?
         saveSnapshot = null;
+        if (this.options.resetOnError) {
+          this.setInitialData({});
+        }
         this.submitError(resp);
         if (this.options.onSubmitError) {
           this.options.onSubmitError(resp, this);

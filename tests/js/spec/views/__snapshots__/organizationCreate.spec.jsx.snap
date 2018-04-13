@@ -28,7 +28,9 @@ exports[`OrganizationCreate render() renders with terms 1`] = `
       requireChanges={true}
       resetOnError={false}
       submitDisabled={false}
+      submitErrorMessage="There was an error saving your changes."
       submitLabel="Create Organization"
+      submitLoadingMessage="Saving changes.."
     >
       <TextField
         disabled={false}
@@ -102,7 +104,9 @@ exports[`OrganizationCreate render() renders without terms 1`] = `
       requireChanges={true}
       resetOnError={false}
       submitDisabled={false}
+      submitErrorMessage="There was an error saving your changes."
       submitLabel="Create Organization"
+      submitLoadingMessage="Saving changes.."
     >
       <TextField
         disabled={false}
