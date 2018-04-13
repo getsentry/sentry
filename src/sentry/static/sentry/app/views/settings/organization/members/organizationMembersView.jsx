@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import debounce from 'lodash.debounce';
+import {debounce} from 'lodash';
 import idx from 'idx';
 
 import {Panel, PanelBody, PanelHeader} from '../../../../components/panels';
@@ -210,14 +210,14 @@ class OrganizationMembersView extends AsyncView {
 
   handleChange = evt => {
     let searchQuery = evt.target.value;
-    this.setState({searchQuery});
-    this.getMembers();
+    this.setState({searchQuery}, this.getMembers);
   };
 
   getMembers = debounce(() => {
     let {params} = this.props;
     let {orgId} = params || {};
     let {searchQuery} = this.state;
+
     this.api.request(`/organizations/${orgId}/members/?query=${searchQuery}`, {
       method: 'GET',
       success: data => {
