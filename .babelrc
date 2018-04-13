@@ -26,11 +26,6 @@
     ]
   ],
   "env": {
-    "production": {
-      "plugins": [
-        "idx"
-      ]
-    },
     "development": {
       "plugins": [
         ["emotion", {"sourceMap": true, "autoLabel": true}]
