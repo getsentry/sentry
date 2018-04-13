@@ -1306,3 +1306,8 @@ SOUTH_TESTS_MIGRATE = os.environ.get('SOUTH_TESTS_MIGRATE', '0') == '1'
 
 TERMS_URL = None
 PRIVACY_URL = None
+
+# Toggles whether minidumps should be cached
+SENTRY_MINIDUMP_CACHE = False
+# The location for cached minidumps
+SENTRY_MINIDUMP_PATH = '/tmp/minidump'

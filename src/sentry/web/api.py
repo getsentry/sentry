@@ -55,7 +55,6 @@ logger = logging.getLogger('sentry')
 PIXEL = base64.b64decode('R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=')
 
 PROTOCOL_VERSIONS = frozenset(('2.0', '3', '4', '5', '6', '7'))
-MINIDUMP_TMP_PATH = '/tmp/minidump'
 
 
 pubsub = QueuedPublisher(
@@ -580,13 +579,13 @@ class MinidumpView(StoreView):
         except KeyError:
             raise APIError('Missing minidump upload')
 
-        # Save the minidump on the local filesystem for debugging purposes, e.g.
-        # if reading it fails. The folder will be cleaned every 24 hours.
-        if not os.path.exists(MINIDUMP_TMP_PATH):
-            os.mkdir(MINIDUMP_TMP_PATH, 0744)
-        with open('%s/%s.dmp' % (MINIDUMP_TMP_PATH, event_id), 'wb') as out:
-            for chunk in minidump.chunks():
-                out.write(chunk)
+        if settings.SENTRY_MINIDUMP_CACHE:
+            if not os.path.exists(settings.SENTRY_MINIDUMP_PATH):
+                os.mkdir(settings.SENTRY_MINIDUMP_PATH, 0o744)
+
+            with open('%s/%s.dmp' % (settings.SENTRY_MINIDUMP_PATH, event_id), 'wb') as out:
+                for chunk in minidump.chunks():
+                    out.write(chunk)
 
         merge_minidump_event(data, minidump)
         response_or_event_id = self.process(request, data=data, **kwargs)
