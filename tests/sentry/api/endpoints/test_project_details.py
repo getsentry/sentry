@@ -63,7 +63,7 @@ class ProjectDetailsTest(APITestCase):
         assert response.status_code == 200
         assert response.data['stats']['unresolved'] == 1
 
-    def test_project_renamed_301(self):
+    def test_project_renamed_302(self):
         project = self.create_project()
         self.login_as(user=self.user)
 
@@ -76,7 +76,7 @@ class ProjectDetailsTest(APITestCase):
         self.client.put(url, data={'slug': 'foobar'})
 
         response = self.client.get(url)
-        assert response.status_code == 301
+        assert response.status_code == 302
         assert response.data['detail']['slug'] == 'foobar'
 
 

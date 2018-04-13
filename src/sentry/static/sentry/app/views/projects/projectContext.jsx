@@ -198,12 +198,12 @@ const ProjectContext = createReactClass({
       });
     } else {
       // The project may have been renamed, attempt to lookup the project, if
-      // we 301 we will recieve the moved project slug and can update update
+      // we 302 we will recieve the moved project slug and can update update
       // our route accordingly.
       const lookupHandler = resp => {
         const {status, responseJSON} = resp;
 
-        if (status !== 301 || !responseJSON || !responseJSON.detail) {
+        if (status !== 302 || !responseJSON || !responseJSON.detail) {
           this.setState({
             loading: false,
             error: true,
@@ -220,7 +220,7 @@ const ProjectContext = createReactClass({
         );
       };
 
-      // The request ill 404 or 301
+      // The request ill 404 or 302
       this.api.request(`/projects/${orgId}/${projectId}/`, {error: lookupHandler});
     }
   },

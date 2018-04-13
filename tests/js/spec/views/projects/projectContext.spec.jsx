@@ -23,7 +23,7 @@ describe('projectContext component', function() {
     Client.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
       method: 'GET',
-      statusCode: 301,
+      statusCode: 302,
       body: {
         detail: {slug: 'renamed-slug'},
       },
