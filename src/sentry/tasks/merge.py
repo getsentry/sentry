@@ -236,8 +236,14 @@ def decrement_new_issue_count(group):
     Should be called with the old group from merge_group.
     That will be deleted, and so the count is decremented by 1.
     """
-    from sentry.models import GroupRelease, ReleaseProject, ReleaseProjectEnvironment
-    release = group.first_release
+    from sentry.models import GroupRelease, Release, ReleaseProject, ReleaseProjectEnvironment
+    release_version = group.get_first_release()
+    if release_version is None:
+        return
+    try:
+        release = Release.objects.get(version=release_version)
+    except Release.DoesNotExist:
+        return
     release.update(new_groups=release.new_groups - 1)
 
     try:
@@ -257,7 +263,7 @@ def decrement_new_issue_count(group):
     group_releases_env_names = GroupRelease.objects.filter(
         group_id=group.id,
         release_id=release.id,
-        project_id=release.project_id,  # not index on should this work?
+        project_id=release.project_id,  # TODO(LB): not index on should this work?
     ).values_list('environment', flat=True)
 
     for release_project_env in release_project_envs:
