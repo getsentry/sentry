@@ -72,13 +72,13 @@ export default class OrganizationProjectsView extends AsyncView {
 
   handleChange = evt => {
     let searchQuery = evt.target.value;
-    this.setState({searchQuery}, this.getProjects);
+    this.getProjects(searchQuery);
+    this.setState({searchQuery});
   };
 
-  getProjects = debounce(() => {
+  getProjects = debounce(searchQuery => {
     let {params} = this.props;
     let {orgId} = params || {};
-    let {searchQuery} = this.state;
 
     this.api.request(`/organizations/${orgId}/projects/?query=${searchQuery}`, {
       method: 'GET',
