@@ -100,31 +100,34 @@ class ThreadedExecutor(object):
         self.__workers = set([])
         self.__started = False
         self.__queue = PriorityQueue(maxsize)
+        self.__lock = threading.Lock()
+
+    def __worker(self):
+        queue = self.__queue
+        while True:
+            priority, (function, future) = queue.get(True)
+            if not future.set_running_or_notify_cancel():
+                continue
+            try:
+                result = function()
+            except Exception as error:
+                future.set_exception(error)
+            else:
+                future.set_result(result)
+            queue.task_done()
 
     def start(self):
-        assert not self.__started
+        with self.__lock:
+            if self.__started:
+                return
 
-        def worker():
-            queue = self.__queue
-            while True:
-                priority, (function, future) = queue.get(True)
-                if not future.set_running_or_notify_cancel():
-                    continue
-                try:
-                    result = function()
-                except Exception as error:
-                    future.set_exception(error)
-                else:
-                    future.set_result(result)
-                queue.task_done()
+            for i in xrange(self.__worker_count):
+                t = threading.Thread(target=self.__worker)
+                t.daemon = True
+                t.start()
+                self.__workers.add(t)
 
-        for i in xrange(self.__worker_count):
-            t = threading.Thread(target=worker)
-            t.daemon = True
-            t.start()
-            self.__workers.add(t)
-
-        self.__started = True
+            self.__started = True
 
     def submit(self, callable, priority=0, block=True, timeout=None):
         """\
