@@ -11,10 +11,11 @@ from django.conf import settings
 from sentry import tagstore
 from sentry.event_manager import ScoreClause
 from sentry.models import (
-    Environment, Event, GroupAssignee, GroupBookmark, GroupEnvironment, GroupStatus, GroupSubscription
+    Environment, Event, GroupAssignee, GroupBookmark, GroupEnvironment, GroupStatus,
+    GroupSubscription, Release, ReleaseEnvironment, ReleaseProjectEnvironment
 )
 from sentry.search.base import ANY
-from sentry.search.django.backend import DjangoSearchBackend
+from sentry.search.django.backend import DjangoSearchBackend, get_latest_release
 from sentry.tagstore.v2.backend import AGGREGATE_ENVIRONMENT_ID
 from sentry.testutils import TestCase
 
@@ -711,3 +712,58 @@ class DjangoSearchBackendTest(TestCase):
             subscribed_by=self.user,
         )
         assert set(results) == set([])
+
+    def test_parse_release_latest(self):
+        with pytest.raises(Release.DoesNotExist):
+            # no releases exist period
+            environment = None
+            result = get_latest_release(self.project, environment)
+
+        old = Release.objects.create(
+            organization_id=self.project.organization_id,
+            version='old'
+        )
+        old.add_project(self.project)
+
+        new_date = old.date_added + timedelta(minutes=1)
+        new = Release.objects.create(
+            version='new-but-in-environment',
+            organization_id=self.project.organization_id,
+            date_released=new_date,
+        )
+        new.add_project(self.project)
+        ReleaseEnvironment.get_or_create(
+            project=self.project,
+            release=new,
+            environment=self.environment,
+            datetime=new_date,
+        )
+        ReleaseProjectEnvironment.get_or_create(
+            project=self.project,
+            release=new,
+            environment=self.environment,
+            datetime=new_date,
+        )
+
+        newest = Release.objects.create(
+            version='newest-overall',
+            organization_id=self.project.organization_id,
+            date_released=old.date_added + timedelta(minutes=5),
+        )
+        newest.add_project(self.project)
+
+        # latest overall (no environment filter)
+        environment = None
+        result = get_latest_release(self.project, environment)
+        assert result == newest.version
+
+        # latest in environment
+        environment = self.environment
+        result = get_latest_release(self.project, environment)
+        assert result == new.version
+
+        with pytest.raises(Release.DoesNotExist):
+            # environment with no releases
+            environment = self.create_environment()
+            result = get_latest_release(self.project, environment)
+            assert result == new.version
