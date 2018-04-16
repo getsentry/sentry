@@ -404,7 +404,6 @@ class SnubaTagStorage(TagStorage):
         if environment_id is not None:
             filters['environment'] = [environment_id]
 
-        # only passed in when using the DjangoSearchBackend
         if candidates:
             hashes = list(GroupHash.objects.filter(
                 group_id__in=candidates

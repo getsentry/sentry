@@ -1,10 +1,11 @@
 from __future__ import absolute_import
 
+from sentry import tagstore
+from sentry.models import Group
 from sentry.search.django.backend import (
     DjangoSearchBackend, QuerySetBuilder, CallbackCondition, ScalarCondition,
     get_sort_clause, sort_strategies
 )
-from sentry import tagstore
 
 
 class SnubaSearchBackend(DjangoSearchBackend):
@@ -23,15 +24,6 @@ class SnubaSearchBackend(DjangoSearchBackend):
                 **parameters
             )
 
-        group_ids = tagstore.get_group_ids_for_search_filter(
-            project.id,
-            environment and environment.id,
-            tags,
-            start,
-            end,
-        )
-
-        group_queryset = group_queryset.filter(id__in=group_ids)
         group_queryset = QuerySetBuilder({
             'first_release': CallbackCondition(
                 lambda queryset, version: queryset.filter(
@@ -51,7 +43,18 @@ class SnubaSearchBackend(DjangoSearchBackend):
         }).build(
             group_queryset,
             parameters,
-        ).extra(
+        )
+
+        group_ids = tagstore.get_group_ids_for_search_filter(
+            project.id,
+            environment and environment.id,
+            tags,
+            start,
+            end,
+            candidates=group_queryset.values_list('id', flat=True),
+        )
+
+        group_queryset = Group.objects.filter(id__in=group_ids).extra(
             select={
                 'sort_value': get_sort_clause(sort_by),
             },
