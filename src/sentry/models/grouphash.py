@@ -7,6 +7,7 @@ sentry.models.grouphash
 """
 from __future__ import absolute_import
 
+from django.conf import settings
 from django.db import models
 from django.db.models.signals import post_delete
 from django.utils.translation import ugettext_lazy as _
@@ -38,22 +39,27 @@ class GroupHash(Model):
         db_table = 'sentry_grouphash'
         unique_together = (('project', 'hash'), )
 
-    @staticmethod
-    def fetch_last_processed_event_id(group_hash_ids):
-        with redis.clusters.get('default').map() as client:
+    @classmethod
+    def __get_last_processed_event_id_cluster(cls):
+        cluster_name = getattr(settings, 'GROUP_HASH_LAST_PROCESSED_EVENT_CLUSTER_NAME', 'default')
+        return redis.clusters.get(cluster_name)
+
+    @classmethod
+    def fetch_last_processed_event_id(cls, group_hash_ids):
+        with cls.__get_last_processed_event_id_cluster().map() as client:
             results = [client.get('gh:lp:{}'.format(id)) for id in group_hash_ids]
         return [result.value for result in results]
 
-    @staticmethod
-    def record_last_processed_event_id(group_hash_id, event_id):
-        with redis.clusters.get('default').map() as client:
+    @classmethod
+    def record_last_processed_event_id(cls, group_hash_id, event_id):
+        with cls.__get_last_processed_event_id_cluster().map() as client:
             key = 'gh:lp:{}'.format(group_hash_id)
             client.set(key, '{}'.format(event_id))
             client.expire(key, 7776000)  # 90d
 
-    @staticmethod
-    def delete_last_processed_event_id(group_hash_id):
-        with redis.clusters.get('default').map() as client:
+    @classmethod
+    def delete_last_processed_event_id(cls, group_hash_id):
+        with cls.__get_last_processed_event_id_cluster().map() as client:
             client.delete('gh:lp:{}'.format(group_hash_id))
 
 
