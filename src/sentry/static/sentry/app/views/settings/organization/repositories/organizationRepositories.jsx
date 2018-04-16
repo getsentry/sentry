@@ -56,11 +56,6 @@ class OrganizationRepositories extends React.Component {
     let {orgId} = params;
     let hasItemList = itemList && itemList.length > 0;
 
-    // let action = (
-    //   <Button priority="link" onClick={onAddRepo}>
-    //   </Button>
-    // );
-
     return (
       <div>
         <SettingsPageHeader

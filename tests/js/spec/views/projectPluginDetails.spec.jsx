@@ -16,6 +16,10 @@ describe('ProjectPluginDetails', function() {
   let plugin = TestStubs.Plugin();
   let pluginId = plugin.id;
 
+  beforeAll(function() {
+    sinon.stub(console, 'info');
+  });
+
   beforeEach(function() {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/plugins/`,
@@ -60,6 +64,11 @@ describe('ProjectPluginDetails', function() {
         },
       }
     );
+  });
+
+  afterAll(function() {
+    // eslint-disable-next-line no-console
+    console.info.restore();
   });
 
   it('renders', function() {
