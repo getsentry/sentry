@@ -178,7 +178,9 @@ class FormModel {
   getTransformedValue(id) {
     let fieldDescriptor = this.fieldDescriptor.get(id);
     let transformer =
-      typeof fieldDescriptor.getValue === 'function' ? fieldDescriptor.getValue : null;
+      fieldDescriptor && typeof fieldDescriptor.getValue === 'function'
+        ? fieldDescriptor.getValue
+        : null;
     let value = this.getValue(id);
 
     return transformer ? transformer(value) : value;
