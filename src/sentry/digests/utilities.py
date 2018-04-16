@@ -75,7 +75,7 @@ def build_custom_digest(original_digest, events):
 
 def build_events_by_actor(project_id, events, user_ids):
     """
-    build_events_by_actor(project_id: Int, events: Set(Events), user_ids: Set[]) -> Map[Actor:Set(Events)]
+    build_events_by_actor(project_id: Int, events: Set(Events), user_ids: Set[Int]) -> Map[Actor, Set(Events)]
     """
     events_by_actor = defaultdict(set)
     for event in events:
@@ -93,7 +93,7 @@ def build_events_by_actor(project_id, events, user_ids):
 
 def convert_actors_to_users(events_by_actor, user_ids):
     """
-    convert_actors_to_user_set(events_by_actor: Map[Actor:Set(Events)], user_ids: List(Int)) -> Map[User_Id:Set(Events)]
+    convert_actors_to_user_set(events_by_actor: Map[Actor, Set(Events)], user_ids: List(Int)) -> Map[user_id: Int, Set(Events)]
     """
     events_by_user = defaultdict(set)
     team_actors = [actor for actor in six.iterkeys(events_by_actor) if actor.type == Team]
