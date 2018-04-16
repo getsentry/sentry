@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from copy import deepcopy
+
 from django.core.urlresolvers import reverse
 
 from sentry.assistant import manager
@@ -28,9 +30,13 @@ class AssistantActivity(APITestCase):
         assert resp.status_code == 400
 
     def test_activity(self):
+        guides_with_seen = deepcopy(manager.all())
+        for g in guides_with_seen:
+            guides_with_seen[g]['seen'] = False
+
         resp = self.client.get(self.path)
         assert resp.status_code == 200
-        assert resp.data == self.guides
+        assert resp.data == guides_with_seen
 
         # Dismiss the guide and make sure it is not returned again.
         resp = self.client.put(self.path, {
@@ -39,8 +45,9 @@ class AssistantActivity(APITestCase):
         })
         assert resp.status_code == 201
         resp = self.client.get(self.path)
+        guides_with_seen['releases']['seen'] = True
         assert resp.status_code == 200
-        assert resp.data == {k: v for k, v in self.guides.items() if v['id'] != 2}
+        assert resp.data == guides_with_seen
 
     def test_validate_guides(self):
         # Steps in different guides should not have the same target.
