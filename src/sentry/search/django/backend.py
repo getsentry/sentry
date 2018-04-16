@@ -10,7 +10,6 @@ from __future__ import absolute_import
 
 import functools
 from datetime import timedelta
-import six
 
 from django.db import router
 from django.db.models import Q
@@ -19,7 +18,7 @@ from django.utils import timezone
 from sentry import quotas, tagstore
 from sentry.api.paginator import DateTimePaginator, Paginator, SequencePaginator
 from sentry.event_manager import ALLOWED_FUTURE_DELTA
-from sentry.search.base import SearchBackend, EMPTY
+from sentry.search.base import SearchBackend
 from sentry.search.django.constants import (
     MSSQL_ENGINES, MSSQL_SORT_CLAUSES, MYSQL_SORT_CLAUSES, ORACLE_SORT_CLAUSES, SORT_CLAUSES,
     SQLITE_SORT_CLAUSES
