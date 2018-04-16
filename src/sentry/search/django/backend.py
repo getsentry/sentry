@@ -18,6 +18,7 @@ from django.utils import timezone
 
 from sentry import quotas, tagstore
 from sentry.api.paginator import DateTimePaginator, Paginator, SequencePaginator
+from sentry.event_manager import ALLOWED_FUTURE_DELTA
 from sentry.search.base import SearchBackend, EMPTY
 from sentry.search.django.constants import (
     MSSQL_ENGINES, MSSQL_SORT_CLAUSES, MYSQL_SORT_CLAUSES, ORACLE_SORT_CLAUSES, SORT_CLAUSES,
@@ -282,7 +283,7 @@ class DjangoSearchBackend(SearchBackend):
             retention_window_start = None
 
         now = timezone.now()
-        end = parameters.get('date_to') or (now + timedelta(minutes=1))
+        end = parameters.get('date_to') or (now + ALLOWED_FUTURE_DELTA)
         # TODO: Presumably we want to search back to the project's full retention,
         #       which may be higher than 90 days in the future, but apparently
         #       `retention_window_start` can be None?
