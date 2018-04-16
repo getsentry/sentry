@@ -98,8 +98,12 @@ const ActivityFeed = createReactClass({
             {this.state.itemList.map(item => {
               try {
                 return (
-                  <ErrorBoundary mini css={{marginBottom: space(1), borderRadius: 0}}>
-                    <ActivityItem key={item.id} orgId={orgId} item={item} />
+                  <ErrorBoundary
+                    mini
+                    css={{marginBottom: space(1), borderRadius: 0}}
+                    key={item.id}
+                  >
+                    <ActivityItem orgId={orgId} item={item} />
                   </ErrorBoundary>
                 );
               } catch (ex) {
