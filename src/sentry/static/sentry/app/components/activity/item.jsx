@@ -126,7 +126,7 @@ class ActivityItem extends React.Component {
             <PullRequestLink
               inline={true}
               pullRequest={data.pullRequest}
-              repository={data.pullRequest.repository}
+              repository={data.pullRequest && data.pullRequest.repository}
             />
           ),
           issue: issueLink,
