@@ -4,26 +4,24 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
-import {t, tct} from '../locale';
-import ApiMixin from '../mixins/apiMixin';
-import Button from '../components/buttons/button';
-import Confirm from '../components/confirm';
-import Duration from '../components/duration';
+import {Panel, PanelBody, PanelHeader} from '../../../components/panels';
 import {
   addSuccessMessage,
   addErrorMessage,
   addLoadingMessage,
   removeIndicator,
-} from '../actionCreators/indicator';
-
-import ListLink from '../components/listLink';
-import LoadingError from '../components/loadingError';
-import LoadingIndicator from '../components/loadingIndicator';
-import {Panel, PanelBody, PanelHeader} from '../components/panels';
-import EmptyStateWarning from '../components/emptyStateWarning';
-import SettingsPageHeader from './settings/components/settingsPageHeader';
-import recreateRoute from '../utils/recreateRoute';
-import EnvironmentStore from '../stores/environmentStore';
+} from '../../../actionCreators/indicator';
+import {t, tct} from '../../../locale';
+import ApiMixin from '../../../mixins/apiMixin';
+import AsyncView from '../../asyncView';
+import Button from '../../../components/buttons/button';
+import Confirm from '../../../components/confirm';
+import Duration from '../../../components/duration';
+import EmptyStateWarning from '../../../components/emptyStateWarning';
+import EnvironmentStore from '../../../stores/environmentStore';
+import ListLink from '../../../components/listLink';
+import SettingsPageHeader from '../components/settingsPageHeader';
+import recreateRoute from '../../../utils/recreateRoute';
 
 const TextColorLink = styled(Link)`
   color: ${p => p.theme.gray3};
@@ -174,68 +172,21 @@ const RuleRow = createReactClass({
   },
 });
 
-const ProjectAlertRules = createReactClass({
-  displayName: 'ProjectAlertRules',
-  propTypes: {
+class ProjectAlertRules extends AsyncView {
+  static propTypes = {
     routes: PropTypes.array.isRequired,
-  },
-  mixins: [ApiMixin],
+  };
 
-  getInitialState() {
-    return {
-      loading: true,
-      error: false,
-      ruleList: [],
-    };
-  },
-
-  componentDidMount() {
-    this.fetchData();
-  },
-
-  fetchData() {
+  getEndpoints() {
     let {orgId, projectId} = this.props.params;
-    this.api.request(`/projects/${orgId}/${projectId}/rules/`, {
-      success: data => {
-        this.setState({
-          error: false,
-          loading: false,
-          ruleList: data,
-        });
-      },
-      error: () => {
-        this.setState({
-          error: true,
-          loading: false,
-        });
-      },
-    });
-  },
+    return [['ruleList', `/projects/${orgId}/${projectId}/rules/`]];
+  }
 
-  onDeleteRule(rule) {
+  handleDeleteRule = rule => {
     this.setState({
       ruleList: this.state.ruleList.filter(r => r.id !== rule.id),
     });
-  },
-
-  renderBody() {
-    let body;
-
-    if (this.state.loading) body = this.renderLoading();
-    else if (this.state.error) body = <LoadingError onRetry={this.fetchData} />;
-    else if (this.state.ruleList.length) body = this.renderResults();
-    else body = this.renderEmpty();
-
-    return body;
-  },
-
-  renderLoading() {
-    return (
-      <div className="box">
-        <LoadingIndicator />
-      </div>
-    );
-  },
+  };
 
   renderEmpty() {
     return (
@@ -245,7 +196,7 @@ const ProjectAlertRules = createReactClass({
         </EmptyStateWarning>
       </Panel>
     );
-  },
+  }
 
   renderResults() {
     let {orgId, projectId} = this.props.params;
@@ -260,17 +211,19 @@ const ProjectAlertRules = createReactClass({
               projectId={projectId}
               params={this.props.params}
               routes={this.props.routes}
-              onDelete={this.onDeleteRule.bind(this, rule)}
+              onDelete={this.handleDeleteRule.bind(this, rule)}
             />
           );
         })}
       </div>
     );
-  },
+  }
 
-  render() {
+  renderBody() {
+    let {ruleList} = this.state;
+
     return (
-      <div>
+      <React.Fragment>
         <SettingsPageHeader
           title={t('Alerts')}
           action={
@@ -285,21 +238,18 @@ const ProjectAlertRules = createReactClass({
           }
           tabs={
             <ul className="nav nav-tabs" style={{borderBottom: '1px solid #ddd'}}>
-              <ListLink
-                to={recreateRoute('alerts/', {...this.props, stepBack: -1})}
-                index={true}
-              >
+              <ListLink to={recreateRoute('alerts', {...this.props, stepBack: -4})}>
                 {t('Settings')}
               </ListLink>
               <ListLink to={recreateRoute('', this.props)}>{t('Rules')}</ListLink>
             </ul>
           }
         />
-
-        {this.renderBody()}
-      </div>
+        {!!ruleList.length && this.renderResults()}
+        {!ruleList.length && this.renderEmpty()}
+      </React.Fragment>
     );
-  },
-});
+  }
+}
 
 export default ProjectAlertRules;

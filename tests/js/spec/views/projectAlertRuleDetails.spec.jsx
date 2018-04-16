@@ -2,12 +2,49 @@ import React from 'react';
 import {mount} from 'enzyme';
 import {browserHistory} from 'react-router';
 
-import ProjectAlertRuleDetails from 'app/views/projectAlertRuleDetails';
+import ProjectAlertRuleDetails from 'app/views/settings/projectAlerts/projectAlertRuleDetails';
 import EnvironmentStore from 'app/stores/environmentStore';
 
 jest.mock('jquery');
 
 describe('ProjectAlertRuleDetails', function() {
+  let projectAlertRuleDetailsRoutes = [
+    {
+      path: '/',
+    },
+    {
+      newnew: true,
+      path: '/settings/',
+      name: 'Settings',
+      indexRoute: {},
+    },
+    {
+      name: 'Organization',
+      path: ':orgId/',
+    },
+    {
+      name: 'Project',
+      path: ':projectId/',
+    },
+    {},
+    {
+      indexRoute: {name: 'General'},
+    },
+    {
+      name: 'Alerts',
+      path: 'alerts/',
+      indexRoute: {},
+    },
+    {
+      path: 'rules/',
+      name: 'Rules',
+      component: null,
+      indexRoute: {},
+      childRoutes: [{path: 'new/', name: 'New'}, {path: ':ruleId/', name: 'Edit'}],
+    },
+    {path: ':ruleId/', name: 'Edit'},
+  ];
+
   beforeEach(function() {
     browserHistory.replace = jest.fn();
     MockApiClient.addMockResponse({
@@ -38,6 +75,7 @@ describe('ProjectAlertRuleDetails', function() {
 
       wrapper = mount(
         <ProjectAlertRuleDetails
+          routes={projectAlertRuleDetailsRoutes}
           params={{orgId: 'org-slug', projectId: 'project-slug'}}
         />,
         {
@@ -78,7 +116,7 @@ describe('ProjectAlertRuleDetails', function() {
       });
 
       it('updates URL', function() {
-        let url = '/org-slug/project-slug/settings/alerts/rules/1/';
+        let url = '/settings/org-slug/project-slug/alerts/rules/1/';
         expect(browserHistory.replace).toHaveBeenCalledWith(url);
       });
     });
@@ -96,6 +134,7 @@ describe('ProjectAlertRuleDetails', function() {
 
       wrapper = mount(
         <ProjectAlertRuleDetails
+          routes={projectAlertRuleDetailsRoutes}
           params={{orgId: 'org-slug', projectId: 'project-slug', ruleId: '1'}}
         />,
         {
