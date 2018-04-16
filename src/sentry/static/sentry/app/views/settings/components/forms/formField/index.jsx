@@ -368,7 +368,11 @@ class FormField extends React.Component {
                       <CancelButton onClick={this.handleCancelField}>
                         {t('Cancel')}
                       </CancelButton>
-                      <SaveButton priority="primary" onClick={this.handleSaveField}>
+                      <SaveButton
+                        priority="primary"
+                        type="button"
+                        onClick={this.handleSaveField}
+                      >
                         {t('Save')}
                       </SaveButton>
                     </Actions>
