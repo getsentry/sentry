@@ -66,7 +66,7 @@ const ProjectChooser = createReactClass({
           <PanelHeader hasButtons>{t('Projects')}</PanelHeader>
           <PanelBody css={{width: '100%'}}>
             {sortProjects(org.projects).map((project, i) => (
-              <PanelItem p={0} key={project.id} align="center">
+              <PanelItem p={0} key={project.slug} align="center">
                 <Box p={2} flex="1">
                   <Link
                     to={`/${org.slug}/${project.slug}/${task.location}`}

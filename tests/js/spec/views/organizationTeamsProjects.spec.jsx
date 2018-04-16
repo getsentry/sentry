@@ -20,6 +20,9 @@ describe('OrganizationTeamProjects', function() {
     });
 
     ProjectsStore.loadInitialData([project, project2]);
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/stats/',
+    });
   });
 
   it('Should render', function() {

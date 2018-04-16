@@ -20,7 +20,7 @@ describe('OrganizationRepositories', function() {
     let wrapper = shallow(
       <OrganizationRepositories
         params={{orgId: 'org-slug'}}
-        repoConfig={{providers: [TestStubs.GitHubRepositoryProvider()]}}
+        repoConfig={{providers: [TestStubs.GitHubRepositoryProvider({id: 'github'})]}}
         itemList={[]}
       />
     );
@@ -35,7 +35,7 @@ describe('OrganizationRepositories', function() {
     let wrapper = shallow(
       <OrganizationRepositories
         params={{orgId: 'org-slug'}}
-        repoConfig={{providers: [TestStubs.GitHubRepositoryProvider()]}}
+        repoConfig={{providers: [TestStubs.GitHubRepositoryProvider({id: 'github'})]}}
         itemList={[TestStubs.Repository()]}
       />
     );

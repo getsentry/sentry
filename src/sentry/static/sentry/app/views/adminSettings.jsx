@@ -20,6 +20,10 @@ const optionsAvailable = [
 ];
 
 export default class AdminSettings extends AsyncView {
+  getEndpoints() {
+    return [['data', this.getEndpoint()]];
+  }
+
   getEndpoint() {
     return '/internal/options/';
   }

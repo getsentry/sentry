@@ -15,40 +15,28 @@ exports[`OrganizationTeamProjects Should render 1`] = `
         className="css-wfa8ap-StyledPanel css-5bw71w0"
       >
         <PanelHeader
-          alignItems="center"
           hasButtons={true}
-          justifyContent="space-between"
         >
           <StyledPanelHeader
-            alignItems="center"
             hasButtons={true}
-            justifyContent="space-between"
           >
             <Component
-              alignItems="center"
               className="css-vzwv85-StyledPanelHeader css-1t1cqk30"
               hasButtons={true}
-              justifyContent="space-between"
             >
               <Flex
                 align="center"
-                alignItems="center"
                 className="css-vzwv85-StyledPanelHeader css-1t1cqk30"
                 justify="space-between"
-                justifyContent="space-between"
               >
                 <Base
                   align="center"
-                  alignItems="center"
                   className="css-1t1cqk30 css-1h9uuh9"
                   justify="space-between"
-                  justifyContent="space-between"
                 >
                   <div
-                    alignItems="center"
                     className="css-1t1cqk30 css-1h9uuh9"
                     is={null}
-                    justifyContent="space-between"
                   >
                     <div>
                       Projects
@@ -214,19 +202,19 @@ exports[`OrganizationTeamProjects Should render 1`] = `
               key="2"
             >
               <PanelItem
-                className="css-qjeif8-StyledPanelItem css-vc3zr81"
+                className="css-qjeif8-StyledPanelItem css-1cam9p51"
                 p={2}
               >
                 <StyledPanelItem
-                  className="css-qjeif8-StyledPanelItem css-vc3zr81"
+                  className="css-qjeif8-StyledPanelItem css-1cam9p51"
                   p={2}
                 >
                   <Base
-                    className="css-vc3zr81 css-1mlpbpg-StyledPanelItem css-q9h14u0"
+                    className="css-1cam9p51 css-1mlpbpg-StyledPanelItem css-q9h14u0"
                     p={2}
                   >
                     <div
-                      className="css-vc3zr81 css-1mlpbpg-StyledPanelItem css-q9h14u0"
+                      className="css-1cam9p51 css-1mlpbpg-StyledPanelItem css-q9h14u0"
                       is={null}
                     >
                       <ProjectItem
@@ -487,20 +475,20 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                               >
                                 <RemoveIcon>
                                   <Component
-                                    className="css-1e2j5j0-RemoveIcon css-vc3zr80"
+                                    className="css-1e2j5j0-RemoveIcon css-1cam9p50"
                                   >
                                     <InlineSvg
-                                      className="css-1e2j5j0-RemoveIcon css-vc3zr80"
+                                      className="css-1e2j5j0-RemoveIcon css-1cam9p50"
                                       src="icon-circle-subtract"
                                     >
                                       <StyledSvg
-                                        className="css-1e2j5j0-RemoveIcon css-vc3zr80"
+                                        className="css-1e2j5j0-RemoveIcon css-1cam9p50"
                                         height="1em"
                                         viewBox={Object {}}
                                         width="1em"
                                       >
                                         <svg
-                                          className="css-vc3zr80 css-1jgfaio-StyledSvg css-adkcw30"
+                                          className="css-1cam9p50 css-1jgfaio-StyledSvg css-adkcw30"
                                           height="1em"
                                           viewBox={Object {}}
                                           width="1em"

@@ -21,6 +21,7 @@ exports[`ProjectChooser renders 1`] = `
     >
       <PanelItem
         align="center"
+        key="test-project"
         p={0}
       >
         <Box
@@ -60,6 +61,7 @@ exports[`ProjectChooser renders 1`] = `
       </PanelItem>
       <PanelItem
         align="center"
+        key="another-project"
         p={0}
       >
         <Box

@@ -206,7 +206,11 @@ const Frame = createReactClass({
 
     if (defined(data.origAbsPath)) {
       title.push(
-        <Tooltip title={this.renderOriginalSourceInfo()} tooltipOptions={{html: true}}>
+        <Tooltip
+          key="info-tooltip"
+          title={this.renderOriginalSourceInfo()}
+          tooltipOptions={{html: true}}
+        >
           <a className="in-at original-src">
             <span className="icon-question" />
           </a>

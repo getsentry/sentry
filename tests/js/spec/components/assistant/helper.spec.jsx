@@ -6,6 +6,12 @@ import {shallow, mount} from 'enzyme';
 import AssistantHelper from 'app/components/assistant/helper';
 
 describe('Helper', function() {
+  beforeEach(function() {
+    MockApiClient.addMockResponse({
+      url: '/assistant/',
+    });
+  });
+
   it('renders cue', function() {
     let wrapper = shallow(<AssistantHelper />);
     expect(wrapper).toMatchSnapshot();

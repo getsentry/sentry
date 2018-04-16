@@ -18,6 +18,7 @@ describe('StreamGroup', function() {
         id: '13',
         slug: 'test',
       },
+      type: 'error',
     });
     sandbox.stub(GroupStore, 'get').returns(GROUP_1);
   });

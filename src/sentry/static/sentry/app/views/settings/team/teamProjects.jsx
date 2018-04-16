@@ -127,7 +127,7 @@ const TeamProjects = createReactClass({
 
     return (
       <Panel>
-        <PanelHeader hasButtons={true} alignItems="center" justifyContent="space-between">
+        <PanelHeader hasButtons={true}>
           <div>{t('Projects')}</div>
           <div style={{textTransform: 'none'}}>
             <DropdownAutoComplete
