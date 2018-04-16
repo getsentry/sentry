@@ -1,15 +1,16 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-
 import createReactClass from 'create-react-class';
 
-import ApiMixin from '../../mixins/apiMixin';
+import {logException} from '../../utils/logging';
+import {t} from '../../locale';
 import ActivityItem from './item';
+import ApiMixin from '../../mixins/apiMixin';
+import ErrorBoundary from '../errorBoundary';
 import LoadingError from '../loadingError';
 import LoadingIndicator from '../loadingIndicator';
 import Pagination from '../pagination';
-import {t} from '../../locale';
-import {logException} from '../../utils/logging';
+import space from '../../styles/space';
 
 const ActivityFeed = createReactClass({
   displayName: 'ActivityFeed',
@@ -96,7 +97,11 @@ const ActivityFeed = createReactClass({
           <ul className="activity">
             {this.state.itemList.map(item => {
               try {
-                return <ActivityItem key={item.id} orgId={orgId} item={item} />;
+                return (
+                  <ErrorBoundary mini css={{marginBottom: space(1), borderRadius: 0}}>
+                    <ActivityItem key={item.id} orgId={orgId} item={item} />
+                  </ErrorBoundary>
+                );
               } catch (ex) {
                 logException(ex, {
                   itemId: item.id,
