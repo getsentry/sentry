@@ -36,7 +36,7 @@ def get_personalized_digests(project_id, digest, user_ids):
     # Once with this statement and again with the call to ProjectOwnership.get_actors()
     # Will follow up with another PR to reduce the number of queries.
     if ProjectOwnership.objects.filter(project_id=project_id).exists():
-        events = get_events_from_digest(digest)
+        events = get_event_from_groups_in_digest(digest)
         events_by_actor = build_events_by_actor(project_id, events, user_ids)
         events_by_user = convert_actors_to_users(events_by_actor, user_ids)
         for user_id, user_events in six.iteritems(events_by_user):
@@ -46,7 +46,12 @@ def get_personalized_digests(project_id, digest, user_ids):
             yield user_id, digest
 
 
-def get_events_from_digest(digest):
+def get_event_from_groups_in_digest(digest):
+    """
+    get_event_from_groups_in_digest(digest: Digest)
+
+    Gets the first event from each group in the digest
+    """
     events = []
     for rule_groups in six.itervalues(digest):
         for group_records in six.itervalues(rule_groups):
@@ -112,7 +117,7 @@ def convert_actors_to_users(events_by_actor, user_ids):
         elif actor.type == User:
             events_by_user[actor.id].update(events)
         else:
-            raise ValueError('Unknown Actor type')
+            raise ValueError('Unknown Actor type: %s' % actor.type)
     return events_by_user
 
 
