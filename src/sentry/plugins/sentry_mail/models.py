@@ -235,10 +235,6 @@ class MailPlugin(NotificationPlugin):
 
         context = {
             'project_label': project.get_full_name(),
-            'project_link': absolute_uri('/{}/{}/'.format(
-                project.organization.slug,
-                project.slug,
-            )),
             'group': group,
             'event': event,
             'link': link,
