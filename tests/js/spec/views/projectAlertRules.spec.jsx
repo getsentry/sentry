@@ -1,7 +1,7 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import ProjectAlertRules from 'app/views/projectAlertRules';
+import ProjectAlertRules from 'app/views/settings/projectAlerts/projectAlertRules';
 
 describe('projectAlertRules', function() {
   let deleteMock;

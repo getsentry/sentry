@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import Button from '../../components/buttons/button';
-import {Select2Field, NumberField, TextField} from '../../components/forms';
+import Button from '../../../../components/buttons/button';
+import {Select2Field, NumberField, TextField} from '../../../../components/forms';
 
 class RuleNode extends React.Component {
   static propTypes = {

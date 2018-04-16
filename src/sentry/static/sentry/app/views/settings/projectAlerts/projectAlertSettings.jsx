@@ -1,18 +1,18 @@
 import React from 'react';
 
-import {t} from '../locale';
-import AlertLink from '../components/alertLink';
-import AsyncView from './asyncView';
-import Button from '../components/buttons/button';
-import Form from './settings/components/forms/form';
-import JsonForm from './settings/components/forms/jsonForm';
-import ListLink from '../components/listLink';
-import {PanelAlert} from '../components/panels';
-import PluginList from '../components/pluginList';
-import SentryTypes from '../proptypes';
-import SettingsPageHeader from './settings/components/settingsPageHeader';
-import {fields} from '../data/forms/projectAlerts';
-import recreateRoute from '../utils/recreateRoute';
+import {t} from '../../../locale';
+import AlertLink from '../../../components/alertLink';
+import AsyncView from '../../asyncView';
+import Button from '../../../components/buttons/button';
+import Form from '../components/forms/form';
+import JsonForm from '../components/forms/jsonForm';
+import ListLink from '../../../components/listLink';
+import {PanelAlert} from '../../../components/panels';
+import PluginList from '../../../components/pluginList';
+import SentryTypes from '../../../proptypes';
+import SettingsPageHeader from '../components/settingsPageHeader';
+import {fields} from '../../../data/forms/projectAlerts';
+import recreateRoute from '../../../utils/recreateRoute';
 
 export default class ProjectAlertSettings extends AsyncView {
   static propTypes = {
@@ -67,7 +67,7 @@ export default class ProjectAlertSettings extends AsyncView {
     let {organization} = this.props;
 
     return (
-      <div>
+      <React.Fragment>
         <SettingsPageHeader
           title={t('Alerts')}
           action={
@@ -135,7 +135,7 @@ export default class ProjectAlertSettings extends AsyncView {
           onEnablePlugin={this.handleEnablePlugin}
           onDisablePlugin={this.handleDisablePlugin}
         />
-      </div>
+      </React.Fragment>
     );
   }
 }

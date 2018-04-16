@@ -4,7 +4,7 @@ exports[`ProjectAlertSettings render() renders 1`] = `
 <SideEffect(DocumentTitle)
   title="Project Alert Settings - Sentry"
 >
-  <div>
+  <React.Fragment>
     <SettingsPageHeading
       action={
         <Button
@@ -185,6 +185,6 @@ exports[`ProjectAlertSettings render() renders 1`] = `
         }
       }
     />
-  </div>
+  </React.Fragment>
 </SideEffect(DocumentTitle)>
 `;
