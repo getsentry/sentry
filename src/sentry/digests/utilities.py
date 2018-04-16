@@ -108,8 +108,6 @@ def convert_actors_to_users(events_by_actor, user_ids):
             try:
                 team_user_ids = teams_to_user_ids[actor.id]
             except KeyError:
-                # TODO(LB): Not certain what to do if a team has no active members
-                # Created a Test to reflect my assumptions here.
                 pass
             else:
                 for user_id in team_user_ids:
