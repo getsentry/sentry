@@ -107,22 +107,48 @@ class DeviceSummary extends React.Component {
   render() {
     let data = this.props.data;
 
-    if (objectIsEmpty(data) || !data.model) {
+    if (objectIsEmpty(data)) {
       return <NoSummary title={t('Unknown Device')} />;
     }
 
     // TODO(dcramer): we need a better way to parse it
-    let className = generateClassName(data.model);
+    let className = data.model && generateClassName(data.model);
+
+    let subTitle = <p />;
+
+    if (data.arch) {
+      subTitle = (
+        <p>
+          <strong>{t('Arch:')}</strong> {data.arch}
+        </p>
+      );
+    } else if (data.model_id) {
+      subTitle = (
+        <p>
+          <strong>{t('Model:')}</strong> {data.model_id}
+        </p>
+      );
+    }
 
     return (
       <div className={`context-item ${className}`}>
         <span className="context-item-icon" />
-        <h3>{deviceNameMapper(data.model)}</h3>
-        <p>{data.arch || data.model_id || ''}</p>
+        <h3>{data.model ? deviceNameMapper(data.model) : 'Unknown Device'}</h3>
+        {subTitle}
       </div>
     );
   }
 }
+
+const MIN_CONTEXTS = 3;
+const MAX_CONTEXTS = 4;
+const KNOWN_CONTEXTS = [
+  {key: 'user', Component: UserSummary},
+  {key: 'browser', Component: GenericSummary, unknownTitle: 'Unknown Browser'},
+  {key: 'runtime', Component: GenericSummary, unknownTitle: 'Unknown Runtime'},
+  {key: 'os', Component: GenericSummary, unknownTitle: 'Unknown OS'},
+  {key: 'device', Component: DeviceSummary},
+];
 
 class EventContextSummary extends React.Component {
   static propTypes = {
@@ -133,58 +159,26 @@ class EventContextSummary extends React.Component {
   render() {
     let evt = this.props.event;
     let contexts = evt.contexts;
+    let count = 0;
 
-    let children = [<UserSummary key="user" data={evt.user} />];
-    switch (evt.platform) {
-      case 'cocoa':
-      // fallthrough
-      case 'native':
-        children.push(<DeviceSummary key="device" data={contexts.device} />);
-        children.push(
-          <GenericSummary key="os" data={contexts.os} unknownTitle={t('Unknown OS')} />
-        );
-        break;
-      case 'java':
-        if (contexts.os && contexts.os.name === 'Android') {
-          children.push(<DeviceSummary key="device" data={contexts.device} />);
-          children.push(
-            <GenericSummary key="os" data={contexts.os} unknownTitle={t('Unknown OS')} />
-          );
-        }
-        break;
-      case 'javascript':
-        children.push(
-          <GenericSummary
-            key="browser"
-            data={contexts.browser}
-            unknownTitle={t('Unknown Browser')}
-          />
-        );
-        children.push(
-          contexts.os ? (
-            <GenericSummary key="os" data={contexts.os} unknownTitle={t('Unknown OS')} />
-          ) : (
-            <DeviceSummary key="device" data={contexts.device} />
-          )
-        );
-        break;
-      default:
-        children.push(
-          <GenericSummary
-            key="runtime"
-            data={contexts.runtime}
-            unknownTitle={t('Unknown Runtime')}
-          />
-        );
-        children.push(
-          contexts.os ? (
-            <GenericSummary key="os" data={contexts.os} unknownTitle={t('Unknown OS')} />
-          ) : (
-            <DeviceSummary key="device" data={contexts.device} />
-          )
-        );
-        break;
-    }
+    // Add defined contexts in the declared order, until we reach the limit
+    // defined by CONTEXT_COUNT_MAX.
+    let children = KNOWN_CONTEXTS.map(({key, Component, ...props}) => {
+      if (count >= MAX_CONTEXTS) return null;
+      let data = contexts[key] || evt[key];
+      if (objectIsEmpty(data)) return null;
+      count += 1;
+      return <Component key={key} data={data} {...props} />;
+    });
+
+    // Add contents in the declared order until we have at least MIN_CONTEXTS
+    // contexts in our list.
+    children = KNOWN_CONTEXTS.map(({key, Component, ...props}, index) => {
+      if (children[index]) return children[index];
+      if (count >= MIN_CONTEXTS) return null;
+      count += 1;
+      return <Component key={key} data={{}} {...props} />;
+    });
 
     return <div className="context-summary">{children}</div>;
   }
