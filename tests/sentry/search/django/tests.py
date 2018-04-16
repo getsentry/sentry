@@ -15,7 +15,7 @@ from sentry.models import (
     GroupSubscription, Release, ReleaseEnvironment, ReleaseProjectEnvironment
 )
 from sentry.search.base import ANY
-from sentry.search.django.backend import DjangoSearchBackend, parse_release
+from sentry.search.django.backend import DjangoSearchBackend, get_latest_release
 from sentry.tagstore.v2.backend import AGGREGATE_ENVIRONMENT_ID
 from sentry.testutils import TestCase
 
@@ -717,7 +717,7 @@ class DjangoSearchBackendTest(TestCase):
         with pytest.raises(Release.DoesNotExist):
             # no releases exist period
             environment = None
-            result = parse_release(self.project, environment, 'latest')
+            result = get_latest_release(self.project, environment)
 
         old = Release.objects.create(
             organization_id=self.project.organization_id,
@@ -754,16 +754,16 @@ class DjangoSearchBackendTest(TestCase):
 
         # latest overall (no environment filter)
         environment = None
-        result = parse_release(self.project, environment, 'latest')
+        result = get_latest_release(self.project, environment)
         assert result == newest.version
 
         # latest in environment
         environment = self.environment
-        result = parse_release(self.project, environment, 'latest')
+        result = get_latest_release(self.project, environment)
         assert result == new.version
 
         with pytest.raises(Release.DoesNotExist):
             # environment with no releases
             environment = self.create_environment()
-            result = parse_release(self.project, environment, 'latest')
+            result = get_latest_release(self.project, environment)
             assert result == new.version
