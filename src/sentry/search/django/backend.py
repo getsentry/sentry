@@ -540,8 +540,8 @@ class DjangoSearchBackend(SearchBackend):
                     project.id,
                     environment and environment.id,
                     tags,
-                    start,
-                    end,
+                    start if use_snuba else None,
+                    end if use_snuba else None,
                     candidates=group_queryset.values_list('id', flat=True) if use_snuba else None,
                 )
 
