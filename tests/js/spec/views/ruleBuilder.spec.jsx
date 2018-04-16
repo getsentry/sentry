@@ -64,10 +64,9 @@ describe('RuleBuilder', function() {
       add.simulate('click');
       expect(handleAdd).not.toHaveBeenCalled();
 
-      let openDropdown = wrapper.find('BuilderDropdownButton');
-      openDropdown.simulate('click');
-      let user = wrapper.find('AutoCompleteItem').first();
-      user.simulate('click');
+      // Simulate select first element via down arrow / enter
+      wrapper.find('.Select-control').simulate('keyDown', {keyCode: 40});
+      wrapper.find('.Select-control').simulate('keyDown', {keyCode: 13});
 
       add.simulate('click');
       expect(handleAdd).toHaveBeenCalled();
@@ -90,10 +89,9 @@ describe('RuleBuilder', function() {
         TestStubs.routerContext()
       );
 
-      let openDropdown = wrapper.find('BuilderDropdownButton');
-      openDropdown.simulate('click');
-      let user = wrapper.find('AutoCompleteItem').first();
-      user.simulate('click');
+      // Simulate select first element via down arrow / enter
+      wrapper.find('.Select-control').simulate('keyDown', {keyCode: 40});
+      wrapper.find('.Select-control').simulate('keyDown', {keyCode: 13});
 
       let ruleCandidate = wrapper.find('RuleCandidate').first();
       ruleCandidate.simulate('click');
