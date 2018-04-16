@@ -262,10 +262,6 @@ def alert(request):
             'interfaces': interface_list,
             'tags': event.get_tags(),
             'project_label': project.slug,
-            'project_link': absolute_uri('/{}/{}/'.format(
-                project.organization.slug,
-                project.slug,
-            )),
             'tags': [
                 ('logger', 'javascript'), ('environment', 'prod'), ('level', 'error'),
                 ('device', 'Other')
