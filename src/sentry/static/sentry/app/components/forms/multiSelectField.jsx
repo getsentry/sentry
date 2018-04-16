@@ -15,12 +15,12 @@ export default class MultiSelectField extends InputField {
   constructor(props) {
     super(props);
     this.state = {
-      selectedValues: [],
+      values: [],
     };
   }
 
   handleChange = value => {
-    this.setState({selectedValues: value}, () => {
+    this.setState({values: value}, () => {
       if (typeof this.props.onChange === 'function') {
         this.props.onChange(value);
       }
@@ -36,7 +36,7 @@ export default class MultiSelectField extends InputField {
       <MultiSelect
         id={this.getId()}
         onChange={this.handleChange}
-        value={this.state.selectedValues}
+        value={this.state.values}
         multi={true}
         arrowRenderer={this.renderArrow}
         style={{width: 200, zIndex: 100, overflow: 'visible'}}

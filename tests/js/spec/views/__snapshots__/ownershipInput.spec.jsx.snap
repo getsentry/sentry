@@ -227,7 +227,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                       autosize={true}
                       backspaceRemoves={true}
                       backspaceToRemoveMessage="Press backspace to remove {label}"
-                      className="css-1yznv6y-MultiSelect css-1ve8low0"
+                      className="css-1yznv6y-MultiSelect css-12eevnk0"
                       clearAllText="Clear all"
                       clearRenderer={[Function]}
                       clearValueText="Clear value"
@@ -279,7 +279,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                       valueKey="value"
                     >
                       <div
-                        className="Select css-1yznv6y-MultiSelect css-1ve8low0 is-clearable is-searchable Select--multi"
+                        className="Select css-1yznv6y-MultiSelect css-12eevnk0 is-clearable is-searchable Select--multi"
                       >
                         <div
                           className="Select-control"
