@@ -183,6 +183,26 @@ def assigned_to_filter(queryset, user, project):
     )
 
 
+def get_latest_release(project, environment):
+    from sentry.models import Release
+
+    release_qs = Release.objects.filter(
+        organization_id=project.organization_id,
+        projects=project,
+    )
+
+    if environment is not None:
+        release_qs = release_qs.filter(
+            releaseprojectenvironment__environment__id=environment.id
+        )
+
+    return release_qs.extra(select={
+        'sort': 'COALESCE(date_released, date_added)',
+    }).order_by('-sort').values_list(
+        'version', flat=True
+    )[:1].get()
+
+
 class DjangoSearchBackend(SearchBackend):
     def query(self, project, tags=None, environment=None, sort_by='date', limit=100,
               cursor=None, count_hits=False, paginator_options=None, **parameters):
@@ -194,6 +214,16 @@ class DjangoSearchBackend(SearchBackend):
 
         if tags is None:
             tags = {}
+
+        try:
+            if tags.get('sentry:release') == 'latest':
+                tags['sentry:release'] = get_latest_release(project, environment)
+
+            if parameters.get('first_release') == 'latest':
+                parameters['first_release'] = get_latest_release(project, environment)
+        except Release.DoesNotExist:
+            # no matches could possibly be found from this point on
+            return Paginator(Group.objects.none()).get_result()
 
         group_queryset = QuerySetBuilder({
             'query': CallbackCondition(

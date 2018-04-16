@@ -573,7 +573,7 @@ class LegacyTagStorage(TagStorage):
 
     def get_group_ids_for_search_filter(
             self, project_id, environment_id, tags, candidates=None, limit=1000):
-        from sentry.search.base import ANY, EMPTY
+        from sentry.search.base import ANY
         # Django doesnt support union, so we limit results and try to find
         # reasonable matches
 
@@ -587,10 +587,7 @@ class LegacyTagStorage(TagStorage):
         # for each remaining tag, find matches contained in our
         # existing set, pruning it down each iteration
         for k, v in tag_lookups:
-            if v is EMPTY:
-                return None
-
-            elif v != ANY:
+            if v != ANY:
                 base_qs = GroupTagValue.objects.filter(
                     key=k,
                     value=v,
