@@ -87,7 +87,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         'security', 'terms', 'from', 'sponsorship', 'for', 'at', 'platforms', 'branding', 'vs',
         'answers', '_admin', 'support', 'contact', 'onboarding', 'ext', 'extension', 'extensions',
         'plugins', 'themonitor', 'settings', 'legal', 'avatar', 'organization-avatar',
-        'team-avatar',
+        'project-avatar', 'team-avatar',
     )
 )
 
