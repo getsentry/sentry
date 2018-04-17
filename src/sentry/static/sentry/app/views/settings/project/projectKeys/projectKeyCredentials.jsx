@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {t, tct} from '../../../../locale';
+import ExternalLink from '../../../../components/externalLink';
 import Field from '../../components/forms/field';
 import TextCopyInput from '../../components/forms/textCopyInput';
 import SentryTypes from '../../../../proptypes';
@@ -89,9 +90,13 @@ class ProjectKeyCredentials extends React.Component {
           <Field
             label={t('Minidump Endpoint')}
             help={tct(
-              'Use this endpoint to upload minidump crash reports, for example with Electron, Crashpad or Breakpad.',
+              'Use this endpoint to upload [link], for example with Electron, Crashpad or Breakpad.',
               {
-                /* TODO: add a link to minidump docs */
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/clients/minidump/">
+                    minidump crash reports
+                  </ExternalLink>
+                ),
               }
             )}
             inline={false}
