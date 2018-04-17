@@ -382,7 +382,8 @@ urlpatterns += patterns(
     ),
     url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/integrations/(?P<provider_id>[\w_-]+)/setup/$',
-        OrganizationIntegrationSetupView.as_view()
+        OrganizationIntegrationSetupView.as_view(),
+        name='sentry-organization-integrations-setup'
     ),
     url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/members/$',
@@ -480,8 +481,11 @@ urlpatterns += patterns(
     # XXX(dcramer): preferably we'd be able to use 'integrations' as the URL
     # prefix here, but unfortunately sentry.io has that mapped to marketing
     # assets for the time being
-    url(r'^extensions/(?P<provider_id>[\w_-]+)/setup/$',
-        IntegrationSetupView.as_view()),
+    url(
+        r'^extensions/(?P<provider_id>[\w_-]+)/setup/$',
+        IntegrationSetupView.as_view(),
+        name='sentry-integrations-setup'
+    ),
     url(r'^extensions/cloudflare/', include('sentry.integrations.cloudflare.urls')),
     url(r'^extensions/slack/', include('sentry.integrations.slack.urls')),
 

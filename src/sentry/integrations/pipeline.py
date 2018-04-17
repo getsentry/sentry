@@ -58,6 +58,7 @@ class IntegrationPipeline(Pipeline):
         if identity:
             # Create identity provider for this integration if nessicary
             idp, created = IdentityProvider.objects.get_or_create(
+                external_id=data['external_id'],
                 organization=self.organization,
                 type=identity['type'],
             )
