@@ -9,7 +9,6 @@ let validHookNames = new Set([
   'settings:organization-navigation-config',
   'organization:header',
   'organization:sidebar',
-  'organization:dashboard:secondary-column',
   'routes',
   'routes:admin',
   'routes:organization',
