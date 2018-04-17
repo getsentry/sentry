@@ -1,24 +1,34 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`CreateProject render() should block if you have access to no teams 1`] = `
+exports[`CreateProject should block if you have access to no teams 1`] = `
 <div>
-  <div>
-    <h4>
-      You cannot create a new project because there are no teams to assign it to.
-    </h4>
-    <Link
-      className="btn btn-primary"
-      onlyActiveOnIndex={false}
-      style={Object {}}
-      to="/organizations/testOrg/teams/new/"
-    >
-      Create a Team
-    </Link>
-  </div>
+  <Panel
+    body={
+      <UNDEFINED>
+        <PanelAlert
+          m={0}
+          mb={0}
+          type="error"
+        >
+          You cannot create a new project because there are no teams to assign it to.
+        </PanelAlert>
+        <CreateTeamBody>
+          <Button
+            disabled={false}
+            onClick={[Function]}
+            priority="primary"
+          >
+            Create a Team
+          </Button>
+        </CreateTeamBody>
+      </UNDEFINED>
+    }
+    title="Cannot Create Project"
+  />
 </div>
 `;
 
-exports[`CreateProject render() should deal with incorrect platform name if its provided by url 1`] = `
+exports[`CreateProject should deal with incorrect platform name if its provided by url 1`] = `
 <CreateProject
   getDocsUrl={[Function]}
   location={
@@ -804,7 +814,7 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
 </CreateProject>
 `;
 
-exports[`CreateProject render() should fill in platform name if its provided by url 1`] = `
+exports[`CreateProject should fill in platform name if its provided by url 1`] = `
 <CreateProject
   getDocsUrl={[Function]}
   location={
@@ -1200,7 +1210,7 @@ exports[`CreateProject render() should fill in platform name if its provided by 
 </CreateProject>
 `;
 
-exports[`CreateProject render() should fill in project name if its empty when platform is chosen 1`] = `
+exports[`CreateProject should fill in project name if its empty when platform is chosen 1`] = `
 <CreateProject
   getDocsUrl={[Function]}
   location={
