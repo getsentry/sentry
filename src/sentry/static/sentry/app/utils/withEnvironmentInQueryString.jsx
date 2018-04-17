@@ -8,6 +8,7 @@ import qs from 'query-string';
 import EnvironmentStore from '../stores/environmentStore';
 import LatestContextStore from '../stores/latestContextStore';
 import {ALL_ENVIRONMENTS_KEY} from '../constants';
+import {setActiveEnvironment} from '../actionCreators/environments';
 
 const withEnvironmentInQueryString = WrappedComponent =>
   createReactClass({
@@ -52,6 +53,29 @@ const withEnvironmentInQueryString = WrappedComponent =>
             browserHistory.replace(`${pathname}?${qs.stringify(query)}`);
           }
         }
+      }
+    },
+
+    componentWillReceiveProps(nextProps) {
+      // We update the environment to match the query string if they are out of sync and
+      // new props are received. This is required so the back button triggers a return
+      // to the previous environment
+      const {organization, environment} = this.state;
+      const environmentString = nextProps.location.query.environment;
+
+      // TODO(lyn): Remove this block when environments feature is active
+      const hasEnvironmentsFeature = this.hasEnvironmentsFeature(organization);
+      if (!hasEnvironmentsFeature) return;
+      // End remove block
+
+      const nextEnvironment =
+        environmentString === ALL_ENVIRONMENTS_KEY
+          ? null
+          : EnvironmentStore.getByName(environmentString) ||
+            EnvironmentStore.getDefault();
+
+      if (nextEnvironment !== environment) {
+        setActiveEnvironment(nextEnvironment);
       }
     },
 
