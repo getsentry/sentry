@@ -1,9 +1,9 @@
-import {Box, Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
 import createReactClass from 'create-react-class';
 
+import {Box, Flex} from './grid';
 import {t} from '../locale';
 import ApiMixin from '../mixins/apiMixin';
 import Button from './buttons/button';

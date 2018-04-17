@@ -1,4 +1,3 @@
-import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import scrollToElement from 'scroll-to-element';
@@ -6,6 +5,7 @@ import scrollToElement from 'scroll-to-element';
 import {defined} from '../../../../utils';
 import FieldFromConfig from './fieldFromConfig';
 import {Panel, PanelBody, PanelHeader} from '../../../../components/panels';
+import {Box} from '../../../../components/grid';
 
 class JsonForm extends React.Component {
   static propTypes = {

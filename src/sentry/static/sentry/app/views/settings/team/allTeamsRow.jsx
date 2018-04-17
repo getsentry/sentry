@@ -1,4 +1,3 @@
-import {Box} from 'grid-emotion';
 import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -9,6 +8,7 @@ import {joinTeam, leaveTeam} from '../../../actionCreators/teams';
 import {t, tct} from '../../../locale';
 import ApiMixin from '../../../mixins/apiMixin';
 import {PanelItem} from '../../../components/panels';
+import {Box} from '../../../components/grid';
 
 // TODO(dcramer): this isnt great UX
 

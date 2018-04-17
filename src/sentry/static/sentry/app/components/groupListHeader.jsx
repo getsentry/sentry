@@ -1,5 +1,5 @@
 import React from 'react';
-import {Flex, Box} from 'grid-emotion';
+import {Flex, Box} from './grid';
 import {t} from '../locale';
 import {PanelHeader} from './panels';
 

@@ -3,7 +3,6 @@ import {AppContainer} from 'react-hot-loader';
 import {renderToStaticMarkup} from 'react-dom/server';
 import * as Emotion from 'emotion';
 import * as EmotionTheming from 'emotion-theming';
-import * as GridEmotion from 'grid-emotion';
 import JsCookie from 'js-cookie';
 import PropTypes from 'prop-types';
 import Raven from 'raven-js';
@@ -18,6 +17,7 @@ import jQuery from 'jquery';
 import moment from 'moment';
 
 import './utils/emotion-setup';
+import * as Grid from './components/grid';
 
 import {CSRF_COOKIE_NAME} from './constants';
 import Main from './main';
@@ -83,7 +83,7 @@ export default {
   Emotion,
   EmotionTheming,
   ReactEmotion,
-  GridEmotion,
+  Grid,
 
   SentryRenderApp: () => render(Main),
 

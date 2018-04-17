@@ -1,4 +1,3 @@
-import {Flex} from 'grid-emotion';
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -8,6 +7,7 @@ import LetterAvatar from '../../../../components/letterAvatar';
 import MenuItem from './menuItem';
 import SentryTypes from '../../../../proptypes';
 import TextLink from '../../../../components/textLink';
+import {Flex} from '../../../../components/grid';
 import recreateRoute from '../../../../utils/recreateRoute';
 import withLatestContext from '../../../../utils/withLatestContext';
 

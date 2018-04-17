@@ -1,4 +1,3 @@
-import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
@@ -8,7 +7,7 @@ import SentryTypes from '../proptypes';
 import {t} from '../locale';
 
 import ApiMixin from '../mixins/apiMixin';
-
+import {Flex} from '../components/grid';
 import Button from '../components/buttons/button';
 import Confirm from '../components/confirm';
 import IndicatorStore from '../stores/indicatorStore';

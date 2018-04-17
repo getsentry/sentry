@@ -4,8 +4,8 @@ import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import {capitalize} from 'lodash';
 import styled from 'react-emotion';
-import {Flex, Box} from 'grid-emotion';
 
+import {Flex, Box} from '../../components/grid';
 import ApiMixin from '../../mixins/apiMixin';
 import DropdownLink from '../../components/dropdownLink';
 import IndicatorStore from '../../stores/indicatorStore';

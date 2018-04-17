@@ -83,22 +83,20 @@ exports[`projectAlertRules renders 1`] = `
           }
         >
           <div
-            className="css-foidy-Wrapper css-17jmgia0"
+            className="css-foidy-Wrapper css-1wp86lr0"
           >
             <Flex
               align="center"
             >
-              <Base
+              <StyledFlex
                 align="center"
-                className="css-5ipae5"
               >
                 <div
-                  className="css-5ipae5"
-                  is={null}
+                  className="css-ud6gq6-StyledFlex css-4jd5981"
                 >
                   <Title>
                     <div
-                      className="css-zmdcxu-Title css-17jmgia1"
+                      className="css-zmdcxu-Title css-1wp86lr1"
                     >
                       Alerts
                     </div>
@@ -131,68 +129,71 @@ exports[`projectAlertRules renders 1`] = `
                             align="center"
                             className="button-label"
                           >
-                            <Base
+                            <StyledFlex
                               align="center"
-                              className="button-label css-5ipae5"
+                              className="button-label"
                             >
                               <div
-                                className="button-label css-5ipae5"
-                                is={null}
+                                className="button-label css-ud6gq6-StyledFlex css-4jd5981"
                               >
                                 <Icon
                                   size="small"
                                 >
-                                  <Base
-                                    className="css-11bwulm-Icon css-1vxxnb60"
+                                  <Box
+                                    className="css-h7y7by-Icon css-1i8rv9g0"
                                     size="small"
                                   >
-                                    <div
-                                      className="css-11bwulm-Icon css-1vxxnb60"
-                                      is={null}
+                                    <StyledBox
+                                      className="css-h7y7by-Icon css-1i8rv9g0"
                                       size="small"
                                     >
-                                      <StyledInlineSvg
-                                        size="12px"
-                                        src="icon-circle-add"
+                                      <div
+                                        className="css-1i8rv9g0 css-128il38-StyledBox css-4jd5980"
+                                        size="small"
                                       >
-                                        <InlineSvg
-                                          className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
+                                        <StyledInlineSvg
                                           size="12px"
                                           src="icon-circle-add"
                                         >
-                                          <StyledSvg
-                                            className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
-                                            height="12px"
-                                            viewBox={Object {}}
-                                            width="12px"
+                                          <InlineSvg
+                                            className="css-1ov3rcq-StyledInlineSvg css-1i8rv9g1"
+                                            size="12px"
+                                            src="icon-circle-add"
                                           >
-                                            <svg
-                                              className="css-1vxxnb61 css-1rlza0i-StyledSvg css-adkcw30"
+                                            <StyledSvg
+                                              className="css-1ov3rcq-StyledInlineSvg css-1i8rv9g1"
                                               height="12px"
                                               viewBox={Object {}}
                                               width="12px"
                                             >
-                                              <use
-                                                href="#test"
-                                                xlinkHref="#test"
-                                              />
-                                            </svg>
-                                          </StyledSvg>
-                                        </InlineSvg>
-                                      </StyledInlineSvg>
-                                    </div>
-                                  </Base>
+                                              <svg
+                                                className="css-1i8rv9g1 css-1rlza0i-StyledSvg css-adkcw30"
+                                                height="12px"
+                                                viewBox={Object {}}
+                                                width="12px"
+                                              >
+                                                <use
+                                                  href="#test"
+                                                  xlinkHref="#test"
+                                                />
+                                              </svg>
+                                            </StyledSvg>
+                                          </InlineSvg>
+                                        </StyledInlineSvg>
+                                      </div>
+                                    </StyledBox>
+                                  </Box>
                                 </Icon>
                                 New Alert Rule
                               </div>
-                            </Base>
+                            </StyledFlex>
                           </Flex>
                         </a>
                       </Link>
                     </Button>
                   </div>
                 </div>
-              </Base>
+              </StyledFlex>
             </Flex>
             <div>
               <ul
@@ -303,22 +304,21 @@ exports[`projectAlertRules renders 1`] = `
                   >
                     <Component
                       align="center"
-                      className="css-18dfj8-StyledPanelHeader css-1t1cqk30"
+                      className="css-18dfj8-StyledPanelHeader css-9rpnl60"
                       justify="space-between"
                     >
                       <Flex
                         align="center"
-                        className="css-18dfj8-StyledPanelHeader css-1t1cqk30"
+                        className="css-18dfj8-StyledPanelHeader css-9rpnl60"
                         justify="space-between"
                       >
-                        <Base
+                        <StyledFlex
                           align="center"
-                          className="css-1t1cqk30 css-mmen68"
+                          className="css-18dfj8-StyledPanelHeader css-9rpnl60"
                           justify="space-between"
                         >
                           <div
-                            className="css-1t1cqk30 css-mmen68"
-                            is={null}
+                            className="css-9rpnl60 css-iusw1w-StyledFlex css-4jd5981"
                           >
                             <TextColorLink
                               to="1/"
@@ -379,17 +379,16 @@ exports[`projectAlertRules renders 1`] = `
                                       align="center"
                                       className="button-label"
                                     >
-                                      <Base
+                                      <StyledFlex
                                         align="center"
-                                        className="button-label css-5ipae5"
+                                        className="button-label"
                                       >
                                         <div
-                                          className="button-label css-5ipae5"
-                                          is={null}
+                                          className="button-label css-ud6gq6-StyledFlex css-4jd5981"
                                         >
                                           Edit Rule
                                         </div>
-                                      </Base>
+                                      </StyledFlex>
                                     </Flex>
                                   </a>
                                 </Link>
@@ -416,19 +415,18 @@ exports[`projectAlertRules renders 1`] = `
                                       align="center"
                                       className="button-label"
                                     >
-                                      <Base
+                                      <StyledFlex
                                         align="center"
-                                        className="button-label css-5ipae5"
+                                        className="button-label"
                                       >
                                         <div
-                                          className="button-label css-5ipae5"
-                                          is={null}
+                                          className="button-label css-ud6gq6-StyledFlex css-4jd5981"
                                         >
                                           <span
                                             className="icon-trash"
                                           />
                                         </div>
-                                      </Base>
+                                      </StyledFlex>
                                     </Flex>
                                   </button>
                                 </Button>
@@ -487,7 +485,7 @@ exports[`projectAlertRules renders 1`] = `
                               </Confirm>
                             </div>
                           </div>
-                        </Base>
+                        </StyledFlex>
                       </Flex>
                     </Component>
                   </StyledPanelHeader>

@@ -1,7 +1,7 @@
-import {Box} from 'grid-emotion';
 import React from 'react';
 import styled from 'react-emotion';
 
+import {Box} from '../../../components/grid';
 import {t} from '../../../locale';
 import AsyncView from '../../asyncView';
 import DateTime from '../../../components/dateTime';

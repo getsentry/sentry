@@ -1,8 +1,8 @@
-import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
 
+import {Flex} from '../../components/grid';
 import {Form, FormState} from '../../components/forms';
 import {parseRepo} from '../../utils';
 import {t, tct} from '../../locale';

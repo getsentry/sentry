@@ -116,22 +116,20 @@ exports[`ApiTokens renders with result 1`] = `
         >
           <Wrapper>
             <div
-              className="css-foidy-Wrapper css-17jmgia0"
+              className="css-foidy-Wrapper css-1wp86lr0"
             >
               <Flex
                 align="center"
               >
-                <Base
+                <StyledFlex
                   align="center"
-                  className="css-5ipae5"
                 >
                   <div
-                    className="css-5ipae5"
-                    is={null}
+                    className="css-ud6gq6-StyledFlex css-4jd5981"
                   >
                     <Title>
                       <div
-                        className="css-zmdcxu-Title css-17jmgia1"
+                        className="css-zmdcxu-Title css-1wp86lr1"
                       >
                         Auth Tokens
                       </div>
@@ -164,24 +162,23 @@ exports[`ApiTokens renders with result 1`] = `
                               align="center"
                               className="button-label"
                             >
-                              <Base
+                              <StyledFlex
                                 align="center"
-                                className="button-label css-5ipae5"
+                                className="button-label"
                               >
                                 <div
-                                  className="button-label css-5ipae5"
-                                  is={null}
+                                  className="button-label css-ud6gq6-StyledFlex css-4jd5981"
                                 >
                                   Create New Token
                                 </div>
-                              </Base>
+                              </StyledFlex>
                             </Flex>
                           </a>
                         </Link>
                       </Button>
                     </div>
                   </div>
-                </Base>
+                </StyledFlex>
               </Flex>
             </div>
           </Wrapper>
@@ -265,56 +262,48 @@ exports[`ApiTokens renders with result 1`] = `
                   disablePadding={true}
                 >
                   <Component
-                    className="css-18fb6u1-StyledPanelHeader css-1t1cqk30"
+                    className="css-18fb6u1-StyledPanelHeader css-9rpnl60"
                     disablePadding={true}
                   >
                     <Flex
                       align="center"
-                      className="css-18fb6u1-StyledPanelHeader css-1t1cqk30"
+                      className="css-18fb6u1-StyledPanelHeader css-9rpnl60"
                       justify="space-between"
                     >
-                      <Base
+                      <StyledFlex
                         align="center"
-                        className="css-1t1cqk30 css-1pqpjvf"
+                        className="css-18fb6u1-StyledPanelHeader css-9rpnl60"
                         justify="space-between"
                       >
                         <div
-                          className="css-1t1cqk30 css-1pqpjvf"
-                          is={null}
+                          className="css-9rpnl60 css-qawref-StyledFlex css-4jd5981"
                         >
                           <Flex
                             align="center"
                           >
-                            <Base
+                            <StyledFlex
                               align="center"
-                              className="css-5ipae5"
                             >
                               <div
-                                className="css-5ipae5"
-                                is={null}
+                                className="css-ud6gq6-StyledFlex css-4jd5981"
                               >
                                 <Box
                                   flex="1"
                                   px={2}
                                 >
-                                  <Base
-                                    className="css-pcjga5"
-                                    flex="1"
-                                    px={2}
-                                  >
+                                  <StyledBox>
                                     <div
-                                      className="css-pcjga5"
-                                      is={null}
+                                      className="css-vjb1rk-StyledBox css-4jd5980"
                                     >
                                       Auth Token
                                     </div>
-                                  </Base>
+                                  </StyledBox>
                                 </Box>
                               </div>
-                            </Base>
+                            </StyledFlex>
                           </Flex>
                         </div>
-                      </Base>
+                      </StyledFlex>
                     </Flex>
                   </Component>
                 </StyledPanelHeader>
@@ -345,280 +334,275 @@ exports[`ApiTokens renders with result 1`] = `
                       p={2}
                     >
                       <PanelItem
-                        className="css-1bzgvtg-StyledPanelItem css-hf2tyc0"
+                        className="css-1bzgvtg-StyledPanelItem css-af3bus0"
                         p={2}
                       >
                         <StyledPanelItem
-                          className="css-1bzgvtg-StyledPanelItem css-hf2tyc0"
+                          className="css-1bzgvtg-StyledPanelItem css-af3bus0"
                           p={2}
                         >
-                          <Base
-                            className="css-hf2tyc0 css-1rx8ry9-StyledPanelItem css-q9h14u0"
+                          <Flex
+                            className="css-af3bus0 css-14lz8p1-StyledPanelItem css-ggxnv80"
                             p={2}
                           >
-                            <div
-                              className="css-hf2tyc0 css-1rx8ry9-StyledPanelItem css-q9h14u0"
-                              is={null}
+                            <StyledFlex
+                              className="css-af3bus0 css-14lz8p1-StyledPanelItem css-ggxnv80"
                             >
-                              <div>
-                                <Flex>
-                                  <Base
-                                    className="css-sncxrr"
-                                  >
-                                    <div
-                                      className="css-sncxrr"
-                                      is={null}
-                                    >
-                                      <Box
-                                        flex="1"
+                              <div
+                                className="css-af3bus0 css-ggxnv80 css-1v3zsqr-StyledFlex css-4jd5981"
+                              >
+                                <div>
+                                  <Flex>
+                                    <StyledFlex>
+                                      <div
+                                        className="css-ud6gq6-StyledFlex css-4jd5981"
                                       >
-                                        <Base
-                                          className="css-vti0ei"
+                                        <Box
                                           flex="1"
                                         >
-                                          <div
-                                            className="css-vti0ei"
-                                            is={null}
-                                          >
+                                          <StyledBox>
                                             <div
-                                              style={
-                                                Object {
-                                                  "marginBottom": 5,
-                                                }
-                                              }
+                                              className="css-fsjb0e-StyledBox css-4jd5980"
                                             >
-                                              <small>
-                                                <TextCopyInput
-                                                  flexValueContainer={false}
-                                                  onCopy={[Function]}
-                                                  renderer={[Function]}
-                                                >
-                                                  <Flex>
-                                                    <Base
-                                                      className="css-sncxrr"
-                                                    >
-                                                      <div
-                                                        className="css-sncxrr"
-                                                        is={null}
-                                                      >
-                                                        <OverflowContainer>
-                                                          <div
-                                                            className="css-1qj34or-OverflowContainer css-1ik89gz1"
-                                                          >
-                                                            <StyledInput
-                                                              onClick={[Function]}
-                                                              readOnly={true}
-                                                              value="apitoken123"
+                                              <div
+                                                style={
+                                                  Object {
+                                                    "marginBottom": 5,
+                                                  }
+                                                }
+                                              >
+                                                <small>
+                                                  <TextCopyInput
+                                                    flexValueContainer={false}
+                                                    onCopy={[Function]}
+                                                    renderer={[Function]}
+                                                  >
+                                                    <Flex>
+                                                      <StyledFlex>
+                                                        <div
+                                                          className="css-ud6gq6-StyledFlex css-4jd5981"
+                                                        >
+                                                          <OverflowContainer>
+                                                            <div
+                                                              className="css-1qj34or-OverflowContainer css-wn5lbc1"
                                                             >
-                                                              <Component
-                                                                className="css-14cbxk4-StyledInput css-1ik89gz0"
+                                                              <StyledInput
                                                                 onClick={[Function]}
                                                                 readOnly={true}
                                                                 value="apitoken123"
                                                               >
-                                                                <input
-                                                                  className="css-14cbxk4-StyledInput css-1ik89gz0"
+                                                                <Component
+                                                                  className="css-14cbxk4-StyledInput css-wn5lbc0"
                                                                   onClick={[Function]}
                                                                   readOnly={true}
                                                                   value="apitoken123"
-                                                                />
-                                                              </Component>
-                                                            </StyledInput>
-                                                          </div>
-                                                        </OverflowContainer>
-                                                        <Clipboard
-                                                          errorMessage="Error copying to clipboard"
-                                                          hideMessages={false}
-                                                          hideUnsupported={true}
-                                                          onClick={[Function]}
-                                                          successMessage="Copied to clipboard"
-                                                          value="apitoken123"
-                                                        />
-                                                      </div>
-                                                    </Base>
-                                                  </Flex>
-                                                </TextCopyInput>
-                                              </small>
+                                                                >
+                                                                  <input
+                                                                    className="css-14cbxk4-StyledInput css-wn5lbc0"
+                                                                    onClick={[Function]}
+                                                                    readOnly={true}
+                                                                    value="apitoken123"
+                                                                  />
+                                                                </Component>
+                                                              </StyledInput>
+                                                            </div>
+                                                          </OverflowContainer>
+                                                          <Clipboard
+                                                            errorMessage="Error copying to clipboard"
+                                                            hideMessages={false}
+                                                            hideUnsupported={true}
+                                                            onClick={[Function]}
+                                                            successMessage="Copied to clipboard"
+                                                            value="apitoken123"
+                                                          />
+                                                        </div>
+                                                      </StyledFlex>
+                                                    </Flex>
+                                                  </TextCopyInput>
+                                                </small>
+                                              </div>
                                             </div>
-                                          </div>
-                                        </Base>
-                                      </Box>
-                                      <Action
-                                        pl={2}
-                                      >
-                                        <Base
-                                          className="css-qlqj9f-Action css-hf2tyc4"
+                                          </StyledBox>
+                                        </Box>
+                                        <Action
                                           pl={2}
                                         >
-                                          <div
-                                            className="css-qlqj9f-Action css-hf2tyc4"
-                                            is={null}
+                                          <Box
+                                            className="css-h4reca-Action css-af3bus4"
+                                            pl={2}
                                           >
-                                            <StyledButton
-                                              icon="icon-circle-subtract"
-                                              onClick={[Function]}
-                                              size="small"
+                                            <StyledBox
+                                              className="css-h4reca-Action css-af3bus4"
                                             >
-                                              <Button
-                                                className="css-fla6ex-StyledButton css-hf2tyc6"
-                                                disabled={false}
-                                                icon="icon-circle-subtract"
-                                                onClick={[Function]}
-                                                size="small"
+                                              <div
+                                                className="css-af3bus4 css-1ubwr0c-StyledBox css-4jd5980"
                                               >
-                                                <button
-                                                  className="css-fla6ex-StyledButton css-hf2tyc6 button button-default button-sm"
-                                                  disabled={false}
+                                                <StyledButton
+                                                  icon="icon-circle-subtract"
                                                   onClick={[Function]}
-                                                  role="button"
+                                                  size="small"
                                                 >
-                                                  <Flex
-                                                    align="center"
-                                                    className="button-label"
+                                                  <Button
+                                                    className="css-fla6ex-StyledButton css-af3bus6"
+                                                    disabled={false}
+                                                    icon="icon-circle-subtract"
+                                                    onClick={[Function]}
+                                                    size="small"
                                                   >
-                                                    <Base
-                                                      align="center"
-                                                      className="button-label css-5ipae5"
+                                                    <button
+                                                      className="css-fla6ex-StyledButton css-af3bus6 button button-default button-sm"
+                                                      disabled={false}
+                                                      onClick={[Function]}
+                                                      role="button"
                                                     >
-                                                      <div
-                                                        className="button-label css-5ipae5"
-                                                        is={null}
+                                                      <Flex
+                                                        align="center"
+                                                        className="button-label"
                                                       >
-                                                        <Icon
-                                                          size="small"
+                                                        <StyledFlex
+                                                          align="center"
+                                                          className="button-label"
                                                         >
-                                                          <Base
-                                                            className="css-11bwulm-Icon css-1vxxnb60"
-                                                            size="small"
+                                                          <div
+                                                            className="button-label css-ud6gq6-StyledFlex css-4jd5981"
                                                           >
-                                                            <div
-                                                              className="css-11bwulm-Icon css-1vxxnb60"
-                                                              is={null}
+                                                            <Icon
                                                               size="small"
                                                             >
-                                                              <StyledInlineSvg
-                                                                size="12px"
-                                                                src="icon-circle-subtract"
+                                                              <Box
+                                                                className="css-h7y7by-Icon css-1i8rv9g0"
+                                                                size="small"
                                                               >
-                                                                <InlineSvg
-                                                                  className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
-                                                                  size="12px"
-                                                                  src="icon-circle-subtract"
+                                                                <StyledBox
+                                                                  className="css-h7y7by-Icon css-1i8rv9g0"
+                                                                  size="small"
                                                                 >
-                                                                  <StyledSvg
-                                                                    className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
-                                                                    height="12px"
-                                                                    viewBox={Object {}}
-                                                                    width="12px"
+                                                                  <div
+                                                                    className="css-1i8rv9g0 css-128il38-StyledBox css-4jd5980"
+                                                                    size="small"
                                                                   >
-                                                                    <svg
-                                                                      className="css-1vxxnb61 css-1rlza0i-StyledSvg css-adkcw30"
-                                                                      height="12px"
-                                                                      viewBox={Object {}}
-                                                                      width="12px"
+                                                                    <StyledInlineSvg
+                                                                      size="12px"
+                                                                      src="icon-circle-subtract"
                                                                     >
-                                                                      <use
-                                                                        href="#test"
-                                                                        xlinkHref="#test"
-                                                                      />
-                                                                    </svg>
-                                                                  </StyledSvg>
-                                                                </InlineSvg>
-                                                              </StyledInlineSvg>
-                                                            </div>
-                                                          </Base>
-                                                        </Icon>
-                                                        <span
-                                                          className="ref-delete-api-token"
-                                                        >
-                                                          Remove
-                                                        </span>
-                                                      </div>
-                                                    </Base>
-                                                  </Flex>
-                                                </button>
-                                              </Button>
-                                            </StyledButton>
-                                          </div>
-                                        </Base>
-                                      </Action>
-                                    </div>
-                                  </Base>
-                                </Flex>
-                              </div>
-                              <Details>
-                                <Base
-                                  className="css-dpx4kh-Details css-hf2tyc1"
-                                >
-                                  <div
-                                    className="css-dpx4kh-Details css-hf2tyc1"
-                                    is={null}
+                                                                      <InlineSvg
+                                                                        className="css-1ov3rcq-StyledInlineSvg css-1i8rv9g1"
+                                                                        size="12px"
+                                                                        src="icon-circle-subtract"
+                                                                      >
+                                                                        <StyledSvg
+                                                                          className="css-1ov3rcq-StyledInlineSvg css-1i8rv9g1"
+                                                                          height="12px"
+                                                                          viewBox={Object {}}
+                                                                          width="12px"
+                                                                        >
+                                                                          <svg
+                                                                            className="css-1i8rv9g1 css-1rlza0i-StyledSvg css-adkcw30"
+                                                                            height="12px"
+                                                                            viewBox={Object {}}
+                                                                            width="12px"
+                                                                          >
+                                                                            <use
+                                                                              href="#test"
+                                                                              xlinkHref="#test"
+                                                                            />
+                                                                          </svg>
+                                                                        </StyledSvg>
+                                                                      </InlineSvg>
+                                                                    </StyledInlineSvg>
+                                                                  </div>
+                                                                </StyledBox>
+                                                              </Box>
+                                                            </Icon>
+                                                            <span
+                                                              className="ref-delete-api-token"
+                                                            >
+                                                              Remove
+                                                            </span>
+                                                          </div>
+                                                        </StyledFlex>
+                                                      </Flex>
+                                                    </button>
+                                                  </Button>
+                                                </StyledButton>
+                                              </div>
+                                            </StyledBox>
+                                          </Box>
+                                        </Action>
+                                      </div>
+                                    </StyledFlex>
+                                  </Flex>
+                                </div>
+                                <Details>
+                                  <Flex
+                                    className="css-1ftinlo-Details css-af3bus1"
                                   >
-                                    <Box
-                                      flex="1"
+                                    <StyledFlex
+                                      className="css-1ftinlo-Details css-af3bus1"
                                     >
-                                      <Base
-                                        className="css-vti0ei"
-                                        flex="1"
+                                      <div
+                                        className="css-af3bus1 css-32vhku-StyledFlex css-4jd5981"
                                       >
-                                        <div
-                                          className="css-vti0ei"
-                                          is={null}
+                                        <Box
+                                          flex="1"
                                         >
-                                          <Heading>
+                                          <StyledBox>
                                             <div
-                                              className="css-1f0mnd4-Heading css-hf2tyc5"
+                                              className="css-fsjb0e-StyledBox css-4jd5980"
                                             >
-                                              Scopes
+                                              <Heading>
+                                                <div
+                                                  className="css-1f0mnd4-Heading css-af3bus5"
+                                                >
+                                                  Scopes
+                                                </div>
+                                              </Heading>
+                                              <ScopeList>
+                                                <div
+                                                  className="css-5kshz2-ScopeList css-af3bus2"
+                                                >
+                                                  scope1, scope2
+                                                </div>
+                                              </ScopeList>
                                             </div>
-                                          </Heading>
-                                          <ScopeList>
+                                          </StyledBox>
+                                        </Box>
+                                        <Box>
+                                          <StyledBox>
                                             <div
-                                              className="css-5kshz2-ScopeList css-hf2tyc2"
+                                              className="css-1m695dv-StyledBox css-4jd5980"
                                             >
-                                              scope1, scope2
-                                            </div>
-                                          </ScopeList>
-                                        </div>
-                                      </Base>
-                                    </Box>
-                                    <Box>
-                                      <Base
-                                        className="css-roynbj"
-                                      >
-                                        <div
-                                          className="css-roynbj"
-                                          is={null}
-                                        >
-                                          <Heading>
-                                            <div
-                                              className="css-1f0mnd4-Heading css-hf2tyc5"
-                                            >
-                                              Created
-                                            </div>
-                                          </Heading>
-                                          <Time>
-                                            <time
-                                              className="css-1suld8z-Time css-hf2tyc3"
-                                            >
-                                              <DateTime
-                                                date={2018-01-12T02:01:41.000Z}
-                                                seconds={true}
-                                              >
-                                                <time>
-                                                  Jan 12, 2018 2:01:41 AM UTC
+                                              <Heading>
+                                                <div
+                                                  className="css-1f0mnd4-Heading css-af3bus5"
+                                                >
+                                                  Created
+                                                </div>
+                                              </Heading>
+                                              <Time>
+                                                <time
+                                                  className="css-1suld8z-Time css-af3bus3"
+                                                >
+                                                  <DateTime
+                                                    date={2018-01-12T02:01:41.000Z}
+                                                    seconds={true}
+                                                  >
+                                                    <time>
+                                                      Jan 12, 2018 2:01:41 AM UTC
+                                                    </time>
+                                                  </DateTime>
                                                 </time>
-                                              </DateTime>
-                                            </time>
-                                          </Time>
-                                        </div>
-                                      </Base>
-                                    </Box>
-                                  </div>
-                                </Base>
-                              </Details>
-                            </div>
-                          </Base>
+                                              </Time>
+                                            </div>
+                                          </StyledBox>
+                                        </Box>
+                                      </div>
+                                    </StyledFlex>
+                                  </Flex>
+                                </Details>
+                              </div>
+                            </StyledFlex>
+                          </Flex>
                         </StyledPanelItem>
                       </PanelItem>
                     </StyledPanelItem>

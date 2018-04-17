@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Flex} from 'grid-emotion';
 import createReactClass from 'create-react-class';
 
+import {Flex} from '../components/grid';
 import LoadingIndicator from '../components/loadingIndicator';
 import LoadingError from '../components/loadingError';
 import Avatar from '../components/avatar';

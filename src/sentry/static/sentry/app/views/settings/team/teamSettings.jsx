@@ -1,4 +1,3 @@
-import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 
@@ -15,6 +14,7 @@ import JsonForm from '../components/forms/jsonForm';
 import SentryTypes from '../../../proptypes';
 import TeamModel from './model';
 import teamSettingsFields from '../../../data/forms/teamSettingsFields';
+import {Box} from '../../../components/grid';
 
 export default class TeamSettings extends AsyncView {
   static propTypes = {

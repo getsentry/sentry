@@ -1,4 +1,3 @@
-import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 
@@ -9,6 +8,7 @@ import {Panel, PanelAlert, PanelBody, PanelHeader} from '../../../../components/
 import RangeField from '../../components/forms/rangeField';
 import SettingsPageHeader from '../../components/settingsPageHeader';
 import TextBlock from '../../components/text/textBlock';
+import {Box} from '../../../../components/grid';
 
 const getRateLimitValues = () => {
   let steps = [];

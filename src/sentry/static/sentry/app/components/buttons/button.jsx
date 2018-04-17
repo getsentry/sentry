@@ -1,10 +1,10 @@
-import {Flex, Box} from 'grid-emotion';
 import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
 import styled from 'react-emotion';
 
+import {Flex, Box} from '../grid';
 import ExternalLink from '../externalLink';
 import InlineSvg from '../inlineSvg';
 

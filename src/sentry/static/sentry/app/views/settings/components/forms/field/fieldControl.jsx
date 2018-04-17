@@ -1,9 +1,9 @@
-import {Box, Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
 import FieldControlState from './fieldControlState';
+import {Box, Flex} from '../../../../../components/grid';
 import InlineSvg from '../../../../../components/inlineSvg';
 import Tooltip from '../../../../../components/tooltip';
 

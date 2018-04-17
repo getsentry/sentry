@@ -21,22 +21,21 @@ exports[`OrganizationTeamProjects Should render 1`] = `
             hasButtons={true}
           >
             <Component
-              className="css-vzwv85-StyledPanelHeader css-1t1cqk30"
+              className="css-vzwv85-StyledPanelHeader css-9rpnl60"
               hasButtons={true}
             >
               <Flex
                 align="center"
-                className="css-vzwv85-StyledPanelHeader css-1t1cqk30"
+                className="css-vzwv85-StyledPanelHeader css-9rpnl60"
                 justify="space-between"
               >
-                <Base
+                <StyledFlex
                   align="center"
-                  className="css-1t1cqk30 css-1h9uuh9"
+                  className="css-vzwv85-StyledPanelHeader css-9rpnl60"
                   justify="space-between"
                 >
                   <div
-                    className="css-1t1cqk30 css-1h9uuh9"
-                    is={null}
+                    className="css-9rpnl60 css-fj6f8u-StyledFlex css-4jd5981"
                   >
                     <div>
                       Projects
@@ -129,13 +128,12 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                   align="center"
                                                   className="button-label"
                                                 >
-                                                  <Base
+                                                  <StyledFlex
                                                     align="center"
-                                                    className="button-label css-5ipae5"
+                                                    className="button-label"
                                                   >
                                                     <div
-                                                      className="button-label css-5ipae5"
-                                                      is={null}
+                                                      className="button-label css-ud6gq6-StyledFlex css-4jd5981"
                                                     >
                                                       Add Project
                                                       <StyledChevronDown>
@@ -168,7 +166,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                         </Component>
                                                       </StyledChevronDown>
                                                     </div>
-                                                  </Base>
+                                                  </StyledFlex>
                                                 </Flex>
                                               </button>
                                             </Button>
@@ -185,7 +183,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                       </DropdownAutoComplete>
                     </div>
                   </div>
-                </Base>
+                </StyledFlex>
               </Flex>
             </Component>
           </StyledPanelHeader>
@@ -209,144 +207,100 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                   className="css-qjeif8-StyledPanelItem css-1cam9p51"
                   p={2}
                 >
-                  <Base
-                    className="css-1cam9p51 css-1mlpbpg-StyledPanelItem css-q9h14u0"
+                  <Flex
+                    className="css-1cam9p51 css-lb78cw-StyledPanelItem css-ggxnv80"
                     p={2}
                   >
-                    <div
-                      className="css-1cam9p51 css-1mlpbpg-StyledPanelItem css-q9h14u0"
-                      is={null}
+                    <StyledFlex
+                      className="css-1cam9p51 css-lb78cw-StyledPanelItem css-ggxnv80"
                     >
-                      <ProjectItem
-                        organization={
-                          Object {
-                            "access": Array [
-                              "org:read",
-                              "org:write",
-                              "org:admin",
-                              "project:read",
-                              "project:write",
-                              "project:admin",
-                              "team:read",
-                              "team:write",
-                              "team:admin",
-                            ],
-                            "features": Array [],
-                            "id": "3",
-                            "name": "Organization Name",
-                            "onboardingTasks": Array [],
-                            "projects": Array [],
-                            "slug": "org-slug",
-                            "status": Object {
-                              "id": "active",
-                              "name": "active",
-                            },
-                            "teams": Array [],
-                          }
-                        }
-                        project={
-                          Object {
-                            "hasAccess": true,
-                            "id": "2",
-                            "isBookmarked": false,
-                            "isMember": true,
-                            "name": "Project Name",
-                            "slug": "project-slug",
-                            "teams": Array [
-                              Object {
-                                "id": "1",
-                                "name": "Team Name",
-                                "slug": "team-slug",
-                              },
-                            ],
-                          }
-                        }
+                      <div
+                        className="css-1cam9p51 css-ggxnv80 css-1qs46k9-StyledFlex css-4jd5981"
                       >
-                        <div
-                          className={null}
-                          key="2"
+                        <ProjectItem
+                          organization={
+                            Object {
+                              "access": Array [
+                                "org:read",
+                                "org:write",
+                                "org:admin",
+                                "project:read",
+                                "project:write",
+                                "project:admin",
+                                "team:read",
+                                "team:write",
+                                "team:admin",
+                              ],
+                              "features": Array [],
+                              "id": "3",
+                              "name": "Organization Name",
+                              "onboardingTasks": Array [],
+                              "projects": Array [],
+                              "slug": "org-slug",
+                              "status": Object {
+                                "id": "active",
+                                "name": "active",
+                              },
+                              "teams": Array [],
+                            }
+                          }
+                          project={
+                            Object {
+                              "hasAccess": true,
+                              "id": "2",
+                              "isBookmarked": false,
+                              "isMember": true,
+                              "name": "Project Name",
+                              "slug": "project-slug",
+                              "teams": Array [
+                                Object {
+                                  "id": "1",
+                                  "name": "Team Name",
+                                  "slug": "team-slug",
+                                },
+                              ],
+                            }
+                          }
                         >
-                          <Tooltip
-                            title="Add to bookmarks"
+                          <div
+                            className={null}
+                            key="2"
                           >
-                            <InlineButton
-                              className="tip"
-                              onClick={[Function]}
+                            <Tooltip
                               title="Add to bookmarks"
                             >
-                              <button
-                                className="tip css-k02xli-InlineButton css-6z5jso0"
+                              <InlineButton
+                                className="tip"
                                 onClick={[Function]}
                                 title="Add to bookmarks"
                               >
-                                <span
-                                  className="icon-star-outline bookmark"
-                                />
-                              </button>
-                            </InlineButton>
-                          </Tooltip>
-                          <Link
-                            className="css-5kvhca"
-                            to="/settings/org-slug/project-slug/"
-                          >
+                                <button
+                                  className="tip css-k02xli-InlineButton css-6z5jso0"
+                                  onClick={[Function]}
+                                  title="Add to bookmarks"
+                                >
+                                  <span
+                                    className="icon-star-outline bookmark"
+                                  />
+                                </button>
+                              </InlineButton>
+                            </Tooltip>
                             <Link
                               className="css-5kvhca"
-                              onlyActiveOnIndex={false}
-                              style={Object {}}
                               to="/settings/org-slug/project-slug/"
                             >
-                              <a
+                              <Link
                                 className="css-5kvhca"
-                                onClick={[Function]}
+                                onlyActiveOnIndex={false}
                                 style={Object {}}
+                                to="/settings/org-slug/project-slug/"
                               >
-                                <StyledProjectLabel
-                                  organization={
-                                    Object {
-                                      "access": Array [
-                                        "org:read",
-                                        "org:write",
-                                        "org:admin",
-                                        "project:read",
-                                        "project:write",
-                                        "project:admin",
-                                        "team:read",
-                                        "team:write",
-                                        "team:admin",
-                                      ],
-                                      "features": Array [],
-                                      "id": "3",
-                                      "name": "Organization Name",
-                                      "onboardingTasks": Array [],
-                                      "projects": Array [],
-                                      "slug": "org-slug",
-                                      "status": Object {
-                                        "id": "active",
-                                        "name": "active",
-                                      },
-                                      "teams": Array [],
-                                    }
-                                  }
-                                  project={
-                                    Object {
-                                      "hasAccess": true,
-                                      "id": "2",
-                                      "isBookmarked": false,
-                                      "isMember": true,
-                                      "name": "Project Name",
-                                      "slug": "project-slug",
-                                      "teams": Array [
-                                        Object {
-                                          "id": "1",
-                                          "name": "Team Name",
-                                          "slug": "team-slug",
-                                        },
-                                      ],
-                                    }
-                                  }
+                                <a
+                                  className="css-5kvhca"
+                                  onClick={[Function]}
+                                  style={Object {}}
                                 >
-                                  <ProjectLabel
-                                    className="css-pculi3-StyledProjectLabel css-6z5jso1"
+                                  <StyledProjectLabel
                                     organization={
                                       Object {
                                         "access": Array [
@@ -391,7 +345,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                       }
                                     }
                                   >
-                                    <span
+                                    <ProjectLabel
                                       className="css-pculi3-StyledProjectLabel css-6z5jso1"
                                       organization={
                                         Object {
@@ -438,79 +392,125 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                       }
                                     >
                                       <span
-                                        className="project-name"
+                                        className="css-pculi3-StyledProjectLabel css-6z5jso1"
+                                        organization={
+                                          Object {
+                                            "access": Array [
+                                              "org:read",
+                                              "org:write",
+                                              "org:admin",
+                                              "project:read",
+                                              "project:write",
+                                              "project:admin",
+                                              "team:read",
+                                              "team:write",
+                                              "team:admin",
+                                            ],
+                                            "features": Array [],
+                                            "id": "3",
+                                            "name": "Organization Name",
+                                            "onboardingTasks": Array [],
+                                            "projects": Array [],
+                                            "slug": "org-slug",
+                                            "status": Object {
+                                              "id": "active",
+                                              "name": "active",
+                                            },
+                                            "teams": Array [],
+                                          }
+                                        }
+                                        project={
+                                          Object {
+                                            "hasAccess": true,
+                                            "id": "2",
+                                            "isBookmarked": false,
+                                            "isMember": true,
+                                            "name": "Project Name",
+                                            "slug": "project-slug",
+                                            "teams": Array [
+                                              Object {
+                                                "id": "1",
+                                                "name": "Team Name",
+                                                "slug": "team-slug",
+                                              },
+                                            ],
+                                          }
+                                        }
                                       >
-                                        Project Name
+                                        <span
+                                          className="project-name"
+                                        >
+                                          Project Name
+                                        </span>
                                       </span>
-                                    </span>
-                                  </ProjectLabel>
-                                </StyledProjectLabel>
-                              </a>
+                                    </ProjectLabel>
+                                  </StyledProjectLabel>
+                                </a>
+                              </Link>
                             </Link>
-                          </Link>
-                        </div>
-                      </ProjectItem>
-                      <Button
-                        disabled={false}
-                        onClick={[Function]}
-                        size="small"
-                      >
-                        <button
-                          className="button button-default button-sm"
+                          </div>
+                        </ProjectItem>
+                        <Button
                           disabled={false}
                           onClick={[Function]}
-                          role="button"
+                          size="small"
                         >
-                          <Flex
-                            align="center"
-                            className="button-label"
+                          <button
+                            className="button button-default button-sm"
+                            disabled={false}
+                            onClick={[Function]}
+                            role="button"
                           >
-                            <Base
+                            <Flex
                               align="center"
-                              className="button-label css-5ipae5"
+                              className="button-label"
                             >
-                              <div
-                                className="button-label css-5ipae5"
-                                is={null}
+                              <StyledFlex
+                                align="center"
+                                className="button-label"
                               >
-                                <RemoveIcon>
-                                  <Component
-                                    className="css-1e2j5j0-RemoveIcon css-1cam9p50"
-                                  >
-                                    <InlineSvg
+                                <div
+                                  className="button-label css-ud6gq6-StyledFlex css-4jd5981"
+                                >
+                                  <RemoveIcon>
+                                    <Component
                                       className="css-1e2j5j0-RemoveIcon css-1cam9p50"
-                                      src="icon-circle-subtract"
                                     >
-                                      <StyledSvg
+                                      <InlineSvg
                                         className="css-1e2j5j0-RemoveIcon css-1cam9p50"
-                                        height="1em"
-                                        viewBox={Object {}}
-                                        width="1em"
+                                        src="icon-circle-subtract"
                                       >
-                                        <svg
-                                          className="css-1cam9p50 css-1jgfaio-StyledSvg css-adkcw30"
+                                        <StyledSvg
+                                          className="css-1e2j5j0-RemoveIcon css-1cam9p50"
                                           height="1em"
                                           viewBox={Object {}}
                                           width="1em"
                                         >
-                                          <use
-                                            href="#test"
-                                            xlinkHref="#test"
-                                          />
-                                        </svg>
-                                      </StyledSvg>
-                                    </InlineSvg>
-                                  </Component>
-                                </RemoveIcon>
-                                 
-                                Remove
-                              </div>
-                            </Base>
-                          </Flex>
-                        </button>
-                      </Button>
-                    </div>
-                  </Base>
+                                          <svg
+                                            className="css-1cam9p50 css-1jgfaio-StyledSvg css-adkcw30"
+                                            height="1em"
+                                            viewBox={Object {}}
+                                            width="1em"
+                                          >
+                                            <use
+                                              href="#test"
+                                              xlinkHref="#test"
+                                            />
+                                          </svg>
+                                        </StyledSvg>
+                                      </InlineSvg>
+                                    </Component>
+                                  </RemoveIcon>
+                                   
+                                  Remove
+                                </div>
+                              </StyledFlex>
+                            </Flex>
+                          </button>
+                        </Button>
+                      </div>
+                    </StyledFlex>
+                  </Flex>
                 </StyledPanelItem>
               </PanelItem>
             </StyledPanelItem>

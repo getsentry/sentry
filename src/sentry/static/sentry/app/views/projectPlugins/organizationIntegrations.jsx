@@ -1,8 +1,8 @@
-import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import {Box} from '../../components/grid';
 import {t} from '../../locale';
 import AsyncComponent from '../../components/asyncComponent';
 import Link from '../../components/link';
@@ -41,7 +41,7 @@ export default class OrganizationIntegrations extends AsyncComponent {
         <Box>
           <PluginIcon size={32} pluginId={provider.key} />
         </Box>
-        <Box px={2} flex={1}>
+        <Box px={2} flex="1">
           <ProviderName>
             <Link
               to={`/settings/${orgId}/${projectId}/integrations/${provider.key}/`}

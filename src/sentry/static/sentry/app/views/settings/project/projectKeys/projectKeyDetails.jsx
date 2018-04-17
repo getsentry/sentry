@@ -1,4 +1,3 @@
-import {Box, Flex} from 'grid-emotion';
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -35,6 +34,7 @@ import SettingsPageHeader from '../../components/settingsPageHeader';
 import StackedBarChart from '../../../../components/stackedBarChart';
 import TextBlock from '../../components/text/textBlock';
 import TextField from '../../components/forms/textField';
+import {Box, Flex} from '../../../../components/grid';
 
 const RATE_LIMIT_FORMAT_MAP = new Map([
   [0, 'None'],

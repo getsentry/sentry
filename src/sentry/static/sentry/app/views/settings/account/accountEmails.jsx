@@ -1,8 +1,8 @@
-import {Flex, Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import {Flex, Box} from '../../../components/grid';
 import {addErrorMessage} from '../../../actionCreators/indicator';
 import {t} from '../../../locale';
 import AlertLink from '../../../components/alertLink';

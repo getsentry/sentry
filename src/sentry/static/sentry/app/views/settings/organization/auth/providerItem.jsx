@@ -1,4 +1,3 @@
-import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -6,6 +5,7 @@ import styled from 'react-emotion';
 import {t, tct} from '../../../../locale';
 import Button from '../../../../components/buttons/button';
 import {PanelItem} from '../../../../components/panels';
+import {Flex} from '../../../../components/grid';
 
 export default class ProviderItem extends React.PureComponent {
   static propTypes = {

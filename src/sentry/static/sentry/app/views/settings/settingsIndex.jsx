@@ -1,4 +1,3 @@
-import {Flex, Box} from 'grid-emotion';
 import DocumentTitle from 'react-document-title';
 import React from 'react';
 import styled, {css} from 'react-emotion';
@@ -9,6 +8,7 @@ import ConfigStore from '../../stores/configStore';
 import ExternalLink from '../../components/externalLink';
 import InlineSvg from '../../components/inlineSvg';
 import Link from '../../components/link';
+import {Flex, Box} from '../../components/grid';
 import LoadingIndicator from '../../components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from '../../components/panels';
 import SentryTypes from '../../proptypes';

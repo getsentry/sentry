@@ -4,12 +4,12 @@
  *
  * Also displays 2fa method specific details.
  */
-import {Box, Flex} from 'grid-emotion';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import {Box, Flex} from '../../../../components/grid';
 import {addErrorMessage, addSuccessMessage} from '../../../../actionCreators/indicator';
 import {t} from '../../../../locale';
 import AsyncView from '../../../asyncView';

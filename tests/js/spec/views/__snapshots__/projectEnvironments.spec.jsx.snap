@@ -76,28 +76,26 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
         }
       >
         <div
-          className="css-t5gfr9-Wrapper css-17jmgia0"
+          className="css-t5gfr9-Wrapper css-1wp86lr0"
         >
           <Flex
             align="center"
           >
-            <Base
+            <StyledFlex
               align="center"
-              className="css-5ipae5"
             >
               <div
-                className="css-5ipae5"
-                is={null}
+                className="css-ud6gq6-StyledFlex css-4jd5981"
               >
                 <Title>
                   <div
-                    className="css-zmdcxu-Title css-17jmgia1"
+                    className="css-zmdcxu-Title css-1wp86lr1"
                   >
                     Manage Environments
                   </div>
                 </Title>
               </div>
-            </Base>
+            </StyledFlex>
           </Flex>
           <div>
             <ul
@@ -167,25 +165,24 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
           <PanelHeader>
             <StyledPanelHeader>
               <Component
-                className="css-19pgfgl-StyledPanelHeader css-1t1cqk30"
+                className="css-19pgfgl-StyledPanelHeader css-9rpnl60"
               >
                 <Flex
                   align="center"
-                  className="css-19pgfgl-StyledPanelHeader css-1t1cqk30"
+                  className="css-19pgfgl-StyledPanelHeader css-9rpnl60"
                   justify="space-between"
                 >
-                  <Base
+                  <StyledFlex
                     align="center"
-                    className="css-1t1cqk30 css-14dugjz"
+                    className="css-19pgfgl-StyledPanelHeader css-9rpnl60"
                     justify="space-between"
                   >
                     <div
-                      className="css-1t1cqk30 css-14dugjz"
-                      is={null}
+                      className="css-9rpnl60 css-hhun9k-StyledFlex css-4jd5981"
                     >
                       Active Environments
                     </div>
-                  </Base>
+                  </StyledFlex>
                 </Flex>
               </Component>
             </StyledPanelHeader>
@@ -296,28 +293,26 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
         }
       >
         <div
-          className="css-t5gfr9-Wrapper css-17jmgia0"
+          className="css-t5gfr9-Wrapper css-1wp86lr0"
         >
           <Flex
             align="center"
           >
-            <Base
+            <StyledFlex
               align="center"
-              className="css-5ipae5"
             >
               <div
-                className="css-5ipae5"
-                is={null}
+                className="css-ud6gq6-StyledFlex css-4jd5981"
               >
                 <Title>
                   <div
-                    className="css-zmdcxu-Title css-17jmgia1"
+                    className="css-zmdcxu-Title css-1wp86lr1"
                   >
                     Manage Environments
                   </div>
                 </Title>
               </div>
-            </Base>
+            </StyledFlex>
           </Flex>
           <div>
             <ul
@@ -387,25 +382,24 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
           <PanelHeader>
             <StyledPanelHeader>
               <Component
-                className="css-19pgfgl-StyledPanelHeader css-1t1cqk30"
+                className="css-19pgfgl-StyledPanelHeader css-9rpnl60"
               >
                 <Flex
                   align="center"
-                  className="css-19pgfgl-StyledPanelHeader css-1t1cqk30"
+                  className="css-19pgfgl-StyledPanelHeader css-9rpnl60"
                   justify="space-between"
                 >
-                  <Base
+                  <StyledFlex
                     align="center"
-                    className="css-1t1cqk30 css-14dugjz"
+                    className="css-19pgfgl-StyledPanelHeader css-9rpnl60"
                     justify="space-between"
                   >
                     <div
-                      className="css-1t1cqk30 css-14dugjz"
-                      is={null}
+                      className="css-9rpnl60 css-hhun9k-StyledFlex css-4jd5981"
                     >
                       Active Environments
                     </div>
-                  </Base>
+                  </StyledFlex>
                 </Flex>
               </Component>
             </StyledPanelHeader>
@@ -442,71 +436,73 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                     justify="space-between"
                     p={2}
                   >
-                    <Base
+                    <Flex
                       align="center"
-                      className="css-qcergp-StyledPanelItem css-q9h14u0"
+                      className="css-v9wio6-StyledPanelItem css-ggxnv80"
                       justify="space-between"
                       p={2}
                     >
-                      <div
-                        className="css-qcergp-StyledPanelItem css-q9h14u0"
-                        is={null}
+                      <StyledFlex
+                        align="center"
+                        className="css-v9wio6-StyledPanelItem css-ggxnv80"
+                        justify="space-between"
                       >
-                        <Flex
-                          align="center"
+                        <div
+                          className="css-ggxnv80 css-ht5a2f-StyledFlex css-4jd5981"
                         >
-                          <Base
+                          <Flex
                             align="center"
-                            className="css-5ipae5"
                           >
-                            <div
-                              className="css-5ipae5"
-                              is={null}
+                            <StyledFlex
+                              align="center"
                             >
-                              All Environments
-                               
-                            </div>
-                          </Base>
-                        </Flex>
-                        <div>
-                          <EnvironmentButton
-                            onClick={[Function]}
-                            size="xsmall"
-                          >
-                            <Button
-                              className="css-10adnmx-EnvironmentButton css-d1dasp0"
-                              disabled={false}
+                              <div
+                                className="css-ud6gq6-StyledFlex css-4jd5981"
+                              >
+                                All Environments
+                                 
+                              </div>
+                            </StyledFlex>
+                          </Flex>
+                          <div>
+                            <EnvironmentButton
                               onClick={[Function]}
                               size="xsmall"
                             >
-                              <button
-                                className="css-10adnmx-EnvironmentButton css-d1dasp0 button button-default button-xs"
+                              <Button
+                                className="css-10adnmx-EnvironmentButton css-zyyc9b0"
                                 disabled={false}
                                 onClick={[Function]}
-                                role="button"
+                                size="xsmall"
                               >
-                                <Flex
-                                  align="center"
-                                  className="button-label"
+                                <button
+                                  className="css-10adnmx-EnvironmentButton css-zyyc9b0 button button-default button-xs"
+                                  disabled={false}
+                                  onClick={[Function]}
+                                  role="button"
                                 >
-                                  <Base
+                                  <Flex
                                     align="center"
-                                    className="button-label css-5ipae5"
+                                    className="button-label"
                                   >
-                                    <div
-                                      className="button-label css-5ipae5"
-                                      is={null}
+                                    <StyledFlex
+                                      align="center"
+                                      className="button-label"
                                     >
-                                      Set as default
-                                    </div>
-                                  </Base>
-                                </Flex>
-                              </button>
-                            </Button>
-                          </EnvironmentButton>
+                                      <div
+                                        className="button-label css-ud6gq6-StyledFlex css-4jd5981"
+                                      >
+                                        Set as default
+                                      </div>
+                                    </StyledFlex>
+                                  </Flex>
+                                </button>
+                              </Button>
+                            </EnvironmentButton>
+                          </div>
                         </div>
-                      </div>
-                    </Base>
+                      </StyledFlex>
+                    </Flex>
                   </StyledPanelItem>
                 </PanelItem>
               </EnvironmentRow>
@@ -539,109 +535,110 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                     justify="space-between"
                     p={2}
                   >
-                    <Base
+                    <Flex
                       align="center"
-                      className="css-qcergp-StyledPanelItem css-q9h14u0"
+                      className="css-v9wio6-StyledPanelItem css-ggxnv80"
                       justify="space-between"
                       p={2}
                     >
-                      <div
-                        className="css-qcergp-StyledPanelItem css-q9h14u0"
-                        is={null}
+                      <StyledFlex
+                        align="center"
+                        className="css-v9wio6-StyledPanelItem css-ggxnv80"
+                        justify="space-between"
                       >
-                        <Flex
-                          align="center"
+                        <div
+                          className="css-ggxnv80 css-ht5a2f-StyledFlex css-4jd5981"
                         >
-                          <Base
+                          <Flex
                             align="center"
-                            className="css-5ipae5"
                           >
-                            <div
-                              className="css-5ipae5"
-                              is={null}
+                            <StyledFlex
+                              align="center"
                             >
-                              Production
-                               
-                              <code>
-                                production
-                              </code>
-                            </div>
-                          </Base>
-                        </Flex>
-                        <div>
-                          <EnvironmentButton
-                            onClick={[Function]}
-                            size="xsmall"
-                          >
-                            <Button
-                              className="css-10adnmx-EnvironmentButton css-d1dasp0"
-                              disabled={false}
+                              <div
+                                className="css-ud6gq6-StyledFlex css-4jd5981"
+                              >
+                                Production
+                                 
+                                <code>
+                                  production
+                                </code>
+                              </div>
+                            </StyledFlex>
+                          </Flex>
+                          <div>
+                            <EnvironmentButton
                               onClick={[Function]}
                               size="xsmall"
                             >
-                              <button
-                                className="css-10adnmx-EnvironmentButton css-d1dasp0 button button-default button-xs"
+                              <Button
+                                className="css-10adnmx-EnvironmentButton css-zyyc9b0"
                                 disabled={false}
                                 onClick={[Function]}
-                                role="button"
+                                size="xsmall"
                               >
-                                <Flex
-                                  align="center"
-                                  className="button-label"
+                                <button
+                                  className="css-10adnmx-EnvironmentButton css-zyyc9b0 button button-default button-xs"
+                                  disabled={false}
+                                  onClick={[Function]}
+                                  role="button"
                                 >
-                                  <Base
+                                  <Flex
                                     align="center"
-                                    className="button-label css-5ipae5"
+                                    className="button-label"
                                   >
-                                    <div
-                                      className="button-label css-5ipae5"
-                                      is={null}
+                                    <StyledFlex
+                                      align="center"
+                                      className="button-label"
                                     >
-                                      Set as default
-                                    </div>
-                                  </Base>
-                                </Flex>
-                              </button>
-                            </Button>
-                          </EnvironmentButton>
-                          <EnvironmentButton
-                            onClick={[Function]}
-                            size="xsmall"
-                          >
-                            <Button
-                              className="css-10adnmx-EnvironmentButton css-d1dasp0"
-                              disabled={false}
+                                      <div
+                                        className="button-label css-ud6gq6-StyledFlex css-4jd5981"
+                                      >
+                                        Set as default
+                                      </div>
+                                    </StyledFlex>
+                                  </Flex>
+                                </button>
+                              </Button>
+                            </EnvironmentButton>
+                            <EnvironmentButton
                               onClick={[Function]}
                               size="xsmall"
                             >
-                              <button
-                                className="css-10adnmx-EnvironmentButton css-d1dasp0 button button-default button-xs"
+                              <Button
+                                className="css-10adnmx-EnvironmentButton css-zyyc9b0"
                                 disabled={false}
                                 onClick={[Function]}
-                                role="button"
+                                size="xsmall"
                               >
-                                <Flex
-                                  align="center"
-                                  className="button-label"
+                                <button
+                                  className="css-10adnmx-EnvironmentButton css-zyyc9b0 button button-default button-xs"
+                                  disabled={false}
+                                  onClick={[Function]}
+                                  role="button"
                                 >
-                                  <Base
+                                  <Flex
                                     align="center"
-                                    className="button-label css-5ipae5"
+                                    className="button-label"
                                   >
-                                    <div
-                                      className="button-label css-5ipae5"
-                                      is={null}
+                                    <StyledFlex
+                                      align="center"
+                                      className="button-label"
                                     >
-                                      Hide
-                                    </div>
-                                  </Base>
-                                </Flex>
-                              </button>
-                            </Button>
-                          </EnvironmentButton>
+                                      <div
+                                        className="button-label css-ud6gq6-StyledFlex css-4jd5981"
+                                      >
+                                        Hide
+                                      </div>
+                                    </StyledFlex>
+                                  </Flex>
+                                </button>
+                              </Button>
+                            </EnvironmentButton>
+                          </div>
                         </div>
-                      </div>
-                    </Base>
+                      </StyledFlex>
+                    </Flex>
                   </StyledPanelItem>
                 </PanelItem>
               </EnvironmentRow>
@@ -674,87 +671,89 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                     justify="space-between"
                     p={2}
                   >
-                    <Base
+                    <Flex
                       align="center"
-                      className="css-qcergp-StyledPanelItem css-q9h14u0"
+                      className="css-v9wio6-StyledPanelItem css-ggxnv80"
                       justify="space-between"
                       p={2}
                     >
-                      <div
-                        className="css-qcergp-StyledPanelItem css-q9h14u0"
-                        is={null}
+                      <StyledFlex
+                        align="center"
+                        className="css-v9wio6-StyledPanelItem css-ggxnv80"
+                        justify="space-between"
                       >
-                        <Flex
-                          align="center"
+                        <div
+                          className="css-ggxnv80 css-ht5a2f-StyledFlex css-4jd5981"
                         >
-                          <Base
+                          <Flex
                             align="center"
-                            className="css-5ipae5"
                           >
-                            <div
-                              className="css-5ipae5"
-                              is={null}
+                            <StyledFlex
+                              align="center"
                             >
-                              Staging
-                               
-                              <code>
-                                staging
-                              </code>
-                              <Tag
-                                priority="success"
+                              <div
+                                className="css-ud6gq6-StyledFlex css-4jd5981"
                               >
-                                <TagTextStyled
+                                Staging
+                                 
+                                <code>
+                                  staging
+                                </code>
+                                <Tag
                                   priority="success"
                                 >
-                                  <span
-                                    className="css-giy4xh-TagTextStyled css-3x95g0"
+                                  <TagTextStyled
+                                    priority="success"
                                   >
-                                    Default
-                                  </span>
-                                </TagTextStyled>
-                              </Tag>
-                            </div>
-                          </Base>
-                        </Flex>
-                        <div>
-                          <EnvironmentButton
-                            onClick={[Function]}
-                            size="xsmall"
-                          >
-                            <Button
-                              className="css-10adnmx-EnvironmentButton css-d1dasp0"
-                              disabled={false}
+                                    <span
+                                      className="css-giy4xh-TagTextStyled css-3x95g0"
+                                    >
+                                      Default
+                                    </span>
+                                  </TagTextStyled>
+                                </Tag>
+                              </div>
+                            </StyledFlex>
+                          </Flex>
+                          <div>
+                            <EnvironmentButton
                               onClick={[Function]}
                               size="xsmall"
                             >
-                              <button
-                                className="css-10adnmx-EnvironmentButton css-d1dasp0 button button-default button-xs"
+                              <Button
+                                className="css-10adnmx-EnvironmentButton css-zyyc9b0"
                                 disabled={false}
                                 onClick={[Function]}
-                                role="button"
+                                size="xsmall"
                               >
-                                <Flex
-                                  align="center"
-                                  className="button-label"
+                                <button
+                                  className="css-10adnmx-EnvironmentButton css-zyyc9b0 button button-default button-xs"
+                                  disabled={false}
+                                  onClick={[Function]}
+                                  role="button"
                                 >
-                                  <Base
+                                  <Flex
                                     align="center"
-                                    className="button-label css-5ipae5"
+                                    className="button-label"
                                   >
-                                    <div
-                                      className="button-label css-5ipae5"
-                                      is={null}
+                                    <StyledFlex
+                                      align="center"
+                                      className="button-label"
                                     >
-                                      Hide
-                                    </div>
-                                  </Base>
-                                </Flex>
-                              </button>
-                            </Button>
-                          </EnvironmentButton>
+                                      <div
+                                        className="button-label css-ud6gq6-StyledFlex css-4jd5981"
+                                      >
+                                        Hide
+                                      </div>
+                                    </StyledFlex>
+                                  </Flex>
+                                </button>
+                              </Button>
+                            </EnvironmentButton>
+                          </div>
                         </div>
-                      </div>
-                    </Base>
+                      </StyledFlex>
+                    </Flex>
                   </StyledPanelItem>
                 </PanelItem>
               </EnvironmentRow>
@@ -843,28 +842,26 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
         }
       >
         <div
-          className="css-t5gfr9-Wrapper css-17jmgia0"
+          className="css-t5gfr9-Wrapper css-1wp86lr0"
         >
           <Flex
             align="center"
           >
-            <Base
+            <StyledFlex
               align="center"
-              className="css-5ipae5"
             >
               <div
-                className="css-5ipae5"
-                is={null}
+                className="css-ud6gq6-StyledFlex css-4jd5981"
               >
                 <Title>
                   <div
-                    className="css-zmdcxu-Title css-17jmgia1"
+                    className="css-zmdcxu-Title css-1wp86lr1"
                   >
                     Manage Environments
                   </div>
                 </Title>
               </div>
-            </Base>
+            </StyledFlex>
           </Flex>
           <div>
             <ul
@@ -934,25 +931,24 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
           <PanelHeader>
             <StyledPanelHeader>
               <Component
-                className="css-19pgfgl-StyledPanelHeader css-1t1cqk30"
+                className="css-19pgfgl-StyledPanelHeader css-9rpnl60"
               >
                 <Flex
                   align="center"
-                  className="css-19pgfgl-StyledPanelHeader css-1t1cqk30"
+                  className="css-19pgfgl-StyledPanelHeader css-9rpnl60"
                   justify="space-between"
                 >
-                  <Base
+                  <StyledFlex
                     align="center"
-                    className="css-1t1cqk30 css-14dugjz"
+                    className="css-19pgfgl-StyledPanelHeader css-9rpnl60"
                     justify="space-between"
                   >
                     <div
-                      className="css-1t1cqk30 css-14dugjz"
-                      is={null}
+                      className="css-9rpnl60 css-hhun9k-StyledFlex css-4jd5981"
                     >
                       Hidden
                     </div>
-                  </Base>
+                  </StyledFlex>
                 </Flex>
               </Component>
             </StyledPanelHeader>
@@ -1063,28 +1059,26 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
         }
       >
         <div
-          className="css-t5gfr9-Wrapper css-17jmgia0"
+          className="css-t5gfr9-Wrapper css-1wp86lr0"
         >
           <Flex
             align="center"
           >
-            <Base
+            <StyledFlex
               align="center"
-              className="css-5ipae5"
             >
               <div
-                className="css-5ipae5"
-                is={null}
+                className="css-ud6gq6-StyledFlex css-4jd5981"
               >
                 <Title>
                   <div
-                    className="css-zmdcxu-Title css-17jmgia1"
+                    className="css-zmdcxu-Title css-1wp86lr1"
                   >
                     Manage Environments
                   </div>
                 </Title>
               </div>
-            </Base>
+            </StyledFlex>
           </Flex>
           <div>
             <ul
@@ -1154,25 +1148,24 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
           <PanelHeader>
             <StyledPanelHeader>
               <Component
-                className="css-19pgfgl-StyledPanelHeader css-1t1cqk30"
+                className="css-19pgfgl-StyledPanelHeader css-9rpnl60"
               >
                 <Flex
                   align="center"
-                  className="css-19pgfgl-StyledPanelHeader css-1t1cqk30"
+                  className="css-19pgfgl-StyledPanelHeader css-9rpnl60"
                   justify="space-between"
                 >
-                  <Base
+                  <StyledFlex
                     align="center"
-                    className="css-1t1cqk30 css-14dugjz"
+                    className="css-19pgfgl-StyledPanelHeader css-9rpnl60"
                     justify="space-between"
                   >
                     <div
-                      className="css-1t1cqk30 css-14dugjz"
-                      is={null}
+                      className="css-9rpnl60 css-hhun9k-StyledFlex css-4jd5981"
                     >
                       Hidden
                     </div>
-                  </Base>
+                  </StyledFlex>
                 </Flex>
               </Component>
             </StyledPanelHeader>
@@ -1214,74 +1207,76 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                     justify="space-between"
                     p={2}
                   >
-                    <Base
+                    <Flex
                       align="center"
-                      className="css-qcergp-StyledPanelItem css-q9h14u0"
+                      className="css-v9wio6-StyledPanelItem css-ggxnv80"
                       justify="space-between"
                       p={2}
                     >
-                      <div
-                        className="css-qcergp-StyledPanelItem css-q9h14u0"
-                        is={null}
+                      <StyledFlex
+                        align="center"
+                        className="css-v9wio6-StyledPanelItem css-ggxnv80"
+                        justify="space-between"
                       >
-                        <Flex
-                          align="center"
+                        <div
+                          className="css-ggxnv80 css-ht5a2f-StyledFlex css-4jd5981"
                         >
-                          <Base
+                          <Flex
                             align="center"
-                            className="css-5ipae5"
                           >
-                            <div
-                              className="css-5ipae5"
-                              is={null}
+                            <StyledFlex
+                              align="center"
                             >
-                              Zzz
-                               
-                              <code>
-                                zzz
-                              </code>
-                            </div>
-                          </Base>
-                        </Flex>
-                        <div>
-                          <EnvironmentButton
-                            onClick={[Function]}
-                            size="xsmall"
-                          >
-                            <Button
-                              className="css-10adnmx-EnvironmentButton css-d1dasp0"
-                              disabled={false}
+                              <div
+                                className="css-ud6gq6-StyledFlex css-4jd5981"
+                              >
+                                Zzz
+                                 
+                                <code>
+                                  zzz
+                                </code>
+                              </div>
+                            </StyledFlex>
+                          </Flex>
+                          <div>
+                            <EnvironmentButton
                               onClick={[Function]}
                               size="xsmall"
                             >
-                              <button
-                                className="css-10adnmx-EnvironmentButton css-d1dasp0 button button-default button-xs"
+                              <Button
+                                className="css-10adnmx-EnvironmentButton css-zyyc9b0"
                                 disabled={false}
                                 onClick={[Function]}
-                                role="button"
+                                size="xsmall"
                               >
-                                <Flex
-                                  align="center"
-                                  className="button-label"
+                                <button
+                                  className="css-10adnmx-EnvironmentButton css-zyyc9b0 button button-default button-xs"
+                                  disabled={false}
+                                  onClick={[Function]}
+                                  role="button"
                                 >
-                                  <Base
+                                  <Flex
                                     align="center"
-                                    className="button-label css-5ipae5"
+                                    className="button-label"
                                   >
-                                    <div
-                                      className="button-label css-5ipae5"
-                                      is={null}
+                                    <StyledFlex
+                                      align="center"
+                                      className="button-label"
                                     >
-                                      Show
-                                    </div>
-                                  </Base>
-                                </Flex>
-                              </button>
-                            </Button>
-                          </EnvironmentButton>
+                                      <div
+                                        className="button-label css-ud6gq6-StyledFlex css-4jd5981"
+                                      >
+                                        Show
+                                      </div>
+                                    </StyledFlex>
+                                  </Flex>
+                                </button>
+                              </Button>
+                            </EnvironmentButton>
+                          </div>
                         </div>
-                      </div>
-                    </Base>
+                      </StyledFlex>
+                    </Flex>
                   </StyledPanelItem>
                 </PanelItem>
               </EnvironmentRow>

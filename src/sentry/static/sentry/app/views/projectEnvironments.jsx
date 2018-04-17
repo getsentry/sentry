@@ -1,10 +1,10 @@
-import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
+import {Flex} from '../components/grid';
 import {ALL_ENVIRONMENTS_KEY} from '../constants';
 import {
   addErrorMessage,

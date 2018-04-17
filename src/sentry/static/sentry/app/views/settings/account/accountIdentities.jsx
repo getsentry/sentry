@@ -1,6 +1,6 @@
-import {Box} from 'grid-emotion';
 import React from 'react';
 
+import {Box} from '../../../components/grid';
 import {disconnectIdentity} from '../../../actionCreators/account';
 import {t} from '../../../locale';
 import AsyncView from '../../asyncView';

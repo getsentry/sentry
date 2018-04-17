@@ -3,8 +3,8 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 import styled from 'react-emotion';
-import {Flex, Box} from 'grid-emotion';
 
+import {Flex, Box} from './grid';
 import ProjectState from '../mixins/projectState';
 import TimeSince from './timeSince';
 import ShortId from './shortId';

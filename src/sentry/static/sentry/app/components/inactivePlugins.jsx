@@ -1,8 +1,8 @@
-import {Box, Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import {Flex, Box} from './grid';
 import {t} from '../locale';
 import {Panel, PanelBody, PanelHeader} from './panels';
 import PluginIcon from '../plugins/components/pluginIcon';

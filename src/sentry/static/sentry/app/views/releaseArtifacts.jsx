@@ -1,9 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Flex} from 'grid-emotion';
-
 import createReactClass from 'create-react-class';
 
+import {Flex} from '../components/grid';
 import ApiMixin from '../mixins/apiMixin';
 import OrganizationState from '../mixins/organizationState';
 import Tooltip from '../components/tooltip';

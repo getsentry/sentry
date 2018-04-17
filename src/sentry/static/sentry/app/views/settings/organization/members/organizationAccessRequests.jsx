@@ -1,11 +1,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {Flex, Box} from 'grid-emotion';
 
 import {t, tct} from '../../../../locale';
+import SentryTypes from '../../../../proptypes';
 import Button from '../../../../components/buttons/button';
 import {Panel, PanelBody, PanelHeader, PanelItem} from '../../../../components/panels';
-import SentryTypes from '../../../../proptypes';
+import {Flex, Box} from '../../../../components/grid';
 
 class OrganizationAccessRequests extends React.Component {
   static propTypes = {

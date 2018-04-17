@@ -1,4 +1,3 @@
-import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
@@ -9,6 +8,7 @@ import {selectText} from '../../../../utils/selectText';
 import Button from '../../../../components/buttons/button';
 import Clipboard from '../../../../components/clipboard';
 import InlineSvg from '../../../../components/inlineSvg';
+import {Flex} from '../../../../components/grid';
 
 const StyledInput = styled(props => {
   return <input {...props} />;

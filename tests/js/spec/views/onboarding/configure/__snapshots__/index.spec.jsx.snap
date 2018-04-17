@@ -211,22 +211,21 @@ exports[`Configure should render correctly render() should render platform docs 
                                   hasButtons={true}
                                 >
                                   <Component
-                                    className="css-vzwv85-StyledPanelHeader css-1t1cqk30"
+                                    className="css-vzwv85-StyledPanelHeader css-9rpnl60"
                                     hasButtons={true}
                                   >
                                     <Flex
                                       align="center"
-                                      className="css-vzwv85-StyledPanelHeader css-1t1cqk30"
+                                      className="css-vzwv85-StyledPanelHeader css-9rpnl60"
                                       justify="space-between"
                                     >
-                                      <Base
+                                      <StyledFlex
                                         align="center"
-                                        className="css-1t1cqk30 css-1h9uuh9"
+                                        className="css-vzwv85-StyledPanelHeader css-9rpnl60"
                                         justify="space-between"
                                       >
                                         <div
-                                          className="css-1t1cqk30 css-1h9uuh9"
-                                          is={null}
+                                          className="css-9rpnl60 css-fj6f8u-StyledFlex css-4jd5981"
                                         >
                                           Configure node
                                           <Button
@@ -257,23 +256,22 @@ exports[`Configure should render correctly render() should render platform docs 
                                                   align="center"
                                                   className="button-label"
                                                 >
-                                                  <Base
+                                                  <StyledFlex
                                                     align="center"
-                                                    className="button-label css-5ipae5"
+                                                    className="button-label"
                                                   >
                                                     <div
-                                                      className="button-label css-5ipae5"
-                                                      is={null}
+                                                      className="button-label css-ud6gq6-StyledFlex css-4jd5981"
                                                     >
                                                       Full Documentation
                                                     </div>
-                                                  </Base>
+                                                  </StyledFlex>
                                                 </Flex>
                                               </a>
                                             </ExternalLink>
                                           </Button>
                                         </div>
-                                      </Base>
+                                      </StyledFlex>
                                     </Flex>
                                   </Component>
                                 </StyledPanelHeader>

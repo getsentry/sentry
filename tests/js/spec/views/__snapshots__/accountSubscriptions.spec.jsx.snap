@@ -49,28 +49,26 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
         >
           <Wrapper>
             <div
-              className="css-foidy-Wrapper css-17jmgia0"
+              className="css-foidy-Wrapper css-1wp86lr0"
             >
               <Flex
                 align="center"
               >
-                <Base
+                <StyledFlex
                   align="center"
-                  className="css-5ipae5"
                 >
                   <div
-                    className="css-5ipae5"
-                    is={null}
+                    className="css-ud6gq6-StyledFlex css-4jd5981"
                   >
                     <Title>
                       <div
-                        className="css-zmdcxu-Title css-17jmgia1"
+                        className="css-zmdcxu-Title css-1wp86lr1"
                       >
                         Subscriptions
                       </div>
                     </Title>
                   </div>
-                </Base>
+                </StyledFlex>
               </Flex>
             </div>
           </Wrapper>
@@ -106,25 +104,24 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                 <PanelHeader>
                   <StyledPanelHeader>
                     <Component
-                      className="css-kf498j-StyledPanelHeader css-1t1cqk30"
+                      className="css-kf498j-StyledPanelHeader css-9rpnl60"
                     >
                       <Flex
                         align="center"
-                        className="css-kf498j-StyledPanelHeader css-1t1cqk30"
+                        className="css-kf498j-StyledPanelHeader css-9rpnl60"
                         justify="space-between"
                       >
-                        <Base
+                        <StyledFlex
                           align="center"
-                          className="css-1t1cqk30 css-hj6snb"
+                          className="css-kf498j-StyledPanelHeader css-9rpnl60"
                           justify="space-between"
                         >
                           <div
-                            className="css-1t1cqk30 css-hj6snb"
-                            is={null}
+                            className="css-9rpnl60 css-69xk6m-StyledFlex css-4jd5981"
                           >
                             Subscription
                           </div>
-                        </Base>
+                        </StyledFlex>
                       </Flex>
                     </Component>
                   </StyledPanelHeader>
@@ -146,94 +143,90 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                         align="center"
                         p={2}
                       >
-                        <Base
+                        <Flex
                           align="center"
-                          className="css-1m7dq2n-StyledPanelItem css-q9h14u0"
+                          className="css-g2y9ad-StyledPanelItem css-ggxnv80"
                           p={2}
                         >
-                          <div
-                            className="css-1m7dq2n-StyledPanelItem css-q9h14u0"
-                            is={null}
+                          <StyledFlex
+                            align="center"
+                            className="css-g2y9ad-StyledPanelItem css-ggxnv80"
                           >
-                            <Box
-                              pr={2}
-                              w={0.5}
+                            <div
+                              className="css-ggxnv80 css-cfhnwf-StyledFlex css-4jd5981"
                             >
-                              <Base
-                                className="css-k6zv7a"
+                              <Box
                                 pr={2}
                                 w={0.5}
                               >
-                                <div
-                                  className="css-k6zv7a"
-                                  is={null}
-                                >
-                                  <SubscriptionName>
-                                    <div
-                                      className="css-tt56b0-SubscriptionName css-mt139n0"
-                                    >
-                                      Product & Feature Updates
-                                    </div>
-                                  </SubscriptionName>
-                                  <Description>
-                                    <div
-                                      className="css-781ki1-Description css-mt139n1"
-                                    >
-                                      Everything you need to know about Sentry features, integrations, partnerships, and launches.
-                                    </div>
-                                  </Description>
-                                  <SubscribedDescription>
-                                    <div
-                                      className="css-19frbfu-Description-SubscribedDescription css-mt139n2"
-                                    >
-                                      <div>
-                                        test@sentry.io
-                                         on
-                                         
-                                        <DateTime
-                                          date="2018-01-08T05:14:59.102Z"
-                                          seconds={true}
-                                          shortDate={true}
-                                        >
-                                          <time>
-                                            01/08/2018
-                                          </time>
-                                        </DateTime>
-                                      </div>
-                                    </div>
-                                  </SubscribedDescription>
-                                </div>
-                              </Base>
-                            </Box>
-                            <Box>
-                              <Base
-                                className="css-roynbj"
-                              >
-                                <div
-                                  className="css-roynbj"
-                                  is={null}
-                                >
-                                  <Switch
-                                    isActive={true}
-                                    size="lg"
-                                    toggle={[Function]}
+                                <StyledBox>
+                                  <div
+                                    className="css-1b52b86-StyledBox css-4jd5980"
                                   >
-                                    <div
-                                      aria-checked={true}
-                                      className="switch switch-lg switch-on"
-                                      onClick={[Function]}
-                                      role="checkbox"
+                                    <SubscriptionName>
+                                      <div
+                                        className="css-tt56b0-SubscriptionName css-tqo0010"
+                                      >
+                                        Product & Feature Updates
+                                      </div>
+                                    </SubscriptionName>
+                                    <Description>
+                                      <div
+                                        className="css-781ki1-Description css-tqo0011"
+                                      >
+                                        Everything you need to know about Sentry features, integrations, partnerships, and launches.
+                                      </div>
+                                    </Description>
+                                    <SubscribedDescription>
+                                      <div
+                                        className="css-19frbfu-Description-SubscribedDescription css-tqo0012"
+                                      >
+                                        <div>
+                                          test@sentry.io
+                                           on
+                                           
+                                          <DateTime
+                                            date="2018-01-08T05:14:59.102Z"
+                                            seconds={true}
+                                            shortDate={true}
+                                          >
+                                            <time>
+                                              01/08/2018
+                                            </time>
+                                          </DateTime>
+                                        </div>
+                                      </div>
+                                    </SubscribedDescription>
+                                  </div>
+                                </StyledBox>
+                              </Box>
+                              <Box>
+                                <StyledBox>
+                                  <div
+                                    className="css-1m695dv-StyledBox css-4jd5980"
+                                  >
+                                    <Switch
+                                      isActive={true}
+                                      size="lg"
+                                      toggle={[Function]}
                                     >
-                                      <span
-                                        className="switch-toggle"
-                                      />
-                                    </div>
-                                  </Switch>
-                                </div>
-                              </Base>
-                            </Box>
-                          </div>
-                        </Base>
+                                      <div
+                                        aria-checked={true}
+                                        className="switch switch-lg switch-on"
+                                        onClick={[Function]}
+                                        role="checkbox"
+                                      >
+                                        <span
+                                          className="switch-toggle"
+                                        />
+                                      </div>
+                                    </Switch>
+                                  </div>
+                                </StyledBox>
+                              </Box>
+                            </div>
+                          </StyledFlex>
+                        </Flex>
                       </StyledPanelItem>
                     </PanelItem>
                     <PanelItem
@@ -245,81 +238,77 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                         align="center"
                         p={2}
                       >
-                        <Base
+                        <Flex
                           align="center"
-                          className="css-1m7dq2n-StyledPanelItem css-q9h14u0"
+                          className="css-g2y9ad-StyledPanelItem css-ggxnv80"
                           p={2}
                         >
-                          <div
-                            className="css-1m7dq2n-StyledPanelItem css-q9h14u0"
-                            is={null}
+                          <StyledFlex
+                            align="center"
+                            className="css-g2y9ad-StyledPanelItem css-ggxnv80"
                           >
-                            <Box
-                              pr={2}
-                              w={0.5}
+                            <div
+                              className="css-ggxnv80 css-cfhnwf-StyledFlex css-4jd5981"
                             >
-                              <Base
-                                className="css-k6zv7a"
+                              <Box
                                 pr={2}
                                 w={0.5}
                               >
-                                <div
-                                  className="css-k6zv7a"
-                                  is={null}
-                                >
-                                  <SubscriptionName>
-                                    <div
-                                      className="css-tt56b0-SubscriptionName css-mt139n0"
-                                    >
-                                      Sentry Newsletter
-                                    </div>
-                                  </SubscriptionName>
-                                  <Description>
-                                    <div
-                                      className="css-781ki1-Description css-mt139n1"
-                                    >
-                                      Our monthly update on what's new with Sentry and the community.
-                                    </div>
-                                  </Description>
-                                  <SubscribedDescription>
-                                    <div
-                                      className="css-19frbfu-Description-SubscribedDescription css-mt139n2"
-                                    >
-                                      Not currently subscribed
-                                    </div>
-                                  </SubscribedDescription>
-                                </div>
-                              </Base>
-                            </Box>
-                            <Box>
-                              <Base
-                                className="css-roynbj"
-                              >
-                                <div
-                                  className="css-roynbj"
-                                  is={null}
-                                >
-                                  <Switch
-                                    isActive={false}
-                                    size="lg"
-                                    toggle={[Function]}
+                                <StyledBox>
+                                  <div
+                                    className="css-1b52b86-StyledBox css-4jd5980"
                                   >
-                                    <div
-                                      aria-checked={false}
-                                      className="switch switch-lg"
-                                      onClick={[Function]}
-                                      role="checkbox"
+                                    <SubscriptionName>
+                                      <div
+                                        className="css-tt56b0-SubscriptionName css-tqo0010"
+                                      >
+                                        Sentry Newsletter
+                                      </div>
+                                    </SubscriptionName>
+                                    <Description>
+                                      <div
+                                        className="css-781ki1-Description css-tqo0011"
+                                      >
+                                        Our monthly update on what's new with Sentry and the community.
+                                      </div>
+                                    </Description>
+                                    <SubscribedDescription>
+                                      <div
+                                        className="css-19frbfu-Description-SubscribedDescription css-tqo0012"
+                                      >
+                                        Not currently subscribed
+                                      </div>
+                                    </SubscribedDescription>
+                                  </div>
+                                </StyledBox>
+                              </Box>
+                              <Box>
+                                <StyledBox>
+                                  <div
+                                    className="css-1m695dv-StyledBox css-4jd5980"
+                                  >
+                                    <Switch
+                                      isActive={false}
+                                      size="lg"
+                                      toggle={[Function]}
                                     >
-                                      <span
-                                        className="switch-toggle"
-                                      />
-                                    </div>
-                                  </Switch>
-                                </div>
-                              </Base>
-                            </Box>
-                          </div>
-                        </Base>
+                                      <div
+                                        aria-checked={false}
+                                        className="switch switch-lg"
+                                        onClick={[Function]}
+                                        role="checkbox"
+                                      >
+                                        <span
+                                          className="switch-toggle"
+                                        />
+                                      </div>
+                                    </Switch>
+                                  </div>
+                                </StyledBox>
+                              </Box>
+                            </div>
+                          </StyledFlex>
+                        </Flex>
                       </StyledPanelItem>
                     </PanelItem>
                      

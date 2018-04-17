@@ -26,29 +26,23 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
       >
         <Wrapper>
           <div
-            className="css-foidy-Wrapper css-17jmgia0"
+            className="css-foidy-Wrapper css-1wp86lr0"
           >
             <Flex
               align="center"
             >
-              <Base
+              <StyledFlex
                 align="center"
-                className="css-5ipae5"
               >
                 <div
-                  className="css-5ipae5"
-                  is={null}
+                  className="css-ud6gq6-StyledFlex css-4jd5981"
                 >
                   <Box
                     pr={1}
                   >
-                    <Base
-                      className="css-ioegso"
-                      pr={1}
-                    >
+                    <StyledBox>
                       <div
-                        className="css-ioegso"
-                        is={null}
+                        className="css-1xboc7d-StyledBox css-4jd5980"
                       >
                         <PluginIcon
                           pluginId="github"
@@ -65,17 +59,17 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                           </IntegrationIcon>
                         </PluginIcon>
                       </div>
-                    </Base>
+                    </StyledBox>
                   </Box>
                   <Title>
                     <div
-                      className="css-zmdcxu-Title css-17jmgia1"
+                      className="css-zmdcxu-Title css-1wp86lr1"
                     >
                       GitHub
                     </div>
                   </Title>
                 </div>
-              </Base>
+              </StyledFlex>
             </Flex>
           </div>
         </Wrapper>
@@ -94,49 +88,40 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                 hasButtons={true}
               >
                 <Component
-                  className="css-bx554z-StyledPanelHeader css-1t1cqk30"
+                  className="css-bx554z-StyledPanelHeader css-9rpnl60"
                   disablePadding={true}
                   hasButtons={true}
                 >
                   <Flex
                     align="center"
-                    className="css-bx554z-StyledPanelHeader css-1t1cqk30"
+                    className="css-bx554z-StyledPanelHeader css-9rpnl60"
                     justify="space-between"
                   >
-                    <Base
+                    <StyledFlex
                       align="center"
-                      className="css-1t1cqk30 css-1wxtvvf"
+                      className="css-bx554z-StyledPanelHeader css-9rpnl60"
                       justify="space-between"
                     >
                       <div
-                        className="css-1t1cqk30 css-1wxtvvf"
-                        is={null}
+                        className="css-9rpnl60 css-fy31jr-StyledFlex css-4jd5981"
                       >
                         <Box
                           px={2}
                         >
-                          <Base
-                            className="css-17pfgr6"
-                            px={2}
-                          >
+                          <StyledBox>
                             <div
-                              className="css-17pfgr6"
-                              is={null}
+                              className="css-1aj9gc4-StyledBox css-4jd5980"
                             >
                               Workspaces
                             </div>
-                          </Base>
+                          </StyledBox>
                         </Box>
                         <Box
                           mr={1}
                         >
-                          <Base
-                            className="css-xgysgc"
-                            mr={1}
-                          >
+                          <StyledBox>
                             <div
-                              className="css-xgysgc"
-                              is={null}
+                              className="css-1xboc7d-StyledBox css-4jd5980"
                             >
                               <Button
                                 disabled={false}
@@ -153,13 +138,12 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                                     align="center"
                                     className="button-label"
                                   >
-                                    <Base
+                                    <StyledFlex
                                       align="center"
-                                      className="button-label css-5ipae5"
+                                      className="button-label"
                                     >
                                       <div
-                                        className="button-label css-5ipae5"
-                                        is={null}
+                                        className="button-label css-ud6gq6-StyledFlex css-4jd5981"
                                       >
                                         <span
                                           className="icon icon-add"
@@ -167,15 +151,15 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                                          
                                         Add Workspace
                                       </div>
-                                    </Base>
+                                    </StyledFlex>
                                   </Flex>
                                 </button>
                               </Button>
                             </div>
-                          </Base>
+                          </StyledBox>
                         </Box>
                       </div>
-                    </Base>
+                    </StyledFlex>
                   </Flex>
                 </Component>
               </StyledPanelHeader>
@@ -197,153 +181,116 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                     p={0}
                     py={2}
                   >
-                    <Base
-                      className="css-17iyzx4-StyledPanelItem css-q9h14u0"
+                    <Flex
+                      className="css-g2y9ad-StyledPanelItem css-ggxnv80"
                       p={0}
                       py={2}
                     >
-                      <div
-                        className="css-17iyzx4-StyledPanelItem css-q9h14u0"
-                        is={null}
+                      <StyledFlex
+                        className="css-g2y9ad-StyledPanelItem css-ggxnv80"
                       >
-                        <Box
-                          pl={2}
+                        <div
+                          className="css-ggxnv80 css-1pf07em-StyledFlex css-4jd5981"
                         >
-                          <Base
-                            className="css-wwmrss"
+                          <Box
                             pl={2}
                           >
-                            <div
-                              className="css-wwmrss"
-                              is={null}
-                            >
-                              <IntegrationIcon
-                                src="http://example.com/integration_icon.png"
+                            <StyledBox>
+                              <div
+                                className="css-1063ies-StyledBox css-4jd5980"
                               >
-                                <img
-                                  className="css-lx37iq-IntegrationIcon css-1iov4vb0"
+                                <IntegrationIcon
                                   src="http://example.com/integration_icon.png"
-                                />
-                              </IntegrationIcon>
-                            </div>
-                          </Base>
-                        </Box>
-                        <Box
-                          flex={1}
-                          px={2}
-                        >
-                          <Base
-                            className="css-pcjga5"
-                            flex={1}
+                                >
+                                  <img
+                                    className="css-lx37iq-IntegrationIcon css-1c1cwf00"
+                                    src="http://example.com/integration_icon.png"
+                                  />
+                                </IntegrationIcon>
+                              </div>
+                            </StyledBox>
+                          </Box>
+                          <Box
+                            flex="1"
                             px={2}
                           >
-                            <div
-                              className="css-pcjga5"
-                              is={null}
-                            >
-                              <IntegrationName>
-                                <div
-                                  className="css-1daz7ru-IntegrationName css-1iov4vb1"
-                                >
-                                  Test Integration
-                                </div>
-                              </IntegrationName>
-                              <DomainName>
-                                <div
-                                  className="css-1y54ser-DomainName css-1iov4vb2"
-                                >
-                                  gtithub.com/test-integration
-                                </div>
-                              </DomainName>
-                            </div>
-                          </Base>
-                        </Box>
-                        <Box
-                          mr={1}
-                          pr={2}
-                        >
-                          <Base
-                            className="css-3n6m02"
+                            <StyledBox>
+                              <div
+                                className="css-vjb1rk-StyledBox css-4jd5980"
+                              >
+                                <IntegrationName>
+                                  <div
+                                    className="css-1daz7ru-IntegrationName css-1c1cwf01"
+                                  >
+                                    Test Integration
+                                  </div>
+                                </IntegrationName>
+                                <DomainName>
+                                  <div
+                                    className="css-1y54ser-DomainName css-1c1cwf02"
+                                  >
+                                    gtithub.com/test-integration
+                                  </div>
+                                </DomainName>
+                              </div>
+                            </StyledBox>
+                          </Box>
+                          <Box
                             mr={1}
                             pr={2}
                           >
-                            <div
-                              className="css-3n6m02"
-                              is={null}
-                            >
-                              <Confirm
-                                cancelText="Cancel"
-                                confirmText="Confirm"
-                                message="Removing this inegration will disable the integration for all projects. Are you sure you want to remove this integration?"
-                                onConfirm={[Function]}
-                                priority="primary"
+                            <StyledBox>
+                              <div
+                                className="css-1mm7it9-StyledBox css-4jd5980"
                               >
-                                <Button
-                                  disabled={false}
-                                  onClick={[Function]}
-                                  size="small"
+                                <Confirm
+                                  cancelText="Cancel"
+                                  confirmText="Confirm"
+                                  message="Removing this inegration will disable the integration for all projects. Are you sure you want to remove this integration?"
+                                  onConfirm={[Function]}
+                                  priority="primary"
                                 >
-                                  <button
-                                    className="button button-default button-sm"
+                                  <Button
                                     disabled={false}
                                     onClick={[Function]}
-                                    role="button"
+                                    size="small"
                                   >
-                                    <Flex
-                                      align="center"
-                                      className="button-label"
+                                    <button
+                                      className="button button-default button-sm"
+                                      disabled={false}
+                                      onClick={[Function]}
+                                      role="button"
                                     >
-                                      <Base
+                                      <Flex
                                         align="center"
-                                        className="button-label css-5ipae5"
+                                        className="button-label"
                                       >
-                                        <div
-                                          className="button-label css-5ipae5"
-                                          is={null}
+                                        <StyledFlex
+                                          align="center"
+                                          className="button-label"
                                         >
-                                          <span
-                                            className="icon icon-trash"
-                                            style={
-                                              Object {
-                                                "margin": 0,
+                                          <div
+                                            className="button-label css-ud6gq6-StyledFlex css-4jd5981"
+                                          >
+                                            <span
+                                              className="icon icon-trash"
+                                              style={
+                                                Object {
+                                                  "margin": 0,
+                                                }
                                               }
-                                            }
-                                          />
-                                        </div>
-                                      </Base>
-                                    </Flex>
-                                  </button>
-                                </Button>
-                                <Modal
-                                  animation={false}
-                                  autoFocus={true}
-                                  backdrop={true}
-                                  bsClass="modal"
-                                  dialogComponentClass={[Function]}
-                                  enforceFocus={true}
-                                  keyboard={true}
-                                  manager={
-                                    ModalManager {
-                                      "add": [Function],
-                                      "containers": Array [],
-                                      "data": Array [],
-                                      "handleContainerOverflow": true,
-                                      "hideSiblingNodes": true,
-                                      "isTopModal": [Function],
-                                      "modals": Array [],
-                                      "remove": [Function],
-                                    }
-                                  }
-                                  onHide={[Function]}
-                                  renderBackdrop={[Function]}
-                                  restoreFocus={true}
-                                  show={false}
-                                >
+                                            />
+                                          </div>
+                                        </StyledFlex>
+                                      </Flex>
+                                    </button>
+                                  </Button>
                                   <Modal
+                                    animation={false}
                                     autoFocus={true}
                                     backdrop={true}
-                                    backdropClassName="modal-backdrop"
-                                    containerClassName="modal-open"
+                                    bsClass="modal"
+                                    dialogComponentClass={[Function]}
                                     enforceFocus={true}
                                     keyboard={true}
                                     manager={
@@ -358,20 +305,45 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                                         "remove": [Function],
                                       }
                                     }
-                                    onEntering={[Function]}
-                                    onExited={[Function]}
                                     onHide={[Function]}
                                     renderBackdrop={[Function]}
                                     restoreFocus={true}
                                     show={false}
-                                  />
-                                </Modal>
-                              </Confirm>
-                            </div>
-                          </Base>
-                        </Box>
-                      </div>
-                    </Base>
+                                  >
+                                    <Modal
+                                      autoFocus={true}
+                                      backdrop={true}
+                                      backdropClassName="modal-backdrop"
+                                      containerClassName="modal-open"
+                                      enforceFocus={true}
+                                      keyboard={true}
+                                      manager={
+                                        ModalManager {
+                                          "add": [Function],
+                                          "containers": Array [],
+                                          "data": Array [],
+                                          "handleContainerOverflow": true,
+                                          "hideSiblingNodes": true,
+                                          "isTopModal": [Function],
+                                          "modals": Array [],
+                                          "remove": [Function],
+                                        }
+                                      }
+                                      onEntering={[Function]}
+                                      onExited={[Function]}
+                                      onHide={[Function]}
+                                      renderBackdrop={[Function]}
+                                      restoreFocus={true}
+                                      show={false}
+                                    />
+                                  </Modal>
+                                </Confirm>
+                              </div>
+                            </StyledBox>
+                          </Box>
+                        </div>
+                      </StyledFlex>
+                    </Flex>
                   </StyledPanelItem>
                 </PanelItem>
               </div>
@@ -446,88 +418,86 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
         GitHub Integration
       </h5>
       <Details>
-        <Base
-          className="css-16wp28j-Details css-1iov4vb3"
+        <Flex
+          className="css-1tzy8vl-Details css-1c1cwf03"
         >
-          <div
-            className="css-16wp28j-Details css-1iov4vb3"
-            is={null}
+          <StyledFlex
+            className="css-1tzy8vl-Details css-1c1cwf03"
           >
-            <Box
-              width={0.625}
+            <div
+              className="css-1c1cwf03 css-fcpi36-StyledFlex css-4jd5981"
             >
-              <Base
-                className="css-dydpyx"
+              <Box
                 width={0.625}
               >
-                <div
-                  className="css-dydpyx"
-                  is={null}
+                <StyledBox
+                  width={0.625}
                 >
-                  <Description
-                    dangerouslySetInnerHTML={
-                      Object {
-                        "__html": "<p><em>markdown</em> formatted <em>description</em></p>
-",
-                      }
-                    }
+                  <div
+                    className="css-1m695dv-StyledBox css-4jd5980"
+                    width={0.625}
                   >
-                    <div
-                      className="css-i2iqfw-Description css-1iov4vb4"
+                    <Description
                       dangerouslySetInnerHTML={
                         Object {
                           "__html": "<p><em>markdown</em> formatted <em>description</em></p>
 ",
                         }
                       }
-                    />
-                  </Description>
-                  <AuthorName>
-                    <div
-                      className="css-v0poyl-AuthorName css-1iov4vb5"
                     >
-                      By Morty
-                    </div>
-                  </AuthorName>
-                </div>
-              </Base>
-            </Box>
-            <Box
-              ml={60}
-            >
-              <Base
-                className="css-vgctkd"
+                      <div
+                        className="css-i2iqfw-Description css-1c1cwf04"
+                        dangerouslySetInnerHTML={
+                          Object {
+                            "__html": "<p><em>markdown</em> formatted <em>description</em></p>
+",
+                          }
+                        }
+                      />
+                    </Description>
+                    <AuthorName>
+                      <div
+                        className="css-v0poyl-AuthorName css-1c1cwf05"
+                      >
+                        By Morty
+                      </div>
+                    </AuthorName>
+                  </div>
+                </StyledBox>
+              </Box>
+              <Box
                 ml={60}
               >
-                <div
-                  className="css-vgctkd"
-                  is={null}
-                >
-                  <MetadataLink
-                    href="http://example.com/integration_issue_url"
+                <StyledBox>
+                  <div
+                    className="css-1io2mi1-StyledBox css-4jd5980"
                   >
-                    <a
-                      className="css-5qmaie-MetadataLink css-1iov4vb6"
+                    <MetadataLink
                       href="http://example.com/integration_issue_url"
                     >
-                      Report an Issue
-                    </a>
-                  </MetadataLink>
-                  <MetadataLink
-                    href="http://example.com/integration_source_url"
-                  >
-                    <a
-                      className="css-5qmaie-MetadataLink css-1iov4vb6"
+                      <a
+                        className="css-5qmaie-MetadataLink css-1c1cwf06"
+                        href="http://example.com/integration_issue_url"
+                      >
+                        Report an Issue
+                      </a>
+                    </MetadataLink>
+                    <MetadataLink
                       href="http://example.com/integration_source_url"
                     >
-                      View Source
-                    </a>
-                  </MetadataLink>
-                </div>
-              </Base>
-            </Box>
-          </div>
-        </Base>
+                      <a
+                        className="css-5qmaie-MetadataLink css-1c1cwf06"
+                        href="http://example.com/integration_source_url"
+                      >
+                        View Source
+                      </a>
+                    </MetadataLink>
+                  </div>
+                </StyledBox>
+              </Box>
+            </div>
+          </StyledFlex>
+        </Flex>
       </Details>
     </DocumentTitle>
   </SideEffect(DocumentTitle)>

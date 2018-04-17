@@ -1,4 +1,3 @@
-import {Box, Flex} from 'grid-emotion';
 import {Link} from 'react-router';
 import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
@@ -17,6 +16,7 @@ import {t, tct} from '../../../../locale';
 import ApiMixin from '../../../../mixins/apiMixin';
 import AsyncView from '../../../asyncView';
 import Button from '../../../../components/buttons/button';
+import {Box, Flex} from '../../../../components/grid';
 import ClippedBox from '../../../../components/clippedBox';
 import Confirm from '../../../../components/confirm';
 import EmptyMessage from '../../components/emptyMessage';

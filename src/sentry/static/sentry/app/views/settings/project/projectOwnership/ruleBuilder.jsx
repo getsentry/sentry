@@ -1,13 +1,13 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import {Flex} from 'grid-emotion';
 import memberListStore from '../../../../stores/memberListStore';
 import ProjectsStore from '../../../../stores/projectsStore';
 import Button from '../../../../components/buttons/button';
 import SelectInput from '../../../../components/selectInput';
 import TextOverflow from '../../../../components/textOverflow';
 import InlineSvg from '../../../../components/inlineSvg';
+import {Flex} from '../../../../components/grid';
 import Input from '../../../../views/settings/components/forms/controls/input';
 import SentryTypes from '../../../../proptypes';
 import {buildUserId, buildTeamId} from '../../../../utils';

@@ -1,9 +1,9 @@
-import {Flex} from 'grid-emotion';
 import Modal from 'react-bootstrap/lib/Modal';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
+import {Flex} from '../components/grid';
 import {t} from '../locale';
 import ApiMixin from '../mixins/apiMixin';
 import DateTime from '../components/dateTime';

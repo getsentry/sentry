@@ -1,7 +1,8 @@
-import {Flex} from 'grid-emotion';
 import {css} from 'react-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
+
+import {Flex} from '../grid';
 
 const PanelBody = ({disablePadding, flex, direction, ...props}) => {
   let padding = !disablePadding

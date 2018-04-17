@@ -1,8 +1,7 @@
-import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-
+import {Box} from '../../../../components/grid';
 import {PanelItem} from '../../../../components/panels';
 import {t, tct} from '../../../../locale';
 import Avatar from '../../../../components/avatar';

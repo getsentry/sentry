@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import {Flex, Box} from 'grid-emotion';
+import {Flex, Box} from '../../../components/grid';
 
 class SettingsPageHeading extends React.Component {
   static propTypes = {

@@ -2,9 +2,9 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
 import $ from 'jquery';
-import {Box} from 'grid-emotion';
 import styled from 'react-emotion';
 
+import {Box} from '../components/grid';
 import {t} from '../locale';
 import Link from '../components/link';
 import OrganizationState from '../mixins/organizationState';

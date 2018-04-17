@@ -60,22 +60,20 @@ exports[`OrganizationApiKeysList renders 1`] = `
     >
       <Wrapper>
         <div
-          className="css-foidy-Wrapper css-17jmgia0"
+          className="css-foidy-Wrapper css-1wp86lr0"
         >
           <Flex
             align="center"
           >
-            <Base
+            <StyledFlex
               align="center"
-              className="css-5ipae5"
             >
               <div
-                className="css-5ipae5"
-                is={null}
+                className="css-ud6gq6-StyledFlex css-4jd5981"
               >
                 <Title>
                   <div
-                    className="css-zmdcxu-Title css-17jmgia1"
+                    className="css-zmdcxu-Title css-1wp86lr1"
                   >
                     API Keys
                   </div>
@@ -97,67 +95,70 @@ exports[`OrganizationApiKeysList renders 1`] = `
                         align="center"
                         className="button-label"
                       >
-                        <Base
+                        <StyledFlex
                           align="center"
-                          className="button-label css-5ipae5"
+                          className="button-label"
                         >
                           <div
-                            className="button-label css-5ipae5"
-                            is={null}
+                            className="button-label css-ud6gq6-StyledFlex css-4jd5981"
                           >
                             <Icon
                               size="small"
                             >
-                              <Base
-                                className="css-11bwulm-Icon css-1vxxnb60"
+                              <Box
+                                className="css-h7y7by-Icon css-1i8rv9g0"
                                 size="small"
                               >
-                                <div
-                                  className="css-11bwulm-Icon css-1vxxnb60"
-                                  is={null}
+                                <StyledBox
+                                  className="css-h7y7by-Icon css-1i8rv9g0"
                                   size="small"
                                 >
-                                  <StyledInlineSvg
-                                    size="12px"
-                                    src="icon-circle-add"
+                                  <div
+                                    className="css-1i8rv9g0 css-128il38-StyledBox css-4jd5980"
+                                    size="small"
                                   >
-                                    <InlineSvg
-                                      className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
+                                    <StyledInlineSvg
                                       size="12px"
                                       src="icon-circle-add"
                                     >
-                                      <StyledSvg
-                                        className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
-                                        height="12px"
-                                        viewBox={Object {}}
-                                        width="12px"
+                                      <InlineSvg
+                                        className="css-1ov3rcq-StyledInlineSvg css-1i8rv9g1"
+                                        size="12px"
+                                        src="icon-circle-add"
                                       >
-                                        <svg
-                                          className="css-1vxxnb61 css-1rlza0i-StyledSvg css-adkcw30"
+                                        <StyledSvg
+                                          className="css-1ov3rcq-StyledInlineSvg css-1i8rv9g1"
                                           height="12px"
                                           viewBox={Object {}}
                                           width="12px"
                                         >
-                                          <use
-                                            href="#test"
-                                            xlinkHref="#test"
-                                          />
-                                        </svg>
-                                      </StyledSvg>
-                                    </InlineSvg>
-                                  </StyledInlineSvg>
-                                </div>
-                              </Base>
+                                          <svg
+                                            className="css-1i8rv9g1 css-1rlza0i-StyledSvg css-adkcw30"
+                                            height="12px"
+                                            viewBox={Object {}}
+                                            width="12px"
+                                          >
+                                            <use
+                                              href="#test"
+                                              xlinkHref="#test"
+                                            />
+                                          </svg>
+                                        </StyledSvg>
+                                      </InlineSvg>
+                                    </StyledInlineSvg>
+                                  </div>
+                                </StyledBox>
+                              </Box>
                             </Icon>
                             New API Key
                           </div>
-                        </Base>
+                        </StyledFlex>
                       </Flex>
                     </button>
                   </Button>
                 </div>
               </div>
-            </Base>
+            </StyledFlex>
           </Flex>
         </div>
       </Wrapper>
@@ -253,92 +254,73 @@ exports[`OrganizationApiKeysList renders 1`] = `
             >
               <Component
                 align="center"
-                className="css-18fb6u1-StyledPanelHeader css-1t1cqk30"
+                className="css-18fb6u1-StyledPanelHeader css-9rpnl60"
                 disablePadding={true}
               >
                 <Flex
                   align="center"
-                  className="css-18fb6u1-StyledPanelHeader css-1t1cqk30"
+                  className="css-18fb6u1-StyledPanelHeader css-9rpnl60"
                   justify="space-between"
                 >
-                  <Base
+                  <StyledFlex
                     align="center"
-                    className="css-1t1cqk30 css-1pqpjvf"
+                    className="css-18fb6u1-StyledPanelHeader css-9rpnl60"
                     justify="space-between"
                   >
                     <div
-                      className="css-1t1cqk30 css-1pqpjvf"
-                      is={null}
+                      className="css-9rpnl60 css-qawref-StyledFlex css-4jd5981"
                     >
                       <Flex
                         align="center"
                         flex="1"
                       >
-                        <Base
+                        <StyledFlex
                           align="center"
-                          className="css-1yrw3fm"
-                          flex="1"
                         >
                           <div
-                            className="css-1yrw3fm"
-                            is={null}
+                            className="css-1luekth-StyledFlex css-4jd5981"
                           >
                             <Box
                               flex="1"
                               px={2}
                             >
-                              <Base
-                                className="css-pcjga5"
-                                flex="1"
-                                px={2}
-                              >
+                              <StyledBox>
                                 <div
-                                  className="css-pcjga5"
-                                  is={null}
+                                  className="css-vjb1rk-StyledBox css-4jd5980"
                                 >
                                   Name
                                 </div>
-                              </Base>
+                              </StyledBox>
                             </Box>
                             <Box
                               flex="2"
                               px={2}
                             >
-                              <Base
-                                className="css-1dp2adt"
-                                flex="2"
-                                px={2}
-                              >
+                              <StyledBox>
                                 <div
-                                  className="css-1dp2adt"
-                                  is={null}
+                                  className="css-1sfe7n0-StyledBox css-4jd5980"
                                 >
                                   Key
                                 </div>
-                              </Base>
+                              </StyledBox>
                             </Box>
                           </div>
-                        </Base>
+                        </StyledFlex>
                       </Flex>
                       <Box
                         px={2}
                         w={100}
                       >
-                        <Base
-                          className="css-j9rhnd"
-                          px={2}
-                          w={100}
-                        >
+                        <StyledBox>
                           <div
-                            className="css-j9rhnd"
-                            is={null}
+                            className="css-5qqgl5-StyledBox css-4jd5980"
                           >
                             Actions
                           </div>
-                        </Base>
+                        </StyledBox>
                       </Box>
                     </div>
-                  </Base>
+                  </StyledFlex>
                 </Flex>
               </Component>
             </StyledPanelHeader>
@@ -362,145 +344,107 @@ exports[`OrganizationApiKeysList renders 1`] = `
                   p={0}
                   py={1}
                 >
-                  <Base
+                  <Flex
                     align="center"
-                    className="css-12zy4sl-StyledPanelItem css-q9h14u0"
+                    className="css-g2y9ad-StyledPanelItem css-ggxnv80"
                     p={0}
                     py={1}
                   >
-                    <div
-                      className="css-12zy4sl-StyledPanelItem css-q9h14u0"
-                      is={null}
+                    <StyledFlex
+                      align="center"
+                      className="css-g2y9ad-StyledPanelItem css-ggxnv80"
                     >
-                      <Flex
-                        align="center"
-                        flex="1"
+                      <div
+                        className="css-ggxnv80 css-181i5nx-StyledFlex css-4jd5981"
                       >
-                        <Base
+                        <Flex
                           align="center"
-                          className="css-1yrw3fm"
                           flex="1"
                         >
-                          <div
-                            className="css-1yrw3fm"
-                            is={null}
+                          <StyledFlex
+                            align="center"
                           >
-                            <Box
-                              align="center"
-                              flex="1"
-                              px={2}
+                            <div
+                              className="css-1luekth-StyledFlex css-4jd5981"
                             >
-                              <Base
+                              <Box
                                 align="center"
-                                className="css-pcjga5"
                                 flex="1"
                                 px={2}
                               >
-                                <div
-                                  className="css-pcjga5"
-                                  is={null}
+                                <StyledBox
+                                  align="center"
                                 >
-                                  <Link
-                                    to="/organizations/org-slug/api-keys/1/"
+                                  <div
+                                    className="css-vjb1rk-StyledBox css-4jd5980"
                                   >
-                                    <a
-                                      href="/organizations/org-slug/api-keys/1/"
+                                    <Link
+                                      to="/organizations/org-slug/api-keys/1/"
                                     >
-                                      Default
-                                    </a>
-                                  </Link>
-                                </div>
-                              </Base>
-                            </Box>
-                            <Box
-                              flex="2"
-                              px={2}
-                            >
-                              <Base
-                                className="css-1dp2adt"
+                                      <a
+                                        href="/organizations/org-slug/api-keys/1/"
+                                      >
+                                        Default
+                                      </a>
+                                    </Link>
+                                  </div>
+                                </StyledBox>
+                              </Box>
+                              <Box
                                 flex="2"
                                 px={2}
                               >
-                                <div
-                                  className="css-1dp2adt"
-                                  is={null}
-                                >
+                                <StyledBox>
                                   <div
-                                    className="form-control disabled auto-select"
+                                    className="css-1sfe7n0-StyledBox css-4jd5980"
                                   >
-                                    aa624bcc12024702a202cd90be5feda0
+                                    <div
+                                      className="form-control disabled auto-select"
+                                    >
+                                      aa624bcc12024702a202cd90be5feda0
+                                    </div>
                                   </div>
-                                </div>
-                              </Base>
-                            </Box>
-                          </div>
-                        </Base>
-                      </Flex>
-                      <Box
-                        px={2}
-                        w={100}
-                      >
-                        <Base
-                          className="css-j9rhnd"
+                                </StyledBox>
+                              </Box>
+                            </div>
+                          </StyledFlex>
+                        </Flex>
+                        <Box
                           px={2}
                           w={100}
                         >
-                          <div
-                            className="css-j9rhnd"
-                            is={null}
-                          >
-                            <LinkWithConfirmation
-                              className="btn btn-default btn-sm"
-                              message="Are you sure you want to remove this API key?"
-                              onConfirm={[Function]}
-                              title="Remove API Key?"
+                          <StyledBox>
+                            <div
+                              className="css-5qqgl5-StyledBox css-4jd5980"
                             >
-                              <Confirm
-                                cancelText="Cancel"
-                                confirmText="Confirm"
+                              <LinkWithConfirmation
+                                className="btn btn-default btn-sm"
                                 message="Are you sure you want to remove this API key?"
                                 onConfirm={[Function]}
-                                priority="primary"
+                                title="Remove API Key?"
                               >
-                                <a
-                                  className="btn btn-default btn-sm"
-                                  onClick={[Function]}
-                                  title="Remove API Key?"
+                                <Confirm
+                                  cancelText="Cancel"
+                                  confirmText="Confirm"
+                                  message="Are you sure you want to remove this API key?"
+                                  onConfirm={[Function]}
+                                  priority="primary"
                                 >
-                                  <span
-                                    className="icon-trash"
-                                  />
-                                </a>
-                                <Modal
-                                  animation={false}
-                                  autoFocus={true}
-                                  backdrop={true}
-                                  bsClass="modal"
-                                  dialogComponentClass={[Function]}
-                                  enforceFocus={true}
-                                  keyboard={true}
-                                  manager={
-                                    ModalManager {
-                                      "add": [Function],
-                                      "containers": Array [],
-                                      "data": Array [],
-                                      "handleContainerOverflow": true,
-                                      "hideSiblingNodes": true,
-                                      "isTopModal": [Function],
-                                      "modals": Array [],
-                                      "remove": [Function],
-                                    }
-                                  }
-                                  onHide={[Function]}
-                                  renderBackdrop={[Function]}
-                                  restoreFocus={true}
-                                  show={false}
-                                >
+                                  <a
+                                    className="btn btn-default btn-sm"
+                                    onClick={[Function]}
+                                    title="Remove API Key?"
+                                  >
+                                    <span
+                                      className="icon-trash"
+                                    />
+                                  </a>
                                   <Modal
+                                    animation={false}
                                     autoFocus={true}
                                     backdrop={true}
-                                    backdropClassName="modal-backdrop"
-                                    containerClassName="modal-open"
+                                    bsClass="modal"
+                                    dialogComponentClass={[Function]}
                                     enforceFocus={true}
                                     keyboard={true}
                                     manager={
@@ -515,21 +459,46 @@ exports[`OrganizationApiKeysList renders 1`] = `
                                         "remove": [Function],
                                       }
                                     }
-                                    onEntering={[Function]}
-                                    onExited={[Function]}
                                     onHide={[Function]}
                                     renderBackdrop={[Function]}
                                     restoreFocus={true}
                                     show={false}
-                                  />
-                                </Modal>
-                              </Confirm>
-                            </LinkWithConfirmation>
-                          </div>
-                        </Base>
-                      </Box>
-                    </div>
-                  </Base>
+                                  >
+                                    <Modal
+                                      autoFocus={true}
+                                      backdrop={true}
+                                      backdropClassName="modal-backdrop"
+                                      containerClassName="modal-open"
+                                      enforceFocus={true}
+                                      keyboard={true}
+                                      manager={
+                                        ModalManager {
+                                          "add": [Function],
+                                          "containers": Array [],
+                                          "data": Array [],
+                                          "handleContainerOverflow": true,
+                                          "hideSiblingNodes": true,
+                                          "isTopModal": [Function],
+                                          "modals": Array [],
+                                          "remove": [Function],
+                                        }
+                                      }
+                                      onEntering={[Function]}
+                                      onExited={[Function]}
+                                      onHide={[Function]}
+                                      renderBackdrop={[Function]}
+                                      restoreFocus={true}
+                                      show={false}
+                                    />
+                                  </Modal>
+                                </Confirm>
+                              </LinkWithConfirmation>
+                            </div>
+                          </StyledBox>
+                        </Box>
+                      </div>
+                    </StyledFlex>
+                  </Flex>
                 </StyledPanelItem>
               </PanelItem>
             </div>

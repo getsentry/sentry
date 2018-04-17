@@ -1,8 +1,8 @@
 import React from 'react';
 import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
-import {Box, Flex} from 'grid-emotion';
 
+import {Box, Flex} from '../components/grid';
 import SentryTypes from '../proptypes';
 import ApiMixin from '../mixins/apiMixin';
 import Count from '../components/count';

@@ -102,6 +102,8 @@ const theme = {
     lineHeightHeading: '1.15',
     lineHeightBody: '1.4',
   },
+
+  breakpoints: [768, 992, 1200],
 };
 
 // Aliases

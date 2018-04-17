@@ -1,4 +1,3 @@
-import {Box, Flex} from 'grid-emotion';
 import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -16,6 +15,7 @@ import AsyncView from '../../asyncView';
 import Button from '../../../components/buttons/button';
 import EmptyMessage from '../components/emptyMessage';
 import IndicatorStore from '../../../stores/indicatorStore';
+import {Box, Flex} from '../../../components/grid';
 import {Panel, PanelBody, PanelHeader, PanelItem} from '../../../components/panels';
 import SettingsPageHeader from '../components/settingsPageHeader';
 

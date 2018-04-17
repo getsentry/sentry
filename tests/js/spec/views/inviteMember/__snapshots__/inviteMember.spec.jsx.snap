@@ -31,28 +31,26 @@ exports[`CreateProject render() should render roles when available and allowed, 
     >
       <Wrapper>
         <div
-          className="css-foidy-Wrapper css-17jmgia0"
+          className="css-foidy-Wrapper css-1wp86lr0"
         >
           <Flex
             align="center"
           >
-            <Base
+            <StyledFlex
               align="center"
-              className="css-5ipae5"
             >
               <div
-                className="css-5ipae5"
-                is={null}
+                className="css-ud6gq6-StyledFlex css-4jd5981"
               >
                 <Title>
                   <div
-                    className="css-zmdcxu-Title css-17jmgia1"
+                    className="css-zmdcxu-Title css-1wp86lr1"
                   >
                     Add Member to Organization
                   </div>
                 </Title>
               </div>
-            </Base>
+            </StyledFlex>
           </Flex>
         </div>
       </Wrapper>
@@ -143,25 +141,24 @@ exports[`CreateProject render() should render roles when available and allowed, 
               <PanelHeader>
                 <StyledPanelHeader>
                   <Component
-                    className="css-kf498j-StyledPanelHeader css-1t1cqk30"
+                    className="css-kf498j-StyledPanelHeader css-9rpnl60"
                   >
                     <Flex
                       align="center"
-                      className="css-kf498j-StyledPanelHeader css-1t1cqk30"
+                      className="css-kf498j-StyledPanelHeader css-9rpnl60"
                       justify="space-between"
                     >
-                      <Base
+                      <StyledFlex
                         align="center"
-                        className="css-1t1cqk30 css-hj6snb"
+                        className="css-kf498j-StyledPanelHeader css-9rpnl60"
                         justify="space-between"
                       >
                         <div
-                          className="css-1t1cqk30 css-hj6snb"
-                          is={null}
+                          className="css-9rpnl60 css-69xk6m-StyledFlex css-4jd5981"
                         >
                           Role
                         </div>
-                      </Base>
+                      </StyledFlex>
                     </Flex>
                   </Component>
                 </StyledPanelHeader>
@@ -185,34 +182,25 @@ exports[`CreateProject render() should render roles when available and allowed, 
                       onClick={[Function]}
                       p={2}
                     >
-                      <Base
-                        className="css-11r4q5-StyledPanelItem css-q9h14u0"
+                      <Flex
+                        className="css-g2y9ad-StyledPanelItem css-ggxnv80"
                         onClick={[Function]}
                         p={2}
                       >
-                        <div
-                          className="css-11r4q5-StyledPanelItem css-q9h14u0"
-                          is={null}
+                        <StyledFlex
+                          className="css-g2y9ad-StyledPanelItem css-ggxnv80"
                           onClick={[Function]}
                         >
-                          <Label>
-                            <label
-                              className="css-r8kahz-Label css-ydltot0"
-                            >
-                              <Radio
-                                checked={false}
-                                id="1"
-                                readOnly={true}
-                                style={
-                                  Object {
-                                    "margin": 0,
-                                  }
-                                }
-                                value="member"
+                          <div
+                            className="css-ggxnv80 css-cfhnwf-StyledFlex css-4jd5981"
+                            onClick={[Function]}
+                          >
+                            <Label>
+                              <label
+                                className="css-r8kahz-Label css-ydltot0"
                               >
-                                <input
+                                <Radio
                                   checked={false}
-                                  className="radio-select"
                                   id="1"
                                   readOnly={true}
                                   style={
@@ -220,41 +208,54 @@ exports[`CreateProject render() should render roles when available and allowed, 
                                       "margin": 0,
                                     }
                                   }
-                                  type="radio"
                                   value="member"
-                                />
-                              </Radio>
-                              <div
-                                style={
-                                  Object {
-                                    "flex": 1,
-                                    "padding": "0 16px",
-                                  }
-                                }
-                              >
-                                member
-                                <TextBlock
-                                  className="css-gx0lhm"
                                 >
-                                  <Component
-                                    className="css-b3mf8s-TextBlock css-1gwew8k0"
+                                  <input
+                                    checked={false}
+                                    className="radio-select"
+                                    id="1"
+                                    readOnly={true}
+                                    style={
+                                      Object {
+                                        "margin": 0,
+                                      }
+                                    }
+                                    type="radio"
+                                    value="member"
+                                  />
+                                </Radio>
+                                <div
+                                  style={
+                                    Object {
+                                      "flex": 1,
+                                      "padding": "0 16px",
+                                    }
+                                  }
+                                >
+                                  member
+                                  <TextBlock
+                                    className="css-gx0lhm"
                                   >
-                                    <div
+                                    <Component
                                       className="css-b3mf8s-TextBlock css-1gwew8k0"
                                     >
                                       <div
-                                        className="help-block"
+                                        className="css-b3mf8s-TextBlock css-1gwew8k0"
                                       >
-                                        a normal member
+                                        <div
+                                          className="help-block"
+                                        >
+                                          a normal member
+                                        </div>
                                       </div>
-                                    </div>
-                                  </Component>
-                                </TextBlock>
-                              </div>
-                            </label>
-                          </Label>
-                        </div>
-                      </Base>
+                                    </Component>
+                                  </TextBlock>
+                                </div>
+                              </label>
+                            </Label>
+                          </div>
+                        </StyledFlex>
+                      </Flex>
                     </StyledPanelItem>
                   </PanelItem>
                   <PanelItem
@@ -268,34 +269,25 @@ exports[`CreateProject render() should render roles when available and allowed, 
                       onClick={[Function]}
                       p={2}
                     >
-                      <Base
-                        className="css-11r4q5-StyledPanelItem css-q9h14u0"
+                      <Flex
+                        className="css-g2y9ad-StyledPanelItem css-ggxnv80"
                         onClick={[Function]}
                         p={2}
                       >
-                        <div
-                          className="css-11r4q5-StyledPanelItem css-q9h14u0"
-                          is={null}
+                        <StyledFlex
+                          className="css-g2y9ad-StyledPanelItem css-ggxnv80"
                           onClick={[Function]}
                         >
-                          <Label>
-                            <label
-                              className="css-r8kahz-Label css-ydltot0"
-                            >
-                              <Radio
-                                checked={false}
-                                id="2"
-                                readOnly={true}
-                                style={
-                                  Object {
-                                    "margin": 0,
-                                  }
-                                }
-                                value="bar"
+                          <div
+                            className="css-ggxnv80 css-cfhnwf-StyledFlex css-4jd5981"
+                            onClick={[Function]}
+                          >
+                            <Label>
+                              <label
+                                className="css-r8kahz-Label css-ydltot0"
                               >
-                                <input
+                                <Radio
                                   checked={false}
-                                  className="radio-select"
                                   id="2"
                                   readOnly={true}
                                   style={
@@ -303,41 +295,54 @@ exports[`CreateProject render() should render roles when available and allowed, 
                                       "margin": 0,
                                     }
                                   }
-                                  type="radio"
                                   value="bar"
-                                />
-                              </Radio>
-                              <div
-                                style={
-                                  Object {
-                                    "flex": 1,
-                                    "padding": "0 16px",
-                                  }
-                                }
-                              >
-                                bar
-                                <TextBlock
-                                  className="css-gx0lhm"
                                 >
-                                  <Component
-                                    className="css-b3mf8s-TextBlock css-1gwew8k0"
+                                  <input
+                                    checked={false}
+                                    className="radio-select"
+                                    id="2"
+                                    readOnly={true}
+                                    style={
+                                      Object {
+                                        "margin": 0,
+                                      }
+                                    }
+                                    type="radio"
+                                    value="bar"
+                                  />
+                                </Radio>
+                                <div
+                                  style={
+                                    Object {
+                                      "flex": 1,
+                                      "padding": "0 16px",
+                                    }
+                                  }
+                                >
+                                  bar
+                                  <TextBlock
+                                    className="css-gx0lhm"
                                   >
-                                    <div
+                                    <Component
                                       className="css-b3mf8s-TextBlock css-1gwew8k0"
                                     >
                                       <div
-                                        className="help-block"
+                                        className="css-b3mf8s-TextBlock css-1gwew8k0"
                                       >
-                                        another role
+                                        <div
+                                          className="help-block"
+                                        >
+                                          another role
+                                        </div>
                                       </div>
-                                    </div>
-                                  </Component>
-                                </TextBlock>
-                              </div>
-                            </label>
-                          </Label>
-                        </div>
-                      </Base>
+                                    </Component>
+                                  </TextBlock>
+                                </div>
+                              </label>
+                            </Label>
+                          </div>
+                        </StyledFlex>
+                      </Flex>
                     </StyledPanelItem>
                   </PanelItem>
                 </div>
@@ -382,25 +387,24 @@ exports[`CreateProject render() should render roles when available and allowed, 
               <PanelHeader>
                 <StyledPanelHeader>
                   <Component
-                    className="css-kf498j-StyledPanelHeader css-1t1cqk30"
+                    className="css-kf498j-StyledPanelHeader css-9rpnl60"
                   >
                     <Flex
                       align="center"
-                      className="css-kf498j-StyledPanelHeader css-1t1cqk30"
+                      className="css-kf498j-StyledPanelHeader css-9rpnl60"
                       justify="space-between"
                     >
-                      <Base
+                      <StyledFlex
                         align="center"
-                        className="css-1t1cqk30 css-hj6snb"
+                        className="css-kf498j-StyledPanelHeader css-9rpnl60"
                         justify="space-between"
                       >
                         <div
-                          className="css-1t1cqk30 css-hj6snb"
-                          is={null}
+                          className="css-9rpnl60 css-69xk6m-StyledFlex css-4jd5981"
                         >
                           Team
                         </div>
-                      </Base>
+                      </StyledFlex>
                     </Flex>
                   </Component>
                 </StyledPanelHeader>
@@ -422,82 +426,85 @@ exports[`CreateProject render() should render roles when available and allowed, 
                       className="css-1jkp9i7"
                       p={2}
                     >
-                      <Base
-                        className="css-13vowjc-StyledPanelItem css-q9h14u0"
+                      <Flex
+                        className="css-8vtcto-StyledPanelItem css-ggxnv80"
                         p={2}
                       >
-                        <div
-                          className="css-13vowjc-StyledPanelItem css-q9h14u0"
-                          is={null}
+                        <StyledFlex
+                          className="css-8vtcto-StyledPanelItem css-ggxnv80"
                         >
-                          <TeamItem
-                            key="bar"
+                          <div
+                            className="css-ggxnv80 css-tb6jvc-StyledFlex css-4jd5981"
                           >
-                            <div
-                              className="css-16v1fbz-TeamItem css-114hxzd0"
+                            <TeamItem
+                              key="bar"
                             >
-                              <label
-                                className="checkbox"
+                              <div
+                                className="css-16v1fbz-TeamItem css-114hxzd0"
                               >
-                                <Checkbox
-                                  checked={false}
-                                  id="bar"
-                                  onChange={[Function]}
+                                <label
+                                  className="checkbox"
                                 >
-                                  <input
+                                  <Checkbox
                                     checked={false}
-                                    className="chk-select"
                                     id="bar"
                                     onChange={[Function]}
-                                    type="checkbox"
-                                  />
-                                </Checkbox>
-                                <span>
-                                  bar
-                                </span>
-                                <span
-                                  className="team-slug"
-                                >
-                                  bar
-                                </span>
-                              </label>
-                            </div>
-                          </TeamItem>
-                          <TeamItem
-                            key="foo"
-                          >
-                            <div
-                              className="css-16v1fbz-TeamItem css-114hxzd0"
+                                  >
+                                    <input
+                                      checked={false}
+                                      className="chk-select"
+                                      id="bar"
+                                      onChange={[Function]}
+                                      type="checkbox"
+                                    />
+                                  </Checkbox>
+                                  <span>
+                                    bar
+                                  </span>
+                                  <span
+                                    className="team-slug"
+                                  >
+                                    bar
+                                  </span>
+                                </label>
+                              </div>
+                            </TeamItem>
+                            <TeamItem
+                              key="foo"
                             >
-                              <label
-                                className="checkbox"
+                              <div
+                                className="css-16v1fbz-TeamItem css-114hxzd0"
                               >
-                                <Checkbox
-                                  checked={false}
-                                  id="foo"
-                                  onChange={[Function]}
+                                <label
+                                  className="checkbox"
                                 >
-                                  <input
+                                  <Checkbox
                                     checked={false}
-                                    className="chk-select"
                                     id="foo"
                                     onChange={[Function]}
-                                    type="checkbox"
-                                  />
-                                </Checkbox>
-                                <span>
-                                  foo
-                                </span>
-                                <span
-                                  className="team-slug"
-                                >
-                                  foo
-                                </span>
-                              </label>
-                            </div>
-                          </TeamItem>
-                        </div>
-                      </Base>
+                                  >
+                                    <input
+                                      checked={false}
+                                      className="chk-select"
+                                      id="foo"
+                                      onChange={[Function]}
+                                      type="checkbox"
+                                    />
+                                  </Checkbox>
+                                  <span>
+                                    foo
+                                  </span>
+                                  <span
+                                    className="team-slug"
+                                  >
+                                    foo
+                                  </span>
+                                </label>
+                              </div>
+                            </TeamItem>
+                          </div>
+                        </StyledFlex>
+                      </Flex>
                     </StyledPanelItem>
                   </PanelItem>
                 </div>
@@ -523,17 +530,16 @@ exports[`CreateProject render() should render roles when available and allowed, 
             align="center"
             className="button-label"
           >
-            <Base
+            <StyledFlex
               align="center"
-              className="button-label css-5ipae5"
+              className="button-label"
             >
               <div
-                className="button-label css-5ipae5"
-                is={null}
+                className="button-label css-ud6gq6-StyledFlex css-4jd5981"
               >
                 Add Member
               </div>
-            </Base>
+            </StyledFlex>
           </Flex>
         </button>
       </Button>

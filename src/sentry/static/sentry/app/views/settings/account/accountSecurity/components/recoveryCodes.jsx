@@ -1,8 +1,8 @@
-import {Box, Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled, {css} from 'react-emotion';
 
+import {Box, Flex} from '../../../../../components/grid';
 import {t} from '../../../../../locale';
 import Button from '../../../../../components/buttons/button';
 import Confirm from '../../../../../components/confirm';

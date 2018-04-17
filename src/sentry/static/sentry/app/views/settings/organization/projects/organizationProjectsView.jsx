@@ -1,4 +1,3 @@
-import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import idx from 'idx';
@@ -17,6 +16,7 @@ import ProjectListItem from '../../../settings/components/settingsProjectItem';
 import ProjectStatsGraph from './projectStatsGraph';
 import SentryTypes from '../../../../proptypes';
 import SettingsPageHeader from '../../components/settingsPageHeader';
+import {Box} from '../../../../components/grid';
 
 export default class OrganizationProjectsView extends AsyncView {
   static contextTypes = {

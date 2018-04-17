@@ -1,4 +1,3 @@
-import {Flex} from 'grid-emotion';
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -6,6 +5,7 @@ import React from 'react';
 import BreadcrumbDropdown from './breadcrumbDropdown';
 import MenuItem from './menuItem';
 import TextLink from '../../../../components/textLink';
+import {Flex} from '../../../../components/grid';
 import recreateRoute from '../../../../utils/recreateRoute';
 import withTeams from '../../../../utils/withTeams';
 

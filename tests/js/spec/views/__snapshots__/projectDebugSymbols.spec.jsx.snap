@@ -15,28 +15,26 @@ exports[`ProjectDebugSymbols renders 1`] = `
     >
       <Wrapper>
         <div
-          className="css-foidy-Wrapper css-17jmgia0"
+          className="css-foidy-Wrapper css-1wp86lr0"
         >
           <Flex
             align="center"
           >
-            <Base
+            <StyledFlex
               align="center"
-              className="css-5ipae5"
             >
               <div
-                className="css-5ipae5"
-                is={null}
+                className="css-ud6gq6-StyledFlex css-4jd5981"
               >
                 <Title>
                   <div
-                    className="css-zmdcxu-Title css-17jmgia1"
+                    className="css-zmdcxu-Title css-1wp86lr1"
                   >
                     Debug Information Files
                   </div>
                 </Title>
               </div>
-            </Base>
+            </StyledFlex>
           </Flex>
         </div>
       </Wrapper>
@@ -84,21 +82,20 @@ exports[`ProjectDebugSymbols renders 1`] = `
           <PanelHeader>
             <StyledPanelHeader>
               <Component
-                className="css-kf498j-StyledPanelHeader css-1t1cqk30"
+                className="css-kf498j-StyledPanelHeader css-9rpnl60"
               >
                 <Flex
                   align="center"
-                  className="css-kf498j-StyledPanelHeader css-1t1cqk30"
+                  className="css-kf498j-StyledPanelHeader css-9rpnl60"
                   justify="space-between"
                 >
-                  <Base
+                  <StyledFlex
                     align="center"
-                    className="css-1t1cqk30 css-hj6snb"
+                    className="css-kf498j-StyledPanelHeader css-9rpnl60"
                     justify="space-between"
                   >
                     <div
-                      className="css-1t1cqk30 css-hj6snb"
-                      is={null}
+                      className="css-9rpnl60 css-69xk6m-StyledFlex css-4jd5981"
                     >
                       <div
                         className="app-icon"
@@ -112,7 +109,7 @@ exports[`ProjectDebugSymbols renders 1`] = `
                         )
                       </small>
                     </div>
-                  </Base>
+                  </StyledFlex>
                 </Flex>
               </Component>
             </StyledPanelHeader>
@@ -134,125 +131,131 @@ exports[`ProjectDebugSymbols renders 1`] = `
                   direction="column"
                   p={2}
                 >
-                  <Base
-                    className="css-1u7weda-StyledPanelItem css-q9h14u0"
+                  <Flex
+                    className="css-g2y9ad-StyledPanelItem css-ggxnv80"
                     direction="column"
                     p={2}
                   >
-                    <div
-                      className="css-1u7weda-StyledPanelItem css-q9h14u0"
-                      is={null}
+                    <StyledFlex
+                      className="css-g2y9ad-StyledPanelItem css-ggxnv80"
+                      direction="column"
                     >
-                      <HoverablePanelItem
-                        className="hoverable"
-                        onClick={[Function]}
+                      <div
+                        className="css-ggxnv80 css-cfhnwf-StyledFlex css-4jd5981"
+                        direction="column"
                       >
-                        <PanelItem
-                          className="hoverable css-1mrkblk-HoverablePanelItem css-15iqg1y2"
+                        <HoverablePanelItem
+                          className="hoverable"
                           onClick={[Function]}
-                          p={2}
                         >
-                          <StyledPanelItem
-                            className="hoverable css-1mrkblk-HoverablePanelItem css-15iqg1y2"
+                          <PanelItem
+                            className="hoverable css-1mrkblk-HoverablePanelItem css-1v1uf2y2"
                             onClick={[Function]}
                             p={2}
                           >
-                            <Base
-                              className="hoverable css-15iqg1y2 css-bqgi4j-StyledPanelItem css-q9h14u0"
+                            <StyledPanelItem
+                              className="hoverable css-1mrkblk-HoverablePanelItem css-1v1uf2y2"
                               onClick={[Function]}
                               p={2}
                             >
-                              <div
-                                className="hoverable css-15iqg1y2 css-bqgi4j-StyledPanelItem css-q9h14u0"
-                                is={null}
+                              <Flex
+                                className="hoverable css-1v1uf2y2 css-v102fb-StyledPanelItem css-ggxnv80"
                                 onClick={[Function]}
+                                p={2}
                               >
-                                <Flex
-                                  direction="column"
-                                  flex="1"
-                                  p={2}
+                                <StyledFlex
+                                  className="hoverable css-1v1uf2y2 css-v102fb-StyledPanelItem css-ggxnv80"
+                                  onClick={[Function]}
                                 >
-                                  <Base
-                                    className="css-oemg4t"
-                                    direction="column"
-                                    flex="1"
-                                    p={2}
+                                  <div
+                                    className="hoverable css-1v1uf2y2 css-ggxnv80 css-1ladx2t-StyledFlex css-4jd5981"
+                                    onClick={[Function]}
                                   >
-                                    <div
-                                      className="css-oemg4t"
-                                      is={null}
+                                    <Flex
+                                      direction="column"
+                                      flex="1"
+                                      p={2}
                                     >
-                                      <h3
-                                        className="truncate"
+                                      <StyledFlex
+                                        direction="column"
                                       >
-                                        1.0
-                                      </h3>
-                                      <div
-                                        className="event-message"
-                                      >
-                                        Builds
-                                        : 
-                                        1
-                                      </div>
-                                      <LastSeen
-                                        align="center"
-                                      >
-                                        <Base
-                                          align="center"
-                                          className="css-2qebs7-LastSeen css-15iqg1y0"
+                                        <div
+                                          className="css-1jmc4yx-StyledFlex css-4jd5981"
+                                          direction="column"
                                         >
-                                          <div
-                                            className="css-2qebs7-LastSeen css-15iqg1y0"
-                                            is={null}
+                                          <h3
+                                            className="truncate"
                                           >
-                                            <TimeIcon
-                                              className="icon icon-clock"
-                                            >
-                                              <span
-                                                className="icon icon-clock css-3im64z-TimeIcon css-15iqg1y1"
-                                              />
-                                            </TimeIcon>
-                                            <TimeSince
-                                              date="2018-01-31T07:16:26.072Z"
-                                              suffix="ago"
-                                            >
-                                              <time
-                                                dateTime="2018-01-31T07:16:26.072Z"
-                                                title="January 31, 2018 7:16 AM UTC"
-                                              >
-                                                in 3 months
-                                              </time>
-                                            </TimeSince>
+                                            1.0
+                                          </h3>
+                                          <div
+                                            className="event-message"
+                                          >
+                                            Builds
+                                            : 
+                                            1
                                           </div>
-                                        </Base>
-                                      </LastSeen>
-                                    </div>
-                                  </Base>
-                                </Flex>
-                                <Flex
-                                  p={2}
-                                >
-                                  <Base
-                                    className="css-y2pm3j"
-                                    p={2}
-                                  >
-                                    <div
-                                      className="css-y2pm3j"
-                                      is={null}
+                                          <LastSeen
+                                            align="center"
+                                          >
+                                            <Flex
+                                              align="center"
+                                              className="css-1h38r0a-LastSeen css-1v1uf2y0"
+                                            >
+                                              <StyledFlex
+                                                align="center"
+                                                className="css-1h38r0a-LastSeen css-1v1uf2y0"
+                                              >
+                                                <div
+                                                  className="css-1v1uf2y0 css-bwygja-StyledFlex css-4jd5981"
+                                                >
+                                                  <TimeIcon
+                                                    className="icon icon-clock"
+                                                  >
+                                                    <span
+                                                      className="icon icon-clock css-3im64z-TimeIcon css-1v1uf2y1"
+                                                    />
+                                                  </TimeIcon>
+                                                  <TimeSince
+                                                    date="2018-01-31T07:16:26.072Z"
+                                                    suffix="ago"
+                                                  >
+                                                    <time
+                                                      dateTime="2018-01-31T07:16:26.072Z"
+                                                      title="January 31, 2018 7:16 AM UTC"
+                                                    >
+                                                      in 3 months
+                                                    </time>
+                                                  </TimeSince>
+                                                </div>
+                                              </StyledFlex>
+                                            </Flex>
+                                          </LastSeen>
+                                        </div>
+                                      </StyledFlex>
+                                    </Flex>
+                                    <Flex
+                                      p={2}
                                     >
-                                      Debug Information Files
-                                      : 
-                                      1
-                                    </div>
-                                  </Base>
-                                </Flex>
-                              </div>
-                            </Base>
-                          </StyledPanelItem>
-                        </PanelItem>
-                      </HoverablePanelItem>
-                    </div>
-                  </Base>
+                                      <StyledFlex>
+                                        <div
+                                          className="css-1tj6rdd-StyledFlex css-4jd5981"
+                                        >
+                                          Debug Information Files
+                                          : 
+                                          1
+                                        </div>
+                                      </StyledFlex>
+                                    </Flex>
+                                  </div>
+                                </StyledFlex>
+                              </Flex>
+                            </StyledPanelItem>
+                          </PanelItem>
+                        </HoverablePanelItem>
+                      </div>
+                    </StyledFlex>
+                  </Flex>
                 </StyledPanelItem>
               </PanelItem>
             </div>
@@ -266,28 +269,26 @@ exports[`ProjectDebugSymbols renders 1`] = `
       >
         <Wrapper>
           <div
-            className="css-foidy-Wrapper css-17jmgia0"
+            className="css-foidy-Wrapper css-1wp86lr0"
           >
             <Flex
               align="center"
             >
-              <Base
+              <StyledFlex
                 align="center"
-                className="css-5ipae5"
               >
                 <div
-                  className="css-5ipae5"
-                  is={null}
+                  className="css-ud6gq6-StyledFlex css-4jd5981"
                 >
                   <Title>
                     <div
-                      className="css-zmdcxu-Title css-17jmgia1"
+                      className="css-zmdcxu-Title css-1wp86lr1"
                     >
                       Unreferenced Debug Information Files
                     </div>
                   </Title>
                 </div>
-              </Base>
+              </StyledFlex>
             </Flex>
           </div>
         </Wrapper>

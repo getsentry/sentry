@@ -60,28 +60,26 @@ exports[`OrganizationTeamProjects Should render 1`] = `
         >
           <Wrapper>
             <div
-              className="css-foidy-Wrapper css-17jmgia0"
+              className="css-foidy-Wrapper css-1wp86lr0"
             >
               <Flex
                 align="center"
               >
-                <Base
+                <StyledFlex
                   align="center"
-                  className="css-5ipae5"
                 >
                   <div
-                    className="css-5ipae5"
-                    is={null}
+                    className="css-ud6gq6-StyledFlex css-4jd5981"
                   >
                     <Title>
                       <div
-                        className="css-zmdcxu-Title css-17jmgia1"
+                        className="css-zmdcxu-Title css-1wp86lr1"
                       >
                         Projects by Team
                       </div>
                     </Title>
                   </div>
-                </Base>
+                </StyledFlex>
               </Flex>
             </div>
           </Wrapper>
@@ -106,25 +104,24 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                       className="css-geruia"
                     >
                       <Component
-                        className="css-1u5qp3z-StyledPanelHeader css-1t1cqk30"
+                        className="css-1u5qp3z-StyledPanelHeader css-9rpnl60"
                       >
                         <Flex
                           align="center"
-                          className="css-1u5qp3z-StyledPanelHeader css-1t1cqk30"
+                          className="css-1u5qp3z-StyledPanelHeader css-9rpnl60"
                           justify="space-between"
                         >
-                          <Base
+                          <StyledFlex
                             align="center"
-                            className="css-1t1cqk30 css-1g6jy3a"
+                            className="css-1u5qp3z-StyledPanelHeader css-9rpnl60"
                             justify="space-between"
                           >
                             <div
-                              className="css-1t1cqk30 css-1g6jy3a"
-                              is={null}
+                              className="css-9rpnl60 css-gxehoh-StyledFlex css-4jd5981"
                             >
                               Projects Without Teams
                             </div>
-                          </Base>
+                          </StyledFlex>
                         </Flex>
                       </Component>
                     </StyledPanelHeader>
@@ -146,52 +143,38 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                           align="center"
                           p={2}
                         >
-                          <Base
+                          <Flex
                             align="center"
-                            className="css-1m7dq2n-StyledPanelItem css-q9h14u0"
+                            className="css-g2y9ad-StyledPanelItem css-ggxnv80"
                             p={2}
                           >
-                            <div
-                              className="css-1m7dq2n-StyledPanelItem css-q9h14u0"
-                              is={null}
+                            <StyledFlex
+                              align="center"
+                              className="css-g2y9ad-StyledPanelItem css-ggxnv80"
                             >
-                              <Flex
-                                flex="1"
-                                justify="space-between"
+                              <div
+                                className="css-ggxnv80 css-cfhnwf-StyledFlex css-4jd5981"
                               >
-                                <Base
-                                  className="css-b5qfy7"
+                                <Flex
                                   flex="1"
                                   justify="space-between"
                                 >
-                                  <div
-                                    className="css-b5qfy7"
-                                    is={null}
+                                  <StyledFlex
+                                    justify="space-between"
                                   >
-                                    <Link
-                                      onlyActiveOnIndex={false}
-                                      style={Object {}}
-                                      to="/org-slug/project-slug-2/"
+                                    <div
+                                      className="css-1luekth-StyledFlex css-4jd5981"
                                     >
-                                      <a
-                                        onClick={[Function]}
+                                      <Link
+                                        onlyActiveOnIndex={false}
                                         style={Object {}}
+                                        to="/org-slug/project-slug-2/"
                                       >
-                                        <ProjectLabel
-                                          project={
-                                            Object {
-                                              "hasAccess": true,
-                                              "id": "3",
-                                              "isBookmarked": false,
-                                              "isMember": true,
-                                              "name": "Project Name 2",
-                                              "slug": "project-slug-2",
-                                              "teams": Array [],
-                                            }
-                                          }
+                                        <a
+                                          onClick={[Function]}
+                                          style={Object {}}
                                         >
-                                          <span
-                                            className="project-label"
+                                          <ProjectLabel
                                             project={
                                               Object {
                                                 "hasAccess": true,
@@ -205,76 +188,86 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                             }
                                           >
                                             <span
-                                              className="project-name"
+                                              className="project-label"
+                                              project={
+                                                Object {
+                                                  "hasAccess": true,
+                                                  "id": "3",
+                                                  "isBookmarked": false,
+                                                  "isMember": true,
+                                                  "name": "Project Name 2",
+                                                  "slug": "project-slug-2",
+                                                  "teams": Array [],
+                                                }
+                                              }
                                             >
-                                              project-slug-2
+                                              <span
+                                                className="project-name"
+                                              >
+                                                project-slug-2
+                                              </span>
                                             </span>
-                                          </span>
-                                        </ProjectLabel>
-                                      </a>
-                                    </Link>
-                                    <div
-                                      className="project-chart"
-                                    />
-                                  </div>
-                                </Base>
-                              </Flex>
-                              <Box
-                                ml={2}
-                              >
-                                <Base
-                                  className="css-1dvsqd3"
+                                          </ProjectLabel>
+                                        </a>
+                                      </Link>
+                                      <div
+                                        className="project-chart"
+                                      />
+                                    </div>
+                                  </StyledFlex>
+                                </Flex>
+                                <Box
                                   ml={2}
                                 >
-                                  <div
-                                    className="css-1dvsqd3"
-                                    is={null}
-                                  >
-                                    <Button
-                                      disabled={false}
-                                      size="small"
-                                      to="/settings/org-slug/project-slug-2/"
+                                  <StyledBox>
+                                    <div
+                                      className="css-kq801w-StyledBox css-4jd5980"
                                     >
-                                      <Link
-                                        className="button button-default button-sm"
+                                      <Button
                                         disabled={false}
-                                        onClick={[Function]}
-                                        onlyActiveOnIndex={false}
-                                        role="button"
-                                        style={Object {}}
+                                        size="small"
                                         to="/settings/org-slug/project-slug-2/"
                                       >
-                                        <a
+                                        <Link
                                           className="button button-default button-sm"
                                           disabled={false}
                                           onClick={[Function]}
+                                          onlyActiveOnIndex={false}
                                           role="button"
                                           style={Object {}}
+                                          to="/settings/org-slug/project-slug-2/"
                                         >
-                                          <Flex
-                                            align="center"
-                                            className="button-label"
+                                          <a
+                                            className="button button-default button-sm"
+                                            disabled={false}
+                                            onClick={[Function]}
+                                            role="button"
+                                            style={Object {}}
                                           >
-                                            <Base
+                                            <Flex
                                               align="center"
-                                              className="button-label css-5ipae5"
+                                              className="button-label"
                                             >
-                                              <div
-                                                className="button-label css-5ipae5"
-                                                is={null}
+                                              <StyledFlex
+                                                align="center"
+                                                className="button-label"
                                               >
-                                                Manage Project
-                                              </div>
-                                            </Base>
-                                          </Flex>
-                                        </a>
-                                      </Link>
-                                    </Button>
-                                  </div>
-                                </Base>
-                              </Box>
-                            </div>
-                          </Base>
+                                                <div
+                                                  className="button-label css-ud6gq6-StyledFlex css-4jd5981"
+                                                >
+                                                  Manage Project
+                                                </div>
+                                              </StyledFlex>
+                                            </Flex>
+                                          </a>
+                                        </Link>
+                                      </Button>
+                                    </div>
+                                  </StyledBox>
+                                </Box>
+                              </div>
+                            </StyledFlex>
+                          </Flex>
                         </StyledPanelItem>
                       </PanelItem>
                     </div>

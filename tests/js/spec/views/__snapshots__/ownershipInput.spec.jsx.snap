@@ -89,7 +89,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
   >
     <BuilderBar>
       <div
-        className="css-1rsoebt-BuilderBar css-13f5eg05"
+        className="css-1rsoebt-BuilderBar css-1h2szcp5"
       >
         <BuilderSelect
           onChange={[Function]}
@@ -97,7 +97,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
           value="path"
         >
           <SelectInput
-            className="css-1eslqkc-BuilderSelect css-13f5eg06"
+            className="css-1eslqkc-BuilderSelect css-1h2szcp6"
             disabled={false}
             multiple={false}
             onChange={[Function]}
@@ -107,7 +107,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
             value="path"
           >
             <select
-              className="css-1eslqkc-BuilderSelect css-13f5eg06"
+              className="css-1eslqkc-BuilderSelect css-1h2szcp6"
               disabled={false}
               multiple={false}
               onChange={[Function]}
@@ -135,7 +135,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
           value=""
         >
           <input
-            className="css-1t4syiu-Input-BuilderInput css-13f5eg07"
+            className="css-1t4syiu-Input-BuilderInput css-1h2szcp7"
             onChange={[Function]}
             placeholder="src/example/*"
             value=""
@@ -145,17 +145,17 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
           src="icon-chevron-right"
         >
           <InlineSvg
-            className="css-a4tn6s-Divider css-13f5eg08"
+            className="css-a4tn6s-Divider css-1h2szcp8"
             src="icon-chevron-right"
           >
             <StyledSvg
-              className="css-a4tn6s-Divider css-13f5eg08"
+              className="css-a4tn6s-Divider css-1h2szcp8"
               height="1em"
               viewBox={Object {}}
               width="1em"
             >
               <svg
-                className="css-13f5eg08 css-5e2rei-StyledSvg css-adkcw30"
+                className="css-1h2szcp8 css-5e2rei-StyledSvg css-adkcw30"
                 height="1em"
                 viewBox={Object {}}
                 width="1em"
@@ -173,15 +173,11 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
           flex="1"
           mr={1}
         >
-          <Base
+          <StyledFlex
             align="center"
-            className="css-1q48dzo"
-            flex="1"
-            mr={1}
           >
             <div
-              className="css-1q48dzo"
-              is={null}
+              className="css-15dtauj-StyledFlex css-4jd5981"
             >
               <SelectOwners
                 onChange={[Function]}
@@ -296,7 +292,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                         >
                           <span
                             className="Select-multi-value-wrapper"
-                            id="react-select-2--value"
+                            id="react-select-4--value"
                           >
                             <div
                               className="Select-placeholder"
@@ -304,7 +300,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                               Add Owners
                             </div>
                             <AutosizeInput
-                              aria-activedescendant="react-select-2--value"
+                              aria-activedescendant="react-select-4--value"
                               aria-expanded="false"
                               aria-haspopup="false"
                               aria-owns=""
@@ -328,7 +324,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                                 }
                               >
                                 <input
-                                  aria-activedescendant="react-select-2--value"
+                                  aria-activedescendant="react-select-4--value"
                                   aria-expanded="false"
                                   aria-haspopup="false"
                                   aria-owns=""
@@ -377,7 +373,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                 </MultiSelectField>
               </SelectOwners>
             </div>
-          </Base>
+          </StyledFlex>
         </Flex>
         <RuleAddButton
           icon="icon-circle-add"
@@ -386,7 +382,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
           size="zero"
         >
           <Button
-            className="css-3daogo-RuleAddButton css-13f5eg09"
+            className="css-3daogo-RuleAddButton css-1h2szcp9"
             disabled={false}
             icon="icon-circle-add"
             onClick={[Function]}
@@ -394,7 +390,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
             size="zero"
           >
             <button
-              className="css-3daogo-RuleAddButton css-13f5eg09 button button-primary button-zero"
+              className="css-3daogo-RuleAddButton css-1h2szcp9 button button-primary button-zero"
               disabled={false}
               onClick={[Function]}
               role="button"
@@ -403,60 +399,63 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                 align="center"
                 className="button-label"
               >
-                <Base
+                <StyledFlex
                   align="center"
-                  className="button-label css-5ipae5"
+                  className="button-label"
                 >
                   <div
-                    className="button-label css-5ipae5"
-                    is={null}
+                    className="button-label css-ud6gq6-StyledFlex css-4jd5981"
                   >
                     <Icon
                       size="zero"
                     >
-                      <Base
-                        className="css-l3pkcx-Icon css-1vxxnb60"
+                      <Box
+                        className="css-1p06d6-Icon css-1i8rv9g0"
                         size="zero"
                       >
-                        <div
-                          className="css-l3pkcx-Icon css-1vxxnb60"
-                          is={null}
+                        <StyledBox
+                          className="css-1p06d6-Icon css-1i8rv9g0"
                           size="zero"
                         >
-                          <StyledInlineSvg
-                            size="16px"
-                            src="icon-circle-add"
+                          <div
+                            className="css-1i8rv9g0 css-1flb5fi-StyledBox css-4jd5980"
+                            size="zero"
                           >
-                            <InlineSvg
-                              className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
+                            <StyledInlineSvg
                               size="16px"
                               src="icon-circle-add"
                             >
-                              <StyledSvg
-                                className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
-                                height="16px"
-                                viewBox={Object {}}
-                                width="16px"
+                              <InlineSvg
+                                className="css-1ov3rcq-StyledInlineSvg css-1i8rv9g1"
+                                size="16px"
+                                src="icon-circle-add"
                               >
-                                <svg
-                                  className="css-1vxxnb61 css-1rlza0i-StyledSvg css-adkcw30"
+                                <StyledSvg
+                                  className="css-1ov3rcq-StyledInlineSvg css-1i8rv9g1"
                                   height="16px"
                                   viewBox={Object {}}
                                   width="16px"
                                 >
-                                  <use
-                                    href="#test"
-                                    xlinkHref="#test"
-                                  />
-                                </svg>
-                              </StyledSvg>
-                            </InlineSvg>
-                          </StyledInlineSvg>
-                        </div>
-                      </Base>
+                                  <svg
+                                    className="css-1i8rv9g1 css-1rlza0i-StyledSvg css-adkcw30"
+                                    height="16px"
+                                    viewBox={Object {}}
+                                    width="16px"
+                                  >
+                                    <use
+                                      href="#test"
+                                      xlinkHref="#test"
+                                    />
+                                  </svg>
+                                </StyledSvg>
+                              </InlineSvg>
+                            </StyledInlineSvg>
+                          </div>
+                        </StyledBox>
+                      </Box>
                     </Icon>
                   </div>
-                </Base>
+                </StyledFlex>
               </Flex>
             </button>
           </Button>
@@ -531,17 +530,16 @@ url:http://example.com/settings/* #product"
               align="center"
               className="button-label"
             >
-              <Base
+              <StyledFlex
                 align="center"
-                className="button-label css-5ipae5"
+                className="button-label"
               >
                 <div
-                  className="button-label css-5ipae5"
-                  is={null}
+                  className="button-label css-ud6gq6-StyledFlex css-4jd5981"
                 >
                   Save Changes
                 </div>
-              </Base>
+              </StyledFlex>
             </Flex>
           </button>
         </Button>

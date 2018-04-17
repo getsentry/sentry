@@ -2,8 +2,8 @@ import idx from 'idx';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import {Flex} from 'grid-emotion';
 
+import {Flex} from './grid';
 import Avatar from './avatar';
 import TimeSince from './timeSince';
 import CommitLink from './commitLink';

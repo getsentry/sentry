@@ -199,25 +199,24 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                 <PanelHeader>
                   <StyledPanelHeader>
                     <Component
-                      className="css-kf498j-StyledPanelHeader css-1t1cqk30"
+                      className="css-kf498j-StyledPanelHeader css-9rpnl60"
                     >
                       <Flex
                         align="center"
-                        className="css-kf498j-StyledPanelHeader css-1t1cqk30"
+                        className="css-kf498j-StyledPanelHeader css-9rpnl60"
                         justify="space-between"
                       >
-                        <Base
+                        <StyledFlex
                           align="center"
-                          className="css-1t1cqk30 css-hj6snb"
+                          className="css-kf498j-StyledPanelHeader css-9rpnl60"
                           justify="space-between"
                         >
                           <div
-                            className="css-1t1cqk30 css-hj6snb"
-                            is={null}
+                            className="css-9rpnl60 css-69xk6m-StyledFlex css-4jd5981"
                           >
                             Edit Alert Rule
                           </div>
-                        </Base>
+                        </StyledFlex>
                       </Flex>
                     </Component>
                   </StyledPanelHeader>
@@ -443,19 +442,18 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                             align="center"
                                             className="button-label"
                                           >
-                                            <Base
+                                            <StyledFlex
                                               align="center"
-                                              className="button-label css-5ipae5"
+                                              className="button-label"
                                             >
                                               <div
-                                                className="button-label css-5ipae5"
-                                                is={null}
+                                                className="button-label css-ud6gq6-StyledFlex css-4jd5981"
                                               >
                                                 <span
                                                   className="icon icon-trash"
                                                 />
                                               </div>
-                                            </Base>
+                                            </StyledFlex>
                                           </Flex>
                                         </button>
                                       </Button>
@@ -683,19 +681,18 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                             align="center"
                                             className="button-label"
                                           >
-                                            <Base
+                                            <StyledFlex
                                               align="center"
-                                              className="button-label css-5ipae5"
+                                              className="button-label"
                                             >
                                               <div
-                                                className="button-label css-5ipae5"
-                                                is={null}
+                                                className="button-label css-ud6gq6-StyledFlex css-4jd5981"
                                               >
                                                 <span
                                                   className="icon icon-trash"
                                                 />
                                               </div>
-                                            </Base>
+                                            </StyledFlex>
                                           </Flex>
                                         </button>
                                       </Button>
@@ -933,17 +930,16 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                   align="center"
                                   className="button-label"
                                 >
-                                  <Base
+                                  <StyledFlex
                                     align="center"
-                                    className="button-label css-5ipae5"
+                                    className="button-label"
                                   >
                                     <div
-                                      className="button-label css-5ipae5"
-                                      is={null}
+                                      className="button-label css-ud6gq6-StyledFlex css-4jd5981"
                                     >
                                       Cancel
                                     </div>
-                                  </Base>
+                                  </StyledFlex>
                                 </Flex>
                               </a>
                             </Link>
@@ -963,17 +959,16 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                               align="center"
                               className="button-label"
                             >
-                              <Base
+                              <StyledFlex
                                 align="center"
-                                className="button-label css-5ipae5"
+                                className="button-label"
                               >
                                 <div
-                                  className="button-label css-5ipae5"
-                                  is={null}
+                                  className="button-label css-ud6gq6-StyledFlex css-4jd5981"
                                 >
                                   Save Rule
                                 </div>
-                              </Base>
+                              </StyledFlex>
                             </Flex>
                           </button>
                         </Button>
@@ -1188,25 +1183,24 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                 <PanelHeader>
                   <StyledPanelHeader>
                     <Component
-                      className="css-kf498j-StyledPanelHeader css-1t1cqk30"
+                      className="css-kf498j-StyledPanelHeader css-9rpnl60"
                     >
                       <Flex
                         align="center"
-                        className="css-kf498j-StyledPanelHeader css-1t1cqk30"
+                        className="css-kf498j-StyledPanelHeader css-9rpnl60"
                         justify="space-between"
                       >
-                        <Base
+                        <StyledFlex
                           align="center"
-                          className="css-1t1cqk30 css-hj6snb"
+                          className="css-kf498j-StyledPanelHeader css-9rpnl60"
                           justify="space-between"
                         >
                           <div
-                            className="css-1t1cqk30 css-hj6snb"
-                            is={null}
+                            className="css-9rpnl60 css-69xk6m-StyledFlex css-4jd5981"
                           >
                             New Alert Rule
                           </div>
-                        </Base>
+                        </StyledFlex>
                       </Flex>
                     </Component>
                   </StyledPanelHeader>
@@ -1752,17 +1746,16 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                   align="center"
                                   className="button-label"
                                 >
-                                  <Base
+                                  <StyledFlex
                                     align="center"
-                                    className="button-label css-5ipae5"
+                                    className="button-label"
                                   >
                                     <div
-                                      className="button-label css-5ipae5"
-                                      is={null}
+                                      className="button-label css-ud6gq6-StyledFlex css-4jd5981"
                                     >
                                       Cancel
                                     </div>
-                                  </Base>
+                                  </StyledFlex>
                                 </Flex>
                               </a>
                             </Link>
@@ -1782,17 +1775,16 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                               align="center"
                               className="button-label"
                             >
-                              <Base
+                              <StyledFlex
                                 align="center"
-                                className="button-label css-5ipae5"
+                                className="button-label"
                               >
                                 <div
-                                  className="button-label css-5ipae5"
-                                  is={null}
+                                  className="button-label css-ud6gq6-StyledFlex css-4jd5981"
                                 >
                                   Save Rule
                                 </div>
-                              </Base>
+                              </StyledFlex>
                             </Flex>
                           </button>
                         </Button>

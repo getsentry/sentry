@@ -1,7 +1,7 @@
-import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import {Box} from '../../../components/grid';
 import SettingsNavigationGroup from '../components/settingsNavigationGroup';
 import SentryTypes from '../../../proptypes';
 

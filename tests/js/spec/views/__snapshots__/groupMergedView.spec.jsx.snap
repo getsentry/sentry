@@ -415,17 +415,16 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                               align="center"
                               className="button-label"
                             >
-                              <Base
+                              <StyledFlex
                                 align="center"
-                                className="button-label css-5ipae5"
+                                className="button-label"
                               >
                                 <div
-                                  className="button-label css-5ipae5"
-                                  is={null}
+                                  className="button-label css-ud6gq6-StyledFlex css-4jd5981"
                                 >
                                   Compare
                                 </div>
-                              </Base>
+                              </StyledFlex>
                             </Flex>
                           </button>
                         </Button>
@@ -456,17 +455,16 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                               align="center"
                               className="button-label"
                             >
-                              <Base
+                              <StyledFlex
                                 align="center"
-                                className="button-label css-5ipae5"
+                                className="button-label"
                               >
                                 <div
-                                  className="button-label css-5ipae5"
-                                  is={null}
+                                  className="button-label css-ud6gq6-StyledFlex css-4jd5981"
                                 >
                                   Collapse All
                                 </div>
-                              </Base>
+                              </StyledFlex>
                             </Flex>
                           </button>
                         </Button>
@@ -1788,17 +1786,16 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                               align="center"
                               className="button-label"
                             >
-                              <Base
+                              <StyledFlex
                                 align="center"
-                                className="button-label css-5ipae5"
+                                className="button-label"
                               >
                                 <div
-                                  className="button-label css-5ipae5"
-                                  is={null}
+                                  className="button-label css-ud6gq6-StyledFlex css-4jd5981"
                                 >
                                   Compare
                                 </div>
-                              </Base>
+                              </StyledFlex>
                             </Flex>
                           </button>
                         </Button>
@@ -1829,17 +1826,16 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                               align="center"
                               className="button-label"
                             >
-                              <Base
+                              <StyledFlex
                                 align="center"
-                                className="button-label css-5ipae5"
+                                className="button-label"
                               >
                                 <div
-                                  className="button-label css-5ipae5"
-                                  is={null}
+                                  className="button-label css-ud6gq6-StyledFlex css-4jd5981"
                                 >
                                   Collapse All
                                 </div>
-                              </Base>
+                              </StyledFlex>
                             </Flex>
                           </button>
                         </Button>

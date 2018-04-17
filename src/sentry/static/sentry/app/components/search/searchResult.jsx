@@ -1,9 +1,9 @@
-import {Flex} from 'grid-emotion';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import {Flex} from '../grid';
 import Avatar from '../avatar';
 import InlineSvg from '../inlineSvg';
 import SentryTypes from '../../proptypes';

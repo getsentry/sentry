@@ -15,28 +15,26 @@ exports[`ProjectSavedSearches renders 1`] = `
     >
       <Wrapper>
         <div
-          className="css-foidy-Wrapper css-17jmgia0"
+          className="css-foidy-Wrapper css-1wp86lr0"
         >
           <Flex
             align="center"
           >
-            <Base
+            <StyledFlex
               align="center"
-              className="css-5ipae5"
             >
               <div
-                className="css-5ipae5"
-                is={null}
+                className="css-ud6gq6-StyledFlex css-4jd5981"
               >
                 <Title>
                   <div
-                    className="css-zmdcxu-Title css-17jmgia1"
+                    className="css-zmdcxu-Title css-1wp86lr1"
                   >
                     Saved Searches
                   </div>
                 </Title>
               </div>
-            </Base>
+            </StyledFlex>
           </Flex>
         </div>
       </Wrapper>
@@ -53,79 +51,62 @@ exports[`ProjectSavedSearches renders 1`] = `
               disablePadding={true}
             >
               <Component
-                className="css-18fb6u1-StyledPanelHeader css-1t1cqk30"
+                className="css-18fb6u1-StyledPanelHeader css-9rpnl60"
                 disablePadding={true}
               >
                 <Flex
                   align="center"
-                  className="css-18fb6u1-StyledPanelHeader css-1t1cqk30"
+                  className="css-18fb6u1-StyledPanelHeader css-9rpnl60"
                   justify="space-between"
                 >
-                  <Base
+                  <StyledFlex
                     align="center"
-                    className="css-1t1cqk30 css-1pqpjvf"
+                    className="css-18fb6u1-StyledPanelHeader css-9rpnl60"
                     justify="space-between"
                   >
                     <div
-                      className="css-1t1cqk30 css-1pqpjvf"
-                      is={null}
+                      className="css-9rpnl60 css-qawref-StyledFlex css-4jd5981"
                     >
                       <Flex
                         flex="1"
                       >
-                        <Base
-                          className="css-z8nhq7"
-                          flex="1"
-                        >
+                        <StyledFlex>
                           <div
-                            className="css-z8nhq7"
-                            is={null}
+                            className="css-1luekth-StyledFlex css-4jd5981"
                           >
                             <Flex
                               flex="1"
                               px={2}
                             >
-                              <Base
-                                className="css-1i4q2rt"
-                                flex="1"
-                                px={2}
-                              >
+                              <StyledFlex>
                                 <div
-                                  className="css-1i4q2rt"
-                                  is={null}
+                                  className="css-kc8q98-StyledFlex css-4jd5981"
                                 >
                                   Search
                                 </div>
-                              </Base>
+                              </StyledFlex>
                             </Flex>
                             <Flex
                               flex="1"
                             >
-                              <Base
-                                className="css-z8nhq7"
-                                flex="1"
-                              >
+                              <StyledFlex>
                                 <div
-                                  className="css-z8nhq7"
-                                  is={null}
+                                  className="css-1luekth-StyledFlex css-4jd5981"
                                 >
                                   <InputColumn>
                                     <Flex
                                       flex="1"
                                       justify="center"
                                     >
-                                      <Base
-                                        className="css-k3hlac"
-                                        flex="1"
+                                      <StyledFlex
                                         justify="center"
                                       >
                                         <div
-                                          className="css-k3hlac"
-                                          is={null}
+                                          className="css-1luekth-StyledFlex css-4jd5981"
                                         >
                                           My Default
                                         </div>
-                                      </Base>
+                                      </StyledFlex>
                                     </Flex>
                                   </InputColumn>
                                   <InputColumn>
@@ -133,18 +114,15 @@ exports[`ProjectSavedSearches renders 1`] = `
                                       flex="1"
                                       justify="center"
                                     >
-                                      <Base
-                                        className="css-k3hlac"
-                                        flex="1"
+                                      <StyledFlex
                                         justify="center"
                                       >
                                         <div
-                                          className="css-k3hlac"
-                                          is={null}
+                                          className="css-1luekth-StyledFlex css-4jd5981"
                                         >
                                           Team Default
                                         </div>
-                                      </Base>
+                                      </StyledFlex>
                                     </Flex>
                                   </InputColumn>
                                   <InputColumn>
@@ -152,28 +130,25 @@ exports[`ProjectSavedSearches renders 1`] = `
                                       flex="1"
                                       justify="center"
                                     >
-                                      <Base
-                                        className="css-k3hlac"
-                                        flex="1"
+                                      <StyledFlex
                                         justify="center"
                                       >
                                         <div
-                                          className="css-k3hlac"
-                                          is={null}
+                                          className="css-1luekth-StyledFlex css-4jd5981"
                                         >
                                           Remove
                                         </div>
-                                      </Base>
+                                      </StyledFlex>
                                     </Flex>
                                   </InputColumn>
                                 </div>
-                              </Base>
+                              </StyledFlex>
                             </Flex>
                           </div>
-                        </Base>
+                        </StyledFlex>
                       </Flex>
                     </div>
-                  </Base>
+                  </StyledFlex>
                 </Flex>
               </Component>
             </StyledPanelHeader>
@@ -229,185 +204,147 @@ exports[`ProjectSavedSearches renders 1`] = `
                     p={0}
                     py={2}
                   >
-                    <Base
+                    <Flex
                       align="center"
-                      className="css-xw0gom-StyledPanelItem css-q9h14u0"
+                      className="css-g2y9ad-StyledPanelItem css-ggxnv80"
                       p={0}
                       py={2}
                     >
-                      <div
-                        className="css-xw0gom-StyledPanelItem css-q9h14u0"
-                        is={null}
+                      <StyledFlex
+                        align="center"
+                        className="css-g2y9ad-StyledPanelItem css-ggxnv80"
                       >
-                        <Flex
-                          direction="column"
-                          flex="1"
-                          px={2}
+                        <div
+                          className="css-ggxnv80 css-1pf07em-StyledFlex css-4jd5981"
                         >
-                          <Base
-                            className="css-16auc1r"
+                          <Flex
                             direction="column"
                             flex="1"
                             px={2}
                           >
-                            <div
-                              className="css-16auc1r"
-                              is={null}
+                            <StyledFlex
+                              direction="column"
                             >
-                              <SearchTitle>
-                                <div
-                                  className="css-225nrx-SearchTitle css-bn2ui0"
-                                >
-                                  Needs Triage
-                                </div>
-                              </SearchTitle>
-                              <code>
-                                is:unresolved is:unassigned
-                              </code>
-                            </div>
-                          </Base>
-                        </Flex>
-                        <Flex
-                          flex="1"
-                        >
-                          <Base
-                            className="css-z8nhq7"
+                              <div
+                                className="css-kc8q98-StyledFlex css-4jd5981"
+                                direction="column"
+                              >
+                                <SearchTitle>
+                                  <div
+                                    className="css-225nrx-SearchTitle css-1t5zp2m0"
+                                  >
+                                    Needs Triage
+                                  </div>
+                                </SearchTitle>
+                                <code>
+                                  is:unresolved is:unassigned
+                                </code>
+                              </div>
+                            </StyledFlex>
+                          </Flex>
+                          <Flex
                             flex="1"
                           >
-                            <div
-                              className="css-z8nhq7"
-                              is={null}
-                            >
-                              <InputColumn>
-                                <Flex
-                                  flex="1"
-                                  justify="center"
-                                >
-                                  <Base
-                                    className="css-k3hlac"
+                            <StyledFlex>
+                              <div
+                                className="css-1luekth-StyledFlex css-4jd5981"
+                              >
+                                <InputColumn>
+                                  <Flex
                                     flex="1"
                                     justify="center"
                                   >
-                                    <div
-                                      className="css-k3hlac"
-                                      is={null}
+                                    <StyledFlex
+                                      justify="center"
                                     >
-                                      <input
-                                        checked={false}
-                                        name="userDefault"
-                                        onChange={[Function]}
-                                        type="radio"
-                                      />
-                                    </div>
-                                  </Base>
-                                </Flex>
-                              </InputColumn>
-                              <InputColumn>
-                                <Flex
-                                  flex="1"
-                                  justify="center"
-                                >
-                                  <Base
-                                    className="css-k3hlac"
-                                    flex="1"
-                                    justify="center"
-                                  >
-                                    <div
-                                      className="css-k3hlac"
-                                      is={null}
-                                    >
-                                      <input
-                                        checked={true}
-                                        name="default"
-                                        onChange={[Function]}
-                                        type="radio"
-                                      />
-                                    </div>
-                                  </Base>
-                                </Flex>
-                              </InputColumn>
-                              <InputColumn>
-                                <Flex
-                                  flex="1"
-                                  justify="center"
-                                >
-                                  <Base
-                                    className="css-k3hlac"
-                                    flex="1"
-                                    justify="center"
-                                  >
-                                    <div
-                                      className="css-k3hlac"
-                                      is={null}
-                                    >
-                                      <Confirm
-                                        cancelText="Cancel"
-                                        confirmText="Confirm"
-                                        message="Are you sure you want to remove this?"
-                                        onConfirm={[Function]}
-                                        priority="primary"
+                                      <div
+                                        className="css-1luekth-StyledFlex css-4jd5981"
                                       >
-                                        <Button
-                                          disabled={false}
-                                          onClick={[Function]}
-                                          size="small"
+                                        <input
+                                          checked={false}
+                                          name="userDefault"
+                                          onChange={[Function]}
+                                          type="radio"
+                                        />
+                                      </div>
+                                    </StyledFlex>
+                                  </Flex>
+                                </InputColumn>
+                                <InputColumn>
+                                  <Flex
+                                    flex="1"
+                                    justify="center"
+                                  >
+                                    <StyledFlex
+                                      justify="center"
+                                    >
+                                      <div
+                                        className="css-1luekth-StyledFlex css-4jd5981"
+                                      >
+                                        <input
+                                          checked={true}
+                                          name="default"
+                                          onChange={[Function]}
+                                          type="radio"
+                                        />
+                                      </div>
+                                    </StyledFlex>
+                                  </Flex>
+                                </InputColumn>
+                                <InputColumn>
+                                  <Flex
+                                    flex="1"
+                                    justify="center"
+                                  >
+                                    <StyledFlex
+                                      justify="center"
+                                    >
+                                      <div
+                                        className="css-1luekth-StyledFlex css-4jd5981"
+                                      >
+                                        <Confirm
+                                          cancelText="Cancel"
+                                          confirmText="Confirm"
+                                          message="Are you sure you want to remove this?"
+                                          onConfirm={[Function]}
+                                          priority="primary"
                                         >
-                                          <button
-                                            className="button button-default button-sm"
+                                          <Button
                                             disabled={false}
                                             onClick={[Function]}
-                                            role="button"
+                                            size="small"
                                           >
-                                            <Flex
-                                              align="center"
-                                              className="button-label"
+                                            <button
+                                              className="button button-default button-sm"
+                                              disabled={false}
+                                              onClick={[Function]}
+                                              role="button"
                                             >
-                                              <Base
+                                              <Flex
                                                 align="center"
-                                                className="button-label css-5ipae5"
+                                                className="button-label"
                                               >
-                                                <div
-                                                  className="button-label css-5ipae5"
-                                                  is={null}
+                                                <StyledFlex
+                                                  align="center"
+                                                  className="button-label"
                                                 >
-                                                  <span
-                                                    className="icon icon-trash"
-                                                  />
-                                                </div>
-                                              </Base>
-                                            </Flex>
-                                          </button>
-                                        </Button>
-                                        <Modal
-                                          animation={false}
-                                          autoFocus={true}
-                                          backdrop={true}
-                                          bsClass="modal"
-                                          dialogComponentClass={[Function]}
-                                          enforceFocus={true}
-                                          keyboard={true}
-                                          manager={
-                                            ModalManager {
-                                              "add": [Function],
-                                              "containers": Array [],
-                                              "data": Array [],
-                                              "handleContainerOverflow": true,
-                                              "hideSiblingNodes": true,
-                                              "isTopModal": [Function],
-                                              "modals": Array [],
-                                              "remove": [Function],
-                                            }
-                                          }
-                                          onHide={[Function]}
-                                          renderBackdrop={[Function]}
-                                          restoreFocus={true}
-                                          show={false}
-                                        >
+                                                  <div
+                                                    className="button-label css-ud6gq6-StyledFlex css-4jd5981"
+                                                  >
+                                                    <span
+                                                      className="icon icon-trash"
+                                                    />
+                                                  </div>
+                                                </StyledFlex>
+                                              </Flex>
+                                            </button>
+                                          </Button>
                                           <Modal
+                                            animation={false}
                                             autoFocus={true}
                                             backdrop={true}
-                                            backdropClassName="modal-backdrop"
-                                            containerClassName="modal-open"
+                                            bsClass="modal"
+                                            dialogComponentClass={[Function]}
                                             enforceFocus={true}
                                             keyboard={true}
                                             manager={
@@ -422,24 +359,49 @@ exports[`ProjectSavedSearches renders 1`] = `
                                                 "remove": [Function],
                                               }
                                             }
-                                            onEntering={[Function]}
-                                            onExited={[Function]}
                                             onHide={[Function]}
                                             renderBackdrop={[Function]}
                                             restoreFocus={true}
                                             show={false}
-                                          />
-                                        </Modal>
-                                      </Confirm>
-                                    </div>
-                                  </Base>
-                                </Flex>
-                              </InputColumn>
-                            </div>
-                          </Base>
-                        </Flex>
-                      </div>
-                    </Base>
+                                          >
+                                            <Modal
+                                              autoFocus={true}
+                                              backdrop={true}
+                                              backdropClassName="modal-backdrop"
+                                              containerClassName="modal-open"
+                                              enforceFocus={true}
+                                              keyboard={true}
+                                              manager={
+                                                ModalManager {
+                                                  "add": [Function],
+                                                  "containers": Array [],
+                                                  "data": Array [],
+                                                  "handleContainerOverflow": true,
+                                                  "hideSiblingNodes": true,
+                                                  "isTopModal": [Function],
+                                                  "modals": Array [],
+                                                  "remove": [Function],
+                                                }
+                                              }
+                                              onEntering={[Function]}
+                                              onExited={[Function]}
+                                              onHide={[Function]}
+                                              renderBackdrop={[Function]}
+                                              restoreFocus={true}
+                                              show={false}
+                                            />
+                                          </Modal>
+                                        </Confirm>
+                                      </div>
+                                    </StyledFlex>
+                                  </Flex>
+                                </InputColumn>
+                              </div>
+                            </StyledFlex>
+                          </Flex>
+                        </div>
+                      </StyledFlex>
+                    </Flex>
                   </StyledPanelItem>
                 </PanelItem>
               </SavedSearchRow>
@@ -486,185 +448,147 @@ exports[`ProjectSavedSearches renders 1`] = `
                     p={0}
                     py={2}
                   >
-                    <Base
+                    <Flex
                       align="center"
-                      className="css-xw0gom-StyledPanelItem css-q9h14u0"
+                      className="css-g2y9ad-StyledPanelItem css-ggxnv80"
                       p={0}
                       py={2}
                     >
-                      <div
-                        className="css-xw0gom-StyledPanelItem css-q9h14u0"
-                        is={null}
+                      <StyledFlex
+                        align="center"
+                        className="css-g2y9ad-StyledPanelItem css-ggxnv80"
                       >
-                        <Flex
-                          direction="column"
-                          flex="1"
-                          px={2}
+                        <div
+                          className="css-ggxnv80 css-1pf07em-StyledFlex css-4jd5981"
                         >
-                          <Base
-                            className="css-16auc1r"
+                          <Flex
                             direction="column"
                             flex="1"
                             px={2}
                           >
-                            <div
-                              className="css-16auc1r"
-                              is={null}
+                            <StyledFlex
+                              direction="column"
                             >
-                              <SearchTitle>
-                                <div
-                                  className="css-225nrx-SearchTitle css-bn2ui0"
-                                >
-                                  Unresolved Issues
-                                </div>
-                              </SearchTitle>
-                              <code>
-                                is:unresolved
-                              </code>
-                            </div>
-                          </Base>
-                        </Flex>
-                        <Flex
-                          flex="1"
-                        >
-                          <Base
-                            className="css-z8nhq7"
+                              <div
+                                className="css-kc8q98-StyledFlex css-4jd5981"
+                                direction="column"
+                              >
+                                <SearchTitle>
+                                  <div
+                                    className="css-225nrx-SearchTitle css-1t5zp2m0"
+                                  >
+                                    Unresolved Issues
+                                  </div>
+                                </SearchTitle>
+                                <code>
+                                  is:unresolved
+                                </code>
+                              </div>
+                            </StyledFlex>
+                          </Flex>
+                          <Flex
                             flex="1"
                           >
-                            <div
-                              className="css-z8nhq7"
-                              is={null}
-                            >
-                              <InputColumn>
-                                <Flex
-                                  flex="1"
-                                  justify="center"
-                                >
-                                  <Base
-                                    className="css-k3hlac"
+                            <StyledFlex>
+                              <div
+                                className="css-1luekth-StyledFlex css-4jd5981"
+                              >
+                                <InputColumn>
+                                  <Flex
                                     flex="1"
                                     justify="center"
                                   >
-                                    <div
-                                      className="css-k3hlac"
-                                      is={null}
+                                    <StyledFlex
+                                      justify="center"
                                     >
-                                      <input
-                                        checked={true}
-                                        name="userDefault"
-                                        onChange={[Function]}
-                                        type="radio"
-                                      />
-                                    </div>
-                                  </Base>
-                                </Flex>
-                              </InputColumn>
-                              <InputColumn>
-                                <Flex
-                                  flex="1"
-                                  justify="center"
-                                >
-                                  <Base
-                                    className="css-k3hlac"
-                                    flex="1"
-                                    justify="center"
-                                  >
-                                    <div
-                                      className="css-k3hlac"
-                                      is={null}
-                                    >
-                                      <input
-                                        checked={false}
-                                        name="default"
-                                        onChange={[Function]}
-                                        type="radio"
-                                      />
-                                    </div>
-                                  </Base>
-                                </Flex>
-                              </InputColumn>
-                              <InputColumn>
-                                <Flex
-                                  flex="1"
-                                  justify="center"
-                                >
-                                  <Base
-                                    className="css-k3hlac"
-                                    flex="1"
-                                    justify="center"
-                                  >
-                                    <div
-                                      className="css-k3hlac"
-                                      is={null}
-                                    >
-                                      <Confirm
-                                        cancelText="Cancel"
-                                        confirmText="Confirm"
-                                        message="Are you sure you want to remove this?"
-                                        onConfirm={[Function]}
-                                        priority="primary"
+                                      <div
+                                        className="css-1luekth-StyledFlex css-4jd5981"
                                       >
-                                        <Button
-                                          disabled={false}
-                                          onClick={[Function]}
-                                          size="small"
+                                        <input
+                                          checked={true}
+                                          name="userDefault"
+                                          onChange={[Function]}
+                                          type="radio"
+                                        />
+                                      </div>
+                                    </StyledFlex>
+                                  </Flex>
+                                </InputColumn>
+                                <InputColumn>
+                                  <Flex
+                                    flex="1"
+                                    justify="center"
+                                  >
+                                    <StyledFlex
+                                      justify="center"
+                                    >
+                                      <div
+                                        className="css-1luekth-StyledFlex css-4jd5981"
+                                      >
+                                        <input
+                                          checked={false}
+                                          name="default"
+                                          onChange={[Function]}
+                                          type="radio"
+                                        />
+                                      </div>
+                                    </StyledFlex>
+                                  </Flex>
+                                </InputColumn>
+                                <InputColumn>
+                                  <Flex
+                                    flex="1"
+                                    justify="center"
+                                  >
+                                    <StyledFlex
+                                      justify="center"
+                                    >
+                                      <div
+                                        className="css-1luekth-StyledFlex css-4jd5981"
+                                      >
+                                        <Confirm
+                                          cancelText="Cancel"
+                                          confirmText="Confirm"
+                                          message="Are you sure you want to remove this?"
+                                          onConfirm={[Function]}
+                                          priority="primary"
                                         >
-                                          <button
-                                            className="button button-default button-sm"
+                                          <Button
                                             disabled={false}
                                             onClick={[Function]}
-                                            role="button"
+                                            size="small"
                                           >
-                                            <Flex
-                                              align="center"
-                                              className="button-label"
+                                            <button
+                                              className="button button-default button-sm"
+                                              disabled={false}
+                                              onClick={[Function]}
+                                              role="button"
                                             >
-                                              <Base
+                                              <Flex
                                                 align="center"
-                                                className="button-label css-5ipae5"
+                                                className="button-label"
                                               >
-                                                <div
-                                                  className="button-label css-5ipae5"
-                                                  is={null}
+                                                <StyledFlex
+                                                  align="center"
+                                                  className="button-label"
                                                 >
-                                                  <span
-                                                    className="icon icon-trash"
-                                                  />
-                                                </div>
-                                              </Base>
-                                            </Flex>
-                                          </button>
-                                        </Button>
-                                        <Modal
-                                          animation={false}
-                                          autoFocus={true}
-                                          backdrop={true}
-                                          bsClass="modal"
-                                          dialogComponentClass={[Function]}
-                                          enforceFocus={true}
-                                          keyboard={true}
-                                          manager={
-                                            ModalManager {
-                                              "add": [Function],
-                                              "containers": Array [],
-                                              "data": Array [],
-                                              "handleContainerOverflow": true,
-                                              "hideSiblingNodes": true,
-                                              "isTopModal": [Function],
-                                              "modals": Array [],
-                                              "remove": [Function],
-                                            }
-                                          }
-                                          onHide={[Function]}
-                                          renderBackdrop={[Function]}
-                                          restoreFocus={true}
-                                          show={false}
-                                        >
+                                                  <div
+                                                    className="button-label css-ud6gq6-StyledFlex css-4jd5981"
+                                                  >
+                                                    <span
+                                                      className="icon icon-trash"
+                                                    />
+                                                  </div>
+                                                </StyledFlex>
+                                              </Flex>
+                                            </button>
+                                          </Button>
                                           <Modal
+                                            animation={false}
                                             autoFocus={true}
                                             backdrop={true}
-                                            backdropClassName="modal-backdrop"
-                                            containerClassName="modal-open"
+                                            bsClass="modal"
+                                            dialogComponentClass={[Function]}
                                             enforceFocus={true}
                                             keyboard={true}
                                             manager={
@@ -679,24 +603,49 @@ exports[`ProjectSavedSearches renders 1`] = `
                                                 "remove": [Function],
                                               }
                                             }
-                                            onEntering={[Function]}
-                                            onExited={[Function]}
                                             onHide={[Function]}
                                             renderBackdrop={[Function]}
                                             restoreFocus={true}
                                             show={false}
-                                          />
-                                        </Modal>
-                                      </Confirm>
-                                    </div>
-                                  </Base>
-                                </Flex>
-                              </InputColumn>
-                            </div>
-                          </Base>
-                        </Flex>
-                      </div>
-                    </Base>
+                                          >
+                                            <Modal
+                                              autoFocus={true}
+                                              backdrop={true}
+                                              backdropClassName="modal-backdrop"
+                                              containerClassName="modal-open"
+                                              enforceFocus={true}
+                                              keyboard={true}
+                                              manager={
+                                                ModalManager {
+                                                  "add": [Function],
+                                                  "containers": Array [],
+                                                  "data": Array [],
+                                                  "handleContainerOverflow": true,
+                                                  "hideSiblingNodes": true,
+                                                  "isTopModal": [Function],
+                                                  "modals": Array [],
+                                                  "remove": [Function],
+                                                }
+                                              }
+                                              onEntering={[Function]}
+                                              onExited={[Function]}
+                                              onHide={[Function]}
+                                              renderBackdrop={[Function]}
+                                              restoreFocus={true}
+                                              show={false}
+                                            />
+                                          </Modal>
+                                        </Confirm>
+                                      </div>
+                                    </StyledFlex>
+                                  </Flex>
+                                </InputColumn>
+                              </div>
+                            </StyledFlex>
+                          </Flex>
+                        </div>
+                      </StyledFlex>
+                    </Flex>
                   </StyledPanelItem>
                 </PanelItem>
               </SavedSearchRow>
@@ -724,28 +673,26 @@ exports[`ProjectSavedSearches renders empty 1`] = `
     >
       <Wrapper>
         <div
-          className="css-foidy-Wrapper css-17jmgia0"
+          className="css-foidy-Wrapper css-1wp86lr0"
         >
           <Flex
             align="center"
           >
-            <Base
+            <StyledFlex
               align="center"
-              className="css-5ipae5"
             >
               <div
-                className="css-5ipae5"
-                is={null}
+                className="css-ud6gq6-StyledFlex css-4jd5981"
               >
                 <Title>
                   <div
-                    className="css-zmdcxu-Title css-17jmgia1"
+                    className="css-zmdcxu-Title css-1wp86lr1"
                   >
                     Saved Searches
                   </div>
                 </Title>
               </div>
-            </Base>
+            </StyledFlex>
           </Flex>
         </div>
       </Wrapper>
@@ -762,79 +709,62 @@ exports[`ProjectSavedSearches renders empty 1`] = `
               disablePadding={true}
             >
               <Component
-                className="css-18fb6u1-StyledPanelHeader css-1t1cqk30"
+                className="css-18fb6u1-StyledPanelHeader css-9rpnl60"
                 disablePadding={true}
               >
                 <Flex
                   align="center"
-                  className="css-18fb6u1-StyledPanelHeader css-1t1cqk30"
+                  className="css-18fb6u1-StyledPanelHeader css-9rpnl60"
                   justify="space-between"
                 >
-                  <Base
+                  <StyledFlex
                     align="center"
-                    className="css-1t1cqk30 css-1pqpjvf"
+                    className="css-18fb6u1-StyledPanelHeader css-9rpnl60"
                     justify="space-between"
                   >
                     <div
-                      className="css-1t1cqk30 css-1pqpjvf"
-                      is={null}
+                      className="css-9rpnl60 css-qawref-StyledFlex css-4jd5981"
                     >
                       <Flex
                         flex="1"
                       >
-                        <Base
-                          className="css-z8nhq7"
-                          flex="1"
-                        >
+                        <StyledFlex>
                           <div
-                            className="css-z8nhq7"
-                            is={null}
+                            className="css-1luekth-StyledFlex css-4jd5981"
                           >
                             <Flex
                               flex="1"
                               px={2}
                             >
-                              <Base
-                                className="css-1i4q2rt"
-                                flex="1"
-                                px={2}
-                              >
+                              <StyledFlex>
                                 <div
-                                  className="css-1i4q2rt"
-                                  is={null}
+                                  className="css-kc8q98-StyledFlex css-4jd5981"
                                 >
                                   Search
                                 </div>
-                              </Base>
+                              </StyledFlex>
                             </Flex>
                             <Flex
                               flex="1"
                             >
-                              <Base
-                                className="css-z8nhq7"
-                                flex="1"
-                              >
+                              <StyledFlex>
                                 <div
-                                  className="css-z8nhq7"
-                                  is={null}
+                                  className="css-1luekth-StyledFlex css-4jd5981"
                                 >
                                   <InputColumn>
                                     <Flex
                                       flex="1"
                                       justify="center"
                                     >
-                                      <Base
-                                        className="css-k3hlac"
-                                        flex="1"
+                                      <StyledFlex
                                         justify="center"
                                       >
                                         <div
-                                          className="css-k3hlac"
-                                          is={null}
+                                          className="css-1luekth-StyledFlex css-4jd5981"
                                         >
                                           My Default
                                         </div>
-                                      </Base>
+                                      </StyledFlex>
                                     </Flex>
                                   </InputColumn>
                                   <InputColumn>
@@ -842,18 +772,15 @@ exports[`ProjectSavedSearches renders empty 1`] = `
                                       flex="1"
                                       justify="center"
                                     >
-                                      <Base
-                                        className="css-k3hlac"
-                                        flex="1"
+                                      <StyledFlex
                                         justify="center"
                                       >
                                         <div
-                                          className="css-k3hlac"
-                                          is={null}
+                                          className="css-1luekth-StyledFlex css-4jd5981"
                                         >
                                           Team Default
                                         </div>
-                                      </Base>
+                                      </StyledFlex>
                                     </Flex>
                                   </InputColumn>
                                   <InputColumn>
@@ -861,28 +788,25 @@ exports[`ProjectSavedSearches renders empty 1`] = `
                                       flex="1"
                                       justify="center"
                                     >
-                                      <Base
-                                        className="css-k3hlac"
-                                        flex="1"
+                                      <StyledFlex
                                         justify="center"
                                       >
                                         <div
-                                          className="css-k3hlac"
-                                          is={null}
+                                          className="css-1luekth-StyledFlex css-4jd5981"
                                         >
                                           Remove
                                         </div>
-                                      </Base>
+                                      </StyledFlex>
                                     </Flex>
                                   </InputColumn>
                                 </div>
-                              </Base>
+                              </StyledFlex>
                             </Flex>
                           </div>
-                        </Base>
+                        </StyledFlex>
                       </Flex>
                     </div>
-                  </Base>
+                  </StyledFlex>
                 </Flex>
               </Component>
             </StyledPanelHeader>

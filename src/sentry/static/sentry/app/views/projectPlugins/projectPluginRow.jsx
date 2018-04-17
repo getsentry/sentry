@@ -1,9 +1,9 @@
-import {Flex} from 'grid-emotion';
 import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled, {css} from 'react-emotion';
 
+import {Flex} from '../../components/grid';
 import {t} from '../../locale';
 import DynamicWrapper from '../../components/dynamicWrapper';
 import ExternalLink from '../../components/externalLink';

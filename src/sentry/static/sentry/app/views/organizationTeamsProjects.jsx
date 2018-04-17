@@ -1,9 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Box, Flex} from 'grid-emotion';
 import {Link} from 'react-router';
 import LazyLoad from 'react-lazy-load';
 
+import {Box, Flex} from '../components/grid';
 import BarChart from '../components/barChart';
 import Button from '../components/buttons/button';
 import {Client} from '../api';

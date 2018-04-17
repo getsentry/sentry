@@ -1,9 +1,9 @@
-import {Box, Flex} from 'grid-emotion';
 import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import {Box, Flex} from '../../components/grid';
 import Alert from '../../components/alert';
 import Footer from '../../components/footer';
 import SettingsBackButton from './components/settingsBackButton';

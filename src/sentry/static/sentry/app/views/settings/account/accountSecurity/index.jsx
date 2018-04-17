@@ -1,10 +1,10 @@
 /**
  * Lists 2fa devices + password change form
  */
-import {Box, Flex} from 'grid-emotion';
 import React from 'react';
 import styled from 'react-emotion';
 
+import {Box, Flex} from '../../../../components/grid';
 import {addErrorMessage} from '../../../../actionCreators/indicator';
 import {t} from '../../../../locale';
 import AsyncView from '../../../asyncView';

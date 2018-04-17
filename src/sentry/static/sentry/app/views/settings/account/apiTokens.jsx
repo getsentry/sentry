@@ -1,9 +1,9 @@
-import {Box, Flex} from 'grid-emotion';
 import React from 'react';
 
 import {t, tct} from '../../../locale';
 import ApiTokenRow from './apiTokenRow';
 import AsyncView from '../../asyncView';
+import {Box, Flex} from '../../../components/grid';
 import Button from '../../../components/buttons/button';
 import EmptyMessage from '../components/emptyMessage';
 import IndicatorStore from '../../../stores/indicatorStore';

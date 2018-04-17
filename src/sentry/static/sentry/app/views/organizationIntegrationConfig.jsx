@@ -1,8 +1,8 @@
-import {Flex, Box} from 'grid-emotion';
 import {keyBy} from 'lodash';
 import React from 'react';
 import styled from 'react-emotion';
 
+import {Flex, Box} from '../components/grid';
 import {sortArray} from '../utils';
 import {t} from '../locale';
 import AlertLink from '../components/alertLink';
@@ -237,7 +237,7 @@ export default class OrganizationIntegrationConfig extends AsyncView {
           <Box pl={2}>
             <IntegrationIcon src={integration.icon} />
           </Box>
-          <Box px={2} flex={1}>
+          <Box px={2} flex="1">
             <IntegrationName>{integration.name}</IntegrationName>
             <DomainName>{integration.domain_name}</DomainName>
           </Box>

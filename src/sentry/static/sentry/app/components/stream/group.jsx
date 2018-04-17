@@ -4,8 +4,8 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import styled from 'react-emotion';
-import {Flex, Box} from 'grid-emotion';
 
+import {Flex, Box} from '../grid';
 import AssigneeSelector from '../assigneeSelector';
 import Count from '../count';
 import GroupChart from './groupChart';

@@ -2,8 +2,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
-import {Box} from 'grid-emotion';
 
+import {Box} from '../../components/grid';
 import SentryTypes from '../../proptypes';
 import ApiMixin from '../../mixins/apiMixin';
 import LoadingError from '../../components/loadingError';

@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Box} from 'grid-emotion';
 
+import {Box} from '../../components/grid';
 import {PanelItem} from '../../components/panels';
 import ReleaseStats from '../../components/releaseStats';
 import Count from '../../components/count';

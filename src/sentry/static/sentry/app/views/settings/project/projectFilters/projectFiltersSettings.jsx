@@ -1,4 +1,3 @@
-import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -14,6 +13,7 @@ import {Panel, PanelBody, PanelHeader, PanelItem} from '../../../../components/p
 import SentryTypes from '../../../../proptypes';
 import Switch from '../../../../components/switch';
 import filterGroups, {customFilterFields} from '../../../../data/forms/inboundFilters';
+import {Flex} from '../../../../components/grid';
 
 const LEGACY_BROWSER_SUBFILTERS = {
   ie_pre_9: {
