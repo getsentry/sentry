@@ -31,6 +31,11 @@ describe('getQueryEnvironment()', function() {
     const qs = 'is:unresolved is:unassigned environment:"my environment"';
     expect(utils.getQueryEnvironment(qs)).toBe('my environment');
   });
+
+  it('handles query property similar to `environment`', function() {
+    const qs = 'test_environment:development';
+    expect(utils.getQueryEnvironment(qs)).toBe(null);
+  });
 });
 
 describe('getQueryStringWithEnvironment', function() {
@@ -61,6 +66,13 @@ describe('getQueryStringWithEnvironment', function() {
       'is:unresolved is:unassigned environment:test.com'
     );
   });
+
+  it('handles query property similar to `environment`', function() {
+    const qs = 'test_environment:development';
+    expect(utils.getQueryStringWithEnvironment(qs, 'test.com')).toBe(
+      'test_environment:development environment:test.com'
+    );
+  });
 });
 
 describe('getQueryStringWithoutEnvironment', function() {
@@ -75,6 +87,13 @@ describe('getQueryStringWithoutEnvironment', function() {
     const qs = 'is:unresolved environment: is:unassigned';
     expect(utils.getQueryStringWithoutEnvironment(qs)).toBe(
       'is:unresolved is:unassigned'
+    );
+  });
+
+  it('handles query property similar to `environment`', function() {
+    const qs = 'test_environment:development';
+    expect(utils.getQueryStringWithoutEnvironment(qs)).toBe(
+      'test_environment:development'
     );
   });
 });
