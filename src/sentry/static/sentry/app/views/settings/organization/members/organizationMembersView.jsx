@@ -8,6 +8,7 @@ import {addErrorMessage, addSuccessMessage} from '../../../../actionCreators/ind
 import {t, tct} from '../../../../locale';
 import AsyncView from '../../../asyncView';
 import Button from '../../../../components/buttons/button';
+import EmptyMessage from '../../components/emptyMessage';
 import ConfigStore from '../../../../stores/configStore';
 import GuideAnchor from '../../../../components/assistant/guideAnchor';
 import Input from '../../components/forms/controls/input';
@@ -312,6 +313,9 @@ class OrganizationMembersView extends AsyncView {
                 />
               );
             })}
+            {members.length === 0 && (
+              <EmptyMessage>{t('No members found.')}</EmptyMessage>
+            )}
           </PanelBody>
         </Panel>
 
