@@ -7,6 +7,7 @@ import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {removeTeam} from 'app/actionCreators/teams';
 import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
+import AvatarChooser from 'app/components/avatarChooser';
 import Button from 'app/components/buttons/button';
 import Confirm from 'app/components/confirm';
 import Field from 'app/views/settings/components/forms/field';
@@ -85,6 +86,12 @@ export default class TeamSettings extends AsyncView {
             <JsonForm location={location} forms={teamSettingsFields} />
           </Box>
         </Form>
+
+        <AvatarChooser
+          allowGravatar={false}
+          endpoint={`/teams/${organization.slug}/${team.slug}/`}
+          model={team}
+        />
 
         {access.has('team:admin') && (
           <Panel>
