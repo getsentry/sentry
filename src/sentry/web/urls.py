@@ -37,12 +37,12 @@ from sentry.web.frontend.oauth_authorize import OAuthAuthorizeView
 from sentry.web.frontend.oauth_token import OAuthTokenView
 from sentry.auth.providers.saml2 import SAML2AcceptACSView, SAML2SLSView, SAML2MetadataView
 from sentry.web.frontend.organization_avatar import OrganizationAvatarPhotoView
-from sentry.web.frontend.team_avatar import TeamAvatarPhotoView
 from sentry.web.frontend.organization_auth_settings import \
     OrganizationAuthSettingsView
 from sentry.web.frontend.organization_integration_setup import \
     OrganizationIntegrationSetupView
 from sentry.web.frontend.out import OutView
+from sentry.web.frontend.project_avatar import ProjectAvatarPhotoView
 from sentry.web.frontend.react_page import GenericReactPageView, ReactPageView
 from sentry.web.frontend.reactivate_account import ReactivateAccountView
 from sentry.web.frontend.release_webhook import ReleaseWebhookView
@@ -50,6 +50,7 @@ from sentry.web.frontend.remove_account import RemoveAccountView
 from sentry.web.frontend.restore_organization import RestoreOrganizationView
 from sentry.web.frontend.remove_project import RemoveProjectView
 from sentry.web.frontend.transfer_project import TransferProjectView
+from sentry.web.frontend.team_avatar import TeamAvatarPhotoView
 from sentry.web.frontend.account_identity import AccountIdentityAssociateView, AccountIdentityLinkView
 from sentry.web.frontend.remove_team import RemoveTeamView
 from sentry.web.frontend.sudo import SudoView
@@ -451,6 +452,11 @@ urlpatterns += patterns(
         r'^organization-avatar/(?P<avatar_id>[^\/]+)/$',
         OrganizationAvatarPhotoView.as_view(),
         name='sentry-organization-avatar-url'
+    ),
+    url(
+        r'^project-avatar/(?P<avatar_id>[^\/]+)/$',
+        ProjectAvatarPhotoView.as_view(),
+        name='sentry-project-avatar-url'
     ),
     url(
         r'^team-avatar/(?P<avatar_id>[^\/]+)/$',
