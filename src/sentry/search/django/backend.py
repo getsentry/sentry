@@ -204,9 +204,6 @@ def get_latest_release(project, environment):
 
 
 class DjangoSearchBackend(SearchBackend):
-    def __init__(self, **options):
-        super(DjangoSearchBackend, self).__init__(**options)
-
     def query(self, project, tags=None, environment=None, sort_by='date', limit=100,
               cursor=None, count_hits=False, paginator_options=None, **parameters):
 
@@ -320,14 +317,10 @@ class DjangoSearchBackend(SearchBackend):
                     parameters,
                 )
                 if retention_window_start is not None:
-                    event_queryset = event_queryset.filter(
-                        date_added__gte=retention_window_start
-                    )
+                    event_queryset = event_queryset.filter(date_added__gte=retention_window_start)
 
                 group_queryset = group_queryset.filter(
-                    id__in=list(
-                        event_queryset.distinct().values_list('group_id', flat=True)[:1000]
-                    )
+                    id__in=list(event_queryset.distinct().values_list('group_id', flat=True)[:1000])
                 )
 
             group_queryset = QuerySetBuilder({
@@ -494,6 +487,21 @@ class DjangoSearchBackend(SearchBackend):
 
             return result
         else:
+            event_queryset_builder = QuerySetBuilder({
+                'date_from': ScalarCondition('datetime', 'gt'),
+                'date_to': ScalarCondition('datetime', 'lt'),
+            })
+
+            if any(key in parameters for key in event_queryset_builder.conditions.keys()):
+                group_queryset = group_queryset.filter(
+                    id__in=list(
+                        event_queryset_builder.build(
+                            Event.objects.filter(project_id=project.id),
+                            parameters,
+                        ).distinct().values_list('group_id', flat=True)[:1000],
+                    )
+                )
+
             group_queryset = QuerySetBuilder({
                 'first_release': CallbackCondition(
                     lambda queryset, version: queryset.filter(
@@ -513,22 +521,11 @@ class DjangoSearchBackend(SearchBackend):
             }).build(
                 group_queryset,
                 parameters,
+            ).extra(
+                select={
+                    'sort_value': get_sort_clause(sort_by),
+                },
             )
-
-            event_queryset_builder = QuerySetBuilder({
-                'date_from': ScalarCondition('datetime', 'gt'),
-                'date_to': ScalarCondition('datetime', 'lt'),
-            })
-
-            if any(key in parameters for key in event_queryset_builder.conditions.keys()):
-                group_queryset = group_queryset.filter(
-                    id__in=list(
-                        event_queryset_builder.build(
-                            Event.objects.filter(project_id=project.id),
-                            parameters,
-                        ).distinct().values_list('group_id', flat=True)[:1000],
-                    )
-                )
 
             if tags:
                 group_ids = tagstore.get_group_ids_for_search_filter(
@@ -544,12 +541,6 @@ class DjangoSearchBackend(SearchBackend):
                     group_queryset = group_queryset.filter(id__in=group_ids)
                 else:
                     group_queryset = group_queryset.none()
-
-            group_queryset = group_queryset.extra(
-                select={
-                    'sort_value': get_sort_clause(sort_by),
-                },
-            )
 
             paginator_cls, sort_clause = sort_strategies[sort_by]
             group_queryset = group_queryset.order_by(sort_clause)
