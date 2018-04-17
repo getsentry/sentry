@@ -6,7 +6,7 @@ import {t} from 'app/locale';
 
 class AvatarCropper extends React.Component {
   static propTypes = {
-    user: PropTypes.object.isRequired,
+    model: PropTypes.object.isRequired,
     updateDataUrlState: PropTypes.func.isRequired,
     savedDataUrl: PropTypes.string,
   };
@@ -37,7 +37,7 @@ class AvatarCropper extends React.Component {
     /*eslint consistent-return:0*/
     let file = ev.target.files[0];
 
-    if (!file) return; // No file selected (e.g. user clicked "cancel")
+    if (!file) return; // No file selected (e.g. model clicked "cancel")
 
     if (!/^image\//.test(file.type))
       return void this.handleError('That is not a supported file type.');
@@ -312,7 +312,7 @@ class AvatarCropper extends React.Component {
   };
 
   getImgSrc = () => {
-    let uuid = this.props.user.avatar.avatarUuid;
+    let uuid = this.props.model.avatar.avatarUuid;
     let photoUrl = uuid && '/avatar/' + uuid + '/';
     return this.props.savedDataUrl || this.state.objectURL || photoUrl;
   };
