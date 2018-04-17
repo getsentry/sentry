@@ -34,14 +34,14 @@ class RuleBuilder extends React.Component {
   }
 
   mentionableUsers() {
-    return memberListStore.getAll().map(member => ({
-      value: buildUserId(member.id),
-      label: member.email,
-      searchKey: `${member.email}  ${name}`,
+    return memberListStore.getAll().map(({id, name, email}) => ({
+      value: buildUserId(id),
+      label: name || email,
+      searchKey: `${email}  ${name}`,
       actor: {
         type: 'user',
-        id: member.id,
-        name: member.name,
+        id,
+        name,
       },
     }));
   }

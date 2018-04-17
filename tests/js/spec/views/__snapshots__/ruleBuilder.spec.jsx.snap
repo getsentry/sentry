@@ -25,7 +25,7 @@ exports[`RuleBuilder render() renders 1`] = `
 >
   <BuilderBar>
     <div
-      className="css-1rsoebt-BuilderBar css-1r9wn455"
+      className="css-1rsoebt-BuilderBar css-13f5eg05"
     >
       <BuilderSelect
         onChange={[Function]}
@@ -33,7 +33,7 @@ exports[`RuleBuilder render() renders 1`] = `
         value="path"
       >
         <SelectInput
-          className="css-1eslqkc-BuilderSelect css-1r9wn456"
+          className="css-1eslqkc-BuilderSelect css-13f5eg06"
           disabled={false}
           multiple={false}
           onChange={[Function]}
@@ -43,7 +43,7 @@ exports[`RuleBuilder render() renders 1`] = `
           value="path"
         >
           <select
-            className="css-1eslqkc-BuilderSelect css-1r9wn456"
+            className="css-1eslqkc-BuilderSelect css-13f5eg06"
             disabled={false}
             multiple={false}
             onChange={[Function]}
@@ -71,7 +71,7 @@ exports[`RuleBuilder render() renders 1`] = `
         value=""
       >
         <input
-          className="css-1t4syiu-Input-BuilderInput css-1r9wn457"
+          className="css-1t4syiu-Input-BuilderInput css-13f5eg07"
           onChange={[Function]}
           placeholder="src/example/*"
           value=""
@@ -81,17 +81,17 @@ exports[`RuleBuilder render() renders 1`] = `
         src="icon-chevron-right"
       >
         <InlineSvg
-          className="css-a4tn6s-Divider css-1r9wn458"
+          className="css-a4tn6s-Divider css-13f5eg08"
           src="icon-chevron-right"
         >
           <StyledSvg
-            className="css-a4tn6s-Divider css-1r9wn458"
+            className="css-a4tn6s-Divider css-13f5eg08"
             height="1em"
             viewBox={Object {}}
             width="1em"
           >
             <svg
-              className="css-1r9wn458 css-5e2rei-StyledSvg css-adkcw30"
+              className="css-13f5eg08 css-5e2rei-StyledSvg css-adkcw30"
               height="1em"
               viewBox={Object {}}
               width="1em"
@@ -129,8 +129,8 @@ exports[`RuleBuilder render() renders 1`] = `
                       "name": "Jane Doe",
                       "type": "user",
                     },
-                    "label": "janedoe@example.com",
-                    "searchKey": "janedoe@example.com  nodejs",
+                    "label": "Jane Doe",
+                    "searchKey": "janedoe@example.com  Jane Doe",
                     "value": "user:1",
                   },
                   Object {
@@ -139,8 +139,8 @@ exports[`RuleBuilder render() renders 1`] = `
                       "name": "John Smith",
                       "type": "user",
                     },
-                    "label": "johnsmith@example.com",
-                    "searchKey": "johnsmith@example.com  nodejs",
+                    "label": "John Smith",
+                    "searchKey": "johnsmith@example.com  John Smith",
                     "value": "user:2",
                   },
                 ]
@@ -160,8 +160,8 @@ exports[`RuleBuilder render() renders 1`] = `
                         "name": "Jane Doe",
                         "type": "user",
                       },
-                      "label": "janedoe@example.com",
-                      "searchKey": "janedoe@example.com  nodejs",
+                      "label": "Jane Doe",
+                      "searchKey": "janedoe@example.com  Jane Doe",
                       "value": "user:1",
                     },
                     Object {
@@ -170,8 +170,8 @@ exports[`RuleBuilder render() renders 1`] = `
                         "name": "John Smith",
                         "type": "user",
                       },
-                      "label": "johnsmith@example.com",
-                      "searchKey": "johnsmith@example.com  nodejs",
+                      "label": "John Smith",
+                      "searchKey": "johnsmith@example.com  John Smith",
                       "value": "user:2",
                     },
                   ]
@@ -201,8 +201,8 @@ exports[`RuleBuilder render() renders 1`] = `
                           "name": "Jane Doe",
                           "type": "user",
                         },
-                        "label": "janedoe@example.com",
-                        "searchKey": "janedoe@example.com  nodejs",
+                        "label": "Jane Doe",
+                        "searchKey": "janedoe@example.com  Jane Doe",
                         "value": "user:1",
                       },
                       Object {
@@ -211,8 +211,8 @@ exports[`RuleBuilder render() renders 1`] = `
                           "name": "John Smith",
                           "type": "user",
                         },
-                        "label": "johnsmith@example.com",
-                        "searchKey": "johnsmith@example.com  nodejs",
+                        "label": "John Smith",
+                        "searchKey": "johnsmith@example.com  John Smith",
                         "value": "user:2",
                       },
                     ]
@@ -271,8 +271,8 @@ exports[`RuleBuilder render() renders 1`] = `
                             "name": "Jane Doe",
                             "type": "user",
                           },
-                          "label": "janedoe@example.com",
-                          "searchKey": "janedoe@example.com  nodejs",
+                          "label": "Jane Doe",
+                          "searchKey": "janedoe@example.com  Jane Doe",
                           "value": "user:1",
                         },
                         Object {
@@ -281,8 +281,8 @@ exports[`RuleBuilder render() renders 1`] = `
                             "name": "John Smith",
                             "type": "user",
                           },
-                          "label": "johnsmith@example.com",
-                          "searchKey": "johnsmith@example.com  nodejs",
+                          "label": "John Smith",
+                          "searchKey": "johnsmith@example.com  John Smith",
                           "value": "user:2",
                         },
                       ]
@@ -414,7 +414,7 @@ exports[`RuleBuilder render() renders 1`] = `
         size="zero"
       >
         <Button
-          className="css-3daogo-RuleAddButton css-1r9wn459"
+          className="css-3daogo-RuleAddButton css-13f5eg09"
           disabled={false}
           icon="icon-circle-add"
           onClick={[Function]}
@@ -422,7 +422,7 @@ exports[`RuleBuilder render() renders 1`] = `
           size="zero"
         >
           <button
-            className="css-3daogo-RuleAddButton css-1r9wn459 button button-primary button-zero"
+            className="css-3daogo-RuleAddButton css-13f5eg09 button button-primary button-zero"
             disabled={false}
             onClick={[Function]}
             role="button"
@@ -523,31 +523,31 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
 >
   <Candidates>
     <div
-      className="css-1fyz2uk-Candidates css-1r9wn450"
+      className="css-1fyz2uk-Candidates css-13f5eg00"
     >
       <RuleCandidate
         key="a/bar"
         onClick={[Function]}
       >
         <div
-          className="css-4hexhh-RuleCandidate css-1r9wn453"
+          className="css-4hexhh-RuleCandidate css-13f5eg03"
           onClick={[Function]}
         >
           <AddIcon
             src="icon-circle-add"
           >
             <InlineSvg
-              className="css-1ivdji5-AddIcon css-1r9wn454"
+              className="css-1ivdji5-AddIcon css-13f5eg04"
               src="icon-circle-add"
             >
               <StyledSvg
-                className="css-1ivdji5-AddIcon css-1r9wn454"
+                className="css-1ivdji5-AddIcon css-13f5eg04"
                 height="1em"
                 viewBox={Object {}}
                 width="1em"
               >
                 <svg
-                  className="css-1r9wn454 css-eomeeu-StyledSvg css-adkcw30"
+                  className="css-13f5eg04 css-eomeeu-StyledSvg css-adkcw30"
                   height="1em"
                   viewBox={Object {}}
                   width="1em"
@@ -562,14 +562,14 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
           </AddIcon>
           <StyledTextOverflow>
             <div
-              className="css-q3yspe-TextOverflow-StyledTextOverflow css-1r9wn452"
+              className="css-q3yspe-TextOverflow-StyledTextOverflow css-13f5eg02"
             >
               a/bar
             </div>
           </StyledTextOverflow>
           <TypeHint>
             <div
-              className="css-6d8mj3-TypeHint css-1r9wn451"
+              className="css-6d8mj3-TypeHint css-13f5eg01"
             >
               [PATH]
             </div>
@@ -581,24 +581,24 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
         onClick={[Function]}
       >
         <div
-          className="css-4hexhh-RuleCandidate css-1r9wn453"
+          className="css-4hexhh-RuleCandidate css-13f5eg03"
           onClick={[Function]}
         >
           <AddIcon
             src="icon-circle-add"
           >
             <InlineSvg
-              className="css-1ivdji5-AddIcon css-1r9wn454"
+              className="css-1ivdji5-AddIcon css-13f5eg04"
               src="icon-circle-add"
             >
               <StyledSvg
-                className="css-1ivdji5-AddIcon css-1r9wn454"
+                className="css-1ivdji5-AddIcon css-13f5eg04"
                 height="1em"
                 viewBox={Object {}}
                 width="1em"
               >
                 <svg
-                  className="css-1r9wn454 css-eomeeu-StyledSvg css-adkcw30"
+                  className="css-13f5eg04 css-eomeeu-StyledSvg css-adkcw30"
                   height="1em"
                   viewBox={Object {}}
                   width="1em"
@@ -613,14 +613,14 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
           </AddIcon>
           <StyledTextOverflow>
             <div
-              className="css-q3yspe-TextOverflow-StyledTextOverflow css-1r9wn452"
+              className="css-q3yspe-TextOverflow-StyledTextOverflow css-13f5eg02"
             >
               a/foo
             </div>
           </StyledTextOverflow>
           <TypeHint>
             <div
-              className="css-6d8mj3-TypeHint css-1r9wn451"
+              className="css-6d8mj3-TypeHint css-13f5eg01"
             >
               [PATH]
             </div>
@@ -632,24 +632,24 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
         onClick={[Function]}
       >
         <div
-          className="css-4hexhh-RuleCandidate css-1r9wn453"
+          className="css-4hexhh-RuleCandidate css-13f5eg03"
           onClick={[Function]}
         >
           <AddIcon
             src="icon-circle-add"
           >
             <InlineSvg
-              className="css-1ivdji5-AddIcon css-1r9wn454"
+              className="css-1ivdji5-AddIcon css-13f5eg04"
               src="icon-circle-add"
             >
               <StyledSvg
-                className="css-1ivdji5-AddIcon css-1r9wn454"
+                className="css-1ivdji5-AddIcon css-13f5eg04"
                 height="1em"
                 viewBox={Object {}}
                 width="1em"
               >
                 <svg
-                  className="css-1r9wn454 css-eomeeu-StyledSvg css-adkcw30"
+                  className="css-13f5eg04 css-eomeeu-StyledSvg css-adkcw30"
                   height="1em"
                   viewBox={Object {}}
                   width="1em"
@@ -664,14 +664,14 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
           </AddIcon>
           <StyledTextOverflow>
             <div
-              className="css-q3yspe-TextOverflow-StyledTextOverflow css-1r9wn452"
+              className="css-q3yspe-TextOverflow-StyledTextOverflow css-13f5eg02"
             >
               example.com/a
             </div>
           </StyledTextOverflow>
           <TypeHint>
             <div
-              className="css-6d8mj3-TypeHint css-1r9wn451"
+              className="css-6d8mj3-TypeHint css-13f5eg01"
             >
               [URL]
             </div>
@@ -683,24 +683,24 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
         onClick={[Function]}
       >
         <div
-          className="css-4hexhh-RuleCandidate css-1r9wn453"
+          className="css-4hexhh-RuleCandidate css-13f5eg03"
           onClick={[Function]}
         >
           <AddIcon
             src="icon-circle-add"
           >
             <InlineSvg
-              className="css-1ivdji5-AddIcon css-1r9wn454"
+              className="css-1ivdji5-AddIcon css-13f5eg04"
               src="icon-circle-add"
             >
               <StyledSvg
-                className="css-1ivdji5-AddIcon css-1r9wn454"
+                className="css-1ivdji5-AddIcon css-13f5eg04"
                 height="1em"
                 viewBox={Object {}}
                 width="1em"
               >
                 <svg
-                  className="css-1r9wn454 css-eomeeu-StyledSvg css-adkcw30"
+                  className="css-13f5eg04 css-eomeeu-StyledSvg css-adkcw30"
                   height="1em"
                   viewBox={Object {}}
                   width="1em"
@@ -715,14 +715,14 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
           </AddIcon>
           <StyledTextOverflow>
             <div
-              className="css-q3yspe-TextOverflow-StyledTextOverflow css-1r9wn452"
+              className="css-q3yspe-TextOverflow-StyledTextOverflow css-13f5eg02"
             >
               example.com/a/foo
             </div>
           </StyledTextOverflow>
           <TypeHint>
             <div
-              className="css-6d8mj3-TypeHint css-1r9wn451"
+              className="css-6d8mj3-TypeHint css-13f5eg01"
             >
               [URL]
             </div>
@@ -733,7 +733,7 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
   </Candidates>
   <BuilderBar>
     <div
-      className="css-1rsoebt-BuilderBar css-1r9wn455"
+      className="css-1rsoebt-BuilderBar css-13f5eg05"
     >
       <BuilderSelect
         onChange={[Function]}
@@ -741,7 +741,7 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
         value="path"
       >
         <SelectInput
-          className="css-1eslqkc-BuilderSelect css-1r9wn456"
+          className="css-1eslqkc-BuilderSelect css-13f5eg06"
           disabled={false}
           multiple={false}
           onChange={[Function]}
@@ -751,7 +751,7 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
           value="path"
         >
           <select
-            className="css-1eslqkc-BuilderSelect css-1r9wn456"
+            className="css-1eslqkc-BuilderSelect css-13f5eg06"
             disabled={false}
             multiple={false}
             onChange={[Function]}
@@ -779,7 +779,7 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
         value="a/bar"
       >
         <input
-          className="css-1t4syiu-Input-BuilderInput css-1r9wn457"
+          className="css-1t4syiu-Input-BuilderInput css-13f5eg07"
           onChange={[Function]}
           placeholder="src/example/*"
           value="a/bar"
@@ -789,17 +789,17 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
         src="icon-chevron-right"
       >
         <InlineSvg
-          className="css-a4tn6s-Divider css-1r9wn458"
+          className="css-a4tn6s-Divider css-13f5eg08"
           src="icon-chevron-right"
         >
           <StyledSvg
-            className="css-a4tn6s-Divider css-1r9wn458"
+            className="css-a4tn6s-Divider css-13f5eg08"
             height="1em"
             viewBox={Object {}}
             width="1em"
           >
             <svg
-              className="css-1r9wn458 css-5e2rei-StyledSvg css-adkcw30"
+              className="css-13f5eg08 css-5e2rei-StyledSvg css-adkcw30"
               height="1em"
               viewBox={Object {}}
               width="1em"
@@ -837,8 +837,8 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
                       "name": "Jane Doe",
                       "type": "user",
                     },
-                    "label": "janedoe@example.com",
-                    "searchKey": "janedoe@example.com  nodejs",
+                    "label": "Jane Doe",
+                    "searchKey": "janedoe@example.com  Jane Doe",
                     "value": "user:1",
                   },
                   Object {
@@ -847,8 +847,8 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
                       "name": "John Smith",
                       "type": "user",
                     },
-                    "label": "johnsmith@example.com",
-                    "searchKey": "johnsmith@example.com  nodejs",
+                    "label": "John Smith",
+                    "searchKey": "johnsmith@example.com  John Smith",
                     "value": "user:2",
                   },
                 ]
@@ -861,8 +861,8 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
                       "name": "Jane Doe",
                       "type": "user",
                     },
-                    "label": "janedoe@example.com",
-                    "searchKey": "janedoe@example.com  nodejs",
+                    "label": "Jane Doe",
+                    "searchKey": "janedoe@example.com  Jane Doe",
                     "value": "user:1",
                   },
                 ]
@@ -881,8 +881,8 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
                         "name": "Jane Doe",
                         "type": "user",
                       },
-                      "label": "janedoe@example.com",
-                      "searchKey": "janedoe@example.com  nodejs",
+                      "label": "Jane Doe",
+                      "searchKey": "janedoe@example.com  Jane Doe",
                       "value": "user:1",
                     },
                     Object {
@@ -891,8 +891,8 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
                         "name": "John Smith",
                         "type": "user",
                       },
-                      "label": "johnsmith@example.com",
-                      "searchKey": "johnsmith@example.com  nodejs",
+                      "label": "John Smith",
+                      "searchKey": "johnsmith@example.com  John Smith",
                       "value": "user:2",
                     },
                   ]
@@ -912,8 +912,8 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
                         "name": "Jane Doe",
                         "type": "user",
                       },
-                      "label": "janedoe@example.com",
-                      "searchKey": "janedoe@example.com  nodejs",
+                      "label": "Jane Doe",
+                      "searchKey": "janedoe@example.com  Jane Doe",
                       "value": "user:1",
                     },
                   ]
@@ -935,8 +935,8 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
                           "name": "Jane Doe",
                           "type": "user",
                         },
-                        "label": "janedoe@example.com",
-                        "searchKey": "janedoe@example.com  nodejs",
+                        "label": "Jane Doe",
+                        "searchKey": "janedoe@example.com  Jane Doe",
                         "value": "user:1",
                       },
                       Object {
@@ -945,8 +945,8 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
                           "name": "John Smith",
                           "type": "user",
                         },
-                        "label": "johnsmith@example.com",
-                        "searchKey": "johnsmith@example.com  nodejs",
+                        "label": "John Smith",
+                        "searchKey": "johnsmith@example.com  John Smith",
                         "value": "user:2",
                       },
                     ]
@@ -966,8 +966,8 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
                           "name": "Jane Doe",
                           "type": "user",
                         },
-                        "label": "janedoe@example.com",
-                        "searchKey": "janedoe@example.com  nodejs",
+                        "label": "Jane Doe",
+                        "searchKey": "janedoe@example.com  Jane Doe",
                         "value": "user:1",
                       },
                     ]
@@ -1018,8 +1018,8 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
                             "name": "Jane Doe",
                             "type": "user",
                           },
-                          "label": "janedoe@example.com",
-                          "searchKey": "janedoe@example.com  nodejs",
+                          "label": "Jane Doe",
+                          "searchKey": "janedoe@example.com  Jane Doe",
                           "value": "user:1",
                         },
                         Object {
@@ -1028,8 +1028,8 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
                             "name": "John Smith",
                             "type": "user",
                           },
-                          "label": "johnsmith@example.com",
-                          "searchKey": "johnsmith@example.com  nodejs",
+                          "label": "John Smith",
+                          "searchKey": "johnsmith@example.com  John Smith",
                           "value": "user:2",
                         },
                       ]
@@ -1057,8 +1057,8 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
                             "name": "Jane Doe",
                             "type": "user",
                           },
-                          "label": "janedoe@example.com",
-                          "searchKey": "janedoe@example.com  nodejs",
+                          "label": "Jane Doe",
+                          "searchKey": "janedoe@example.com  Jane Doe",
                           "value": "user:1",
                         },
                       ]
@@ -1101,8 +1101,8 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
                                   "name": "Jane Doe",
                                   "type": "user",
                                 },
-                                "label": "janedoe@example.com",
-                                "searchKey": "janedoe@example.com  nodejs",
+                                "label": "Jane Doe",
+                                "searchKey": "janedoe@example.com  Jane Doe",
                                 "value": "user:1",
                               }
                             }
@@ -1284,7 +1284,7 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
         size="zero"
       >
         <Button
-          className="css-3daogo-RuleAddButton css-1r9wn459"
+          className="css-3daogo-RuleAddButton css-13f5eg09"
           disabled={false}
           icon="icon-circle-add"
           onClick={[Function]}
@@ -1292,7 +1292,7 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
           size="zero"
         >
           <button
-            className="css-3daogo-RuleAddButton css-1r9wn459 button button-primary button-zero"
+            className="css-3daogo-RuleAddButton css-13f5eg09 button button-primary button-zero"
             disabled={false}
             onClick={[Function]}
             role="button"
