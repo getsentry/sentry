@@ -2,7 +2,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {t, tct} from '../../../../locale';
-import ExternalLink from '../../../../components/externalLink';
 import Field from '../../components/forms/field';
 import TextCopyInput from '../../components/forms/textCopyInput';
 import SentryTypes from '../../../../proptypes';
@@ -47,36 +46,8 @@ class ProjectKeyCredentials extends React.Component {
 
     return (
       <React.Fragment>
-        {showDsn && (
-          <Field label={t('DSN')} inline={false} flexibleControlStateSize>
-            <TextCopyInput>
-              {getDynamicText({
-                value: data.dsn.secret,
-                fixed: data.dsn.secret.replace(
-                  new RegExp(`\/${projectId}$`),
-                  '/<<projectId>>'
-                ),
-              })}
-            </TextCopyInput>
-          </Field>
-        )}
-
         {showDsnPublic && (
-          <Field
-            label={t('DSN (Public)')}
-            help={tct(
-              'Use your public DSN with browser-based SDKs such as [link:raven-js].',
-              {
-                link: (
-                  <ExternalLink href="https://github.com/getsentry/raven-js">
-                    raven-js
-                  </ExternalLink>
-                ),
-              }
-            )}
-            inline={false}
-            flexibleControlStateSize
-          >
+          <Field label={t('DSN')} inline={false} flexibleControlStateSize>
             <TextCopyInput>
               {getDynamicText({
                 value: data.dsn.public,
@@ -130,6 +101,25 @@ class ProjectKeyCredentials extends React.Component {
               {getDynamicText({
                 value: data.dsn.minidump,
                 fixed: data.dsn.minidump.replace(
+                  new RegExp(`\/${projectId}$`),
+                  '/<<projectId>>'
+                ),
+              })}
+            </TextCopyInput>
+          </Field>
+        )}
+
+        {showDsn && (
+          <Field
+            label={t('DSN (Legacy)')}
+            help={t('Use this DSN with server-side SDKs in older versions of Sentry.')}
+            inline={false}
+            flexibleControlStateSize
+          >
+            <TextCopyInput>
+              {getDynamicText({
+                value: data.dsn.secret,
+                fixed: data.dsn.secret.replace(
                   new RegExp(`\/${projectId}$`),
                   '/<<projectId>>'
                 ),
