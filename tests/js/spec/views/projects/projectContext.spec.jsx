@@ -46,7 +46,7 @@ describe('projectContext component', function() {
       childContextTypes: {organization: SentryTypes.Organization},
     });
 
-    expect(router.replace.calledOnce).toBeTruthy();
-    expect(router.replace.args[0]).toEqual([`/${org.slug}/renamed-slug/`]);
+    expect(router.replace).toHaveBeenCalledTimes(1);
+    expect(router.replace).toHaveBeenCalledWith(`/${org.slug}/renamed-slug/`);
   });
 });

@@ -137,17 +137,17 @@ exports[`Configure should render correctly render() should render platform docs 
             }
             router={
               Object {
-                "createHref": [Function],
-                "go": [Function],
-                "goBack": [Function],
-                "goForward": [Function],
-                "isActive": [Function],
+                "createHref": [MockFunction],
+                "go": [MockFunction],
+                "goBack": [MockFunction],
+                "goForward": [MockFunction],
+                "isActive": [MockFunction],
                 "location": Object {
                   "query": Object {},
                 },
-                "push": [Function],
-                "replace": [Function],
-                "setRouteLeaveHook": [Function],
+                "push": [MockFunction],
+                "replace": [MockFunction],
+                "setRouteLeaveHook": [MockFunction],
               }
             }
             style={
