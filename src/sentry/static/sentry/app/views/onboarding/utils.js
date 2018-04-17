@@ -65,10 +65,11 @@ const backend = [
   'ruby',
   'ruby-rails',
   'ruby-rack',
+  'rust',
   'elixir',
 ];
 
-const desktop = ['cocoa', 'csharp', 'java', 'electron'];
+const desktop = ['cocoa', 'csharp', 'java', 'electron', 'minidump'];
 
 const categoryList = [
   {id: 'popular', name: t('Popular'), platforms: popular},

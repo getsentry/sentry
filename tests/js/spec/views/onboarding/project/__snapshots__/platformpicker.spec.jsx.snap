@@ -1184,6 +1184,36 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="minidump"
+        onClick={[Function]}
+        platform="minidump"
+      >
+        <span
+          className="platform-card"
+          onClick={[Function]}
+        >
+          <PlatformiconTile
+            className=""
+            onClick={[Function]}
+            platform="minidump"
+          >
+            <li
+              className="platform-tile list-unstyled minidump minidump "
+            >
+              <span
+                className="platformicon platformicon-minidump"
+              />
+            </li>
+          </PlatformiconTile>
+          <h5>
+             
+            Minidump
+             
+          </h5>
+        </span>
+      </PlatformCard>
+      <PlatformCard
+        className=""
         key="node-connect"
         onClick={[Function]}
         platform="node-connect"
@@ -1838,6 +1868,36 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           <h5>
              
             Ruby
+             
+          </h5>
+        </span>
+      </PlatformCard>
+      <PlatformCard
+        className=""
+        key="rust"
+        onClick={[Function]}
+        platform="rust"
+      >
+        <span
+          className="platform-card"
+          onClick={[Function]}
+        >
+          <PlatformiconTile
+            className=""
+            onClick={[Function]}
+            platform="rust"
+          >
+            <li
+              className="platform-tile list-unstyled rust rust "
+            >
+              <span
+                className="platformicon platformicon-rust"
+              />
+            </li>
+          </PlatformiconTile>
+          <h5>
+             
+            Rust
              
           </h5>
         </span>
