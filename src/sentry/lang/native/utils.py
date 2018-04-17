@@ -164,6 +164,7 @@ def sdk_info_to_sdk_id(sdk_info):
 
 def merge_minidump_event(data, minidump):
     if isinstance(minidump, InMemoryUploadedFile):
+        minidump.open()  # seek to start
         state = ProcessState.from_minidump_buffer(minidump.read())
     elif isinstance(minidump, TemporaryUploadedFile):
         state = ProcessState.from_minidump(minidump.temporary_file_path())
