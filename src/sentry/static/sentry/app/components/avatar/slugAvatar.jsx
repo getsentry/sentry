@@ -25,7 +25,8 @@ class SlugAvatar extends React.Component {
     return (
       <BaseAvatar
         {...props}
-        type="letter_avatar"
+        type={(model.avatar && model.avatar.avatarType) || 'letter_avatar'}
+        uploadId={model.avatar && model.avatar.avatarUuid}
         letterId={slug}
         tooltip={slug}
         title={title}
