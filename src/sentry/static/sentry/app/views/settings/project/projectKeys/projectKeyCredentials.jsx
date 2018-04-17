@@ -47,12 +47,7 @@ class ProjectKeyCredentials extends React.Component {
     return (
       <React.Fragment>
         {showDsnPublic && (
-          <Field
-            label={t('DSN')}
-            help={t('Use this DSN to configure all of our SDKs.')}
-            inline={false}
-            flexibleControlStateSize
-          >
+          <Field label={t('DSN')} inline={false} flexibleControlStateSize>
             <TextCopyInput>
               {getDynamicText({
                 value: data.dsn.public,
