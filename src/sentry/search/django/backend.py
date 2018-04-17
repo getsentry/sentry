@@ -272,11 +272,6 @@ class DjangoSearchBackend(SearchBackend):
         retention = quotas.get_event_retention(organization=project.organization)
         if retention:
             retention_window_start = timezone.now() - timedelta(days=retention)
-            # TODO: This could be optimized when building querysets to identify
-            # criteria that are logically impossible (e.g. if the upper bound
-            # for last seen is before the retention window starts, no results
-            # exist.)
-            group_queryset = group_queryset.filter(last_seen__gte=retention_window_start)
         else:
             retention_window_start = None
 
@@ -291,6 +286,13 @@ class DjangoSearchBackend(SearchBackend):
                sort_by, limit, cursor, count_hits, paginator_options, **parameters):
 
         from sentry.models import (Group, Environment, Event, GroupEnvironment, Release)
+
+        # TODO: This could be optimized when building querysets to identify
+        # criteria that are logically impossible (e.g. if the upper bound
+        # for last seen is before the retention window starts, no results
+        # exist.)
+        if retention_window_start:
+            group_queryset = group_queryset.filter(last_seen__gte=retention_window_start)
 
         if environment is not None:
             if 'environment' in tags:
