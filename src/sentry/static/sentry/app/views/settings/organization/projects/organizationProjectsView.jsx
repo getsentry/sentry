@@ -109,7 +109,7 @@ export default class OrganizationProjectsView extends AsyncView {
                 value={this.state.searchQuery}
                 onChange={e => this.setState({searchQuery: e.target.value})}
                 className="search"
-                placeholder="search"
+                placeholder={t('Search Projects')}
               />
             </form>
           </PanelHeader>

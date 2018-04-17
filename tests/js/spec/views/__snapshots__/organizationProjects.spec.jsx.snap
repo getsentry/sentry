@@ -182,12 +182,12 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                             <Input
                               className="search"
                               onChange={[Function]}
-                              placeholder="search"
+                              placeholder="Search Projects"
                             >
                               <input
                                 className="search css-qqayil-Input css-jwa1yb0"
                                 onChange={[Function]}
-                                placeholder="search"
+                                placeholder="Search Projects"
                               />
                             </Input>
                           </form>
