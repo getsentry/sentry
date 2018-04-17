@@ -9,9 +9,11 @@ import TeamStore from '../stores/teamStore';
 
 export function redirectToRemainingOrganization({orgId}) {
   // Remove queued, should redirect
-  let allOrgs = OrganizationsStore.getAll().filter(org => org.slug !== orgId);
+  let allOrgs = OrganizationsStore.getAll().filter(
+    org => org.status.id === 'active' && org.slug !== orgId
+  );
   if (!allOrgs.length) {
-    // This is bad...
+    browserHistory.push('/organizations/new/');
     return;
   }
 

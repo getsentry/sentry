@@ -69,10 +69,9 @@ class OrganizationIndexEndpoint(Endpoint):
 
         :auth: required
         """
-        member_only = request.GET.get('member') in ('1', 'true')
         owner_only = request.GET.get('owner') in ('1', 'true')
 
-        queryset = Organization.objects.all()
+        queryset = Organization.objects.distinct()
 
         if request.auth and not request.user.is_authenticated():
             if hasattr(request.auth, 'project'):
@@ -97,7 +96,7 @@ class OrganizationIndexEndpoint(Endpoint):
 
             return Response(org_results)
 
-        elif member_only or not is_active_superuser(request):
+        elif not (is_active_superuser(request) and request.GET.get('show') == 'all'):
             queryset = queryset.filter(
                 id__in=OrganizationMember.objects.filter(
                     user=request.user,

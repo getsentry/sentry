@@ -10,11 +10,13 @@ import LoadingIndicator from '../components/loadingIndicator';
 import Pagination from '../components/pagination';
 import SearchBar from '../components/searchBar';
 import EventsTable from '../components/eventsTable/eventsTable';
-import {t} from '../locale';
+import {t, tct} from '../locale';
 import withEnvironment from '../utils/withEnvironment';
 import {getQueryEnvironment, getQueryStringWithEnvironment} from '../utils/queryString';
 import EnvironmentStore from '../stores/environmentStore';
 import {setActiveEnvironment} from '../actionCreators/environments';
+import EmptyStateWarning from '../components/emptyStateWarning';
+import {Panel, PanelBody} from '../components/panels';
 
 const GroupEvents = createReactClass({
   displayName: 'GroupEvents',
@@ -131,20 +133,31 @@ const GroupEvents = createReactClass({
   },
 
   renderNoQueryResults() {
+    const {environment} = this.props;
+    const message = environment
+      ? tct('Sorry, no events match your search query in the [env] environment.', {
+          env: environment.displayName,
+        })
+      : t('Sorry, no events match your search query.');
+
     return (
-      <div className="box empty-stream">
-        <span className="icon icon-exclamation" />
-        <p>{t('Sorry, no events match your search query.')}</p>
-      </div>
+      <EmptyStateWarning>
+        <p>{message}</p>
+      </EmptyStateWarning>
     );
   },
 
   renderEmpty() {
+    const {environment} = this.props;
+    const message = environment
+      ? tct("There don't seem to be any events in the [env] environment yet.", {
+          env: environment.displayName,
+        })
+      : t("There don't seem to be any events yet.");
     return (
-      <div className="box empty-stream">
-        <span className="icon icon-exclamation" />
-        <p>{t("There don't seem to be any events yet.")}</p>
-      </div>
+      <EmptyStateWarning>
+        <p>{t(message)}</p>
+      </EmptyStateWarning>
     );
   },
 
@@ -153,16 +166,11 @@ const GroupEvents = createReactClass({
     let tagList = group.tags.filter(tag => tag.key !== 'user') || [];
 
     return (
-      <div>
-        <div className="event-list">
-          <EventsTable
-            tagList={tagList}
-            events={this.state.eventList}
-            params={this.props.params}
-          />
-        </div>
-        <Pagination pageLinks={this.state.pageLinks} />
-      </div>
+      <EventsTable
+        tagList={tagList}
+        events={this.state.eventList}
+        params={this.props.params}
+      />
     );
   },
 
@@ -191,7 +199,10 @@ const GroupEvents = createReactClass({
             onSearch={this.handleSearch}
           />
         </div>
-        {this.renderBody()}
+        <Panel className="event-list">
+          <PanelBody>{this.renderBody()}</PanelBody>
+        </Panel>
+        <Pagination pageLinks={this.state.pageLinks} />
       </div>
     );
   },

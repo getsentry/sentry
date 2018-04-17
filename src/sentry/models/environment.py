@@ -33,6 +33,7 @@ class Environment(Model):
 
     organization_id = BoundedPositiveIntegerField()
     projects = models.ManyToManyField('sentry.Project', through=EnvironmentProject)
+    # DEPRECATED, use projects
     project_id = BoundedPositiveIntegerField(null=True)
     name = models.CharField(max_length=64)
     date_added = models.DateTimeField(default=timezone.now)
@@ -40,7 +41,7 @@ class Environment(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_environment'
-        unique_together = (('project_id', 'name'), ('organization_id', 'name'), )
+        unique_together = (('organization_id', 'name'), )
 
     __repr__ = sane_repr('organization_id', 'name')
 

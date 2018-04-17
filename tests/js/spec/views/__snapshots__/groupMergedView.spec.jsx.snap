@@ -17,18 +17,6 @@ exports[`Issues -> Merged View renders initially with loading component 1`] = `
 `;
 
 exports[`Issues -> Merged View renders with mocked data 1`] = `
-.glamor-0 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
 <GroupMergedView
   location={
     Object {
@@ -429,10 +417,10 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                             >
                               <Base
                                 align="center"
-                                className="button-label glamor-0"
+                                className="button-label css-5ipae5"
                               >
                                 <div
-                                  className="button-label glamor-0"
+                                  className="button-label css-5ipae5"
                                   is={null}
                                 >
                                   Compare
@@ -470,10 +458,10 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                             >
                               <Base
                                 align="center"
-                                className="button-label glamor-0"
+                                className="button-label css-5ipae5"
                               >
                                 <div
-                                  className="button-label glamor-0"
+                                  className="button-label css-5ipae5"
                                   is={null}
                                 >
                                   Collapse All
@@ -781,138 +769,158 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                           <div
                             className="event-issue-header"
                           >
-                            <h3
-                              className="truncate"
-                            >
-                              <Link
-                                onlyActiveOnIndex={false}
-                                style={Object {}}
-                                to="/orgId/projectId/issues/268/events/904/"
+                            <Title>
+                              <div
+                                className="css-1dqh62j-Title css-hv83ix0"
                               >
-                                <a
-                                  onClick={[Function]}
-                                  style={Object {}}
+                                <ProjectLink
+                                  style={null}
+                                  to={
+                                    Object {
+                                      "pathname": "/orgId/projectId/issues/268/events/904/",
+                                      "search": "",
+                                    }
+                                  }
                                 >
-                                  <EventOrGroupTitle
-                                    data={
+                                  <a
+                                    href={
                                       Object {
-                                        "context": Object {
-                                          "session:duration": 46363,
-                                        },
-                                        "contexts": Object {
-                                          "browser": Object {
-                                            "name": "Chrome",
-                                            "type": "browser",
-                                            "version": "59.0.3071",
-                                          },
-                                          "os": Object {
-                                            "name": "Mac OS X",
-                                            "type": "os",
-                                            "version": "10.12.5",
-                                          },
-                                        },
-                                        "dateCreated": "2017-07-26T00:34:20Z",
-                                        "dateReceived": "2017-07-26T00:34:20Z",
-                                        "dist": null,
-                                        "entries": Array [],
-                                        "errors": Array [],
-                                        "eventID": "807f0de4d8c246098f21f8e0f1684f3d",
-                                        "fingerprints": Array [
-                                          "2c4887696f708c476a81ce4e834c4b02",
-                                          "e05da55328a860b21f62e371f0a7507d",
-                                        ],
-                                        "groupID": "268",
-                                        "id": "904",
-                                        "message": "TypeError Cannot read property 'assignedTo' of undefined app/components/assigneeSelector in assignedTo",
-                                        "metadata": Object {
-                                          "type": "TypeError",
-                                          "value": "Cannot read property 'assignedTo' of undefined",
-                                        },
-                                        "packages": Object {},
-                                        "platform": "javascript",
-                                        "sdk": Object {
-                                          "clientIP": "127.0.0.1",
-                                          "name": "raven-js",
-                                          "upstream": Object {
-                                            "isNewer": false,
-                                            "name": "raven-js",
-                                            "url": "https://docs.sentry.io/clients/javascript/",
-                                          },
-                                          "version": "3.16.1",
-                                        },
-                                        "size": 21896,
-                                        "tags": Array [
-                                          Object {
-                                            "key": "browser",
-                                            "value": "Chrome 59.0.3071",
-                                          },
-                                          Object {
-                                            "key": "browser.name",
-                                            "value": "Chrome",
-                                          },
-                                          Object {
-                                            "key": "level",
-                                            "value": "error",
-                                          },
-                                          Object {
-                                            "key": "logger",
-                                            "value": "javascript",
-                                          },
-                                          Object {
-                                            "key": "os",
-                                            "value": "Mac OS X 10.12.5",
-                                          },
-                                          Object {
-                                            "key": "os.name",
-                                            "value": "Mac OS X",
-                                          },
-                                          Object {
-                                            "key": "release",
-                                            "value": "d5241c9d9d2bcda918c7af72f07cea1e39a096ac",
-                                          },
-                                          Object {
-                                            "key": "transaction",
-                                            "value": "app/components/assigneeSelector in assignedTo",
-                                          },
-                                          Object {
-                                            "key": "url",
-                                            "value": "http://localhost:8000/sentry/internal/issues/227/grouping/",
-                                          },
-                                          Object {
-                                            "key": "user",
-                                            "value": "id:1",
-                                          },
-                                        ],
-                                        "type": "error",
-                                        "user": Object {
-                                          "email": "billy@sentry.io",
-                                          "id": "1",
-                                          "ip_address": "127.0.0.1",
-                                        },
+                                        "pathname": "/orgId/projectId/issues/268/events/904/",
+                                        "search": "",
                                       }
                                     }
-                                    hideIcons={true}
-                                    hideLevel={true}
-                                    includeLink={true}
-                                    orgId="orgId"
-                                    projectId="projectId"
+                                    style={null}
                                   >
-                                    <span>
-                                      TypeError
-                                    </span>
-                                  </EventOrGroupTitle>
-                                </a>
-                              </Link>
-                            </h3>
-                            <div
-                              className="event-message truncate"
-                            >
-                              <span
-                                className="message"
+                                    <EventOrGroupTitle
+                                      data={
+                                        Object {
+                                          "context": Object {
+                                            "session:duration": 46363,
+                                          },
+                                          "contexts": Object {
+                                            "browser": Object {
+                                              "name": "Chrome",
+                                              "type": "browser",
+                                              "version": "59.0.3071",
+                                            },
+                                            "os": Object {
+                                              "name": "Mac OS X",
+                                              "type": "os",
+                                              "version": "10.12.5",
+                                            },
+                                          },
+                                          "dateCreated": "2017-07-26T00:34:20Z",
+                                          "dateReceived": "2017-07-26T00:34:20Z",
+                                          "dist": null,
+                                          "entries": Array [],
+                                          "errors": Array [],
+                                          "eventID": "807f0de4d8c246098f21f8e0f1684f3d",
+                                          "fingerprints": Array [
+                                            "2c4887696f708c476a81ce4e834c4b02",
+                                            "e05da55328a860b21f62e371f0a7507d",
+                                          ],
+                                          "groupID": "268",
+                                          "id": "904",
+                                          "message": "TypeError Cannot read property 'assignedTo' of undefined app/components/assigneeSelector in assignedTo",
+                                          "metadata": Object {
+                                            "type": "TypeError",
+                                            "value": "Cannot read property 'assignedTo' of undefined",
+                                          },
+                                          "packages": Object {},
+                                          "platform": "javascript",
+                                          "sdk": Object {
+                                            "clientIP": "127.0.0.1",
+                                            "name": "raven-js",
+                                            "upstream": Object {
+                                              "isNewer": false,
+                                              "name": "raven-js",
+                                              "url": "https://docs.sentry.io/clients/javascript/",
+                                            },
+                                            "version": "3.16.1",
+                                          },
+                                          "size": 21896,
+                                          "tags": Array [
+                                            Object {
+                                              "key": "browser",
+                                              "value": "Chrome 59.0.3071",
+                                            },
+                                            Object {
+                                              "key": "browser.name",
+                                              "value": "Chrome",
+                                            },
+                                            Object {
+                                              "key": "level",
+                                              "value": "error",
+                                            },
+                                            Object {
+                                              "key": "logger",
+                                              "value": "javascript",
+                                            },
+                                            Object {
+                                              "key": "os",
+                                              "value": "Mac OS X 10.12.5",
+                                            },
+                                            Object {
+                                              "key": "os.name",
+                                              "value": "Mac OS X",
+                                            },
+                                            Object {
+                                              "key": "release",
+                                              "value": "d5241c9d9d2bcda918c7af72f07cea1e39a096ac",
+                                            },
+                                            Object {
+                                              "key": "transaction",
+                                              "value": "app/components/assigneeSelector in assignedTo",
+                                            },
+                                            Object {
+                                              "key": "url",
+                                              "value": "http://localhost:8000/sentry/internal/issues/227/grouping/",
+                                            },
+                                            Object {
+                                              "key": "user",
+                                              "value": "id:1",
+                                            },
+                                          ],
+                                          "type": "error",
+                                          "user": Object {
+                                            "email": "billy@sentry.io",
+                                            "id": "1",
+                                            "ip_address": "127.0.0.1",
+                                          },
+                                        }
+                                      }
+                                      hideIcons={true}
+                                      hideLevel={true}
+                                      includeLink={true}
+                                      orgId="orgId"
+                                      projectId="projectId"
+                                      style={
+                                        Object {
+                                          "fontWeight": 600,
+                                        }
+                                      }
+                                    >
+                                      <span
+                                        style={
+                                          Object {
+                                            "fontWeight": 600,
+                                          }
+                                        }
+                                      >
+                                        TypeError
+                                      </span>
+                                    </EventOrGroupTitle>
+                                  </a>
+                                </ProjectLink>
+                              </div>
+                            </Title>
+                            <Message>
+                              <div
+                                className="css-ogpcmq-Message css-hv83ix1"
                               >
                                 Cannot read property 'assignedTo' of undefined
-                              </span>
-                            </div>
+                              </div>
+                            </Message>
                           </div>
                         </EventOrGroupHeader>
                       </div>
@@ -1210,138 +1218,158 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                           <div
                             className="event-issue-header"
                           >
-                            <h3
-                              className="truncate"
-                            >
-                              <Link
-                                onlyActiveOnIndex={false}
-                                style={Object {}}
-                                to="/orgId/projectId/issues/268/events/904/"
+                            <Title>
+                              <div
+                                className="css-1dqh62j-Title css-hv83ix0"
                               >
-                                <a
-                                  onClick={[Function]}
-                                  style={Object {}}
+                                <ProjectLink
+                                  style={null}
+                                  to={
+                                    Object {
+                                      "pathname": "/orgId/projectId/issues/268/events/904/",
+                                      "search": "",
+                                    }
+                                  }
                                 >
-                                  <EventOrGroupTitle
-                                    data={
+                                  <a
+                                    href={
                                       Object {
-                                        "context": Object {
-                                          "session:duration": 46363,
-                                        },
-                                        "contexts": Object {
-                                          "browser": Object {
-                                            "name": "Chrome",
-                                            "type": "browser",
-                                            "version": "59.0.3071",
-                                          },
-                                          "os": Object {
-                                            "name": "Mac OS X",
-                                            "type": "os",
-                                            "version": "10.12.5",
-                                          },
-                                        },
-                                        "dateCreated": "2017-07-26T00:34:20Z",
-                                        "dateReceived": "2017-07-26T00:34:20Z",
-                                        "dist": null,
-                                        "entries": Array [],
-                                        "errors": Array [],
-                                        "eventID": "807f0de4d8c246098f21f8e0f1684f3d",
-                                        "fingerprints": Array [
-                                          "2c4887696f708c476a81ce4e834c4b02",
-                                          "e05da55328a860b21f62e371f0a7507d",
-                                        ],
-                                        "groupID": "268",
-                                        "id": "904",
-                                        "message": "TypeError Cannot read property 'assignedTo' of undefined app/components/assigneeSelector in assignedTo",
-                                        "metadata": Object {
-                                          "type": "TypeError",
-                                          "value": "Cannot read property 'assignedTo' of undefined",
-                                        },
-                                        "packages": Object {},
-                                        "platform": "javascript",
-                                        "sdk": Object {
-                                          "clientIP": "127.0.0.1",
-                                          "name": "raven-js",
-                                          "upstream": Object {
-                                            "isNewer": false,
-                                            "name": "raven-js",
-                                            "url": "https://docs.sentry.io/clients/javascript/",
-                                          },
-                                          "version": "3.16.1",
-                                        },
-                                        "size": 21896,
-                                        "tags": Array [
-                                          Object {
-                                            "key": "browser",
-                                            "value": "Chrome 59.0.3071",
-                                          },
-                                          Object {
-                                            "key": "browser.name",
-                                            "value": "Chrome",
-                                          },
-                                          Object {
-                                            "key": "level",
-                                            "value": "error",
-                                          },
-                                          Object {
-                                            "key": "logger",
-                                            "value": "javascript",
-                                          },
-                                          Object {
-                                            "key": "os",
-                                            "value": "Mac OS X 10.12.5",
-                                          },
-                                          Object {
-                                            "key": "os.name",
-                                            "value": "Mac OS X",
-                                          },
-                                          Object {
-                                            "key": "release",
-                                            "value": "d5241c9d9d2bcda918c7af72f07cea1e39a096ac",
-                                          },
-                                          Object {
-                                            "key": "transaction",
-                                            "value": "app/components/assigneeSelector in assignedTo",
-                                          },
-                                          Object {
-                                            "key": "url",
-                                            "value": "http://localhost:8000/sentry/internal/issues/227/grouping/",
-                                          },
-                                          Object {
-                                            "key": "user",
-                                            "value": "id:1",
-                                          },
-                                        ],
-                                        "type": "error",
-                                        "user": Object {
-                                          "email": "billy@sentry.io",
-                                          "id": "1",
-                                          "ip_address": "127.0.0.1",
-                                        },
+                                        "pathname": "/orgId/projectId/issues/268/events/904/",
+                                        "search": "",
                                       }
                                     }
-                                    hideIcons={true}
-                                    hideLevel={true}
-                                    includeLink={true}
-                                    orgId="orgId"
-                                    projectId="projectId"
+                                    style={null}
                                   >
-                                    <span>
-                                      TypeError
-                                    </span>
-                                  </EventOrGroupTitle>
-                                </a>
-                              </Link>
-                            </h3>
-                            <div
-                              className="event-message truncate"
-                            >
-                              <span
-                                className="message"
+                                    <EventOrGroupTitle
+                                      data={
+                                        Object {
+                                          "context": Object {
+                                            "session:duration": 46363,
+                                          },
+                                          "contexts": Object {
+                                            "browser": Object {
+                                              "name": "Chrome",
+                                              "type": "browser",
+                                              "version": "59.0.3071",
+                                            },
+                                            "os": Object {
+                                              "name": "Mac OS X",
+                                              "type": "os",
+                                              "version": "10.12.5",
+                                            },
+                                          },
+                                          "dateCreated": "2017-07-26T00:34:20Z",
+                                          "dateReceived": "2017-07-26T00:34:20Z",
+                                          "dist": null,
+                                          "entries": Array [],
+                                          "errors": Array [],
+                                          "eventID": "807f0de4d8c246098f21f8e0f1684f3d",
+                                          "fingerprints": Array [
+                                            "2c4887696f708c476a81ce4e834c4b02",
+                                            "e05da55328a860b21f62e371f0a7507d",
+                                          ],
+                                          "groupID": "268",
+                                          "id": "904",
+                                          "message": "TypeError Cannot read property 'assignedTo' of undefined app/components/assigneeSelector in assignedTo",
+                                          "metadata": Object {
+                                            "type": "TypeError",
+                                            "value": "Cannot read property 'assignedTo' of undefined",
+                                          },
+                                          "packages": Object {},
+                                          "platform": "javascript",
+                                          "sdk": Object {
+                                            "clientIP": "127.0.0.1",
+                                            "name": "raven-js",
+                                            "upstream": Object {
+                                              "isNewer": false,
+                                              "name": "raven-js",
+                                              "url": "https://docs.sentry.io/clients/javascript/",
+                                            },
+                                            "version": "3.16.1",
+                                          },
+                                          "size": 21896,
+                                          "tags": Array [
+                                            Object {
+                                              "key": "browser",
+                                              "value": "Chrome 59.0.3071",
+                                            },
+                                            Object {
+                                              "key": "browser.name",
+                                              "value": "Chrome",
+                                            },
+                                            Object {
+                                              "key": "level",
+                                              "value": "error",
+                                            },
+                                            Object {
+                                              "key": "logger",
+                                              "value": "javascript",
+                                            },
+                                            Object {
+                                              "key": "os",
+                                              "value": "Mac OS X 10.12.5",
+                                            },
+                                            Object {
+                                              "key": "os.name",
+                                              "value": "Mac OS X",
+                                            },
+                                            Object {
+                                              "key": "release",
+                                              "value": "d5241c9d9d2bcda918c7af72f07cea1e39a096ac",
+                                            },
+                                            Object {
+                                              "key": "transaction",
+                                              "value": "app/components/assigneeSelector in assignedTo",
+                                            },
+                                            Object {
+                                              "key": "url",
+                                              "value": "http://localhost:8000/sentry/internal/issues/227/grouping/",
+                                            },
+                                            Object {
+                                              "key": "user",
+                                              "value": "id:1",
+                                            },
+                                          ],
+                                          "type": "error",
+                                          "user": Object {
+                                            "email": "billy@sentry.io",
+                                            "id": "1",
+                                            "ip_address": "127.0.0.1",
+                                          },
+                                        }
+                                      }
+                                      hideIcons={true}
+                                      hideLevel={true}
+                                      includeLink={true}
+                                      orgId="orgId"
+                                      projectId="projectId"
+                                      style={
+                                        Object {
+                                          "fontWeight": 600,
+                                        }
+                                      }
+                                    >
+                                      <span
+                                        style={
+                                          Object {
+                                            "fontWeight": 600,
+                                          }
+                                        }
+                                      >
+                                        TypeError
+                                      </span>
+                                    </EventOrGroupTitle>
+                                  </a>
+                                </ProjectLink>
+                              </div>
+                            </Title>
+                            <Message>
+                              <div
+                                className="css-ogpcmq-Message css-hv83ix1"
                               >
                                 Cannot read property 'assignedTo' of undefined
-                              </span>
-                            </div>
+                              </div>
+                            </Message>
                           </div>
                         </EventOrGroupHeader>
                       </div>
@@ -1362,18 +1390,6 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
 `;
 
 exports[`Issues -> Merged View renders with mocked data 2`] = `
-.glamor-0 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
 <GroupMergedView
   location={
     Object {
@@ -1774,10 +1790,10 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                             >
                               <Base
                                 align="center"
-                                className="button-label glamor-0"
+                                className="button-label css-5ipae5"
                               >
                                 <div
-                                  className="button-label glamor-0"
+                                  className="button-label css-5ipae5"
                                   is={null}
                                 >
                                   Compare
@@ -1815,10 +1831,10 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                             >
                               <Base
                                 align="center"
-                                className="button-label glamor-0"
+                                className="button-label css-5ipae5"
                               >
                                 <div
-                                  className="button-label glamor-0"
+                                  className="button-label css-5ipae5"
                                   is={null}
                                 >
                                   Collapse All
@@ -2126,138 +2142,158 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                           <div
                             className="event-issue-header"
                           >
-                            <h3
-                              className="truncate"
-                            >
-                              <Link
-                                onlyActiveOnIndex={false}
-                                style={Object {}}
-                                to="/orgId/projectId/issues/268/events/904/"
+                            <Title>
+                              <div
+                                className="css-1dqh62j-Title css-hv83ix0"
                               >
-                                <a
-                                  onClick={[Function]}
-                                  style={Object {}}
+                                <ProjectLink
+                                  style={null}
+                                  to={
+                                    Object {
+                                      "pathname": "/orgId/projectId/issues/268/events/904/",
+                                      "search": "",
+                                    }
+                                  }
                                 >
-                                  <EventOrGroupTitle
-                                    data={
+                                  <a
+                                    href={
                                       Object {
-                                        "context": Object {
-                                          "session:duration": 46363,
-                                        },
-                                        "contexts": Object {
-                                          "browser": Object {
-                                            "name": "Chrome",
-                                            "type": "browser",
-                                            "version": "59.0.3071",
-                                          },
-                                          "os": Object {
-                                            "name": "Mac OS X",
-                                            "type": "os",
-                                            "version": "10.12.5",
-                                          },
-                                        },
-                                        "dateCreated": "2017-07-26T00:34:20Z",
-                                        "dateReceived": "2017-07-26T00:34:20Z",
-                                        "dist": null,
-                                        "entries": Array [],
-                                        "errors": Array [],
-                                        "eventID": "807f0de4d8c246098f21f8e0f1684f3d",
-                                        "fingerprints": Array [
-                                          "2c4887696f708c476a81ce4e834c4b02",
-                                          "e05da55328a860b21f62e371f0a7507d",
-                                        ],
-                                        "groupID": "268",
-                                        "id": "904",
-                                        "message": "TypeError Cannot read property 'assignedTo' of undefined app/components/assigneeSelector in assignedTo",
-                                        "metadata": Object {
-                                          "type": "TypeError",
-                                          "value": "Cannot read property 'assignedTo' of undefined",
-                                        },
-                                        "packages": Object {},
-                                        "platform": "javascript",
-                                        "sdk": Object {
-                                          "clientIP": "127.0.0.1",
-                                          "name": "raven-js",
-                                          "upstream": Object {
-                                            "isNewer": false,
-                                            "name": "raven-js",
-                                            "url": "https://docs.sentry.io/clients/javascript/",
-                                          },
-                                          "version": "3.16.1",
-                                        },
-                                        "size": 21896,
-                                        "tags": Array [
-                                          Object {
-                                            "key": "browser",
-                                            "value": "Chrome 59.0.3071",
-                                          },
-                                          Object {
-                                            "key": "browser.name",
-                                            "value": "Chrome",
-                                          },
-                                          Object {
-                                            "key": "level",
-                                            "value": "error",
-                                          },
-                                          Object {
-                                            "key": "logger",
-                                            "value": "javascript",
-                                          },
-                                          Object {
-                                            "key": "os",
-                                            "value": "Mac OS X 10.12.5",
-                                          },
-                                          Object {
-                                            "key": "os.name",
-                                            "value": "Mac OS X",
-                                          },
-                                          Object {
-                                            "key": "release",
-                                            "value": "d5241c9d9d2bcda918c7af72f07cea1e39a096ac",
-                                          },
-                                          Object {
-                                            "key": "transaction",
-                                            "value": "app/components/assigneeSelector in assignedTo",
-                                          },
-                                          Object {
-                                            "key": "url",
-                                            "value": "http://localhost:8000/sentry/internal/issues/227/grouping/",
-                                          },
-                                          Object {
-                                            "key": "user",
-                                            "value": "id:1",
-                                          },
-                                        ],
-                                        "type": "error",
-                                        "user": Object {
-                                          "email": "billy@sentry.io",
-                                          "id": "1",
-                                          "ip_address": "127.0.0.1",
-                                        },
+                                        "pathname": "/orgId/projectId/issues/268/events/904/",
+                                        "search": "",
                                       }
                                     }
-                                    hideIcons={true}
-                                    hideLevel={true}
-                                    includeLink={true}
-                                    orgId="orgId"
-                                    projectId="projectId"
+                                    style={null}
                                   >
-                                    <span>
-                                      TypeError
-                                    </span>
-                                  </EventOrGroupTitle>
-                                </a>
-                              </Link>
-                            </h3>
-                            <div
-                              className="event-message truncate"
-                            >
-                              <span
-                                className="message"
+                                    <EventOrGroupTitle
+                                      data={
+                                        Object {
+                                          "context": Object {
+                                            "session:duration": 46363,
+                                          },
+                                          "contexts": Object {
+                                            "browser": Object {
+                                              "name": "Chrome",
+                                              "type": "browser",
+                                              "version": "59.0.3071",
+                                            },
+                                            "os": Object {
+                                              "name": "Mac OS X",
+                                              "type": "os",
+                                              "version": "10.12.5",
+                                            },
+                                          },
+                                          "dateCreated": "2017-07-26T00:34:20Z",
+                                          "dateReceived": "2017-07-26T00:34:20Z",
+                                          "dist": null,
+                                          "entries": Array [],
+                                          "errors": Array [],
+                                          "eventID": "807f0de4d8c246098f21f8e0f1684f3d",
+                                          "fingerprints": Array [
+                                            "2c4887696f708c476a81ce4e834c4b02",
+                                            "e05da55328a860b21f62e371f0a7507d",
+                                          ],
+                                          "groupID": "268",
+                                          "id": "904",
+                                          "message": "TypeError Cannot read property 'assignedTo' of undefined app/components/assigneeSelector in assignedTo",
+                                          "metadata": Object {
+                                            "type": "TypeError",
+                                            "value": "Cannot read property 'assignedTo' of undefined",
+                                          },
+                                          "packages": Object {},
+                                          "platform": "javascript",
+                                          "sdk": Object {
+                                            "clientIP": "127.0.0.1",
+                                            "name": "raven-js",
+                                            "upstream": Object {
+                                              "isNewer": false,
+                                              "name": "raven-js",
+                                              "url": "https://docs.sentry.io/clients/javascript/",
+                                            },
+                                            "version": "3.16.1",
+                                          },
+                                          "size": 21896,
+                                          "tags": Array [
+                                            Object {
+                                              "key": "browser",
+                                              "value": "Chrome 59.0.3071",
+                                            },
+                                            Object {
+                                              "key": "browser.name",
+                                              "value": "Chrome",
+                                            },
+                                            Object {
+                                              "key": "level",
+                                              "value": "error",
+                                            },
+                                            Object {
+                                              "key": "logger",
+                                              "value": "javascript",
+                                            },
+                                            Object {
+                                              "key": "os",
+                                              "value": "Mac OS X 10.12.5",
+                                            },
+                                            Object {
+                                              "key": "os.name",
+                                              "value": "Mac OS X",
+                                            },
+                                            Object {
+                                              "key": "release",
+                                              "value": "d5241c9d9d2bcda918c7af72f07cea1e39a096ac",
+                                            },
+                                            Object {
+                                              "key": "transaction",
+                                              "value": "app/components/assigneeSelector in assignedTo",
+                                            },
+                                            Object {
+                                              "key": "url",
+                                              "value": "http://localhost:8000/sentry/internal/issues/227/grouping/",
+                                            },
+                                            Object {
+                                              "key": "user",
+                                              "value": "id:1",
+                                            },
+                                          ],
+                                          "type": "error",
+                                          "user": Object {
+                                            "email": "billy@sentry.io",
+                                            "id": "1",
+                                            "ip_address": "127.0.0.1",
+                                          },
+                                        }
+                                      }
+                                      hideIcons={true}
+                                      hideLevel={true}
+                                      includeLink={true}
+                                      orgId="orgId"
+                                      projectId="projectId"
+                                      style={
+                                        Object {
+                                          "fontWeight": 600,
+                                        }
+                                      }
+                                    >
+                                      <span
+                                        style={
+                                          Object {
+                                            "fontWeight": 600,
+                                          }
+                                        }
+                                      >
+                                        TypeError
+                                      </span>
+                                    </EventOrGroupTitle>
+                                  </a>
+                                </ProjectLink>
+                              </div>
+                            </Title>
+                            <Message>
+                              <div
+                                className="css-ogpcmq-Message css-hv83ix1"
                               >
                                 Cannot read property 'assignedTo' of undefined
-                              </span>
-                            </div>
+                              </div>
+                            </Message>
                           </div>
                         </EventOrGroupHeader>
                       </div>
@@ -2555,138 +2591,158 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                           <div
                             className="event-issue-header"
                           >
-                            <h3
-                              className="truncate"
-                            >
-                              <Link
-                                onlyActiveOnIndex={false}
-                                style={Object {}}
-                                to="/orgId/projectId/issues/268/events/904/"
+                            <Title>
+                              <div
+                                className="css-1dqh62j-Title css-hv83ix0"
                               >
-                                <a
-                                  onClick={[Function]}
-                                  style={Object {}}
+                                <ProjectLink
+                                  style={null}
+                                  to={
+                                    Object {
+                                      "pathname": "/orgId/projectId/issues/268/events/904/",
+                                      "search": "",
+                                    }
+                                  }
                                 >
-                                  <EventOrGroupTitle
-                                    data={
+                                  <a
+                                    href={
                                       Object {
-                                        "context": Object {
-                                          "session:duration": 46363,
-                                        },
-                                        "contexts": Object {
-                                          "browser": Object {
-                                            "name": "Chrome",
-                                            "type": "browser",
-                                            "version": "59.0.3071",
-                                          },
-                                          "os": Object {
-                                            "name": "Mac OS X",
-                                            "type": "os",
-                                            "version": "10.12.5",
-                                          },
-                                        },
-                                        "dateCreated": "2017-07-26T00:34:20Z",
-                                        "dateReceived": "2017-07-26T00:34:20Z",
-                                        "dist": null,
-                                        "entries": Array [],
-                                        "errors": Array [],
-                                        "eventID": "807f0de4d8c246098f21f8e0f1684f3d",
-                                        "fingerprints": Array [
-                                          "2c4887696f708c476a81ce4e834c4b02",
-                                          "e05da55328a860b21f62e371f0a7507d",
-                                        ],
-                                        "groupID": "268",
-                                        "id": "904",
-                                        "message": "TypeError Cannot read property 'assignedTo' of undefined app/components/assigneeSelector in assignedTo",
-                                        "metadata": Object {
-                                          "type": "TypeError",
-                                          "value": "Cannot read property 'assignedTo' of undefined",
-                                        },
-                                        "packages": Object {},
-                                        "platform": "javascript",
-                                        "sdk": Object {
-                                          "clientIP": "127.0.0.1",
-                                          "name": "raven-js",
-                                          "upstream": Object {
-                                            "isNewer": false,
-                                            "name": "raven-js",
-                                            "url": "https://docs.sentry.io/clients/javascript/",
-                                          },
-                                          "version": "3.16.1",
-                                        },
-                                        "size": 21896,
-                                        "tags": Array [
-                                          Object {
-                                            "key": "browser",
-                                            "value": "Chrome 59.0.3071",
-                                          },
-                                          Object {
-                                            "key": "browser.name",
-                                            "value": "Chrome",
-                                          },
-                                          Object {
-                                            "key": "level",
-                                            "value": "error",
-                                          },
-                                          Object {
-                                            "key": "logger",
-                                            "value": "javascript",
-                                          },
-                                          Object {
-                                            "key": "os",
-                                            "value": "Mac OS X 10.12.5",
-                                          },
-                                          Object {
-                                            "key": "os.name",
-                                            "value": "Mac OS X",
-                                          },
-                                          Object {
-                                            "key": "release",
-                                            "value": "d5241c9d9d2bcda918c7af72f07cea1e39a096ac",
-                                          },
-                                          Object {
-                                            "key": "transaction",
-                                            "value": "app/components/assigneeSelector in assignedTo",
-                                          },
-                                          Object {
-                                            "key": "url",
-                                            "value": "http://localhost:8000/sentry/internal/issues/227/grouping/",
-                                          },
-                                          Object {
-                                            "key": "user",
-                                            "value": "id:1",
-                                          },
-                                        ],
-                                        "type": "error",
-                                        "user": Object {
-                                          "email": "billy@sentry.io",
-                                          "id": "1",
-                                          "ip_address": "127.0.0.1",
-                                        },
+                                        "pathname": "/orgId/projectId/issues/268/events/904/",
+                                        "search": "",
                                       }
                                     }
-                                    hideIcons={true}
-                                    hideLevel={true}
-                                    includeLink={true}
-                                    orgId="orgId"
-                                    projectId="projectId"
+                                    style={null}
                                   >
-                                    <span>
-                                      TypeError
-                                    </span>
-                                  </EventOrGroupTitle>
-                                </a>
-                              </Link>
-                            </h3>
-                            <div
-                              className="event-message truncate"
-                            >
-                              <span
-                                className="message"
+                                    <EventOrGroupTitle
+                                      data={
+                                        Object {
+                                          "context": Object {
+                                            "session:duration": 46363,
+                                          },
+                                          "contexts": Object {
+                                            "browser": Object {
+                                              "name": "Chrome",
+                                              "type": "browser",
+                                              "version": "59.0.3071",
+                                            },
+                                            "os": Object {
+                                              "name": "Mac OS X",
+                                              "type": "os",
+                                              "version": "10.12.5",
+                                            },
+                                          },
+                                          "dateCreated": "2017-07-26T00:34:20Z",
+                                          "dateReceived": "2017-07-26T00:34:20Z",
+                                          "dist": null,
+                                          "entries": Array [],
+                                          "errors": Array [],
+                                          "eventID": "807f0de4d8c246098f21f8e0f1684f3d",
+                                          "fingerprints": Array [
+                                            "2c4887696f708c476a81ce4e834c4b02",
+                                            "e05da55328a860b21f62e371f0a7507d",
+                                          ],
+                                          "groupID": "268",
+                                          "id": "904",
+                                          "message": "TypeError Cannot read property 'assignedTo' of undefined app/components/assigneeSelector in assignedTo",
+                                          "metadata": Object {
+                                            "type": "TypeError",
+                                            "value": "Cannot read property 'assignedTo' of undefined",
+                                          },
+                                          "packages": Object {},
+                                          "platform": "javascript",
+                                          "sdk": Object {
+                                            "clientIP": "127.0.0.1",
+                                            "name": "raven-js",
+                                            "upstream": Object {
+                                              "isNewer": false,
+                                              "name": "raven-js",
+                                              "url": "https://docs.sentry.io/clients/javascript/",
+                                            },
+                                            "version": "3.16.1",
+                                          },
+                                          "size": 21896,
+                                          "tags": Array [
+                                            Object {
+                                              "key": "browser",
+                                              "value": "Chrome 59.0.3071",
+                                            },
+                                            Object {
+                                              "key": "browser.name",
+                                              "value": "Chrome",
+                                            },
+                                            Object {
+                                              "key": "level",
+                                              "value": "error",
+                                            },
+                                            Object {
+                                              "key": "logger",
+                                              "value": "javascript",
+                                            },
+                                            Object {
+                                              "key": "os",
+                                              "value": "Mac OS X 10.12.5",
+                                            },
+                                            Object {
+                                              "key": "os.name",
+                                              "value": "Mac OS X",
+                                            },
+                                            Object {
+                                              "key": "release",
+                                              "value": "d5241c9d9d2bcda918c7af72f07cea1e39a096ac",
+                                            },
+                                            Object {
+                                              "key": "transaction",
+                                              "value": "app/components/assigneeSelector in assignedTo",
+                                            },
+                                            Object {
+                                              "key": "url",
+                                              "value": "http://localhost:8000/sentry/internal/issues/227/grouping/",
+                                            },
+                                            Object {
+                                              "key": "user",
+                                              "value": "id:1",
+                                            },
+                                          ],
+                                          "type": "error",
+                                          "user": Object {
+                                            "email": "billy@sentry.io",
+                                            "id": "1",
+                                            "ip_address": "127.0.0.1",
+                                          },
+                                        }
+                                      }
+                                      hideIcons={true}
+                                      hideLevel={true}
+                                      includeLink={true}
+                                      orgId="orgId"
+                                      projectId="projectId"
+                                      style={
+                                        Object {
+                                          "fontWeight": 600,
+                                        }
+                                      }
+                                    >
+                                      <span
+                                        style={
+                                          Object {
+                                            "fontWeight": 600,
+                                          }
+                                        }
+                                      >
+                                        TypeError
+                                      </span>
+                                    </EventOrGroupTitle>
+                                  </a>
+                                </ProjectLink>
+                              </div>
+                            </Title>
+                            <Message>
+                              <div
+                                className="css-ogpcmq-Message css-hv83ix1"
                               >
                                 Cannot read property 'assignedTo' of undefined
-                              </span>
-                            </div>
+                              </div>
+                            </Message>
                           </div>
                         </EventOrGroupHeader>
                       </div>

@@ -12,8 +12,8 @@ from sentry.event_manager import (
     ScoreClause, generate_culprit, get_fingerprint_for_event, get_hashes_from_fingerprint, md5_from_hash
 )
 from sentry.models import (
-    Activity, Environment, Event, EventMapping, EventUser, Group, GroupHash, GroupRelease,
-    Project, Release, UserReport
+    Activity, Environment, Event, EventMapping, EventUser, Group,
+    GroupEnvironment, GroupHash, GroupRelease, Project, Release, UserReport
 )
 from sentry.similarity import features
 from sentry.tasks.base import instrumented_task
@@ -249,6 +249,13 @@ def truncate_denormalizations(group):
         group_id=group.id,
     ).delete()
 
+    # XXX: This can cause a race condition with the ``FirstSeenEventCondition``
+    # where notifications can be erroneously sent if they occur in this group
+    # before the reprocessing of the denormalizated data completes, since a new
+    # ``GroupEnvironment`` will be created.
+    for instance in GroupEnvironment.objects.filter(group_id=group.id):
+        instance.delete()
+
     environment_ids = list(
         Environment.objects.filter(
             projects=group.project
@@ -271,6 +278,31 @@ def truncate_denormalizations(group):
     )
 
     features.delete(group)
+
+
+def collect_group_environment_data(events):
+    """\
+    Find the first release for a each group and environment pair from a
+    date-descending sorted list of events.
+    """
+    results = {}
+    for event in events:
+        results[(event.group_id, get_environment_name(event))] = event.get_tag('sentry:release')
+    return results
+
+
+def repair_group_environment_data(caches, project, events):
+    for (group_id, env_name), first_release in collect_group_environment_data(events).items():
+        fields = {
+            'first_release_id': caches['Release'](project.organization_id, first_release).id,
+        }
+
+        GroupEnvironment.objects.create_or_update(
+            environment_id=caches['Environment'](project.organization_id, env_name).id,
+            group_id=group_id,
+            defaults=fields,
+            values=fields,
+        )
 
 
 def collect_tag_data(events):
@@ -467,6 +499,7 @@ def repair_tsdb_data(caches, project, events):
 
 
 def repair_denormalizations(caches, project, events):
+    repair_group_environment_data(caches, project, events)
     repair_tag_data(caches, project, events)
     repair_group_release_data(caches, project, events)
     repair_tsdb_data(caches, project, events)

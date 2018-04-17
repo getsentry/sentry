@@ -7,8 +7,8 @@ import OrganizationState from '../../mixins/organizationState';
 
 import LazyLoad from '../../components/lazyLoad';
 
-const OrganizationStats = createReactClass({
-  displayName: 'OrganizationStats',
+const OrganizationStatsContainer = createReactClass({
+  displayName: 'OrganizationStatsContainer ',
   propTypes: {
     routes: PropTypes.array,
   },
@@ -252,7 +252,7 @@ const OrganizationStats = createReactClass({
     return (
       <LazyLoad
         component={() =>
-          import(/* webpackChunkName: "organizationStats" */ '../settings/organization/stats/organizationStats').then(
+          import(/* webpackChunkName: "organizationStats" */ './organizationStatsDetails').then(
             mod => mod.default
           )}
         organization={organization}
@@ -262,4 +262,4 @@ const OrganizationStats = createReactClass({
   },
 });
 
-export default OrganizationStats;
+export default OrganizationStatsContainer;

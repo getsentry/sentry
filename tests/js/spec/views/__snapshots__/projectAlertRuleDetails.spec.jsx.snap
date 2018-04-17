@@ -1,70 +1,65 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
-.glamor-20 {
-  background: #fff;
-  border: 1px solid;
-  margin-bottom: NaNpx;
-  position: relative;
-}
-
-.glamor-7 {
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  text-transform: uppercase;
-  font-size: 13px;
-  line-height: 1;
-  padding: 15px 20px;
-}
-
-.glamor-3 {
-  font-size: inherit;
-  text-transform: inherit;
-  margin: 0;
-}
-
-.glamor-1 {
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  margin-bottom: 20px;
-  font-size: inherit;
-  text-transform: inherit;
-  margin: 0;
-}
-
-.glamor-19 {
-  padding: 20px;
-}
-
-.glamor-11 {
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
-.glamor-13 {
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-flex-direction: column;
-  -ms-flex-direction: column;
-  flex-direction: column;
-  margin-bottom: 10px;
-}
-
 <ProjectAlertRuleDetails
   params={
     Object {
       "orgId": "org-slug",
       "projectId": "project-slug",
+      "ruleId": "1",
     }
+  }
+  routes={
+    Array [
+      Object {
+        "path": "/",
+      },
+      Object {
+        "indexRoute": Object {},
+        "name": "Settings",
+        "newnew": true,
+        "path": "/settings/",
+      },
+      Object {
+        "name": "Organization",
+        "path": ":orgId/",
+      },
+      Object {
+        "name": "Project",
+        "path": ":projectId/",
+      },
+      Object {},
+      Object {
+        "indexRoute": Object {
+          "name": "General",
+        },
+      },
+      Object {
+        "indexRoute": Object {},
+        "name": "Alerts",
+        "path": "alerts/",
+      },
+      Object {
+        "childRoutes": Array [
+          Object {
+            "name": "New",
+            "path": "new/",
+          },
+          Object {
+            "name": "Edit",
+            "path": ":ruleId/",
+          },
+        ],
+        "component": null,
+        "indexRoute": Object {},
+        "name": "Rules",
+        "path": "rules/",
+      },
+      Object {
+        "name": "Edit",
+        "path": ":ruleId/",
+      },
+    ]
   }
 >
   <SideEffect(DocumentTitle)
@@ -77,7 +72,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
         actions={
           Array [
             Object {
-              "html": "Send a notification for all services",
+              "enabled": true,
               "id": "sentry.rules.actions.notify1",
               "label": "Send a notification for all services",
             },
@@ -86,7 +81,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
         conditions={
           Array [
             Object {
-              "html": "An event is seen",
+              "enabled": true,
               "id": "sentry.rules.conditions.1",
               "label": "An event is seen",
             },
@@ -122,39 +117,71 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
           Object {
             "orgId": "org-slug",
             "projectId": "project-slug",
+            "ruleId": "1",
           }
         }
         project={
           Object {
-            "allowedDomains": Array [
-              "example.com",
-              "https://example.com",
-            ],
-            "dataScrubber": false,
-            "dataScrubberDefaults": false,
-            "digestsMaxDelay": 60,
-            "digestsMinDelay": 5,
-            "features": Array [],
+            "hasAccess": true,
             "id": "2",
+            "isBookmarked": false,
+            "isMember": true,
             "name": "Project Name",
-            "resolveAge": 48,
-            "safeFields": Array [
-              "business-email",
-              "company",
-            ],
-            "scrapeJavaScript": true,
-            "scrubIPAddresses": false,
-            "securityToken": "security-token",
-            "securityTokenHeader": "x-security-header",
-            "sensitiveFields": Array [
-              "creditcard",
-              "ssn",
-            ],
             "slug": "project-slug",
-            "subjectTemplate": "[$project] \${tag:level}: $title",
             "teams": Array [],
-            "verifySSL": true,
           }
+        }
+        routes={
+          Array [
+            Object {
+              "path": "/",
+            },
+            Object {
+              "indexRoute": Object {},
+              "name": "Settings",
+              "newnew": true,
+              "path": "/settings/",
+            },
+            Object {
+              "name": "Organization",
+              "path": ":orgId/",
+            },
+            Object {
+              "name": "Project",
+              "path": ":projectId/",
+            },
+            Object {},
+            Object {
+              "indexRoute": Object {
+                "name": "General",
+              },
+            },
+            Object {
+              "indexRoute": Object {},
+              "name": "Alerts",
+              "path": "alerts/",
+            },
+            Object {
+              "childRoutes": Array [
+                Object {
+                  "name": "New",
+                  "path": "new/",
+                },
+                Object {
+                  "name": "Edit",
+                  "path": ":ruleId/",
+                },
+              ],
+              "component": null,
+              "indexRoute": Object {},
+              "name": "Rules",
+              "path": "rules/",
+            },
+            Object {
+              "name": "Edit",
+              "path": ":ruleId/",
+            },
+          ]
         }
       >
         <form
@@ -163,67 +190,83 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
           <Panel
             className="rule-detail"
           >
-            <div
-              className="rule-detail glamor-20 glamor-21"
+            <StyledPanel
+              className="rule-detail"
             >
-              <PanelHeader>
-                <StyledPanelHeader>
-                  <Component
-                    className="glamor-7 glamor-8"
-                  >
-                    <div
-                      className="glamor-7 glamor-8"
-                    >
-                      <StyledPanelHeading>
-                        <Component
-                          className="glamor-3 glamor-0"
-                        >
-                          <PanelHeading
-                            className="glamor-3 glamor-0"
-                          >
-                            <div
-                              className="glamor-0 glamor-1 glamor-2"
-                            >
-                              New Alert Rule
-                            </div>
-                          </PanelHeading>
-                        </Component>
-                      </StyledPanelHeading>
-                    </div>
-                  </Component>
-                </StyledPanelHeader>
-              </PanelHeader>
-              <PanelBody
-                direction="column"
-                disablePadding={false}
-                flex={false}
+              <div
+                className="rule-detail css-wfa8ap-StyledPanel css-5bw71w0"
               >
-                <div
-                  className="glamor-19"
+                <PanelHeader>
+                  <StyledPanelHeader>
+                    <Component
+                      className="css-kf498j-StyledPanelHeader css-1t1cqk30"
+                    >
+                      <Flex
+                        align="center"
+                        className="css-kf498j-StyledPanelHeader css-1t1cqk30"
+                        justify="space-between"
+                      >
+                        <Base
+                          align="center"
+                          className="css-1t1cqk30 css-hj6snb"
+                          justify="space-between"
+                        >
+                          <div
+                            className="css-1t1cqk30 css-hj6snb"
+                            is={null}
+                          >
+                            Edit Alert Rule
+                          </div>
+                        </Base>
+                      </Flex>
+                    </Component>
+                  </StyledPanelHeader>
+                </PanelHeader>
+                <PanelBody
+                  direction="column"
+                  disablePadding={false}
+                  flex={false}
                 >
-                  <h6>
-                    Rule name
-                    :
-                  </h6>
                   <div
-                    className="control-group"
+                    className="css-1pugmsu-padding"
                   >
-                    <input
-                      className="form-control"
-                      defaultValue=""
+                    <h6>
+                      Rule name
+                      :
+                    </h6>
+                    <TextField
+                      defaultValue="My alert rule"
+                      disabled={false}
+                      hideErrorMessage={false}
+                      name="name"
                       onChange={[Function]}
                       placeholder="My Rule Name"
                       required={true}
-                      type="text"
-                    />
-                  </div>
-                  <hr />
-                  <div
-                    className="node-match-selector"
-                  >
+                    >
+                      <div
+                        className="control-group required"
+                      >
+                        <div
+                          className="controls"
+                        >
+                          <input
+                            className="form-control"
+                            disabled={false}
+                            id="id-name"
+                            name="name"
+                            onChange={[Function]}
+                            placeholder="My Rule Name"
+                            required={true}
+                            type="text"
+                            value="My alert rule"
+                          />
+                        </div>
+                      </div>
+                    </TextField>
+                    <hr />
                     <AlertRuleRow>
                       <h6
-                        className="glamor-11 glamor-12"
+                        className="css-1pc4igl-AlertRuleRow css-1qt54040"
                       >
                         Every time 
                         <Select2Field
@@ -260,9 +303,9 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                               "marginBottom": 0,
                               "marginLeft": 5,
                               "marginRight": 5,
+                              "width": 100,
                             }
                           }
-                          value="all"
                         >
                           <div
                             className="control-group required"
@@ -271,6 +314,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                 "marginBottom": 0,
                                 "marginLeft": 5,
                                 "marginRight": 5,
+                                "width": 100,
                               }
                             }
                           >
@@ -285,7 +329,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                 onChange={[Function]}
                                 placeholder="--"
                                 required={true}
-                                value="all"
+                                value=""
                               >
                                 <option
                                   key="all"
@@ -312,50 +356,124 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                          of these conditions are met:
                       </h6>
                     </AlertRuleRow>
-                  </div>
-                  <RuleNodeList
-                    className="rule-condition-list"
-                    initialItems={Array []}
-                    nodes={
-                      Array [
-                        Object {
-                          "html": "An event is seen",
-                          "id": "sentry.rules.conditions.1",
-                          "label": "An event is seen",
-                        },
-                      ]
-                    }
-                  >
-                    <div
+                    <RuleNodeList
                       className="rule-condition-list"
+                      handleAddRow={[Function]}
+                      handleDeleteRow={[Function]}
+                      handlePropertyChange={[Function]}
+                      items={
+                        Array [
+                          Object {
+                            "id": "sentry.rules.conditions.1",
+                            "name": "An alert is first seen",
+                          },
+                        ]
+                      }
+                      nodes={
+                        Array [
+                          Object {
+                            "enabled": true,
+                            "id": "sentry.rules.conditions.1",
+                            "label": "An event is seen",
+                          },
+                        ]
+                      }
                     >
-                      <RuleNodes>
-                        <div
-                          className="glamor-13 glamor-14"
-                        />
-                      </RuleNodes>
-                      <fieldset
-                        className="node-selector"
+                      <div
+                        className="rule-condition-list"
                       >
-                        <SelectInput
-                          disabled={false}
-                          multiple={false}
-                          onChange={[Function]}
-                          placeholder="Select an option..."
-                          required={false}
-                          style={
-                            Object {
-                              "width": "100%",
-                            }
-                          }
-                          value=""
-                        >
-                          <select
+                        <RuleNodes>
+                          <div
+                            className="css-wlwbnk-RuleNodes css-e8p6eg0"
+                          >
+                            <RuleNode
+                              data={
+                                Object {
+                                  "id": "sentry.rules.conditions.1",
+                                  "name": "An alert is first seen",
+                                }
+                              }
+                              handleDelete={[Function]}
+                              handlePropertyChange={[Function]}
+                              key="0"
+                              node={
+                                Object {
+                                  "enabled": true,
+                                  "id": "sentry.rules.conditions.1",
+                                  "label": "An event is seen",
+                                }
+                              }
+                            >
+                              <RuleNodeRow>
+                                <div
+                                  className="css-1poe0fr-RuleNodeRow css-1f92yv60"
+                                >
+                                  <RuleNodeForm>
+                                    <div
+                                      className="css-7h5qyd-RuleNodeForm css-1f92yv61"
+                                    >
+                                      <input
+                                        name="id"
+                                        type="hidden"
+                                        value="sentry.rules.conditions.1"
+                                      />
+                                      An event is seen
+                                    </div>
+                                  </RuleNodeForm>
+                                  <RuleNodeControls>
+                                    <div
+                                      className="css-1d10zz4-RuleNodeControls css-1f92yv62"
+                                    >
+                                      <Button
+                                        disabled={false}
+                                        onClick={[Function]}
+                                        size="small"
+                                        tabIndex="-1"
+                                        type="button"
+                                      >
+                                        <button
+                                          className="button button-default button-sm"
+                                          disabled={false}
+                                          onClick={[Function]}
+                                          role="button"
+                                          tabIndex="-1"
+                                          type="button"
+                                        >
+                                          <Flex
+                                            align="center"
+                                            className="button-label"
+                                          >
+                                            <Base
+                                              align="center"
+                                              className="button-label css-5ipae5"
+                                            >
+                                              <div
+                                                className="button-label css-5ipae5"
+                                                is={null}
+                                              >
+                                                <span
+                                                  className="icon icon-trash"
+                                                />
+                                              </div>
+                                            </Base>
+                                          </Flex>
+                                        </button>
+                                      </Button>
+                                    </div>
+                                  </RuleNodeControls>
+                                </div>
+                              </RuleNodeRow>
+                            </RuleNode>
+                          </div>
+                        </RuleNodes>
+                        <fieldset>
+                          <SelectInput
                             disabled={false}
                             multiple={false}
                             onChange={[Function]}
                             placeholder="Select an option..."
                             required={false}
+                            showSearch={true}
                             style={
                               Object {
                                 "width": "100%",
@@ -363,55 +481,66 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                             }
                             value=""
                           >
-                            <option
-                              key="blank"
-                            />
-                            <option
-                              key="sentry.rules.conditions.1"
-                              value="sentry.rules.conditions.1"
+                            <select
+                              disabled={false}
+                              multiple={false}
+                              onChange={[Function]}
+                              placeholder="Select an option..."
+                              required={false}
+                              style={
+                                Object {
+                                  "width": "100%",
+                                }
+                              }
+                              value=""
                             >
-                              An event is seen
-                            </option>
-                          </select>
-                        </SelectInput>
-                      </fieldset>
-                    </div>
-                  </RuleNodeList>
-                  <hr />
-                  <h6>
-                    In this environment
-                    :
-                  </h6>
-                  <Select2Field
-                    allowClear={false}
-                    allowEmpty={false}
-                    choices={
-                      Array [
+                              <option
+                                key="blank"
+                              />
+                              <option
+                                key="sentry.rules.conditions.1"
+                                value="sentry.rules.conditions.1"
+                              >
+                                An event is seen
+                              </option>
+                            </select>
+                          </SelectInput>
+                        </fieldset>
+                      </div>
+                    </RuleNodeList>
+                    <hr />
+                    <h6>
+                      In this environment
+                      :
+                    </h6>
+                    <Select2Field
+                      allowClear={false}
+                      allowEmpty={false}
+                      choices={
                         Array [
-                          "__all_environments__",
-                          "All Environments",
-                        ],
-                      ]
-                    }
-                    className=""
-                    disabled={false}
-                    escapeMarkup={true}
-                    hideErrorMessage={false}
-                    multiple={false}
-                    name="environment"
-                    onChange={[Function]}
-                    placeholder="--"
-                    required={true}
-                    style={
-                      Object {
-                        "marginBottom": 0,
-                        "marginLeft": 5,
-                        "marginRight": 5,
+                          Array [
+                            "__all_environments__",
+                            "All Environments",
+                          ],
+                          Array [
+                            "production",
+                            "Production",
+                          ],
+                          Array [
+                            "staging",
+                            "Staging",
+                          ],
+                        ]
                       }
-                    }
-                  >
-                    <div
-                      className="control-group required"
+                      className=""
+                      disabled={false}
+                      escapeMarkup={true}
+                      hideErrorMessage={false}
+                      multiple={false}
+                      name="environment"
+                      onChange={[Function]}
+                      placeholder="--"
+                      required={true}
                       style={
                         Object {
                           "marginBottom": 0,
@@ -419,77 +548,172 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                           "marginRight": 5,
                         }
                       }
+                      value="staging"
                     >
                       <div
-                        className="controls"
-                      >
-                        <select
-                          className="form-control"
-                          disabled={false}
-                          id="id-environment"
-                          multiple={false}
-                          onChange={[Function]}
-                          placeholder="--"
-                          required={true}
-                          value=""
-                        >
-                          <option
-                            key="__all_environments__"
-                            value="__all_environments__"
-                          >
-                            All Environments
-                          </option>
-                        </select>
-                      </div>
-                    </div>
-                  </Select2Field>
-                  <hr />
-                  <h6>
-                    Take these actions:
-                  </h6>
-                  <RuleNodeList
-                    className="rule-action-list"
-                    initialItems={Array []}
-                    nodes={
-                      Array [
-                        Object {
-                          "html": "Send a notification for all services",
-                          "id": "sentry.rules.actions.notify1",
-                          "label": "Send a notification for all services",
-                        },
-                      ]
-                    }
-                  >
-                    <div
-                      className="rule-action-list"
-                    >
-                      <RuleNodes>
-                        <div
-                          className="glamor-13 glamor-14"
-                        />
-                      </RuleNodes>
-                      <fieldset
-                        className="node-selector"
-                      >
-                        <SelectInput
-                          disabled={false}
-                          multiple={false}
-                          onChange={[Function]}
-                          placeholder="Select an option..."
-                          required={false}
-                          style={
-                            Object {
-                              "width": "100%",
-                            }
+                        className="control-group required"
+                        style={
+                          Object {
+                            "marginBottom": 0,
+                            "marginLeft": 5,
+                            "marginRight": 5,
                           }
-                          value=""
+                        }
+                      >
+                        <div
+                          className="controls"
                         >
                           <select
+                            className="form-control"
+                            disabled={false}
+                            id="id-environment"
+                            multiple={false}
+                            onChange={[Function]}
+                            placeholder="--"
+                            required={true}
+                            value="staging"
+                          >
+                            <option
+                              key="__all_environments__"
+                              value="__all_environments__"
+                            >
+                              All Environments
+                            </option>
+                            <option
+                              key="production"
+                              value="production"
+                            >
+                              Production
+                            </option>
+                            <option
+                              key="staging"
+                              value="staging"
+                            >
+                              Staging
+                            </option>
+                          </select>
+                        </div>
+                      </div>
+                    </Select2Field>
+                    <hr />
+                    <h6>
+                      Take these actions:
+                    </h6>
+                    <RuleNodeList
+                      handleAddRow={[Function]}
+                      handleDeleteRow={[Function]}
+                      handlePropertyChange={[Function]}
+                      items={
+                        Array [
+                          Object {
+                            "id": "sentry.rules.actions.notify1",
+                            "name": "Send a notification to all services",
+                          },
+                        ]
+                      }
+                      nodes={
+                        Array [
+                          Object {
+                            "enabled": true,
+                            "id": "sentry.rules.actions.notify1",
+                            "label": "Send a notification for all services",
+                          },
+                        ]
+                      }
+                    >
+                      <div>
+                        <RuleNodes>
+                          <div
+                            className="css-wlwbnk-RuleNodes css-e8p6eg0"
+                          >
+                            <RuleNode
+                              data={
+                                Object {
+                                  "id": "sentry.rules.actions.notify1",
+                                  "name": "Send a notification to all services",
+                                }
+                              }
+                              handleDelete={[Function]}
+                              handlePropertyChange={[Function]}
+                              key="0"
+                              node={
+                                Object {
+                                  "enabled": true,
+                                  "id": "sentry.rules.actions.notify1",
+                                  "label": "Send a notification for all services",
+                                }
+                              }
+                            >
+                              <RuleNodeRow>
+                                <div
+                                  className="css-1poe0fr-RuleNodeRow css-1f92yv60"
+                                >
+                                  <RuleNodeForm>
+                                    <div
+                                      className="css-7h5qyd-RuleNodeForm css-1f92yv61"
+                                    >
+                                      <input
+                                        name="id"
+                                        type="hidden"
+                                        value="sentry.rules.actions.notify1"
+                                      />
+                                      Send a notification for all services
+                                    </div>
+                                  </RuleNodeForm>
+                                  <RuleNodeControls>
+                                    <div
+                                      className="css-1d10zz4-RuleNodeControls css-1f92yv62"
+                                    >
+                                      <Button
+                                        disabled={false}
+                                        onClick={[Function]}
+                                        size="small"
+                                        tabIndex="-1"
+                                        type="button"
+                                      >
+                                        <button
+                                          className="button button-default button-sm"
+                                          disabled={false}
+                                          onClick={[Function]}
+                                          role="button"
+                                          tabIndex="-1"
+                                          type="button"
+                                        >
+                                          <Flex
+                                            align="center"
+                                            className="button-label"
+                                          >
+                                            <Base
+                                              align="center"
+                                              className="button-label css-5ipae5"
+                                            >
+                                              <div
+                                                className="button-label css-5ipae5"
+                                                is={null}
+                                              >
+                                                <span
+                                                  className="icon icon-trash"
+                                                />
+                                              </div>
+                                            </Base>
+                                          </Flex>
+                                        </button>
+                                      </Button>
+                                    </div>
+                                  </RuleNodeControls>
+                                </div>
+                              </RuleNodeRow>
+                            </RuleNode>
+                          </div>
+                        </RuleNodes>
+                        <fieldset>
+                          <SelectInput
                             disabled={false}
                             multiple={false}
                             onChange={[Function]}
                             placeholder="Select an option..."
                             required={false}
+                            showSearch={true}
                             style={
                               Object {
                                 "width": "100%",
@@ -497,27 +721,37 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                             }
                             value=""
                           >
-                            <option
-                              key="blank"
-                            />
-                            <option
-                              key="sentry.rules.actions.notify1"
-                              value="sentry.rules.actions.notify1"
+                            <select
+                              disabled={false}
+                              multiple={false}
+                              onChange={[Function]}
+                              placeholder="Select an option..."
+                              required={false}
+                              style={
+                                Object {
+                                  "width": "100%",
+                                }
+                              }
+                              value=""
                             >
-                              Send a notification for all services
-                            </option>
-                          </select>
-                        </SelectInput>
-                      </fieldset>
-                    </div>
-                  </RuleNodeList>
-                  <hr />
-                  <div
-                    className="node-frequency-selector"
-                  >
+                              <option
+                                key="blank"
+                              />
+                              <option
+                                key="sentry.rules.actions.notify1"
+                                value="sentry.rules.actions.notify1"
+                              >
+                                Send a notification for all services
+                              </option>
+                            </select>
+                          </SelectInput>
+                        </fieldset>
+                      </div>
+                    </RuleNodeList>
+                    <hr />
                     <AlertRuleRow>
                       <h6
-                        className="glamor-11 glamor-12"
+                        className="css-1pc4igl-AlertRuleRow css-1qt54040"
                       >
                         Perform these actions at most once every 
                         <Select2Field
@@ -581,7 +815,6 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                               "width": 140,
                             }
                           }
-                          value={30}
                         >
                           <div
                             className="control-group required"
@@ -605,7 +838,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                 onChange={[Function]}
                                 placeholder="--"
                                 required={true}
-                                value={30}
+                                value=""
                               >
                                 <option
                                   key="5"
@@ -668,20 +901,88 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                          for an issue.
                       </h6>
                     </AlertRuleRow>
+                    <ActionBar>
+                      <div
+                        className="css-wq91e7-ActionBar css-1qt54042"
+                      >
+                        <CancelButton
+                          to="/settings/org-slug/project-slug/alerts/rules/"
+                        >
+                          <Button
+                            className="css-1yc33o1-CancelButton css-1qt54041"
+                            disabled={false}
+                            to="/settings/org-slug/project-slug/alerts/rules/"
+                          >
+                            <Link
+                              className="css-1yc33o1-CancelButton css-1qt54041 button button-default"
+                              disabled={false}
+                              onClick={[Function]}
+                              onlyActiveOnIndex={false}
+                              role="button"
+                              style={Object {}}
+                              to="/settings/org-slug/project-slug/alerts/rules/"
+                            >
+                              <a
+                                className="css-1yc33o1-CancelButton css-1qt54041 button button-default"
+                                disabled={false}
+                                onClick={[Function]}
+                                role="button"
+                                style={Object {}}
+                              >
+                                <Flex
+                                  align="center"
+                                  className="button-label"
+                                >
+                                  <Base
+                                    align="center"
+                                    className="button-label css-5ipae5"
+                                  >
+                                    <div
+                                      className="button-label css-5ipae5"
+                                      is={null}
+                                    >
+                                      Cancel
+                                    </div>
+                                  </Base>
+                                </Flex>
+                              </a>
+                            </Link>
+                          </Button>
+                        </CancelButton>
+                        <Button
+                          disabled={false}
+                          priority="primary"
+                        >
+                          <button
+                            className="button button-primary"
+                            disabled={false}
+                            onClick={[Function]}
+                            role="button"
+                          >
+                            <Flex
+                              align="center"
+                              className="button-label"
+                            >
+                              <Base
+                                align="center"
+                                className="button-label css-5ipae5"
+                              >
+                                <div
+                                  className="button-label css-5ipae5"
+                                  is={null}
+                                >
+                                  Save Rule
+                                </div>
+                              </Base>
+                            </Flex>
+                          </button>
+                        </Button>
+                      </div>
+                    </ActionBar>
                   </div>
-                  <div
-                    className="actions"
-                  >
-                    <button
-                      className="btn btn-primary btn-lg"
-                      disabled={false}
-                    >
-                      Save Rule
-                    </button>
-                  </div>
-                </div>
-              </PanelBody>
-            </div>
+                </PanelBody>
+              </div>
+            </StyledPanel>
           </Panel>
         </form>
       </RuleEditor>
@@ -691,70 +992,64 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
 `;
 
 exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
-.glamor-20 {
-  background: #fff;
-  border: 1px solid;
-  margin-bottom: NaNpx;
-  position: relative;
-}
-
-.glamor-7 {
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  text-transform: uppercase;
-  font-size: 13px;
-  line-height: 1;
-  padding: 15px 20px;
-}
-
-.glamor-3 {
-  font-size: inherit;
-  text-transform: inherit;
-  margin: 0;
-}
-
-.glamor-1 {
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  margin-bottom: 20px;
-  font-size: inherit;
-  text-transform: inherit;
-  margin: 0;
-}
-
-.glamor-19 {
-  padding: 20px;
-}
-
-.glamor-11 {
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
-.glamor-13 {
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-flex-direction: column;
-  -ms-flex-direction: column;
-  flex-direction: column;
-  margin-bottom: 10px;
-}
-
 <ProjectAlertRuleDetails
   params={
     Object {
       "orgId": "org-slug",
       "projectId": "project-slug",
     }
+  }
+  routes={
+    Array [
+      Object {
+        "path": "/",
+      },
+      Object {
+        "indexRoute": Object {},
+        "name": "Settings",
+        "newnew": true,
+        "path": "/settings/",
+      },
+      Object {
+        "name": "Organization",
+        "path": ":orgId/",
+      },
+      Object {
+        "name": "Project",
+        "path": ":projectId/",
+      },
+      Object {},
+      Object {
+        "indexRoute": Object {
+          "name": "General",
+        },
+      },
+      Object {
+        "indexRoute": Object {},
+        "name": "Alerts",
+        "path": "alerts/",
+      },
+      Object {
+        "childRoutes": Array [
+          Object {
+            "name": "New",
+            "path": "new/",
+          },
+          Object {
+            "name": "Edit",
+            "path": ":ruleId/",
+          },
+        ],
+        "component": null,
+        "indexRoute": Object {},
+        "name": "Rules",
+        "path": "rules/",
+      },
+      Object {
+        "name": "Edit",
+        "path": ":ruleId/",
+      },
+    ]
   }
 >
   <SideEffect(DocumentTitle)
@@ -767,7 +1062,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
         actions={
           Array [
             Object {
-              "html": "Send a notification for all services",
+              "enabled": true,
               "id": "sentry.rules.actions.notify1",
               "label": "Send a notification for all services",
             },
@@ -776,7 +1071,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
         conditions={
           Array [
             Object {
-              "html": "An event is seen",
+              "enabled": true,
               "id": "sentry.rules.conditions.1",
               "label": "An event is seen",
             },
@@ -816,35 +1111,66 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
         }
         project={
           Object {
-            "allowedDomains": Array [
-              "example.com",
-              "https://example.com",
-            ],
-            "dataScrubber": false,
-            "dataScrubberDefaults": false,
-            "digestsMaxDelay": 60,
-            "digestsMinDelay": 5,
-            "features": Array [],
+            "hasAccess": true,
             "id": "2",
+            "isBookmarked": false,
+            "isMember": true,
             "name": "Project Name",
-            "resolveAge": 48,
-            "safeFields": Array [
-              "business-email",
-              "company",
-            ],
-            "scrapeJavaScript": true,
-            "scrubIPAddresses": false,
-            "securityToken": "security-token",
-            "securityTokenHeader": "x-security-header",
-            "sensitiveFields": Array [
-              "creditcard",
-              "ssn",
-            ],
             "slug": "project-slug",
-            "subjectTemplate": "[$project] \${tag:level}: $title",
             "teams": Array [],
-            "verifySSL": true,
           }
+        }
+        routes={
+          Array [
+            Object {
+              "path": "/",
+            },
+            Object {
+              "indexRoute": Object {},
+              "name": "Settings",
+              "newnew": true,
+              "path": "/settings/",
+            },
+            Object {
+              "name": "Organization",
+              "path": ":orgId/",
+            },
+            Object {
+              "name": "Project",
+              "path": ":projectId/",
+            },
+            Object {},
+            Object {
+              "indexRoute": Object {
+                "name": "General",
+              },
+            },
+            Object {
+              "indexRoute": Object {},
+              "name": "Alerts",
+              "path": "alerts/",
+            },
+            Object {
+              "childRoutes": Array [
+                Object {
+                  "name": "New",
+                  "path": "new/",
+                },
+                Object {
+                  "name": "Edit",
+                  "path": ":ruleId/",
+                },
+              ],
+              "component": null,
+              "indexRoute": Object {},
+              "name": "Rules",
+              "path": "rules/",
+            },
+            Object {
+              "name": "Edit",
+              "path": ":ruleId/",
+            },
+          ]
         }
       >
         <form
@@ -853,67 +1179,83 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
           <Panel
             className="rule-detail"
           >
-            <div
-              className="rule-detail glamor-20 glamor-21"
+            <StyledPanel
+              className="rule-detail"
             >
-              <PanelHeader>
-                <StyledPanelHeader>
-                  <Component
-                    className="glamor-7 glamor-8"
-                  >
-                    <div
-                      className="glamor-7 glamor-8"
-                    >
-                      <StyledPanelHeading>
-                        <Component
-                          className="glamor-3 glamor-0"
-                        >
-                          <PanelHeading
-                            className="glamor-3 glamor-0"
-                          >
-                            <div
-                              className="glamor-0 glamor-1 glamor-2"
-                            >
-                              New Alert Rule
-                            </div>
-                          </PanelHeading>
-                        </Component>
-                      </StyledPanelHeading>
-                    </div>
-                  </Component>
-                </StyledPanelHeader>
-              </PanelHeader>
-              <PanelBody
-                direction="column"
-                disablePadding={false}
-                flex={false}
+              <div
+                className="rule-detail css-wfa8ap-StyledPanel css-5bw71w0"
               >
-                <div
-                  className="glamor-19"
+                <PanelHeader>
+                  <StyledPanelHeader>
+                    <Component
+                      className="css-kf498j-StyledPanelHeader css-1t1cqk30"
+                    >
+                      <Flex
+                        align="center"
+                        className="css-kf498j-StyledPanelHeader css-1t1cqk30"
+                        justify="space-between"
+                      >
+                        <Base
+                          align="center"
+                          className="css-1t1cqk30 css-hj6snb"
+                          justify="space-between"
+                        >
+                          <div
+                            className="css-1t1cqk30 css-hj6snb"
+                            is={null}
+                          >
+                            New Alert Rule
+                          </div>
+                        </Base>
+                      </Flex>
+                    </Component>
+                  </StyledPanelHeader>
+                </PanelHeader>
+                <PanelBody
+                  direction="column"
+                  disablePadding={false}
+                  flex={false}
                 >
-                  <h6>
-                    Rule name
-                    :
-                  </h6>
                   <div
-                    className="control-group"
+                    className="css-1pugmsu-padding"
                   >
-                    <input
-                      className="form-control"
+                    <h6>
+                      Rule name
+                      :
+                    </h6>
+                    <TextField
                       defaultValue=""
+                      disabled={false}
+                      hideErrorMessage={false}
+                      name="name"
                       onChange={[Function]}
                       placeholder="My Rule Name"
                       required={true}
-                      type="text"
-                    />
-                  </div>
-                  <hr />
-                  <div
-                    className="node-match-selector"
-                  >
+                    >
+                      <div
+                        className="control-group required"
+                      >
+                        <div
+                          className="controls"
+                        >
+                          <input
+                            className="form-control"
+                            disabled={false}
+                            id="id-name"
+                            name="name"
+                            onChange={[Function]}
+                            placeholder="My Rule Name"
+                            required={true}
+                            type="text"
+                            value=""
+                          />
+                        </div>
+                      </div>
+                    </TextField>
+                    <hr />
                     <AlertRuleRow>
                       <h6
-                        className="glamor-11 glamor-12"
+                        className="css-1pc4igl-AlertRuleRow css-1qt54040"
                       >
                         Every time 
                         <Select2Field
@@ -950,6 +1292,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                               "marginBottom": 0,
                               "marginLeft": 5,
                               "marginRight": 5,
+                              "width": 100,
                             }
                           }
                           value="all"
@@ -961,6 +1304,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                 "marginBottom": 0,
                                 "marginLeft": 5,
                                 "marginRight": 5,
+                                "width": 100,
                               }
                             }
                           >
@@ -1002,50 +1346,38 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                          of these conditions are met:
                       </h6>
                     </AlertRuleRow>
-                  </div>
-                  <RuleNodeList
-                    className="rule-condition-list"
-                    initialItems={Array []}
-                    nodes={
-                      Array [
-                        Object {
-                          "html": "An event is seen",
-                          "id": "sentry.rules.conditions.1",
-                          "label": "An event is seen",
-                        },
-                      ]
-                    }
-                  >
-                    <div
+                    <RuleNodeList
                       className="rule-condition-list"
+                      handleAddRow={[Function]}
+                      handleDeleteRow={[Function]}
+                      handlePropertyChange={[Function]}
+                      items={Array []}
+                      nodes={
+                        Array [
+                          Object {
+                            "enabled": true,
+                            "id": "sentry.rules.conditions.1",
+                            "label": "An event is seen",
+                          },
+                        ]
+                      }
                     >
-                      <RuleNodes>
-                        <div
-                          className="glamor-13 glamor-14"
-                        />
-                      </RuleNodes>
-                      <fieldset
-                        className="node-selector"
+                      <div
+                        className="rule-condition-list"
                       >
-                        <SelectInput
-                          disabled={false}
-                          multiple={false}
-                          onChange={[Function]}
-                          placeholder="Select an option..."
-                          required={false}
-                          style={
-                            Object {
-                              "width": "100%",
-                            }
-                          }
-                          value=""
-                        >
-                          <select
+                        <RuleNodes>
+                          <div
+                            className="css-wlwbnk-RuleNodes css-e8p6eg0"
+                          />
+                        </RuleNodes>
+                        <fieldset>
+                          <SelectInput
                             disabled={false}
                             multiple={false}
                             onChange={[Function]}
                             placeholder="Select an option..."
                             required={false}
+                            showSearch={true}
                             style={
                               Object {
                                 "width": "100%",
@@ -1053,55 +1385,66 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                             }
                             value=""
                           >
-                            <option
-                              key="blank"
-                            />
-                            <option
-                              key="sentry.rules.conditions.1"
-                              value="sentry.rules.conditions.1"
+                            <select
+                              disabled={false}
+                              multiple={false}
+                              onChange={[Function]}
+                              placeholder="Select an option..."
+                              required={false}
+                              style={
+                                Object {
+                                  "width": "100%",
+                                }
+                              }
+                              value=""
                             >
-                              An event is seen
-                            </option>
-                          </select>
-                        </SelectInput>
-                      </fieldset>
-                    </div>
-                  </RuleNodeList>
-                  <hr />
-                  <h6>
-                    In this environment
-                    :
-                  </h6>
-                  <Select2Field
-                    allowClear={false}
-                    allowEmpty={false}
-                    choices={
-                      Array [
+                              <option
+                                key="blank"
+                              />
+                              <option
+                                key="sentry.rules.conditions.1"
+                                value="sentry.rules.conditions.1"
+                              >
+                                An event is seen
+                              </option>
+                            </select>
+                          </SelectInput>
+                        </fieldset>
+                      </div>
+                    </RuleNodeList>
+                    <hr />
+                    <h6>
+                      In this environment
+                      :
+                    </h6>
+                    <Select2Field
+                      allowClear={false}
+                      allowEmpty={false}
+                      choices={
                         Array [
-                          "__all_environments__",
-                          "All Environments",
-                        ],
-                      ]
-                    }
-                    className=""
-                    disabled={false}
-                    escapeMarkup={true}
-                    hideErrorMessage={false}
-                    multiple={false}
-                    name="environment"
-                    onChange={[Function]}
-                    placeholder="--"
-                    required={true}
-                    style={
-                      Object {
-                        "marginBottom": 0,
-                        "marginLeft": 5,
-                        "marginRight": 5,
+                          Array [
+                            "__all_environments__",
+                            "All Environments",
+                          ],
+                          Array [
+                            "production",
+                            "Production",
+                          ],
+                          Array [
+                            "staging",
+                            "Staging",
+                          ],
+                        ]
                       }
-                    }
-                  >
-                    <div
-                      className="control-group required"
+                      className=""
+                      disabled={false}
+                      escapeMarkup={true}
+                      hideErrorMessage={false}
+                      multiple={false}
+                      name="environment"
+                      onChange={[Function]}
+                      placeholder="--"
+                      required={true}
                       style={
                         Object {
                           "marginBottom": 0,
@@ -1109,77 +1452,86 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                           "marginRight": 5,
                         }
                       }
+                      value="__all_environments__"
                     >
                       <div
-                        className="controls"
-                      >
-                        <select
-                          className="form-control"
-                          disabled={false}
-                          id="id-environment"
-                          multiple={false}
-                          onChange={[Function]}
-                          placeholder="--"
-                          required={true}
-                          value=""
-                        >
-                          <option
-                            key="__all_environments__"
-                            value="__all_environments__"
-                          >
-                            All Environments
-                          </option>
-                        </select>
-                      </div>
-                    </div>
-                  </Select2Field>
-                  <hr />
-                  <h6>
-                    Take these actions:
-                  </h6>
-                  <RuleNodeList
-                    className="rule-action-list"
-                    initialItems={Array []}
-                    nodes={
-                      Array [
-                        Object {
-                          "html": "Send a notification for all services",
-                          "id": "sentry.rules.actions.notify1",
-                          "label": "Send a notification for all services",
-                        },
-                      ]
-                    }
-                  >
-                    <div
-                      className="rule-action-list"
-                    >
-                      <RuleNodes>
-                        <div
-                          className="glamor-13 glamor-14"
-                        />
-                      </RuleNodes>
-                      <fieldset
-                        className="node-selector"
-                      >
-                        <SelectInput
-                          disabled={false}
-                          multiple={false}
-                          onChange={[Function]}
-                          placeholder="Select an option..."
-                          required={false}
-                          style={
-                            Object {
-                              "width": "100%",
-                            }
+                        className="control-group required"
+                        style={
+                          Object {
+                            "marginBottom": 0,
+                            "marginLeft": 5,
+                            "marginRight": 5,
                           }
-                          value=""
+                        }
+                      >
+                        <div
+                          className="controls"
                         >
                           <select
+                            className="form-control"
+                            disabled={false}
+                            id="id-environment"
+                            multiple={false}
+                            onChange={[Function]}
+                            placeholder="--"
+                            required={true}
+                            value="__all_environments__"
+                          >
+                            <option
+                              key="__all_environments__"
+                              value="__all_environments__"
+                            >
+                              All Environments
+                            </option>
+                            <option
+                              key="production"
+                              value="production"
+                            >
+                              Production
+                            </option>
+                            <option
+                              key="staging"
+                              value="staging"
+                            >
+                              Staging
+                            </option>
+                          </select>
+                        </div>
+                      </div>
+                    </Select2Field>
+                    <hr />
+                    <h6>
+                      Take these actions:
+                    </h6>
+                    <RuleNodeList
+                      handleAddRow={[Function]}
+                      handleDeleteRow={[Function]}
+                      handlePropertyChange={[Function]}
+                      items={Array []}
+                      nodes={
+                        Array [
+                          Object {
+                            "enabled": true,
+                            "id": "sentry.rules.actions.notify1",
+                            "label": "Send a notification for all services",
+                          },
+                        ]
+                      }
+                    >
+                      <div>
+                        <RuleNodes>
+                          <div
+                            className="css-wlwbnk-RuleNodes css-e8p6eg0"
+                          />
+                        </RuleNodes>
+                        <fieldset>
+                          <SelectInput
                             disabled={false}
                             multiple={false}
                             onChange={[Function]}
                             placeholder="Select an option..."
                             required={false}
+                            showSearch={true}
                             style={
                               Object {
                                 "width": "100%",
@@ -1187,27 +1539,37 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                             }
                             value=""
                           >
-                            <option
-                              key="blank"
-                            />
-                            <option
-                              key="sentry.rules.actions.notify1"
-                              value="sentry.rules.actions.notify1"
+                            <select
+                              disabled={false}
+                              multiple={false}
+                              onChange={[Function]}
+                              placeholder="Select an option..."
+                              required={false}
+                              style={
+                                Object {
+                                  "width": "100%",
+                                }
+                              }
+                              value=""
                             >
-                              Send a notification for all services
-                            </option>
-                          </select>
-                        </SelectInput>
-                      </fieldset>
-                    </div>
-                  </RuleNodeList>
-                  <hr />
-                  <div
-                    className="node-frequency-selector"
-                  >
+                              <option
+                                key="blank"
+                              />
+                              <option
+                                key="sentry.rules.actions.notify1"
+                                value="sentry.rules.actions.notify1"
+                              >
+                                Send a notification for all services
+                              </option>
+                            </select>
+                          </SelectInput>
+                        </fieldset>
+                      </div>
+                    </RuleNodeList>
+                    <hr />
                     <AlertRuleRow>
                       <h6
-                        className="glamor-11 glamor-12"
+                        className="css-1pc4igl-AlertRuleRow css-1qt54040"
                       >
                         Perform these actions at most once every 
                         <Select2Field
@@ -1358,20 +1720,88 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                          for an issue.
                       </h6>
                     </AlertRuleRow>
+                    <ActionBar>
+                      <div
+                        className="css-wq91e7-ActionBar css-1qt54042"
+                      >
+                        <CancelButton
+                          to="/settings/org-slug/project-slug/alerts/rules/"
+                        >
+                          <Button
+                            className="css-1yc33o1-CancelButton css-1qt54041"
+                            disabled={false}
+                            to="/settings/org-slug/project-slug/alerts/rules/"
+                          >
+                            <Link
+                              className="css-1yc33o1-CancelButton css-1qt54041 button button-default"
+                              disabled={false}
+                              onClick={[Function]}
+                              onlyActiveOnIndex={false}
+                              role="button"
+                              style={Object {}}
+                              to="/settings/org-slug/project-slug/alerts/rules/"
+                            >
+                              <a
+                                className="css-1yc33o1-CancelButton css-1qt54041 button button-default"
+                                disabled={false}
+                                onClick={[Function]}
+                                role="button"
+                                style={Object {}}
+                              >
+                                <Flex
+                                  align="center"
+                                  className="button-label"
+                                >
+                                  <Base
+                                    align="center"
+                                    className="button-label css-5ipae5"
+                                  >
+                                    <div
+                                      className="button-label css-5ipae5"
+                                      is={null}
+                                    >
+                                      Cancel
+                                    </div>
+                                  </Base>
+                                </Flex>
+                              </a>
+                            </Link>
+                          </Button>
+                        </CancelButton>
+                        <Button
+                          disabled={false}
+                          priority="primary"
+                        >
+                          <button
+                            className="button button-primary"
+                            disabled={false}
+                            onClick={[Function]}
+                            role="button"
+                          >
+                            <Flex
+                              align="center"
+                              className="button-label"
+                            >
+                              <Base
+                                align="center"
+                                className="button-label css-5ipae5"
+                              >
+                                <div
+                                  className="button-label css-5ipae5"
+                                  is={null}
+                                >
+                                  Save Rule
+                                </div>
+                              </Base>
+                            </Flex>
+                          </button>
+                        </Button>
+                      </div>
+                    </ActionBar>
                   </div>
-                  <div
-                    className="actions"
-                  >
-                    <button
-                      className="btn btn-primary btn-lg"
-                      disabled={false}
-                    >
-                      Save Rule
-                    </button>
-                  </div>
-                </div>
-              </PanelBody>
-            </div>
+                </PanelBody>
+              </div>
+            </StyledPanel>
           </Panel>
         </form>
       </RuleEditor>

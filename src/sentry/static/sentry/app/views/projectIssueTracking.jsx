@@ -41,10 +41,10 @@ class ProjectIssueTracking extends React.Component {
         <div className="ref-issue-tracking-settings">
           <SettingsPageHeader title={t('Issue Tracking')} />
           <TextBlock>
-            Enabling Issue Tracking will let you quickly create tasks within your existing
+            {t(`Enabling Issue Tracking will let you quickly create tasks within your existing
             tools. You'll find the new action on an issue's details page. Once you create
             an issue, you'll find a helpful annotation and link to the task in your
-            project management tool.
+            project management tool.`)}
           </TextBlock>
           <PluginList
             organization={organization}
@@ -57,8 +57,8 @@ class ProjectIssueTracking extends React.Component {
       return (
         <div className="alert alert-info alert-block">
           <p>
-            There are no issue tracker integrations available. Ask your Sentry team about
-            integrating with your favorite project management tools.
+            {t(`There are no issue tracker integrations available. Ask your Sentry team about
+            integrating with your favorite project management tools.`)}
           </p>
         </div>
       );

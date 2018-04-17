@@ -4,45 +4,9 @@ from django.db import IntegrityError, transaction
 from django.db.models.signals import post_save
 
 from sentry.models import (
-    Activity, Commit, GroupAssignee, GroupLink, Project, Release, PullRequest
+    Activity, Commit, GroupAssignee, GroupLink, Release, PullRequest
 )
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
-
-
-def ensure_release_exists(instance, created, **kwargs):
-    if not created:
-        return
-
-    if instance.key != 'sentry:release':
-        return
-
-    if instance.data and instance.data.get('release_id'):
-        return
-
-    project = Project.objects.get_from_cache(id=instance.project_id)
-
-    try:
-        with transaction.atomic():
-            release = Release.objects.create(
-                organization_id=project.organization_id,
-                version=instance.value,
-                date_added=instance.first_seen,
-            )
-    except IntegrityError:
-        release = Release.objects.get(
-            organization_id=project.organization_id,
-            version=instance.value,
-        )
-        release.update(date_added=instance.first_seen)
-    else:
-        # Make sure we use our partition key since `instance` is a
-        # `TagValue`.
-        type(instance).objects.filter(
-            id=instance.id,
-            project_id=instance.project_id,
-        ).update(data={'release_id': release.id})
-
-    release.add_project(project)
 
 
 def resolve_group_resolutions(instance, created, **kwargs):

@@ -1,5 +1,9 @@
+import React from 'react';
+
+import {t, tct} from '../../locale';
+
 // Export route to make these forms searchable by label/help
-export const route = '/settings/organization/:orgId/teams/:teamId/settings/';
+export const route = '/settings/:orgId/teams/:teamId/settings/';
 
 const formGroups = [
   {
@@ -7,22 +11,30 @@ const formGroups = [
     title: 'Team Settings',
     fields: [
       {
-        name: 'name',
-        type: 'string',
-        required: true,
-
-        // additional data/props that is related to rendering of form field rather than data
-        label: 'Name',
-        placeholder: 'e.g. API Team',
-        help: 'The name of your team',
-      },
-      {
         name: 'slug',
         type: 'string',
         required: true,
-        label: 'Short Name',
+        label: t('Name'),
         placeholder: 'e.g. api-team',
-        help: 'A unique ID used to identify the team',
+        help: t('A unique ID used to identify the team'),
+
+        saveOnBlur: false,
+        saveMessageAlertType: 'info',
+        saveMessage: t('You will be redirected to the new team slug after saving'),
+      },
+      {
+        name: 'name',
+        type: 'string',
+        required: true,
+        label: t('Legacy Name'),
+        placeholder: 'e.g. API Team',
+        help: tct(
+          '[Deprecated] In the future, only [Name] will be used to identify your team',
+          {
+            Deprecated: <strong>DEPRECATED</strong>,
+            Name: <strong>Name</strong>,
+          }
+        ),
       },
     ],
   },

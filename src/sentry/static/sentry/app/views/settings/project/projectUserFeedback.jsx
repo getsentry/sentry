@@ -7,9 +7,7 @@ import AsyncView from '../../asyncView';
 import Button from '../../../components/buttons/button';
 import Form from '../components/forms/form';
 import JsonForm from '../components/forms/jsonForm';
-import Panel from '../components/panel';
-import PanelBody from '../components/panelBody';
-import PanelHeader from '../components/panelHeader';
+import {Panel, PanelBody, PanelHeader} from '../../../components/panels';
 import SettingsPageHeader from '../components/settingsPageHeader';
 import TextBlock from '../components/text/textBlock';
 import formGroups from '../../../data/forms/userFeedback';
@@ -129,13 +127,6 @@ class ProjectUserReportSettings extends AsyncView {
     return (
       <div>
         <SettingsPageHeader title={t('User Feedback')} />
-
-        <div className="alert alert-block alert-info">
-          {t(
-            'Psst! This feature is still a work-in-progress. Thanks for being an early adopter!'
-          )}
-        </div>
-
         <TextBlock>
           {t(
             'Enabling User Feedback allows you to interact with your users on an unprecedented level. Collect additional details about issues affecting them, and more importantly reach out to them with resolutions.'

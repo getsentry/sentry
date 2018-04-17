@@ -70,6 +70,7 @@ class UserSerializer(Serializer):
             'email': obj.email,
             'avatarUrl': get_gravatar_url(obj.email, size=32),
             'isActive': obj.is_active,
+            'hasPasswordAuth': obj.password not in ('!', ''),
             'isManaged': obj.is_managed,
             'dateJoined': obj.date_joined,
             'lastLogin': obj.last_login,
@@ -95,6 +96,10 @@ class UserSerializer(Serializer):
             }
 
             d['permissions'] = list(UserPermission.for_user(obj.id))
+
+            d['flags'] = {
+                'newsletter_consent_prompt': bool(obj.flags.newsletter_consent_prompt),
+            }
 
         if attrs.get('avatar'):
             avatar = {

@@ -195,7 +195,6 @@ exports[`GroupReleaseStats renders 1`] = `
               height={40}
               label="events"
               markers={Array []}
-              placement="bottom"
               points={
                 Array [
                   Object {
@@ -246,108 +245,128 @@ exports[`GroupReleaseStats renders 1`] = `
                   0
                 </span>
                 <span>
-                  <a
-                    className="chart-column tip"
-                    data-point-index={1517281200}
+                  <Tooltip
                     key="1517281200"
-                    style={
+                    title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 29th, 7:00 pm &#8594 Jan 30th, 2:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>2 events</dd><dt class=\\"environment\\"><span></span></dt><dd>2 events<small>in All Environments</small></dd></dl></div>"
+                    tooltipOptions={
                       Object {
-                        "height": "100%",
-                        "width": "50%",
+                        "html": true,
+                        "placement": "bottom",
                       }
                     }
                   >
-                    <span
-                      className="release"
-                      key="0"
+                    <a
+                      className="tip chart-column"
                       style={
                         Object {
-                          "backgroundColor": null,
-                          "bottom": "0%",
-                          "height": "0%",
+                          "height": "100%",
+                          "width": "50%",
                         }
                       }
+                      title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 29th, 7:00 pm &#8594 Jan 30th, 2:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>2 events</dd><dt class=\\"environment\\"><span></span></dt><dd>2 events<small>in All Environments</small></dd></dl></div>"
                     >
-                      0
-                    </span>
-                    <span
-                      className="environment"
-                      key="1"
-                      style={
-                        Object {
-                          "backgroundColor": null,
-                          "bottom": "0%",
-                          "height": "19.8%",
+                      <span
+                        className="release"
+                        key="0"
+                        style={
+                          Object {
+                            "backgroundColor": null,
+                            "bottom": "0%",
+                            "height": "0%",
+                          }
                         }
-                      }
-                    >
-                      2
-                    </span>
-                    <span
-                      className="inactive"
-                      key="2"
-                      style={
-                        Object {
-                          "backgroundColor": null,
-                          "bottom": "19.8%",
-                          "height": "0%",
+                      >
+                        0
+                      </span>
+                      <span
+                        className="environment"
+                        key="1"
+                        style={
+                          Object {
+                            "backgroundColor": null,
+                            "bottom": "0%",
+                            "height": "19.8%",
+                          }
                         }
-                      }
-                    >
-                      0
-                    </span>
-                  </a>
-                  <a
-                    className="chart-column tip"
-                    data-point-index={1517310000}
+                      >
+                        2
+                      </span>
+                      <span
+                        className="inactive"
+                        key="2"
+                        style={
+                          Object {
+                            "backgroundColor": null,
+                            "bottom": "19.8%",
+                            "height": "0%",
+                          }
+                        }
+                      >
+                        0
+                      </span>
+                    </a>
+                  </Tooltip>
+                  <Tooltip
                     key="1517310000"
-                    style={
+                    title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 30th, 3:00 am &#8594 Jan 30th, 10:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd><dt class=\\"environment\\"><span></span></dt><dd>1 event<small>in All Environments</small></dd></dl></div>"
+                    tooltipOptions={
                       Object {
-                        "height": "100%",
-                        "width": "50%",
+                        "html": true,
+                        "placement": "bottom",
                       }
                     }
                   >
-                    <span
-                      className="release"
-                      key="0"
+                    <a
+                      className="tip chart-column"
                       style={
                         Object {
-                          "backgroundColor": null,
-                          "bottom": "0%",
-                          "height": "0%",
+                          "height": "100%",
+                          "width": "50%",
                         }
                       }
+                      title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 30th, 3:00 am &#8594 Jan 30th, 10:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd><dt class=\\"environment\\"><span></span></dt><dd>1 event<small>in All Environments</small></dd></dl></div>"
                     >
-                      0
-                    </span>
-                    <span
-                      className="environment"
-                      key="1"
-                      style={
-                        Object {
-                          "backgroundColor": null,
-                          "bottom": "0%",
-                          "height": "9.9%",
+                      <span
+                        className="release"
+                        key="0"
+                        style={
+                          Object {
+                            "backgroundColor": null,
+                            "bottom": "0%",
+                            "height": "0%",
+                          }
                         }
-                      }
-                    >
-                      1
-                    </span>
-                    <span
-                      className="inactive"
-                      key="2"
-                      style={
-                        Object {
-                          "backgroundColor": null,
-                          "bottom": "9.9%",
-                          "height": "0%",
+                      >
+                        0
+                      </span>
+                      <span
+                        className="environment"
+                        key="1"
+                        style={
+                          Object {
+                            "backgroundColor": null,
+                            "bottom": "0%",
+                            "height": "9.9%",
+                          }
                         }
-                      }
-                    >
-                      0
-                    </span>
-                  </a>
+                      >
+                        1
+                      </span>
+                      <span
+                        className="inactive"
+                        key="2"
+                        style={
+                          Object {
+                            "backgroundColor": null,
+                            "bottom": "9.9%",
+                            "height": "0%",
+                          }
+                        }
+                      >
+                        0
+                      </span>
+                    </a>
+                  </Tooltip>
                 </span>
               </figure>
             </StackedBarChart>
@@ -438,7 +457,6 @@ exports[`GroupReleaseStats renders 1`] = `
               height={40}
               label="events"
               markers={Array []}
-              placement="bottom"
               points={
                 Array [
                   Object {
@@ -489,108 +507,128 @@ exports[`GroupReleaseStats renders 1`] = `
                   0
                 </span>
                 <span>
-                  <a
-                    className="chart-column tip"
-                    data-point-index={1514764800}
+                  <Tooltip
                     key="1514764800"
-                    style={
+                    title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Dec 31st, 4:00 pm &#8594 Jan 3rd, 3:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd><dt class=\\"environment\\"><span></span></dt><dd>1 event<small>in All Environments</small></dd></dl></div>"
+                    tooltipOptions={
                       Object {
-                        "height": "100%",
-                        "width": "50%",
+                        "html": true,
+                        "placement": "bottom",
                       }
                     }
                   >
-                    <span
-                      className="release"
-                      key="0"
+                    <a
+                      className="tip chart-column"
                       style={
                         Object {
-                          "backgroundColor": null,
-                          "bottom": "0%",
-                          "height": "0%",
+                          "height": "100%",
+                          "width": "50%",
                         }
                       }
+                      title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Dec 31st, 4:00 pm &#8594 Jan 3rd, 3:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd><dt class=\\"environment\\"><span></span></dt><dd>1 event<small>in All Environments</small></dd></dl></div>"
                     >
-                      0
-                    </span>
-                    <span
-                      className="environment"
-                      key="1"
-                      style={
-                        Object {
-                          "backgroundColor": null,
-                          "bottom": "0%",
-                          "height": "0.81%",
+                      <span
+                        className="release"
+                        key="0"
+                        style={
+                          Object {
+                            "backgroundColor": null,
+                            "bottom": "0%",
+                            "height": "0%",
+                          }
                         }
-                      }
-                    >
-                      1
-                    </span>
-                    <span
-                      className="inactive"
-                      key="2"
-                      style={
-                        Object {
-                          "backgroundColor": null,
-                          "bottom": "0.81%",
-                          "height": "0%",
+                      >
+                        0
+                      </span>
+                      <span
+                        className="environment"
+                        key="1"
+                        style={
+                          Object {
+                            "backgroundColor": null,
+                            "bottom": "0%",
+                            "height": "0.81%",
+                          }
                         }
-                      }
-                    >
-                      0
-                    </span>
-                  </a>
-                  <a
-                    className="chart-column tip"
-                    data-point-index={1515024000}
+                      >
+                        1
+                      </span>
+                      <span
+                        className="inactive"
+                        key="2"
+                        style={
+                          Object {
+                            "backgroundColor": null,
+                            "bottom": "0.81%",
+                            "height": "0%",
+                          }
+                        }
+                      >
+                        0
+                      </span>
+                    </a>
+                  </Tooltip>
+                  <Tooltip
                     key="1515024000"
-                    style={
+                    title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 3rd, 4:00 pm &#8594 Jan 6th, 3:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>122 events</dd><dt class=\\"environment\\"><span></span></dt><dd>122 events<small>in All Environments</small></dd></dl></div>"
+                    tooltipOptions={
                       Object {
-                        "height": "100%",
-                        "width": "50%",
+                        "html": true,
+                        "placement": "bottom",
                       }
                     }
                   >
-                    <span
-                      className="release"
-                      key="0"
+                    <a
+                      className="tip chart-column"
                       style={
                         Object {
-                          "backgroundColor": null,
-                          "bottom": "0%",
-                          "height": "0%",
+                          "height": "100%",
+                          "width": "50%",
                         }
                       }
+                      title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 3rd, 4:00 pm &#8594 Jan 6th, 3:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>122 events</dd><dt class=\\"environment\\"><span></span></dt><dd>122 events<small>in All Environments</small></dd></dl></div>"
                     >
-                      0
-                    </span>
-                    <span
-                      className="environment"
-                      key="1"
-                      style={
-                        Object {
-                          "backgroundColor": null,
-                          "bottom": "0%",
-                          "height": "99%",
+                      <span
+                        className="release"
+                        key="0"
+                        style={
+                          Object {
+                            "backgroundColor": null,
+                            "bottom": "0%",
+                            "height": "0%",
+                          }
                         }
-                      }
-                    >
-                      122
-                    </span>
-                    <span
-                      className="inactive"
-                      key="2"
-                      style={
-                        Object {
-                          "backgroundColor": null,
-                          "bottom": "99%",
-                          "height": "0%",
+                      >
+                        0
+                      </span>
+                      <span
+                        className="environment"
+                        key="1"
+                        style={
+                          Object {
+                            "backgroundColor": null,
+                            "bottom": "0%",
+                            "height": "99%",
+                          }
                         }
-                      }
-                    >
-                      0
-                    </span>
-                  </a>
+                      >
+                        122
+                      </span>
+                      <span
+                        className="inactive"
+                        key="2"
+                        style={
+                          Object {
+                            "backgroundColor": null,
+                            "bottom": "99%",
+                            "height": "0%",
+                          }
+                        }
+                      >
+                        0
+                      </span>
+                    </a>
+                  </Tooltip>
                 </span>
               </figure>
             </StackedBarChart>

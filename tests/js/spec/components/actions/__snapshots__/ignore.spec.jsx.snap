@@ -263,6 +263,35 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                 }
               }
             />
+            <GuideAnchor
+              target="ignore_delete_discard"
+              type="text"
+            >
+              <GuideAnchorContainer
+                innerRef={[Function]}
+                type="text"
+              >
+                <div
+                  className="css-9u5for-GuideAnchorContainer css-1aiyb4m0"
+                  type="text"
+                >
+                  <StyledGuideAnchor
+                    active={false}
+                    className="guide-anchor-ping ignore_delete_discard"
+                  >
+                    <div
+                      className="guide-anchor-ping ignore_delete_discard css-1yndvnf-StyledGuideAnchor css-1aiyb4m1"
+                    >
+                      <StyledGuideAnchorRipples>
+                        <div
+                          className="css-1t9mqkr-StyledGuideAnchorRipples css-1aiyb4m2"
+                        />
+                      </StyledGuideAnchorRipples>
+                    </div>
+                  </StyledGuideAnchor>
+                </div>
+              </GuideAnchorContainer>
+            </GuideAnchor>
             Ignore
           </a>
           <Modal
@@ -5240,6 +5269,35 @@ exports[`IgnoreActions without confirmation renders 1`] = `
               }
             }
           />
+          <GuideAnchor
+            target="ignore_delete_discard"
+            type="text"
+          >
+            <GuideAnchorContainer
+              innerRef={[Function]}
+              type="text"
+            >
+              <div
+                className="css-9u5for-GuideAnchorContainer css-1aiyb4m0"
+                type="text"
+              >
+                <StyledGuideAnchor
+                  active={false}
+                  className="guide-anchor-ping ignore_delete_discard"
+                >
+                  <div
+                    className="guide-anchor-ping ignore_delete_discard css-1yndvnf-StyledGuideAnchor css-1aiyb4m1"
+                  >
+                    <StyledGuideAnchorRipples>
+                      <div
+                        className="css-1t9mqkr-StyledGuideAnchorRipples css-1aiyb4m2"
+                      />
+                    </StyledGuideAnchorRipples>
+                  </div>
+                </StyledGuideAnchor>
+              </div>
+            </GuideAnchorContainer>
+          </GuideAnchor>
           Ignore
         </a>
       </ActionLink>

@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import {t} from '../../locale';
 import {fetchPlugins, enablePlugin, disablePlugin} from '../../actionCreators/plugins';
@@ -12,9 +11,6 @@ import SettingsPageHeader from '../settings/components/settingsPageHeader';
 class ProjectPluginsContainer extends React.Component {
   static propTypes = {
     plugins: SentryTypes.PluginsStore,
-    organization: PropTypes.shape({
-      features: PropTypes.arrayOf(PropTypes.string),
-    }),
   };
 
   componentDidMount() {
@@ -33,20 +29,15 @@ class ProjectPluginsContainer extends React.Component {
 
   render() {
     let {loading, error, plugins} = this.props.plugins || {};
-    const {features} = this.props.organization;
-
-    const globalIntegrations = features.includes('integrations-v3') ? (
-      <OrganizationIntegrations
-        orgId={this.props.params.orgId}
-        projectId={this.props.params.projectId}
-      />
-    ) : null;
 
     return (
       <React.Fragment>
         <SettingsPageHeader title={t('Integrations')} />
 
-        {globalIntegrations}
+        <OrganizationIntegrations
+          orgId={this.props.params.orgId}
+          projectId={this.props.params.projectId}
+        />
 
         <ProjectPlugins
           {...this.props}

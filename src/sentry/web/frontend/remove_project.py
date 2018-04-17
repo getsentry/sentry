@@ -34,12 +34,12 @@ class RemoveProjectView(ProjectView):
                 is_sudo=True
             )
 
-            is_internal = features.has(
-                'organizations:internal-catchall',
+            has_new_teams = features.has(
+                'organizations:new-teams',
                 organization,
                 actor=request.user,
             )
-            project_name = (project.slug if is_internal else project.name).encode('utf-8')
+            project_name = (project.slug if has_new_teams else project.name).encode('utf-8')
             messages.add_message(
                 request, messages.SUCCESS,
                 _(u'The project %r was scheduled for deletion.') % (project_name, )

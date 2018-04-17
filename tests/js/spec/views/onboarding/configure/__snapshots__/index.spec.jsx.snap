@@ -14,7 +14,7 @@ exports[`Configure should render correctly render() should redirect to if no mat
     >
       Configure your application
     </h2>
-    <ProjectContext
+    <withProjects
       orgId="testOrg"
       projectId="project-slug"
       style={
@@ -40,7 +40,7 @@ exports[`Configure should render correctly render() should redirect to if no mat
           }
         />
       </ProjectDocsContext>
-    </ProjectContext>
+    </withProjects>
     <Waiting
       hasEvent={false}
       skip={[Function]}
@@ -73,7 +73,7 @@ exports[`Configure should render correctly render() should render platform docs 
       >
         Configure your application
       </h2>
-      <ProjectContext
+      <withProjects
         orgId="testOrg"
         projectId="project-slug"
         style={
@@ -82,189 +82,349 @@ exports[`Configure should render correctly render() should render platform docs 
           }
         }
       >
-        <SideEffect(DocumentTitle)
-          title="Project Name"
+        <withRouter(ProjectContext)
+          orgId="testOrg"
+          projectId="project-slug"
+          projects={
+            Array [
+              Object {
+                "hasAccess": true,
+                "id": "testProject",
+                "isBookmarked": false,
+                "name": "Test Project",
+                "slug": "project-slug",
+                "teams": Array [
+                  Object {
+                    "hasAccess": true,
+                    "id": "coolid",
+                    "slug": "coolteam",
+                  },
+                ],
+              },
+            ]
+          }
+          style={
+            Object {
+              "marginBottom": 30,
+            }
+          }
         >
-          <DocumentTitle
-            title="Project Name"
+          <ProjectContext
+            location={
+              Object {
+                "query": Object {},
+              }
+            }
+            orgId="testOrg"
+            projectId="project-slug"
+            projects={
+              Array [
+                Object {
+                  "hasAccess": true,
+                  "id": "testProject",
+                  "isBookmarked": false,
+                  "name": "Test Project",
+                  "slug": "project-slug",
+                  "teams": Array [
+                    Object {
+                      "hasAccess": true,
+                      "id": "coolid",
+                      "slug": "coolteam",
+                    },
+                  ],
+                },
+              ]
+            }
+            router={
+              Object {
+                "createHref": [Function],
+                "go": [Function],
+                "goBack": [Function],
+                "goForward": [Function],
+                "isActive": [Function],
+                "location": Object {
+                  "query": Object {},
+                },
+                "push": [Function],
+                "replace": [Function],
+                "setRouteLeaveHook": [Function],
+              }
+            }
+            style={
+              Object {
+                "marginBottom": 30,
+              }
+            }
           >
-            <ProjectDocsContext>
-              <ProjectInstallPlatform
-                linkPath={[Function]}
-                params={
-                  Object {
-                    "orgId": "testOrg",
-                    "platform": "node",
-                    "projectId": "project-slug",
-                  }
-                }
-                platformData={
-                  Object {
-                    "dsn": "https://9ed7cdc60:20e868d7b@sentry.io/300733",
-                    "dsnPublic": "https://9ed7cdc6581145bcb46044b77bd82aa0@sentry.io/300733",
-                    "platforms": Array [
+            <SideEffect(DocumentTitle)
+              title="project-slug"
+            >
+              <DocumentTitle
+                title="project-slug"
+              >
+                <ProjectDocsContext>
+                  <ProjectInstallPlatform
+                    linkPath={[Function]}
+                    params={
                       Object {
-                        "id": "javascript",
-                        "integrations": Array [
+                        "orgId": "testOrg",
+                        "platform": "node",
+                        "projectId": "project-slug",
+                      }
+                    }
+                    platformData={
+                      Object {
+                        "dsn": "https://9ed7cdc60:20e868d7b@sentry.io/300733",
+                        "dsnPublic": "https://9ed7cdc6581145bcb46044b77bd82aa0@sentry.io/300733",
+                        "platforms": Array [
                           Object {
-                            "id": "node",
-                            "link": "https://docs.getsentry.com/hosted/clients/csharp/",
-                            "name": "node",
-                            "type": "language",
+                            "id": "javascript",
+                            "integrations": Array [
+                              Object {
+                                "id": "node",
+                                "link": "https://docs.getsentry.com/hosted/clients/csharp/",
+                                "name": "node",
+                                "type": "language",
+                              },
+                            ],
+                            "name": "js",
                           },
                         ],
-                        "name": "js",
-                      },
-                    ],
-                  }
-                }
-              >
-                <div
-                  className="install row"
-                >
-                  <div
-                    className="install-content col-md-10"
+                      }
+                    }
                   >
                     <div
-                      className="box"
+                      className="install row"
                     >
                       <div
-                        className="box-header"
+                        className="install-content col-md-10"
                       >
-                        <div
-                          className="pull-right"
-                        >
-                          <a
-                            className="btn btn-sm btn-default"
-                            href="https://docs.getsentry.com/hosted/clients/csharp/"
-                          >
-                            Full Documentation
-                          </a>
-                        </div>
-                        <h3>
-                          Configure node
-                        </h3>
-                      </div>
-                      <div
-                        className="box-content with-padding"
-                      >
-                        <p>
-                          <span
-                            key="8"
-                          >
-                            <span
-                              key="0"
+                        <Panel>
+                          <StyledPanel>
+                            <div
+                              className="css-wfa8ap-StyledPanel css-5bw71w0"
                             >
-                              
+                              <PanelHeader
+                                hasButtons={true}
+                              >
+                                <StyledPanelHeader
+                                  hasButtons={true}
+                                >
+                                  <Component
+                                    className="css-vzwv85-StyledPanelHeader css-1t1cqk30"
+                                    hasButtons={true}
+                                  >
+                                    <Flex
+                                      align="center"
+                                      className="css-vzwv85-StyledPanelHeader css-1t1cqk30"
+                                      justify="space-between"
+                                    >
+                                      <Base
+                                        align="center"
+                                        className="css-1t1cqk30 css-1h9uuh9"
+                                        justify="space-between"
+                                      >
+                                        <div
+                                          className="css-1t1cqk30 css-1h9uuh9"
+                                          is={null}
+                                        >
+                                          Configure node
+                                          <Button
+                                            disabled={false}
+                                            external={true}
+                                            href="https://docs.getsentry.com/hosted/clients/csharp/"
+                                            size="small"
+                                          >
+                                            <ExternalLink
+                                              className="button button-default button-sm"
+                                              disabled={false}
+                                              href="https://docs.getsentry.com/hosted/clients/csharp/"
+                                              onClick={[Function]}
+                                              rel="noreferrer noopener"
+                                              role="button"
+                                              target="_blank"
+                                            >
+                                              <a
+                                                className="button button-default button-sm"
+                                                disabled={false}
+                                                href="https://docs.getsentry.com/hosted/clients/csharp/"
+                                                onClick={[Function]}
+                                                rel="noreferrer noopener"
+                                                role="button"
+                                                target="_blank"
+                                              >
+                                                <Flex
+                                                  align="center"
+                                                  className="button-label"
+                                                >
+                                                  <Base
+                                                    align="center"
+                                                    className="button-label css-5ipae5"
+                                                  >
+                                                    <div
+                                                      className="button-label css-5ipae5"
+                                                      is={null}
+                                                    >
+                                                      Full Documentation
+                                                    </div>
+                                                  </Base>
+                                                </Flex>
+                                              </a>
+                                            </ExternalLink>
+                                          </Button>
+                                        </div>
+                                      </Base>
+                                    </Flex>
+                                  </Component>
+                                </StyledPanelHeader>
+                              </PanelHeader>
+                              <PanelBody
+                                direction="column"
+                                disablePadding={false}
+                                flex={false}
+                              >
+                                <div
+                                  className="css-1pugmsu-padding"
+                                >
+                                  <TextBlock>
+                                    <Component
+                                      className="css-ms59cf-TextBlock css-1gwew8k0"
+                                    >
+                                      <div
+                                        className="css-ms59cf-TextBlock css-1gwew8k0"
+                                      >
+                                        <span
+                                          key="8"
+                                        >
+                                          <span
+                                            key="0"
+                                          >
+                                            
              This is a quick getting started guide. For in-depth instructions
              on integrating Sentry with 
-                            </span>
-                            <span
-                              key="2"
-                            >
-                              node
-                            </span>
-                            <span
-                              key="3"
-                            >
-                              , view
+                                          </span>
+                                          <span
+                                            key="2"
+                                          >
+                                            node
+                                          </span>
+                                          <span
+                                            key="3"
+                                          >
+                                            , view
              
-                            </span>
-                            <a
-                              href="https://docs.getsentry.com/hosted/clients/csharp/"
-                              key="5"
-                            >
-                              <span
-                                key="4"
-                              >
-                                our complete documentation
-                              </span>
-                            </a>
-                            <span
-                              key="6"
-                            >
-                              .
+                                          </span>
+                                          <a
+                                            href="https://docs.getsentry.com/hosted/clients/csharp/"
+                                            key="5"
+                                          >
+                                            <span
+                                              key="4"
+                                            >
+                                              our complete documentation
+                                            </span>
+                                          </a>
+                                          <span
+                                            key="6"
+                                          >
+                                            .
             
-                            </span>
-                          </span>
-                        </p>
-                        <div
-                          dangerouslySetInnerHTML={
-                            Object {
-                              "__html": undefined,
-                            }
-                          }
-                        />
+                                          </span>
+                                        </span>
+                                      </div>
+                                    </Component>
+                                  </TextBlock>
+                                  <DocumentationWrapper
+                                    dangerouslySetInnerHTML={
+                                      Object {
+                                        "__html": undefined,
+                                      }
+                                    }
+                                  >
+                                    <div
+                                      className="css-1k2bws-DocumentationWrapper css-1igogt70"
+                                      dangerouslySetInnerHTML={
+                                        Object {
+                                          "__html": undefined,
+                                        }
+                                      }
+                                    />
+                                  </DocumentationWrapper>
+                                </div>
+                              </PanelBody>
+                            </div>
+                          </StyledPanel>
+                        </Panel>
+                      </div>
+                      <div
+                        className="install-sidebar col-md-2"
+                      >
+                        <LanguageNav
+                          active={true}
+                          key="javascript"
+                          name="js"
+                        >
+                          <div
+                            className="install-language-nav"
+                          >
+                            <ul
+                              className="list-group"
+                            >
+                              <li
+                                className="list-group-item list-group-header"
+                              >
+                                <a
+                                  onClick={[Function]}
+                                  style={
+                                    Object {
+                                      "display": "block",
+                                    }
+                                  }
+                                >
+                                  <span
+                                    className="pull-right"
+                                  >
+                                    <span
+                                      className="icon-minus"
+                                    />
+                                  </span>
+                                  <strong>
+                                    js
+                                  </strong>
+                                </a>
+                              </li>
+                              <span
+                                style={
+                                  Object {
+                                    "display": "block",
+                                  }
+                                }
+                              >
+                                <Link
+                                  className="list-group-item"
+                                  key="node"
+                                  to="/onboarding/testOrg/project-slug/configure/node/"
+                                >
+                                  <a
+                                    className="list-group-item"
+                                    href="/onboarding/testOrg/project-slug/configure/node/"
+                                  >
+                                    node
+                                  </a>
+                                </Link>
+                              </span>
+                            </ul>
+                          </div>
+                        </LanguageNav>
                       </div>
                     </div>
-                  </div>
-                  <div
-                    className="install-sidebar col-md-2"
-                  >
-                    <LanguageNav
-                      active={true}
-                      key="javascript"
-                      name="js"
-                    >
-                      <div
-                        className="install-language-nav"
-                      >
-                        <ul
-                          className="list-group"
-                        >
-                          <li
-                            className="list-group-item list-group-header"
-                          >
-                            <a
-                              onClick={[Function]}
-                              style={
-                                Object {
-                                  "display": "block",
-                                }
-                              }
-                            >
-                              <span
-                                className="pull-right"
-                              >
-                                <span
-                                  className="icon-minus"
-                                />
-                              </span>
-                              <strong>
-                                js
-                              </strong>
-                            </a>
-                          </li>
-                          <span
-                            style={
-                              Object {
-                                "display": "block",
-                              }
-                            }
-                          >
-                            <Link
-                              className="list-group-item"
-                              key="node"
-                              to="/onboarding/testOrg/project-slug/configure/node/"
-                            >
-                              <a
-                                className="list-group-item"
-                                href="/onboarding/testOrg/project-slug/configure/node/"
-                              >
-                                node
-                              </a>
-                            </Link>
-                          </span>
-                        </ul>
-                      </div>
-                    </LanguageNav>
-                  </div>
-                </div>
-              </ProjectInstallPlatform>
-            </ProjectDocsContext>
-          </DocumentTitle>
-        </SideEffect(DocumentTitle)>
-      </ProjectContext>
+                  </ProjectInstallPlatform>
+                </ProjectDocsContext>
+              </DocumentTitle>
+            </SideEffect(DocumentTitle)>
+          </ProjectContext>
+        </withRouter(ProjectContext)>
+      </withProjects>
       <Waiting
         hasEvent={false}
         skip={[Function]}
@@ -319,7 +479,7 @@ exports[`Configure should render correctly render() shouldn't redirect for a fou
     >
       Configure your application
     </h2>
-    <ProjectContext
+    <withProjects
       orgId="testOrg"
       projectId="project-slug"
       style={
@@ -345,7 +505,7 @@ exports[`Configure should render correctly render() shouldn't redirect for a fou
           }
         />
       </ProjectDocsContext>
-    </ProjectContext>
+    </withProjects>
     <Waiting
       hasEvent={false}
       skip={[Function]}

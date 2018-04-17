@@ -2,8 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {shallow, mount} from 'enzyme';
 import _ from 'lodash';
-import InviteMember from 'app/views/inviteMember/inviteMember';
-import {Client} from 'app/api';
+import {InviteMember} from 'app/views/inviteMember/inviteMember';
 import ConfigStore from 'app/stores/configStore';
 
 jest.mock('app/api');
@@ -15,7 +14,7 @@ describe('CreateProject', function() {
   beforeEach(function() {
     sandbox = sinon.sandbox.create();
     sandbox.stub(ConfigStore, 'getConfig').returns({id: 1, invitesEnabled: true});
-    Client.clearMockResponses();
+    MockApiClient.clearMockResponses();
   });
 
   afterEach(function() {
@@ -27,6 +26,7 @@ describe('CreateProject', function() {
       params: {
         orgId: 'testOrg',
       },
+      location: {query: {}},
     };
 
     const baseContext = {
@@ -55,7 +55,7 @@ describe('CreateProject', function() {
     });
 
     it('should render no team select when there is only one option', function() {
-      Client.addMockResponse({
+      MockApiClient.addMockResponse({
         url: '/organizations/testOrg/members/me/',
         body: {
           roles: [
@@ -94,7 +94,7 @@ describe('CreateProject', function() {
     });
 
     it('should redirect when no roles available', function() {
-      Client.addMockResponse({
+      MockApiClient.addMockResponse({
         url: '/organizations/testOrg/members/me/',
         body: {
           roles: [
@@ -108,20 +108,41 @@ describe('CreateProject', function() {
         },
       });
 
-      let handleSubmitStub = sandbox.stub(InviteMember.prototype, 'redirectToMemberPage');
-      // 👺 ⚠️ this is a hack to defeat the method auto binding so we can fully stub the method. It would not be neccessary with es6 class components and it relies on react internals so it's fragile - maxbittker
-      const index =
-        InviteMember.prototype.__reactAutoBindPairs.indexOf('redirectToMemberPage') + 1;
-      InviteMember.prototype.__reactAutoBindPairs[index] = handleSubmitStub;
+      let pushMock = jest.fn();
+      let wrapper = mount(
+        <InviteMember
+          router={{
+            push: pushMock,
+            location: {
+              pathname: '/settings/testOrg/members/new/',
+            },
+          }}
+          {...baseProps}
+        />,
+        baseContext
+      );
 
-      let wrapper = mount(<InviteMember {...baseProps} />, baseContext);
-
-      expect(handleSubmitStub.callCount).toEqual(1);
+      expect(pushMock).toHaveBeenCalledWith('/settings/testOrg/members/');
       expect(wrapper.state('loading')).toBe(false);
+
+      wrapper = mount(
+        <InviteMember
+          router={{
+            push: pushMock,
+            location: {
+              pathname: '/organizations/testOrg/members/new/',
+            },
+          }}
+          {...baseProps}
+        />,
+        baseContext
+      );
+
+      expect(pushMock).toHaveBeenCalledWith('/organizations/testOrg/members/');
     });
 
     it('should render roles when available and allowed, and handle submitting', function() {
-      Client.addMockResponse({
+      MockApiClient.addMockResponse({
         url: '/organizations/testOrg/members/me/',
         body: {
           roles: [
@@ -138,7 +159,7 @@ describe('CreateProject', function() {
         body: {},
       };
 
-      let mock = Client.addMockResponse(inviteRequest);
+      let mock = MockApiClient.addMockResponse(inviteRequest);
 
       let wrapper = mount(<InviteMember {...baseProps} />, baseContext);
 

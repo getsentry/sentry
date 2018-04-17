@@ -1,11 +1,11 @@
-import {browserHistory} from 'react-router';
-import React from 'react';
-import createReactClass from 'create-react-class';
-import classNames from 'classnames';
+import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
+import React from 'react';
+import classNames from 'classnames';
+import createReactClass from 'create-react-class';
 
-import {t} from '../../locale';
-import AlertActions from '../../actions/alertActions';
+import {addErrorMessage, addSuccessMessage} from '../../actionCreators/indicator';
+import {t, tct} from '../../locale';
 import ApiMixin from '../../mixins/apiMixin';
 import Button from '../../components/buttons/button';
 import ConfigStore from '../../stores/configStore';
@@ -16,7 +16,7 @@ import SettingsPageHeader from '../settings/components/settingsPageHeader';
 import TeamSelect from './teamSelect';
 import TextBlock from '../settings/components/text/textBlock';
 import TextField from '../../components/forms/textField';
-import recreateRoute from '../../utils/recreateRoute';
+import replaceRouterParams from '../../utils/replaceRouterParams';
 
 // These don't have allowed and are only used for superusers. superceded by server result of allowed roles
 const STATIC_ROLE_LIST = [
@@ -49,7 +49,7 @@ const STATIC_ROLE_LIST = [
 const InviteMember = createReactClass({
   displayName: 'InviteMember',
   propTypes: {
-    routes: PropTypes.array,
+    router: PropTypes.object,
   },
   mixins: [ApiMixin, OrganizationState],
 
@@ -114,12 +114,13 @@ const InviteMember = createReactClass({
 
   redirectToMemberPage() {
     // Get path to parent route (`/organizations/${slug}/members/`)
-    let pathToParentRoute = recreateRoute('', {
-      params: this.props.params,
-      routes: this.props.routes,
-      stepBack: -1,
-    });
-    browserHistory.push(pathToParentRoute);
+    // `recreateRoute` fucks up because of getsentry hooks
+    let {params, router} = this.props;
+    let isNewSettings = /^\/settings\//.test(router.location.pathname);
+    let pathToParentRoute = isNewSettings
+      ? '/settings/:orgId/members/'
+      : '/organizations/:orgId/members/';
+    router.push(replaceRouterParams(pathToParentRoute, params));
   },
 
   splitEmails(text) {
@@ -141,27 +142,23 @@ const InviteMember = createReactClass({
           user: email,
           teams: Array.from(selectedTeams.keys()),
           role: selectedRole,
+          referrer: this.props.location.query.referrer,
         },
         success: () => {
-          // TODO(billy): Use indicator when these views only exist in Settings area
-          AlertActions.addAlert({
-            message: `Added ${email}`,
-            type: 'success',
-          });
+          addSuccessMessage(
+            tct('Added [email] to [organization]', {
+              email,
+              organization: slug,
+            })
+          );
           resolve();
         },
         error: err => {
           if (err.status === 403) {
-            AlertActions.addAlert({
-              message: t("You aren't allowed to invite members."),
-              type: 'error',
-            });
+            addErrorMessage(t("You aren't allowed to invite members."));
             reject(err.responseJSON);
           } else if (err.status === 409) {
-            AlertActions.addAlert({
-              message: `User already exists: ${email}`,
-              type: 'info',
-            });
+            addErrorMessage(`User already exists: ${email}`);
             resolve();
           } else {
             reject(err.responseJSON);
@@ -179,7 +176,7 @@ const InviteMember = createReactClass({
     Promise.all(emails.map(this.inviteUser))
       .then(() => this.redirectToMemberPage())
       .catch(error => {
-        if (!error.email && !error.role) {
+        if (error && !error.email && !error.role) {
           Raven.captureMessage('Unknown invite member api response', {
             extra: {error, state: this.state},
           });
@@ -261,4 +258,5 @@ const InviteMember = createReactClass({
   },
 });
 
-export default InviteMember;
+export {InviteMember};
+export default withRouter(InviteMember);

@@ -1,4 +1,4 @@
-import {Box, Flex} from 'grid-emotion';
+import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -8,10 +8,7 @@ import Avatar from '../../../../components/avatar';
 import DateTime from '../../../../components/dateTime';
 import EmptyMessage from '../../components/emptyMessage';
 import Pagination from '../../../../components/pagination';
-import Panel from '../../components/panel';
-import PanelBody from '../../components/panelBody';
-import PanelHeader from '../../components/panelHeader';
-import PanelItem from '../../components/panelItem';
+import {Panel, PanelBody, PanelHeader, PanelItem} from '../../../../components/panels';
 import SelectInput from '../../../../components/selectInput';
 import SettingsPageHeader from '../../components/settingsPageHeader';
 
@@ -79,16 +76,14 @@ class AuditLogList extends React.Component {
 
         <Panel>
           <PanelHeader disablePadding>
-            <Flex align="center">
-              <Box flex="1" pl={2}>
-                {t('Member')}
-              </Box>
-              <Box w={150}>{t('Action')}</Box>
-              <Box w={130}>{t('IP')}</Box>
-              <Box w={150} px={1}>
-                {t('Time')}
-              </Box>
-            </Flex>
+            <Box flex="1" pl={2}>
+              {t('Member')}
+            </Box>
+            <Box w={150}>{t('Action')}</Box>
+            <Box w={130}>{t('IP')}</Box>
+            <Box w={150} px={1}>
+              {t('Time')}
+            </Box>
           </PanelHeader>
 
           <PanelBody>

@@ -15,6 +15,7 @@ const theme = {
   green: '#57be8c',
   greenLight: '#71D8A6',
   greenDark: '#3EA573',
+  greenTransparent: 'rgba(87, 190, 140, 0.5)',
 
   yellow: '#ecc844',
   yellowLightest: '#FFFDF7',
@@ -44,6 +45,7 @@ const theme = {
   purpleDark: '#5346AE',
   purpleDarkest: '#392C94',
 
+  borderLighter: '#f9f6fd',
   borderLight: '#E2DBE8',
   borderDark: '#D1CAD8',
   borderRadius: '4px',
@@ -84,6 +86,9 @@ const theme = {
   },
 
   grid: 8,
+  fontSizeSmall: '12px',
+  fontSizeMedium: '16px',
+  fontSizeLarge: '18px',
 
   settings: {
     containerWidth: '1140px',
@@ -96,11 +101,6 @@ const theme = {
     familyMono: 'Monaco, Consolas, "Courier New", monospace',
     lineHeightHeading: '1.15',
     lineHeightBody: '1.4',
-    size: {
-      default: '12px',
-      small: '14px',
-      large: '18px',
-    },
   },
 };
 

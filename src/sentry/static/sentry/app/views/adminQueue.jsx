@@ -1,51 +1,24 @@
 /*eslint getsentry/jsx-needs-il8n:0*/
 import React from 'react';
 
-import createReactClass from 'create-react-class';
-
-import ApiMixin from '../mixins/apiMixin';
-import LoadingError from '../components/loadingError';
-import LoadingIndicator from '../components/loadingIndicator';
+import AsyncView from './asyncView';
 import InternalStatChart from '../components/internalStatChart';
 import {Select2Field} from '../components/forms';
 
-export default createReactClass({
-  displayName: 'adminQueue',
-  mixins: [ApiMixin],
-
-  getInitialState() {
+export default class AdminQueue extends AsyncView {
+  getDefaultState() {
     return {
+      ...super.getDefaultState(),
       timeWindow: '1w',
       since: new Date().getTime() / 1000 - 3600 * 24 * 7,
       resolution: '1h',
-      loading: true,
-      error: false,
       taskName: null,
-      taskList: [],
     };
-  },
+  }
 
-  componentDidMount() {
-    this.fetchData();
-  },
-
-  fetchData() {
-    this.api.request('/internal/queue/tasks/', {
-      method: 'GET',
-      success: data => {
-        this.setState({
-          taskList: data,
-          loading: false,
-          error: false,
-        });
-      },
-      error: data => {
-        this.setState({
-          error: true,
-        });
-      },
-    });
-  },
+  getEndpoints() {
+    return [['taskList', '/internal/queue/tasks/']];
+  }
 
   changeWindow(timeWindow) {
     let seconds;
@@ -62,13 +35,13 @@ export default createReactClass({
       since: new Date().getTime() / 1000 - seconds,
       timeWindow,
     });
-  },
+  }
 
   changeTask(value) {
     this.setState({activeTask: value});
-  },
+  }
 
-  render() {
+  renderBody() {
     let {activeTask, taskList} = this.state;
 
     return (
@@ -105,53 +78,47 @@ export default createReactClass({
 
         <h3 className="no-border">Task Details</h3>
 
-        {this.state.loading ? (
-          <LoadingIndicator />
-        ) : this.state.error ? (
-          <LoadingError onRetry={this.fetchData} />
-        ) : (
+        <div>
           <div>
-            <div>
-              <label>Show details for task:</label>
-              <Select2Field
-                name="task"
-                onChange={this.changeTask}
-                value={activeTask}
-                allowClear={true}
-                choices={[''].concat(...taskList).map(t => [t, t])}
-              />
-            </div>
-            {activeTask ? (
-              <div>
-                <div className="box box-mini" key="jobs.started">
-                  <div className="box-header">
-                    Jobs Started <small>{activeTask}</small>
-                  </div>
-                  <InternalStatChart
-                    since={this.state.since}
-                    resolution={this.state.resolution}
-                    stat={`jobs.started.${this.state.activeTask}`}
-                    label="jobs"
-                    height={100}
-                  />
-                </div>
-                <div className="box box-mini" key="jobs.finished">
-                  <div className="box-header">
-                    Jobs Finished <small>{activeTask}</small>
-                  </div>
-                  <InternalStatChart
-                    since={this.state.since}
-                    resolution={this.state.resolution}
-                    stat={`jobs.finished.${this.state.activeTask}`}
-                    label="jobs"
-                    height={100}
-                  />
-                </div>
-              </div>
-            ) : null}
+            <label>Show details for task:</label>
+            <Select2Field
+              name="task"
+              onChange={this.changeTask}
+              value={activeTask}
+              allowClear={true}
+              choices={[''].concat(...taskList).map(t => [t, t])}
+            />
           </div>
-        )}
+          {activeTask ? (
+            <div>
+              <div className="box box-mini" key="jobs.started">
+                <div className="box-header">
+                  Jobs Started <small>{activeTask}</small>
+                </div>
+                <InternalStatChart
+                  since={this.state.since}
+                  resolution={this.state.resolution}
+                  stat={`jobs.started.${this.state.activeTask}`}
+                  label="jobs"
+                  height={100}
+                />
+              </div>
+              <div className="box box-mini" key="jobs.finished">
+                <div className="box-header">
+                  Jobs Finished <small>{activeTask}</small>
+                </div>
+                <InternalStatChart
+                  since={this.state.since}
+                  resolution={this.state.resolution}
+                  stat={`jobs.finished.${this.state.activeTask}`}
+                  label="jobs"
+                  height={100}
+                />
+              </div>
+            </div>
+          ) : null}
+        </div>
       </div>
     );
-  },
-});
+  }
+}

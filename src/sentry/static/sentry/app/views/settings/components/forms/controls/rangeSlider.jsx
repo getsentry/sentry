@@ -15,7 +15,14 @@ class RangeSlider extends React.Component {
      * max allowed value, not needed if using `allowedValues`
      */
     max: PropTypes.number,
-    value: PropTypes.number,
+    /**
+     * String is a valid type here only for empty string
+     * Otherwise react complains:
+     * "`value` prop on `input` should not be null. Consider using an empty string to clear the component or `undefined` for uncontrolled components."
+     *
+     * And we want this to be a controlled input when value is empty
+     */
+    value: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
     step: PropTypes.number,
     onChange: PropTypes.func,
 
@@ -97,6 +104,13 @@ class RangeSlider extends React.Component {
     }
   };
 
+  handleBlur = e => {
+    let {onBlur} = this.props;
+    if (typeof onBlur !== 'function') return;
+
+    onBlur(e);
+  };
+
   render() {
     let {name, min, max, step, allowedValues, formatLabel} = this.props;
     let {sliderValue} = this.state;
@@ -126,8 +140,8 @@ class RangeSlider extends React.Component {
           step={step}
           onInput={this.handleInput}
           onChange={() => {}}
-          onMouseUp={e => this.props.onBlur(e)}
-          onKeyUp={e => this.props.onBlur(e)}
+          onMouseUp={this.handleBlur}
+          onKeyUp={this.handleBlur}
           value={sliderValue}
         />
       </div>

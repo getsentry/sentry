@@ -10,11 +10,7 @@ exports[`SuggestedOwners render() should not show owners committers without feat
       "message": "ApiException",
     }
   }
->
-  <div
-    className="m-b-1"
-  />
-</SuggestedOwners>
+/>
 `;
 
 exports[`SuggestedOwners render() should show owners when enable 1`] = `
@@ -33,7 +29,7 @@ exports[`SuggestedOwners render() should show owners when enable 1`] = `
   >
     <h6>
       <span>
-        Owners
+        Suggested Assignees
       </span>
       <small
         style={
@@ -49,50 +45,93 @@ exports[`SuggestedOwners render() should show owners when enable 1`] = `
       className="avatar-grid"
     >
       <span
-        className="avatar-grid-item tip"
+        className="avatar-grid-item"
         key="1:user"
         onClick={[Function]}
-        title="<div><div class=\\"tooltip-owners-name\\">Jane Doe</div><ul class=\\"tooltip-owners-commits\\">Assigned based on your Project&#x27;s Issue Ownership settings</ul><ul class=\\"tooltip-owners-commits\\">path matched: sentry/tagstore/*</ul></div>"
+        style={
+          Object {
+            "cursor": "pointer",
+          }
+        }
       >
-        <ActorAvatar
-          actor={
+        <Tooltip
+          title="<div><div class=\\"tooltip-owners-name\\">Jane Doe</div><ul class=\\"tooltip-owners-commits\\">Assigned based on your Project&#x27;s Issue Ownership settings</ul><ul class=\\"tooltip-owners-commits\\">path matched: sentry/tagstore/*</ul></div>"
+          tooltipOptions={
             Object {
-              "id": "1",
-              "name": "Jane Doe",
-              "type": "user",
+              "container": "body",
+              "html": true,
+              "template": "<div class=\\"tooltip\\" role=\\"tooltip\\"><div class=\\"tooltip-arrow\\"></div><div class=\\"tooltip-inner tooltip-owners\\"></div></div>",
             }
           }
-          hasTooltip={false}
         >
-          <Avatar
-            className="avatar"
-            gravatar={true}
-            hasTooltip={false}
-            size={64}
-            user={
+          <ActorAvatar
+            actor={
               Object {
-                "email": "janedoe@example.com",
                 "id": "1",
                 "name": "Jane Doe",
+                "type": "user",
               }
             }
+            className="tip"
+            hasTooltip={false}
+            title="<div><div class=\\"tooltip-owners-name\\">Jane Doe</div><ul class=\\"tooltip-owners-commits\\">Assigned based on your Project&#x27;s Issue Ownership settings</ul><ul class=\\"tooltip-owners-commits\\">path matched: sentry/tagstore/*</ul></div>"
           >
-            <Tooltip
-              disabled={true}
-              title="Jane Doe (janedoe@example.com)"
+            <Avatar
+              className="tip"
+              hasTooltip={false}
+              title="<div><div class=\\"tooltip-owners-name\\">Jane Doe</div><ul class=\\"tooltip-owners-commits\\">Assigned based on your Project&#x27;s Issue Ownership settings</ul><ul class=\\"tooltip-owners-commits\\">path matched: sentry/tagstore/*</ul></div>"
+              user={
+                Object {
+                  "email": "janedoe@example.com",
+                  "id": "1",
+                  "name": "Jane Doe",
+                }
+              }
             >
-              <span
-                className="avatar"
+              <UserAvatar
+                className="tip"
+                gravatar={true}
+                hasTooltip={false}
+                title="<div><div class=\\"tooltip-owners-name\\">Jane Doe</div><ul class=\\"tooltip-owners-commits\\">Assigned based on your Project&#x27;s Issue Ownership settings</ul><ul class=\\"tooltip-owners-commits\\">path matched: sentry/tagstore/*</ul></div>"
+                user={
+                  Object {
+                    "email": "janedoe@example.com",
+                    "id": "1",
+                    "name": "Jane Doe",
+                  }
+                }
               >
-                <img
-                  onError={[Function]}
-                  onLoad={[Function]}
-                  src="undefined/avatar/e1f3994f2632af3d1c8c2dcc168a10e6?s=64&d=blank"
-                />
-              </span>
-            </Tooltip>
-          </Avatar>
-        </ActorAvatar>
+                <BaseAvatar
+                  className="tip"
+                  gravatar={true}
+                  gravatarId="janedoe@example.com"
+                  hasTooltip={false}
+                  letterId="janedoe@example.com"
+                  style={Object {}}
+                  title="Jane Doe"
+                  tooltip="Jane Doe (janedoe@example.com)"
+                  type="gravatar"
+                >
+                  <Tooltip
+                    disabled={true}
+                    title="Jane Doe (janedoe@example.com)"
+                  >
+                    <span
+                      className="avatar tip"
+                      style={Object {}}
+                    >
+                      <img
+                        onError={[Function]}
+                        onLoad={[Function]}
+                        src="undefined/avatar/e1f3994f2632af3d1c8c2dcc168a10e6?d=blank&s=64"
+                      />
+                    </span>
+                  </Tooltip>
+                </BaseAvatar>
+              </UserAvatar>
+            </Avatar>
+          </ActorAvatar>
+        </Tooltip>
       </span>
     </div>
   </div>

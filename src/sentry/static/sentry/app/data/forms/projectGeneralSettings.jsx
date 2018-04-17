@@ -1,9 +1,10 @@
+import React from 'react';
 import {extractMultilineFields} from '../../utils';
-import {t, tn} from '../../locale';
+import {t, tct, tn} from '../../locale';
 import getDynamicText from '../../utils/getDynamicText';
 
 // Export route to make these forms searchable by label/help
-export const route = '/settings/organization/:orgId/project/:projectId/settings/';
+export const route = '/settings/:orgId/:projectId/';
 
 const getResolveAgeAllowedValues = () => {
   let i = 0;
@@ -40,18 +41,27 @@ export const fields = {
     type: 'string',
     required: true,
 
-    // additional data/props that is related to rendering of form field rather than data
-    label: t('Project Name'),
+    label: t('Legacy Name'),
     placeholder: t('My Service Name'),
-    help: t('The name of your project'),
+    help: tct(
+      '[Deprecated] In the future, only [Name] will be used to identify your project',
+      {
+        Deprecated: <strong>DEPRECATED</strong>,
+        Name: <strong>Name</strong>,
+      }
+    ),
   },
   slug: {
     name: 'slug',
     type: 'string',
     required: true,
-    label: t('Short Name'),
+    label: t('Name'),
     placeholder: t('my-service-name'),
     help: t('A unique ID used to identify this project'),
+
+    saveOnBlur: false,
+    saveMessageAlertType: 'info',
+    saveMessage: t('You will be redirected to the new project slug after saving'),
   },
   team: {
     name: 'team',
@@ -59,7 +69,7 @@ export const fields = {
     label: t('Team'),
     visible: ({organization}) => {
       let features = new Set(organization.features);
-      return !features.has('internal-catchall') && organization.teams.length > 1;
+      return !features.has('new-teams') && organization.teams.length > 1;
     },
     choices: ({organization}) =>
       organization.teams.filter(o => o.isMember).map(o => [o.slug, o.slug]),
@@ -73,13 +83,6 @@ export const fields = {
     help: t('Choose a custom prefix for emails from this project'),
   },
 
-  defaultEnvironment: {
-    name: 'defaultEnvironment',
-    type: 'string',
-    label: t('Default Environment'),
-    placeholder: t('production'),
-    help: t('The default selected environment when viewing issues'),
-  },
   resolveAge: {
     name: 'resolveAge',
     type: 'range',
@@ -99,6 +102,15 @@ export const fields = {
       }
       return tn('%d hour', '%d hours', val);
     },
+    saveOnBlur: false,
+    saveMessage: tct(
+      '[Caution]: Enabling auto resolve will immediately resolve anything that has ' +
+        'not been seen within this period of time. There is no undo!',
+      {
+        Caution: <strong>Caution</strong>,
+      }
+    ),
+    saveMessageAlertType: 'warning',
   },
 
   dataScrubber: {
@@ -192,13 +204,13 @@ export const fields = {
     placeholder: t('X-Sentry-Token'),
     label: t('Security Token Header'),
     help: t(
-      'Outbound requests matching Allowed Domains will have the header "{token_header}: {token}" appended.'
+      'Outbound requests matching Allowed Domains will have the header "{token_header}: {token}" appended'
     ),
   },
   verifySSL: {
     name: 'verifySSL',
     type: 'boolean',
     label: t('Verify TLS/SSL'),
-    help: t('Outbound requests will verify TLS (sometimes known as SSL) connections.'),
+    help: t('Outbound requests will verify TLS (sometimes known as SSL) connections'),
   },
 };

@@ -1,82 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`ProjectEnvironments render active renders empty message 1`] = `
-.glamor-4 {
-  font-size: 14px;
-  box-shadow: inset 0 -1px 0;
-  margin: -20px 0 30px;
-}
-
-.glamor-2 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
-.glamor-0 {
-  font-size: 20px;
-  font-weight: bold;
-  margin: 20px 0;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-}
-
-.glamor-19 {
-  background: #fff;
-  border: 1px solid;
-  margin-bottom: NaNpx;
-  position: relative;
-}
-
-.glamor-13 {
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  text-transform: uppercase;
-  font-size: 13px;
-  line-height: 1;
-  padding: 15px 20px;
-}
-
-.glamor-9 {
-  font-size: inherit;
-  text-transform: inherit;
-  margin: 0;
-}
-
-.glamor-7 {
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  margin-bottom: 20px;
-  font-size: inherit;
-  text-transform: inherit;
-  margin: 0;
-}
-
-.glamor-17 {
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  -webkit-flex-direction: column;
-  -ms-flex-direction: column;
-  flex-direction: column;
-  padding: NaNpx;
-  font-size: 1.5em;
-  font-weight: bold;
-}
-
 <ProjectEnvironments
   params={
     Object {
@@ -152,22 +76,22 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
         }
       >
         <div
-          className="glamor-4 glamor-5"
+          className="css-t5gfr9-Wrapper css-17jmgia0"
         >
           <Flex
             align="center"
           >
             <Base
               align="center"
-              className="glamor-2"
+              className="css-5ipae5"
             >
               <div
-                className="glamor-2"
+                className="css-5ipae5"
                 is={null}
               >
                 <Title>
                   <div
-                    className="glamor-0 glamor-1"
+                    className="css-zmdcxu-Title css-17jmgia1"
                   >
                     Manage Environments
                   </div>
@@ -236,147 +160,67 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
       </Wrapper>
     </SettingsPageHeading>
     <Panel>
-      <div
-        className="glamor-19 glamor-20"
-      >
-        <PanelHeader>
-          <StyledPanelHeader>
-            <Component
-              className="glamor-13 glamor-14"
-            >
-              <div
-                className="glamor-13 glamor-14"
-              >
-                <StyledPanelHeading>
-                  <Component
-                    className="glamor-9 glamor-6"
-                  >
-                    <PanelHeading
-                      className="glamor-9 glamor-6"
-                    >
-                      <div
-                        className="glamor-6 glamor-7 glamor-8"
-                      >
-                        Active Environments
-                      </div>
-                    </PanelHeading>
-                  </Component>
-                </StyledPanelHeading>
-              </div>
-            </Component>
-          </StyledPanelHeader>
-        </PanelHeader>
-        <PanelBody
-          direction="column"
-          disablePadding={true}
-          flex={false}
+      <StyledPanel>
+        <div
+          className="css-17bqt4b-StyledPanel css-5bw71w0"
         >
-          <div
-            className=""
-          >
-            <EmptyMessage>
-              <Wrapper>
-                <div
-                  className="glamor-17 glamor-18"
+          <PanelHeader>
+            <StyledPanelHeader>
+              <Component
+                className="css-19pgfgl-StyledPanelHeader css-1t1cqk30"
+              >
+                <Flex
+                  align="center"
+                  className="css-19pgfgl-StyledPanelHeader css-1t1cqk30"
+                  justify="space-between"
                 >
-                  <div
-                    className="ref-message"
+                  <Base
+                    align="center"
+                    className="css-1t1cqk30 css-14dugjz"
+                    justify="space-between"
                   >
-                    You don't have any environments yet.
+                    <div
+                      className="css-1t1cqk30 css-14dugjz"
+                      is={null}
+                    >
+                      Active Environments
+                    </div>
+                  </Base>
+                </Flex>
+              </Component>
+            </StyledPanelHeader>
+          </PanelHeader>
+          <PanelBody
+            direction="column"
+            disablePadding={true}
+            flex={false}
+          >
+            <div
+              className=""
+            >
+              <EmptyMessage>
+                <Wrapper>
+                  <div
+                    className="css-bq6a85-Wrapper css-toum0v0"
+                  >
+                    <div
+                      className="ref-message"
+                    >
+                      You don't have any environments yet.
+                    </div>
                   </div>
-                </div>
-              </Wrapper>
-            </EmptyMessage>
-          </div>
-        </PanelBody>
-      </div>
+                </Wrapper>
+              </EmptyMessage>
+            </div>
+          </PanelBody>
+        </div>
+      </StyledPanel>
     </Panel>
   </div>
 </ProjectEnvironments>
 `;
 
-exports[`ProjectEnvironments render active renders environment list 1`] = `
-.glamor-4 {
-  font-size: 14px;
-  box-shadow: inset 0 -1px 0;
-  margin: -20px 0 30px;
-}
-
-.glamor-2 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
-.glamor-0 {
-  font-size: 20px;
-  font-weight: bold;
-  margin: 20px 0;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-}
-
-.glamor-29 {
-  background: #fff;
-  border: 1px solid;
-  margin-bottom: NaNpx;
-  position: relative;
-}
-
-.glamor-13 {
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  text-transform: uppercase;
-  font-size: 13px;
-  line-height: 1;
-  padding: 15px 20px;
-}
-
-.glamor-9 {
-  font-size: inherit;
-  text-transform: inherit;
-  margin: 0;
-}
-
-.glamor-7 {
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  margin-bottom: 20px;
-  font-size: inherit;
-  text-transform: inherit;
-  margin: 0;
-}
-
-.glamor-19 {
-  box-sizing: border-box;
-  padding: 16px;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  -webkit-box-pack: justify;
-  -webkit-justify-content: space-between;
-  -ms-flex-pack: justify;
-  justify-content: space-between;
-  border-bottom: 1px solid;
-}
-
-.glamor-19:last-child {
-  border: 0;
-}
-
+exports[`ProjectEnvironments render active renders environment list and sets staging as default env 1`] = `
 <ProjectEnvironments
   params={
     Object {
@@ -452,22 +296,22 @@ exports[`ProjectEnvironments render active renders environment list 1`] = `
         }
       >
         <div
-          className="glamor-4 glamor-5"
+          className="css-t5gfr9-Wrapper css-17jmgia0"
         >
           <Flex
             align="center"
           >
             <Base
               align="center"
-              className="glamor-2"
+              className="css-5ipae5"
             >
               <div
-                className="glamor-2"
+                className="css-5ipae5"
                 is={null}
               >
                 <Title>
                   <div
-                    className="glamor-0 glamor-1"
+                    className="css-zmdcxu-Title css-17jmgia1"
                   >
                     Manage Environments
                   </div>
@@ -536,251 +380,394 @@ exports[`ProjectEnvironments render active renders environment list 1`] = `
       </Wrapper>
     </SettingsPageHeading>
     <Panel>
-      <div
-        className="glamor-29 glamor-30"
-      >
-        <PanelHeader>
-          <StyledPanelHeader>
-            <Component
-              className="glamor-13 glamor-14"
-            >
-              <div
-                className="glamor-13 glamor-14"
+      <StyledPanel>
+        <div
+          className="css-17bqt4b-StyledPanel css-5bw71w0"
+        >
+          <PanelHeader>
+            <StyledPanelHeader>
+              <Component
+                className="css-19pgfgl-StyledPanelHeader css-1t1cqk30"
               >
-                <StyledPanelHeading>
-                  <Component
-                    className="glamor-9 glamor-6"
+                <Flex
+                  align="center"
+                  className="css-19pgfgl-StyledPanelHeader css-1t1cqk30"
+                  justify="space-between"
+                >
+                  <Base
+                    align="center"
+                    className="css-1t1cqk30 css-14dugjz"
+                    justify="space-between"
                   >
-                    <PanelHeading
-                      className="glamor-9 glamor-6"
+                    <div
+                      className="css-1t1cqk30 css-14dugjz"
+                      is={null}
+                    >
+                      Active Environments
+                    </div>
+                  </Base>
+                </Flex>
+              </Component>
+            </StyledPanelHeader>
+          </PanelHeader>
+          <PanelBody
+            direction="column"
+            disablePadding={true}
+            flex={false}
+          >
+            <div
+              className=""
+            >
+              <EnvironmentRow
+                environment={
+                  Object {
+                    "displayName": "All Environments",
+                    "id": "__all_environments__",
+                    "name": "__all_environments__",
+                  }
+                }
+                hideName={true}
+                isDefault={false}
+                name="__all_environments__"
+                onSetAsDefault={[Function]}
+                shouldShowSetDefault={true}
+              >
+                <PanelItem
+                  align="center"
+                  justify="space-between"
+                  p={2}
+                >
+                  <StyledPanelItem
+                    align="center"
+                    justify="space-between"
+                    p={2}
+                  >
+                    <Base
+                      align="center"
+                      className="css-qcergp-StyledPanelItem css-q9h14u0"
+                      justify="space-between"
+                      p={2}
                     >
                       <div
-                        className="glamor-6 glamor-7 glamor-8"
+                        className="css-qcergp-StyledPanelItem css-q9h14u0"
+                        is={null}
                       >
-                        Active Environments
+                        <Flex
+                          align="center"
+                        >
+                          <Base
+                            align="center"
+                            className="css-5ipae5"
+                          >
+                            <div
+                              className="css-5ipae5"
+                              is={null}
+                            >
+                              All Environments
+                               
+                            </div>
+                          </Base>
+                        </Flex>
+                        <div>
+                          <EnvironmentButton
+                            onClick={[Function]}
+                            size="xsmall"
+                          >
+                            <Button
+                              className="css-10adnmx-EnvironmentButton css-d1dasp0"
+                              disabled={false}
+                              onClick={[Function]}
+                              size="xsmall"
+                            >
+                              <button
+                                className="css-10adnmx-EnvironmentButton css-d1dasp0 button button-default button-xs"
+                                disabled={false}
+                                onClick={[Function]}
+                                role="button"
+                              >
+                                <Flex
+                                  align="center"
+                                  className="button-label"
+                                >
+                                  <Base
+                                    align="center"
+                                    className="button-label css-5ipae5"
+                                  >
+                                    <div
+                                      className="button-label css-5ipae5"
+                                      is={null}
+                                    >
+                                      Set as default
+                                    </div>
+                                  </Base>
+                                </Flex>
+                              </button>
+                            </Button>
+                          </EnvironmentButton>
+                        </div>
                       </div>
-                    </PanelHeading>
-                  </Component>
-                </StyledPanelHeading>
-              </div>
-            </Component>
-          </StyledPanelHeader>
-        </PanelHeader>
-        <PanelBody
-          direction="column"
-          disablePadding={true}
-          flex={false}
-        >
-          <div
-            className=""
-          >
-            <PanelItem
-              align="center"
-              justify="space-between"
-              key="1"
-              p={2}
-            >
-              <StyledPanelItem
-                align="center"
-                justify="space-between"
-                p={2}
+                    </Base>
+                  </StyledPanelItem>
+                </PanelItem>
+              </EnvironmentRow>
+              <EnvironmentRow
+                actionText="Hide"
+                environment={
+                  Object {
+                    "displayName": "Production",
+                    "id": "1",
+                    "name": "production",
+                    "urlRoutingName": "production",
+                  }
+                }
+                isDefault={false}
+                isHidden={false}
+                key="1"
+                name="production"
+                onHide={[Function]}
+                onSetAsDefault={[Function]}
+                shouldShowAction={true}
+                shouldShowSetDefault={true}
               >
-                <Base
+                <PanelItem
                   align="center"
-                  className="glamor-19 glamor-20"
                   justify="space-between"
                   p={2}
                 >
-                  <div
-                    className="glamor-19 glamor-20"
-                    is={null}
+                  <StyledPanelItem
+                    align="center"
+                    justify="space-between"
+                    p={2}
                   >
-                    <span>
-                      Production
-                       
-                      <code>
-                        production
-                      </code>
-                    </span>
-                    <Button
-                      disabled={false}
-                      onClick={[Function]}
-                      size="xsmall"
+                    <Base
+                      align="center"
+                      className="css-qcergp-StyledPanelItem css-q9h14u0"
+                      justify="space-between"
+                      p={2}
                     >
-                      <button
-                        className="button button-default button-xs"
-                        disabled={false}
-                        onClick={[Function]}
-                        role="button"
+                      <div
+                        className="css-qcergp-StyledPanelItem css-q9h14u0"
+                        is={null}
                       >
                         <Flex
                           align="center"
-                          className="button-label"
                         >
                           <Base
                             align="center"
-                            className="button-label glamor-2"
+                            className="css-5ipae5"
                           >
                             <div
-                              className="button-label glamor-2"
+                              className="css-5ipae5"
                               is={null}
                             >
-                              Hide
+                              Production
+                               
+                              <code>
+                                production
+                              </code>
                             </div>
                           </Base>
                         </Flex>
-                      </button>
-                    </Button>
-                  </div>
-                </Base>
-              </StyledPanelItem>
-            </PanelItem>
-            <PanelItem
-              align="center"
-              justify="space-between"
-              key="2"
-              p={2}
-            >
-              <StyledPanelItem
-                align="center"
-                justify="space-between"
-                p={2}
+                        <div>
+                          <EnvironmentButton
+                            onClick={[Function]}
+                            size="xsmall"
+                          >
+                            <Button
+                              className="css-10adnmx-EnvironmentButton css-d1dasp0"
+                              disabled={false}
+                              onClick={[Function]}
+                              size="xsmall"
+                            >
+                              <button
+                                className="css-10adnmx-EnvironmentButton css-d1dasp0 button button-default button-xs"
+                                disabled={false}
+                                onClick={[Function]}
+                                role="button"
+                              >
+                                <Flex
+                                  align="center"
+                                  className="button-label"
+                                >
+                                  <Base
+                                    align="center"
+                                    className="button-label css-5ipae5"
+                                  >
+                                    <div
+                                      className="button-label css-5ipae5"
+                                      is={null}
+                                    >
+                                      Set as default
+                                    </div>
+                                  </Base>
+                                </Flex>
+                              </button>
+                            </Button>
+                          </EnvironmentButton>
+                          <EnvironmentButton
+                            onClick={[Function]}
+                            size="xsmall"
+                          >
+                            <Button
+                              className="css-10adnmx-EnvironmentButton css-d1dasp0"
+                              disabled={false}
+                              onClick={[Function]}
+                              size="xsmall"
+                            >
+                              <button
+                                className="css-10adnmx-EnvironmentButton css-d1dasp0 button button-default button-xs"
+                                disabled={false}
+                                onClick={[Function]}
+                                role="button"
+                              >
+                                <Flex
+                                  align="center"
+                                  className="button-label"
+                                >
+                                  <Base
+                                    align="center"
+                                    className="button-label css-5ipae5"
+                                  >
+                                    <div
+                                      className="button-label css-5ipae5"
+                                      is={null}
+                                    >
+                                      Hide
+                                    </div>
+                                  </Base>
+                                </Flex>
+                              </button>
+                            </Button>
+                          </EnvironmentButton>
+                        </div>
+                      </div>
+                    </Base>
+                  </StyledPanelItem>
+                </PanelItem>
+              </EnvironmentRow>
+              <EnvironmentRow
+                actionText="Hide"
+                environment={
+                  Object {
+                    "displayName": "Staging",
+                    "id": "2",
+                    "name": "staging",
+                    "urlRoutingName": "staging",
+                  }
+                }
+                isDefault={true}
+                isHidden={false}
+                key="2"
+                name="staging"
+                onHide={[Function]}
+                onSetAsDefault={[Function]}
+                shouldShowAction={true}
+                shouldShowSetDefault={false}
               >
-                <Base
+                <PanelItem
                   align="center"
-                  className="glamor-19 glamor-20"
                   justify="space-between"
                   p={2}
                 >
-                  <div
-                    className="glamor-19 glamor-20"
-                    is={null}
+                  <StyledPanelItem
+                    align="center"
+                    justify="space-between"
+                    p={2}
                   >
-                    <span>
-                      Staging
-                       
-                      <code>
-                        staging
-                      </code>
-                    </span>
-                    <Button
-                      disabled={false}
-                      onClick={[Function]}
-                      size="xsmall"
+                    <Base
+                      align="center"
+                      className="css-qcergp-StyledPanelItem css-q9h14u0"
+                      justify="space-between"
+                      p={2}
                     >
-                      <button
-                        className="button button-default button-xs"
-                        disabled={false}
-                        onClick={[Function]}
-                        role="button"
+                      <div
+                        className="css-qcergp-StyledPanelItem css-q9h14u0"
+                        is={null}
                       >
                         <Flex
                           align="center"
-                          className="button-label"
                         >
                           <Base
                             align="center"
-                            className="button-label glamor-2"
+                            className="css-5ipae5"
                           >
                             <div
-                              className="button-label glamor-2"
+                              className="css-5ipae5"
                               is={null}
                             >
-                              Hide
+                              Staging
+                               
+                              <code>
+                                staging
+                              </code>
+                              <Tag
+                                priority="success"
+                              >
+                                <TagTextStyled
+                                  priority="success"
+                                >
+                                  <span
+                                    className="css-giy4xh-TagTextStyled css-3x95g0"
+                                  >
+                                    Default
+                                  </span>
+                                </TagTextStyled>
+                              </Tag>
                             </div>
                           </Base>
                         </Flex>
-                      </button>
-                    </Button>
-                  </div>
-                </Base>
-              </StyledPanelItem>
-            </PanelItem>
-          </div>
-        </PanelBody>
-      </div>
+                        <div>
+                          <EnvironmentButton
+                            onClick={[Function]}
+                            size="xsmall"
+                          >
+                            <Button
+                              className="css-10adnmx-EnvironmentButton css-d1dasp0"
+                              disabled={false}
+                              onClick={[Function]}
+                              size="xsmall"
+                            >
+                              <button
+                                className="css-10adnmx-EnvironmentButton css-d1dasp0 button button-default button-xs"
+                                disabled={false}
+                                onClick={[Function]}
+                                role="button"
+                              >
+                                <Flex
+                                  align="center"
+                                  className="button-label"
+                                >
+                                  <Base
+                                    align="center"
+                                    className="button-label css-5ipae5"
+                                  >
+                                    <div
+                                      className="button-label css-5ipae5"
+                                      is={null}
+                                    >
+                                      Hide
+                                    </div>
+                                  </Base>
+                                </Flex>
+                              </button>
+                            </Button>
+                          </EnvironmentButton>
+                        </div>
+                      </div>
+                    </Base>
+                  </StyledPanelItem>
+                </PanelItem>
+              </EnvironmentRow>
+            </div>
+          </PanelBody>
+        </div>
+      </StyledPanel>
     </Panel>
   </div>
 </ProjectEnvironments>
 `;
 
 exports[`ProjectEnvironments render hidden renders empty message 1`] = `
-.glamor-4 {
-  font-size: 14px;
-  box-shadow: inset 0 -1px 0;
-  margin: -20px 0 30px;
-}
-
-.glamor-2 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
-.glamor-0 {
-  font-size: 20px;
-  font-weight: bold;
-  margin: 20px 0;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-}
-
-.glamor-19 {
-  background: #fff;
-  border: 1px solid;
-  margin-bottom: NaNpx;
-  position: relative;
-}
-
-.glamor-13 {
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  text-transform: uppercase;
-  font-size: 13px;
-  line-height: 1;
-  padding: 15px 20px;
-}
-
-.glamor-9 {
-  font-size: inherit;
-  text-transform: inherit;
-  margin: 0;
-}
-
-.glamor-7 {
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  margin-bottom: 20px;
-  font-size: inherit;
-  text-transform: inherit;
-  margin: 0;
-}
-
-.glamor-17 {
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  -webkit-flex-direction: column;
-  -ms-flex-direction: column;
-  flex-direction: column;
-  padding: NaNpx;
-  font-size: 1.5em;
-  font-weight: bold;
-}
-
 <ProjectEnvironments
   params={
     Object {
@@ -856,22 +843,22 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
         }
       >
         <div
-          className="glamor-4 glamor-5"
+          className="css-t5gfr9-Wrapper css-17jmgia0"
         >
           <Flex
             align="center"
           >
             <Base
               align="center"
-              className="glamor-2"
+              className="css-5ipae5"
             >
               <div
-                className="glamor-2"
+                className="css-5ipae5"
                 is={null}
               >
                 <Title>
                   <div
-                    className="glamor-0 glamor-1"
+                    className="css-zmdcxu-Title css-17jmgia1"
                   >
                     Manage Environments
                   </div>
@@ -940,147 +927,67 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
       </Wrapper>
     </SettingsPageHeading>
     <Panel>
-      <div
-        className="glamor-19 glamor-20"
-      >
-        <PanelHeader>
-          <StyledPanelHeader>
-            <Component
-              className="glamor-13 glamor-14"
-            >
-              <div
-                className="glamor-13 glamor-14"
-              >
-                <StyledPanelHeading>
-                  <Component
-                    className="glamor-9 glamor-6"
-                  >
-                    <PanelHeading
-                      className="glamor-9 glamor-6"
-                    >
-                      <div
-                        className="glamor-6 glamor-7 glamor-8"
-                      >
-                        Hidden
-                      </div>
-                    </PanelHeading>
-                  </Component>
-                </StyledPanelHeading>
-              </div>
-            </Component>
-          </StyledPanelHeader>
-        </PanelHeader>
-        <PanelBody
-          direction="column"
-          disablePadding={true}
-          flex={false}
+      <StyledPanel>
+        <div
+          className="css-17bqt4b-StyledPanel css-5bw71w0"
         >
-          <div
-            className=""
-          >
-            <EmptyMessage>
-              <Wrapper>
-                <div
-                  className="glamor-17 glamor-18"
+          <PanelHeader>
+            <StyledPanelHeader>
+              <Component
+                className="css-19pgfgl-StyledPanelHeader css-1t1cqk30"
+              >
+                <Flex
+                  align="center"
+                  className="css-19pgfgl-StyledPanelHeader css-1t1cqk30"
+                  justify="space-between"
                 >
-                  <div
-                    className="ref-message"
+                  <Base
+                    align="center"
+                    className="css-1t1cqk30 css-14dugjz"
+                    justify="space-between"
                   >
-                    You don't have any hidden environments.
+                    <div
+                      className="css-1t1cqk30 css-14dugjz"
+                      is={null}
+                    >
+                      Hidden
+                    </div>
+                  </Base>
+                </Flex>
+              </Component>
+            </StyledPanelHeader>
+          </PanelHeader>
+          <PanelBody
+            direction="column"
+            disablePadding={true}
+            flex={false}
+          >
+            <div
+              className=""
+            >
+              <EmptyMessage>
+                <Wrapper>
+                  <div
+                    className="css-bq6a85-Wrapper css-toum0v0"
+                  >
+                    <div
+                      className="ref-message"
+                    >
+                      You don't have any hidden environments.
+                    </div>
                   </div>
-                </div>
-              </Wrapper>
-            </EmptyMessage>
-          </div>
-        </PanelBody>
-      </div>
+                </Wrapper>
+              </EmptyMessage>
+            </div>
+          </PanelBody>
+        </div>
+      </StyledPanel>
     </Panel>
   </div>
 </ProjectEnvironments>
 `;
 
 exports[`ProjectEnvironments render hidden renders environment list 1`] = `
-.glamor-4 {
-  font-size: 14px;
-  box-shadow: inset 0 -1px 0;
-  margin: -20px 0 30px;
-}
-
-.glamor-2 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
-.glamor-0 {
-  font-size: 20px;
-  font-weight: bold;
-  margin: 20px 0;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-}
-
-.glamor-23 {
-  background: #fff;
-  border: 1px solid;
-  margin-bottom: NaNpx;
-  position: relative;
-}
-
-.glamor-13 {
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  text-transform: uppercase;
-  font-size: 13px;
-  line-height: 1;
-  padding: 15px 20px;
-}
-
-.glamor-9 {
-  font-size: inherit;
-  text-transform: inherit;
-  margin: 0;
-}
-
-.glamor-7 {
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  margin-bottom: 20px;
-  font-size: inherit;
-  text-transform: inherit;
-  margin: 0;
-}
-
-.glamor-19 {
-  box-sizing: border-box;
-  padding: 16px;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  -webkit-box-pack: justify;
-  -webkit-justify-content: space-between;
-  -ms-flex-pack: justify;
-  justify-content: space-between;
-  border-bottom: 1px solid;
-}
-
-.glamor-19:last-child {
-  border: 0;
-}
-
 <ProjectEnvironments
   params={
     Object {
@@ -1156,22 +1063,22 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
         }
       >
         <div
-          className="glamor-4 glamor-5"
+          className="css-t5gfr9-Wrapper css-17jmgia0"
         >
           <Flex
             align="center"
           >
             <Base
               align="center"
-              className="glamor-2"
+              className="css-5ipae5"
             >
               <div
-                className="glamor-2"
+                className="css-5ipae5"
                 is={null}
               >
                 <Title>
                   <div
-                    className="glamor-0 glamor-1"
+                    className="css-zmdcxu-Title css-17jmgia1"
                   >
                     Manage Environments
                   </div>
@@ -1240,108 +1147,148 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
       </Wrapper>
     </SettingsPageHeading>
     <Panel>
-      <div
-        className="glamor-23 glamor-24"
-      >
-        <PanelHeader>
-          <StyledPanelHeader>
-            <Component
-              className="glamor-13 glamor-14"
-            >
-              <div
-                className="glamor-13 glamor-14"
-              >
-                <StyledPanelHeading>
-                  <Component
-                    className="glamor-9 glamor-6"
-                  >
-                    <PanelHeading
-                      className="glamor-9 glamor-6"
-                    >
-                      <div
-                        className="glamor-6 glamor-7 glamor-8"
-                      >
-                        Hidden
-                      </div>
-                    </PanelHeading>
-                  </Component>
-                </StyledPanelHeading>
-              </div>
-            </Component>
-          </StyledPanelHeader>
-        </PanelHeader>
-        <PanelBody
-          direction="column"
-          disablePadding={true}
-          flex={false}
+      <StyledPanel>
+        <div
+          className="css-17bqt4b-StyledPanel css-5bw71w0"
         >
-          <div
-            className=""
-          >
-            <PanelItem
-              align="center"
-              justify="space-between"
-              key="1"
-              p={2}
-            >
-              <StyledPanelItem
-                align="center"
-                justify="space-between"
-                p={2}
+          <PanelHeader>
+            <StyledPanelHeader>
+              <Component
+                className="css-19pgfgl-StyledPanelHeader css-1t1cqk30"
               >
-                <Base
+                <Flex
                   align="center"
-                  className="glamor-19 glamor-20"
+                  className="css-19pgfgl-StyledPanelHeader css-1t1cqk30"
+                  justify="space-between"
+                >
+                  <Base
+                    align="center"
+                    className="css-1t1cqk30 css-14dugjz"
+                    justify="space-between"
+                  >
+                    <div
+                      className="css-1t1cqk30 css-14dugjz"
+                      is={null}
+                    >
+                      Hidden
+                    </div>
+                  </Base>
+                </Flex>
+              </Component>
+            </StyledPanelHeader>
+          </PanelHeader>
+          <PanelBody
+            direction="column"
+            disablePadding={true}
+            flex={false}
+          >
+            <div
+              className=""
+            >
+              <EnvironmentRow
+                actionText="Show"
+                environment={
+                  Object {
+                    "displayName": "Zzz",
+                    "id": "1",
+                    "name": "zzz",
+                    "urlRoutingName": "zzz",
+                  }
+                }
+                isDefault={false}
+                isHidden={true}
+                key="1"
+                name="zzz"
+                onHide={[Function]}
+                onSetAsDefault={[Function]}
+                shouldShowAction={true}
+                shouldShowSetDefault={false}
+              >
+                <PanelItem
+                  align="center"
                   justify="space-between"
                   p={2}
                 >
-                  <div
-                    className="glamor-19 glamor-20"
-                    is={null}
+                  <StyledPanelItem
+                    align="center"
+                    justify="space-between"
+                    p={2}
                   >
-                    <span>
-                      Zzz
-                       
-                      <code>
-                        zzz
-                      </code>
-                    </span>
-                    <Button
-                      disabled={false}
-                      onClick={[Function]}
-                      size="xsmall"
+                    <Base
+                      align="center"
+                      className="css-qcergp-StyledPanelItem css-q9h14u0"
+                      justify="space-between"
+                      p={2}
                     >
-                      <button
-                        className="button button-default button-xs"
-                        disabled={false}
-                        onClick={[Function]}
-                        role="button"
+                      <div
+                        className="css-qcergp-StyledPanelItem css-q9h14u0"
+                        is={null}
                       >
                         <Flex
                           align="center"
-                          className="button-label"
                         >
                           <Base
                             align="center"
-                            className="button-label glamor-2"
+                            className="css-5ipae5"
                           >
                             <div
-                              className="button-label glamor-2"
+                              className="css-5ipae5"
                               is={null}
                             >
-                              Show
+                              Zzz
+                               
+                              <code>
+                                zzz
+                              </code>
                             </div>
                           </Base>
                         </Flex>
-                      </button>
-                    </Button>
-                  </div>
-                </Base>
-              </StyledPanelItem>
-            </PanelItem>
-          </div>
-        </PanelBody>
-      </div>
+                        <div>
+                          <EnvironmentButton
+                            onClick={[Function]}
+                            size="xsmall"
+                          >
+                            <Button
+                              className="css-10adnmx-EnvironmentButton css-d1dasp0"
+                              disabled={false}
+                              onClick={[Function]}
+                              size="xsmall"
+                            >
+                              <button
+                                className="css-10adnmx-EnvironmentButton css-d1dasp0 button button-default button-xs"
+                                disabled={false}
+                                onClick={[Function]}
+                                role="button"
+                              >
+                                <Flex
+                                  align="center"
+                                  className="button-label"
+                                >
+                                  <Base
+                                    align="center"
+                                    className="button-label css-5ipae5"
+                                  >
+                                    <div
+                                      className="button-label css-5ipae5"
+                                      is={null}
+                                    >
+                                      Show
+                                    </div>
+                                  </Base>
+                                </Flex>
+                              </button>
+                            </Button>
+                          </EnvironmentButton>
+                        </div>
+                      </div>
+                    </Base>
+                  </StyledPanelItem>
+                </PanelItem>
+              </EnvironmentRow>
+            </div>
+          </PanelBody>
+        </div>
+      </StyledPanel>
     </Panel>
   </div>
 </ProjectEnvironments>

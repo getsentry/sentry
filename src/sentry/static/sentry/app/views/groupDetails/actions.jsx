@@ -19,6 +19,7 @@ import ShareIssue from '../../components/shareIssue';
 
 import ResolveActions from '../../components/actions/resolve';
 import IgnoreActions from '../../components/actions/ignore';
+import {openCreateOwnershipRule} from '../../actionCreators/modal';
 
 class DeleteActions extends React.Component {
   static propTypes = {
@@ -66,7 +67,7 @@ class DeleteActions extends React.Component {
     let features = new Set(this.props.project.features);
     let hasDiscard = features.has('discard-groups');
 
-    let btnGroup = (
+    return (
       <div className="btn-group">
         <LinkWithConfirmation
           className="group-remove btn btn-default btn-sm"
@@ -77,20 +78,11 @@ class DeleteActions extends React.Component {
           onConfirm={this.props.onDelete}
         >
           <span className="icon-trash" />
+          <GuideAnchor type="text" target="ignore_delete_discard" />
         </LinkWithConfirmation>
         {hasDiscard ? this.renderDiscard() : this.renderDisabledDiscard()}
       </div>
     );
-
-    if (hasDiscard) {
-      btnGroup = (
-        <GuideAnchor type="text" target="delete_discard">
-          {btnGroup}
-        </GuideAnchor>
-      );
-    }
-
-    return btnGroup;
   }
 }
 
@@ -230,6 +222,8 @@ const GroupDetailsActions = createReactClass({
     }
 
     let hasRelease = this.getProjectFeatures().has('releases');
+    let hasOwners =
+      orgFeatures.has('code-owners') && orgFeatures.has('internal-catchall');
 
     // account for both old and new style plugins
     let hasIssueTracking = group.pluginActions.length || group.pluginIssues.length;
@@ -265,6 +259,22 @@ const GroupDetailsActions = createReactClass({
           onDelete={this.onDelete}
           onDiscard={this.onDiscard}
         />
+
+        {hasOwners && (
+          <div className="btn-group">
+            <a
+              onClick={() =>
+                openCreateOwnershipRule({
+                  project,
+                  organization: org,
+                  issueId: group.id,
+                })}
+              className={'btn btn-default btn-sm btn-create-ownership-rule'}
+            >
+              {t('Create Ownership Rule')}
+            </a>
+          </div>
+        )}
 
         {orgFeatures.has('shared-issues') && (
           <div className="btn-group">

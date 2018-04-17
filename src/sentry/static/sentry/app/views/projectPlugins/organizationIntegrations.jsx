@@ -6,11 +6,9 @@ import styled from 'react-emotion';
 import {t} from '../../locale';
 import AsyncComponent from '../../components/asyncComponent';
 import Link from '../../components/link';
-import Panel from '../settings/components/panel';
-import PanelBody from '../settings/components/panelBody';
-import PanelHeader from '../settings/components/panelHeader';
+import Button from '../../components/buttons/button';
+import {Panel, PanelBody, PanelHeader, PanelItem} from '../../components/panels';
 import PluginIcon from '../../plugins/components/pluginIcon';
-import PanelItem from '../settings/components/panelItem';
 import theme from '../../utils/theme';
 
 const ProviderName = styled.div`
@@ -39,20 +37,28 @@ export default class OrganizationIntegrations extends AsyncComponent {
     let {orgId, projectId} = this.props;
 
     const integrations = this.state.config.providers.map(provider => (
-      <PanelItem key={provider.key}>
+      <PanelItem key={provider.key} align="center">
         <Box>
           <PluginIcon size={32} pluginId={provider.key} />
         </Box>
         <Box px={2} flex={1}>
           <ProviderName>
             <Link
-              to={`/settings/organization/${orgId}/project/${projectId}/integrations/${provider.key}/`}
+              to={`/settings/${orgId}/${projectId}/integrations/${provider.key}/`}
               css={{color: theme.gray5}}
             >
               {provider.name}
             </Link>
           </ProviderName>
           <TeamName>{provider.metadata.author}</TeamName>
+        </Box>
+        <Box>
+          <Button
+            size="small"
+            to={`/settings/${orgId}/${projectId}/integrations/${provider.key}/`}
+          >
+            {t('Configure')}
+          </Button>
         </Box>
       </PanelItem>
     ));

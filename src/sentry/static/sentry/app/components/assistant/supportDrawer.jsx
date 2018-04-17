@@ -3,9 +3,15 @@ import React from 'react';
 import _ from 'lodash';
 import createReactClass from 'create-react-class';
 import $ from 'jquery';
+import styled from 'react-emotion';
 import {t} from '../../locale';
 import ExternalLink from '../externalLink';
 import HookStore from '../../stores/hookStore';
+import CueIcon from './cueIcon';
+import CloseIcon from './closeIcon';
+import AssistantContainer from './assistantContainer';
+import Input from '../../views/settings/components/forms/controls/input';
+import InlineSvg from '../../components/inlineSvg';
 
 // SupportDrawer slides up when the user clicks on a "Need Help?" cue.
 const SupportDrawer = createReactClass({
@@ -25,10 +31,6 @@ const SupportDrawer = createReactClass({
 
   componentWillReceiveProps(props) {
     this.setState({inputVal: ''});
-  },
-
-  handleSubmit(evt) {
-    evt.preventDefault();
   },
 
   search: _.debounce(function() {
@@ -77,14 +79,9 @@ const SupportDrawer = createReactClass({
       let link = `https://docs.sentry.io/${result.path}/`;
 
       return (
-        <li
-          className="search-tag search-tag-docs search-autocomplete-item"
-          key={i + 'doc'}
-        >
-          <ExternalLink href={link}>
-            <span className="title">{title}</span>
-          </ExternalLink>
-        </li>
+        <StyledExternalLink key={i + 'doc'} href={link}>
+          {title}
+        </StyledExternalLink>
       );
     });
   },
@@ -92,50 +89,106 @@ const SupportDrawer = createReactClass({
   renderHelpCenterResults() {
     return this.state.helpcenterResults.map((result, i) => {
       return (
-        <li className="search-tag search-tag-qa search-autocomplete-item" key={i}>
-          <ExternalLink href={result.html_url}>
-            <span className="title">{result.title}</span>
-          </ExternalLink>
-        </li>
+        <StyledExternalLink key={i} href={result.html_url}>
+          {result.title}
+        </StyledExternalLink>
       );
     });
   },
 
-  renderDropdownResults() {
+  render() {
     let docsResults = this.renderDocsResults();
     let helpcenterResults = this.renderHelpCenterResults();
     let results = helpcenterResults.concat(docsResults);
+    let hasResults = results && results.length > 0;
 
     return (
-      <div className="results">
-        <ul className="search-autocomplete-list">{results}</ul>
-      </div>
-    );
-  },
-
-  render() {
-    return (
-      <div className="search">
-        <form onSubmit={this.handleSubmit}>
-          <input
-            className="search-input form-control"
-            type="text"
-            placeholder={t('Search FAQs and docs...')}
-            onChange={this.handleChange}
-            value={this.state.inputVal}
-            autoFocus
-          />
-          <span className="icon-search" />
-          <a
-            className="icon-close pull-right search-close"
-            onClick={this.props.onClose}
-          />
-          {this.renderDropdownResults()}
-        </form>
+      <StyledAssistantContainer hasResults={hasResults}>
+        <StyledAssistantInputRow>
+          <CueIcon />
+          <StyledSearchContainer>
+            <StyledSearchIcon src="icon-search" />
+            <StyledInput
+              type="text"
+              placeholder={t('Search FAQs and docs...')}
+              onChange={this.handleChange}
+              value={this.state.inputVal}
+              autoFocus
+            />
+            <div
+              className="close-button"
+              onClick={this.props.onClose}
+              style={{display: 'flex'}}
+            >
+              <CloseIcon />
+            </div>
+          </StyledSearchContainer>
+        </StyledAssistantInputRow>
+        {hasResults && <StyledResults>{results}</StyledResults>}
         {HookStore.get('assistant:support-button').map(cb => cb(this.state.inputVal))}
-      </div>
+      </StyledAssistantContainer>
     );
   },
 });
+
+const StyledAssistantContainer = styled(AssistantContainer)`
+  display: flex;
+  flex-direction: column;
+  transition: 0.1s height;
+  ${p => (p.hasResults ? 'height: 300px' : '')};
+`;
+
+const StyledAssistantInputRow = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+const StyledInput = styled(Input)`
+  padding: 0.25em 0.25em 0.25em 1em;
+  height: 2em;
+  flex-grow: 1;
+  text-indent: 1em;
+  border-top-left-radius: 1.45rem;
+  border-bottom-left-radius: 1.45rem;
+
+  &:focus {
+    border-color: ${p => p.theme.borderLight};
+  }
+`;
+
+const StyledSearchIcon = styled(InlineSvg)`
+  left: 0.75em;
+  position: absolute;
+  top: 53%; //this is an optics thing
+  transform: translateY(-50%);
+  color: ${p => p.theme.gray1};
+`;
+
+const StyledSearchContainer = styled('div')`
+  position: relative;
+  margin-left: 0.5em;
+  display: flex;
+  align-items: center;
+  flex-grow: 1;
+`;
+
+const StyledResults = styled('div')`
+  flex-grow: 1;
+  flex-basis: 0;
+  overflow: scroll;
+  border-bottom-left-radius: 1.45em;
+  border-bottom-right-radius: 1.45em;
+`;
+
+const StyledExternalLink = styled(ExternalLink)`
+  color: ${p => p.theme.gray4};
+  display: block;
+  font-size: 0.875;
+  padding: 0.5em 1em;
+
+  &:not(:last-of-type) {
+    border-bottom: 1px solid ${p => p.theme.borderLight};
+  }
+`;
 
 export default SupportDrawer;

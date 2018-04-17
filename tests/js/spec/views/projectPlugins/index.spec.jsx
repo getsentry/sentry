@@ -20,7 +20,7 @@ describe('ProjectPluginsContainer', function() {
     };
     organization = {
       id: org.slug,
-      features: ['integrations-v3'],
+      features: [],
     };
 
     MockApiClient.addMockResponse({

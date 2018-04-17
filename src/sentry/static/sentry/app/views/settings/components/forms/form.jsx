@@ -16,15 +16,22 @@ export default class Form extends React.Component {
     onFieldChange: PropTypes.func,
     submitDisabled: PropTypes.bool,
     submitLabel: PropTypes.string,
+    submitPriority: PropTypes.string,
     footerClass: PropTypes.string,
     footerStyle: PropTypes.object,
     extraButton: PropTypes.element,
     initialData: PropTypes.object,
+    // Require changes before able to submit form
     requireChanges: PropTypes.bool,
+    // Reset form when there are errors, after submit
+    resetOnError: PropTypes.bool,
+    // Hide Footer
     hideFooter: PropTypes.bool,
-    model: PropTypes.object,
+    // Allow undo
     allowUndo: PropTypes.bool,
+    // Save field on control blur
     saveOnBlur: PropTypes.bool,
+    model: PropTypes.object,
     apiMethod: PropTypes.string,
     apiEndpoint: PropTypes.string,
   };
@@ -33,6 +40,7 @@ export default class Form extends React.Component {
     cancelLabel: t('Cancel'),
     submitLabel: t('Save Changes'),
     submitDisabled: false,
+    submitPriority: 'primary',
     footerClass: 'form-actions align-right',
     className: 'form-stacked',
     requireChanges: false,
@@ -53,6 +61,7 @@ export default class Form extends React.Component {
       saveOnBlur,
       apiEndpoint,
       apiMethod,
+      resetOnError,
       onSubmitSuccess,
       onSubmitError,
       onFieldChange,
@@ -64,6 +73,7 @@ export default class Form extends React.Component {
     this.model = model || new FormModel();
     this.model.setInitialData(initialData);
     this.model.setFormOptions({
+      resetOnError,
       allowUndo,
       onFieldChange,
       onSubmitSuccess,
@@ -123,6 +133,7 @@ export default class Form extends React.Component {
       footerStyle,
       submitDisabled,
       submitLabel,
+      submitPriority,
       cancelLabel,
       onCancel,
       extraButton,
@@ -134,14 +145,14 @@ export default class Form extends React.Component {
 
     return (
       <form onSubmit={this.onSubmit} className={className}>
-        {children}
+        <div>{children}</div>
 
         {shouldShowFooter && (
           <div className={footerClass} style={{marginTop: 25, ...footerStyle}}>
             <Observer>
               {() => (
                 <Button
-                  priority="primary"
+                  priority={submitPriority}
                   disabled={
                     this.model.isError ||
                     isSaving ||

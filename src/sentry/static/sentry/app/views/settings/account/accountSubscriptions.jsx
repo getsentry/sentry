@@ -1,18 +1,16 @@
-import {Box, Flex} from 'grid-emotion';
+import {Box} from 'grid-emotion';
 import React from 'react';
 import styled from 'react-emotion';
 
 import {t} from '../../../locale';
 import AsyncView from '../../asyncView';
 import DateTime from '../../../components/dateTime';
-import Panel from '../components/panel';
-import PanelBody from '../components/panelBody';
-import PanelHeader from '../components/panelHeader';
-import PanelItem from '../components/panelItem';
+import {Panel, PanelBody, PanelHeader, PanelItem} from '../../../components/panels';
 import SettingsPageHeader from '../components/settingsPageHeader';
 import Switch from '../../../components/switch';
 import IndicatorStore from '../../../stores/indicatorStore';
 import TextBlock from '../components/text/textBlock';
+import EmptyMessage from '../components/emptyMessage';
 
 const ENDPOINT = '/users/me/subscriptions/';
 
@@ -26,7 +24,7 @@ const Description = styled.div`
 `;
 
 const SubscribedDescription = styled(Description)`
-  text-align: right;
+  color: ${p => p.theme.gray2};
 `;
 
 class AccountSubscriptions extends AsyncView {
@@ -91,42 +89,44 @@ class AccountSubscriptions extends AsyncView {
         </TextBlock>
 
         <Panel>
-          <PanelHeader disablePadding>
-            <Flex align="center">
-              <Box px={2} flex="1">
-                {t('Name')}
-              </Box>
-              <Box px={2}>{t('Subscribed')}</Box>
-            </Flex>
-          </PanelHeader>
-
-          <PanelBody>
-            {this.state.subscriptions.map((subscription, index) => (
-              <PanelItem p={2} align="center" key={subscription.listId}>
-                <Box flex="1">
-                  <SubscriptionName>{subscription.listName}</SubscriptionName>
-                  {subscription.listDescription && (
-                    <Description>{subscription.listDescription}</Description>
-                  )}
-                </Box>
-                <Flex direction="column" align="flex-end">
-                  <Switch
-                    isActive={subscription.subscribed}
-                    size="lg"
-                    toggle={this.handleToggle.bind(this, subscription, index)}
-                  />
-                  {subscription.subscribed && (
-                    <SubscribedDescription>
-                      <div>{subscription.email} on </div>
-                      <div>
-                        <DateTime shortDate date={subscription.subscribedDate} />
-                      </div>
-                    </SubscribedDescription>
-                  )}
-                </Flex>
-              </PanelItem>
-            ))}
-          </PanelBody>
+          {this.state.subscriptions.length ? (
+            <div>
+              <PanelHeader>{t('Subscription')}</PanelHeader>
+              <PanelBody>
+                {this.state.subscriptions.map((subscription, index) => (
+                  <PanelItem p={2} align="center" key={subscription.listId}>
+                    <Box w={1 / 2} pr={2}>
+                      <SubscriptionName>{subscription.listName}</SubscriptionName>
+                      {subscription.listDescription && (
+                        <Description>{subscription.listDescription}</Description>
+                      )}
+                      {subscription.subscribed ? (
+                        <SubscribedDescription>
+                          <div>
+                            {subscription.email} on{' '}
+                            <DateTime shortDate date={subscription.subscribedDate} />
+                          </div>
+                        </SubscribedDescription>
+                      ) : (
+                        <SubscribedDescription>
+                          Not currently subscribed
+                        </SubscribedDescription>
+                      )}
+                    </Box>
+                    <Box>
+                      <Switch
+                        isActive={subscription.subscribed}
+                        size="lg"
+                        toggle={this.handleToggle.bind(this, subscription, index)}
+                      />
+                    </Box>
+                  </PanelItem>
+                ))}{' '}
+              </PanelBody>
+            </div>
+          ) : (
+            <EmptyMessage>{t("There's no subscription backend present.")}</EmptyMessage>
+          )}
         </Panel>
         <TextBlock>
           We’re applying GDPR consent and privacy policies to all Sentry contacts,

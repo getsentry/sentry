@@ -1,24 +1,25 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import React, {Fragment, Component} from 'react';
 
 import {t} from '../../locale';
 import LoadingIndicator from '../../components/loadingIndicator';
+import {Panel, PanelItem} from '../../components/panels';
 import ProjectPluginRow from './projectPluginRow';
 import RouteError from '../routeError';
 import SentryTypes from '../../proptypes';
 
-class ProjectPlugins extends React.Component {
+class ProjectPlugins extends Component {
   static propTypes = {
     plugins: PropTypes.arrayOf(SentryTypes.PluginShape),
     loading: PropTypes.bool,
     error: PropTypes.any,
     onChange: PropTypes.func,
     onError: PropTypes.func,
+    routes: PropTypes.array,
   };
 
   render() {
-    let {plugins, loading, error, onError, onChange, params} = this.props;
-    let {projectId, orgId} = params;
+    let {plugins, loading, error, onError, onChange, routes, params} = this.props;
     let hasError = error;
     let isLoading = !hasError && loading;
 
@@ -31,27 +32,28 @@ class ProjectPlugins extends React.Component {
     }
 
     return (
-      <div className="panel panel-default">
-        <table className="table integrations simple">
-          <thead>
-            <tr>
-              <th colSpan={2}>{t('Legacy Integration')}</th>
-              <th className="align-right">{t('Enabled')}</th>
-            </tr>
-          </thead>
-          <tbody>
+      <Panel
+        title={
+          <React.Fragment>
+            <div>{t('Legacy Integration')}</div>
+            <div>{t('Enabled')}</div>
+          </React.Fragment>
+        }
+        body={
+          <Fragment>
             {plugins.map(plugin => (
-              <ProjectPluginRow
-                key={plugin.id}
-                projectId={projectId}
-                orgId={orgId}
-                {...plugin}
-                onChange={onChange}
-              />
+              <PanelItem key={plugin.id}>
+                <ProjectPluginRow
+                  params={params}
+                  routes={routes}
+                  {...plugin}
+                  onChange={onChange}
+                />
+              </PanelItem>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </Fragment>
+        }
+      />
     );
   }
 }

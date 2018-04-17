@@ -21,6 +21,9 @@ default_manager.add('organizations:new-settings', OrganizationFeature)  # NOQA
 default_manager.add('organizations:integrations-v3', OrganizationFeature)  # NOQA
 default_manager.add('organizations:require-2fa', OrganizationFeature)  # NOQA
 default_manager.add('organizations:internal-catchall', OrganizationFeature)  # NOQA
+default_manager.add('organizations:new-teams', OrganizationFeature)  # NOQA
+default_manager.add('organizations:code-owners', OrganizationFeature)  # NOQA
+default_manager.add('organizations:unreleased-changes', OrganizationFeature)  # NOQA
 default_manager.add('projects:similarity-view', ProjectFeature)  # NOQA
 default_manager.add('projects:global-events', ProjectFeature)  # NOQA
 default_manager.add('projects:plugins', ProjectPluginFeature)  # NOQA

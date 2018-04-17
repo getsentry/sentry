@@ -249,7 +249,13 @@ def cleanup(days, project, concurrency, max_procs, silent, model, router, timed)
                 click.echo(
                     "NodeStore backend does not support cleanup operation", err=True)
 
-    for model, dtfield, order_by in BULK_QUERY_DELETES:
+    for bqd in BULK_QUERY_DELETES:
+        if len(bqd) == 4:
+            model, dtfield, order_by, chunk_size = bqd
+        else:
+            chunk_size = 10000
+            model, dtfield, order_by = bqd
+
         if not silent:
             click.echo(
                 "Removing {model} for days={days} project={project}".format(
@@ -268,7 +274,7 @@ def cleanup(days, project, concurrency, max_procs, silent, model, router, timed)
                 days=days,
                 project_id=project_id,
                 order_by=order_by,
-            ).execute()
+            ).execute(chunk_size=chunk_size)
 
     for model, dtfield, order_by in DELETES:
         if not silent:

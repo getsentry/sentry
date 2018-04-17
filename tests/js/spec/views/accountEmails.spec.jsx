@@ -1,10 +1,10 @@
 import React from 'react';
-import {shallow, mount} from 'enzyme';
+import {shallow} from 'enzyme';
 
 import {Client} from 'app/api';
-import {ThemeProvider} from 'emotion-theming';
-import theme from 'app/utils/theme';
 import AccountEmails from 'app/views/settings/account/accountEmails';
+
+import {mountWithTheme} from '../../../helpers';
 
 jest.mock('scroll-to-element', () => {});
 
@@ -32,18 +32,13 @@ describe('AccountEmails', function() {
       statusCode: 200,
     });
 
-    let wrapper = mount(
-      <ThemeProvider theme={theme}>
-        <AccountEmails />
-      </ThemeProvider>,
-      TestStubs.routerContext()
-    );
+    let wrapper = mountWithTheme(<AccountEmails />, TestStubs.routerContext());
 
     expect(mock).not.toHaveBeenCalled();
 
     // The first Button should be delete button for first secondary email (NOT primary)
     wrapper
-      .find('Button')
+      .find('RemoveButton')
       .at(1)
       .simulate('click');
 
@@ -65,18 +60,13 @@ describe('AccountEmails', function() {
       statusCode: 200,
     });
 
-    let wrapper = mount(
-      <ThemeProvider theme={theme}>
-        <AccountEmails />
-      </ThemeProvider>,
-      TestStubs.routerContext()
-    );
+    let wrapper = mountWithTheme(<AccountEmails />, TestStubs.routerContext());
 
     expect(mock).not.toHaveBeenCalled();
 
     // The first Button should be delete button for first secondary email (NOT primary)
     wrapper
-      .find('Button')
+      .find('Button[children="Set as primary"]')
       .first()
       .simulate('click');
 
@@ -91,18 +81,37 @@ describe('AccountEmails', function() {
     );
   });
 
+  it('can resend verification email', function() {
+    let mock = Client.addMockResponse({
+      url: `${ENDPOINT}confirm/`,
+      method: 'POST',
+      statusCode: 200,
+    });
+
+    let wrapper = mountWithTheme(<AccountEmails />, TestStubs.routerContext());
+
+    expect(mock).not.toHaveBeenCalled();
+
+    wrapper.find('Button[children="Resend verification"]').simulate('click');
+
+    expect(mock).toHaveBeenCalledWith(
+      `${ENDPOINT}confirm/`,
+      expect.objectContaining({
+        method: 'POST',
+        data: {
+          email: 'secondary2@example.com',
+        },
+      })
+    );
+  });
+
   it('can add a secondary email', function() {
     let mock = Client.addMockResponse({
       url: ENDPOINT,
       method: 'POST',
       statusCode: 200,
     });
-    let wrapper = mount(
-      <ThemeProvider theme={theme}>
-        <AccountEmails />
-      </ThemeProvider>,
-      TestStubs.routerContext()
-    );
+    let wrapper = mountWithTheme(<AccountEmails />, TestStubs.routerContext());
 
     expect(mock).not.toHaveBeenCalled();
 

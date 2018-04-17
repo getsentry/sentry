@@ -34,44 +34,71 @@ class LegacyTagStorage(TagStorage):
     """
 
     def setup(self):
-        self.setup_deletions(
-            tagkey_model=TagKey,
-            tagvalue_model=TagValue,
-            grouptagkey_model=GroupTagKey,
-            grouptagvalue_model=GroupTagValue,
-            eventtag_model=EventTag,
-        )
+        self.setup_deletions()
 
-        self.setup_cleanup(
-            tagvalue_model=TagValue,
-            grouptagvalue_model=GroupTagValue,
-            eventtag_model=EventTag,
-        )
+        self.setup_cleanup()
 
         self.setup_merge(
             grouptagkey_model=GroupTagKey,
             grouptagvalue_model=GroupTagValue,
         )
 
-        self.setup_receivers(
-            tagvalue_model=TagValue,
-            grouptagvalue_model=GroupTagValue,
-        )
+        self.setup_receivers()
 
-    def setup_cleanup(self, tagvalue_model, grouptagvalue_model, eventtag_model):
+    def setup_cleanup(self):
         from sentry.runner.commands import cleanup
 
         cleanup.EXTRA_BULK_QUERY_DELETES += [
-            (grouptagvalue_model, 'last_seen', None),
-            (tagvalue_model, 'last_seen', None),
-            (eventtag_model, 'date_added', 'date_added'),
+            (GroupTagValue, 'last_seen', None),
+            (TagValue, 'last_seen', None),
+            (EventTag, 'date_added', 'date_added', 50000),
         ]
 
-    def setup_deletions(self, **kwargs):
-        super(LegacyTagStorage, self).setup_deletions(**kwargs)
-
+    def setup_deletions(self):
         from sentry.deletions import default_manager as deletion_manager
-        from sentry.deletions.base import ModelRelation, ModelDeletionTask
+        from sentry.deletions.defaults import BulkModelDeletionTask, ModelDeletionTask
+        from sentry.deletions.base import ModelRelation
+        from sentry.models import Event, Group, Project
+
+        deletion_manager.add_bulk_dependencies(Event, [
+            lambda instance_list: ModelRelation(EventTag,
+                                                {'event_id__in': [i.id for i in instance_list]},
+                                                ModelDeletionTask),
+        ])
+
+        deletion_manager.register(TagValue, BulkModelDeletionTask)
+        deletion_manager.register(GroupTagKey, BulkModelDeletionTask)
+        deletion_manager.register(GroupTagValue, BulkModelDeletionTask)
+        deletion_manager.register(EventTag, BulkModelDeletionTask)
+
+        deletion_manager.add_dependencies(Group, [
+            lambda instance: ModelRelation(
+                EventTag,
+                query={
+                    'group_id': instance.id,
+                }),
+            lambda instance: ModelRelation(
+                GroupTagKey,
+                query={
+                    'group_id': instance.id,
+                }),
+            lambda instance: ModelRelation(
+                GroupTagValue,
+                query={
+                    'group_id': instance.id,
+                }),
+        ])
+
+        deletion_manager.add_dependencies(Project, [
+            lambda instance: ModelRelation(TagKey,
+                                           query={'project_id': instance.id}),
+            lambda instance: ModelRelation(TagValue,
+                                           query={'project_id': instance.id}),
+            lambda instance: ModelRelation(GroupTagKey,
+                                           query={'project_id': instance.id}),
+            lambda instance: ModelRelation(GroupTagValue,
+                                           query={'project_id': instance.id}),
+        ])
 
         class TagKeyDeletionTask(ModelDeletionTask):
             def get_child_relations(self, instance):
@@ -92,9 +119,7 @@ class LegacyTagStorage(TagStorage):
 
         deletion_manager.register(TagKey, TagKeyDeletionTask)
 
-    def setup_receivers(self, **kwargs):
-        super(LegacyTagStorage, self).setup_receivers(**kwargs)
-
+    def setup_receivers(self):
         from sentry.signals import buffer_incr_complete
 
         # Legacy tag write flow:
@@ -548,7 +573,7 @@ class LegacyTagStorage(TagStorage):
 
     def get_group_ids_for_search_filter(
             self, project_id, environment_id, tags, candidates=None, limit=1000):
-        from sentry.search.base import ANY, EMPTY
+        from sentry.search.base import ANY
         # Django doesnt support union, so we limit results and try to find
         # reasonable matches
 
@@ -562,10 +587,7 @@ class LegacyTagStorage(TagStorage):
         # for each remaining tag, find matches contained in our
         # existing set, pruning it down each iteration
         for k, v in tag_lookups:
-            if v is EMPTY:
-                return None
-
-            elif v != ANY:
+            if v != ANY:
                 base_qs = GroupTagValue.objects.filter(
                     key=k,
                     value=v,
@@ -629,6 +651,9 @@ class LegacyTagStorage(TagStorage):
             queryset = queryset.filter(value=value)
 
         return queryset
+
+    def get_event_tag_qs(self, project_id, environment_id, key, value):
+        raise NotImplementedError  # there is no index that can appopriate satisfy this query
 
     def update_group_for_events(self, project_id, event_ids, destination_id):
         return EventTag.objects.filter(

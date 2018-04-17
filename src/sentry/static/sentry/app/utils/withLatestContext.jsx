@@ -32,6 +32,8 @@ const withLatestContext = WrappedComponent =>
           organization ||
           (organizations && organizations.length ? organizations[0] : null);
 
+        // TODO(billy): Below is going to be wrong if component is passed project, it will override
+        // project from `latestContext`
         return (
           <WrappedComponent
             organizations={organizations}

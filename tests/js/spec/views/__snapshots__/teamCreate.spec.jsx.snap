@@ -4,36 +4,39 @@ exports[`TeamCreate render() renders correctly 1`] = `
 <SideEffect(DocumentTitle)
   title="Create Team - Sentry"
 >
-  <NarryLayout>
+  <NarrowLayout>
     <h3>
       Create a New Team
     </h3>
-    <p>
-      Teams group members' access to a specific focus, e.g. a major product or application that may have sub-projects.
-    </p>
-    <ApiForm
-      apiEndpoint="/organizations/org/teams/"
-      apiMethod="POST"
-      cancelLabel="Cancel"
-      className="form-stacked"
-      errorMessage="Unable to save your changes. Please ensure all fields are valid and try again."
-      footerClass="form-actions align-right"
-      hideErrors={false}
-      onSubmitSuccess={[Function]}
-      requireChanges={true}
-      resetOnError={false}
-      submitDisabled={false}
-      submitLabel="Save Changes"
-    >
-      <TextField
-        disabled={false}
-        hideErrorMessage={false}
-        label="Team Name"
-        name="name"
-        placeholder="e.g. Operations, Web, Desktop"
-        required={true}
-      />
-    </ApiForm>
-  </NarryLayout>
+    <CreateTeamForm
+      onSuccess={[Function]}
+      organization={
+        Object {
+          "access": Array [
+            "org:read",
+            "org:write",
+            "org:admin",
+            "project:read",
+            "project:write",
+            "project:admin",
+            "team:read",
+            "team:write",
+            "team:admin",
+          ],
+          "features": Array [],
+          "id": "3",
+          "name": "Organization Name",
+          "onboardingTasks": Array [],
+          "projects": Array [],
+          "slug": "org-slug",
+          "status": Object {
+            "id": "active",
+            "name": "active",
+          },
+          "teams": Array [],
+        }
+      }
+    />
+  </NarrowLayout>
 </SideEffect(DocumentTitle)>
 `;

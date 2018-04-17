@@ -250,7 +250,7 @@ describe('SearchBar', function() {
       searchBar.getCursorPosition.mockReturnValue(15); // end of line
       searchBar.updateAutoCompleteItems();
       expect(searchBar.state.searchTerm).toEqual('fu');
-      expect(searchBar.state.searchItems.length).toEqual(0);
+      expect(searchBar.state.searchItems).toHaveLength(0);
       expect(searchBar.state.activeSearchItem).toEqual(0);
     });
 

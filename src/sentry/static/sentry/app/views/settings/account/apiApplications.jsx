@@ -16,10 +16,7 @@ import AsyncView from '../../asyncView';
 import Button from '../../../components/buttons/button';
 import EmptyMessage from '../components/emptyMessage';
 import IndicatorStore from '../../../stores/indicatorStore';
-import Panel from '../components/panel';
-import PanelBody from '../components/panelBody';
-import PanelHeader from '../components/panelHeader';
-import PanelItem from '../components/panelItem';
+import {Panel, PanelBody, PanelHeader, PanelItem} from '../../../components/panels';
 import SettingsPageHeader from '../components/settingsPageHeader';
 
 const ROUTE_PREFIX = '/settings/account/api/';
@@ -157,22 +154,18 @@ class ApiApplications extends AsyncView {
       <div>
         <SettingsPageHeader title="API Applications" action={action} />
 
-        {isEmpty && (
-          <EmptyMessage>{t("You haven't created any applications yet.")}</EmptyMessage>
-        )}
+        <Panel>
+          <PanelHeader disablePadding>
+            <Flex align="center">
+              <Box px={2} flex="1">
+                {t('Application Name')}
+              </Box>
+            </Flex>
+          </PanelHeader>
 
-        {!isEmpty && (
-          <Panel>
-            <PanelHeader disablePadding>
-              <Flex align="center">
-                <Box px={2} flex="1">
-                  {t('Application Name')}
-                </Box>
-              </Flex>
-            </PanelHeader>
-
-            <PanelBody>
-              {this.state.appList.map(app => {
+          <PanelBody>
+            {!isEmpty ? (
+              this.state.appList.map(app => {
                 return (
                   <ApiApplicationRow
                     key={app.id}
@@ -180,10 +173,14 @@ class ApiApplications extends AsyncView {
                     onRemove={this.handleRemoveApplication}
                   />
                 );
-              })}
-            </PanelBody>
-          </Panel>
-        )}
+              })
+            ) : (
+              <EmptyMessage>
+                {t("You haven't created any applications yet.")}
+              </EmptyMessage>
+            )}
+          </PanelBody>
+        </Panel>
       </div>
     );
   }

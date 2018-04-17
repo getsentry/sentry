@@ -3,69 +3,8 @@
 * ============================================================================
 */
 
-.sticky {
-  // !important because react-sticky uses inline styles w/ hardcoded z-index
-  z-index: @zindex-sticky-bar !important;
-
-  .group-header .container {
-    width: 100% !important;
-    padding-left: 0;
-    padding-right: 0;
-  }
-
-  .stream-actions {
-    border-top-color: transparent;
-    border-bottom-color: transparent;
-    box-shadow: 0 1px 0 rgba(52, 60, 69, 0.15), 0 1px 3px rgba(0, 0, 0, 0.08);
-    background: @white-dark;
-    margin: 0 -30px;
-    border-left: none;
-    border-right: none;
-    padding-right: 41px; // adjust for border-right: none
-    padding-left: 31px; // adjust for border-right: none
-  }
-
-  .container {
-    padding-left: 30px + @sidebar-width;
-  }
-}
-
-.show-sidebar .sticky {
-  .stream-actions {
-    border-right: 1px solid @trim;
-    margin-right: 0;
-    padding-right: 10px;
-  }
-}
-
-.sticky + .group-list {
-  margin-top: 64px;
-}
-
 .group-header {
-  // needs fixed height so that stream doesn't "pop" up
-  // when stream actions turn "sticky"
   min-height: 0;
-  &.sticky {
-    top: 0;
-    position: fixed;
-    width: 100%;
-    width: 100%;
-  }
-}
-
-.stream-no-bulk-actions {
-  .stream-actions-left,
-  .event-details {
-    // padding-left: 20px !important;
-  }
-  .group-header {
-    font-weight: bold;
-
-    .stream-actions-graph {
-      font-size: 12px;
-    }
-  }
 }
 
 .stream-actions,
@@ -118,46 +57,11 @@
     flex: 1;
   }
 
-  .realtime-paused {
-    .btn-danger();
-  }
-
   > .btn {
     color: inherit;
     background: rgba(255, 255, 255, 0.85);
     &.dropdown-toggle {
       background: none;
-    }
-  }
-
-  .toggle-graph {
-    .list-unstyled();
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 0;
-    font-size: 11px;
-    text-transform: uppercase;
-    font-weight: bold;
-
-    li {
-      margin-right: 5px;
-
-      &:last-child {
-        margin-right: 0;
-      }
-
-      a {
-        color: lighten(@gray, 10);
-        padding: 3px 4px 2px;
-        border-radius: 3px;
-        .transition(background 0.2s linear);
-      }
-      &.active a {
-        background: lighten(@gray, 15);
-        opacity: 1;
-        font-weight: 600;
-        color: #fff;
-      }
     }
   }
 }
@@ -255,12 +159,6 @@
       &:hover {
         background-color: @white-dark;
       }
-    }
-
-    .short-id {
-      font-weight: bold;
-      font-family: @font-family-code;
-      font-size: 11px;
     }
 
     .icon-star-solid,
@@ -398,7 +296,7 @@
   }
 
   .event-details {
-    padding: 12px 0 8px 54px;
+    padding: 12px 0 8px 24px;
 
     .event-message,
     .event-extra {
@@ -529,6 +427,7 @@
 
   &.group-list-small {
     margin: -1px;
+    line-height: 16px;
 
     .event-details {
       padding-left: 20px;
@@ -540,10 +439,6 @@
     .group:last-child {
       border: 0;
     }
-  }
-
-  &.similar-events {
-    //TODO:Chris style similar events
   }
 
   .severity {
@@ -603,8 +498,7 @@
 
 .awaiting-events {
   border-radius: 0;
-  padding: 60px 40px 60px;
-  #gradient > .vertical(#F8F9FA, #ffffff);
+  padding: 10px 20px 30px;
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.08);
   border-radius: 0 0 3px 3px;
 
@@ -612,7 +506,7 @@
     position: relative;
     max-width: 740px;
     margin: 0 auto;
-    padding: 60px 0 50px 260px;
+    padding: 60px 0 10px 260px;
     font-size: 18px;
     min-height: 260px;
   }
@@ -620,7 +514,7 @@
   .robot {
     position: absolute;
     left: 0;
-    top: 0;
+    top: 30px;
     width: 220px;
     height: 260px;
     background: url(../images/sentry-robot.png);
@@ -712,16 +606,8 @@
 */
 
 .issue-list {
-  .list-unstyled;
-  border: 1px solid @trim;
-  border-radius: 3px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-
+  padding: 0;
   .issue {
-    padding: 12px 40px 5px 35px;
-    border-bottom: 1px solid lighten(@trim, 5);
-    position: relative;
-
     h3 {
       .icon-star-solid,
       .icon-soundoff {
@@ -780,9 +666,12 @@
     .error-level {
       .square(12px);
       border-radius: 50%;
-      position: absolute;
       top: 13px;
       left: 12px;
+    }
+
+    .event-type {
+      position: absolute;
     }
 
     h3 {
@@ -798,6 +687,7 @@
     }
 
     .event-extra {
+      padding-left: 20px;
       overflow: hidden;
       white-space: nowrap;
       text-overflow: ellipsis;
@@ -937,6 +827,7 @@
     }
 
     &.with-graph {
+      position: relative;
       padding-right: 180px;
     }
 
@@ -1051,25 +942,17 @@
 }
 
 .stream-sort {
-  width: 165px;
-  position: absolute;
-  display: block;
-  left: 0;
-  top: 0;
   margin-right: 5px;
+  z-index: 1001;
 
   .dropdown-toggle {
     .btn-default;
-
+    width: 168px;
     font-size: 14px;
     border: 1px solid lighten(@gray-lighter, 7);
     padding: 6px 12px;
     border-radius: 3px;
 
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    overflow: hidden;
-    max-width: 100%;
     display: block;
     text-align: center;
 
@@ -1078,7 +961,15 @@
       margin-left: 5px;
       margin-right: -2px;
       min-width: 16px;
+      top: 4px;
     }
+  }
+
+  .dropdown-actor-title {
+    display: block;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
   }
 
   .dropdown-menu {
@@ -1113,19 +1004,15 @@
   .clearfix();
 
   .search-container {
-    padding-right: 55px;
-    padding-left: 170px;
-    position: relative;
+    display: flex;
   }
 
   .search {
     width: 100%;
+    z-index: @zindex-sticky-bar + 1;
   }
 
   .toggle-stream-sidebar {
-    position: absolute;
-    top: 0;
-    right: 0;
     width: 50px;
     margin-left: 5px;
     height: 38px;
@@ -1249,13 +1136,13 @@
   }
 }
 
-.panel {
-  .alert-box,
-  .empty-stream {
-    border: 0;
-  }
+/**
+* Stream assignee selector
+* ============================================================================
+*/
+.stream-content .assignee-selector .dropdown-toggle {
+  color: rgb(74, 62, 86); // gray4
 }
-
 /**
 * Responsive small screen
 * ============================================================================
@@ -1304,10 +1191,6 @@
 
   .stream-actions {
     padding-right: 0;
-  }
-
-  .sticky .stream-actions {
-    padding-right: 30px;
   }
 
   .stream-actions .stream-actions-left,

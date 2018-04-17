@@ -18,7 +18,7 @@ export default class FormField extends React.PureComponent {
     /** Inline style */
     style: PropTypes.object,
 
-    label: PropTypes.string,
+    label: PropTypes.node,
 
     // This is actually used but eslint doesn't parse it correctly
     // eslint-disable-next-line react/no-unused-prop-types
@@ -122,22 +122,30 @@ export default class FormField extends React.PureComponent {
     throw new Error('Must be implemented by child.');
   }
 
-  render() {
-    let {
-      className,
-      required,
-      label,
-      disabled,
-      disabledReason,
-      hideErrorMessage,
-      help,
-      style,
-    } = this.props;
+  getFinalClassNames() {
+    let {className, required} = this.props;
     let {error} = this.state;
-    let cx = classNames(className, this.getClassName(), {
+    return classNames(className, this.getClassName(), {
       'has-error': !!error,
       required,
     });
+  }
+
+  renderDisabledReason() {
+    let {disabled, disabledReason} = this.props;
+    if (!disabled) return null;
+    if (!disabledReason) return null;
+    return (
+      <span className="disabled-indicator tip" title={disabledReason}>
+        <StyledInlineSvg src="icon-circle-question" size="18px" />
+      </span>
+    );
+  }
+
+  render() {
+    let {label, hideErrorMessage, help, style} = this.props;
+    let {error} = this.state;
+    let cx = this.getFinalClassNames();
     let shouldShowErrorMessage = error && !hideErrorMessage;
 
     return (
@@ -149,12 +157,7 @@ export default class FormField extends React.PureComponent {
             </label>
           )}
           {this.getField()}
-          {disabled &&
-            disabledReason && (
-              <span className="disabled-indicator tip" title={disabledReason}>
-                <StyledInlineSvg src="icon-circle-question" size="18px" />
-              </span>
-            )}
+          {this.renderDisabledReason()}
           {defined(help) && <p className="help-block">{help}</p>}
           {shouldShowErrorMessage && <p className="error">{error}</p>}
         </div>

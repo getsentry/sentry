@@ -36,10 +36,11 @@ class ProjectHeader extends React.Component {
     let org = this.props.organization;
     let features = new Set(project.features);
     let access = new Set(org.access);
+    let orgFeatures = new Set(org.features);
     let allEnvironmentsLabel = t('All environments');
 
     // TODO: remove when feature is released
-    let hasEnvironmentsFeature = new Set(org.features).has('environments');
+    let hasEnvironmentsFeature = orgFeatures.has('environments');
     let pagesWithEnvironments = new Set([
       'stream',
       'releases',
@@ -93,7 +94,13 @@ class ProjectHeader extends React.Component {
               </li>
               {access.has('project:write') && (
                 <li className={navSection == 'settings' ? 'active' : ''}>
-                  <Link to={`/${org.slug}/${project.slug}/settings/`}>
+                  <Link
+                    to={
+                      orgFeatures.has('new-settings')
+                        ? `/settings/${org.slug}/${project.slug}/`
+                        : `/${org.slug}/${project.slug}/settings/`
+                    }
+                  >
                     {t('Settings')}
                   </Link>
                 </li>
@@ -108,11 +115,20 @@ class ProjectHeader extends React.Component {
                 title={activeEnvironmentTitle}
                 className="environment-selector-toggle"
               >
-                <MenuItem onClick={clearActiveEnvironment}>
+                <MenuItem
+                  onClick={clearActiveEnvironment}
+                  className={activeEnvironment === null && 'active'}
+                >
                   {allEnvironmentsLabel}
                 </MenuItem>
                 {environments.map(env => (
-                  <MenuItem key={env.id} onClick={() => setActiveEnvironment(env)}>
+                  <MenuItem
+                    key={env.id}
+                    onClick={() => setActiveEnvironment(env)}
+                    className={
+                      activeEnvironment && activeEnvironment.name === env.name && 'active'
+                    }
+                  >
                     {env.displayName}
                   </MenuItem>
                 ))}
@@ -120,11 +136,10 @@ class ProjectHeader extends React.Component {
                 <div style={{textAlign: 'center', padding: '5px 0px'}}>
                   <Button
                     to={
-                      new Set(org.features).has('new-settings')
-                        ? `/settings/organization/${org.slug}/project/${project.slug}/environments/`
+                      orgFeatures.has('new-settings')
+                        ? `/settings/${org.slug}/${project.slug}/environments/`
                         : `/${org.slug}/${project.slug}/settings/`
                     }
-                    priority="primary"
                     size="small"
                   >
                     {t('Manage environments')}

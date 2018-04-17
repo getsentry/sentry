@@ -6,7 +6,7 @@ import logging
 
 from collections import namedtuple
 from django.core.files.uploadedfile import InMemoryUploadedFile, TemporaryUploadedFile
-from symbolic import parse_addr, arch_from_breakpad, arch_from_macho, arch_is_known, ProcessState
+from symbolic import parse_addr, arch_from_breakpad, arch_from_macho, arch_is_known, ProcessState, id_from_breakpad
 
 from sentry.interfaces.contexts import DeviceContextType
 
@@ -22,6 +22,9 @@ KNOWN_DSYM_TYPES = {
 # Regular expression to parse OS versions from a minidump OS string
 VERSION_RE = re.compile(r'(\d+\.\d+\.\d+)\s+(.*)')
 
+# Regular expression to guess whether we're dealing with Windows or Unix paths
+WINDOWS_PATH_RE = re.compile(r'^[a-z]:\\', re.IGNORECASE)
+
 # Mapping of well-known minidump OS constants to our internal names
 MINIDUMP_OS_TYPES = {
     'Mac OS X': 'macOS',
@@ -29,6 +32,11 @@ MINIDUMP_OS_TYPES = {
 }
 
 AppInfo = namedtuple('AppInfo', ['id', 'version', 'build', 'name'])
+
+
+def image_name(pkg):
+    split = '\\' if WINDOWS_PATH_RE.match(pkg) else '/'
+    return pkg.rsplit(split, 1)[-1]
 
 
 def find_all_stacktraces(data):
@@ -156,12 +164,14 @@ def sdk_info_to_sdk_id(sdk_info):
 
 def merge_minidump_event(data, minidump):
     if isinstance(minidump, InMemoryUploadedFile):
+        minidump.open()  # seek to start
         state = ProcessState.from_minidump_buffer(minidump.read())
     elif isinstance(minidump, TemporaryUploadedFile):
         state = ProcessState.from_minidump(minidump.temporary_file_path())
     else:
-        state = ProcessState.from_minidump(minidump.name)
+        state = ProcessState.from_minidump(minidump)
 
+    data['platform'] = 'native'
     data['level'] = 'fatal' if state.crashed else 'info'
     data['message'] = 'Assertion Error: %s' % state.assertion if state.assertion \
         else 'Fatal Error: %s' % state.crash_reason
@@ -212,10 +222,10 @@ def merge_minidump_event(data, minidump):
 
     # Extract referenced (not all loaded) images
     images = [{
-        'type': 'apple',  # Required by interface
-        'uuid': six.text_type(module.uuid),
+        'type': 'symbolic',
+        'id': id_from_breakpad(module.id),
         'image_addr': '0x%x' % module.addr,
-        'image_size': '0x%x' % module.size,
+        'image_size': module.size,
         'name': module.name,
     } for module in state.modules()]
     data.setdefault('debug_meta', {})['images'] = images

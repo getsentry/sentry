@@ -230,6 +230,11 @@ class AuthHelper(object):
     def finish_pipeline(self):
         data = self.fetch_state()
 
+        # The state data may have expried, in which case the state data will
+        # simply be None.
+        if not data:
+            return self.error(ERR_INVALID_IDENTITY)
+
         try:
             identity = self.provider.build_identity(data)
         except IdentityNotValid:
@@ -380,7 +385,6 @@ class AuthHelper(object):
             username=uuid4().hex,
             email=identity['email'],
             name=identity.get('name', '')[:200],
-            is_managed=True,
         )
 
         try:
@@ -479,52 +483,43 @@ class AuthHelper(object):
             # TODO(dcramer): its possible they have multiple accounts and at
             # least one is managed (per the check below)
             try:
-                existing_user = self._find_existing_user(identity['email'])
+                acting_user = self._find_existing_user(identity['email'])
             except IndexError:
-                existing_user = None
+                acting_user = None
+            login_form = self._get_login_form(acting_user)
+        else:
+            acting_user = request.user
 
-            verified_email = existing_user and existing_user.emails.filter(
-                is_verified=True,
-                email__iexact=identity['email'],
-            ).exists()
+        verified_email = acting_user and acting_user.emails.filter(
+            is_verified=True,
+            email__iexact=identity['email'],
+        ).exists()
 
-            # If they already have an SSO account and the identity provider says
-            # the email matches we go ahead and let them merge it. This is the
-            # only way to prevent them having duplicate accounts, and because
-            # we trust identity providers, its considered safe.
-            if existing_user and existing_user.is_managed and verified_email:
-                # we only allow this flow to happen if the existing user has
-                # membership, otherwise we short circuit because it might be
-                # an attempt to hijack membership of another organization
-                has_membership = OrganizationMember.objects.filter(
-                    user=existing_user,
-                    organization=self.organization,
-                ).exists()
-                if has_membership:
-                    if not auth.login(
-                        request,
-                        existing_user,
-                        after_2fa=request.build_absolute_uri(),
-                        organization_id=self.organization.id
-                    ):
-                        return HttpResponseRedirect(auth.get_login_redirect(self.request))
-                    # assume they've confirmed they want to attach the identity
-                    op = 'confirm'
-                else:
-                    # force them to create a new account
-                    existing_user = None
-
-            login_form = self._get_login_form(existing_user)
-        elif request.user.is_managed:
-            # per the above, try to auto merge if the user was originally an
-            # SSO account but is still logged in
+        # If they already have an SSO account and the identity provider says
+        # the email matches we go ahead and let them merge it. This is the
+        # only way to prevent them having duplicate accounts, and because
+        # we trust identity providers, its considered safe.
+        if acting_user and identity.get('email_verified') and verified_email:
+            # we only allow this flow to happen if the existing user has
+            # membership, otherwise we short circuit because it might be
+            # an attempt to hijack membership of another organization
             has_membership = OrganizationMember.objects.filter(
-                user=request.user,
+                user=acting_user,
                 organization=self.organization,
             ).exists()
             if has_membership:
+                if not auth.login(
+                    request,
+                    acting_user,
+                    after_2fa=request.build_absolute_uri(),
+                    organization_id=self.organization.id
+                ):
+                    return HttpResponseRedirect(auth.get_login_redirect(self.request))
                 # assume they've confirmed they want to attach the identity
                 op = 'confirm'
+            else:
+                # force them to create a new account
+                acting_user = None
 
         if op == 'confirm' and request.user.is_authenticated():
             auth_identity = self._handle_attach_identity(identity)
@@ -566,7 +561,7 @@ class AuthHelper(object):
 
             return self.respond(
                 'sentry/auth-confirm-identity.html', {
-                    'existing_user': existing_user,
+                    'existing_user': acting_user,
                     'identity': identity,
                     'login_form': login_form,
                     'identity_display_name': self._get_display_name(identity),
@@ -749,7 +744,7 @@ class AuthHelper(object):
         self.clear_session()
 
         next_uri = reverse(
-            'sentry-organization-auth-settings', args=[
+            'sentry-organization-auth-provider-settings', args=[
                 self.organization.slug,
             ]
         )
@@ -790,7 +785,7 @@ class AuthHelper(object):
         return HttpResponseRedirect(redirect_uri)
 
     def bind_state(self, key, value):
-        data = self.state.data
+        data = self.state.data or {}
         data[key] = value
 
         self.state.data = data

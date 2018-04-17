@@ -3,6 +3,7 @@ from __future__ import absolute_import, print_function
 import base64
 import jsonschema
 import logging
+import os
 import six
 import traceback
 import uuid
@@ -54,6 +55,7 @@ logger = logging.getLogger('sentry')
 PIXEL = base64.b64decode('R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=')
 
 PROTOCOL_VERSIONS = frozenset(('2.0', '3', '4', '5', '6', '7'))
+
 
 pubsub = QueuedPublisher(
     RedisPublisher(getattr(settings, 'REQUESTS_PUBSUB_CONNECTION', None))
@@ -226,27 +228,6 @@ class APIView(BaseView):
             # implicitly fetched from database.
             project.organization = Organization.objects.get_from_cache(
                 id=project.organization_id)
-
-            if auth.version != '2.0':
-                if not auth.secret_key:
-                    # If we're missing a secret_key, check if we are allowed
-                    # to do a CORS request.
-
-                    # If we're missing an Origin/Referrer header entirely,
-                    # we only want to support this on GET requests. By allowing
-                    # un-authenticated CORS checks for POST, we basially
-                    # are obsoleting our need for a secret key entirely.
-                    if origin is None and request.method != 'GET':
-                        raise APIForbidden(
-                            'Missing required attribute in authentication header: sentry_secret'
-                        )
-
-                    if not is_valid_origin(origin, project):
-                        if project:
-                            tsdb.incr(
-                                tsdb.models.project_total_received_cors, project.id)
-                        raise APIForbidden(
-                            'Missing required Origin or Referer header')
 
             response = super(APIView, self).dispatch(
                 request=request, project=project, auth=auth, helper=helper, key=key, **kwargs
@@ -581,7 +562,12 @@ class MinidumpView(StoreView):
         # data from the event payload and set defaults for processing.
         extra.update(data.get('extra', {}))
         data['extra'] = extra
-        data['platform'] = 'native'
+
+        # Assign our own UUID so we can track this minidump. We cannot trust the
+        # uploaded filename, and if reading the minidump fails there is no way
+        # we can ever retrieve the original UUID from the minidump.
+        event_id = data.get('event_id') or uuid.uuid4().hex
+        data['event_id'] = event_id
 
         # At this point, we only extract the bare minimum information
         # needed to continue processing. This requires to process the
@@ -592,6 +578,14 @@ class MinidumpView(StoreView):
             minidump = request.FILES['upload_file_minidump']
         except KeyError:
             raise APIError('Missing minidump upload')
+
+        if settings.SENTRY_MINIDUMP_CACHE:
+            if not os.path.exists(settings.SENTRY_MINIDUMP_PATH):
+                os.mkdir(settings.SENTRY_MINIDUMP_PATH, 0o744)
+
+            with open('%s/%s.dmp' % (settings.SENTRY_MINIDUMP_PATH, event_id), 'wb') as out:
+                for chunk in minidump.chunks():
+                    out.write(chunk)
 
         merge_minidump_event(data, minidump)
         response_or_event_id = self.process(request, data=data, **kwargs)

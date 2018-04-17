@@ -7,6 +7,8 @@ import GroupState from '../../mixins/groupState';
 import CommitRow from '../commitRow';
 import {t} from '../../locale';
 
+import {Panel} from '../panels';
+
 export default createReactClass({
   displayName: 'EventCause',
 
@@ -82,11 +84,11 @@ export default createReactClass({
             {t('Suspect Commits')} ({commits.length})
           </h3>
         </div>
-        <ul className="list-group list-group-lg commit-list">
+        <Panel>
           {commits.map(commit => {
             return <CommitRow key={commit.id} commit={commit} />;
           })}
-        </ul>
+        </Panel>
       </div>
     );
   },

@@ -1,18 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`ProjectTeamsSettings render() renders 1`] = `
-.glamor-0 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
 <OwnerInput
   initialText="url:src @dummy@example.com"
   organization={
@@ -49,37 +37,433 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
   }
   project={
     Object {
-      "allowedDomains": Array [
-        "example.com",
-        "https://example.com",
-      ],
-      "dataScrubber": false,
-      "dataScrubberDefaults": false,
-      "digestsMaxDelay": 60,
-      "digestsMinDelay": 5,
-      "features": Array [],
+      "hasAccess": true,
       "id": "2",
+      "isBookmarked": false,
+      "isMember": true,
       "name": "Project Name",
-      "resolveAge": 48,
-      "safeFields": Array [
-        "business-email",
-        "company",
-      ],
-      "scrapeJavaScript": true,
-      "scrubIPAddresses": false,
-      "securityToken": "security-token",
-      "securityTokenHeader": "x-security-header",
-      "sensitiveFields": Array [
-        "creditcard",
-        "ssn",
-      ],
       "slug": "project-slug",
-      "subjectTemplate": "[$project] \${tag:level}: $title",
       "teams": Array [],
-      "verifySSL": true,
     }
   }
 >
+  <RuleBuilder
+    onAddRule={[Function]}
+    organization={
+      Object {
+        "access": Array [
+          "org:read",
+          "org:write",
+          "org:admin",
+          "project:read",
+          "project:write",
+          "project:admin",
+          "team:read",
+          "team:write",
+          "team:admin",
+        ],
+        "features": Array [],
+        "id": "3",
+        "name": "Organization Name",
+        "onboardingTasks": Array [],
+        "projects": Array [],
+        "slug": "org-slug",
+        "status": Object {
+          "id": "active",
+          "name": "active",
+        },
+        "teams": Array [],
+      }
+    }
+    project={
+      Object {
+        "hasAccess": true,
+        "id": "2",
+        "isBookmarked": false,
+        "isMember": true,
+        "name": "Project Name",
+        "slug": "project-slug",
+        "teams": Array [],
+      }
+    }
+  >
+    <BuilderBar>
+      <div
+        className="css-1rsoebt-BuilderBar css-1r9wn455"
+      >
+        <BuilderSelect
+          onChange={[Function]}
+          showSearch={false}
+          value="path"
+        >
+          <SelectInput
+            className="css-1eslqkc-BuilderSelect css-1r9wn456"
+            disabled={false}
+            multiple={false}
+            onChange={[Function]}
+            placeholder="Select an option..."
+            required={false}
+            showSearch={false}
+            value="path"
+          >
+            <select
+              className="css-1eslqkc-BuilderSelect css-1r9wn456"
+              disabled={false}
+              multiple={false}
+              onChange={[Function]}
+              placeholder="Select an option..."
+              required={false}
+              value="path"
+            >
+              <option
+                value="path"
+              >
+                Path
+              </option>
+              <option
+                value="url"
+              >
+                URL
+              </option>
+            </select>
+          </SelectInput>
+        </BuilderSelect>
+        <BuilderInput
+          controlled={true}
+          onChange={[Function]}
+          placeholder="src/example/*"
+          value=""
+        >
+          <input
+            className="css-1t4syiu-Input-BuilderInput css-1r9wn457"
+            onChange={[Function]}
+            placeholder="src/example/*"
+            value=""
+          />
+        </BuilderInput>
+        <Divider
+          src="icon-chevron-right"
+        >
+          <InlineSvg
+            className="css-a4tn6s-Divider css-1r9wn458"
+            src="icon-chevron-right"
+          >
+            <StyledSvg
+              className="css-a4tn6s-Divider css-1r9wn458"
+              height="1em"
+              viewBox={Object {}}
+              width="1em"
+            >
+              <svg
+                className="css-1r9wn458 css-5e2rei-StyledSvg css-adkcw30"
+                height="1em"
+                viewBox={Object {}}
+                width="1em"
+              >
+                <use
+                  href="#test"
+                  xlinkHref="#test"
+                />
+              </svg>
+            </StyledSvg>
+          </InlineSvg>
+        </Divider>
+        <Flex
+          align="center"
+          flex="1"
+          mr={1}
+        >
+          <Base
+            align="center"
+            className="css-1q48dzo"
+            flex="1"
+            mr={1}
+          >
+            <div
+              className="css-1q48dzo"
+              is={null}
+            >
+              <SelectOwners
+                onChange={[Function]}
+                options={Array []}
+                value={Array []}
+              >
+                <MultiSelectField
+                  disabled={false}
+                  hideErrorMessage={false}
+                  multi={true}
+                  onChange={[Function]}
+                  options={Array []}
+                  placeholder="Add Owners"
+                  required={false}
+                  style={
+                    Object {
+                      "width": 200,
+                    }
+                  }
+                  value={Array []}
+                  valueComponent={[Function]}
+                >
+                  <MultiSelect
+                    arrowRenderer={[Function]}
+                    disabled={false}
+                    hideErrorMessage={false}
+                    id="id-undefined"
+                    multi={true}
+                    onChange={[Function]}
+                    options={Array []}
+                    placeholder="Add Owners"
+                    required={false}
+                    style={
+                      Object {
+                        "width": 200,
+                      }
+                    }
+                    value={Array []}
+                    valueComponent={[Function]}
+                  >
+                    <Select
+                      arrowRenderer={[Function]}
+                      autosize={true}
+                      backspaceRemoves={true}
+                      backspaceToRemoveMessage="Press backspace to remove {label}"
+                      className="css-1yznv6y-MultiSelect css-12eevnk0"
+                      clearAllText="Clear all"
+                      clearRenderer={[Function]}
+                      clearValueText="Clear value"
+                      clearable={true}
+                      closeOnSelect={true}
+                      deleteRemoves={true}
+                      delimiter=","
+                      disabled={false}
+                      escapeClearsValue={true}
+                      filterOptions={[Function]}
+                      hideErrorMessage={false}
+                      id="id-undefined"
+                      ignoreAccents={true}
+                      ignoreCase={true}
+                      inputProps={Object {}}
+                      isLoading={false}
+                      joinValues={false}
+                      labelKey="label"
+                      matchPos="any"
+                      matchProp="any"
+                      menuBuffer={0}
+                      menuRenderer={[Function]}
+                      multi={true}
+                      noResultsText="No results found"
+                      onBlurResetsInput={true}
+                      onChange={[Function]}
+                      onCloseResetsInput={true}
+                      onSelectResetsInput={true}
+                      openOnClick={true}
+                      optionComponent={[Function]}
+                      options={Array []}
+                      pageSize={5}
+                      placeholder="Add Owners"
+                      removeSelected={true}
+                      required={false}
+                      rtl={false}
+                      scrollMenuIntoView={true}
+                      searchable={true}
+                      simpleValue={false}
+                      style={
+                        Object {
+                          "width": 200,
+                        }
+                      }
+                      tabSelectsValue={true}
+                      trimFilter={true}
+                      value={Array []}
+                      valueComponent={[Function]}
+                      valueKey="value"
+                    >
+                      <div
+                        className="Select css-1yznv6y-MultiSelect css-12eevnk0 is-clearable is-searchable Select--multi"
+                      >
+                        <div
+                          className="Select-control"
+                          onKeyDown={[Function]}
+                          onMouseDown={[Function]}
+                          onTouchEnd={[Function]}
+                          onTouchMove={[Function]}
+                          onTouchStart={[Function]}
+                          style={
+                            Object {
+                              "width": 200,
+                            }
+                          }
+                        >
+                          <span
+                            className="Select-multi-value-wrapper"
+                            id="react-select-2--value"
+                          >
+                            <div
+                              className="Select-placeholder"
+                            >
+                              Add Owners
+                            </div>
+                            <AutosizeInput
+                              aria-activedescendant="react-select-2--value"
+                              aria-expanded="false"
+                              aria-haspopup="false"
+                              aria-owns=""
+                              className="Select-input"
+                              id="id-undefined"
+                              injectStyles={true}
+                              minWidth="5"
+                              onBlur={[Function]}
+                              onChange={[Function]}
+                              onFocus={[Function]}
+                              required={false}
+                              role="combobox"
+                              value=""
+                            >
+                              <div
+                                className="Select-input"
+                                style={
+                                  Object {
+                                    "display": "inline-block",
+                                  }
+                                }
+                              >
+                                <input
+                                  aria-activedescendant="react-select-2--value"
+                                  aria-expanded="false"
+                                  aria-haspopup="false"
+                                  aria-owns=""
+                                  id="id-undefined"
+                                  onBlur={[Function]}
+                                  onChange={[Function]}
+                                  onFocus={[Function]}
+                                  required={false}
+                                  role="combobox"
+                                  style={
+                                    Object {
+                                      "boxSizing": "content-box",
+                                      "width": "5px",
+                                    }
+                                  }
+                                  value=""
+                                />
+                                <div
+                                  style={
+                                    Object {
+                                      "height": 0,
+                                      "left": 0,
+                                      "overflow": "scroll",
+                                      "position": "absolute",
+                                      "top": 0,
+                                      "visibility": "hidden",
+                                      "whiteSpace": "pre",
+                                    }
+                                  }
+                                />
+                              </div>
+                            </AutosizeInput>
+                          </span>
+                          <span
+                            className="Select-arrow-zone"
+                            onMouseDown={[Function]}
+                          >
+                            <span
+                              className="icon-arrow-down"
+                            />
+                          </span>
+                        </div>
+                      </div>
+                    </Select>
+                  </MultiSelect>
+                </MultiSelectField>
+              </SelectOwners>
+            </div>
+          </Base>
+        </Flex>
+        <RuleAddButton
+          icon="icon-circle-add"
+          onClick={[Function]}
+          priority="primary"
+          size="zero"
+        >
+          <Button
+            className="css-3daogo-RuleAddButton css-1r9wn459"
+            disabled={false}
+            icon="icon-circle-add"
+            onClick={[Function]}
+            priority="primary"
+            size="zero"
+          >
+            <button
+              className="css-3daogo-RuleAddButton css-1r9wn459 button button-primary button-zero"
+              disabled={false}
+              onClick={[Function]}
+              role="button"
+            >
+              <Flex
+                align="center"
+                className="button-label"
+              >
+                <Base
+                  align="center"
+                  className="button-label css-5ipae5"
+                >
+                  <div
+                    className="button-label css-5ipae5"
+                    is={null}
+                  >
+                    <Icon
+                      size="zero"
+                    >
+                      <Base
+                        className="css-l3pkcx-Icon css-1vxxnb60"
+                        size="zero"
+                      >
+                        <div
+                          className="css-l3pkcx-Icon css-1vxxnb60"
+                          is={null}
+                          size="zero"
+                        >
+                          <StyledInlineSvg
+                            size="16px"
+                            src="icon-circle-add"
+                          >
+                            <InlineSvg
+                              className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
+                              size="16px"
+                              src="icon-circle-add"
+                            >
+                              <StyledSvg
+                                className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
+                                height="16px"
+                                viewBox={Object {}}
+                                width="16px"
+                              >
+                                <svg
+                                  className="css-1vxxnb61 css-1rlza0i-StyledSvg css-adkcw30"
+                                  height="16px"
+                                  viewBox={Object {}}
+                                  width="16px"
+                                >
+                                  <use
+                                    href="#test"
+                                    xlinkHref="#test"
+                                  />
+                                </svg>
+                              </StyledSvg>
+                            </InlineSvg>
+                          </StyledInlineSvg>
+                        </div>
+                      </Base>
+                    </Icon>
+                  </div>
+                </Base>
+              </Flex>
+            </button>
+          </Button>
+        </RuleAddButton>
+      </div>
+    </BuilderBar>
+  </RuleBuilder>
   <div
     onKeyDown={[Function]}
     style={
@@ -88,320 +472,81 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
       }
     }
   >
-    <withDefaultStyle(MentionsInput)
+    <StyledTextArea
       autoCapitalize="off"
       autoComplete="off"
       autoCorrect="off"
-      autoFocus={true}
-      displayTransform={[Function]}
-      markup="**[sentry.strip:__type__]__display__**"
       onChange={[Function]}
       placeholder="#example usage
-
-path:src/sentry/pipeline/* person@sentry.io #platform
-
-url:http://sentry.io/settings/* #workflow"
-      required={true}
+path:src/example/pipeline/* person@sentry.io #infra
+url:http://example.com/settings/* #product"
       spellCheck="false"
-      style={
-        Object {
-          "&multiLine": Object {
-            "control": Object {
-              "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
-            },
-            "highlighter": Object {
-              "padding": 20,
-            },
-            "input": Object {
-              "border": "1 solid",
-              "minHeight": 140,
-              "outline": 0,
-              "overflow": "auto",
-              "padding": "5px 5px 0",
-            },
-          },
-          "&singleLine": Object {
-            "control": Object {
-              "display": "inline-block",
-              "width": 130,
-            },
-            "highlighter": Object {
-              "border": "2px inset transparent",
-              "padding": 1,
-            },
-            "input": Object {
-              "border": "2px inset",
-              "padding": 1,
-            },
-          },
-          "control": Object {
-            "backgroundColor": "#fff",
-            "fontSize": 15,
-            "fontWeight": "normal",
-          },
-          "input": Object {
-            "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
-            "margin": 0,
-            "whiteSpace": "pre-wrap",
-            "wordBreak": "break-all",
-          },
-          "suggestions": Object {
-            "item": Object {
-              "&focused": Object {
-                "backgroundColor": "#f8f6f9",
-              },
-              "borderBottom": "1px solid rgba(0,0,0,0.15)",
-              "padding": "5px 15px",
-            },
-            "list": Object {
-              "backgroundColor": "white",
-              "border": "1px solid rgba(0,0,0,0.15)",
-              "fontSize": 15,
-              "maxHeight": 150,
-              "overflow": "auto",
-            },
-          },
-        }
-      }
       value="new"
     >
-      <MentionsInput
+      <TextareaAutosize
         autoCapitalize="off"
         autoComplete="off"
         autoCorrect="off"
-        autoFocus={true}
-        displayTransform={[Function]}
-        markup="**[sentry.strip:__type__]__display__**"
-        onBlur={[Function]}
+        className="css-e9agsp-StyledTextArea css-zed2xb2"
         onChange={[Function]}
-        onKeyDown={[Function]}
-        onSelect={[Function]}
         placeholder="#example usage
-
-path:src/sentry/pipeline/* person@sentry.io #platform
-
-url:http://sentry.io/settings/* #workflow"
-        required={true}
-        singleLine={false}
+path:src/example/pipeline/* person@sentry.io #infra
+url:http://example.com/settings/* #product"
+        rows={1}
         spellCheck="false"
-        style={[Function]}
         value="new"
       >
-        <div
-          style={
-            Object {
-              "overflowY": "visible",
-              "position": "relative",
-            }
-          }
-        >
-          <div
-            style={
-              Object {
-                "backgroundColor": "#fff",
-                "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
-                "fontSize": 15,
-                "fontWeight": "normal",
-              }
-            }
-          >
-            <withDefaultStyle(Highlighter)
-              displayTransform={[Function]}
-              inputStyle={
-                Object {
-                  "backgroundColor": "transparent",
-                  "border": "1 solid",
-                  "bottom": 0,
-                  "boxSizing": "border-box",
-                  "display": "block",
-                  "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
-                  "height": "100%",
-                  "margin": 0,
-                  "minHeight": 140,
-                  "outline": 0,
-                  "overflow": "auto",
-                  "padding": "5px 5px 0",
-                  "position": "absolute",
-                  "resize": "none",
-                  "top": 0,
-                  "whiteSpace": "pre-wrap",
-                  "width": "100%",
-                  "wordBreak": "break-all",
-                }
-              }
-              markup="**[sentry.strip:__type__]__display__**"
-              onCaretPositionChange={[Function]}
-              selection={
-                Object {
-                  "end": null,
-                  "start": null,
-                }
-              }
-              singleLine={false}
-              style={[Function]}
-              value="new"
-            >
-              <Highlighter
-                displayTransform={[Function]}
-                inputStyle={
-                  Object {
-                    "backgroundColor": "transparent",
-                    "border": "1 solid",
-                    "bottom": 0,
-                    "boxSizing": "border-box",
-                    "display": "block",
-                    "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
-                    "height": "100%",
-                    "margin": 0,
-                    "minHeight": 140,
-                    "outline": 0,
-                    "overflow": "auto",
-                    "padding": "5px 5px 0",
-                    "position": "absolute",
-                    "resize": "none",
-                    "top": 0,
-                    "whiteSpace": "pre-wrap",
-                    "width": "100%",
-                    "wordBreak": "break-all",
-                  }
-                }
-                markup="**[sentry.strip:__type__]__display__**"
-                onCaretPositionChange={[Function]}
-                selection={
-                  Object {
-                    "end": null,
-                    "start": null,
-                  }
-                }
-                singleLine={false}
-                style={[Function]}
-                value="new"
-              >
-                <div
-                  style={
-                    Object {
-                      "backgroundColor": "transparent",
-                      "border": "1 solid",
-                      "bottom": 0,
-                      "boxSizing": "border-box",
-                      "color": "transparent",
-                      "display": "block",
-                      "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
-                      "height": "100%",
-                      "margin": 0,
-                      "minHeight": 140,
-                      "outline": 0,
-                      "overflow": "hidden",
-                      "padding": 20,
-                      "position": "relative",
-                      "resize": "none",
-                      "top": 0,
-                      "whiteSpace": "pre-wrap",
-                      "width": "inherit",
-                      "wordBreak": "break-all",
-                      "wordWrap": "break-word",
-                    }
-                  }
-                >
-                  <span
-                    key="0"
-                    style={
-                      Object {
-                        "visibility": "hidden",
-                      }
-                    }
-                  >
-                    new
-                  </span>
-                   
-                </div>
-              </Highlighter>
-            </withDefaultStyle(Highlighter)>
-            <textarea
-              autoCapitalize="off"
-              autoComplete="off"
-              autoCorrect="off"
-              autoFocus={true}
-              onBlur={[Function]}
-              onChange={[Function]}
-              onCompositionEnd={[Function]}
-              onCompositionStart={[Function]}
-              onKeyDown={[Function]}
-              onSelect={[Function]}
-              placeholder="#example usage
-
-path:src/sentry/pipeline/* person@sentry.io #platform
-
-url:http://sentry.io/settings/* #workflow"
-              required={true}
-              spellCheck="false"
-              style={
-                Object {
-                  "backgroundColor": "transparent",
-                  "border": "1 solid",
-                  "bottom": 0,
-                  "boxSizing": "border-box",
-                  "display": "block",
-                  "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
-                  "height": "100%",
-                  "margin": 0,
-                  "minHeight": 140,
-                  "outline": 0,
-                  "overflow": "auto",
-                  "padding": "5px 5px 0",
-                  "position": "absolute",
-                  "resize": "none",
-                  "top": 0,
-                  "whiteSpace": "pre-wrap",
-                  "width": "100%",
-                  "wordBreak": "break-all",
-                }
-              }
-              value="new"
-            />
-          </div>
-        </div>
-      </MentionsInput>
-    </withDefaultStyle(MentionsInput)>
-    <div
-      style={
-        Object {
-          "paddingTop": "10px",
-          "textAlign": "end",
-        }
-      }
-    >
-      <Button
-        disabled={false}
-        onClick={[Function]}
-        priority="primary"
-        size="small"
+        <textarea
+          autoCapitalize="off"
+          autoComplete="off"
+          autoCorrect="off"
+          className="css-e9agsp-StyledTextArea css-zed2xb2"
+          onChange={[Function]}
+          placeholder="#example usage
+path:src/example/pipeline/* person@sentry.io #infra
+url:http://example.com/settings/* #product"
+          rows={1}
+          spellCheck="false"
+          value="new"
+        />
+      </TextareaAutosize>
+    </StyledTextArea>
+    <SaveButton>
+      <div
+        className="css-5zvod-SaveButton css-zed2xb1"
       >
-        <button
-          className="button button-primary button-sm"
+        <Button
           disabled={false}
           onClick={[Function]}
-          role="button"
+          priority="primary"
+          size="small"
         >
-          <Flex
-            align="center"
-            className="button-label"
+          <button
+            className="button button-primary button-sm"
+            disabled={false}
+            onClick={[Function]}
+            role="button"
           >
-            <Base
+            <Flex
               align="center"
-              className="button-label glamor-0"
+              className="button-label"
             >
-              <div
-                className="button-label glamor-0"
-                is={null}
+              <Base
+                align="center"
+                className="button-label css-5ipae5"
               >
-                Save Changes
-              </div>
-            </Base>
-          </Flex>
-        </button>
-      </Button>
-    </div>
+                <div
+                  className="button-label css-5ipae5"
+                  is={null}
+                >
+                  Save Changes
+                </div>
+              </Base>
+            </Flex>
+          </button>
+        </Button>
+      </div>
+    </SaveButton>
   </div>
 </OwnerInput>
 `;

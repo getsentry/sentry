@@ -3,14 +3,11 @@ import React from 'react';
 
 import AsyncComponent from '../components/asyncComponent';
 
-class AsyncView extends AsyncComponent {
-  constructor(...args) {
-    super(...args);
-  }
-
+export default class AsyncView extends AsyncComponent {
   getTitle() {
     return '';
   }
+
   render() {
     let title = this.getTitle();
     return (
@@ -20,5 +17,3 @@ class AsyncView extends AsyncComponent {
     );
   }
 }
-
-export default AsyncView;

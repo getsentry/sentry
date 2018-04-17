@@ -1,9 +1,11 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import {shallow, mount} from 'enzyme';
 
 import {Client} from 'app/api';
 import Configure from 'app/views/onboarding/configure';
-import SentryTypes from '../../../../../../src/sentry/static/sentry/app/proptypes';
+import ProjectsStore from 'app/stores/projectsStore';
+import SentryTypes from 'app/proptypes';
 
 describe('Configure should render correctly', function() {
   let sandbox;
@@ -51,10 +53,28 @@ describe('Configure should render correctly', function() {
       url: '/projects/testOrg/project-slug/docs/node/',
       body: {},
     });
+
+    ProjectsStore.loadInitialData([
+      {
+        name: 'Test Project',
+        slug: 'project-slug',
+        id: 'testProject',
+        hasAccess: true,
+        isBookmarked: false,
+        teams: [
+          {
+            slug: 'coolteam',
+            id: 'coolid',
+            hasAccess: true,
+          },
+        ],
+      },
+    ]);
   });
 
   afterEach(function() {
     sandbox.restore();
+    ProjectsStore.loadInitialData([]);
   });
 
   describe('render()', function() {
@@ -113,7 +133,7 @@ describe('Configure should render correctly', function() {
       expect(handleSubmitStub.callCount).toEqual(1);
     });
 
-    it('should render platform docs', function() {
+    it('should render platform docs', function(done) {
       let props = {
         ...baseProps,
       };
@@ -132,9 +152,11 @@ describe('Configure should render correctly', function() {
                 slug: 'project-slug',
                 id: 'testProject',
                 hasAccess: true,
+                isBookmarked: false,
                 teams: [
                   {
                     id: 'coolteam',
+                    slug: 'coolteam',
                     hasAccess: true,
                   },
                 ],
@@ -143,6 +165,7 @@ describe('Configure should render correctly', function() {
             teams: [
               {
                 id: 'coolteam',
+                slug: 'coolteam',
                 hasAccess: true,
                 projects: [
                   {
@@ -158,11 +181,15 @@ describe('Configure should render correctly', function() {
         childContextTypes: {
           organization: SentryTypes.Organization,
           project: SentryTypes.Project,
-          router: SentryTypes.object,
+          router: PropTypes.object,
         },
       });
 
-      expect(wrapper).toMatchSnapshot();
+      setTimeout(() => {
+        wrapper.update();
+        expect(wrapper).toMatchSnapshot();
+        done();
+      });
     });
   });
 });

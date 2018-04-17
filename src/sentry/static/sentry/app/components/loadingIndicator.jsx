@@ -3,7 +3,18 @@ import React from 'react';
 import classNames from 'classnames';
 
 function LoadingIndicator(props) {
-  let {mini, triangle, overlay, dark, children, finished, className, style} = props;
+  let {
+    hideMessage,
+    mini,
+    triangle,
+    overlay,
+    dark,
+    children,
+    finished,
+    className,
+    style,
+    relative,
+  } = props;
   let cx = classNames(className, {
     overlay,
     dark,
@@ -13,6 +24,7 @@ function LoadingIndicator(props) {
   });
 
   let loadingCx = classNames({
+    relative,
     'loading-indicator': true,
     'load-complete': finished,
   });
@@ -23,7 +35,7 @@ function LoadingIndicator(props) {
         {finished ? <div className="checkmark draw" /> : null}
       </div>
 
-      <div className="loading-message">{children}</div>
+      {!hideMessage && <div className="loading-message">{children}</div>}
     </div>
   );
 }
@@ -34,6 +46,8 @@ LoadingIndicator.propTypes = {
   mini: PropTypes.bool,
   triangle: PropTypes.bool,
   finished: PropTypes.bool,
+  relative: PropTypes.bool,
+  hideMessage: PropTypes.bool,
 };
 
 export default LoadingIndicator;

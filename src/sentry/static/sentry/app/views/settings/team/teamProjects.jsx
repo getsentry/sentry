@@ -1,11 +1,11 @@
 import React from 'react';
 import createReactClass from 'create-react-class';
-import {Box} from 'grid-emotion';
 import Reflux from 'reflux';
 import styled from 'react-emotion';
 
 import ApiMixin from '../../../mixins/apiMixin';
 import {addErrorMessage, addSuccessMessage} from '../../../actionCreators/indicator';
+import space from '../../../styles/space';
 import Button from '../../../components/buttons/button';
 import DropdownAutoComplete from '../../../components/dropdownAutoComplete';
 import DropdownButton from '../../../components/dropdownButton';
@@ -14,19 +14,11 @@ import ProjectsStore from '../../../stores/projectsStore';
 import LoadingError from '../../../components/loadingError';
 import OrganizationState from '../../../mixins/organizationState';
 import ProjectListItem from '../components/settingsProjectItem';
-import Panel from '../components/panel';
-import PanelItem from '../components/panelItem';
-import PanelHeader from '../components/panelHeader';
-import PanelBody from '../components/panelBody';
+import {Panel, PanelHeader, PanelBody, PanelItem} from '../../../components/panels';
+import InlineSvg from '../../../components/inlineSvg';
 
 import {sortProjects} from '../../../utils';
 import {t} from '../../../locale';
-
-const PanelHeaderContentContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
 
 const TeamProjects = createReactClass({
   displayName: 'TeamProjects',
@@ -94,24 +86,22 @@ const TeamProjects = createReactClass({
   projectPanelcontents(projects) {
     return projects.length ? (
       sortProjects(projects).map((project, i) => (
-        <PanelItem p={0} key={project.id} align="center">
-          <Box p={2} flex="1">
-            <ProjectListItem project={project} organization={this.context.organization} />
-          </Box>
-          <Box p={2}>
-            <Button
-              size="small"
-              onClick={() => {
-                this.handleLinkProject(project, 'remove');
-              }}
-            >
-              {t('Remove')}
-            </Button>
-          </Box>
-        </PanelItem>
+        <StyledPanelItem key={project.id}>
+          <ProjectListItem project={project} organization={this.context.organization} />
+          <Button
+            size="small"
+            onClick={() => {
+              this.handleLinkProject(project, 'remove');
+            }}
+          >
+            <RemoveIcon /> {t('Remove')}
+          </Button>
+        </StyledPanelItem>
       ))
     ) : (
-      <EmptyMessage>{t("This team doesn't have access to any projects.")}</EmptyMessage>
+      <EmptyMessage size="large" icon="icon-circle-exclamation">
+        {t("This team doesn't have access to any projects.")}
+      </EmptyMessage>
     );
   },
 
@@ -130,36 +120,53 @@ const TeamProjects = createReactClass({
       .map(p => {
         return {
           value: p.id,
-          label: p.slug,
+          searchKey: p.slug,
+          label: <ProjectListElement>{p.slug}</ProjectListElement>,
         };
       });
 
     return (
-      <div>
-        <Panel>
-          <PanelHeader>
-            <PanelHeaderContentContainer>
-              {t('Projects')}
-              <div style={{textTransform: 'none'}}>
-                <DropdownAutoComplete
-                  items={otherProjects}
-                  onSelect={this.handleProjectSelected}
-                >
-                  {({isOpen, selectedItem}) => (
-                    <DropdownButton isOpen={isOpen}>
-                      <span className="icon-plus" />
-                      {t('Add Project')}
-                    </DropdownButton>
-                  )}
-                </DropdownAutoComplete>
-              </div>
-            </PanelHeaderContentContainer>
-          </PanelHeader>
-          <PanelBody>{this.projectPanelcontents(linkedProjects)}</PanelBody>
-        </Panel>
-      </div>
+      <Panel>
+        <PanelHeader hasButtons={true}>
+          <div>{t('Projects')}</div>
+          <div style={{textTransform: 'none'}}>
+            <DropdownAutoComplete
+              items={otherProjects}
+              onSelect={this.handleProjectSelected}
+            >
+              {({isOpen, selectedItem}) => (
+                <DropdownButton isOpen={isOpen} size="xsmall">
+                  {t('Add Project')}
+                </DropdownButton>
+              )}
+            </DropdownAutoComplete>
+          </div>
+        </PanelHeader>
+        <PanelBody>{this.projectPanelcontents(linkedProjects)}</PanelBody>
+      </Panel>
     );
   },
 });
+
+const RemoveIcon = styled(props => (
+  <InlineSvg {...props} src="icon-circle-subtract">
+    {t('Remove')}
+  </InlineSvg>
+))`
+  min-height: 1.25em;
+  min-width: 1.25em;
+  margin-right: ${space(1)};
+`;
+
+const StyledPanelItem = styled(PanelItem)`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: ${space(2)};
+`;
+
+const ProjectListElement = styled('div')`
+  padding: ${space(0.25)} 0;
+`;
 
 export default TeamProjects;

@@ -4,25 +4,27 @@ import GuideAnchor from 'app/components/assistant/guideAnchor';
 
 describe('GuideStore', function() {
   let sandbox;
-  let data = {
-    issue: {
-      cue: 'Click here for a tour of the issue page',
-      id: 1,
-      page: 'issue',
-      required_targets: ['target 1'],
-      steps: [
-        {message: 'Message 1', target: 'target 1', title: '1. Title 1'},
-        {message: 'Message 2', target: 'target 2', title: '2. Title 2'},
-      ],
-    },
-  };
-
   let anchor1 = <GuideAnchor target="target 1" type="text" />;
   let anchor2 = <GuideAnchor target="target 2" type="text" />;
+  let data;
 
   beforeEach(function() {
     GuideStore.init();
     sandbox = sinon.sandbox.create();
+    data = {
+      issue: {
+        cue: 'Click here for a tour of the issue page',
+        id: 1,
+        page: 'issue',
+        required_targets: ['target 1'],
+        steps: [
+          {message: 'Message 1', target: 'target 1', title: '1. Title 1'},
+          {message: 'Message 2', target: 'target 2', title: '2. Title 2'},
+          {message: 'Message 3', target: 'target 3', title: '3. Title 3'},
+        ],
+        seen: false,
+      },
+    };
   });
 
   afterEach(function() {
@@ -45,11 +47,35 @@ describe('GuideStore', function() {
     GuideStore.onRegisterAnchor(anchor1);
     GuideStore.onRegisterAnchor(anchor2);
     GuideStore.onFetchSucceeded(data);
+    // GuideStore should prune steps that don't have anchors.
+    expect(GuideStore.state.currentGuide.steps).toHaveLength(2);
+    expect(GuideStore.state.currentGuide.seen).toEqual(false);
     GuideStore.onNextStep();
     expect(GuideStore.state.currentStep).toEqual(1);
     GuideStore.onNextStep();
     expect(GuideStore.state.currentStep).toEqual(2);
-    GuideStore.onCloseGuide();
-    expect(GuideStore.state.guidesSeen).toEqual(new Set([1]));
+    GuideStore.onCloseGuideOrSupport();
+    expect(
+      Object.keys(GuideStore.state.guides).filter(
+        key => GuideStore.state.guides[key].seen == true
+      )
+    ).toEqual(['issue']);
+  });
+
+  it('should not show seen guides', function() {
+    data.issue.seen = true;
+    GuideStore.onRegisterAnchor(anchor1);
+    GuideStore.onRegisterAnchor(anchor2);
+    GuideStore.onFetchSucceeded(data);
+    expect(GuideStore.state.currentGuide).toEqual(null);
+  });
+
+  it('should force show a guide', function() {
+    data.issue.seen = true;
+    GuideStore.onRegisterAnchor(anchor1);
+    GuideStore.onRegisterAnchor(anchor2);
+    GuideStore.state.forceShow = true;
+    GuideStore.onFetchSucceeded(data);
+    expect(GuideStore.state.currentGuide).not.toEqual(null);
   });
 });

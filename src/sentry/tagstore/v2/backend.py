@@ -43,39 +43,76 @@ class V2TagStorage(TagStorage):
     """
 
     def setup(self):
-        self.setup_deletions(
-            tagkey_model=TagKey,
-            tagvalue_model=TagValue,
-            grouptagkey_model=GroupTagKey,
-            grouptagvalue_model=GroupTagValue,
-            eventtag_model=EventTag,
-        )
+        self.setup_deletions()
 
-        self.setup_cleanup(
-            tagvalue_model=TagValue,
-            grouptagvalue_model=GroupTagValue,
-            eventtag_model=EventTag,
-        )
+        self.setup_cleanup()
 
         self.setup_merge(
             grouptagkey_model=GroupTagKey,
             grouptagvalue_model=GroupTagValue,
         )
 
-        self.setup_receivers(
-            tagvalue_model=TagValue,
-            grouptagvalue_model=GroupTagValue,
-        )
+        self.setup_receivers()
 
-    def setup_cleanup(self, tagvalue_model, grouptagvalue_model, eventtag_model):
+    def setup_cleanup(self):
         # TODO: fix for sharded DB
         pass
 
-    def setup_deletions(self, **kwargs):
-        super(V2TagStorage, self).setup_deletions(**kwargs)
-
+    def setup_deletions(self):
         from sentry.deletions import default_manager as deletion_manager
-        from sentry.deletions.base import ModelRelation, ModelDeletionTask
+        from sentry.deletions.defaults import BulkModelDeletionTask, ModelDeletionTask
+        from sentry.deletions.base import ModelRelation
+        from sentry.models import Event, Group, Project
+
+        deletion_manager.add_bulk_dependencies(Event, [
+            lambda instance_list: ModelRelation(EventTag,
+                                                {'event_id__in': [i.id for i in instance_list],
+                                                 'project_id': instance_list[0].project_id},
+                                                ModelDeletionTask),
+        ])
+
+        deletion_manager.register(TagValue, BulkModelDeletionTask)
+        deletion_manager.register(GroupTagKey, BulkModelDeletionTask)
+        deletion_manager.register(GroupTagValue, BulkModelDeletionTask)
+        deletion_manager.register(EventTag, BulkModelDeletionTask)
+
+        deletion_manager.add_dependencies(Group, [
+            lambda instance: ModelRelation(
+                EventTag,
+                query={
+                    'group_id': instance.id,
+                    'project_id': instance.project_id
+                },
+                partition_key={'project_id': instance.project_id}),
+            lambda instance: ModelRelation(
+                GroupTagKey,
+                query={
+                    'group_id': instance.id,
+                    'project_id': instance.project_id
+                },
+                partition_key={'project_id': instance.project_id}),
+            lambda instance: ModelRelation(
+                GroupTagValue,
+                query={
+                    'group_id': instance.id,
+                    'project_id': instance.project_id
+                },
+                partition_key={'project_id': instance.project_id}),
+        ])
+
+        deletion_manager.add_dependencies(Project, [
+            lambda instance: ModelRelation(TagKey,
+                                           query={'project_id': instance.id}),
+            lambda instance: ModelRelation(TagValue,
+                                           query={'project_id': instance.id},
+                                           partition_key={'project_id': instance.id}),
+            lambda instance: ModelRelation(GroupTagKey,
+                                           query={'project_id': instance.id},
+                                           partition_key={'project_id': instance.id}),
+            lambda instance: ModelRelation(GroupTagValue,
+                                           query={'project_id': instance.id},
+                                           partition_key={'project_id': instance.id}),
+        ])
 
         # NOTE: EventTag is handled by cleanup
 
@@ -89,10 +126,10 @@ class V2TagStorage(TagStorage):
                 key_id_field_name = 'key_id' if (db.is_postgres() or db.is_mysql()) else '_key_id'
 
                 relations = [
-                    ModelRelation(m, {
+                    ModelRelation(m, query={
                         'project_id': instance.project_id,
                         key_id_field_name: instance.id,
-                    }) for m in model_list
+                    }, partition_key={'project_id': instance.project_id}) for m in model_list
                 ]
                 return relations
 
@@ -106,9 +143,7 @@ class V2TagStorage(TagStorage):
 
         deletion_manager.register(TagKey, TagKeyDeletionTask)
 
-    def setup_receivers(self, **kwargs):
-        super(V2TagStorage, self).setup_receivers(**kwargs)
-
+    def setup_receivers(self):
         from django.db.models.signals import post_save
 
         def record_project_tag_count(instance, created, **kwargs):
@@ -149,6 +184,21 @@ class V2TagStorage(TagStorage):
             environment_id=environment_id,
             key=key,
             **kwargs
+        )
+
+    def get_or_create_tag_keys_bulk(self, project_id, environment_id, keys):
+        assert environment_id is not None
+
+        return TagKey.get_or_create_bulk(
+            project_id=project_id,
+            environment_id=environment_id,
+            keys=keys,
+        )
+
+    def get_or_create_tag_values_bulk(self, project_id, tags):
+        return TagValue.get_or_create_bulk(
+            project_id=project_id,
+            tags=tags,
         )
 
     def get_or_create_tag_key(self, project_id, environment_id, key, **kwargs):
@@ -265,11 +315,25 @@ class V2TagStorage(TagStorage):
                                       environment_id, key, value, **kwargs):
         assert environment_id is not None
 
-        tag_key, _ = self.get_or_create_tag_key(
-            project_id, environment_id, key, **kwargs)
+        if 'defaults' in kwargs:
+            # while backfilling v2 it is possible that a user performs an unmerge
+            # (which contains default values in kwargs) AND where the TagKey actually
+            # doesn't exist in the v2 database yet, so the defaults are used in create
+            # and explode because the fields don't actually exist in TagKey
+            # this is solved here as a one-off because it's very seldomly used and in
+            # the hot path for basically everything to do with tags
+            kcopy = kwargs.copy()
+            kcopy.pop('defaults')
+            tag_key, _ = self.get_or_create_tag_key(project_id, environment_id, key, **kcopy)
 
-        tag_value, _ = self.get_or_create_tag_value(
-            project_id, environment_id, key, value, key_id=tag_key.id, **kwargs)
+            tag_value, _ = self.get_or_create_tag_value(
+                project_id, environment_id, key, value, key_id=tag_key.id, **kcopy)
+
+        else:
+            tag_key, _ = self.get_or_create_tag_key(project_id, environment_id, key, **kwargs)
+
+            tag_value, _ = self.get_or_create_tag_value(
+                project_id, environment_id, key, value, key_id=tag_key.id, **kwargs)
 
         gtv, created = GroupTagValue.objects.get_or_create(
             project_id=project_id,
@@ -290,12 +354,10 @@ class V2TagStorage(TagStorage):
         if date_added is None:
             date_added = timezone.now()
 
-        tag_ids = []
-        for key, value in tags:
-            tagkey, _ = self.get_or_create_tag_key(project_id, environment_id, key)
-            tagvalue, _ = self.get_or_create_tag_value(
-                project_id, environment_id, key, value, key_id=tagkey.id)
-            tag_ids.append((tagkey.id, tagvalue.id))
+        tagkeys = self.get_or_create_tag_keys_bulk(project_id, environment_id, [t[0] for t in tags])
+        tagvalues = self.get_or_create_tag_values_bulk(
+            project_id, [(tagkeys[t[0]], t[1]) for t in tags])
+        tag_ids = [(tk.id, tv.id) for (tk, _), tv in tagvalues.items()]
 
         try:
             # don't let a duplicate break the outer transaction
@@ -358,7 +420,7 @@ class V2TagStorage(TagStorage):
     def get_tag_value(self, project_id, environment_id, key, value):
         from sentry.tagstore.exceptions import TagValueNotFound
 
-        qs = TagValue.objects.filter(
+        qs = TagValue.objects.select_related('_key').filter(
             project_id=project_id,
             _key__key=key,
             value=value,
@@ -372,7 +434,7 @@ class V2TagStorage(TagStorage):
             raise TagValueNotFound
 
     def get_tag_values(self, project_id, environment_id, key):
-        qs = TagValue.objects.filter(
+        qs = TagValue.objects.select_related('_key').filter(
             project_id=project_id,
             _key__key=key,
         )
@@ -384,7 +446,7 @@ class V2TagStorage(TagStorage):
     def get_group_tag_key(self, project_id, group_id, environment_id, key):
         from sentry.tagstore.exceptions import GroupTagKeyNotFound
 
-        qs = GroupTagKey.objects.filter(
+        qs = GroupTagKey.objects.select_related('_key').filter(
             project_id=project_id,
             group_id=group_id,
             _key__key=key,
@@ -398,7 +460,7 @@ class V2TagStorage(TagStorage):
             raise GroupTagKeyNotFound
 
     def get_group_tag_keys(self, project_id, group_id, environment_id, limit=None):
-        qs = GroupTagKey.objects.filter(
+        qs = GroupTagKey.objects.select_related('_key').filter(
             group_id=group_id,
         )
 
@@ -426,7 +488,7 @@ class V2TagStorage(TagStorage):
         return value
 
     def get_group_tag_values(self, project_id, group_id, environment_id, key):
-        qs = GroupTagValue.objects.filter(
+        qs = GroupTagValue.objects.select_related('_key', '_value').filter(
             group_id=group_id,
             _key__key=key,
         )
@@ -436,7 +498,7 @@ class V2TagStorage(TagStorage):
         return list(qs)
 
     def get_group_list_tag_value(self, project_id, group_id_list, environment_id, key, value):
-        qs = GroupTagValue.objects.filter(
+        qs = GroupTagValue.objects.select_related('_key', '_value').filter(
             project_id=project_id,
             group_id__in=group_id_list,
             _key__key=key,
@@ -652,14 +714,7 @@ class V2TagStorage(TagStorage):
                     """
                 SELECT *
                 FROM (
-                    SELECT tagstore_grouptagvalue.id,
-                           tagstore_grouptagvalue.project_id,
-                           tagstore_grouptagvalue.group_id,
-                           tagstore_grouptagvalue.times_seen,
-                           tagstore_grouptagvalue.key_id,
-                           tagstore_grouptagvalue.value_id,
-                           tagstore_grouptagvalue.last_seen,
-                           tagstore_grouptagvalue.first_seen
+                    SELECT tagstore_grouptagvalue.*
                     FROM tagstore_grouptagvalue
                     INNER JOIN tagstore_tagkey
                     ON (tagstore_grouptagvalue.key_id = tagstore_tagkey.id)
@@ -676,7 +731,7 @@ class V2TagStorage(TagStorage):
             )
 
         cutoff = timezone.now() - timedelta(days=7)
-        qs = GroupTagValue.objects.filter(
+        qs = GroupTagValue.objects.select_related('_key', '_value').filter(
             group_id=group_id,
             _key__key=key,
             last_seen__gte=cutoff,
@@ -686,7 +741,7 @@ class V2TagStorage(TagStorage):
 
     def get_first_release(self, project_id, group_id):
         try:
-            first_release = GroupTagValue.objects.filter(
+            first_release = GroupTagValue.objects.select_related('_value').filter(
                 project_id=project_id,
                 group_id=group_id,
                 _key__key__in=('sentry:release', 'release'),
@@ -698,7 +753,7 @@ class V2TagStorage(TagStorage):
 
     def get_last_release(self, project_id, group_id):
         try:
-            last_release = GroupTagValue.objects.filter(
+            last_release = GroupTagValue.objects.select_related('_value').filter(
                 project_id=project_id,
                 group_id=group_id,
                 _key__key__in=('sentry:release', 'release'),
@@ -709,7 +764,7 @@ class V2TagStorage(TagStorage):
         return last_release.value
 
     def get_release_tags(self, project_ids, environment_id, versions):
-        qs = TagValue.objects.filter(
+        qs = TagValue.objects.select_related('_key').filter(
             project_id__in=project_ids,
             _key__key='sentry:release',
             value__in=versions,
@@ -733,7 +788,7 @@ class V2TagStorage(TagStorage):
             for eu in event_users
         ]
 
-        return list(GroupTagValue.objects.filter(
+        return list(GroupTagValue.objects.select_related('_value').filter(
             reduce(or_, tag_filters),
             _key__environment_id=AGGREGATE_ENVIRONMENT_ID,
             _key__key='sentry:user',
@@ -741,7 +796,7 @@ class V2TagStorage(TagStorage):
 
     def get_group_ids_for_search_filter(
             self, project_id, environment_id, tags, candidates=None, limit=1000):
-        from sentry.search.base import ANY, EMPTY
+        from sentry.search.base import ANY
         # Django doesnt support union, so we limit results and try to find
         # reasonable matches
 
@@ -755,10 +810,7 @@ class V2TagStorage(TagStorage):
         # for each remaining tag, find matches contained in our
         # existing set, pruning it down each iteration
         for k, v in tag_lookups:
-            if v is EMPTY:
-                return None
-
-            elif v != ANY:
+            if v != ANY:
                 base_qs = GroupTagValue.objects.filter(
                     project_id=project_id,
                     _key__key=k,
@@ -805,7 +857,7 @@ class V2TagStorage(TagStorage):
             )
 
     def get_tag_value_qs(self, project_id, environment_id, key, query=None):
-        qs = TagValue.objects.filter(
+        qs = TagValue.objects.select_related('_key').filter(
             project_id=project_id,
             _key__key=key,
         )
@@ -818,7 +870,7 @@ class V2TagStorage(TagStorage):
         return qs
 
     def get_group_tag_value_qs(self, project_id, group_id, environment_id, key, value=None):
-        qs = GroupTagValue.objects.filter(
+        qs = GroupTagValue.objects.select_related('_key', '_value').filter(
             project_id=project_id,
             _key__key=key,
         )
@@ -834,6 +886,17 @@ class V2TagStorage(TagStorage):
         qs = self._add_environment_filter(qs, environment_id)
         return qs
 
+    def get_event_tag_qs(self, project_id, environment_id, key, value):
+        qs = EventTag.objects.filter(
+            project_id=project_id,
+            key__key=key,
+            value__value=value,
+        )
+
+        qs = self._add_environment_filter(qs, environment_id)
+
+        return qs
+
     def update_group_for_events(self, project_id, event_ids, destination_id):
         return EventTag.objects.filter(
             project_id=project_id,
@@ -847,8 +910,11 @@ class V2TagStorage(TagStorage):
         """
         if environment_id is None:
             environment_id = AGGREGATE_ENVIRONMENT_ID
+
         if queryset.model == TagKey:
             return queryset.filter(environment_id=environment_id)
+        elif queryset.model in (EventTag,):
+            return queryset.filter(key__environment_id=environment_id)
         elif queryset.model in (TagValue, GroupTagKey, GroupTagValue):
             return queryset.filter(_key__environment_id=environment_id)
         else:

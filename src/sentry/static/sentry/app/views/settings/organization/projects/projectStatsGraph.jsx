@@ -1,5 +1,6 @@
 import LazyLoad from 'react-lazy-load';
 import React from 'react';
+import PropTypes from 'prop-types';
 
 import createReactClass from 'create-react-class';
 
@@ -11,13 +12,15 @@ const ProjectStatsGraph = createReactClass({
 
   propTypes: {
     project: SentryTypes.Project,
+    stats: PropTypes.array,
   },
 
   render() {
     let {project} = this.props;
+    let stats = this.props.stats || project.stats;
     let chartData =
-      project.stats &&
-      project.stats.map(point => {
+      stats &&
+      stats.map(point => {
         return {x: point[0], y: point[1]};
       });
 

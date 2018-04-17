@@ -1,11 +1,21 @@
 import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
+import styled from 'react-emotion';
 import {t} from '../../locale';
-import {closeGuide, fetchGuides, nextStep} from '../../actionCreators/guides';
+import {
+  closeGuideOrSupport,
+  fetchGuides,
+  nextStep,
+  recordDismiss,
+} from '../../actionCreators/guides';
 import SupportDrawer from './supportDrawer';
 import GuideDrawer from './guideDrawer';
 import GuideStore from '../../stores/guideStore';
+import CueIcon from './cueIcon';
+import AssistantContainer from './assistantContainer';
+import CloseIcon from './closeIcon';
+import HookStore from '../../stores/hookStore';
 
 // AssistantHelper is responsible for rendering the cue message, guide drawer and support drawer.
 const AssistantHelper = createReactClass({
@@ -15,14 +25,12 @@ const AssistantHelper = createReactClass({
 
   getInitialState() {
     return {
-      isDrawerOpen: false,
-      // currentGuide and currentStep are obtained from GuideStore.
-      // Even though this component doesn't need currentStep, it's
-      // child GuideDrawer does, and it's cleaner for only the parent
-      // to subscribe to GuideStore and pass down the guide and step,
-      // rather than have both parent and child subscribe to GuideStore.
       currentGuide: null,
+      // currentStep is applicable to the Need-Help button too. When currentGuide
+      // is null, if currentStep is 0 the Need-Help button is cued, and if it's > 0
+      // the support widget is open.
       currentStep: 0,
+      currentOrg: null,
     };
   },
 
@@ -30,69 +38,128 @@ const AssistantHelper = createReactClass({
     fetchGuides();
   },
 
+  componentDidUpdate(prevProps, prevState) {
+    if (this.state.currentGuide && !prevState.currentGuide) {
+      HookStore.get('analytics:event').forEach(cb =>
+        cb('assistant.guide_cued', {
+          guide: this.state.currentGuide.id,
+          cue: this.state.currentGuide.cue,
+        })
+      );
+    }
+  },
+
   onGuideStateChange(data) {
-    let newState = {
+    this.setState({
       currentGuide: data.currentGuide,
       currentStep: data.currentStep,
-    };
-    if (this.state.currentGuide != data.currentGuide) {
-      newState.isDrawerOpen = false;
-    }
-    this.setState(newState);
+    });
   },
 
-  handleDrawerOpen() {
-    this.setState({
-      isDrawerOpen: true,
-    });
-    nextStep();
-  },
-
-  handleSupportDrawerClose() {
-    this.setState({
-      isDrawerOpen: false,
-    });
+  // Terminology:
+  // - A guide can be FINISHED by answering whether or not is was useful in the last step.
+  // - A guide can be DISMISSED by x-ing out of it at any time (including when it's cued).
+  // In both cases we consider it CLOSED.
+  handleGuideDismiss(e) {
+    e.stopPropagation();
+    recordDismiss(this.state.currentGuide.id, this.state.currentStep);
+    closeGuideOrSupport();
   },
 
   render() {
-    const cueText = this.state.currentGuide
-      ? this.state.currentGuide.cue
-      : t('Need Help?');
-    // isDrawerOpen and currentGuide/currentStep live in different places and are updated
-    // non-atomically. So we need to guard against the inconsistent state of the drawer
-    // being open and a guide being present, but currentStep not updated yet.
-    // If this gets too complicated, it would be better to move isDrawerOpen into
-    // GuideStore so we can update the state atomically in onGuideStateChange.
-    let showDrawer = false;
-    if (
-      this.state.isDrawerOpen &&
-      (!this.state.currentGuide || this.state.currentStep > 0)
-    ) {
-      showDrawer = true;
-    }
+    let {currentGuide, currentStep} = this.state;
+    const cueText = (currentGuide && currentGuide.cue) || t('Need Help?');
 
     return (
-      <div className="assistant-container">
-        {showDrawer ? (
-          <div className="assistant-drawer">
-            {this.state.currentGuide ? (
-              <GuideDrawer
-                guide={this.state.currentGuide}
-                step={this.state.currentStep}
-                onClose={closeGuide}
-              />
-            ) : (
-              <SupportDrawer onClose={this.handleSupportDrawerClose} />
+      <StyledHelper>
+        {currentGuide !== null &&
+          currentStep > 0 && (
+            <GuideDrawer
+              guide={currentGuide}
+              step={currentStep}
+              onFinish={closeGuideOrSupport}
+              onDismiss={this.handleGuideDismiss}
+              orgSlug={
+                GuideStore.state.currentOrg ? GuideStore.state.currentOrg.slug : null
+              }
+            />
+          )}
+
+        {currentGuide === null &&
+          currentStep > 0 && <SupportDrawer onClose={closeGuideOrSupport} />}
+
+        {!currentStep && (
+          <StyledAssistantContainer
+            onClick={nextStep}
+            className="assistant-cue"
+            hasGuide={currentGuide}
+          >
+            <CueIcon hasGuide={currentGuide} />
+            <StyledCueText hasGuide={currentGuide}>{cueText}</StyledCueText>
+            {currentGuide && (
+              <div style={{display: 'flex'}} onClick={this.handleGuideDismiss}>
+                <CloseIcon />
+              </div>
             )}
-          </div>
-        ) : (
-          <a onClick={this.handleDrawerOpen} className="assistant-cue">
-            {cueText}
-          </a>
+          </StyledAssistantContainer>
         )}
-      </div>
+      </StyledHelper>
     );
   },
 });
+
+//this globally controls the size of the component
+const StyledHelper = styled('div')`
+  font-size: 1.4rem;
+  @media (max-width: 600px) {
+    display: none;
+  }
+`;
+
+const StyledCueText = styled('span')`
+  width: 0px;
+  overflow: hidden;
+  opacity: 0;
+  transition: 0.2s all;
+  white-space: nowrap;
+  color: ${p => p.purpleDark};
+
+  ${p =>
+    p.hasGuide &&
+    `
+    width: auto;
+    opacity: 1;
+    margin-left: 8px;
+  `};
+`;
+
+const StyledAssistantContainer = styled(AssistantContainer)`
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  max-width: 300px;
+  min-width: 0;
+  width: auto;
+
+  &:hover ${StyledCueText} {
+    ${p =>
+      !p.hasGuide &&
+      `
+      width: 6em;
+      // this is roughly long enough for the copy 'need help?'
+      // at any base font size. if you change the copy, change this value
+      opacity: 1;
+      margin: 0 0.5em;
+    `};
+  }
+
+  ${p =>
+    p.hasGuide &&
+    `
+    background-color: ${p.theme.greenDark};
+    border-color: ${p.theme.greenLight};
+    color: ${p.theme.offWhite};
+    `};
+`;
 
 export default AssistantHelper;

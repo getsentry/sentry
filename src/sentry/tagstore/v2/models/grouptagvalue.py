@@ -36,16 +36,16 @@ class GroupTagValue(Model):
     first_seen = models.DateTimeField(
         default=timezone.now, db_index=True, null=True)
 
-    objects = TagStoreManager(select_related=('_value', '_key'))
+    objects = TagStoreManager()
 
     class Meta:
         app_label = 'tagstore'
         unique_together = (('project_id', 'group_id', '_key', '_value'), )
         index_together = (('project_id', '_key', '_value', 'last_seen'), )
 
-    __repr__ = sane_repr('project_id', 'group_id', '_key', '_value')
+    __repr__ = sane_repr('project_id', 'group_id', '_key_id', '_value_id')
 
-    def delete_for_merge(self):
+    def delete(self):
         using = router.db_for_read(GroupTagValue)
         cursor = connections[using].cursor()
         cursor.execute(

@@ -19,8 +19,8 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import DetailedProjectSerializer
 from sentry.api.serializers.rest_framework import ListField, OriginField
 from sentry.models import (
-    AuditLogEntryEvent, Group, GroupStatus, Project, ProjectBookmark, ProjectStatus,
-    ProjectTeam, UserOption, Team,
+    AuditLogEntryEvent, Group, GroupStatus, Project, ProjectBookmark, ProjectRedirect,
+    ProjectStatus, ProjectTeam, UserOption, Team,
 )
 from sentry.tasks.deletion import delete_project
 from sentry.utils.apidocs import scenario, attach_scenarios
@@ -206,7 +206,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         :pparam string project_slug: the slug of the project to delete.
         :param string name: the new name for the project.
         :param string slug: the new slug for the project.
-        :param string team: the slug of new team for the project.
+        :param string team: the slug of new team for the project. Note, will be deprecated
+                            soon when multiple teams can have access to a project.
         :param string platform: the new platform for the project.
         :param boolean isBookmarked: in case this API call is invoked with a
                                      user context this allows changing of
@@ -249,7 +250,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     )
 
         changed = False
+
+        old_slug = None
         if result.get('slug'):
+            old_slug = project.slug
             project.slug = result['slug']
             changed = True
 
@@ -260,6 +264,15 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         old_team_id = None
         new_team = None
         if result.get('team'):
+            if features.has('organizations:new-teams',
+                            project.organization, actor=request.user):
+                return Response(
+                    {
+                        'detail': ['Editing a team via this endpoint has been deprecated.']
+                    },
+                    status=400
+                )
+
             team_list = [
                 t for t in Team.objects.get_for_user(
                     organization=project.organization,
@@ -294,6 +307,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     project=project,
                     team_id=old_team_id,
                 ).update(team=new_team)
+
+            if old_slug:
+                ProjectRedirect.record(project, old_slug)
 
         if result.get('isBookmarked'):
             try:

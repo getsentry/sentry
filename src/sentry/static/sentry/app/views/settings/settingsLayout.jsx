@@ -5,6 +5,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import Alert from '../../components/alert';
+import Footer from '../../components/footer';
 import SettingsBackButton from './components/settingsBackButton';
 import SettingsBreadcrumb from './components/settingsBreadcrumb';
 import SettingsHeader from './components/settingsHeader';
@@ -18,26 +19,32 @@ let StyledAlert = styled(Alert)`
 let NewSettingsWarning = ({location = {}}) => {
   // This translates current URLs back to "old" settings URLs
   // This is so that we can move from new settings back to old settings
-  let projectRegex = /^\/settings\/organization\/([^\/]+)\/project\/([^\/]+)\//;
+  let projectRegex = /^\/settings\/([^\/]+)\/([^\/]+)\//;
   let accountRegex = /^\/settings\/account\/([^\/]+)\//;
+  let orgSettingsIndex = /^\/settings\/([^\/]+)\/$/;
+  let orgRegex = /^\/settings\/([^\/]+)\/(settings|projects|teams|stats|members|auth|api-keys|audit-log|rate-limits|repos|billing|payments|subscription|legal|support)\//;
   let isProject = projectRegex.test(location.pathname);
+  let isOrgIndex = orgSettingsIndex.test(location.pathname);
+  let isOrg = orgRegex.test(location.pathname);
   let isAccount = accountRegex.test(location.pathname);
   let oldLocation;
 
-  if (isProject) {
-    oldLocation = location.pathname.replace(projectRegex, '/$1/$2/settings/');
-  } else if (isAccount) {
+  if (isAccount) {
     oldLocation = location.pathname
       .replace(accountRegex, '/account/settings/$1/')
       .replace('details/', '')
       .replace('settings/close-account/', 'remove/')
       .replace('account/settings/api/', 'api/')
       .replace('auth-tokens/', '');
-  } else {
+  } else if (isOrgIndex) {
     oldLocation = location.pathname.replace(
-      /^\/settings\/organization\//,
-      '/organizations/'
+      orgSettingsIndex,
+      '/organizations/$1/settings/'
     );
+  } else if (isOrg) {
+    oldLocation = location.pathname.replace(orgRegex, '/organizations/$1/$2/');
+  } else if (isProject) {
+    oldLocation = location.pathname.replace(projectRegex, '/$1/$2/settings/');
   }
 
   // original org auth view and account settings are django views so we can't use react router navigation
@@ -84,17 +91,18 @@ class SettingsLayout extends React.Component {
   static propTypes = {
     renderNavigation: PropTypes.func,
     route: PropTypes.object,
+    router: PropTypes.object,
     routes: PropTypes.array,
   };
 
   render() {
-    let {params, routes, route, renderNavigation, children} = this.props;
+    let {params, routes, route, router, renderNavigation, children} = this.props;
     // We want child's view's props
     let childProps = (children && children.props) || this.props;
     let childRoutes = childProps.routes || routes || [];
     let childRoute = childProps.route || route || {};
     return (
-      <div>
+      <React.Fragment>
         <SettingsHeader>
           <SettingsSubheader>
             <Container>
@@ -110,28 +118,22 @@ class SettingsLayout extends React.Component {
                   route={childRoute}
                 />
               </Box>
-              <SettingsSearch params={params} />
+              <SettingsSearch routes={routes} router={router} params={params} />
             </Flex>
           </Container>
         </SettingsHeader>
         <Container>
           {typeof renderNavigation === 'function' && (
-            <SidebarWrapper>
-              <StickySidebar>{renderNavigation()}</StickySidebar>
-            </SidebarWrapper>
+            <SidebarWrapper>{renderNavigation()}</SidebarWrapper>
           )}
           <Content>
             {children}
             <NewSettingsWarning location={this.props.location} />
           </Content>
         </Container>
-      </div>
+        <Footer />
+      </React.Fragment>
     );
   }
 }
-const StickySidebar = styled.div`
-  position: sticky;
-  top: ${p => p.theme.settings.headerHeight};
-`;
-
 export default SettingsLayout;

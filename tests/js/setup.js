@@ -10,8 +10,20 @@ import Adapter from 'enzyme-adapter-react-16';
 jest.mock('app/translations');
 jest.mock('app/api');
 jest.mock('scroll-to-element', () => {});
+jest.mock('react-router', () => {
+  const ReactRouter = require.requireActual('react-router');
+  return {
+    Link: ReactRouter.Link,
+    withRouter: ReactRouter.withRouter,
+    browserHistory: {
+      push: jest.fn(),
+      replace: jest.fn(),
+      listen: jest.fn(() => {}),
+    },
+  };
+});
 
-const constantDate = new Date('2017-10-17T04:41:20'); //National Pasta Day
+const constantDate = new Date(1508208080000); //National Pasta Day
 MockDate.set(constantDate);
 
 // We generally use actual jQuery, and jest mocks takes precedence over node_modules
@@ -20,9 +32,15 @@ jest.unmock('jquery');
 Enzyme.configure({adapter: new Adapter()});
 Enzyme.configure({disableLifecycleMethods: true});
 
+// This is so we can use async/await in tests instead of wrapping with `setTimeout`
+window.tick = () => new Promise(resolve => setTimeout(resolve));
+
 window.$ = window.jQuery = jQuery;
 window.sinon = sinon;
 window.scrollTo = sinon.spy();
+
+// Instead of wrapping codeblocks in `setTimeout`
+window.tick = () => new Promise(res => setTimeout(res));
 
 window.Raven = {
   captureMessage: sinon.spy(),
@@ -31,7 +49,7 @@ window.Raven = {
 };
 window.TestStubs = {
   // react-router's 'router' context
-  router: () => ({
+  router: (params = {}) => ({
     push: sinon.spy(),
     replace: sinon.spy(),
     go: sinon.spy(),
@@ -40,7 +58,8 @@ window.TestStubs = {
     setRouteLeaveHook: sinon.spy(),
     isActive: sinon.spy(),
     createHref: sinon.spy(),
-    location: {},
+    location: {query: {}},
+    ...params,
   }),
 
   location: () => ({
@@ -478,8 +497,9 @@ window.TestStubs = {
   Members: () => [
     {
       id: '1',
-      email: '',
-      name: '',
+      email: 'sentry1@test.com',
+      name: 'Sentry 1 Name',
+      role: '',
       roleName: '',
       pending: false,
       flags: {
@@ -495,16 +515,17 @@ window.TestStubs = {
     },
     {
       id: '2',
-      email: '',
-      name: '',
+      name: 'Sentry 2 Name',
+      email: 'sentry2@test.com',
+      role: '',
       roleName: '',
-      pending: false,
+      pending: true,
       flags: {
         'sso:linked': false,
       },
       user: {
         id: '2',
-        has2fa: true,
+        has2fa: false,
         name: 'Sentry 2 Name',
         email: 'sentry2@test.com',
         username: 'Sentry 2 Username',
@@ -512,9 +533,10 @@ window.TestStubs = {
     },
     {
       id: '3',
-      email: '',
-      name: '',
-      roleName: '',
+      name: 'Sentry 3 Name',
+      email: 'sentry3@test.com',
+      role: 'owner',
+      roleName: 'Owner',
       pending: false,
       flags: {
         'sso:linked': true,
@@ -525,6 +547,24 @@ window.TestStubs = {
         name: 'Sentry 3 Name',
         email: 'sentry3@test.com',
         username: 'Sentry 3 Username',
+      },
+    },
+    {
+      id: '4',
+      name: 'Sentry 4 Name',
+      email: 'sentry4@test.com',
+      role: 'owner',
+      roleName: 'Owner',
+      pending: false,
+      flags: {
+        'sso:linked': true,
+      },
+      user: {
+        id: '4',
+        has2fa: true,
+        name: 'Sentry 4 Name',
+        email: 'sentry4@test.com',
+        username: 'Sentry 4 Username',
       },
     },
   ],
@@ -603,6 +643,16 @@ window.TestStubs = {
       id: '2',
       slug: 'project-slug',
       name: 'Project Name',
+      hasAccess: true,
+      isMember: true,
+      isBookmarked: false,
+      teams: [],
+      ...params,
+    };
+  },
+
+  ProjectDetails: params => {
+    return TestStubs.Project({
       subjectTemplate: '[$project] ${tag:level}: $title',
       digestsMinDelay: 5,
       digestsMaxDelay: 60,
@@ -618,14 +668,19 @@ window.TestStubs = {
       securityTokenHeader: 'x-security-header',
       verifySSL: true,
       features: [],
-      teams: [],
       ...params,
-    };
+    });
   },
 
   ProjectAlertRule: () => {
     return {
       id: '1',
+      name: 'My alert rule',
+      environment: 'staging',
+      conditions: [{name: 'An alert is first seen', id: 'sentry.rules.conditions.1'}],
+      actions: [
+        {name: 'Send a notification to all services', id: 'sentry.rules.actions.notify1'},
+      ],
     };
   },
 
@@ -633,16 +688,16 @@ window.TestStubs = {
     return {
       actions: [
         {
-          html: 'Send a notification for all services',
           id: 'sentry.rules.actions.notify1',
           label: 'Send a notification for all services',
+          enabled: true,
         },
       ],
       conditions: [
         {
-          html: 'An event is seen',
           id: 'sentry.rules.conditions.1',
           label: 'An event is seen',
+          enabled: true,
         },
       ],
     };
@@ -678,6 +733,31 @@ window.TestStubs = {
         'Some crawlers may execute pages in incompatible ways which then cause errors that are unlikely to be seen by a normal user.',
     },
   ],
+
+  ProjectKeys: () => {
+    return [
+      {
+        dsn: {
+          secret:
+            'http://188ee45a58094d939428d8585aa6f661:a33bf9aba64c4bbdaf873bb9023b6d2d@dev.getsentry.net:8000/1',
+          minidump:
+            'http://dev.getsentry.net:8000/api/1/minidump?sentry_key=188ee45a58094d939428d8585aa6f661',
+          public: 'http://188ee45a58094d939428d8585aa6f661@dev.getsentry.net:8000/1',
+          csp:
+            'http://dev.getsentry.net:8000/api/1/csp-report/?sentry_key=188ee45a58094d939428d8585aa6f661',
+        },
+        public: '188ee45a58094d939428d8585aa6f661',
+        secret: 'a33bf9aba64c4bbdaf873bb9023b6d2d',
+        name: 'Natural Halibut',
+        rateLimit: null,
+        projectId: 1,
+        dateCreated: '2018-02-28T07:13:51.087Z',
+        id: '188ee45a58094d939428d8585aa6f661',
+        isActive: true,
+        label: 'Natural Halibut',
+      },
+    ];
+  },
 
   Repository: params => {
     return {
@@ -851,6 +931,14 @@ window.TestStubs = {
     name: 'Foo Bar',
     ...params,
   }),
+
+  UserReport: () => ({
+    id: '123',
+    name: 'Lyn',
+    email: 'lyn@sentry.io',
+    comments: 'Something bad happened',
+    issue: TestStubs.Group(),
+  }),
 };
 
 // this is very commonly used, so expose it globally
@@ -858,11 +946,16 @@ window.MockApiClient = require.requireMock('app/api').Client;
 
 // default configuration
 ConfigStore.loadInitialData({
+  messages: [],
   user: {
     isAuthenticated: true,
     email: 'foo@example.com',
     options: {
       timezone: 'UTC',
+    },
+    hasPasswordAuth: true,
+    flags: {
+      newsletter_consent_prompt: false,
     },
   },
 });

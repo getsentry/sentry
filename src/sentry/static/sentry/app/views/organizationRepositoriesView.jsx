@@ -3,10 +3,10 @@ import React from 'react';
 import {sortArray} from '../utils';
 import {t} from '../locale';
 import IndicatorStore from '../stores/indicatorStore';
-import OrganizationSettingsView from './organizationSettingsView';
+import AsyncView from './asyncView';
 import LazyLoad from '../components/lazyLoad';
 
-class OrganizationRepositoriesView extends OrganizationSettingsView {
+class OrganizationRepositoriesView extends AsyncView {
   getEndpoints() {
     let {orgId} = this.props.params;
     return [

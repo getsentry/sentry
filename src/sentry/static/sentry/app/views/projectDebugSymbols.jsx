@@ -11,13 +11,11 @@ import FileSize from '../components/fileSize';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import OrganizationState from '../mixins/organizationState';
-import Panel from './settings/components/panel';
-import PanelBody from './settings/components/panelBody';
-import PanelHeader from './settings/components/panelHeader';
-import PanelItem from './settings/components/panelItem';
+import {Panel, PanelBody, PanelHeader, PanelItem} from '../components/panels';
 import SettingsPageHeader from './settings/components/settingsPageHeader';
 import TextBlock from './settings/components/text/textBlock';
 import TimeSince from '../components/timeSince';
+import EmptyStateWarning from '../components/emptyStateWarning';
 
 const marginBottomStyle = {marginBottom: 40};
 
@@ -124,18 +122,19 @@ const ProjectDebugSymbols = createReactClass({
 
   renderLoading() {
     return (
-      <div className="box">
+      <Panel>
         <LoadingIndicator />
-      </div>
+      </Panel>
     );
   },
 
   renderEmpty() {
     return (
-      <div style={marginBottomStyle} className="box empty-stream">
-        <span className="icon icon-exclamation" />
-        <p>{t('There are no debug symbols for this project.')}</p>
-      </div>
+      <Panel>
+        <EmptyStateWarning>
+          <p>{t('There are no debug symbols for this project.')}</p>
+        </EmptyStateWarning>
+      </Panel>
     );
   },
 
@@ -296,7 +295,7 @@ const ProjectDebugSymbols = createReactClass({
       return (
         <tr key={key}>
           <td>
-            <code className="small">{dsym.uuid}</code>
+            <code className="small">{dsym.debugId || dsym.uuid}</code>
           </td>
           <td>
             {dsym.symbolType === 'proguard' && dsym.objectName === 'proguard-mapping'
@@ -350,7 +349,7 @@ const ProjectDebugSymbols = createReactClass({
         <table className="table">
           <thead>
             <tr>
-              <th>{t('UUID')}</th>
+              <th>{t('Debug ID')}</th>
               <th>{t('Object')}</th>
               <th>{t('Type')}</th>
               <th>{t('Uploaded')}</th>
@@ -401,7 +400,7 @@ const ProjectDebugSymbols = createReactClass({
             <table className="table">
               <thead>
                 <tr>
-                  <th>{t('UUID')}</th>
+                  <th>{t('Debug ID')}</th>
                   <th>{t('Object')}</th>
                   <th>{t('Type')}</th>
                   <th>{t('Uploaded')}</th>

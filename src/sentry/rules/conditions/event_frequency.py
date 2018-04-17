@@ -12,7 +12,7 @@ from datetime import timedelta
 from django import forms
 from django.utils import timezone
 
-from sentry.tsdb import backend as tsdb
+from sentry import tsdb
 from sentry.rules.conditions.base import EventCondition
 
 intervals = {
@@ -33,13 +33,22 @@ class EventFrequencyForm(forms.Form):
         ]
     )
     value = forms.IntegerField(
-        widget=forms.TextInput(attrs={'placeholder': '100',
-                                      'type': 'number'})
+        widget=forms.TextInput()
     )
 
 
 class BaseEventFrequencyCondition(EventCondition):
     form_cls = EventFrequencyForm
+    form_fields = {
+        'value': {'type': 'number', 'placeholder': 100},
+        'interval': {
+            'type': 'choice',
+            'choices': [
+                (key, label) for key, (label, duration) in sorted(intervals.items(), key=lambda key____label__duration: key____label__duration[1][1])
+            ]
+        }
+    }
+
     label = NotImplemented  # subclass must implement
 
     def __init__(self, *args, **kwargs):

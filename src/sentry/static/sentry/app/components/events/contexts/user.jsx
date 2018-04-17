@@ -1,10 +1,10 @@
 /*eslint react/jsx-key:0*/
 import PropTypes from 'prop-types';
-
 import React from 'react';
 import _ from 'lodash';
 
 import Avatar from '../../../components/avatar';
+import ErrorBoundary from '../../errorBoundary';
 import KeyValueList from '../interfaces/keyValueList';
 
 class UserContextType extends React.Component {
@@ -41,7 +41,7 @@ class UserContextType extends React.Component {
     return (
       <div className="user-widget">
         <div className="pull-left">
-          <Avatar user={user} size={96} gravatar={false} />
+          <Avatar user={user} size={48} gravatar={false} />
         </div>
         <table className="key-value table">
           <tbody>
@@ -59,7 +59,9 @@ class UserContextType extends React.Component {
             })}
           </tbody>
         </table>
-        {children && <KeyValueList data={children} isContextData={true} />}
+        <ErrorBoundary mini>
+          {children && <KeyValueList data={children} isContextData={true} />}
+        </ErrorBoundary>
       </div>
     );
   }

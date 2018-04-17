@@ -58,11 +58,14 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
             )
         except Environment.DoesNotExist:
             queryset = Release.objects.none()
+            environment = None
         else:
             queryset = Release.objects.filter(
                 projects=project, organization_id=project.organization_id
             ).select_related('owner')
             if environment is not None:
+                # TODO(LB): May want to change this to ReleaseProjectEnv don't see a
+                # reason to change now.
                 queryset = queryset.filter(id__in=ReleaseEnvironment.objects.filter(
                     organization_id=project.organization_id,
                     environment_id=environment.id,
@@ -82,7 +85,8 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
             queryset=queryset,
             order_by='-sort',
             paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(x, request.user, project=project),
+            on_results=lambda x: serialize(
+                x, request.user, project=project, environment=environment),
         )
 
     def post(self, request, project):

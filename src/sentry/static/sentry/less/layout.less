@@ -11,7 +11,6 @@ body {
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
   padding-left: @sidebar-width;
-  padding-top: 30px;
 
   // Fake sidebar rendering until actual sidebar is loaded
 
@@ -41,9 +40,13 @@ body {
 
 body.narrow {
   zoom: 1;
-  padding: 30px 0 0;
+  padding: 0;
 
   background: #fff;
+
+  &.dialog {
+    padding-top: 0;
+  }
 
   h3,
   h4 {
@@ -51,11 +54,16 @@ body.narrow {
   }
 
   .app > .container {
-    padding-top: 10px;
+    padding-top: 40px;
     max-width: 860px;
 
     .box-header {
-      padding: 15px 30px 10px;
+      padding: 15px 30px 12px;
+
+      .logo-with-action {
+        display: flex;
+        align-items: center;
+      }
 
       a {
         font-size: 20px;
@@ -136,7 +144,7 @@ body.auth {
   color: @gray-dark;
   border-bottom: 1px solid darken(@trim, 5);
   position: relative;
-  margin: -30px 0 20px; // Offset body padding-top
+  margin: 0 0 20px;
   line-height: 1;
   font-size: 16px;
   min-height: 62px;
@@ -199,6 +207,10 @@ body.auth {
   .environment-selector-toggle {
     color: @gray-darkest;
     font-weight: 600;
+
+    + .dropdown-menu {
+      z-index: @zindex-sticky-bar + 2;
+    }
   }
 
   .project-select {
@@ -431,6 +443,11 @@ footer {
   .narrow .app > .container,
   .narrow.windowed-small .app > .container {
     padding-top: 30px !important;
+  }
+
+  .narrow.dialog .app > .container,
+  .narrow.dialog.windowed-small .app > .container {
+    padding-top: 10px !important;
   }
 
   .nav-tabs {

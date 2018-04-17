@@ -5,6 +5,7 @@ import React from 'react';
 
 import BreadcrumbDropdown from './breadcrumbDropdown';
 import LetterAvatar from '../../../../components/letterAvatar';
+import MenuItem from './menuItem';
 import SentryTypes from '../../../../proptypes';
 import TextLink from '../../../../components/textLink';
 import recreateRoute from '../../../../utils/recreateRoute';
@@ -20,6 +21,8 @@ class OrganizationCrumb extends React.Component {
 
   render() {
     let {organizations, organization, params, routes, route, ...props} = this.props;
+
+    if (!organization) return null;
 
     let hasMenu = organizations.length > 1;
 
@@ -45,8 +48,14 @@ class OrganizationCrumb extends React.Component {
           </TextLink>
         }
         onSelect={item => {
+          // If we are currently in a project context, and we're attempting to switch organizations,
+          // then we need to default to index route (e.g. `route`)
+          //
+          // Otherwise, using empty string ('') will keep the current route path but with target org
+          let hasProjectParam = !!params.projectId;
+          let destination = hasProjectParam ? route : '';
           browserHistory.push(
-            recreateRoute(route, {
+            recreateRoute(destination, {
               routes,
               params: {...params, orgId: item.value},
             })
@@ -56,7 +65,7 @@ class OrganizationCrumb extends React.Component {
         route={route}
         items={organizations.map(org => ({
           value: org.slug,
-          label: org.slug,
+          label: <MenuItem>{org.slug}</MenuItem>,
         }))}
         {...props}
       />

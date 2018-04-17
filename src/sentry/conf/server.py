@@ -266,7 +266,7 @@ STATIC_URL = '/_static/{version}/'
 
 # various middleware will use this to identify resources which should not access
 # cookies
-ANONYMOUS_STATIC_PREFIXES = ('/_static/', '/avatar/')
+ANONYMOUS_STATIC_PREFIXES = ('/_static/', '/avatar/', '/organization-avatar/', '/team-avatar/')
 
 STATICFILES_FINDERS = (
     "django.contrib.staticfiles.finders.FileSystemFinder",
@@ -441,6 +441,7 @@ CELERY_QUEUES = [
     Queue('alerts', routing_key='alerts'),
     Queue('auth', routing_key='auth'),
     Queue('assemble', routing_key='assemble'),
+    Queue('buffers.process_pending', routing_key='buffers.process_pending'),
     Queue('commits', routing_key='commits'),
     Queue('cleanup', routing_key='cleanup'),
     Queue('default', routing_key='default'),
@@ -521,7 +522,7 @@ CELERYBEAT_SCHEDULE = {
         'schedule': timedelta(seconds=10),
         'options': {
             'expires': 10,
-            'queue': 'counters-0',
+            'queue': 'buffers.process_pending',
         }
     },
     'sync-options': {
@@ -753,6 +754,9 @@ SENTRY_FEATURES = {
     'organizations:require-2fa': False,
     'organizations:environments': False,
     'organizations:internal-catchall': False,
+    'organizations:new-teams': False,
+    'organizations:code-owners': False,
+    'organizations:unreleased-changes': False,
     'projects:global-events': False,
     'projects:plugins': True,
     'projects:dsym': False,
@@ -761,7 +765,7 @@ SENTRY_FEATURES = {
     'projects:rate-limits': True,
     'projects:discard-groups': False,
     'projects:custom-inbound-filters': False,
-    'projects:minidump': False,
+    'projects:minidump': True,
 }
 
 # Default time zone for localization in the UI.
@@ -1115,6 +1119,7 @@ SENTRY_ROLES = (
                 'team:read',
                 'team:write',
                 'team:admin',
+                'org:integrations',
             ]
         ),
     }, {
@@ -1301,3 +1306,8 @@ SOUTH_TESTS_MIGRATE = os.environ.get('SOUTH_TESTS_MIGRATE', '0') == '1'
 
 TERMS_URL = None
 PRIVACY_URL = None
+
+# Toggles whether minidumps should be cached
+SENTRY_MINIDUMP_CACHE = False
+# The location for cached minidumps
+SENTRY_MINIDUMP_PATH = '/tmp/minidump'

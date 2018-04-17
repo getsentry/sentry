@@ -9,10 +9,7 @@ import EmptyMessage from '../../components/emptyMessage';
 import ExternalLink from '../../../../components/externalLink';
 import Link from '../../../../components/link';
 import LinkWithConfirmation from '../../../../components/linkWithConfirmation';
-import Panel from '../../components/panel';
-import PanelBody from '../../components/panelBody';
-import PanelHeader from '../../components/panelHeader';
-import PanelItem from '../../components/panelItem';
+import {Panel, PanelBody, PanelHeader, PanelItem} from '../../../../components/panels';
 import SettingsPageHeader from '../../components/settingsPageHeader';
 import recreateRoute from '../../../../utils/recreateRoute';
 

@@ -9,10 +9,7 @@ import ConfigStore from '../../../../stores/configStore';
 import DateTime from '../../../../components/dateTime';
 import IndicatorStore from '../../../../stores/indicatorStore';
 import NotFound from '../../../../components/errors/notFound';
-import Panel from '../../components/panel';
-import PanelBody from '../../components/panelBody';
-import PanelHeader from '../../components/panelHeader';
-import PanelItem from '../../components/panelItem';
+import {Panel, PanelBody, PanelHeader, PanelItem} from '../../../../components/panels';
 import RoleSelect from '../../../inviteMember/roleSelect';
 import SentryTypes from '../../../../proptypes';
 import SettingsPageHeader from '../../components/settingsPageHeader';
@@ -132,9 +129,7 @@ class OrganizationMemberDetail extends AsyncView {
 
     let currentUser = ConfigStore.get('user');
     let isCurrentUser = currentUser.email === email;
-    let disabled = isCurrentUser;
-    let roleSelectDisabled = disabled;
-    let teamSelectDisabled = disabled;
+    let roleSelectDisabled = isCurrentUser;
 
     return (
       <div>
@@ -228,7 +223,6 @@ class OrganizationMemberDetail extends AsyncView {
 
         <TeamSelect
           teams={teams}
-          disabled={teamSelectDisabled}
           selectedTeams={new Set(member.teams)}
           toggleTeam={this.handleToggleTeam}
         />

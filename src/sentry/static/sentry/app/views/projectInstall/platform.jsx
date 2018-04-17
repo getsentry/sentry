@@ -1,15 +1,18 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-
 import createReactClass from 'create-react-class';
+import styled from 'react-emotion';
 
+import {Panel, PanelBody, PanelHeader} from '../../components/panels';
+import {t, tct} from '../../locale';
 import ApiMixin from '../../mixins/apiMixin';
+import Button from '../../components/buttons/button';
 import LanguageNav from './languageNav';
+import Link from '../../components/link';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 import NotFound from '../../components/errors/notFound';
-import Link from '../../components/link';
-import {t, tct} from '../../locale';
+import TextBlock from '../settings/components/text/textBlock';
 
 const ProjectInstallPlatform = createReactClass({
   displayName: 'ProjectInstallPlatform',
@@ -134,18 +137,16 @@ const ProjectInstallPlatform = createReactClass({
     }
 
     return (
-      <div className="box">
-        <div className="box-header">
-          <div className="pull-right">
-            <a href={integration.link} className="btn btn-sm btn-default">
-              {t('Full Documentation')}
-            </a>
-          </div>
+      <Panel>
+        <PanelHeader hasButtons>
+          {t('Configure %(integration)s', {integration: integration.name})}
+          <Button size="small" href={integration.link} external>
+            {t('Full Documentation')}
+          </Button>
+        </PanelHeader>
 
-          <h3>{t('Configure %(integration)s', {integration: integration.name})}</h3>
-        </div>
-        <div className="box-content with-padding">
-          <p>
+        <PanelBody disablePadding={false}>
+          <TextBlock>
             {tct(
               `
              This is a quick getting started guide. For in-depth instructions
@@ -157,28 +158,27 @@ const ProjectInstallPlatform = createReactClass({
                 docLink: <a href={integration.link} />,
               }
             )}
-          </p>
+          </TextBlock>
 
           {this.state.loading ? (
             <LoadingIndicator />
           ) : this.state.error ? (
             <LoadingError onRetry={this.fetchData} />
           ) : (
-            <div dangerouslySetInnerHTML={{__html: this.state.html}} />
+            <DocumentationWrapper dangerouslySetInnerHTML={{__html: this.state.html}} />
           )}
 
           {this.isGettingStarted() && (
-            <p>
-              <Link
-                to={`/${orgId}/${projectId}/#welcome`}
-                className="btn btn-primary btn-lg"
-              >
-                {t('Got it! Take me to the Issue Stream.')}
-              </Link>
-            </p>
+            <Button
+              priority="primary"
+              size="large"
+              to={`/${orgId}/${projectId}/#welcome`}
+            >
+              {t('Got it! Take me to the Issue Stream.')}
+            </Button>
           )}
-        </div>
-      </div>
+        </PanelBody>
+      </Panel>
     );
   },
 
@@ -193,3 +193,9 @@ const ProjectInstallPlatform = createReactClass({
 });
 
 export default ProjectInstallPlatform;
+
+const DocumentationWrapper = styled('div')`
+  p {
+    line-height: 1.5;
+  }
+`;

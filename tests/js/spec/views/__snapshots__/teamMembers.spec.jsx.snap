@@ -3,51 +3,52 @@
 exports[`TeamMembers render() renders 1`] = `
 <Panel>
   <PanelHeader
-    disablePadding={true}
     hasButtons={true}
   >
-    <StyledHeaderContainer>
-      <div>
-        Members
-      </div>
-      <div
-        style={
-          Object {
-            "textTransform": "none",
-          }
+    <div>
+      Members
+    </div>
+    <div
+      style={
+        Object {
+          "textTransform": "none",
         }
-      >
-        <DropdownAutoComplete
-          action={
-            <Button
-              disabled={false}
-              priority="primary"
-              to="/settings/organization/org-slug/members/new/"
+      }
+    >
+      <DropdownAutoComplete
+        alignMenu="right"
+        items={Array []}
+        menuHeader={
+          <StyledMembersLabel>
+            Members
+            <StyledCreateMemberLink
+              to="/settings/org-slug/members/new/"
             >
-              Add New Organization Member
-            </Button>
-          }
-          isOpen={false}
-          items={Array []}
-          onSelect={[Function]}
-        />
-      </div>
-    </StyledHeaderContainer>
+              Add Member
+            </StyledCreateMemberLink>
+          </StyledMembersLabel>
+        }
+        onSelect={[Function]}
+      />
+    </div>
   </PanelHeader>
   <StyledMemberContainer
     key="0"
   >
     <UserBadge
+      avatarSize={36}
       orgId="org-slug"
+      useLink={true}
       user={
         Object {
-          "email": "",
+          "email": "sentry1@test.com",
           "flags": Object {
             "sso:linked": false,
           },
           "id": "1",
-          "name": "",
+          "name": "Sentry 1 Name",
           "pending": false,
+          "role": "",
           "roleName": "",
           "user": Object {
             "email": "sentry1@test.com",
@@ -69,7 +70,7 @@ exports[`TeamMembers render() renders 1`] = `
         src="icon-circle-subtract"
         style={
           Object {
-            "marginRight": "0.5em",
+            "marginRight": "8px",
           }
         }
       />
@@ -80,20 +81,23 @@ exports[`TeamMembers render() renders 1`] = `
     key="1"
   >
     <UserBadge
+      avatarSize={36}
       orgId="org-slug"
+      useLink={true}
       user={
         Object {
-          "email": "",
+          "email": "sentry2@test.com",
           "flags": Object {
             "sso:linked": false,
           },
           "id": "2",
-          "name": "",
-          "pending": false,
+          "name": "Sentry 2 Name",
+          "pending": true,
+          "role": "",
           "roleName": "",
           "user": Object {
             "email": "sentry2@test.com",
-            "has2fa": true,
+            "has2fa": false,
             "id": "2",
             "name": "Sentry 2 Name",
             "username": "Sentry 2 Username",
@@ -111,7 +115,7 @@ exports[`TeamMembers render() renders 1`] = `
         src="icon-circle-subtract"
         style={
           Object {
-            "marginRight": "0.5em",
+            "marginRight": "8px",
           }
         }
       />
@@ -122,17 +126,20 @@ exports[`TeamMembers render() renders 1`] = `
     key="2"
   >
     <UserBadge
+      avatarSize={36}
       orgId="org-slug"
+      useLink={true}
       user={
         Object {
-          "email": "",
+          "email": "sentry3@test.com",
           "flags": Object {
             "sso:linked": true,
           },
           "id": "3",
-          "name": "",
+          "name": "Sentry 3 Name",
           "pending": false,
-          "roleName": "",
+          "role": "owner",
+          "roleName": "Owner",
           "user": Object {
             "email": "sentry3@test.com",
             "has2fa": true,
@@ -153,7 +160,52 @@ exports[`TeamMembers render() renders 1`] = `
         src="icon-circle-subtract"
         style={
           Object {
-            "marginRight": "0.5em",
+            "marginRight": "8px",
+          }
+        }
+      />
+      Remove
+    </Button>
+  </StyledMemberContainer>
+  <StyledMemberContainer
+    key="3"
+  >
+    <UserBadge
+      avatarSize={36}
+      orgId="org-slug"
+      useLink={true}
+      user={
+        Object {
+          "email": "sentry4@test.com",
+          "flags": Object {
+            "sso:linked": true,
+          },
+          "id": "4",
+          "name": "Sentry 4 Name",
+          "pending": false,
+          "role": "owner",
+          "roleName": "Owner",
+          "user": Object {
+            "email": "sentry4@test.com",
+            "has2fa": true,
+            "id": "4",
+            "name": "Sentry 4 Name",
+            "username": "Sentry 4 Username",
+          },
+        }
+      }
+    />
+    <Button
+      disabled={false}
+      onClick={[Function]}
+      size="small"
+    >
+      <InlineSvg
+        size="1.25em"
+        src="icon-circle-subtract"
+        style={
+          Object {
+            "marginRight": "8px",
           }
         }
       />

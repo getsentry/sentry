@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import SentryTypes from '../../../proptypes';
-import TooltipMixin from '../../../mixins/tooltip';
+import Tooltip from '../../tooltip';
 import {t} from '../../../locale';
 import GuideAnchor from '../../../components/assistant/guideAnchor';
 
@@ -21,16 +21,7 @@ const CrashHeader = createReactClass({
     newestFirst: PropTypes.bool.isRequired,
     stackType: PropTypes.string, // 'original', 'minified', or falsy (none)
     onChange: PropTypes.func,
-    hasGuideAnchor: PropTypes.bool,
   },
-
-  mixins: [
-    TooltipMixin({
-      html: false,
-      selector: '.tip',
-      trigger: 'hover',
-    }),
-  ],
 
   hasSystemFrames() {
     const {stacktrace, thread, exception} = this.props;
@@ -99,20 +90,15 @@ const CrashHeader = createReactClass({
     return (
       <div className="crash-title">
         {this.props.beforeTitle}
-        {this.props.hasGuideAnchor ? (
-          <GuideAnchor target="exception" type="text" />
-        ) : null}
+        <GuideAnchor target="exception" type="text" />
         <h3 className="pull-left">
           {this.props.title}
           <small style={{marginLeft: 5}}>
-            (<a
-              onClick={this.toggleOrder}
-              className="tip"
-              title={t('Toggle stacktrace order')}
-              style={{borderBottom: '1px dotted #aaa'}}
-            >
-              {newestFirst ? t('most recent call first') : t('most recent call last')}
-            </a>)
+            (<Tooltip title={t('Toggle stacktrace order')}>
+              <a onClick={this.toggleOrder} style={{borderBottom: '1px dotted #aaa'}}>
+                {newestFirst ? t('most recent call first') : t('most recent call last')}
+              </a>
+            </Tooltip>)
           </small>
         </h3>
         <div className="btn-group" style={{marginLeft: 10}}>

@@ -5,22 +5,27 @@ import {ThemeProvider} from 'emotion-theming';
 import Cookies from 'js-cookie';
 import PropTypes from 'prop-types';
 import React from 'react';
+import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
+import keydown from 'react-keydown';
+import idx from 'idx';
 
+import {openCommandPalette} from '../actionCreators/modal';
 import {t} from '../locale';
 import AlertActions from '../actions/alertActions';
 import Alerts from '../components/alerts';
 import ApiMixin from '../mixins/apiMixin';
+import AssistantHelper from '../components/assistant/helper';
 import ConfigStore from '../stores/configStore';
+import ErrorBoundary from '../components/errorBoundary';
+import GlobalModal from '../components/globalModal';
 import Indicators from '../components/indicators';
 import InstallWizard from './installWizard';
-import AssistantHelper from '../components/assistant/helper';
 import LoadingIndicator from '../components/loadingIndicator';
+import NewsletterConsent from './newsletterConsent';
 import OrganizationsLoader from '../components/organizations/organizationsLoader';
 import OrganizationsStore from '../stores/organizationsStore';
-import GlobalModal from '../components/globalModal';
 import theme from '../utils/theme';
-import ErrorBoundary from '../components/errorBoundary';
 
 if (window.globalStaticUrl) __webpack_public_path__ = window.globalStaticUrl; // defined in layout.html
 
@@ -40,13 +45,15 @@ const App = createReactClass({
     location: PropTypes.object,
   },
 
-  mixins: [ApiMixin],
+  mixins: [ApiMixin, Reflux.listenTo(ConfigStore, 'onConfigStoreChange')],
 
   getInitialState() {
+    let user = ConfigStore.get('user');
     return {
       loading: false,
       error: false,
-      needsUpgrade: ConfigStore.get('needsUpgrade'),
+      needsUpgrade: user && user.isSuperuser && ConfigStore.get('needsUpgrade'),
+      newsletterConsentPrompt: user && user.flags.newsletter_consent_prompt,
     };
   },
 
@@ -102,18 +109,27 @@ const App = createReactClass({
       // TODO: Need better way of identifying anonymous pages
       //       that don't trigger redirect
       let pageAllowsAnon = /^\/share\//.test(window.location.pathname);
-      if (
-        jqXHR &&
-        jqXHR.status === 401 &&
-        !pageAllowsAnon &&
-        (!jqXHR.responseJSON ||
-          (!jqXHR.responseJSON.sudoRequired && !jqXHR.responseJSON.allowFail))
-      ) {
-        Cookies.set('session_expired', 1);
-        // User has become unauthenticated; reload URL, and let Django
-        // redirect to login page
-        window.location.reload();
+
+      // Ignore error unless it is a 401
+      if (!jqXHR || jqXHR.status !== 401 || pageAllowsAnon) return;
+
+      let code = idx(jqXHR, _ => _.responseJSON.detail.code);
+      let extra = idx(jqXHR, _ => _.responseJSON.detail.extra);
+
+      // 401s can also mean sudo is required or it's a request that is allowed to fail
+      // Ignore if these are the cases
+      if (code === 'sudo-required' || code === 'ignore') return;
+
+      // If user must login via SSO, redirect to org login page
+      if (code === 'sso-required') {
+        window.location.assign(extra.loginUrl);
+        return;
       }
+
+      // Otherwise, user has become unauthenticated; reload URL, and let Django
+      // redirect to login page
+      Cookies.set('session_expired', 1);
+      window.location.reload();
     });
   },
 
@@ -121,23 +137,45 @@ const App = createReactClass({
     OrganizationsStore.load([]);
   },
 
+  onConfigStoreChange(config) {
+    let newState = {};
+    if (config.needsUpgrade !== undefined) newState.needsUpgrade = config.needsUpgrade;
+    if (config.user !== undefined) newState.user = config.user;
+    if (Object.keys(newState).length > 0) this.setState(newState);
+  },
+
+  @keydown('cmd+shift+p')
+  openCommandPalette(e) {
+    openCommandPalette();
+    e.preventDefault();
+    e.stopPropagation();
+  },
+
   onConfigured() {
     this.setState({needsUpgrade: false});
   },
 
-  render() {
-    let user = ConfigStore.get('user');
-    let needsUpgrade = this.state.needsUpgrade;
+  onNewsletterConsent() {
+    // this is somewhat hackish
+    this.setState({
+      newsletterConsentPrompt: false,
+    });
+  },
 
-    if (user && user.isSuperuser && needsUpgrade) {
-      return (
-        <div>
-          <Indicators className="indicators-container" />
-          <InstallWizard onConfigured={this.onConfigured} />
-        </div>
-      );
+  renderBody() {
+    let {needsUpgrade, newsletterConsentPrompt} = this.state;
+    if (needsUpgrade) {
+      return <InstallWizard onConfigured={this.onConfigured} />;
     }
 
+    if (newsletterConsentPrompt) {
+      return <NewsletterConsent onSubmitSuccess={this.onNewsletterConsent} />;
+    }
+
+    return this.props.children;
+  },
+
+  render() {
     if (this.state.loading) {
       return (
         <LoadingIndicator triangle={true}>
@@ -152,7 +190,7 @@ const App = createReactClass({
           <GlobalModal />
           <Alerts className="messages-container" />
           <Indicators className="indicators-container" />
-          <ErrorBoundary>{this.props.children}</ErrorBoundary>
+          <ErrorBoundary>{this.renderBody()}</ErrorBoundary>
           {ConfigStore.get('features').has('assistant') && <AssistantHelper />}
         </OrganizationsLoader>
       </ThemeProvider>

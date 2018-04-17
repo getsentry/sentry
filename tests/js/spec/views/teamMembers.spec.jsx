@@ -14,6 +14,12 @@ describe('TeamMembers', function() {
     team = TestStubs.Team();
     members = TestStubs.Members();
 
+    Client.clearMockResponses();
+    Client.addMockResponse({
+      url: `/organizations/${org.slug}/members/`,
+      method: 'GET',
+      body: members,
+    });
     Client.addMockResponse({
       url: `/teams/${org.slug}/${team.slug}/members/`,
       method: 'GET',

@@ -22,7 +22,7 @@ exports[`AdminSettings render() renders 1`] = `
           "auth.allow-registration": true,
           "auth.ip-rate-limit": 25,
           "auth.user-rate-limit": 25,
-          "beacon.anonymous": true,
+          "beacon.anonymous": "",
           "system.admin-email": "foo@example.com",
           "system.rate-limit": 25,
           "system.security-email": "foo@example.com",
@@ -33,17 +33,22 @@ exports[`AdminSettings render() renders 1`] = `
       requireChanges={true}
       resetOnError={false}
       submitDisabled={false}
+      submitErrorMessage="There was an error saving your changes."
       submitLabel="Save Changes"
+      submitLoadingMessage="Saving changes.."
     >
       <h4>
         General
       </h4>
       <TextField
+        allowEmpty={true}
+        default=""
         defaultValue="about://"
         disabled={true}
         disabledReason="This setting is defined in config.yml and may not be changed via the web UI."
         help="The root web address which is used to communicate with the Sentry backend."
         hideErrorMessage={false}
+        isSet={true}
         key="system.url-prefix"
         label="Root URL"
         name="system.url-prefix"
@@ -51,11 +56,15 @@ exports[`AdminSettings render() renders 1`] = `
         required={false}
       />
       <EmailField
+        allowEmpty={false}
+        component={[Function]}
+        default={null}
         defaultValue="foo@example.com"
         disabled={true}
         disabledReason="This setting is defined in config.yml and may not be changed via the web UI."
         help="The technical contact for this Sentry installation."
         hideErrorMessage={false}
+        isSet={true}
         key="system.admin-email"
         label="Admin Email"
         name="system.admin-email"
@@ -63,11 +72,15 @@ exports[`AdminSettings render() renders 1`] = `
         required={true}
       />
       <EmailField
+        allowEmpty={false}
+        component={[Function]}
+        default={null}
         defaultValue="foo@example.com"
         disabled={true}
         disabledReason="This setting is defined in config.yml and may not be changed via the web UI."
         help="The support contact for this Sentry installation."
         hideErrorMessage={false}
+        isSet={true}
         key="system.support-email"
         label="Support Email"
         name="system.support-email"
@@ -75,11 +88,15 @@ exports[`AdminSettings render() renders 1`] = `
         required={true}
       />
       <EmailField
+        allowEmpty={false}
+        component={[Function]}
+        default={null}
         defaultValue="foo@example.com"
         disabled={true}
         disabledReason="This setting is defined in config.yml and may not be changed via the web UI."
         help="The security contact for this Sentry installation."
         hideErrorMessage={false}
+        isSet={true}
         key="system.security-email"
         label="Security Email"
         name="system.security-email"
@@ -87,10 +104,13 @@ exports[`AdminSettings render() renders 1`] = `
         required={true}
       />
       <TextField
+        allowEmpty={false}
+        default={0}
         disabled={true}
         disabledReason="This setting is defined in config.yml and may not be changed via the web UI."
         help="The maximum number of events the system should accept per minute. A value of 0 will disable the default rate limit."
         hideErrorMessage={false}
+        isSet={true}
         key="system.rate-limit"
         label="Rate Limit"
         name="system.rate-limit"
@@ -101,21 +121,28 @@ exports[`AdminSettings render() renders 1`] = `
         Security & Abuse
       </h4>
       <BooleanField
+        allowEmpty={false}
+        component={[Function]}
+        default={false}
         defaultValue={false}
         disabled={true}
         disabledReason="This setting is defined in config.yml and may not be changed via the web UI."
         help="Allow anyone to create an account and access this Sentry installation."
         hideErrorMessage={false}
+        isSet={true}
         key="auth.allow-registration"
         label="Allow Registration"
         name="auth.allow-registration"
         required={true}
       />
       <TextField
+        allowEmpty={false}
+        default={0}
         disabled={true}
         disabledReason="This setting is defined in config.yml and may not be changed via the web UI."
         help="The maximum number of times an authentication attempt may be made by a single IP address in a 60 second window."
         hideErrorMessage={false}
+        isSet={true}
         key="auth.ip-rate-limit"
         label="IP Rate Limit"
         name="auth.ip-rate-limit"
@@ -123,10 +150,13 @@ exports[`AdminSettings render() renders 1`] = `
         required={true}
       />
       <TextField
+        allowEmpty={false}
+        default={0}
         disabled={true}
         disabledReason="This setting is defined in config.yml and may not be changed via the web UI."
         help="The maximum number of times an authentication attempt may be made against a single account in a 60 second window."
         hideErrorMessage={false}
+        isSet={true}
         key="auth.user-rate-limit"
         label="User Rate Limit"
         name="auth.user-rate-limit"
@@ -134,10 +164,13 @@ exports[`AdminSettings render() renders 1`] = `
         required={true}
       />
       <TextField
+        allowEmpty={false}
+        default={0}
         disabled={true}
         disabledReason="This setting is defined in config.yml and may not be changed via the web UI."
         help="The maximum number of organizations which may be created by a single account in a one hour window."
         hideErrorMessage={false}
+        isSet={true}
         key="api.rate-limit.org-create"
         label="Organization Creation Rate Limit"
         name="api.rate-limit.org-create"
@@ -147,8 +180,8 @@ exports[`AdminSettings render() renders 1`] = `
       <h4>
         Beacon
       </h4>
-      <BooleanField
-        defaultValue={true}
+      <RadioBooleanField
+        component={[Function]}
         disabled={false}
         help={
           <span>
@@ -169,9 +202,11 @@ exports[`AdminSettings render() renders 1`] = `
         }
         hideErrorMessage={false}
         key="beacon.anonymous"
-        label="Anonymize Beacon"
+        label="Usage Statistics"
         name="beacon.anonymous"
+        noLabel="Please keep my usage information anonymous"
         required={false}
+        yesLabel="Send my contact information along with usage statistics"
       />
     </ApiForm>
   </div>

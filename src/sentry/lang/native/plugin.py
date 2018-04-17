@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-import six
+import uuid
 import logging
 import posixpath
 
@@ -27,6 +27,7 @@ FRAME_CACHE_VERSION = 6
 
 class NativeStacktraceProcessor(StacktraceProcessor):
     supported_platforms = ('cocoa', 'native')
+    supported_images = ('apple', 'symbolic')
 
     def __init__(self, *args, **kwargs):
         StacktraceProcessor.__init__(self, *args, **kwargs)
@@ -39,7 +40,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             self.debug_meta = debug_meta
             self.sdk_info = get_sdk_from_event(self.data)
             self.object_lookup = ObjectLookup(
-                [img for img in self.debug_meta['images'] if img['type'] == 'apple']
+                [img for img in self.debug_meta['images'] if img['type'] in self.supported_images]
             )
         else:
             self.available = False
@@ -107,7 +108,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         processable_frame.data = {
             'instruction_addr': instr_addr,
             'obj': obj,
-            'obj_uuid': six.text_type(obj.uuid) if obj is not None else None,
+            'obj_uuid': obj.id if obj is not None else None,
             'symbolserver_match': None,
         }
 
@@ -119,7 +120,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                     # the address for the cache key to be within the image
                     # the same way as we do it in the symbolizer.
                     rebase_addr(instr_addr, obj),
-                    six.text_type(obj.uuid),
+                    obj.id,
                     obj.arch,
                     obj.size,
                 )
@@ -179,9 +180,18 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             if pf.cache_value is not None or obj is None or \
                self.sym.is_image_from_app_bundle(obj):
                 continue
+
+            # We can only look up objects in the symbol server that have a
+            # uuid.  If we encounter things with an age appended or
+            # similar we need to skip.
+            try:
+                uuid.UUID(obj.id)
+            except ValueError:
+                continue
+
             to_lookup.append(
                 {
-                    'object_uuid': six.text_type(obj.uuid),
+                    'object_uuid': obj.id,
                     'object_name': obj.name or '<unknown>',
                     'addr': '0x%x' % rebase_addr(pf.data['instruction_addr'], obj)
                 }

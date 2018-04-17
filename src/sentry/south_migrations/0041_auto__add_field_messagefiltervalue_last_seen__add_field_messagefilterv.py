@@ -13,7 +13,7 @@ class Migration(SchemaMigration):
             'sentry_messagefiltervalue',
             'last_seen',
             self.gf('django.db.models.fields.DateTimeField')(
-                default=datetime.datetime.now, null=True, db_index=True
+                null=True, db_index=True
             ),
             keep_default=False
         )
@@ -23,7 +23,7 @@ class Migration(SchemaMigration):
             'sentry_messagefiltervalue',
             'first_seen',
             self.gf('django.db.models.fields.DateTimeField')(
-                default=datetime.datetime.now, null=True, db_index=True
+                null=True, db_index=True
             ),
             keep_default=False
         )

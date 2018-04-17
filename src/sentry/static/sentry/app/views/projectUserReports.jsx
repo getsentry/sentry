@@ -1,8 +1,9 @@
-import jQuery from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import {browserHistory, Link} from 'react-router';
+import qs from 'query-string';
+import {omit, isEqual} from 'lodash';
 import SentryTypes from '../proptypes';
 import ApiMixin from '../mixins/apiMixin';
 import GroupStore from '../stores/groupStore';
@@ -11,8 +12,10 @@ import LoadingIndicator from '../components/loadingIndicator';
 import Pagination from '../components/pagination';
 import CompactIssue from '../components/compactIssue';
 import EventUserReport from '../components/events/userReport';
+import {Panel, PanelBody} from '../components/panels';
+import EmptyStateWarning from '../components/emptyStateWarning';
 import {t, tct} from '../locale';
-import withEnvironment from '../utils/withEnvironment';
+import withEnvironmentInQueryString from '../utils/withEnvironmentInQueryString';
 
 const ProjectUserReports = createReactClass({
   displayName: 'ProjectUserReports',
@@ -52,7 +55,11 @@ const ProjectUserReports = createReactClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    if (nextProps.location.search !== this.props.location.search) {
+    // Ignore changes to environment term since this is handled separately
+    const nextSearchTerm = omit(qs.parse(nextProps.location.search), 'environment');
+    const thisSearchTerm = omit(qs.parse(this.props.location.search), 'environment');
+
+    if (!isEqual(nextSearchTerm, thisSearchTerm)) {
       this.setState(this.getQueryStringState(nextProps), this.fetchData);
     }
 
@@ -96,11 +103,22 @@ const ProjectUserReports = createReactClass({
       error: false,
     });
 
-    const query = this.state.environment
-      ? {environment: this.state.environment.urlRoutingName}
-      : null;
+    let params = this.props.params;
 
-    this.api.request(this.getEndpoint(), {
+    let query = {
+      ...this.props.location.query,
+      limit: 50,
+      query: this.state.query,
+      status: this.state.status,
+    };
+
+    if (this.state.environment) {
+      query.environment = this.state.environment.name;
+    } else {
+      delete query.environment;
+    }
+
+    this.api.request(`/projects/${params.orgId}/${params.projectId}/user-reports/`, {
       query,
       success: (data, _, jqXHR) => {
         let issues = data.map(r => r.issue);
@@ -121,20 +139,6 @@ const ProjectUserReports = createReactClass({
     });
   },
 
-  getEndpoint() {
-    let params = this.props.params;
-    let queryParams = {
-      ...this.props.location.query,
-      limit: 50,
-      query: this.state.query,
-      status: this.state.status,
-    };
-
-    return `/projects/${params.orgId}/${params.projectId}/user-reports/?${jQuery.param(
-      queryParams
-    )}`;
-  },
-
   getUserReportsUrl() {
     let params = this.props.params;
 
@@ -142,32 +146,24 @@ const ProjectUserReports = createReactClass({
   },
 
   renderStreamBody() {
-    let body;
-
-    if (this.state.loading) body = this.renderLoading();
-    else if (this.state.error) body = <LoadingError onRetry={this.fetchData} />;
-    else if (this.state.reportList.length > 0) body = this.renderResults();
-    else if (this.state.query && this.state.query !== this.props.defaultQuery)
-      body = this.renderNoQueryResults();
-    else body = this.renderEmpty();
-
-    return body;
-  },
-
-  renderLoading() {
-    return (
-      <div className="box">
-        <LoadingIndicator />
-      </div>
-    );
+    if (this.state.loading) {
+      return <LoadingIndicator />;
+    } else if (this.state.error) {
+      return <LoadingError onRetry={this.fetchData} />;
+    } else if (this.state.reportList.length > 0) {
+      return this.renderResults();
+    } else if (this.state.query && this.state.query !== this.props.defaultQuery) {
+      return this.renderNoQueryResults();
+    } else {
+      return this.renderEmpty();
+    }
   },
 
   renderNoQueryResults() {
     return (
-      <div className="box empty-stream">
-        <span className="icon icon-exclamation" />
+      <EmptyStateWarning>
         <p>{t('Sorry, no results match your search query.')}</p>
-      </div>
+      </EmptyStateWarning>
     );
   },
 
@@ -179,23 +175,22 @@ const ProjectUserReports = createReactClass({
         })
       : t('No user reports have been collected.');
     return (
-      <div className="box empty-stream">
-        <span className="icon icon-exclamation" />
+      <EmptyStateWarning>
         <p>{message}</p>
         <p>
           <Link to={this.getUserReportsUrl()}>
             {t('Learn how to integrate User Feedback')}
           </Link>
         </p>
-      </div>
+      </EmptyStateWarning>
     );
   },
 
   renderResults() {
-    let {orgId, projectId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
 
-    let children = this.state.reportList.map((item, itemIdx) => {
-      let issue = item.issue;
+    const children = this.state.reportList.map(item => {
+      const issue = item.issue;
 
       return (
         <CompactIssue
@@ -215,7 +210,7 @@ const ProjectUserReports = createReactClass({
       );
     });
 
-    return <ul className="issue-list">{children}</ul>;
+    return children;
   },
 
   render() {
@@ -246,15 +241,14 @@ const ProjectUserReports = createReactClass({
             </div>
           </div>
         </div>
-        <div className="alert alert-block alert-info">
-          {t(`Psst! This feature is still a work-in-progress. Thanks for being an early
-          adopter!`)}
-        </div>
-        {this.renderStreamBody()}
+        <Panel>
+          <PanelBody className="issue-list">{this.renderStreamBody()}</PanelBody>
+        </Panel>
         <Pagination pageLinks={this.state.pageLinks} />
       </div>
     );
   },
 });
 
-export default withEnvironment(ProjectUserReports);
+export {ProjectUserReports};
+export default withEnvironmentInQueryString(ProjectUserReports);

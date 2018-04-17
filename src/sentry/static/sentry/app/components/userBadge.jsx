@@ -3,24 +3,42 @@ import React from 'react';
 import styled from 'react-emotion';
 import Avatar from './avatar';
 import Link from './link';
+import overflowEllipsis from '../styles/overflowEllipsis';
+import space from '../styles/space';
 
-const UserBadge = ({user, orgId}) => {
+const UserBadge = ({
+  displayName,
+  displayEmail,
+  user,
+  orgId,
+  avatarSize,
+  useLink,
+  ...props
+}) => {
   return (
-    <StyledUserBadge>
-      <StyledAvatar user={user} size={80} className="avatar" />
-      <div>
-        <StyledLink to={`/settings/organization/${orgId}/members/${user.id}`}>
-          {user.name || user.email}
-        </StyledLink>
-        <StyledEmail>{user.email}</StyledEmail>
-      </div>
+    <StyledUserBadge {...props}>
+      <StyledAvatar user={user} size={avatarSize} />
+      <StyledNameAndEmail>
+        <StyledName useLink={useLink} to={`/settings/${orgId}/members/${user.id}`}>
+          {displayName || user.name || user.email}
+        </StyledName>
+        <StyledEmail>{displayEmail || user.email}</StyledEmail>
+      </StyledNameAndEmail>
     </StyledUserBadge>
   );
 };
 
 UserBadge.propTypes = {
+  displayName: PropTypes.node,
+  displayEmail: PropTypes.node,
+  avatarSize: PropTypes.number,
   user: PropTypes.object,
   orgId: PropTypes.string,
+  useLink: PropTypes.bool,
+};
+
+UserBadge.defaultProps = {
+  useLink: true,
 };
 
 const StyledUserBadge = styled('div')`
@@ -28,20 +46,31 @@ const StyledUserBadge = styled('div')`
   align-items: center;
 `;
 
-const StyledEmail = styled('div')`
-  font-size: 0.875em;
+const StyledNameAndEmail = styled('div')`
+  flex-shrink: 1;
+  min-width: 0;
+  line-height: 1;
 `;
 
-const StyledLink = styled(Link)`
+const StyledEmail = styled('div')`
+  font-size: 0.875em;
+  margin-top: ${space(0.5)};
+  color: ${p => p.theme.gray2};
+  ${overflowEllipsis};
+`;
+
+const StyledName = styled(
+  ({useLink, ...props}) => (useLink ? <Link {...props} /> : <span {...props} />)
+)`
   font-weight: bold;
-  display: block;
-  margin-bottom: 0.2em;
+  margin-bottom: ${space(0.5)};
+  ${overflowEllipsis};
 `;
 
 const StyledAvatar = styled(props => <Avatar {...props} />)`
-  width: 2em;
-  height: 2em;
-  margin-right: 0.5em;
+  min-width: ${space(3)};
+  min-height: ${space(3)};
+  margin-right: ${space(1)};
 `;
 
 export default UserBadge;

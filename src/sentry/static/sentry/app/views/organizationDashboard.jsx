@@ -3,6 +3,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import {Link} from 'react-router';
+import {Flex} from 'grid-emotion';
 import {Sparklines, SparklinesLine} from 'react-sparklines';
 
 import ApiMixin from '../mixins/apiMixin';
@@ -10,17 +11,148 @@ import {loadStats} from '../actionCreators/projects';
 
 import GroupStore from '../stores/groupStore';
 import HookStore from '../stores/hookStore';
-import ProjectStore from '../stores/projectsStore';
+import ProjectsStore from '../stores/projectsStore';
 import TeamStore from '../stores/teamStore';
 
+import AsyncComponent from '../components/asyncComponent';
 import ActivityFeed from '../components/activity/feed';
+import ErrorRobot from '../components/errorRobot';
 import EventsPerHour from '../components/events/eventsPerHour';
 import IssueList from '../components/issueList';
 import OrganizationHomeContainer from '../components/organizations/homeContainer';
 import OrganizationState from '../mixins/organizationState';
+import ResourceCard from '../components/resourceCard';
+import TimeSince from '../components/timeSince';
+import CommitLink from '../components/commitLink';
 
 import {t, tct} from '../locale';
 import {sortArray} from '../utils';
+import {Panel, PanelBody, PanelItem} from '../components/panels';
+import EmptyStateWarning from '../components/emptyStateWarning';
+
+class UnreleasedChanges extends AsyncComponent {
+  getEndpoints() {
+    return [
+      [
+        'unreleasedCommits',
+        `/organizations/${this.props.params.orgId}/members/me/unreleased-commits/`,
+      ],
+    ];
+  }
+
+  renderMessage = message => {
+    if (!message) {
+      return t('No message provided');
+    }
+
+    let firstLine = message.split(/\n/)[0];
+
+    return firstLine;
+  };
+
+  emptyState() {
+    return (
+      <Panel>
+        <EmptyStateWarning>
+          <p>
+            {t("We couldn't find any unreleased commits associated with your account.")}
+          </p>
+        </EmptyStateWarning>
+      </Panel>
+    );
+  }
+
+  missingEmails() {
+    return (
+      <Panel>
+        <EmptyStateWarning>
+          <p>{t("We couldn't find any commits associated with your account.")}</p>
+          <p>
+            <small>
+              {t(
+                'Have you added (and verified) the email address associated with your activity?'
+              )}
+            </small>
+          </p>
+        </EmptyStateWarning>
+      </Panel>
+    );
+  }
+
+  renderBody() {
+    let {unreleasedCommits} = this.state;
+    let {commits, errors, repositories} = unreleasedCommits;
+
+    if (errors && errors.missing_emails) return this.missingEmails();
+    if (!commits.length) return this.emptyState();
+    return (
+      <div className="panel panel-default">
+        <ul className="list-group list-group-lg commit-list">
+          {commits.map(commit => {
+            let repo = repositories[commit.repositoryID];
+            return (
+              <li className="list-group-item" key={commit.id}>
+                <div className="row row-center-vertically">
+                  <div className="col-xs-10">
+                    <h5 className="truncate">{this.renderMessage(commit.message)}</h5>
+                    <p>
+                      {repo.name} &mdash; <TimeSince date={commit.dateCreated} />
+                    </p>
+                  </div>
+                  <div className="col-xs-2 hidden-xs align-right">
+                    <CommitLink commitId={commit.id} repository={repo} />
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    );
+  }
+
+  render() {
+    return (
+      <div>
+        <h4>{t('Unreleased Changes')}</h4>
+        {this.renderComponent()}
+      </div>
+    );
+  }
+}
+
+class Resources extends React.Component {
+  render() {
+    return (
+      <div>
+        <h4>Resources</h4>
+        <Flex justify={'space-between'}>
+          <Flex width={3 / 10}>
+            <ResourceCard
+              link={'https://blog.sentry.io/2018/03/06/the-sentry-workflow'}
+              imgUrl={'images/releases.svg'}
+              title={'The Sentry Workflow'}
+            />
+          </Flex>
+          <Flex width={3 / 10}>
+            <ResourceCard
+              link={'https://sentry.io/vs/logging/'}
+              imgUrl={'images/breadcrumbs-generic.svg'}
+              title={'Sentry vs Logging'}
+            />
+          </Flex>
+          <Flex width={3 / 10}>
+            <ResourceCard
+              link={'https://docs.sentry.io/'}
+              imgUrl={'images/code-arguments-tags-mirrored.svg'}
+              title={'Docs'}
+            />
+          </Flex>
+        </Flex>
+      </div>
+    );
+  }
+}
 
 class AssignedIssues extends React.Component {
   static propTypes = {
@@ -37,7 +169,15 @@ class AssignedIssues extends React.Component {
   };
 
   renderEmpty = () => {
-    return <div className="box empty">{t('No issues have been assigned to you.')}</div>;
+    return (
+      <Panel>
+        <PanelBody>
+          <PanelItem justify="center">
+            {t('No issues have been assigned to you.')}
+          </PanelItem>
+        </PanelBody>
+      </Panel>
+    );
   };
 
   refresh = () => {
@@ -89,9 +229,13 @@ class NewIssues extends React.Component {
 
   renderEmpty = () => {
     return (
-      <div className="box empty">
-        {t('No new issues have been seen in the last week.')}
-      </div>
+      <Panel>
+        <PanelBody>
+          <PanelItem justify="center">
+            {t('No new issues have been seen in the last week.')}
+          </PanelItem>
+        </PanelBody>
+      </Panel>
     );
   };
 
@@ -345,7 +489,7 @@ const OrganizationDashboard = createReactClass({
   mixins: [
     ApiMixin,
     Reflux.listenTo(TeamStore, 'onTeamListChange'),
-    Reflux.listenTo(ProjectStore, 'onProjectListChange'),
+    Reflux.listenTo(ProjectsStore, 'onProjectListChange'),
     OrganizationState,
   ],
 
@@ -366,7 +510,7 @@ const OrganizationDashboard = createReactClass({
 
     return {
       teams: TeamStore.getAll(),
-      projects: ProjectStore.getAll(),
+      projects: ProjectsStore.getAll(),
       hooks,
     };
   },
@@ -394,26 +538,44 @@ const OrganizationDashboard = createReactClass({
 
   onProjectListChange() {
     this.setState({
-      projects: ProjectStore.getAll(),
+      projects: ProjectsStore.getAll(),
     });
   },
 
   render() {
     let org = this.getOrganization();
+    let projects = org.projects;
+    let showResources = false;
+    if (projects.length == 1 && !projects[0].firstEvent) {
+      showResources = true;
+    }
     let features = new Set(org.features);
 
     return (
       <OrganizationHomeContainer>
         <div className="row">
           <div className="col-md-8">
-            <AssignedIssues {...this.props} />
-            <NewIssues {...this.props} />
-            <Activity {...this.props} />
+            {features.has('unreleased-changes') && <UnreleasedChanges {...this.props} />}
+            {showResources && (
+              <React.Fragment>
+                <Panel>
+                  <ErrorRobot org={org} project={projects[0]} />
+                </Panel>
+                <Resources />
+              </React.Fragment>
+            )}
+            {!showResources && (
+              <div>
+                <AssignedIssues {...this.props} />
+                <NewIssues {...this.props} />
+                <Activity {...this.props} />
+              </div>
+            )}
           </div>
           <div className="col-md-4">
             {this.state.hooks}
             <EventsPerHour {...this.props} />
-            {features.has('internal-catchall') ? (
+            {features.has('new-teams') ? (
               <ProjectList {...this.props} projects={this.state.projects} />
             ) : (
               <ProjectListOld {...this.props} projects={this.state.projects} />

@@ -1,31 +1,40 @@
-import {Flex, Box} from 'grid-emotion';
-import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
+import {debounce} from 'lodash';
+import idx from 'idx';
 
+import {Panel, PanelBody, PanelHeader} from '../../../../components/panels';
+import {addErrorMessage, addSuccessMessage} from '../../../../actionCreators/indicator';
 import {t, tct} from '../../../../locale';
+import AsyncView from '../../../asyncView';
 import Button from '../../../../components/buttons/button';
 import ConfigStore from '../../../../stores/configStore';
-import IndicatorStore from '../../../../stores/indicatorStore';
+import GuideAnchor from '../../../../components/assistant/guideAnchor';
+import Input from '../../components/forms/controls/input';
 import OrganizationAccessRequests from './organizationAccessRequests';
 import OrganizationMemberRow from './organizationMemberRow';
-import OrganizationSettingsView from '../../../organizationSettingsView';
 import Pagination from '../../../../components/pagination';
-import Panel from '../../components/panel';
-import PanelBody from '../../components/panelBody';
-import PanelHeader from '../../components/panelHeader';
 import SentryTypes from '../../../../proptypes';
 import SettingsPageHeader from '../../components/settingsPageHeader';
 import recreateRoute from '../../../../utils/recreateRoute';
 
-class OrganizationMembersView extends OrganizationSettingsView {
+class OrganizationMembersView extends AsyncView {
   static propTypes = {
     routes: PropTypes.array,
   };
 
   static contextTypes = {
+    router: PropTypes.object.isRequired,
     organization: SentryTypes.Organization,
   };
+
+  componentWillReceiveProps(nextProps, nextContext) {
+    super.componentWillReceiveProps(nextProps, nextContext);
+    let searchQuery = idx(nextProps, _ => _.location.query.query);
+    if (searchQuery !== idx(this.props, _ => _.location.query.query)) {
+      this.setState({searchQuery});
+    }
+  }
 
   // XXX(billy): setState causes re-render of the entire view...
   // we should not do this
@@ -36,6 +45,7 @@ class OrganizationMembersView extends OrganizationSettingsView {
       members: [],
       invited: new Map(),
       accessRequestBusy: new Map(),
+      searchQuery: idx(this.props, _ => _.location.query.query) || '',
     };
   }
 
@@ -44,7 +54,11 @@ class OrganizationMembersView extends OrganizationSettingsView {
       [
         'members',
         `/organizations/${this.props.params.orgId}/members/`,
-        {},
+        {
+          query: {
+            query: idx(this.props, _ => _.location.query.query),
+          },
+        },
         {paginate: true},
       ],
       [
@@ -66,6 +80,18 @@ class OrganizationMembersView extends OrganizationSettingsView {
     let org = this.context.organization;
     return `${org.name} Members`;
   }
+
+  handleSearch = e => {
+    let {router} = this.context;
+    let {location} = this.props;
+    e.preventDefault();
+    router.push({
+      pathname: location.pathname,
+      query: {
+        query: this.state.searchQuery,
+      },
+    });
+  };
 
   removeMember = id => {
     let {params} = this.props;
@@ -121,46 +147,42 @@ class OrganizationMembersView extends OrganizationSettingsView {
 
   handleRemove = ({id, name}, e) => {
     let {organization} = this.context;
-    let {orgName} = organization;
+    let {slug: orgName} = organization;
 
     this.removeMember(id).then(
       () =>
-        IndicatorStore.add(
+        addSuccessMessage(
           tct('Removed [name] from [orgName]', {
             name,
             orgName,
-          }),
-          'success'
+          })
         ),
       () =>
-        IndicatorStore.add(
+        addErrorMessage(
           tct('Error removing [name] from [orgName]', {
             name,
             orgName,
-          }),
-          'error'
+          })
         )
     );
   };
 
   handleLeave = ({id}, e) => {
     let {organization} = this.context;
-    let {orgName} = organization;
+    let {slug: orgName} = organization;
 
     this.removeMember(id).then(
       () =>
-        IndicatorStore.add(
+        addSuccessMessage(
           tct('You left [orgName]', {
             orgName,
-          }),
-          'success'
+          })
         ),
       () =>
-        IndicatorStore.add(
+        addErrorMessage(
           tct('Error leaving [orgName]', {
             orgName,
-          }),
-          'error'
+          })
         )
     );
   };
@@ -181,29 +203,28 @@ class OrganizationMembersView extends OrganizationSettingsView {
         this.setState(state => ({
           invited: state.invited.set(id, null),
         }));
-        IndicatorStore.add(t('Error sending invite'), 'error');
+        addErrorMessage(t('Error sending invite'));
       },
     });
   };
 
-  handleAddMember = () => {
-    this.setState({
-      busy: true,
-    });
-    this.api.request(`/organizations/${this.props.params.orgId}/members/`, {
-      method: 'POST',
-      data: {},
-      success: data => {
-        this.setState({busy: false});
-        browserHistory.push(
-          `/organizations/${this.props.params.orgId}/members/${data.id}`
-        );
-      },
-      error: () => {
-        this.setState({busy: false});
-      },
-    });
+  handleChange = evt => {
+    let searchQuery = evt.target.value;
+    this.setState({searchQuery}, this.getMembers);
   };
+
+  getMembers = debounce(() => {
+    let {params} = this.props;
+    let {orgId} = params || {};
+    let {searchQuery} = this.state;
+
+    this.api.request(`/organizations/${orgId}/members/?query=${searchQuery}`, {
+      method: 'GET',
+      success: data => {
+        this.setState({members: data});
+      },
+    });
+  }, 200);
 
   renderBody() {
     let {params, routes} = this.props;
@@ -231,12 +252,19 @@ class OrganizationMembersView extends OrganizationSettingsView {
             ? t('You do not have enough permission to add new members')
             : undefined
         }
-        to={recreateRoute('new', {routes, params})}
+        to={recreateRoute('new/', {routes, params})}
         icon="icon-circle-add"
       >
         {t('Invite Member')}
       </Button>
     );
+
+    if (canAddMembers)
+      action = (
+        <GuideAnchor target="member_add" type="invisible">
+          {action}
+        </GuideAnchor>
+      );
 
     return (
       <div>
@@ -250,21 +278,16 @@ class OrganizationMembersView extends OrganizationSettingsView {
         />
 
         <Panel>
-          <PanelHeader disablePadding={true}>
-            <Flex align="center">
-              <Box px={2} flex="1">
-                {t('Member')}
-              </Box>
-              <Box px={2} w={180}>
-                {t('Status')}
-              </Box>
-              <Box px={2} w={140}>
-                {t('Role')}
-              </Box>
-              <Box px={2} w={140}>
-                {t('Actions')}
-              </Box>
-            </Flex>
+          <PanelHeader hasButtons>
+            {t('Member')}
+            <form onSubmit={this.handleSearch}>
+              <Input
+                value={this.state.searchQuery}
+                onChange={this.handleChange}
+                className="search"
+                placeholder={t('Search Members')}
+              />
+            </form>
           </PanelHeader>
 
           <PanelBody>

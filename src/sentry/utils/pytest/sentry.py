@@ -104,6 +104,10 @@ def pytest_configure(config):
     settings.SENTRY_TSDB = 'sentry.tsdb.inmemory.InMemoryTSDB'
     settings.SENTRY_TSDB_OPTIONS = {}
 
+    if settings.SENTRY_NEWSLETTER == 'sentry.newsletter.base.Newsletter':
+        settings.SENTRY_NEWSLETTER = 'sentry.newsletter.dummy.DummyNewsletter'
+        settings.SENTRY_NEWSLETTER_OPTIONS = {}
+
     settings.BROKER_BACKEND = 'memory'
     settings.BROKER_URL = None
     settings.CELERY_ALWAYS_EAGER = False
@@ -147,6 +151,9 @@ def pytest_configure(config):
     # networking isn't stable
     patcher = mock.patch('socket.getfqdn', return_value='localhost')
     patcher.start()
+
+    if not settings.SOUTH_TESTS_MIGRATE:
+        settings.INSTALLED_APPS = tuple(i for i in settings.INSTALLED_APPS if i != 'south')
 
     from sentry.runner.initializer import (
         bootstrap_options, configure_structlog, initialize_receivers, fix_south,
@@ -197,7 +204,12 @@ def register_extensions():
 def pytest_runtest_teardown(item):
     from sentry import tsdb
     # TODO(dcramer): this only works if this is the correct tsdb backend
-    tsdb.backend.flush()
+    tsdb.flush()
+
+    # XXX(dcramer): only works with DummyNewsletter
+    from sentry import newsletter
+    if hasattr(newsletter.backend, 'clear'):
+        newsletter.backend.clear()
 
     from sentry.utils.redis import clusters
 

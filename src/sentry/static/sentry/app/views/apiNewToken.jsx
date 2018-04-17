@@ -11,6 +11,10 @@ const SORTED_DEFAULT_API_SCOPES = DEFAULT_API_SCOPES.sort();
 const API_CHOICES = API_SCOPES.map(s => [s, s]);
 
 export default class ApiNewToken extends AsyncView {
+  getEndpoints() {
+    return [];
+  }
+
   getTitle() {
     return 'Create API Token';
   }

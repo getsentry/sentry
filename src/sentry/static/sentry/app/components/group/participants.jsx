@@ -4,7 +4,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 
 import Avatar from '../avatar';
-import TooltipMixin from '../../mixins/tooltip';
+import Tooltip from '../tooltip';
 import {userDisplayName} from '../../utils/formatters';
 
 const GroupParticipants = createReactClass({
@@ -13,12 +13,6 @@ const GroupParticipants = createReactClass({
   propTypes: {
     participants: PropTypes.array.isRequired,
   },
-
-  mixins: [
-    TooltipMixin({
-      selector: '.tip',
-    }),
-  ],
 
   render() {
     let participants = this.props.participants;
@@ -33,8 +27,10 @@ const GroupParticipants = createReactClass({
         <ul className="faces">
           {participants.map((user, i) => {
             return (
-              <li key={user.username} className="tip" title={userDisplayName(user)}>
-                <Avatar size={32} user={user} />
+              <li key={user.username}>
+                <Tooltip title={userDisplayName(user)}>
+                  <Avatar size={28} user={user} />
+                </Tooltip>
               </li>
             );
           })}

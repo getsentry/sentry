@@ -84,6 +84,11 @@ const OrganizationContext = createReactClass({
           hooks.push(cb(data));
         });
 
+        setActiveOrganization(data);
+
+        TeamStore.loadInitialData(data.teams);
+        ProjectsStore.loadInitialData(data.projects);
+
         this.setState({
           organization: data,
           loading: false,
@@ -92,11 +97,6 @@ const OrganizationContext = createReactClass({
           hooks,
           showBroadcast: this.shouldShowBroadcast(data),
         });
-
-        setActiveOrganization(data);
-
-        TeamStore.loadInitialData(data.teams);
-        ProjectsStore.loadInitialData(data.projects);
       },
 
       error: (_, textStatus, errorThrown) => {

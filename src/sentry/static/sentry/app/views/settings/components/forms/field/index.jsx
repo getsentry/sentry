@@ -28,6 +28,11 @@ class Field extends React.Component {
     highlighted: PropTypes.bool,
 
     /**
+     * Padding
+     */
+    p: PropTypes.number,
+
+    /**
      * Show "required" indicator
      */
     required: PropTypes.bool,
@@ -46,6 +51,11 @@ class Field extends React.Component {
      * Reason why field is disabled (displays in tooltip)
      */
     disabledReason: PropTypes.string,
+
+    /**
+     * Hide ControlState component
+     */
+    flexibleControlStateSize: PropTypes.bool,
 
     /**
      * User-facing field name
@@ -71,6 +81,14 @@ class Field extends React.Component {
      * The Control component
      */
     children: PropTypes.oneOfType([PropTypes.node, PropTypes.func]),
+
+    /**
+     * Class name for inner control
+     */
+    controlClassName: PropTypes.string,
+
+    /** Inline style */
+    style: PropTypes.object,
   };
 
   static defaultProps = {
@@ -82,7 +100,9 @@ class Field extends React.Component {
   };
 
   render() {
+    let {className, ...otherProps} = this.props;
     let {
+      controlClassName,
       alignRight,
       inline,
       highlighted,
@@ -90,11 +110,14 @@ class Field extends React.Component {
       visible,
       disabled,
       disabledReason,
+      flexibleControlStateSize,
       label,
       help,
       id,
+      p,
       children,
-    } = this.props;
+      style,
+    } = otherProps;
     let isDisabled = typeof disabled === 'function' ? disabled(this.props) : disabled;
     let isVisible = typeof visible === 'function' ? visible(this.props) : visible;
     let Control;
@@ -103,29 +126,34 @@ class Field extends React.Component {
       return null;
     }
 
+    let controlProps = {
+      className: controlClassName,
+      inline,
+      alignRight,
+      disabled: isDisabled,
+      disabledReason,
+      flexibleControlStateSize,
+    };
+
     // See comments in prop types
     if (typeof children === 'function') {
       Control = children({
-        ...this.props,
-        alignRight,
-        disabled: isDisabled,
-        disabledReason,
+        ...otherProps,
+        ...controlProps,
       });
     } else {
-      Control = (
-        <FieldControl
-          inline={inline}
-          alignRight={alignRight}
-          disabled={isDisabled}
-          disabledReason={disabledReason}
-        >
-          {children}
-        </FieldControl>
-      );
+      Control = <FieldControl {...controlProps}>{children}</FieldControl>;
     }
 
     return (
-      <FieldWrapper inline={inline} highlighted={highlighted}>
+      <FieldWrapper
+        p={p}
+        className={className}
+        inline={inline}
+        highlighted={highlighted}
+        hasControlState={!flexibleControlStateSize}
+        style={style}
+      >
         <FieldDescription inline={inline} htmlFor={id}>
           {label && (
             <FieldLabel>

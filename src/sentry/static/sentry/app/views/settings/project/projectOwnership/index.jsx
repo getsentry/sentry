@@ -4,9 +4,7 @@ import styled from 'react-emotion';
 import {t} from '../../../../locale';
 import AsyncView from '../../../asyncView';
 
-import Panel from '../../components/panel';
-import PanelBody from '../../components/panelBody';
-import PanelHeader from '../../components/panelHeader';
+import {Panel, PanelBody, PanelHeader} from '../../../../components/panels';
 import SentryTypes from '../../../../proptypes';
 import SettingsPageHeader from '../../components/settingsPageHeader';
 import Form from '../../components/forms/form';
@@ -29,10 +27,10 @@ class ProjectOwnership extends AsyncView {
   }
 
   getEndpoints() {
-    let {orgId, projectId} = this.props.params;
+    let {organization, project} = this.props;
     return [
-      ['project', `/projects/${orgId}/${projectId}/`],
-      ['ownership', `/projects/${orgId}/${projectId}/ownership/`],
+      ['project', `/projects/${organization.slug}/${project.slug}/`],
+      ['ownership', `/projects/${organization.slug}/${project.slug}/ownership/`],
     ];
   }
 
@@ -54,20 +52,27 @@ class ProjectOwnership extends AsyncView {
           <PanelBody disablePadding={false}>
             <p>
               {t(
-                "To configure automated issue ownership in Sentry, you'll need to define rules here. "
+                'Define rules here to configure automated ownership for new issues and direct email alerts'
               )}
             </p>
-            <p>{t('Rules follow the pattern type:glob owner, owner')}</p>
+            <p>{t('Rules follow the pattern type:glob owner owner')}</p>
             <p>
               {t(
                 'Owners can be team identifiers starting with #, or user emails (use @ to input from list)'
               )}
             </p>
+            <p>
+              {t('Globbing Syntax:')}
+              <CodeBlock>
+                {`* matches everything
+? matches any single character`}
+              </CodeBlock>
+            </p>
             Examples:
             <CodeBlock>
-              path:src/sentry/pipeline/* person@sentry.io #platform
+              path:src/example/pipeline/* person@sentry.io #infrastructure
               {'\n'}
-              url:http://sentry.io/settings/* #workflow
+              url:http://example.com/settings/* #product
             </CodeBlock>
             <OwnerInput {...this.props} initialText={ownership.raw || ''} />
           </PanelBody>

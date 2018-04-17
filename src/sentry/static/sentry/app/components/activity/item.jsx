@@ -9,6 +9,7 @@ import CommitLink from '../../components/commitLink';
 import Duration from '../../components/duration';
 import Avatar from '../../components/avatar';
 import IssueLink from '../../components/issueLink';
+import VersionHoverCard from '../../components/versionHoverCard';
 import MemberListStore from '../../stores/memberListStore';
 import TeamStore from '../../stores/teamStore';
 import TimeSince from '../../components/timeSince';
@@ -63,16 +64,25 @@ class ActivityItem extends React.Component {
       </IssueLink>
     ) : null;
 
+    let versionLink = data.version ? (
+      <VersionHoverCard orgId={orgId} projectId={project.slug} version={data.version}>
+        <Version version={data.version} orgId={orgId} projectId={project.slug} />
+      </VersionHoverCard>
+    ) : null;
+
     switch (item.type) {
       case 'note':
         return tct('[author] commented on [issue]', {
           author,
           issue: (
-            <Link
+            <IssueLink
+              orgId={orgId}
+              projectId={project.slug}
+              issue={issue}
               to={`/${orgId}/${project.slug}/issues/${issue.id}/activity/#event_${item.id}`}
             >
               {issue.shortId}
-            </Link>
+            </IssueLink>
           ),
         });
       case 'set_resolved':
@@ -89,9 +99,7 @@ class ActivityItem extends React.Component {
         if (data.version) {
           return tct('[author] marked [issue] as resolved in [version]', {
             author,
-            version: (
-              <Version version={data.version} orgId={orgId} projectId={project.slug} />
-            ),
+            version: versionLink,
             issue: issueLink,
           });
         }
@@ -105,8 +113,8 @@ class ActivityItem extends React.Component {
           version: (
             <CommitLink
               inline={true}
-              commitId={data.commit.id}
-              repository={data.commit.repository}
+              commitId={data.commit && data.commit.id}
+              repository={data.commit && data.commit.repository}
             />
           ),
           issue: issueLink,
@@ -118,7 +126,7 @@ class ActivityItem extends React.Component {
             <PullRequestLink
               inline={true}
               pullRequest={data.pullRequest}
-              repository={data.pullRequest.repository}
+              repository={data.pullRequest && data.pullRequest.repository}
             />
           ),
           issue: issueLink,
@@ -186,9 +194,7 @@ class ActivityItem extends React.Component {
         if (data.version) {
           return tct('[author] marked [issue] as a regression in [version]', {
             author,
-            version: (
-              <Version version={data.version} orgId={orgId} projectId={project.slug} />
-            ),
+            version: versionLink,
             issue: issueLink,
           });
         }
@@ -224,10 +230,10 @@ class ActivityItem extends React.Component {
         });
       case 'assigned':
         if (data.assigneeType == 'team') {
-          return tct('[author] assigned [issue] to the [assignee] Team', {
+          return tct('[author] assigned [issue] to #[assignee]', {
             author,
             issue: issueLink,
-            assignee: TeamStore.getById(data.assignee).name,
+            assignee: TeamStore.getById(data.assignee).slug,
           });
         }
         let assignee;
@@ -270,16 +276,12 @@ class ActivityItem extends React.Component {
       case 'release':
         return tct('[author] released version [version]', {
           author,
-          version: (
-            <Version version={data.version} orgId={orgId} projectId={project.slug} />
-          ),
+          version: versionLink,
         });
       case 'deploy':
         return tct('[author] deployed version [version] to [environment].', {
           author,
-          version: (
-            <Version version={data.version} orgId={orgId} projectId={project.slug} />
-          ),
+          version: versionLink,
           environment: data.environment || 'Default Environment',
         });
       default:
@@ -297,9 +299,9 @@ class ActivityItem extends React.Component {
     }
 
     let avatar = item.user ? (
-      <Avatar user={item.user} size={64} className="avatar" />
+      <Avatar user={item.user} size={36} className="activity-avatar" />
     ) : (
-      <div className="avatar sentry">
+      <div className="activity-avatar avatar sentry">
         <span className="icon-sentry-logo" />
       </div>
     );

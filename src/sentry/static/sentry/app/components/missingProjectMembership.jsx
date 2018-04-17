@@ -63,6 +63,9 @@ const MissingProjectMembership = createReactClass({
   },
 
   renderJoinTeam(team, features) {
+    if (!team) {
+      return null;
+    }
     if (this.state.loading) {
       return <a className="btn btn-default btn-loading btn-disabled">...</a>;
     } else if (team.isPending) {
@@ -82,7 +85,7 @@ const MissingProjectMembership = createReactClass({
   },
 
   renderExplanation(features) {
-    if (features.has('internal-catchall')) {
+    if (features.has('new-teams')) {
       if (features.has('open-membership')) {
         return t('To view this data you must one of the following teams.');
       } else {
@@ -94,13 +97,20 @@ const MissingProjectMembership = createReactClass({
 
     let {project} = this.state;
     let {team} = project;
-    if (features.has('open-membership')) {
-      return t('To view this data you must first join the %s team.', team.name);
+
+    if (team) {
+      if (features.has('open-membership')) {
+        return t('To view this data you must first join the %s team.', team.name);
+      }
+
+      return t(
+        'To view this data you must first request access to the %s team.',
+        team.name
+      );
     }
 
     return t(
-      'To view this data you must first request access to the %s team.',
-      team.name
+      'This project is not associated with any teams. To view this data, an administrator must grant access to a team you are on.'
     );
   },
 
@@ -136,7 +146,7 @@ const MissingProjectMembership = createReactClass({
           <span className="icon icon-exclamation" />
           <p>{t("You're not a member of this project.")}</p>
           <p>{this.renderExplanation(features)}</p>
-          {features.has('internal-catchall') ? (
+          {features.has('new-teams') ? (
             this.renderJoinTeams(features)
           ) : (
             <p>{this.renderJoinTeam(team, features)}</p>

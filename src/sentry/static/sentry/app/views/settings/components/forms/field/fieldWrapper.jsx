@@ -1,6 +1,7 @@
 import React from 'react';
 import styled, {css} from 'react-emotion';
 import {Flex} from 'grid-emotion';
+import space from '../../../../../styles/space';
 
 const inlineStyle = p =>
   p.inline
@@ -19,8 +20,22 @@ const highlightedStyle = p =>
       `
     : '';
 
-const FieldWrapper = styled(({highlighted, inline, ...props}) => <Flex {...props} />)`
-  padding: 0.9em 0 0.9em 1.3em;
+const getPadding = props => {
+  if (typeof props.p !== 'undefined') {
+    return `padding: ${props.p};`;
+  }
+  return `padding: ${space(2)} ${props.hasControlState ? 0 : space(1)} ${space(
+    2
+  )} ${space(2)}`;
+};
+
+/**
+ * `hasControlState` - adds padding to right if this is false
+ */
+const FieldWrapper = styled(({highlighted, inline, hasControlState, p, ...props}) => (
+  <Flex {...props} />
+))`
+  ${getPadding};
   border-bottom: 1px solid ${p => p.theme.borderLight};
   transition: background 0.15s;
 

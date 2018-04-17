@@ -66,10 +66,8 @@ describe('DropdownAutoCompleteMenu', function() {
         isOpen={true}
         items={[
           {
-            group: {
-              value: 'countries',
-              label: 'countries',
-            },
+            value: 'countries',
+            label: 'countries',
             items: [
               {
                 value: 'new zealand',
@@ -86,8 +84,9 @@ describe('DropdownAutoCompleteMenu', function() {
         {({selectedItem}) => (selectedItem ? selectedItem.label : 'Click me!')}
       </DropdownAutoCompleteMenu>
     );
+
     wrapper
-      .find('[index]')
+      .find('AutoCompleteItem')
       .last()
       .simulate('click');
     expect(mock).toMatchSnapshot();

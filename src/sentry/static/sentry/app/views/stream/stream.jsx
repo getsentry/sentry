@@ -4,13 +4,17 @@ import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import {Link, browserHistory} from 'react-router';
 import Cookies from 'js-cookie';
-import {StickyContainer, Sticky} from 'react-sticky';
 import classNames from 'classnames';
+import qs from 'query-string';
+import {omit, isEqual} from 'lodash';
 
 import SentryTypes from '../../proptypes';
 import ApiMixin from '../../mixins/apiMixin';
+import ConfigStore from '../../stores/configStore';
 import GroupStore from '../../stores/groupStore';
 import EnvironmentStore from '../../stores/environmentStore';
+import HookStore from '../../stores/hookStore';
+import ErrorRobot from '../../components/errorRobot';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 import ProjectState from '../../mixins/projectState';
@@ -26,6 +30,7 @@ import {logAjaxError} from '../../utils/logging';
 import parseLinkHeader from '../../utils/parseLinkHeader';
 import {t, tn, tct} from '../../locale';
 import {setActiveEnvironment} from '../../actionCreators/environments';
+import {Panel, PanelBody} from '../../components/panels';
 
 const MAX_ITEMS = 25;
 const DEFAULT_SORT = 'date';
@@ -94,10 +99,9 @@ const Stream = createReactClass({
 
     this.fetchSavedSearches();
     this.fetchProcessingIssues();
-  },
-
-  componentDidMount() {
-    this.fetchData();
+    if (!this.state.loading) {
+      this.fetchData();
+    }
   },
 
   componentWillReceiveProps(nextProps) {
@@ -118,7 +122,17 @@ const Stream = createReactClass({
       ? nextSearchId
       : nextSearchId !== this.state.searchId;
 
-    if (searchIdChanged || nextProps.location.search !== this.props.location.search) {
+    // We are using qs.parse with location.search since this.props.location.query
+    // returns the same value as nextProps.location.query
+    let currentSearchTerm = qs.parse(this.props.location.search);
+    let nextSearchTerm = qs.parse(nextProps.location.search);
+
+    let searchTermChanged = !isEqual(
+      omit(currentSearchTerm, 'environment'),
+      omit(nextSearchTerm, 'environment')
+    );
+
+    if (searchIdChanged || searchTermChanged) {
       this.setState(this.getQueryState(nextProps), this.fetchData);
     }
   },
@@ -477,6 +491,18 @@ const Stream = createReactClass({
         this.transitionTo
       );
     }
+
+    // Ignore saved searches
+    if (this.state.savedSearchList.map(s => s.query == this.state.query).length > 0) {
+      let {orgId, projectId} = this.props.params;
+      HookStore.get('analytics:event').forEach(cb =>
+        cb('issue.search', {
+          query: this.state.query,
+          organization_id: orgId,
+          project_id: projectId,
+        })
+      );
+    }
   },
 
   onSortChange(sort) {
@@ -507,6 +533,10 @@ const Stream = createReactClass({
   transitionTo() {
     let queryParams = {};
 
+    if (this.props.location.query.environment) {
+      queryParams.environment = this.props.location.query.environment;
+    }
+
     if (!this.state.searchId) {
       queryParams.query = this.state.query;
     }
@@ -527,19 +557,6 @@ const Stream = createReactClass({
     browserHistory.push({
       pathname: path,
       query: queryParams,
-    });
-  },
-
-  createSampleEvent() {
-    let params = this.props.params;
-    let url = `/projects/${params.orgId}/${params.projectId}/create-sample/`;
-    this.api.request(url, {
-      method: 'POST',
-      success: data => {
-        browserHistory.push(
-          `/${params.orgId}/${params.projectId}/issues/${data.groupID}/`
-        );
-      },
     });
   },
 
@@ -597,7 +614,10 @@ const Stream = createReactClass({
       /* we should not go here but what do we know */ return null;
     }
     return (
-      <div className={classNames(className)}>
+      <div
+        className={classNames(className)}
+        style={{margin: '-1px -1px 0', padding: '10px 16px'}}
+      >
         {showButton && (
           <Link to={link} className="btn btn-default btn-sm pull-right">
             {t('Show details')}
@@ -609,8 +629,16 @@ const Stream = createReactClass({
   },
 
   renderGroupNodes(ids, statsPeriod) {
+    // Restrict this guide to only show for new users (joined<30 days) and add guide anhor only to the first issue
+    let userDateJoined = new Date(ConfigStore.get('user').dateJoined);
+    let dateCutoff = new Date();
+    dateCutoff.setDate(dateCutoff.getDate() - 30);
+
+    let topIssue = ids[0];
+
     let {orgId, projectId} = this.props.params;
     let groupNodes = ids.map(id => {
+      let hasGuideAnchor = userDateJoined > dateCutoff && id === topIssue;
       return (
         <StreamGroup
           key={id}
@@ -618,80 +646,47 @@ const Stream = createReactClass({
           orgId={orgId}
           projectId={projectId}
           statsPeriod={statsPeriod}
+          query={this.state.query}
+          hasGuideAnchor={hasGuideAnchor}
         />
       );
     });
-    return <ul className="group-list">{groupNodes}</ul>;
+    return <PanelBody className="ref-group-list">{groupNodes}</PanelBody>;
   },
 
   renderAwaitingEvents() {
     let org = this.getOrganization();
     let project = this.getProject();
-    let sampleLink = null;
-    if (this.state.groupIds.length > 0) {
-      let sampleIssueId = this.state.groupIds[0];
-
-      sampleLink = (
-        <p>
-          <Link to={`/${org.slug}/${project.slug}/issues/${sampleIssueId}/?sample`}>
-            {t('Or see your sample event')}
-          </Link>
-        </p>
-      );
-    } else {
-      sampleLink = (
-        <p>
-          <a onClick={this.createSampleEvent.bind(this, project.platform)}>
-            {t('Create a sample event')}
-          </a>
-        </p>
-      );
-    }
-
+    let sampleIssueId = this.state.groupIds.length > 0 ? this.state.groupIds[0] : '';
     return (
-      <div className="box awaiting-events">
-        <div className="wrap">
-          <div className="robot">
-            <span className="eye" />
-          </div>
-          <h3>{t('Waiting for events…')}</h3>
-          <p>
-            {tct(
-              'Our error robot is waiting to [cross:devour] receive your first event.',
-              {
-                cross: <span className="strikethrough" />,
-              }
-            )}
-          </p>
-          <p>
-            <Link
-              to={`/${org.slug}/${project.slug}/getting-started/`}
-              className="btn btn-primary btn-lg"
-            >
-              {t('Installation Instructions')}
-            </Link>
-          </p>
-          {sampleLink}
-        </div>
-      </div>
+      <ErrorRobot
+        org={org}
+        project={project}
+        sampleIssueId={sampleIssueId}
+        gradient={true}
+      />
     );
   },
 
   renderEmpty() {
+    const {environment} = this.state;
+    const message = environment
+      ? tct('Sorry no events match your filters in the [env] environment.', {
+          env: environment.displayName,
+        })
+      : t('Sorry, no events match your filters.');
+
+    // TODO(lyn): Extract empty state to a separate component
     return (
-      <div className="box empty-stream">
+      <div className="empty-stream" style={{border: 0}}>
         <span className="icon icon-exclamation" />
-        <p>{t('Sorry, no events match your filters.')}</p>
+        <p>{message}</p>
       </div>
     );
   },
 
   renderLoading() {
-    return (
-      <div className="box">
-        <LoadingIndicator />
-      </div>
-    );
+    return <LoadingIndicator />;
   },
 
   renderStreamBody() {
@@ -724,58 +719,54 @@ const Stream = createReactClass({
     let access = this.getAccess();
     let projectFeatures = this.getProjectFeatures();
     return (
-      <StickyContainer>
-        <div className={classNames(classes)}>
-          <div className="stream-content">
-            <StreamFilters
-              access={access}
-              orgId={orgId}
-              projectId={projectId}
-              query={this.state.query}
-              sort={this.state.sort}
-              searchId={searchId}
-              queryCount={this.state.queryCount}
-              queryMaxCount={this.state.queryMaxCount}
-              onSortChange={this.onSortChange}
-              onSearch={this.onSearch}
-              onSavedSearchCreate={this.onSavedSearchCreate}
-              onSidebarToggle={this.onSidebarToggle}
-              isSearchDisabled={this.state.isSidebarVisible}
-              savedSearchList={this.state.savedSearchList}
-            />
-            <Sticky topOffset={59}>
-              {props => (
-                <div className={classNames('group-header', {sticky: props.isSticky})}>
-                  <StreamActions
-                    orgId={params.orgId}
-                    projectId={params.projectId}
-                    hasReleases={projectFeatures.has('releases')}
-                    latestRelease={this.context.project.latestRelease}
-                    query={this.state.query}
-                    onSelectStatsPeriod={this.onSelectStatsPeriod}
-                    onRealtimeChange={this.onRealtimeChange}
-                    realtimeActive={this.state.realtimeActive}
-                    statsPeriod={this.state.statsPeriod}
-                    groupIds={this.state.groupIds}
-                    allResultsVisible={this.allResultsVisible()}
-                  />
-                </div>
-              )}
-            </Sticky>
-            {this.renderProcessingIssuesHint()}
-            {this.renderStreamBody()}
-            <Pagination pageLinks={this.state.pageLinks} />
-          </div>
-          <StreamSidebar
-            loading={this.props.tagsLoading}
-            tags={this.props.tags}
+      <div className={classNames(classes)}>
+        <div className="stream-content">
+          <StreamFilters
+            access={access}
+            orgId={orgId}
+            projectId={projectId}
             query={this.state.query}
-            onQueryChange={this.onSearch}
-            orgId={params.orgId}
-            projectId={params.projectId}
+            sort={this.state.sort}
+            searchId={searchId}
+            queryCount={this.state.queryCount}
+            queryMaxCount={this.state.queryMaxCount}
+            onSortChange={this.onSortChange}
+            onSearch={this.onSearch}
+            onSavedSearchCreate={this.onSavedSearchCreate}
+            onSidebarToggle={this.onSidebarToggle}
+            isSearchDisabled={this.state.isSidebarVisible}
+            savedSearchList={this.state.savedSearchList}
           />
+          <Panel>
+            <StreamActions
+              orgId={params.orgId}
+              projectId={params.projectId}
+              hasReleases={projectFeatures.has('releases')}
+              latestRelease={this.context.project.latestRelease}
+              query={this.state.query}
+              onSelectStatsPeriod={this.onSelectStatsPeriod}
+              onRealtimeChange={this.onRealtimeChange}
+              realtimeActive={this.state.realtimeActive}
+              statsPeriod={this.state.statsPeriod}
+              groupIds={this.state.groupIds}
+              allResultsVisible={this.allResultsVisible()}
+            />
+            <PanelBody>
+              {this.renderProcessingIssuesHint()}
+              {this.renderStreamBody()}
+            </PanelBody>
+          </Panel>
+          <Pagination pageLinks={this.state.pageLinks} />
         </div>
-      </StickyContainer>
+        <StreamSidebar
+          loading={this.props.tagsLoading}
+          tags={this.props.tags}
+          query={this.state.query}
+          onQueryChange={this.onSearch}
+          orgId={params.orgId}
+          projectId={params.projectId}
+        />
+      </div>
     );
   },
 });

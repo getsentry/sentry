@@ -43,10 +43,11 @@ class ProjectSerializer(Serializer):
     such as "show all projects for this organization", and its attributes be kept to a minimum.
     """
 
-    def __init__(self, stats_period=None):
+    def __init__(self, environment_id=None, stats_period=None):
         if stats_period is not None:
             assert stats_period in STATS_PERIOD_CHOICES
 
+        self.environment_id = environment_id
         self.stats_period = stats_period
 
     def get_access_by_project(self, item_list, user):
@@ -119,11 +120,12 @@ class ProjectSerializer(Serializer):
             segments, interval = STATS_PERIOD_CHOICES[self.stats_period]
             now = timezone.now()
             stats = tsdb.get_range(
-                model=tsdb.models.project_total_received,
+                model=tsdb.models.project,
                 keys=project_ids,
                 end=now,
                 start=now - ((segments - 1) * interval),
                 rollup=int(interval.total_seconds()),
+                environment_id=self.environment_id,
             )
         else:
             stats = None
@@ -148,7 +150,7 @@ class ProjectSerializer(Serializer):
         feature_list = []
         for feature in (
             'global-events', 'data-forwarding', 'rate-limits', 'discard-groups', 'similarity-view',
-            'custom-inbound-filters', 'minidump',
+            'custom-inbound-filters',
         ):
             if features.has('projects:' + feature, obj, actor=user):
                 feature_list.append(feature)
@@ -231,6 +233,26 @@ class ProjectWithTeamSerializer(ProjectSerializer):
             pass
         data['teams'] = attrs['teams']
         return data
+
+
+class ProjectSummarySerializer(ProjectWithTeamSerializer):
+    def serialize(self, obj, attrs, user):
+        context = {
+            'team': attrs['teams'][0] if attrs['teams'] else None,
+            'teams': attrs['teams'],
+            'id': six.text_type(obj.id),
+            'name': obj.name,
+            'slug': obj.slug,
+            'isBookmarked': attrs['is_bookmarked'],
+            'isMember': attrs['is_member'],
+            'hasAccess': attrs['has_access'],
+            'dateCreated': obj.date_added,
+            'firstEvent': obj.first_event,
+            'platform': obj.platform,
+        }
+        if 'stats' in attrs:
+            context['stats'] = attrs['stats']
+        return context
 
 
 class DetailedProjectSerializer(ProjectWithTeamSerializer):

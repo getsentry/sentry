@@ -1,25 +1,48 @@
+import {browserHistory} from 'react-router';
 import React from 'react';
-import {ThemeProvider} from 'emotion-theming';
-import {mount} from 'enzyme';
-
-import {Client} from 'app/api';
 
 import ProjectGeneralSettings from 'app/views/projectGeneralSettings';
-import theme from 'app/utils/theme';
+import ProjectContext from 'app/views/projects/projectContext';
+import ProjectsStore from 'app/stores/projectsStore';
+import {mountWithTheme} from '../../../helpers';
 
+jest.mock('app/utils/recreateRoute');
 jest.mock('jquery');
 
 describe('projectGeneralSettings', function() {
   let org = TestStubs.Organization();
-  let project = TestStubs.Project();
+  let project = TestStubs.ProjectDetails();
+  let routerContext;
+  let putMock;
 
   beforeEach(function() {
     sinon.stub(window.location, 'assign');
-    Client.clearMockResponses();
-    Client.addMockResponse({
+    routerContext = TestStubs.routerContext([
+      {
+        router: TestStubs.router({
+          params: {
+            projectId: project.slug,
+            orgId: org.slug,
+          },
+        }),
+      },
+    ]);
+
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
       method: 'GET',
       body: project,
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/environments/`,
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/members/`,
+      method: 'GET',
+      body: [],
     });
   });
 
@@ -28,10 +51,8 @@ describe('projectGeneralSettings', function() {
   });
 
   it('renders form fields', function() {
-    let wrapper = mount(
-      <ThemeProvider theme={theme}>
-        <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />
-      </ThemeProvider>,
+    let wrapper = mountWithTheme(
+      <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
       TestStubs.routerContext()
     );
 
@@ -40,7 +61,6 @@ describe('projectGeneralSettings', function() {
     expect(wrapper.find('Input[name="subjectTemplate"]').prop('value')).toBe(
       '[$project] ${tag:level}: $title'
     );
-    expect(wrapper.find('Input[name="defaultEnvironment"]').prop('value')).toBe('');
     expect(wrapper.find('RangeSlider[name="resolveAge"]').prop('value')).toBe(48);
     expect(wrapper.find('Switch[name="dataScrubber"]').prop('isActive')).toBeFalsy();
     expect(
@@ -67,13 +87,10 @@ describe('projectGeneralSettings', function() {
   });
 
   it('disables field when equivalent org setting is true', function() {
-    let routerContext = TestStubs.routerContext();
     routerContext.context.organization.dataScrubber = true;
     routerContext.context.organization.scrubIPAddresses = false;
-    let wrapper = mount(
-      <ThemeProvider theme={theme}>
-        <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />
-      </ThemeProvider>,
+    let wrapper = mountWithTheme(
+      <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
       routerContext
     );
     expect(wrapper.find('Switch[name="scrubIPAddresses"]').prop('isDisabled')).toBe(
@@ -85,15 +102,13 @@ describe('projectGeneralSettings', function() {
   });
 
   it('project admins can remove project', function() {
-    let deleteMock = Client.addMockResponse({
+    let deleteMock = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
       method: 'DELETE',
     });
 
-    let wrapper = mount(
-      <ThemeProvider theme={theme}>
-        <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />
-      </ThemeProvider>,
+    let wrapper = mountWithTheme(
+      <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
       TestStubs.routerContext()
     );
 
@@ -111,15 +126,13 @@ describe('projectGeneralSettings', function() {
   });
 
   it('project admins can transfer project', function() {
-    let deleteMock = Client.addMockResponse({
+    let deleteMock = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/transfer/`,
       method: 'POST',
     });
 
-    let wrapper = mount(
-      <ThemeProvider theme={theme}>
-        <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />
-      </ThemeProvider>,
+    let wrapper = mountWithTheme(
+      <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
       TestStubs.routerContext()
     );
 
@@ -148,12 +161,9 @@ describe('projectGeneralSettings', function() {
   });
 
   it('displays transfer/remove message for non-admins', function() {
-    let routerContext = TestStubs.routerContext();
     routerContext.context.organization.access = ['org:read'];
-    let wrapper = mount(
-      <ThemeProvider theme={theme}>
-        <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />
-      </ThemeProvider>,
+    let wrapper = mountWithTheme(
+      <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
       routerContext
     );
 
@@ -163,5 +173,146 @@ describe('projectGeneralSettings', function() {
     expect(wrapper.html()).toContain(
       'You do not have the required permission to transfer this project.'
     );
+  });
+
+  it('changing slug updates ProjectsStore', async function() {
+    let params = {orgId: org.slug, projectId: project.slug};
+    ProjectsStore.loadInitialData([project]);
+    putMock = MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/`,
+      method: 'PUT',
+      body: {
+        ...project,
+        slug: 'new-project',
+      },
+    });
+    let wrapper = mountWithTheme(
+      <ProjectContext orgId={org.slug} projectId={project.slug}>
+        <ProjectGeneralSettings
+          routes={[]}
+          location={routerContext.context.location}
+          params={params}
+        />
+      </ProjectContext>,
+      routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    // Change slug to new-slug
+    wrapper
+      .find('input[name="slug"]')
+      .simulate('change', {target: {value: 'new-project'}})
+      .simulate('blur');
+
+    // Slug does not save on blur
+    expect(putMock).not.toHaveBeenCalled();
+    wrapper.find('SaveButton').simulate('click');
+
+    await tick();
+    // :(
+    await tick();
+    wrapper.update();
+    // updates ProjectsStore
+    expect(ProjectsStore.itemsById['2'].slug).toBe('new-project');
+    expect(browserHistory.replace).toHaveBeenCalled();
+    // We can't do this because of ThemeProvider (ProjectContext needs to be root in order to `setProps`)
+    // wrapper.find('ProjectContext').setProps({
+    // projectId: 'new-project',
+    // });
+    wrapper.update();
+    expect(wrapper.find('Input[name="slug"]').prop('value')).toBe('new-project');
+  });
+
+  describe('Non-"save on blur" Field', function() {
+    let wrapper;
+
+    beforeEach(function() {
+      let params = {orgId: org.slug, projectId: project.slug};
+      ProjectsStore.loadInitialData([project]);
+      putMock = MockApiClient.addMockResponse({
+        url: `/projects/${org.slug}/${project.slug}/`,
+        method: 'PUT',
+        body: {
+          ...project,
+          slug: 'new-project',
+        },
+      });
+      wrapper = mountWithTheme(
+        <ProjectContext orgId={org.slug} projectId={project.slug}>
+          <ProjectGeneralSettings
+            routes={[]}
+            location={routerContext.context.location}
+            params={params}
+          />
+        </ProjectContext>,
+        routerContext
+      );
+    });
+
+    it('can cancel unsaved changes for a field', async function() {
+      await tick();
+      wrapper.update();
+      // Initially does not have "Cancel" button
+      expect(wrapper.find('MessageAndActions CancelButton')).toHaveLength(0);
+      // Has initial value
+      expect(wrapper.find('input[name="resolveAge"]').prop('value')).toBe(19);
+
+      // Change value
+      wrapper
+        .find('input[name="resolveAge"]')
+        .simulate('input', {target: {value: 12}})
+        .simulate('mouseUp');
+
+      // Has updated value
+      expect(wrapper.find('input[name="resolveAge"]').prop('value')).toBe(12);
+      // Has "Cancel" button visible
+      expect(wrapper.find('MessageAndActions CancelButton')).toHaveLength(1);
+
+      // Click cancel
+      wrapper.find('MessageAndActions CancelButton').simulate('click');
+      // Cancel row should disappear
+      expect(wrapper.find('MessageAndActions CancelButton')).toHaveLength(0);
+      // Value should be reverted
+      expect(wrapper.find('input[name="resolveAge"]').prop('value')).toBe(19);
+      // PUT should not be called
+      expect(putMock).not.toHaveBeenCalled();
+    });
+
+    it('saves when value is changed and "Save" clicked', async function() {
+      await tick();
+      wrapper.update();
+      // Initially does not have "Save" button
+      expect(wrapper.find('MessageAndActions SaveButton')).toHaveLength(0);
+
+      // Change value
+      wrapper
+        .find('input[name="resolveAge"]')
+        .simulate('input', {target: {value: 12}})
+        .simulate('mouseUp');
+
+      // Has "Save" button visible
+      expect(wrapper.find('MessageAndActions SaveButton')).toHaveLength(1);
+
+      // Should not have put mock called yet
+      expect(putMock).not.toHaveBeenCalled();
+
+      // Click "Save"
+      wrapper.find('MessageAndActions SaveButton').simulate('click');
+      // API endpoint should have been called
+      expect(putMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {
+            resolveAge: 12,
+          },
+        })
+      );
+
+      // Should hide "Save" button after saving
+      await tick();
+      wrapper.update();
+      expect(wrapper.find('MessageAndActions SaveButton')).toHaveLength(0);
+    });
   });
 });

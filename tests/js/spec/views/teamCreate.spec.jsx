@@ -1,7 +1,7 @@
 import React from 'react';
 import {shallow} from 'enzyme';
 
-import TeamCreate from 'app/views/teamCreate';
+import {TeamCreate} from 'app/views/teamCreate';
 
 describe('TeamCreate', function() {
   describe('render()', function() {
@@ -20,13 +20,17 @@ describe('TeamCreate', function() {
     });
   });
 
-  describe('onSubmitSuccess()', function() {
+  describe('handleSubmitSuccess()', function() {
     let wrapper;
-    let locationAssignMock;
+    let redirectMock = jest.fn();
 
     beforeEach(function() {
+      redirectMock.mockReset();
       wrapper = shallow(
         <TeamCreate
+          router={{
+            push: redirectMock,
+          }}
           params={{
             orgId: 'org',
           }}
@@ -40,16 +44,13 @@ describe('TeamCreate', function() {
           },
         }
       );
-      locationAssignMock = jest.fn();
-      window.location.assign = locationAssignMock;
-      wrapper.instance().redirect = locationAssignMock;
     });
 
     it('redirects to legacy team settings', function() {
-      wrapper.instance().onSubmitSuccess({
+      wrapper.instance().handleSubmitSuccess({
         slug: 'new-team',
       });
-      expect(locationAssignMock).toBeCalledWith(
+      expect(redirectMock).toBeCalledWith(
         '/organizations/org/projects/new/?team=new-team'
       );
     });
@@ -58,15 +59,13 @@ describe('TeamCreate', function() {
       wrapper.setContext({
         organization: {
           id: '1337',
-          features: ['internal-catchall'],
+          features: ['new-teams'],
         },
       });
-      wrapper.instance().onSubmitSuccess({
+      wrapper.instance().handleSubmitSuccess({
         slug: 'new-team',
       });
-      expect(locationAssignMock).toBeCalledWith(
-        '/settings/organization/org/teams/new-team/'
-      );
+      expect(redirectMock).toBeCalledWith('/settings/org/teams/new-team/');
     });
   });
 });

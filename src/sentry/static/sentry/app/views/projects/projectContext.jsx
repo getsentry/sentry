@@ -1,21 +1,23 @@
+import {withRouter} from 'react-router';
+import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
-import DocumentTitle from 'react-document-title';
+import createReactClass from 'create-react-class';
 
-import ApiMixin from '../../mixins/apiMixin';
-
-import MemberListStore from '../../stores/memberListStore';
-import LoadingError from '../../components/loadingError';
-import LoadingIndicator from '../../components/loadingIndicator';
-import MissingProjectMembership from '../../components/missingProjectMembership';
-import OrganizationState from '../../mixins/organizationState';
-import SentryTypes from '../../proptypes';
-import ProjectsStore from '../../stores/projectsStore';
 import {loadEnvironments} from '../../actionCreators/environments';
 import {setActiveProject} from '../../actionCreators/projects';
 import {t} from '../../locale';
+import ApiMixin from '../../mixins/apiMixin';
+import LoadingError from '../../components/loadingError';
+import LoadingIndicator from '../../components/loadingIndicator';
+import MemberListStore from '../../stores/memberListStore';
+import MissingProjectMembership from '../../components/missingProjectMembership';
+import OrganizationState from '../../mixins/organizationState';
+import ProjectsStore from '../../stores/projectsStore';
+import recreateRoute from '../../utils/recreateRoute';
+import SentryTypes from '../../proptypes';
+import withProjects from '../../utils/withProjects';
 
 const ERROR_TYPES = {
   MISSING_MEMBERSHIP: 'MISSING_MEMBERSHIP',
@@ -34,8 +36,15 @@ const ProjectContext = createReactClass({
   displayName: 'ProjectContext',
 
   propTypes: {
+    /**
+     * If true, this will not change `state.loading` during `fetchData` phase
+     */
+    skipReload: PropTypes.bool,
+    projects: PropTypes.arrayOf(SentryTypes.Project),
     projectId: PropTypes.string,
     orgId: PropTypes.string,
+    location: PropTypes.object,
+    router: PropTypes.object,
   },
 
   childContextTypes: {
@@ -71,7 +80,9 @@ const ProjectContext = createReactClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    if (nextProps.projectId !== this.props.projectId) {
+    if (nextProps.projectId === this.props.projectId) return;
+
+    if (!nextProps.skipReload) {
       this.remountComponent();
     }
   },
@@ -94,7 +105,8 @@ const ProjectContext = createReactClass({
       prevState.project !== this.state.project ||
       prevState.organization !== this.state.organization
     ) {
-      let docTitle = this.refs.docTitle;
+      if (!this.docTitle) return;
+      let docTitle = this.docTitleRef.docTitle;
       if (docTitle) docTitle.forceUpdate();
     }
   },
@@ -104,7 +116,7 @@ const ProjectContext = createReactClass({
   },
 
   getTitle() {
-    if (this.state.project) return this.state.project.name;
+    if (this.state.project) return this.state.project.slug;
     return 'Sentry';
   },
 
@@ -118,65 +130,65 @@ const ProjectContext = createReactClass({
   },
 
   identifyProject() {
-    let {projectId} = this.props;
+    let {projects, projectId} = this.props;
     let projectSlug = projectId;
-    let activeProject = null;
-    let org = this.context.organization;
-    org.projects.forEach(project => {
-      if (project.slug == projectSlug) {
-        activeProject = project;
-      }
-    });
-    return activeProject;
+    return projects.find(({slug}) => slug === projectSlug) || null;
   },
 
   fetchData() {
-    let {orgId, projectId} = this.props;
+    let {orgId, projectId, location, skipReload} = this.props;
     // we fetch core access/information from the global organization data
     let activeProject = this.identifyProject();
     let hasAccess = activeProject && activeProject.hasAccess;
 
-    this.setState({
-      loading: true,
+    this.setState(state => ({
+      // if `skipReload` is true, then don't change loading state
+      loading: skipReload ? state.loading : true,
       // we bind project initially, but it'll rebind
       project: activeProject,
-    });
+    }));
 
     if (activeProject && hasAccess) {
       setActiveProject(null);
-      this.api.request(`/projects/${orgId}/${projectId}/`, {
-        success: data => {
+      const projectRequest = this.api.requestPromise(`/projects/${orgId}/${projectId}/`);
+
+      const environmentRequest = this.api.requestPromise(
+        this.getEnvironmentListEndpoint()
+      );
+
+      Promise.all([projectRequest, environmentRequest]).then(
+        ([project, envs]) => {
           this.setState({
             loading: false,
-            project: data,
+            project,
             error: false,
             errorType: null,
           });
+
           // assuming here that this means the project is considered the active project
-          setActiveProject(data);
+          setActiveProject(project);
+
+          // If an environment is specified in the query string, load it instead of default
+          const queryEnv = location.query.environment;
+          // The default environment cannot be "" (No Environment)
+          const {defaultEnvironment} = project;
+          const envName = typeof queryEnv === 'undefined' ? defaultEnvironment : queryEnv;
+          loadEnvironments(envs, envName);
         },
-        error: error => {
-          // TODO(dcramer): this should handle 404 (project not found)
+        () => {
           this.setState({
             loading: false,
             error: false,
             errorType: ERROR_TYPES.UNKNOWN,
           });
-        },
-      });
+        }
+      );
+
       // TODO(dcramer): move member list to organization level
       this.api.request(this.getMemberListEndpoint(), {
         success: data => {
           MemberListStore.loadInitialData(data.filter(m => m.user).map(m => m.user));
         },
-      });
-
-      this.api.request(this.getEnvironmentListEndpoint(), {
-        success: loadEnvironments,
-      });
-
-      this.setState({
-        loading: false,
       });
     } else if (activeProject && !activeProject.isMember) {
       this.setState({
@@ -185,11 +197,31 @@ const ProjectContext = createReactClass({
         errorType: ERROR_TYPES.MISSING_MEMBERSHIP,
       });
     } else {
-      this.setState({
-        loading: false,
-        error: true,
-        errorType: ERROR_TYPES.PROJECT_NOT_FOUND,
-      });
+      // The project may have been renamed, attempt to lookup the project, if
+      // we 302 we will recieve the moved project slug and can update update
+      // our route accordingly.
+      const lookupHandler = resp => {
+        const {status, responseJSON} = resp;
+
+        if (status !== 302 || !responseJSON || !responseJSON.detail) {
+          this.setState({
+            loading: false,
+            error: true,
+            errorType: ERROR_TYPES.PROJECT_NOT_FOUND,
+          });
+          return;
+        }
+
+        this.props.router.replace(
+          recreateRoute('', {
+            ...this.props,
+            params: {...this.props.params, projectId: responseJSON.detail.slug},
+          })
+        );
+      };
+
+      // The request ill 404 or 302
+      this.api.request(`/projects/${orgId}/${projectId}/`, {error: lookupHandler});
     }
   },
 
@@ -240,11 +272,13 @@ const ProjectContext = createReactClass({
 
   render() {
     return (
-      <DocumentTitle ref="docTitle" title={this.getTitle()}>
+      <DocumentTitle ref={ref => (this.docTitleRef = ref)} title={this.getTitle()}>
         {this.renderBody()}
       </DocumentTitle>
     );
   },
 });
 
-export default ProjectContext;
+export {ProjectContext};
+
+export default withProjects(withRouter(ProjectContext));

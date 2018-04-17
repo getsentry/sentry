@@ -4,19 +4,19 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
+import SentryTypes from '../proptypes';
 import {t} from '../locale';
+
 import ApiMixin from '../mixins/apiMixin';
+
 import Button from '../components/buttons/button';
 import Confirm from '../components/confirm';
 import IndicatorStore from '../stores/indicatorStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
-import Panel from './settings/components/panel';
-import PanelBody from './settings/components/panelBody';
-import PanelHeader from './settings/components/panelHeader';
-import PanelItem from './settings/components/panelItem';
+import {Panel, PanelBody, PanelHeader, PanelItem} from '../components/panels';
 import SettingsPageHeader from './settings/components/settingsPageHeader';
-import SentryTypes from '../proptypes';
+import EmptyStateWarning from '../components/emptyStateWarning';
 
 const InputColumn = props => <Flex flex="1" justify="center" {...props} />;
 
@@ -219,19 +219,14 @@ const ProjectSavedSearches = createReactClass({
   },
 
   renderLoading() {
-    return (
-      <Panel>
-        <LoadingIndicator />
-      </Panel>
-    );
+    return <LoadingIndicator />;
   },
 
   renderEmpty() {
     return (
-      <div className="box empty-stream">
-        <span className="icon icon-exclamation" />
+      <EmptyStateWarning>
         <p>{t('There are no saved searches for this project.')}</p>
-      </div>
+      </EmptyStateWarning>
     );
   },
 
@@ -242,47 +237,49 @@ const ProjectSavedSearches = createReactClass({
     let canModify = (organization && access.has('project:write')) || false;
 
     return (
-      <Panel>
-        <PanelHeader disablePadding>
-          <Flex>
-            <Flex flex="1" px={2}>
-              {t('Search')}
-            </Flex>
-            <Flex flex="1">
-              <InputColumn>{t('My Default')}</InputColumn>
-              {canModify && <InputColumn>{t('Team Default')}</InputColumn>}
-              {canModify && <InputColumn>{t('Remove')}</InputColumn>}
-            </Flex>
-          </Flex>
-        </PanelHeader>
-
-        <PanelBody>
-          {this.state.savedSearchList.map(search => {
-            return (
-              <SavedSearchRow
-                access={access}
-                key={search.id}
-                canModify={canModify}
-                orgId={orgId}
-                projectId={projectId}
-                data={search}
-                onUserDefault={this.handleUpdate}
-                onDefault={this.handleUpdate}
-                onRemove={this.handleRemovedSearch}
-              />
-            );
-          })}
-        </PanelBody>
-      </Panel>
+      <React.Fragment>
+        {this.state.savedSearchList.map(search => {
+          return (
+            <SavedSearchRow
+              access={access}
+              key={search.id}
+              canModify={canModify}
+              orgId={orgId}
+              projectId={projectId}
+              data={search}
+              onUserDefault={this.handleUpdate}
+              onDefault={this.handleUpdate}
+              onRemove={this.handleRemovedSearch}
+            />
+          );
+        })}
+      </React.Fragment>
     );
   },
 
   render() {
+    let {organization} = this.context;
+    let access = organization && new Set(organization.access);
+    let canModify = (organization && access.has('project:write')) || false;
+
     return (
       <div>
         <SettingsPageHeader title={t('Saved Searches')} />
-
-        {this.renderBody()}
+        <Panel>
+          <PanelHeader disablePadding>
+            <Flex flex="1">
+              <Flex flex="1" px={2}>
+                {t('Search')}
+              </Flex>
+              <Flex flex="1">
+                <InputColumn>{t('My Default')}</InputColumn>
+                {canModify && <InputColumn>{t('Team Default')}</InputColumn>}
+                {canModify && <InputColumn>{t('Remove')}</InputColumn>}
+              </Flex>
+            </Flex>
+          </PanelHeader>
+          <PanelBody>{this.renderBody()}</PanelBody>
+        </Panel>
       </div>
     );
   },

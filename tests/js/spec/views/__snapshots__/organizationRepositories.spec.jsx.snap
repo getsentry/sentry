@@ -30,6 +30,7 @@ exports[`OrganizationRepositories renders with a repository 1`] = `
                     "type": "text",
                   },
                 ],
+                "id": "github",
                 "key": "github",
                 "name": "GitHub",
               }
@@ -58,7 +59,7 @@ exports[`OrganizationRepositories renders with a repository 1`] = `
       flex={false}
     >
       <Box>
-        <WithTheme(RepoRow)
+        <RepoRow
           key="4"
         >
           <Box
@@ -110,7 +111,7 @@ exports[`OrganizationRepositories renders with a repository 1`] = `
               </Button>
             </Confirm>
           </Box>
-        </WithTheme(RepoRow)>
+        </RepoRow>
       </Box>
     </PanelBody>
   </Panel>
@@ -147,6 +148,7 @@ exports[`OrganizationRepositories renders with github provider 1`] = `
                     "type": "text",
                   },
                 ],
+                "id": "github",
                 "key": "github",
                 "name": "GitHub",
               }

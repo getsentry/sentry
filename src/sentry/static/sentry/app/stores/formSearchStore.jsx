@@ -7,24 +7,28 @@ import FormSearchActions from '../actions/formSearchActions';
 const FormSearchStore = Reflux.createStore({
   init() {
     this.reset();
-    this.listenTo(FormSearchActions.addSearchMap, this.onAddSearchMap);
+    this.listenTo(FormSearchActions.loadSearchMap, this.onLoadSearchMap);
+  },
+
+  getInitialState() {
+    return this.searchMap;
   },
 
   reset() {
-    this.searchMap = {};
+    // `null` means it hasn't been loaded yet
+    this.searchMap = null;
   },
 
   /**
    * Adds to search map
    *
-   * @param Object searchIndex Map of search index -> object that includes route + field object
+   * @param Array searchMap array of objects: {route, field}
    */
-  onAddSearchMap(searchMap) {
-    this.searchMap = {
-      ...this.searchMap,
-      ...searchMap,
-    };
+  onLoadSearchMap(searchMap) {
+    // Only load once
+    if (this.searchMap !== null) return;
 
+    this.searchMap = searchMap;
     this.trigger(this.searchMap);
   },
 });

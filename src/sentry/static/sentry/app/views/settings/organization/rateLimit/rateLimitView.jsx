@@ -5,10 +5,7 @@ import React from 'react';
 import {t, tct} from '../../../../locale';
 import Field from '../../components/forms/field';
 import Form from '../../components/forms/form';
-import Panel from '../../components/panel';
-import PanelAlert from '../../components/panelAlert';
-import PanelBody from '../../components/panelBody';
-import PanelHeader from '../../components/panelHeader';
+import {Panel, PanelAlert, PanelBody, PanelHeader} from '../../../../components/panels';
 import RangeField from '../../components/forms/rangeField';
 import SettingsPageHeader from '../../components/settingsPageHeader';
 import TextBlock from '../../components/text/textBlock';
@@ -55,13 +52,13 @@ class RateLimitView extends React.Component {
         <SettingsPageHeader title={t('Rate Limits')} />
 
         <Panel>
-          <PanelHeader disablePadding isFlex>
+          <PanelHeader disablePadding>
             <Box px={2} flex="1">
               {t('Adjust Limits')}
             </Box>
           </PanelHeader>
           <PanelBody>
-            <PanelAlert m={0} mb={0} type="info" icon="icon-circle-exclamation">
+            <PanelAlert type="info">
               {t(`Rate limits allow you to control how much data is stored for this
                 organization. When a rate is exceeded the system will begin discarding
                 data until the next interval.`)}

@@ -1,5 +1,4 @@
 import {Box, Flex} from 'grid-emotion';
-import {withTheme} from 'emotion-theming';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -10,20 +9,18 @@ import Confirm from '../../../../components/confirm';
 import DropdownLink from '../../../../components/dropdownLink';
 import MenuItem from '../../../../components/menuItem';
 import SpreadLayout from '../../../../components/spreadLayout';
-import Panel from '../../components/panel';
-import PanelBody from '../../components/panelBody';
-import PanelHeader from '../../components/panelHeader';
+import {Panel, PanelBody, PanelHeader} from '../../../../components/panels';
 import SettingsPageHeader from '../../components/settingsPageHeader';
 import TextBlock from '../../components/text/textBlock';
 import AddRepositoryLink from './addRepositoryLink';
 
-const RepoRow = withTheme(styled(SpreadLayout)`
+const RepoRow = styled(SpreadLayout)`
   border-bottom: 1px solid ${p => p.theme.borderLight};
 
   &:last-child {
     border-bottom: none;
   }
-`);
+`;
 
 class OrganizationRepositories extends React.Component {
   static propTypes = {
@@ -58,11 +55,6 @@ class OrganizationRepositories extends React.Component {
     } = this.props;
     let {orgId} = params;
     let hasItemList = itemList && itemList.length > 0;
-
-    // let action = (
-    //   <Button priority="link" onClick={onAddRepo}>
-    //   </Button>
-    // );
 
     return (
       <div>

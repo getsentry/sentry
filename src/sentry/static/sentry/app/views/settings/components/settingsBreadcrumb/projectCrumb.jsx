@@ -5,6 +5,7 @@ import styled from 'react-emotion';
 
 import BreadcrumbDropdown from './breadcrumbDropdown';
 import LoadingIndicator from '../../../../components/loadingIndicator';
+import MenuItem from './menuItem';
 import SentryTypes from '../../../../proptypes';
 import TextLink from '../../../../components/textLink';
 import recreateRoute from '../../../../utils/recreateRoute';
@@ -12,20 +13,25 @@ import replaceRouterParams from '../../../../utils/replaceRouterParams';
 import withLatestContext from '../../../../utils/withLatestContext';
 import withProjects from '../../../../utils/withProjects';
 
+const HEIGHT = '24px';
 const ProjectName = styled.div`
   display: flex;
 
   .loading {
     width: 26px;
-    height: 24px;
+    height: ${HEIGHT};
     margin: 0;
   }
+`;
+
+const ProjectTextLink = styled(TextLink)`
+  line-height: ${HEIGHT};
 `;
 
 class ProjectCrumb extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization,
-    project: SentryTypes.Projects,
+    project: SentryTypes.Project,
     projects: PropTypes.array,
     routes: PropTypes.array,
     route: PropTypes.object,
@@ -57,32 +63,34 @@ class ProjectCrumb extends React.Component {
               <LoadingIndicator mini />
             ) : (
               <div>
-                <TextLink
-                  to={replaceRouterParams(
-                    '/settings/organization/:orgId/project/:projectId/',
-                    {
-                      orgId: latestOrganization.slug,
-                      projectId: latestProject.slug,
-                    }
-                  )}
+                <ProjectTextLink
+                  to={replaceRouterParams('/settings/:orgId/:projectId/', {
+                    orgId: latestOrganization.slug,
+                    projectId: latestProject.slug,
+                  })}
                 >
                   {latestProject.slug}
-                </TextLink>
+                </ProjectTextLink>
               </div>
             )}
           </ProjectName>
         }
         onSelect={item => {
+          let lastRoute = routes[routes.length - 1];
+          // We have to make an exception for "Project Alerts Rule Edit" route
+          // Since these models are project specific, we need to traverse up a route when switching projects
+          let stepBack = lastRoute.path === ':ruleId/' ? -1 : undefined;
           browserHistory.push(
-            recreateRoute(route, {
+            recreateRoute('', {
               routes,
               params: {...params, projectId: item.value},
+              stepBack,
             })
           );
         }}
         items={projects.map(project => ({
           value: project.slug,
-          label: project.slug,
+          label: <MenuItem>{project.slug}</MenuItem>,
         }))}
         {...props}
       />

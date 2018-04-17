@@ -18,7 +18,7 @@ Define a relationship between Sentry and your Slack workspace(s).
 
 alert_link = {
     'text': 'Looking to send Sentry alerts to Slack? Add an **Alert Rule** for this project.',
-    'link': '/settings/organization/{orgId}/project/{projectId}/alerts/rules/'
+    'link': '/settings/{orgId}/{projectId}/alerts/rules/'
 }
 
 metadata = IntegrationMetadata(
@@ -38,10 +38,10 @@ class SlackIntegration(Integration):
     metadata = metadata
 
     identity_oauth_scopes = frozenset([
-        'bot',
         'channels:read',
-        'chat:write:bot',
-        'commands',
+        'groups:read',
+        'users:read',
+        'chat:write',
         'links:read',
         'links:write',
         'team:read',
@@ -49,7 +49,7 @@ class SlackIntegration(Integration):
 
     setup_dialog_config = {
         'width': 600,
-        'height': 800,
+        'height': 900,
     }
 
     def get_pipeline_views(self):
@@ -83,7 +83,7 @@ class SlackIntegration(Integration):
         data = state['identity']['data']
         assert data['ok']
 
-        scopes = sorted(data['scope'].split(','))
+        scopes = sorted(self.identity_oauth_scopes)
         team_data = self.get_team_info(data['access_token'])
 
         return {
@@ -91,18 +91,14 @@ class SlackIntegration(Integration):
             'external_id': data['team_id'],
             'metadata': {
                 'access_token': data['access_token'],
-                'bot_access_token': data['bot']['bot_access_token'],
-                'bot_user_id': data['bot']['bot_user_id'],
                 'scopes': scopes,
                 'icon': team_data['icon']['image_132'],
                 'domain_name': team_data['domain'] + '.slack.com',
             },
             'user_identity': {
                 'type': 'slack',
-                'external_id': data['user_id'],
-                'scopes': scopes,
-                'data': {
-                    'access_token': data['access_token'],
-                },
+                'external_id': data['installer_user_id'],
+                'scopes': [],
+                'data': {},
             },
         }

@@ -116,13 +116,30 @@ exports[`ResolveActions with confirmation step renders 1`] = `
               target="resolve"
               type="text"
             >
-              <div
-                className="guide-anchor anchor-type-text"
+              <GuideAnchorContainer
+                innerRef={[Function]}
+                type="text"
               >
-                <span
-                  className="resolve guide-anchor-ping"
-                />
-              </div>
+                <div
+                  className="css-9u5for-GuideAnchorContainer css-1aiyb4m0"
+                  type="text"
+                >
+                  <StyledGuideAnchor
+                    active={false}
+                    className="guide-anchor-ping resolve"
+                  >
+                    <div
+                      className="guide-anchor-ping resolve css-1yndvnf-StyledGuideAnchor css-1aiyb4m1"
+                    >
+                      <StyledGuideAnchorRipples>
+                        <div
+                          className="css-1t9mqkr-StyledGuideAnchorRipples css-1aiyb4m2"
+                        />
+                      </StyledGuideAnchorRipples>
+                    </div>
+                  </StyledGuideAnchor>
+                </div>
+              </GuideAnchorContainer>
             </GuideAnchor>
             Resolve
           </a>
@@ -537,13 +554,30 @@ exports[`ResolveActions without confirmation renders 1`] = `
             target="resolve"
             type="text"
           >
-            <div
-              className="guide-anchor anchor-type-text"
+            <GuideAnchorContainer
+              innerRef={[Function]}
+              type="text"
             >
-              <span
-                className="resolve guide-anchor-ping"
-              />
-            </div>
+              <div
+                className="css-9u5for-GuideAnchorContainer css-1aiyb4m0"
+                type="text"
+              >
+                <StyledGuideAnchor
+                  active={false}
+                  className="guide-anchor-ping resolve"
+                >
+                  <div
+                    className="guide-anchor-ping resolve css-1yndvnf-StyledGuideAnchor css-1aiyb4m1"
+                  >
+                    <StyledGuideAnchorRipples>
+                      <div
+                        className="css-1t9mqkr-StyledGuideAnchorRipples css-1aiyb4m2"
+                      />
+                    </StyledGuideAnchorRipples>
+                  </div>
+                </StyledGuideAnchor>
+              </div>
+            </GuideAnchorContainer>
           </GuideAnchor>
           Resolve
         </a>

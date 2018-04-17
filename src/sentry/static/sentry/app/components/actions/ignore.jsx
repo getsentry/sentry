@@ -10,6 +10,7 @@ import CustomIgnoreCountModal from '../customIgnoreCountModal';
 import CustomIgnoreDurationModal from '../customIgnoreDurationModal';
 import ActionLink from './actionLink';
 import Tooltip from '../tooltip';
+import GuideAnchor from '../assistant/guideAnchor';
 
 export default class IgnoreActions extends React.Component {
   static propTypes = {
@@ -124,6 +125,7 @@ export default class IgnoreActions extends React.Component {
             onAction={() => onUpdate({status: 'ignored'})}
           >
             <span className="icon-ban" style={{marginRight: 5}} />
+            <GuideAnchor target="ignore_delete_discard" type="text" />
             {t('Ignore')}
           </ActionLink>
 

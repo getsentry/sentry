@@ -99,6 +99,19 @@
   }
 }
 
+.button-success {
+  color: #fff;
+  background: @green-dark;
+  border: 1px solid @green-light;
+  &:hover,
+  &:focus,
+  &:active {
+    color: #fff;
+    background: @green;
+    border-color: @green-light;
+  }
+}
+
 .button-busy {
   opacity: 0.65;
 }
@@ -124,6 +137,12 @@
 
 // Size Concerns
 // - Padding and font size
+
+.button-zero {
+  .button-label {
+    padding: 0px;
+  }
+}
 
 .button-xs {
   font-size: 12px;

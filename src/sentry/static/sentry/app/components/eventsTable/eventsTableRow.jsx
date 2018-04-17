@@ -70,7 +70,7 @@ class EventsTableRow extends React.Component {
           <td className="event-user table-user-info">
             {event.user ? (
               <div>
-                <Avatar user={event.user} size={64} className="avatar" gravatar={false} />
+                <Avatar user={event.user} size={24} className="avatar" gravatar={false} />
                 {event.user.email}
               </div>
             ) : (

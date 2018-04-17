@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import BreadcrumbDropdown from './breadcrumbDropdown';
+import MenuItem from './menuItem';
 import TextLink from '../../../../components/textLink';
 import recreateRoute from '../../../../utils/recreateRoute';
 import withTeams from '../../../../utils/withTeams';
@@ -37,7 +38,7 @@ class TeamCrumb extends React.Component {
         }
         onSelect={item => {
           browserHistory.push(
-            recreateRoute(route, {
+            recreateRoute('', {
               routes,
               params: {...params, teamId: item.value},
             })
@@ -47,7 +48,7 @@ class TeamCrumb extends React.Component {
         route={route}
         items={teams.map(({slug}) => ({
           value: slug,
-          label: slug,
+          label: <MenuItem>#{slug}</MenuItem>,
         }))}
         {...props}
       />

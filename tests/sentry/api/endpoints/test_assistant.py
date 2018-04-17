@@ -1,8 +1,10 @@
 from __future__ import absolute_import
 
+from copy import deepcopy
+
 from django.core.urlresolvers import reverse
 
-from sentry.assistant.guides import GUIDES
+from sentry.assistant import manager
 from sentry.testutils import APITestCase
 
 
@@ -11,6 +13,7 @@ class AssistantActivity(APITestCase):
         super(AssistantActivity, self).setUp()
         self.login_as(user=self.user)
         self.path = reverse('sentry-api-0-assistant')
+        self.guides = manager.all()
 
     def test_invalid_inputs(self):
         # Invalid guide id.
@@ -27,9 +30,13 @@ class AssistantActivity(APITestCase):
         assert resp.status_code == 400
 
     def test_activity(self):
+        guides_with_seen = deepcopy(manager.all())
+        for g in guides_with_seen:
+            guides_with_seen[g]['seen'] = False
+
         resp = self.client.get(self.path)
         assert resp.status_code == 200
-        assert resp.data == GUIDES
+        assert resp.data == guides_with_seen
 
         # Dismiss the guide and make sure it is not returned again.
         resp = self.client.put(self.path, {
@@ -38,5 +45,15 @@ class AssistantActivity(APITestCase):
         })
         assert resp.status_code == 201
         resp = self.client.get(self.path)
+        guides_with_seen['releases']['seen'] = True
         assert resp.status_code == 200
-        assert resp.data == {k: v for k, v in GUIDES.items() if v['id'] != 2}
+        assert resp.data == guides_with_seen
+
+    def test_validate_guides(self):
+        # Steps in different guides should not have the same target.
+        guides = self.guides.values()
+        for i in range(len(guides)):
+            for j in range(0, i):
+                steps_i = set(s['target'] for s in guides[i]['steps'])
+                steps_j = set(s['target'] for s in guides[j]['steps'])
+                assert not(steps_i & steps_j)

@@ -32,11 +32,6 @@
     }
   }
 
-  .box,
-  .issue-list {
-    margin-bottom: 25px;
-  }
-
   .nav-header {
     padding: 0 0 10px;
     margin: 0;
@@ -44,16 +39,6 @@
     &.with-divider {
       border-top: 1px solid @trim;
       padding-top: 30px;
-    }
-  }
-
-  .count {
-    font-size: 36px;
-    color: @gray-dark;
-    margin: 10px 0 20px;
-
-    &.rejected {
-      color: @red;
     }
   }
 
@@ -75,6 +60,16 @@
           background: @gray;
         }
       }
+    }
+  }
+
+  .count {
+    font-size: 36px;
+    color: @gray-dark;
+    margin: 10px 0 20px;
+
+    &.rejected {
+      color: @red;
     }
   }
 
@@ -149,7 +144,7 @@
         }
       }
 
-      .avatar {
+      .activity-avatar {
         position: absolute;
         .square(36px);
         left: 12px;
@@ -370,79 +365,6 @@
 
       &:last-child {
         text-align: right;
-      }
-    }
-  }
-}
-
-/**
-* SSO
-* ============================================================================
-*/
-
-.sso {
-  h3 {
-    margin: 0 0 20px;
-  }
-
-  h4 {
-    margin: 0 0 3px;
-    line-height: 1.2;
-  }
-
-  .simple-list {
-    margin-bottom: 0;
-
-    li {
-      position: relative;
-      border-top: 1px solid @trim;
-      padding: 18px 0 0 60px;
-
-      button {
-        margin-top: 8px;
-      }
-
-      .provider-logo {
-        position: absolute;
-        left: 0;
-        top: 20px;
-        .square(48px);
-        border-radius: 3px;
-      }
-    }
-  }
-}
-
-// Project list
-table.project-list {
-  border: 0;
-  margin-bottom: 0;
-  font-size: 16px;
-
-  h5 a {
-    color: @gray-darker;
-
-    &:hover {
-      color: @gray-darkest;
-    }
-  }
-
-  tbody tr {
-    td {
-      border: 0;
-      padding: 15px 20px !important;
-      height: 55px;
-      width: 150px;
-
-      &:first-child {
-        width: auto;
-      }
-
-      &.project-chart {
-        width: 210px;
-        .barchart {
-          height: 20px;
-        }
       }
     }
   }

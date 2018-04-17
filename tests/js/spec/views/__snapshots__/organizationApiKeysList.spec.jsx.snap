@@ -1,133 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`OrganizationApiKeysList renders 1`] = `
-.glamor-8 {
-  font-size: 14px;
-  box-shadow: inset 0 -1px 0;
-  margin: -20px 0 30px;
-}
-
-.glamor-4 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
-.glamor-0 {
-  font-size: 20px;
-  font-weight: bold;
-  margin: 20px 0;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-}
-
-.glamor-2 {
-  margin-right: 4px;
-}
-
-.glamor-10 {
-  line-height: 1.8;
-}
-
-.glamor-45 {
-  background: #fff;
-  border: 1px solid;
-  margin-bottom: NaNpx;
-  position: relative;
-}
-
-.glamor-29 {
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  text-transform: uppercase;
-  font-size: 13px;
-  line-height: 1;
-  padding: 15px 0;
-}
-
-.glamor-25 {
-  font-size: inherit;
-  text-transform: inherit;
-  margin: 0;
-}
-
-.glamor-23 {
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  margin-bottom: 20px;
-  font-size: inherit;
-  text-transform: inherit;
-  margin: 0;
-}
-
-.glamor-16 {
-  box-sizing: border-box;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
-.glamor-12 {
-  box-sizing: border-box;
-  padding-left: 16px;
-  padding-right: 16px;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-}
-
-.glamor-14 {
-  box-sizing: border-box;
-  padding-left: 16px;
-  padding-right: 16px;
-  -webkit-flex: 2;
-  -ms-flex: 2;
-  flex: 2;
-}
-
-.glamor-18 {
-  box-sizing: border-box;
-  width: 100px;
-  padding-left: 16px;
-  padding-right: 16px;
-}
-
-.glamor-41 {
-  box-sizing: border-box;
-  padding: 0px;
-  padding-top: 8px;
-  padding-bottom: 8px;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  border-bottom: 1px solid;
-}
-
-.glamor-41:last-child {
-  border: 0;
-}
-
 <OrganizationApiKeysList
   keys={
     Array [
@@ -189,22 +62,22 @@ exports[`OrganizationApiKeysList renders 1`] = `
     >
       <Wrapper>
         <div
-          className="glamor-8 glamor-9"
+          className="css-foidy-Wrapper css-17jmgia0"
         >
           <Flex
             align="center"
           >
             <Base
               align="center"
-              className="glamor-4"
+              className="css-5ipae5"
             >
               <div
-                className="glamor-4"
+                className="css-5ipae5"
                 is={null}
               >
                 <Title>
                   <div
-                    className="glamor-0 glamor-1"
+                    className="css-zmdcxu-Title css-17jmgia1"
                   >
                     API Keys
                   </div>
@@ -226,17 +99,17 @@ exports[`OrganizationApiKeysList renders 1`] = `
                       >
                         <Base
                           align="center"
-                          className="button-label glamor-4"
+                          className="button-label css-5ipae5"
                         >
                           <div
-                            className="button-label glamor-4"
+                            className="button-label css-5ipae5"
                             is={null}
                           >
                             <PlusIcon
                               className="icon-plus"
                             >
                               <span
-                                className="icon-plus glamor-2 glamor-3"
+                                className="icon-plus css-d6k0zi-PlusIcon css-q7bmn80"
                               />
                             </PlusIcon>
                              
@@ -255,7 +128,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
     </SettingsPageHeading>
     <TextBlock>
       <p
-        className="glamor-10 glamor-11"
+        className="css-1eb9fn5-TextBlock css-q7bmn81"
       >
         <span
           key="5"
@@ -326,279 +199,255 @@ exports[`OrganizationApiKeysList renders 1`] = `
       </span>
     </div>
     <Panel>
-      <div
-        className="glamor-45 glamor-46"
-      >
-        <PanelHeader
-          disablePadding={true}
+      <StyledPanel>
+        <div
+          className="css-wfa8ap-StyledPanel css-5bw71w0"
         >
-          <StyledPanelHeader
+          <PanelHeader
             disablePadding={true}
           >
-            <Component
-              className="glamor-29 glamor-30"
+            <StyledPanelHeader
               disablePadding={true}
             >
-              <div
-                className="glamor-29 glamor-30"
+              <Component
+                className="css-18fb6u1-StyledPanelHeader css-1t1cqk30"
+                disablePadding={true}
               >
-                <StyledPanelHeading>
-                  <Component
-                    className="glamor-25 glamor-22"
+                <Flex
+                  align="center"
+                  className="css-18fb6u1-StyledPanelHeader css-1t1cqk30"
+                  justify="space-between"
+                >
+                  <Base
+                    align="center"
+                    className="css-1t1cqk30 css-1pqpjvf"
+                    justify="space-between"
                   >
-                    <PanelHeading
-                      className="glamor-25 glamor-22"
+                    <div
+                      className="css-1t1cqk30 css-1pqpjvf"
+                      is={null}
                     >
-                      <div
-                        className="glamor-22 glamor-23 glamor-24"
+                      <Flex
+                        align="center"
                       >
-                        <Flex
+                        <Base
                           align="center"
+                          className="css-5ipae5"
                         >
-                          <Base
-                            align="center"
-                            className="glamor-4"
+                          <div
+                            className="css-5ipae5"
+                            is={null}
                           >
-                            <div
-                              className="glamor-4"
-                              is={null}
+                            <Flex
+                              align="center"
+                              flex="1"
                             >
-                              <Flex
+                              <Base
                                 align="center"
+                                className="css-1yrw3fm"
                                 flex="1"
                               >
-                                <Base
-                                  align="center"
-                                  className="glamor-16"
-                                  flex="1"
+                                <div
+                                  className="css-1yrw3fm"
+                                  is={null}
                                 >
-                                  <div
-                                    className="glamor-16"
-                                    is={null}
+                                  <Box
+                                    flex="1"
+                                    px={2}
                                   >
-                                    <Box
+                                    <Base
+                                      className="css-pcjga5"
                                       flex="1"
                                       px={2}
                                     >
-                                      <Base
-                                        className="glamor-12"
-                                        flex="1"
-                                        px={2}
+                                      <div
+                                        className="css-pcjga5"
+                                        is={null}
                                       >
-                                        <div
-                                          className="glamor-12"
-                                          is={null}
-                                        >
-                                          Name
-                                        </div>
-                                      </Base>
-                                    </Box>
-                                    <Box
+                                        Name
+                                      </div>
+                                    </Base>
+                                  </Box>
+                                  <Box
+                                    flex="2"
+                                    px={2}
+                                  >
+                                    <Base
+                                      className="css-1dp2adt"
                                       flex="2"
                                       px={2}
                                     >
-                                      <Base
-                                        className="glamor-14"
-                                        flex="2"
-                                        px={2}
+                                      <div
+                                        className="css-1dp2adt"
+                                        is={null}
                                       >
-                                        <div
-                                          className="glamor-14"
-                                          is={null}
-                                        >
-                                          Key
-                                        </div>
-                                      </Base>
-                                    </Box>
-                                  </div>
-                                </Base>
-                              </Flex>
-                              <Box
+                                        Key
+                                      </div>
+                                    </Base>
+                                  </Box>
+                                </div>
+                              </Base>
+                            </Flex>
+                            <Box
+                              px={2}
+                              w={100}
+                            >
+                              <Base
+                                className="css-j9rhnd"
                                 px={2}
                                 w={100}
                               >
-                                <Base
-                                  className="glamor-18"
-                                  px={2}
-                                  w={100}
+                                <div
+                                  className="css-j9rhnd"
+                                  is={null}
                                 >
-                                  <div
-                                    className="glamor-18"
-                                    is={null}
-                                  >
-                                    Actions
-                                  </div>
-                                </Base>
-                              </Box>
-                            </div>
-                          </Base>
-                        </Flex>
-                      </div>
-                    </PanelHeading>
-                  </Component>
-                </StyledPanelHeading>
-              </div>
-            </Component>
-          </StyledPanelHeader>
-        </PanelHeader>
-        <PanelBody
-          direction="column"
-          disablePadding={true}
-          flex={false}
-        >
-          <div
-            className=""
+                                  Actions
+                                </div>
+                              </Base>
+                            </Box>
+                          </div>
+                        </Base>
+                      </Flex>
+                    </div>
+                  </Base>
+                </Flex>
+              </Component>
+            </StyledPanelHeader>
+          </PanelHeader>
+          <PanelBody
+            direction="column"
+            disablePadding={true}
+            flex={false}
           >
-            <PanelItem
-              align="center"
-              key="1"
-              p={0}
-              py={1}
+            <div
+              className=""
             >
-              <StyledPanelItem
+              <PanelItem
                 align="center"
+                key="1"
                 p={0}
                 py={1}
               >
-                <Base
+                <StyledPanelItem
                   align="center"
-                  className="glamor-41 glamor-42"
                   p={0}
                   py={1}
                 >
-                  <div
-                    className="glamor-41 glamor-42"
-                    is={null}
+                  <Base
+                    align="center"
+                    className="css-12zy4sl-StyledPanelItem css-q9h14u0"
+                    p={0}
+                    py={1}
                   >
-                    <Flex
-                      align="center"
-                      flex="1"
+                    <div
+                      className="css-12zy4sl-StyledPanelItem css-q9h14u0"
+                      is={null}
                     >
-                      <Base
+                      <Flex
                         align="center"
-                        className="glamor-16"
                         flex="1"
                       >
-                        <div
-                          className="glamor-16"
-                          is={null}
+                        <Base
+                          align="center"
+                          className="css-1yrw3fm"
+                          flex="1"
                         >
-                          <Box
-                            align="center"
-                            flex="1"
-                            px={2}
+                          <div
+                            className="css-1yrw3fm"
+                            is={null}
                           >
-                            <Base
+                            <Box
                               align="center"
-                              className="glamor-12"
                               flex="1"
                               px={2}
                             >
-                              <div
-                                className="glamor-12"
-                                is={null}
+                              <Base
+                                align="center"
+                                className="css-pcjga5"
+                                flex="1"
+                                px={2}
                               >
-                                <Link
-                                  to="/organizations/org-slug/api-keys/1/"
+                                <div
+                                  className="css-pcjga5"
+                                  is={null}
                                 >
-                                  <a
-                                    href="/organizations/org-slug/api-keys/1/"
+                                  <Link
+                                    to="/organizations/org-slug/api-keys/1/"
                                   >
-                                    Default
-                                  </a>
-                                </Link>
-                              </div>
-                            </Base>
-                          </Box>
-                          <Box
-                            flex="2"
-                            px={2}
-                          >
-                            <Base
-                              className="glamor-14"
+                                    <a
+                                      href="/organizations/org-slug/api-keys/1/"
+                                    >
+                                      Default
+                                    </a>
+                                  </Link>
+                                </div>
+                              </Base>
+                            </Box>
+                            <Box
                               flex="2"
                               px={2}
                             >
-                              <div
-                                className="glamor-14"
-                                is={null}
+                              <Base
+                                className="css-1dp2adt"
+                                flex="2"
+                                px={2}
                               >
                                 <div
-                                  className="form-control disabled auto-select"
+                                  className="css-1dp2adt"
+                                  is={null}
                                 >
-                                  aa624bcc12024702a202cd90be5feda0
+                                  <div
+                                    className="form-control disabled auto-select"
+                                  >
+                                    aa624bcc12024702a202cd90be5feda0
+                                  </div>
                                 </div>
-                              </div>
-                            </Base>
-                          </Box>
-                        </div>
-                      </Base>
-                    </Flex>
-                    <Box
-                      px={2}
-                      w={100}
-                    >
-                      <Base
-                        className="glamor-18"
+                              </Base>
+                            </Box>
+                          </div>
+                        </Base>
+                      </Flex>
+                      <Box
                         px={2}
                         w={100}
                       >
-                        <div
-                          className="glamor-18"
-                          is={null}
+                        <Base
+                          className="css-j9rhnd"
+                          px={2}
+                          w={100}
                         >
-                          <LinkWithConfirmation
-                            className="btn btn-default btn-sm"
-                            message="Are you sure you want to remove this API key?"
-                            onConfirm={[Function]}
-                            title="Remove API Key?"
+                          <div
+                            className="css-j9rhnd"
+                            is={null}
                           >
-                            <Confirm
-                              cancelText="Cancel"
-                              confirmText="Confirm"
+                            <LinkWithConfirmation
+                              className="btn btn-default btn-sm"
                               message="Are you sure you want to remove this API key?"
                               onConfirm={[Function]}
-                              priority="primary"
+                              title="Remove API Key?"
                             >
-                              <a
-                                className="btn btn-default btn-sm"
-                                onClick={[Function]}
-                                title="Remove API Key?"
+                              <Confirm
+                                cancelText="Cancel"
+                                confirmText="Confirm"
+                                message="Are you sure you want to remove this API key?"
+                                onConfirm={[Function]}
+                                priority="primary"
                               >
-                                <span
-                                  className="icon-trash"
-                                />
-                              </a>
-                              <Modal
-                                animation={false}
-                                autoFocus={true}
-                                backdrop={true}
-                                bsClass="modal"
-                                dialogComponentClass={[Function]}
-                                enforceFocus={true}
-                                keyboard={true}
-                                manager={
-                                  ModalManager {
-                                    "add": [Function],
-                                    "containers": Array [],
-                                    "data": Array [],
-                                    "handleContainerOverflow": true,
-                                    "hideSiblingNodes": true,
-                                    "isTopModal": [Function],
-                                    "modals": Array [],
-                                    "remove": [Function],
-                                  }
-                                }
-                                onHide={[Function]}
-                                renderBackdrop={[Function]}
-                                restoreFocus={true}
-                                show={false}
-                              >
+                                <a
+                                  className="btn btn-default btn-sm"
+                                  onClick={[Function]}
+                                  title="Remove API Key?"
+                                >
+                                  <span
+                                    className="icon-trash"
+                                  />
+                                </a>
                                 <Modal
+                                  animation={false}
                                   autoFocus={true}
                                   backdrop={true}
-                                  backdropClassName="modal-backdrop"
-                                  containerClassName="modal-open"
+                                  bsClass="modal"
+                                  dialogComponentClass={[Function]}
                                   enforceFocus={true}
                                   keyboard={true}
                                   manager={
@@ -613,26 +462,51 @@ exports[`OrganizationApiKeysList renders 1`] = `
                                       "remove": [Function],
                                     }
                                   }
-                                  onEntering={[Function]}
-                                  onExited={[Function]}
                                   onHide={[Function]}
                                   renderBackdrop={[Function]}
                                   restoreFocus={true}
                                   show={false}
-                                />
-                              </Modal>
-                            </Confirm>
-                          </LinkWithConfirmation>
-                        </div>
-                      </Base>
-                    </Box>
-                  </div>
-                </Base>
-              </StyledPanelItem>
-            </PanelItem>
-          </div>
-        </PanelBody>
-      </div>
+                                >
+                                  <Modal
+                                    autoFocus={true}
+                                    backdrop={true}
+                                    backdropClassName="modal-backdrop"
+                                    containerClassName="modal-open"
+                                    enforceFocus={true}
+                                    keyboard={true}
+                                    manager={
+                                      ModalManager {
+                                        "add": [Function],
+                                        "containers": Array [],
+                                        "data": Array [],
+                                        "handleContainerOverflow": true,
+                                        "hideSiblingNodes": true,
+                                        "isTopModal": [Function],
+                                        "modals": Array [],
+                                        "remove": [Function],
+                                      }
+                                    }
+                                    onEntering={[Function]}
+                                    onExited={[Function]}
+                                    onHide={[Function]}
+                                    renderBackdrop={[Function]}
+                                    restoreFocus={true}
+                                    show={false}
+                                  />
+                                </Modal>
+                              </Confirm>
+                            </LinkWithConfirmation>
+                          </div>
+                        </Base>
+                      </Box>
+                    </div>
+                  </Base>
+                </StyledPanelItem>
+              </PanelItem>
+            </div>
+          </PanelBody>
+        </div>
+      </StyledPanel>
     </Panel>
   </div>
 </OrganizationApiKeysList>

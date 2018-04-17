@@ -272,6 +272,12 @@ class UnmergeTestCase(TestCase):
                 comments='Quack',
             )
 
+            Release.get_or_create(
+                project=project,
+                version=event.get_tag('sentry:release'),
+                date_added=event.datetime,
+            )
+
             features.record([event])
 
             return event

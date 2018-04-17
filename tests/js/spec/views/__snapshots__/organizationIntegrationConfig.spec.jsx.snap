@@ -1,198 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`OrganizationIntegrationConfig render() with one integration renders 1`] = `
-.glamor-8 {
-  font-size: 14px;
-  box-shadow: inset 0 -1px 0;
-  margin: -20px 0 30px;
-}
-
-.glamor-6 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
-.glamor-2 {
-  box-sizing: border-box;
-  padding-right: 8px;
-}
-
-.glamor-0 {
-  position: relative;
-  height: 28px;
-  width: 28px;
-  border-radius: 2px;
-  border: 0;
-  background-color: #fff;
-  display: inline-block;
-  background-size: contain;
-  background-position: center center;
-  background-repeat: no-repeat;
-  background-image: url();
-}
-
-.glamor-4 {
-  font-size: 20px;
-  font-weight: bold;
-  margin: 20px 0;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-}
-
-.glamor-47 {
-  background: #fff;
-  border: 1px solid;
-  margin-bottom: NaNpx;
-  position: relative;
-}
-
-.glamor-25 {
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  text-transform: uppercase;
-  font-size: 13px;
-  line-height: 1;
-  padding: 8px 0;
-}
-
-.glamor-21 {
-  font-size: inherit;
-  text-transform: inherit;
-  margin: 0;
-}
-
-.glamor-19 {
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  margin-bottom: 20px;
-  font-size: inherit;
-  text-transform: inherit;
-  margin: 0;
-}
-
-.glamor-10 {
-  box-sizing: border-box;
-  padding-left: 16px;
-  padding-right: 16px;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-}
-
-.glamor-14 {
-  box-sizing: border-box;
-  margin-right: 8px;
-}
-
-.glamor-43 {
-  box-sizing: border-box;
-  padding: 0px;
-  padding-top: 16px;
-  padding-bottom: 16px;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  border-bottom: 1px solid;
-}
-
-.glamor-43:last-child {
-  border: 0;
-}
-
-.glamor-31 {
-  box-sizing: border-box;
-  padding-left: 16px;
-}
-
-.glamor-29 {
-  height: 32px;
-  width: 32px;
-  border-radius: 3px;
-  display: block;
-}
-
-.glamor-33 {
-  font-size: 1.6rem;
-  margin-bottom: 3px;
-}
-
-.glamor-35 {
-  font-size: 1.4rem;
-}
-
-.glamor-41 {
-  box-sizing: border-box;
-  margin-right: 8px;
-  padding-right: 16px;
-}
-
-.glamor-53 {
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  border: 1px dashed;
-  padding: NaNpx;
-  margin-bottom: NaNpx;
-  border-radius: 0.25em;
-  -webkit-transition: 0.2s border-color;
-  transition: 0.2s border-color;
-}
-
-.glamor-49 {
-  -webkit-box-flex: 1;
-  -webkit-flex-grow: 1;
-  -ms-flex-positive: 1;
-  flex-grow: 1;
-}
-
-.glamor-51 {
-  vertical-align: middle;
-}
-
-.glamor-73 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  font-size: 1.5rem;
-  line-height: 2.1rem;
-}
-
-.glamor-65 {
-  box-sizing: border-box;
-  width: 62.5%;
-}
-
-.glamor-61 li {
-  margin-bottom: 6px;
-}
-
-.glamor-71 {
-  box-sizing: border-box;
-  margin-left: 60px;
-}
-
-.glamor-67 {
-  display: block;
-  margin-bottom: 6px;
-}
-
 <OrganizationIntegrationConfig
   params={
     Object {
@@ -218,28 +26,28 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
       >
         <Wrapper>
           <div
-            className="glamor-8 glamor-9"
+            className="css-foidy-Wrapper css-17jmgia0"
           >
             <Flex
               align="center"
             >
               <Base
                 align="center"
-                className="glamor-6"
+                className="css-5ipae5"
               >
                 <div
-                  className="glamor-6"
+                  className="css-5ipae5"
                   is={null}
                 >
                   <Box
                     pr={1}
                   >
                     <Base
-                      className="glamor-2"
+                      className="css-ioegso"
                       pr={1}
                     >
                       <div
-                        className="glamor-2"
+                        className="css-ioegso"
                         is={null}
                       >
                         <PluginIcon
@@ -251,7 +59,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                             size={28}
                           >
                             <div
-                              className="glamor-0 glamor-1"
+                              className="css-1g0dosy-IntegrationIcon css-10uim240"
                               size={28}
                             />
                           </IntegrationIcon>
@@ -261,7 +69,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                   </Box>
                   <Title>
                     <div
-                      className="glamor-4 glamor-5"
+                      className="css-zmdcxu-Title css-17jmgia1"
                     >
                       GitHub
                     </div>
@@ -273,226 +81,70 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
         </Wrapper>
       </SettingsPageHeading>
       <Panel>
-        <div
-          className="glamor-47 glamor-48"
-        >
-          <PanelHeader
-            disablePadding={true}
-            hasButtons={true}
+        <StyledPanel>
+          <div
+            className="css-wfa8ap-StyledPanel css-5bw71w0"
           >
-            <StyledPanelHeader
+            <PanelHeader
               disablePadding={true}
               hasButtons={true}
             >
-              <Component
-                className="glamor-25 glamor-26"
+              <StyledPanelHeader
                 disablePadding={true}
                 hasButtons={true}
               >
-                <div
-                  className="glamor-25 glamor-26"
+                <Component
+                  className="css-bx554z-StyledPanelHeader css-1t1cqk30"
+                  disablePadding={true}
+                  hasButtons={true}
                 >
-                  <StyledPanelHeading>
-                    <Component
-                      className="glamor-21 glamor-18"
-                    >
-                      <PanelHeading
-                        className="glamor-21 glamor-18"
-                      >
-                        <div
-                          className="glamor-18 glamor-19 glamor-20"
-                        >
-                          <Flex
-                            align="center"
-                          >
-                            <Base
-                              align="center"
-                              className="glamor-6"
-                            >
-                              <div
-                                className="glamor-6"
-                                is={null}
-                              >
-                                <Box
-                                  flex="1"
-                                  px={2}
-                                >
-                                  <Base
-                                    className="glamor-10"
-                                    flex="1"
-                                    px={2}
-                                  >
-                                    <div
-                                      className="glamor-10"
-                                      is={null}
-                                    >
-                                      Workspaces
-                                    </div>
-                                  </Base>
-                                </Box>
-                                <Box
-                                  mr={1}
-                                >
-                                  <Base
-                                    className="glamor-14"
-                                    mr={1}
-                                  >
-                                    <div
-                                      className="glamor-14"
-                                      is={null}
-                                    >
-                                      <Button
-                                        disabled={false}
-                                        onClick={[Function]}
-                                        size="xsmall"
-                                      >
-                                        <button
-                                          className="button button-default button-xs"
-                                          disabled={false}
-                                          onClick={[Function]}
-                                          role="button"
-                                        >
-                                          <Flex
-                                            align="center"
-                                            className="button-label"
-                                          >
-                                            <Base
-                                              align="center"
-                                              className="button-label glamor-6"
-                                            >
-                                              <div
-                                                className="button-label glamor-6"
-                                                is={null}
-                                              >
-                                                <span
-                                                  className="icon icon-add"
-                                                />
-                                                 
-                                                Add Workspace
-                                              </div>
-                                            </Base>
-                                          </Flex>
-                                        </button>
-                                      </Button>
-                                    </div>
-                                  </Base>
-                                </Box>
-                              </div>
-                            </Base>
-                          </Flex>
-                        </div>
-                      </PanelHeading>
-                    </Component>
-                  </StyledPanelHeading>
-                </div>
-              </Component>
-            </StyledPanelHeader>
-          </PanelHeader>
-          <PanelBody
-            direction="column"
-            disablePadding={true}
-            flex={false}
-          >
-            <div
-              className=""
-            >
-              <PanelItem
-                key="1"
-                p={0}
-                py={2}
-              >
-                <StyledPanelItem
-                  p={0}
-                  py={2}
-                >
-                  <Base
-                    className="glamor-43 glamor-44"
-                    p={0}
-                    py={2}
+                  <Flex
+                    align="center"
+                    className="css-bx554z-StyledPanelHeader css-1t1cqk30"
+                    justify="space-between"
                   >
-                    <div
-                      className="glamor-43 glamor-44"
-                      is={null}
+                    <Base
+                      align="center"
+                      className="css-1t1cqk30 css-1wxtvvf"
+                      justify="space-between"
                     >
-                      <Box
-                        pl={2}
+                      <div
+                        className="css-1t1cqk30 css-1wxtvvf"
+                        is={null}
                       >
-                        <Base
-                          className="glamor-31"
-                          pl={2}
-                        >
-                          <div
-                            className="glamor-31"
-                            is={null}
-                          >
-                            <IntegrationIcon
-                              src="http://example.com/integration_icon.png"
-                            >
-                              <img
-                                className="glamor-29 glamor-30"
-                                src="http://example.com/integration_icon.png"
-                              />
-                            </IntegrationIcon>
-                          </div>
-                        </Base>
-                      </Box>
-                      <Box
-                        flex={1}
-                        px={2}
-                      >
-                        <Base
-                          className="glamor-10"
-                          flex={1}
+                        <Box
                           px={2}
                         >
-                          <div
-                            className="glamor-10"
-                            is={null}
+                          <Base
+                            className="css-17pfgr6"
+                            px={2}
                           >
-                            <IntegrationName>
-                              <div
-                                className="glamor-33 glamor-34"
-                              >
-                                Test Integration
-                              </div>
-                            </IntegrationName>
-                            <DomainName>
-                              <div
-                                className="glamor-35 glamor-36"
-                              >
-                                gtithub.com/test-integration
-                              </div>
-                            </DomainName>
-                          </div>
-                        </Base>
-                      </Box>
-                      <Box
-                        mr={1}
-                        pr={2}
-                      >
-                        <Base
-                          className="glamor-41"
+                            <div
+                              className="css-17pfgr6"
+                              is={null}
+                            >
+                              Workspaces
+                            </div>
+                          </Base>
+                        </Box>
+                        <Box
                           mr={1}
-                          pr={2}
                         >
-                          <div
-                            className="glamor-41"
-                            is={null}
+                          <Base
+                            className="css-xgysgc"
+                            mr={1}
                           >
-                            <Confirm
-                              cancelText="Cancel"
-                              confirmText="Confirm"
-                              message="Removing this inegration will disable the integration for all projects. Are you sure you want to remove this integration?"
-                              onConfirm={[Function]}
-                              priority="primary"
+                            <div
+                              className="css-xgysgc"
+                              is={null}
                             >
                               <Button
                                 disabled={false}
                                 onClick={[Function]}
-                                size="small"
+                                size="xsmall"
                               >
                                 <button
-                                  className="button button-default button-sm"
+                                  className="button button-default button-xs"
                                   disabled={false}
                                   onClick={[Function]}
                                   role="button"
@@ -503,55 +155,171 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                                   >
                                     <Base
                                       align="center"
-                                      className="button-label glamor-6"
+                                      className="button-label css-5ipae5"
                                     >
                                       <div
-                                        className="button-label glamor-6"
+                                        className="button-label css-5ipae5"
                                         is={null}
                                       >
                                         <span
-                                          className="icon icon-trash"
-                                          style={
-                                            Object {
-                                              "margin": 0,
-                                            }
-                                          }
+                                          className="icon icon-add"
                                         />
+                                         
+                                        Add Workspace
                                       </div>
                                     </Base>
                                   </Flex>
                                 </button>
                               </Button>
-                              <Modal
-                                animation={false}
-                                autoFocus={true}
-                                backdrop={true}
-                                bsClass="modal"
-                                dialogComponentClass={[Function]}
-                                enforceFocus={true}
-                                keyboard={true}
-                                manager={
-                                  ModalManager {
-                                    "add": [Function],
-                                    "containers": Array [],
-                                    "data": Array [],
-                                    "handleContainerOverflow": true,
-                                    "hideSiblingNodes": true,
-                                    "isTopModal": [Function],
-                                    "modals": Array [],
-                                    "remove": [Function],
-                                  }
-                                }
-                                onHide={[Function]}
-                                renderBackdrop={[Function]}
-                                restoreFocus={true}
-                                show={false}
+                            </div>
+                          </Base>
+                        </Box>
+                      </div>
+                    </Base>
+                  </Flex>
+                </Component>
+              </StyledPanelHeader>
+            </PanelHeader>
+            <PanelBody
+              direction="column"
+              disablePadding={true}
+              flex={false}
+            >
+              <div
+                className=""
+              >
+                <PanelItem
+                  key="1"
+                  p={0}
+                  py={2}
+                >
+                  <StyledPanelItem
+                    p={0}
+                    py={2}
+                  >
+                    <Base
+                      className="css-17iyzx4-StyledPanelItem css-q9h14u0"
+                      p={0}
+                      py={2}
+                    >
+                      <div
+                        className="css-17iyzx4-StyledPanelItem css-q9h14u0"
+                        is={null}
+                      >
+                        <Box
+                          pl={2}
+                        >
+                          <Base
+                            className="css-wwmrss"
+                            pl={2}
+                          >
+                            <div
+                              className="css-wwmrss"
+                              is={null}
+                            >
+                              <IntegrationIcon
+                                src="http://example.com/integration_icon.png"
                               >
+                                <img
+                                  className="css-lx37iq-IntegrationIcon css-1iov4vb0"
+                                  src="http://example.com/integration_icon.png"
+                                />
+                              </IntegrationIcon>
+                            </div>
+                          </Base>
+                        </Box>
+                        <Box
+                          flex={1}
+                          px={2}
+                        >
+                          <Base
+                            className="css-pcjga5"
+                            flex={1}
+                            px={2}
+                          >
+                            <div
+                              className="css-pcjga5"
+                              is={null}
+                            >
+                              <IntegrationName>
+                                <div
+                                  className="css-1daz7ru-IntegrationName css-1iov4vb1"
+                                >
+                                  Test Integration
+                                </div>
+                              </IntegrationName>
+                              <DomainName>
+                                <div
+                                  className="css-1y54ser-DomainName css-1iov4vb2"
+                                >
+                                  gtithub.com/test-integration
+                                </div>
+                              </DomainName>
+                            </div>
+                          </Base>
+                        </Box>
+                        <Box
+                          mr={1}
+                          pr={2}
+                        >
+                          <Base
+                            className="css-3n6m02"
+                            mr={1}
+                            pr={2}
+                          >
+                            <div
+                              className="css-3n6m02"
+                              is={null}
+                            >
+                              <Confirm
+                                cancelText="Cancel"
+                                confirmText="Confirm"
+                                message="Removing this inegration will disable the integration for all projects. Are you sure you want to remove this integration?"
+                                onConfirm={[Function]}
+                                priority="primary"
+                              >
+                                <Button
+                                  disabled={false}
+                                  onClick={[Function]}
+                                  size="small"
+                                >
+                                  <button
+                                    className="button button-default button-sm"
+                                    disabled={false}
+                                    onClick={[Function]}
+                                    role="button"
+                                  >
+                                    <Flex
+                                      align="center"
+                                      className="button-label"
+                                    >
+                                      <Base
+                                        align="center"
+                                        className="button-label css-5ipae5"
+                                      >
+                                        <div
+                                          className="button-label css-5ipae5"
+                                          is={null}
+                                        >
+                                          <span
+                                            className="icon icon-trash"
+                                            style={
+                                              Object {
+                                                "margin": 0,
+                                              }
+                                            }
+                                          />
+                                        </div>
+                                      </Base>
+                                    </Flex>
+                                  </button>
+                                </Button>
                                 <Modal
+                                  animation={false}
                                   autoFocus={true}
                                   backdrop={true}
-                                  backdropClassName="modal-backdrop"
-                                  containerClassName="modal-open"
+                                  bsClass="modal"
+                                  dialogComponentClass={[Function]}
                                   enforceFocus={true}
                                   keyboard={true}
                                   manager={
@@ -566,51 +334,76 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                                       "remove": [Function],
                                     }
                                   }
-                                  onEntering={[Function]}
-                                  onExited={[Function]}
                                   onHide={[Function]}
                                   renderBackdrop={[Function]}
                                   restoreFocus={true}
                                   show={false}
-                                />
-                              </Modal>
-                            </Confirm>
-                          </div>
-                        </Base>
-                      </Box>
-                    </div>
-                  </Base>
-                </StyledPanelItem>
-              </PanelItem>
-            </div>
-          </PanelBody>
-        </div>
+                                >
+                                  <Modal
+                                    autoFocus={true}
+                                    backdrop={true}
+                                    backdropClassName="modal-backdrop"
+                                    containerClassName="modal-open"
+                                    enforceFocus={true}
+                                    keyboard={true}
+                                    manager={
+                                      ModalManager {
+                                        "add": [Function],
+                                        "containers": Array [],
+                                        "data": Array [],
+                                        "handleContainerOverflow": true,
+                                        "hideSiblingNodes": true,
+                                        "isTopModal": [Function],
+                                        "modals": Array [],
+                                        "remove": [Function],
+                                      }
+                                    }
+                                    onEntering={[Function]}
+                                    onExited={[Function]}
+                                    onHide={[Function]}
+                                    renderBackdrop={[Function]}
+                                    restoreFocus={true}
+                                    show={false}
+                                  />
+                                </Modal>
+                              </Confirm>
+                            </div>
+                          </Base>
+                        </Box>
+                      </div>
+                    </Base>
+                  </StyledPanelItem>
+                </PanelItem>
+              </div>
+            </PanelBody>
+          </div>
+        </StyledPanel>
       </Panel>
       <AlertLink
         to="/url/with/params/org-slug/"
       >
         <Component
-          className="glamor-53 glamor-54"
+          className="css-ryqtzi-AlertLink css-1k2xcw02"
           to="/url/with/params/org-slug/"
         >
           <Link
-            className="glamor-53 glamor-54"
+            className="css-ryqtzi-AlertLink css-1k2xcw02"
             to="/url/with/params/org-slug/"
           >
             <Link
-              className="glamor-53 glamor-54"
+              className="css-ryqtzi-AlertLink css-1k2xcw02"
               onlyActiveOnIndex={false}
               style={Object {}}
               to="/url/with/params/org-slug/"
             >
               <a
-                className="glamor-53 glamor-54"
+                className="css-ryqtzi-AlertLink css-1k2xcw02"
                 onClick={[Function]}
                 style={Object {}}
               >
                 <AlertLinkText>
                   <div
-                    className="glamor-49 glamor-50"
+                    className="css-19z7wog-AlertLinkText css-1k2xcw00"
                   >
                     <span
                       dangerouslySetInnerHTML={
@@ -626,16 +419,13 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                   src="icon-chevron-right"
                 >
                   <StyledSvg
-                    className=""
                     height="1em"
-                    style={Object {}}
                     viewBox={Object {}}
                     width="1em"
                   >
                     <svg
-                      className="glamor-51 glamor-52"
+                      className="css-ryh69w-StyledSvg css-adkcw30"
                       height="1em"
-                      style={Object {}}
                       viewBox={Object {}}
                       width="1em"
                     >
@@ -657,21 +447,21 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
       </h5>
       <Details>
         <Base
-          className="glamor-73 glamor-74"
+          className="css-16wp28j-Details css-1iov4vb3"
         >
           <div
-            className="glamor-73 glamor-74"
+            className="css-16wp28j-Details css-1iov4vb3"
             is={null}
           >
             <Box
               width={0.625}
             >
               <Base
-                className="glamor-65"
+                className="css-dydpyx"
                 width={0.625}
               >
                 <div
-                  className="glamor-65"
+                  className="css-dydpyx"
                   is={null}
                 >
                   <Description
@@ -683,7 +473,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                     }
                   >
                     <div
-                      className="glamor-61 glamor-62"
+                      className="css-i2iqfw-Description css-1iov4vb4"
                       dangerouslySetInnerHTML={
                         Object {
                           "__html": "<p><em>markdown</em> formatted <em>description</em></p>
@@ -694,7 +484,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                   </Description>
                   <AuthorName>
                     <div
-                      className="glamor-63 glamor-64"
+                      className="css-v0poyl-AuthorName css-1iov4vb5"
                     >
                       By Morty
                     </div>
@@ -706,18 +496,18 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
               ml={60}
             >
               <Base
-                className="glamor-71"
+                className="css-vgctkd"
                 ml={60}
               >
                 <div
-                  className="glamor-71"
+                  className="css-vgctkd"
                   is={null}
                 >
                   <MetadataLink
                     href="http://example.com/integration_issue_url"
                   >
                     <a
-                      className="glamor-67 glamor-68"
+                      className="css-5qmaie-MetadataLink css-1iov4vb6"
                       href="http://example.com/integration_issue_url"
                     >
                       Report an Issue
@@ -727,7 +517,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                     href="http://example.com/integration_source_url"
                   >
                     <a
-                      className="glamor-67 glamor-68"
+                      className="css-5qmaie-MetadataLink css-1iov4vb6"
                       href="http://example.com/integration_source_url"
                     >
                       View Source

@@ -23,11 +23,11 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
             context = {
                 'id': node.id,
                 'label': node.label,
-                'html': node.render_form(),
+                'enabled': node.is_enabled(),
             }
 
-            if not node.is_enabled():
-                continue
+            if hasattr(node, 'form_fields'):
+                context['formFields'] = node.form_fields
 
             if rule_type.startswith('condition/'):
                 condition_list.append(context)

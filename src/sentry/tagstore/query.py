@@ -29,12 +29,5 @@ class NoTransactionUpdateQuerySet(QuerySet):
 
 
 class TagStoreManager(BaseManager):
-    def __init__(self, select_related=()):
-        self._always_select_related = select_related
-        super(TagStoreManager, self).__init__()
-
     def get_queryset(self):
-        qs = NoTransactionUpdateQuerySet(self.model, using=self._db)
-        if self._always_select_related:
-            qs = qs.select_related(*self._always_select_related)
-        return qs
+        return NoTransactionUpdateQuerySet(self.model, using=self._db)

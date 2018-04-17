@@ -33,19 +33,12 @@ class IdentityProvider(Model):
     type = models.CharField(max_length=64)
     organization = FlexibleForeignKey('sentry.Organization')
     config = EncryptedJsonField()
+    date_added = models.DateTimeField(default=timezone.now, null=True)
 
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_identityprovider'
         unique_together = (('type', 'organization'),)
-
-    @classmethod
-    def get(cls, type, instance):
-        # TODO(dcramer): add caching
-        return cls.objects.get_or_create(
-            type=type,
-            instance=instance,
-        )[0]
 
 
 class Identity(Model):
@@ -66,4 +59,4 @@ class Identity(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_identity'
-        unique_together = (('idp', 'external_id'),)
+        unique_together = (('idp', 'external_id'), ('idp', 'user'))

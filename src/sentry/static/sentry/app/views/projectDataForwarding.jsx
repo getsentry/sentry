@@ -7,14 +7,13 @@ import ExternalLink from '../components/externalLink';
 import HookStore from '../stores/hookStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
-import Panel from './settings/components/panel';
-import PanelBody from './settings/components/panelBody';
-import PanelHeader from './settings/components/panelHeader';
+import {Panel, PanelBody, PanelHeader} from '../components/panels';
 import PluginList from '../components/pluginList';
 import ProjectState from '../mixins/projectState';
 import SettingsPageHeader from './settings/components/settingsPageHeader';
 import StackedBarChart from '../components/stackedBarChart';
 import TextBlock from './settings/components/text/textBlock';
+import EmptyStateWarning from '../components/emptyStateWarning';
 
 const DataForwardingStats = createReactClass({
   displayName: 'DataForwardingStats',
@@ -206,10 +205,11 @@ export default createReactClass({
 
   renderEmpty() {
     return (
-      <div className="box empty-stream">
-        <span className="icon icon-exclamation" />
-        <p>{t('There are no integrations available for data forwarding.')}</p>
-      </div>
+      <Panel>
+        <EmptyStateWarning>
+          <p>{t('There are no integrations available for data forwarding.')}</p>
+        </EmptyStateWarning>
+      </Panel>
     );
   },
 

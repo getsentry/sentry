@@ -1,4 +1,4 @@
-import {valueIsEqual, extractMultilineFields, parseRepo} from 'app/utils';
+import {valueIsEqual, extractMultilineFields, parseRepo, explodeSlug} from 'app/utils';
 
 describe('utils.valueIsEqual', function() {
   it('should return true when objects are deeply equal', function() {
@@ -145,7 +145,7 @@ describe('utils.parseRepo', function() {
   it('should work for full BitBucket url', function() {
     expect(parseRepo('https://bitbucket.org/example/example')).toEqual('example/example');
   });
-  it('should work for trailing slash', function() {
+  it('should work for trailing Bitbucket slash', function() {
     expect(parseRepo('https://bitbucket.org/example/example/')).toEqual(
       'example/example'
     );
@@ -160,5 +160,11 @@ describe('utils.parseRepo', function() {
   });
   it('should work for nothing passed', function() {
     expect(parseRepo()).toEqual();
+  });
+});
+
+describe('utils.explodeSlug', function() {
+  it('replaces slug special chars with whitespace', function() {
+    expect(explodeSlug('test--slug__replace-')).toEqual('test slug replace');
   });
 });

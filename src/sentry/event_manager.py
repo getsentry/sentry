@@ -8,6 +8,7 @@ from __future__ import absolute_import, print_function
 
 import logging
 import math
+import re
 import six
 
 from datetime import datetime, timedelta
@@ -19,9 +20,7 @@ from django.utils.encoding import force_bytes, force_text
 from hashlib import md5
 from uuid import uuid4
 
-from sentry import eventtypes, features, buffer
-# we need a bunch of unexposed functions from tsdb
-from sentry.tsdb import backend as tsdb
+from sentry import buffer, eventtypes, features, tsdb
 from sentry.constants import (
     CLIENT_RESERVED_ATTRS, LOG_LEVELS, LOG_LEVELS_MAP, DEFAULT_LOG_LEVEL,
     DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH, VALID_PLATFORMS
@@ -46,6 +45,7 @@ from sentry.utils.validators import is_float
 from sentry.stacktraces import normalize_in_app
 
 
+HASH_RE = re.compile(r'^[0-9a-f]{32}$')
 DEFAULT_FINGERPRINT_VALUES = frozenset(['{{ default }}', '{{default}}'])
 
 
@@ -200,8 +200,7 @@ def process_timestamp(value, current_datetime=None):
         try:
             value = datetime.fromtimestamp(float(value))
         except Exception:
-            raise InvalidTimestamp(
-                'Invalid value for timestamp: %r' % value)
+            raise InvalidTimestamp(EventError.INVALID_DATA)
     elif not isinstance(value, datetime):
         # all timestamps are in UTC, but the marker is optional
         if value.endswith('Z'):
@@ -217,19 +216,16 @@ def process_timestamp(value, current_datetime=None):
         try:
             value = datetime.strptime(value, fmt)
         except Exception:
-            raise InvalidTimestamp(
-                'Invalid value for timestamp: %r' % value)
+            raise InvalidTimestamp(EventError.INVALID_DATA)
 
     if current_datetime is None:
         current_datetime = datetime.now()
 
     if value > current_datetime + timedelta(minutes=1):
-        raise InvalidTimestamp(
-            'Invalid value for timestamp (in future): %r' % value)
+        raise InvalidTimestamp(EventError.FUTURE_TIMESTAMP)
 
     if value < current_datetime - timedelta(days=30):
-        raise InvalidTimestamp(
-            'Invalid value for timestamp (too old): %r' % value)
+        raise InvalidTimestamp(EventError.PAST_TIMESTAMP)
 
     return float(value.strftime('%s'))
 
@@ -238,36 +234,68 @@ class HashDiscarded(Exception):
     pass
 
 
-class ScoreClause(object):
-    def __init__(self, group):
-        self.group = group
+try:
+    from django.db.models import Func
+except ImportError:
+    # XXX(dramer): compatibility hack for Django 1.6
+    class ScoreClause(object):
+        def __init__(self, group, *args, **kwargs):
+            self.group = group
+            super(ScoreClause, self).__init__(*args, **kwargs)
 
-    def __int__(self):
-        # Calculate the score manually when coercing to an int.
-        # This is used within create_or_update and friends
-        return self.group.get_score()
+        def __int__(self):
+            # Calculate the score manually when coercing to an int.
+            # This is used within create_or_update and friends
+            return self.group.get_score()
 
-    def prepare_database_save(self, unused):
-        return self
+        def prepare_database_save(self, unused):
+            return self
 
-    def prepare(self, evaluator, query, allow_joins):
-        return
+        def prepare(self, evaluator, query, allow_joins):
+            return
 
-    def evaluate(self, node, qn, connection):
-        engine = get_db_engine(getattr(connection, 'alias', 'default'))
-        if engine.startswith('postgresql'):
-            sql = 'log(times_seen) * 600 + last_seen::abstime::int'
-        elif engine.startswith('mysql'):
-            sql = 'log(times_seen) * 600 + unix_timestamp(last_seen)'
-        else:
-            # XXX: if we cant do it atomically let's do it the best we can
-            sql = int(self)
+        def evaluate(self, node, qn, connection):
+            engine = get_db_engine(getattr(connection, 'alias', 'default'))
+            if engine.startswith('postgresql'):
+                sql = 'log(times_seen) * 600 + last_seen::abstime::int'
+            elif engine.startswith('mysql'):
+                sql = 'log(times_seen) * 600 + unix_timestamp(last_seen)'
+            else:
+                # XXX: if we cant do it atomically let's do it the best we can
+                sql = int(self)
 
-        return (sql, [])
+            return (sql, [])
 
-    @classmethod
-    def calculate(cls, times_seen, last_seen):
-        return math.log(times_seen) * 600 + float(last_seen.strftime('%s'))
+        @classmethod
+        def calculate(cls, times_seen, last_seen):
+            return math.log(times_seen) * 600 + float(last_seen.strftime('%s'))
+else:
+    # XXX(dramer): compatibility hack for Django 1.8+
+    class ScoreClause(Func):
+        def __init__(self, group, *args, **kwargs):
+            self.group = group
+            super(ScoreClause, self).__init__(*args, **kwargs)
+
+        def __int__(self):
+            # Calculate the score manually when coercing to an int.
+            # This is used within create_or_update and friends
+            return self.group.get_score()
+
+        def as_sql(self, compiler, connection, function=None, template=None):
+            engine = get_db_engine(getattr(connection, 'alias', 'default'))
+            if engine.startswith('postgresql'):
+                sql = 'log(times_seen) * 600 + last_seen::abstime::int'
+            elif engine.startswith('mysql'):
+                sql = 'log(times_seen) * 600 + unix_timestamp(last_seen)'
+            else:
+                # XXX: if we cant do it atomically let's do it the best we can
+                sql = int(self)
+
+            return (sql, [])
+
+        @classmethod
+        def calculate(cls, times_seen, last_seen):
+            return math.log(times_seen) * 600 + float(last_seen.strftime('%s'))
 
 
 class InvalidTimestamp(Exception):
@@ -318,6 +346,9 @@ class EventManager(object):
             if c in data:
                 try:
                     data[c] = casts[c](data[c])
+                except InvalidTimestamp as it:
+                    errors.append({'type': it.args[0], 'name': c, 'value': data[c]})
+                    del data[c]
                 except Exception as e:
                     errors.append({'type': EventError.INVALID_DATA, 'name': c, 'value': data[c]})
                     del data[c]
@@ -477,12 +508,35 @@ class EventManager(object):
 
         project = Project.objects.get_from_cache(id=project)
 
+        # Check to make sure we're not about to do a bunch of work that's
+        # already been done if we've processed an event with this ID. (This
+        # isn't a perfect solution -- this doesn't handle ``EventMapping`` and
+        # there's a race condition between here and when the event is actually
+        # saved, but it's an improvement. See GH-7677.)
+        try:
+            event = Event.objects.get(
+                project_id=project.id,
+                event_id=self.data['event_id'],
+            )
+        except Event.DoesNotExist:
+            pass
+        else:
+            self.logger.info(
+                'duplicate.found',
+                exc_info=True,
+                extra={
+                    'event_uuid': self.data['event_id'],
+                    'project_id': project.id,
+                    'model': Event.__name__,
+                }
+            )
+            return event
+
         data = self.data.copy()
 
         # First we pull out our top-level (non-data attr) kwargs
         event_id = data.pop('event_id')
         level = data.pop('level')
-
         culprit = data.pop('transaction', None)
         if not culprit:
             culprit = data.pop('culprit', None)
@@ -600,7 +654,10 @@ class EventManager(object):
         if fingerprint:
             hashes = [md5_from_hash(h) for h in get_hashes_from_fingerprint(event, fingerprint)]
         elif checksum:
-            hashes = [checksum]
+            if HASH_RE.match(checksum):
+                hashes = [checksum]
+            else:
+                hashes = [md5_from_hash([checksum]), checksum]
             data['checksum'] = checksum
         else:
             hashes = [md5_from_hash(h) for h in get_hashes_for_event(event)]
@@ -719,24 +776,6 @@ class EventManager(object):
                     }
                 )
                 return event
-
-        # We now always need to check the Event table for dupes
-        # since EventMapping isn't exactly the canonical source of truth.
-        if Event.objects.filter(
-            project_id=project.id,
-            event_id=event_id,
-        ).exists():
-            self.logger.info(
-                'duplicate.found',
-                exc_info=True,
-                extra={
-                    'event_uuid': event_id,
-                    'project_id': project.id,
-                    'group_id': group.id,
-                    'model': Event.__name__,
-                }
-            )
-            return event
 
         environment = Environment.get_or_create(
             project=project,

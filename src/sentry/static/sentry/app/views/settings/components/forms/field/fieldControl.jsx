@@ -45,13 +45,13 @@ class FieldControl extends React.Component {
     alignRight: PropTypes.bool,
     disabled: PropTypes.bool,
     disabledReason: PropTypes.node,
-    hideControlState: PropTypes.bool,
+    flexibleControlStateSize: PropTypes.bool,
     controlState: PropTypes.node,
     errorState: PropTypes.node,
   };
 
   static defaultProps = {
-    hideControlState: false,
+    flexibleControlStateSize: false,
   };
 
   render() {
@@ -60,7 +60,7 @@ class FieldControl extends React.Component {
       alignRight,
       disabled,
       disabledReason,
-      hideControlState,
+      flexibleControlStateSize,
       errorState,
       controlState,
       children,
@@ -80,7 +80,9 @@ class FieldControl extends React.Component {
               </Tooltip>
             )}
 
-          {!hideControlState && <FieldControlState>{controlState}</FieldControlState>}
+          <FieldControlState flexibleControlStateSize={flexibleControlStateSize}>
+            {controlState}
+          </FieldControlState>
         </FieldControlWrapper>
 
         {errorState}

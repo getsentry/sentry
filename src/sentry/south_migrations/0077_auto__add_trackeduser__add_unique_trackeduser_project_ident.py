@@ -21,11 +21,11 @@ class Migration(SchemaMigration):
                 ('email', self.gf('django.db.models.fields.EmailField')(max_length=75, null=True)),
                 ('data', self.gf('django.db.models.fields.TextField')(null=True, blank=True)), (
                     'last_seen', self.gf('django.db.models.fields.DateTimeField')(
-                        default=datetime.datetime.now, db_index=True
+                        db_index=True
                     )
                 ), (
                     'first_seen', self.gf('django.db.models.fields.DateTimeField')(
-                        default=datetime.datetime.now, db_index=True
+                        db_index=True
                     )
                 ),
             )

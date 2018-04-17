@@ -6,16 +6,21 @@ export function update(api, params) {
   ProjectActions.update(params.projectId, params.data);
 
   let endpoint = `/projects/${params.orgId}/${params.projectId}/`;
-  api.request(endpoint, {
-    method: 'PUT',
-    data: params.data,
-    success: data => {
-      ProjectActions.updateSuccess(data);
-    },
-    error: data => {
-      ProjectActions.updateError(data);
-    },
-  });
+  return api
+    .requestPromise(endpoint, {
+      method: 'PUT',
+      data: params.data,
+    })
+    .then(
+      data => {
+        ProjectActions.updateSuccess(data);
+        return data;
+      },
+      err => {
+        ProjectActions.updateError(err);
+        throw err;
+      }
+    );
 }
 
 export function loadStats(api, params) {
@@ -83,4 +88,43 @@ export function transferProject(api, orgId, project, email) {
         throw err;
       }
     );
+}
+
+/**
+ * Associate a team with a project
+ */
+export function addTeamToProject(api, orgSlug, projectSlug, teamSlug) {
+  let endpoint = `/projects/${orgSlug}/${projectSlug}/teams/${teamSlug}/`;
+
+  return api
+    .requestPromise(endpoint, {
+      method: 'POST',
+    })
+    .then(
+      () => {
+        addSuccessMessage(
+          tct('[team] has been added to the [project] project', {
+            team: `#${teamSlug}`,
+            project: projectSlug,
+          }),
+          undefined,
+          {append: true}
+        );
+      },
+      err => {
+        addErrorMessage(
+          tct('Unable to add [team] to the [project] project', {
+            team: `#${teamSlug}`,
+            project: projectSlug,
+          }),
+          undefined,
+          {append: true}
+        );
+        throw err;
+      }
+    );
+}
+
+export function changeProjectSlug(prev, next) {
+  ProjectActions.changeSlug(prev, next);
 }

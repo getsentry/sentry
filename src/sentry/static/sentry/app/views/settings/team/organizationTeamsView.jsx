@@ -1,16 +1,15 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import SentryTypes from '../../../proptypes';
+import {getOrganizationState} from '../../../mixins/organizationState';
+import {openCreateTeamModal} from '../../../actionCreators/modal';
 import {t} from '../../../locale';
 import AllTeamsList from './allTeamsList';
-import {getOrganizationState} from '../../../mixins/organizationState';
-import Panel from '../components/panel';
-import PanelHeader from '../components/panelHeader';
-import PanelBody from '../components/panelBody';
 import Button from '../../../components/buttons/button';
-import recreateRoute from '../../../utils/recreateRoute';
+import {Panel, PanelBody, PanelHeader} from '../../../components/panels';
+import SentryTypes from '../../../proptypes';
 import SettingsPageHeader from '../components/settingsPageHeader';
+import recreateRoute from '../../../utils/recreateRoute';
 
 class OrganizationTeamsView extends React.Component {
   static propTypes = {
@@ -49,7 +48,10 @@ class OrganizationTeamsView extends React.Component {
         title={
           !canCreateTeams ? t('You do not have permission to create teams') : undefined
         }
-        to={`/organizations/${organization.slug}/teams/new/`}
+        onClick={() =>
+          openCreateTeamModal({
+            organization,
+          })}
         icon="icon-circle-add"
       >
         {t('Create Team')}
@@ -69,6 +71,7 @@ class OrganizationTeamsView extends React.Component {
           <PanelHeader>{t('Your Teams')}</PanelHeader>
           <PanelBody>
             <AllTeamsList
+              useCreateModal
               urlPrefix={urlPrefix}
               organization={org}
               teamList={activeTeams}
@@ -81,6 +84,7 @@ class OrganizationTeamsView extends React.Component {
           <PanelHeader>{t('Other Teams')}</PanelHeader>
           <PanelBody>
             <AllTeamsList
+              useCreateModal
               urlPrefix={urlPrefix}
               organization={org}
               teamList={otherTeams}

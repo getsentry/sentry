@@ -6,7 +6,7 @@ import Form from '../components/forms/form';
 import Button from '../../../components/buttons/button';
 import ConfigStore from '../../../stores/configStore';
 import JsonForm from '../components/forms/jsonForm';
-import PanelItem from '../components/panelItem';
+import {PanelItem} from '../../../components/panels';
 import accountPasswordFields from '../../../data/forms/accountPassword';
 
 const ENDPOINT = '/users/me/password/';

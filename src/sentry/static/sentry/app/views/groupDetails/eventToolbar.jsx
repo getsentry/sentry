@@ -1,5 +1,5 @@
 import {Link} from 'react-router';
-import moment from 'moment';
+import moment from 'moment-timezone';
 import PropTypes from 'prop-types';
 import React from 'react';
 
@@ -9,7 +9,7 @@ import ConfigStore from '../../stores/configStore';
 import SentryTypes from '../../proptypes';
 import DateTime from '../../components/dateTime';
 import FileSize from '../../components/fileSize';
-import TooltipMixin from '../../mixins/tooltip';
+import Tooltip from '../../components/tooltip';
 import {t} from '../../locale';
 
 let formatDateDelta = (reference, observed) => {
@@ -42,13 +42,6 @@ let GroupEventToolbar = createReactClass({
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
   },
-
-  mixins: [
-    TooltipMixin({
-      html: true,
-      selector: '.tip',
-    }),
-  ],
 
   shouldComponentUpdate(nextProps, nextState) {
     return this.props.event.id !== nextProps.event.id;
@@ -175,11 +168,12 @@ let GroupEventToolbar = createReactClass({
           </Link>
         </h4>
         <span>
-          {/* use a key here to force removal of tooltip parent - fixes #3341 */}
-          <span className="tip" data-title={this.getDateTooltip()} key={evt.id}>
-            <DateTime date={evt.dateCreated} style={style} />
-            {isOverLatencyThreshold && <span className="icon-alert" />}
-          </span>
+          <Tooltip title={this.getDateTooltip()} tooltipOptions={{html: true}}>
+            <span>
+              <DateTime date={evt.dateCreated} style={style} />
+              {isOverLatencyThreshold && <span className="icon-alert" />}
+            </span>
+          </Tooltip>
           <a href={jsonUrl} target="_blank" className="json-link">
             {'JSON'} (<FileSize bytes={evt.size} />)
           </a>

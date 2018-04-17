@@ -32,18 +32,14 @@ class SlackIntegrationTest(IntegrationTestCase):
         authorize_params = {k: v[0] for k, v in six.iteritems(params)}
 
         responses.add(
-            responses.POST, 'https://slack.com/api/oauth.access',
+            responses.POST, 'https://slack.com/api/oauth.token',
             json={
                 'ok': True,
                 'user_id': 'UXXXXXXX1',
                 'access_token': 'xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx',
                 'team_id': 'TXXXXXXX1',
                 'team_name': 'Example',
-                'bot': {
-                    'bot_access_token': 'xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx',
-                    'bot_user_id': 'UXXXXXXX2',
-                },
-                'scope': ','.join(authorize_params['scope'].split(' ')),
+                'installer_user_id': 'UXXXXXXX1',
             }
         )
 
@@ -82,8 +78,6 @@ class SlackIntegrationTest(IntegrationTestCase):
         assert integration.name == 'Example'
         assert integration.metadata == {
             'access_token': 'xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx',
-            'bot_access_token': 'xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx',
-            'bot_user_id': 'UXXXXXXX2',
             'scopes': sorted(self.provider.identity_oauth_scopes),
             'icon': 'http://example.com/ws_icon.jpg',
             'domain_name': 'test-slack-workspace.slack.com',
@@ -104,7 +98,3 @@ class SlackIntegrationTest(IntegrationTestCase):
             external_id='UXXXXXXX1',
         )
         assert identity.status == IdentityStatus.VALID
-        assert identity.scopes == sorted(self.provider.identity_oauth_scopes)
-        assert identity.data == {
-            'access_token': 'xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx',
-        }

@@ -10,9 +10,7 @@ import ApiMixin from '../../../../mixins/apiMixin';
 import EmptyMessage from '../../../settings/components/emptyMessage';
 import LoadingError from '../../../../components/loadingError';
 import LoadingIndicator from '../../../../components/loadingIndicator';
-import Panel from '../../../settings/components/panel';
-import PanelBody from '../../../settings/components/panelBody';
-import PanelHeader from '../../../settings/components/panelHeader';
+import {Panel, PanelBody, PanelHeader} from '../../../../components/panels';
 import StackedBarChart from '../../../../components/stackedBarChart';
 import TextBlock from '../../../settings/components/text/textBlock';
 

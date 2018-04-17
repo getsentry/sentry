@@ -164,7 +164,8 @@ class MultiTagStorage(TagStorage):
         return getattr(backend, func)(*args, **kwargs)
 
     def setup(self):
-        return self._call_all_backends('setup')
+        for backend in self.backends:
+            backend.setup()
 
     def create_tag_key(self, *args, **kwargs):
         return self._call_all_backends('create_tag_key', *args, **kwargs)
@@ -279,6 +280,9 @@ class MultiTagStorage(TagStorage):
 
     def get_group_tag_value_qs(self, *args, **kwargs):
         return self._call_one_backend('get_group_tag_value_qs', *args, **kwargs)
+
+    def get_event_tag_qs(self, *args, **kwargs):
+        return self._call_one_backend('get_event_tag_qs', *args, **kwargs)
 
     def update_group_for_events(self, *args, **kwargs):
         return self._call_all_backends('update_group_for_events', *args, **kwargs)

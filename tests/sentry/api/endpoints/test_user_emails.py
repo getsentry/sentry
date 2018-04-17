@@ -8,6 +8,7 @@ from sentry.testutils import APITestCase
 
 class UserEmailsTest(APITestCase):
     def setUp(self):
+        super(UserEmailsTest, self).setUp()
         self.user = self.create_user(email='foo@example.com')
         self.login_as(user=self.user)
         self.url = reverse('sentry-api-0-user-emails', kwargs={'user_id': self.user.id})
@@ -32,29 +33,29 @@ class UserEmailsTest(APITestCase):
         response = self.client.post(self.url, data={
             'email': 'invalidemail',
         })
-        assert response.status_code == 400
-        assert not len(UserEmail.objects.filter(user=self.user, email='invalidemail'))
+        assert response.status_code == 400, response.data
+        assert not UserEmail.objects.filter(user=self.user, email='invalidemail').exists()
 
         # valid secondary email
         response = self.client.post(self.url, data={
             'email': 'altemail1@example.com',
         })
 
-        assert response.status_code == 201
-        assert len(UserEmail.objects.filter(user=self.user, email='altemail1@example.com'))
+        assert response.status_code == 201, response.data
+        assert UserEmail.objects.filter(user=self.user, email='altemail1@example.com').exists()
 
-        # duplicate email
+        # duplicate email allows still succeeds, but has a diff response code
         response = self.client.post(self.url, data={
             'email': 'altemail1@example.com',
         })
-        assert response.status_code == 400
+        assert response.status_code == 200, response.data
 
     def test_change_verified_secondary_to_primary(self):
         UserEmail.objects.create(user=self.user, email='altemail1@example.com', is_verified=True)
         response = self.client.put(self.url, data={
             'email': 'altemail1@example.com',
         })
-        assert response.status_code == 200
+        assert response.status_code == 200, response.data
 
         user = User.objects.get(id=self.user.id)
         assert user.email == 'altemail1@example.com'
@@ -65,7 +66,7 @@ class UserEmailsTest(APITestCase):
         response = self.client.put(self.url, data={
             'email': 'altemail1@example.com',
         })
-        assert response.status_code == 400
+        assert response.status_code == 400, response.data
 
         user = User.objects.get(id=self.user.id)
         assert user.email != 'altemail1@example.com'
@@ -77,7 +78,7 @@ class UserEmailsTest(APITestCase):
         response = self.client.delete(self.url, data={
             'email': 'altemail1@example.com',
         })
-        assert response.status_code == 204
+        assert response.status_code == 204, response.data
         assert not len(UserEmail.objects.filter(user=self.user, email='altemail1@example.com'))
 
     def test_cant_remove_primary_email(self):
