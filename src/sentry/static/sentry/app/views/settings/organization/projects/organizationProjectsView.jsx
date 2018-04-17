@@ -2,6 +2,7 @@ import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import idx from 'idx';
+import {debounce} from 'lodash';
 
 import {getOrganizationState} from '../../../../mixins/organizationState';
 import {sortProjects} from '../../../../utils';
@@ -22,6 +23,14 @@ export default class OrganizationProjectsView extends AsyncView {
     router: PropTypes.object.isRequired,
     organization: SentryTypes.Organization,
   };
+
+  componentWillReceiveProps(nextProps, nextContext) {
+    super.componentWillReceiveProps(nextProps, nextContext);
+    let searchQuery = idx(nextProps, _ => _.location.query.query);
+    if (searchQuery !== idx(this.props, _ => _.location.query.query)) {
+      this.setState({searchQuery});
+    }
+  }
 
   getEndpoints() {
     let {orgId} = this.props.params;
@@ -52,7 +61,7 @@ export default class OrganizationProjectsView extends AsyncView {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
-      searchQuery: idx(this.props, _ => _.location.query.query),
+      searchQuery: idx(this.props, _ => _.location.query.query) || '',
     };
   }
 
@@ -61,7 +70,25 @@ export default class OrganizationProjectsView extends AsyncView {
     return `${org.name} Projects`;
   }
 
-  onSearch = e => {
+  handleChange = evt => {
+    let searchQuery = evt.target.value;
+    this.getProjects(searchQuery);
+    this.setState({searchQuery});
+  };
+
+  getProjects = debounce(searchQuery => {
+    let {params} = this.props;
+    let {orgId} = params || {};
+
+    this.api.request(`/organizations/${orgId}/projects/?query=${searchQuery}`, {
+      method: 'GET',
+      success: data => {
+        this.setState({projectList: data});
+      },
+    });
+  }, 200);
+
+  handleSearch = e => {
     let {router} = this.context;
     let {location} = this.props;
     e.preventDefault();
@@ -104,10 +131,10 @@ export default class OrganizationProjectsView extends AsyncView {
           <PanelHeader hasButtons>
             {t('Projects')}
 
-            <form onSubmit={this.onSearch}>
+            <form onSubmit={this.handleSearch}>
               <Input
                 value={this.state.searchQuery}
-                onChange={e => this.setState({searchQuery: e.target.value})}
+                onChange={this.handleChange}
                 className="search"
                 placeholder="search"
               />
