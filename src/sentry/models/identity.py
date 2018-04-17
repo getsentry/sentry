@@ -34,12 +34,11 @@ class IdentityProvider(Model):
     organization = FlexibleForeignKey('sentry.Organization')
     config = EncryptedJsonField()
     date_added = models.DateTimeField(default=timezone.now, null=True)
-    external_id = models.CharField(max_length=64, null=True)
 
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_identityprovider'
-        unique_together = (('type', 'organization', 'external_id'),)
+        unique_together = (('type', 'organization'),)
 
 
 class Identity(Model):

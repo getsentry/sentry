@@ -666,6 +666,7 @@ class IntegrationTestCase(TestCase):
 
         self.organization = self.create_organization(name='foo', owner=self.user)
         self.login_as(self.user)
+        self.path = '/extensions/{}/setup/'.format(self.provider.key)
         self.request = self.make_request(self.user)
         # XXX(dcramer): this is a bit of a hack, but it helps contain this test
         self.pipeline = IntegrationPipeline(
@@ -674,16 +675,8 @@ class IntegrationTestCase(TestCase):
             provider_key=self.provider.key,
         )
 
-        self.init_path = reverse('sentry-organization-integrations-setup', kwargs={
-            'organization_slug': self.organization.slug,
-            'provider_id': self.provider.key,
-        })
-
-        self.setup_path = reverse('sentry-integrations-setup', kwargs={
-            'provider_id': self.provider.key,
-        })
-
         self.pipeline.initialize()
+
         self.save_session()
 
         feature = Feature('organizations:integrations-v3')
