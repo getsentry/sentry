@@ -21,7 +21,7 @@ from django.utils.safestring import mark_safe
 from sentry import features, options
 from sentry.models import ProjectOwnership, User
 
-from sentry.digests.utilities import get_digest_metadata
+from sentry.digests.utilities import get_digest_metadata, get_personalized_digests
 from sentry.plugins import register
 from sentry.plugins.base.structs import Notification
 from sentry.plugins.bases.notify import NotificationPlugin
@@ -289,39 +289,40 @@ class MailPlugin(NotificationPlugin):
         )
 
     def notify_digest(self, project, digest):
-        start, end, counts = get_digest_metadata(digest)
+        user_ids = self.get_send_to(project)
+        for user_id, digest in get_personalized_digests(project.id, digest, user_ids):
+            start, end, counts = get_digest_metadata(digest)
 
-        # If there is only one group in this digest (regardless of how many
-        # rules it appears in), we should just render this using the single
-        # notification template. If there is more than one record for a group,
-        # just choose the most recent one.
-        if len(counts) == 1:
+            # If there is only one group in this digest (regardless of how many
+            # rules it appears in), we should just render this using the single
+            # notification template. If there is more than one record for a group,
+            # just choose the most recent one.
+            if len(counts) == 1:
+                group = six.next(iter(counts))
+                record = max(
+                    itertools.chain.from_iterable(
+                        groups.get(group, []) for groups in six.itervalues(digest)
+                    ),
+                    key=lambda record: record.timestamp,
+                )
+                notification = Notification(record.value.event, rules=record.value.rules)
+                return self.notify(notification)
+
+            context = {
+                'start': start,
+                'end': end,
+                'project': project,
+                'digest': digest,
+                'counts': counts,
+            }
+
+            headers = {
+                'X-Sentry-Project': project.slug,
+            }
+
             group = six.next(iter(counts))
-            record = max(
-                itertools.chain.from_iterable(
-                    groups.get(group, []) for groups in six.itervalues(digest)
-                ),
-                key=lambda record: record.timestamp,
-            )
-            notification = Notification(record.value.event, rules=record.value.rules)
-            return self.notify(notification)
+            subject = self.get_digest_subject(group, counts, start)
 
-        context = {
-            'start': start,
-            'end': end,
-            'project': project,
-            'digest': digest,
-            'counts': counts,
-        }
-
-        headers = {
-            'X-Sentry-Project': project.slug,
-        }
-
-        group = six.next(iter(counts))
-        subject = self.get_digest_subject(group, counts, start)
-
-        for user_id in self.get_send_to(project):
             self.add_unsubscribe_link(context, user_id, project)
             self._send_mail(
                 subject=subject,
