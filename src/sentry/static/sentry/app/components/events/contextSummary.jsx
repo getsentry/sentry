@@ -171,6 +171,11 @@ class EventContextSummary extends React.Component {
       return <Component key={key} data={data} {...props} />;
     });
 
+    // Bail out if only the user context is set.
+    if (count === 1 && !objectIsEmpty(evt.user)) {
+      return null;
+    }
+
     // Add contents in the declared order until we have at least MIN_CONTEXTS
     // contexts in our list.
     children = KNOWN_CONTEXTS.map(({key, Component, ...props}, index) => {
