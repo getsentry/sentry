@@ -128,7 +128,7 @@
               <em>=</em>
               <span>
               {% with query=tag_key|add:":\""|add:tag_value|add:"\""|urlencode %}
-                <a href="{% absolute_uri project_link %}?query={{ query }}">{{ tag_value|truncatechars:50 }}</a> {% if tag_value|is_url %}<a href="{{ tag_value }}" class="icon-share"></a>{% endif %}
+                <a href="{% absolute_uri '/{}/{}/' group.project.organization.slug group.project.slug %}?query={{ query }}">{{ tag_value|truncatechars:50 }}</a> {% if tag_value|is_url %}<a href="{{ tag_value }}" class="icon-share"></a>{% endif %}
               {% endwith %}
               </span>
           </li>
