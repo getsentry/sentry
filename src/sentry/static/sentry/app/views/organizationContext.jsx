@@ -1,22 +1,21 @@
-import React from 'react';
-import createReactClass from 'create-react-class';
-import Reflux from 'reflux';
 import DocumentTitle from 'react-document-title';
+import React from 'react';
+import Reflux from 'reflux';
+import createReactClass from 'create-react-class';
 import moment from 'moment';
 
+import {setActiveOrganization} from '../actionCreators/organizations';
+import {t} from '../locale';
 import ApiMixin from '../mixins/apiMixin';
+import BroadcastModal from '../components/broadcastModal';
+import ConfigStore from '../stores/configStore';
 import HookStore from '../stores/hookStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
-import BroadcastModal from '../components/broadcastModal';
+import ProjectActions from '../actions/projectActions';
+import ProjectsStore from '../stores/projectsStore';
 import SentryTypes from '../proptypes';
 import TeamStore from '../stores/teamStore';
-import ProjectsStore from '../stores/projectsStore';
-import ProjectActions from '../actions/projectActions';
-import ConfigStore from '../stores/configStore';
-import {setActiveOrganization} from '../actionCreators/organizations';
-
-import {t} from '../locale';
 
 let ERROR_TYPES = {
   ORG_NOT_FOUND: 'ORG_NOT_FOUND',
