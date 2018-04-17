@@ -45,7 +45,7 @@ class OrganizationDetailsTest(APITestCase):
         )
         # TODO(dcramer): we need to pare this down -- lots of duplicate queries
         # for membership data
-        with self.assertNumQueries(24, using='default'):
+        with self.assertNumQueries(25, using='default'):
             from django.db import connections
             response = self.client.get(url, format='json')
             print(connections['default'].queries)
