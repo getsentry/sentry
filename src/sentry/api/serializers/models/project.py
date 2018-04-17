@@ -17,8 +17,8 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.constants import StatsPeriod
 from sentry.digests import backend as digests
 from sentry.models import (
-    Project, ProjectBookmark, ProjectOption, ProjectPlatform, ProjectStatus, ProjectTeam,
-    Release, UserOption, DEFAULT_SUBJECT_TEMPLATE
+    Project, ProjectAvatar, ProjectBookmark, ProjectOption, ProjectPlatform,
+    ProjectStatus, ProjectTeam, Release, UserOption, DEFAULT_SUBJECT_TEMPLATE
 )
 from sentry.utils.data_filters import FilterTypes
 
@@ -130,6 +130,7 @@ class ProjectSerializer(Serializer):
         else:
             stats = None
 
+        avatars = {a.project_id: a for a in ProjectAvatar.objects.filter(project__in=item_list)}
         result = self.get_access_by_project(item_list, user)
         for item in item_list:
             result[item].update({
@@ -139,6 +140,7 @@ class ProjectSerializer(Serializer):
                     (item.id, 'mail:alert'),
                     default_subscribe,
                 )),
+                'avatar': avatars.get(item.id),
             })
             if stats:
                 result[item]['stats'] = stats[item.id]
@@ -160,6 +162,14 @@ class ProjectSerializer(Serializer):
 
         status_label = STATUS_LABELS.get(obj.status, 'unknown')
 
+        if attrs.get('avatar'):
+            avatar = {
+                'avatarType': attrs['avatar'].get_avatar_type_display(),
+                'avatarUuid': attrs['avatar'].ident if attrs['avatar'].file else None
+            }
+        else:
+            avatar = {'avatarType': 'letter_avatar', 'avatarUuid': None}
+
         context = {
             'id': six.text_type(obj.id),
             'slug': obj.slug,
@@ -175,6 +185,7 @@ class ProjectSerializer(Serializer):
             'isInternal': obj.is_internal_project(),
             'isMember': attrs['is_member'],
             'hasAccess': attrs['has_access'],
+            'avatar': avatar,
         }
         if 'stats' in attrs:
             context['stats'] = attrs['stats']
