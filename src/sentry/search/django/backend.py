@@ -17,7 +17,6 @@ from django.utils import timezone
 
 from sentry import quotas, tagstore
 from sentry.api.paginator import DateTimePaginator, Paginator, SequencePaginator
-from sentry.event_manager import ALLOWED_FUTURE_DELTA
 from sentry.search.base import SearchBackend
 from sentry.search.django.constants import (
     MSSQL_ENGINES, MSSQL_SORT_CLAUSES, MYSQL_SORT_CLAUSES, ORACLE_SORT_CLAUSES, SORT_CLAUSES,
@@ -205,16 +204,13 @@ def get_latest_release(project, environment):
 
 
 class DjangoSearchBackend(SearchBackend):
-    def __init__(self, use_snuba=False, **options):
-        self.use_snuba = use_snuba
-
+    def __init__(self, **options):
         super(DjangoSearchBackend, self).__init__(**options)
 
     def query(self, project, tags=None, environment=None, sort_by='date', limit=100,
               cursor=None, count_hits=False, paginator_options=None, **parameters):
 
-        from sentry.models import (Group, GroupStatus, GroupSubscription,
-                                   Environment, Event, GroupEnvironment, Release)
+        from sentry.models import Group, GroupStatus, GroupSubscription, Release
 
         if paginator_options is None:
             paginator_options = {}
@@ -287,16 +283,19 @@ class DjangoSearchBackend(SearchBackend):
         else:
             retention_window_start = None
 
-        now = timezone.now()
-        end = parameters.get('date_to') or (now + ALLOWED_FUTURE_DELTA)
-        # TODO: Presumably we want to search back to the project's full retention,
-        #       which may be higher than 90 days in the future, but apparently
-        #       `retention_window_start` can be None?
-        start = (parameters.get('date_from')
-                 or retention_window_start
-                 or (now - timedelta(days=90)))
+        # This is a punt because the SnubaSearchBackend (a subclass) shares so much that it
+        # seemed better to handle all the shared initialization and then handoff to the
+        # actual backend.
+        return self._query(project, retention_window_start, group_queryset, tags,
+                           environment, sort_by, limit, cursor, count_hits,
+                           paginator_options, **parameters)
 
-        if not self.use_snuba and environment is not None:
+    def _query(self, project, retention_window_start, group_queryset, tags, environment,
+               sort_by, limit, cursor, count_hits, paginator_options, **parameters):
+
+        from sentry.models import (Group, Environment, Event, GroupEnvironment, Release)
+
+        if environment is not None:
             if 'environment' in tags:
                 # TODO: This should probably just overwrite the existing tag,
                 # rather than asserting on it, but...?
@@ -309,21 +308,26 @@ class DjangoSearchBackend(SearchBackend):
                 'date_from': ScalarCondition('date_added', 'gt'),
                 'date_to': ScalarCondition('date_added', 'lt'),
             })
+
             if any(key in parameters for key in event_queryset_builder.conditions.keys()):
                 event_queryset = event_queryset_builder.build(
                     tagstore.get_event_tag_qs(
-                        project.id,
-                        environment.id,
-                        'environment',
-                        environment.name,
+                        project_id=project.id,
+                        environment_id=environment.id,
+                        key='environment',
+                        value=environment.name,
                     ),
                     parameters,
                 )
                 if retention_window_start is not None:
-                    event_queryset = event_queryset.filter(date_added__gte=retention_window_start)
+                    event_queryset = event_queryset.filter(
+                        date_added__gte=retention_window_start
+                    )
 
                 group_queryset = group_queryset.filter(
-                    id__in=list(event_queryset.distinct().values_list('group_id', flat=True)[:1000])
+                    id__in=list(
+                        event_queryset.distinct().values_list('group_id', flat=True)[:1000]
+                    )
                 )
 
             group_queryset = QuerySetBuilder({
@@ -430,16 +434,17 @@ class DjangoSearchBackend(SearchBackend):
             get_sort_expression, sort_value_to_cursor_value = environment_sort_strategies[sort_by]
 
             group_tag_value_queryset = tagstore.get_group_tag_value_qs(
-                project.id,
-                set(group_queryset.values_list('id', flat=True)),  # TODO: Limit?,
-                environment.id,
-                'environment',
-                environment.name,
+                project_id=project.id,
+                group_id=set(group_queryset.values_list('id', flat=True)),  # TODO: Limit?,
+                environment_id=environment.id,
+                key='environment',
+                value=environment.name,
             )
 
             if retention_window_start is not None:
                 group_tag_value_queryset = group_tag_value_queryset.filter(
-                    last_seen__gte=retention_window_start)
+                    last_seen__gte=retention_window_start
+                )
 
             candidates = dict(
                 QuerySetBuilder({
@@ -467,12 +472,12 @@ class DjangoSearchBackend(SearchBackend):
                 # utilize the retention window start parameter for additional
                 # optimizations.
                 matches = tagstore.get_group_ids_for_search_filter(
-                    project.id,
-                    environment.id,
-                    tags,
-                    start,
-                    end,
-                    candidates.keys(),
+                    project_id=project.id,
+                    environment_id=environment.id,
+                    tags=tags,
+                    start=None,
+                    end=None,
+                    candidates=candidates.keys(),
                     limit=len(candidates),
                 )
                 for key in set(candidates) - set(matches or []):
@@ -489,14 +494,6 @@ class DjangoSearchBackend(SearchBackend):
 
             return result
         else:
-            use_snuba = self.use_snuba
-
-            if use_snuba and not (tags or
-                                  environment is not None or
-                                  any(key in parameters for key in ('date_from', 'date_to'))):
-                # Snuba can't be of any help to us here, no need to add the extra request
-                use_snuba = False
-
             group_queryset = QuerySetBuilder({
                 'first_release': CallbackCondition(
                     lambda queryset, version: queryset.filter(
@@ -518,30 +515,29 @@ class DjangoSearchBackend(SearchBackend):
                 parameters,
             )
 
-            if not use_snuba:
-                event_queryset_builder = QuerySetBuilder({
-                    'date_from': ScalarCondition('datetime', 'gt'),
-                    'date_to': ScalarCondition('datetime', 'lt'),
-                })
+            event_queryset_builder = QuerySetBuilder({
+                'date_from': ScalarCondition('datetime', 'gt'),
+                'date_to': ScalarCondition('datetime', 'lt'),
+            })
 
-                if any(key in parameters for key in event_queryset_builder.conditions.keys()):
-                    group_queryset = group_queryset.filter(
-                        id__in=list(
-                            event_queryset_builder.build(
-                                Event.objects.filter(project_id=project.id),
-                                parameters,
-                            ).distinct().values_list('group_id', flat=True)[:1000],
-                        )
+            if any(key in parameters for key in event_queryset_builder.conditions.keys()):
+                group_queryset = group_queryset.filter(
+                    id__in=list(
+                        event_queryset_builder.build(
+                            Event.objects.filter(project_id=project.id),
+                            parameters,
+                        ).distinct().values_list('group_id', flat=True)[:1000],
                     )
+                )
 
-            if use_snuba or tags:
+            if tags:
                 group_ids = tagstore.get_group_ids_for_search_filter(
-                    project.id,
-                    environment and environment.id,
-                    tags,
-                    start if use_snuba else None,
-                    end if use_snuba else None,
-                    candidates=group_queryset.values_list('id', flat=True) if use_snuba else None,
+                    project_id=project.id,
+                    environment_id=None,
+                    tags=tags,
+                    start=None,
+                    end=None,
+                    candidates=None,
                 )
 
                 if group_ids:
