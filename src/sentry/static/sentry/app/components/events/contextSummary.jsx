@@ -133,7 +133,7 @@ class DeviceSummary extends React.Component {
     return (
       <div className={`context-item ${className}`}>
         <span className="context-item-icon" />
-        <h3>{data.model ? deviceNameMapper(data.model) : 'Unknown Device'}</h3>
+        <h3>{data.model ? deviceNameMapper(data.model) : t('Unknown Device')}</h3>
         {subTitle}
       </div>
     );
@@ -144,9 +144,9 @@ const MIN_CONTEXTS = 3;
 const MAX_CONTEXTS = 4;
 const KNOWN_CONTEXTS = [
   {key: 'user', Component: UserSummary},
-  {key: 'browser', Component: GenericSummary, unknownTitle: 'Unknown Browser'},
-  {key: 'runtime', Component: GenericSummary, unknownTitle: 'Unknown Runtime'},
-  {key: 'os', Component: GenericSummary, unknownTitle: 'Unknown OS'},
+  {key: 'browser', Component: GenericSummary, unknownTitle: t('Unknown Browser')},
+  {key: 'runtime', Component: GenericSummary, unknownTitle: t('Unknown Runtime')},
+  {key: 'os', Component: GenericSummary, unknownTitle: t('Unknown OS')},
   {key: 'device', Component: DeviceSummary},
 ];
 
@@ -158,34 +158,35 @@ class EventContextSummary extends React.Component {
 
   render() {
     let evt = this.props.event;
-    let contexts = evt.contexts;
-    let count = 0;
+    let selectedContextCount = 0;
 
     // Add defined contexts in the declared order, until we reach the limit
-    // defined by CONTEXT_COUNT_MAX.
-    let children = KNOWN_CONTEXTS.map(({key, Component, ...props}) => {
-      if (count >= MAX_CONTEXTS) return null;
-      let data = contexts[key] || evt[key];
+    // defined by MAX_CONTEXTS.
+    let contexts = KNOWN_CONTEXTS.map(({key, Component, ...props}) => {
+      if (selectedContextCount >= MAX_CONTEXTS) return null;
+      let data = evt.contexts[key] || evt[key];
       if (objectIsEmpty(data)) return null;
-      count += 1;
+      selectedContextCount += 1;
       return <Component key={key} data={data} {...props} />;
     });
 
     // Bail out if only the user context is set.
-    if (count === 1 && !objectIsEmpty(evt.user)) {
+    if (selectedContextCount === 1 && !objectIsEmpty(evt.user)) {
       return null;
     }
 
-    // Add contents in the declared order until we have at least MIN_CONTEXTS
-    // contexts in our list.
-    children = KNOWN_CONTEXTS.map(({key, Component, ...props}, index) => {
-      if (children[index]) return children[index];
-      if (count >= MIN_CONTEXTS) return null;
-      count += 1;
-      return <Component key={key} data={{}} {...props} />;
-    });
+    if (selectedContextCount < MIN_CONTEXTS) {
+      // Add contents in the declared order until we have at least MIN_CONTEXTS
+      // contexts in our list.
+      contexts = KNOWN_CONTEXTS.map(({key, Component, ...props}, index) => {
+        if (contexts[index]) return contexts[index];
+        if (selectedContextCount >= MIN_CONTEXTS) return null;
+        selectedContextCount += 1;
+        return <Component key={key} data={{}} {...props} />;
+      });
+    }
 
-    return <div className="context-summary">{children}</div>;
+    return <div className="context-summary">{contexts}</div>;
   }
 }
 
