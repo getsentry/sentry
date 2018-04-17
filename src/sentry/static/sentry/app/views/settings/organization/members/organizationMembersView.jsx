@@ -210,13 +210,13 @@ class OrganizationMembersView extends AsyncView {
 
   handleChange = evt => {
     let searchQuery = evt.target.value;
-    this.setState({searchQuery}, this.getMembers);
+    this.getMembers(searchQuery);
+    this.setState({searchQuery});
   };
 
-  getMembers = debounce(() => {
+  getMembers = debounce(searchQuery => {
     let {params} = this.props;
     let {orgId} = params || {};
-    let {searchQuery} = this.state;
 
     this.api.request(`/organizations/${orgId}/members/?query=${searchQuery}`, {
       method: 'GET',
