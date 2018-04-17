@@ -10,12 +10,16 @@ import space from '../styles/space';
 import withOrganizations from '../utils/withOrganizations';
 
 class OrganizationEmpty extends AsyncView {
+  getEndpoints() {
+    return [['organizations', '/organizations/']];
+  }
+
   getTitle() {
     return 'No Organizations';
   }
 
   renderBody() {
-    let {organizations} = this.props;
+    let {organizations} = this.state;
     let features = ConfigStore.get('features');
     let canCreateOrg = features.has('organizations:create');
     let pendingDeleteOrganizations = organizations.filter(

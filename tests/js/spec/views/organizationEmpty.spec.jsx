@@ -7,7 +7,13 @@ import {OrganizationEmpty} from 'app/views/organizationEmpty';
 import theme from 'app/utils/theme';
 
 describe('OrganizationEmpty', function() {
-  beforeEach(() => {});
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/',
+      body: [TestStubs.Organization()],
+    });
+  });
 
   afterEach(() => {});
 
@@ -15,7 +21,7 @@ describe('OrganizationEmpty', function() {
     ConfigStore.set('features', new Set([]));
     let wrapper = mount(
       <ThemeProvider theme={theme}>
-        <OrganizationEmpty organizations={[]} />
+        <OrganizationEmpty />
       </ThemeProvider>,
       TestStubs.routerContext()
     );
@@ -26,26 +32,29 @@ describe('OrganizationEmpty', function() {
     ConfigStore.set('features', new Set(['organizations:create']));
     let wrapper = mount(
       <ThemeProvider theme={theme}>
-        <OrganizationEmpty organizations={[]} />
+        <OrganizationEmpty />
       </ThemeProvider>,
       TestStubs.routerContext()
     );
+
     expect(wrapper.find('Link[to="/organizations/new/"]')).toHaveLength(1);
   });
 
   it('lists orgs that are pending deletion', function() {
+    MockApiClient.addMockResponse({
+      url: '/organizations/',
+      body: [
+        TestStubs.Organization({
+          slug: 'org',
+          status: {
+            id: 'pending_deletion',
+          },
+        }),
+      ],
+    });
     let wrapper = mount(
       <ThemeProvider theme={theme}>
-        <OrganizationEmpty
-          organizations={[
-            {
-              slug: 'org',
-              status: {
-                id: 'pending_deletion',
-              },
-            },
-          ]}
-        />
+        <OrganizationEmpty />
       </ThemeProvider>,
       TestStubs.routerContext()
     );
