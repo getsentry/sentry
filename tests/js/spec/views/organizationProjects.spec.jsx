@@ -83,7 +83,7 @@ describe('OrganizationProjectsView', function() {
       );
 
       wrapper.find('PanelHeader form').simulate('submit');
-      expect(routerOrganizationContext.context.router.push.calledOnce).toBe(true);
+      expect(routerOrganizationContext.context.router.push).toHaveBeenCalledTimes(1);
     });
   });
 });

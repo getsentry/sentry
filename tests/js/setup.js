@@ -50,14 +50,14 @@ window.Raven = {
 window.TestStubs = {
   // react-router's 'router' context
   router: (params = {}) => ({
-    push: sinon.spy(),
-    replace: sinon.spy(),
-    go: sinon.spy(),
-    goBack: sinon.spy(),
-    goForward: sinon.spy(),
-    setRouteLeaveHook: sinon.spy(),
-    isActive: sinon.spy(),
-    createHref: sinon.spy(),
+    push: jest.fn(),
+    replace: jest.fn(),
+    go: jest.fn(),
+    goBack: jest.fn(),
+    goForward: jest.fn(),
+    setRouteLeaveHook: jest.fn(),
+    isActive: jest.fn(),
+    createHref: jest.fn(),
     location: {query: {}},
     ...params,
   }),

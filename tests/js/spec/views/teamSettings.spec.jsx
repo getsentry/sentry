@@ -67,21 +67,24 @@ describe('NewTeamSettings', function() {
     window.location.assign.restore();
   });
 
-  it('can change name and slug', function(done) {
+  it('can change name and slug', async function() {
     let team = TestStubs.Team();
     let putMock = MockApiClient.addMockResponse({
       url: `/teams/org/${team.slug}/`,
       method: 'PUT',
     });
+    let mountOptions = TestStubs.routerContext();
+    let {router} = mountOptions.context;
 
     let wrapper = mountWithTheme(
       <NewTeamSettings
         routes={[]}
+        router={router}
         params={{orgId: 'org', teamId: team.slug}}
         team={team}
         onTeamChange={() => {}}
       />,
-      TestStubs.routerContext()
+      mountOptions
     );
 
     wrapper
@@ -114,12 +117,8 @@ describe('NewTeamSettings', function() {
       })
     );
 
-    setTimeout(() => {
-      expect(
-        window.location.assign.calledWith('/settings/org/teams/new-slug/settings/')
-      ).toBe(true);
-      done();
-    }, 1);
+    await tick();
+    expect(router.push).toHaveBeenCalledWith('/settings/org/teams/new-slug/settings/');
   });
 
   it('needs team:admin in order to see remove team button', function() {

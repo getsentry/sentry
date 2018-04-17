@@ -330,6 +330,6 @@ describe('OrganizationMembersView', function() {
 
     wrapper.find('PanelHeader form').simulate('submit');
 
-    expect(routerContext.context.router.push.calledOnce).toBe(true);
+    expect(routerContext.context.router.push).toHaveBeenCalledTimes(1);
   });
 });

@@ -2,19 +2,19 @@ import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {addErrorMessage, addLoadingMessage} from '../../../actionCreators/indicator';
+import {Panel, PanelHeader} from '../../../components/panels';
+import {addErrorMessage, addSuccessMessage} from '../../../actionCreators/indicator';
 import {removeTeam} from '../../../actionCreators/teams';
 import {t, tct} from '../../../locale';
 import AsyncView from '../../asyncView';
+import Button from '../../../components/buttons/button';
+import Confirm from '../../../components/confirm';
+import Field from '../components/forms/field';
 import Form from '../components/forms/form';
 import JsonForm from '../components/forms/jsonForm';
+import SentryTypes from '../../../proptypes';
 import TeamModel from './model';
 import teamSettingsFields from '../../../data/forms/teamSettingsFields';
-import {Panel, PanelHeader} from '../../../components/panels';
-import Field from '../components/forms/field';
-import Button from '../../../components/buttons/button';
-import SentryTypes from '../../../proptypes';
-import Confirm from '../../../components/confirm';
 
 export default class TeamSettings extends AsyncView {
   static propTypes = {
@@ -46,10 +46,7 @@ export default class TeamSettings extends AsyncView {
 
   handleSubmitSuccess = (resp, model, id, change) => {
     if (id === 'slug') {
-      addLoadingMessage(t('Slug changed, refreshing page...'));
-      window.location.assign(
-        `/settings/${this.props.params.orgId}/teams/${model.getValue(id)}/settings/`
-      );
+      addSuccessMessage(t('Team name changed'));
       this.props.router.push(
         `/settings/${this.props.params.orgId}/teams/${model.getValue(id)}/settings/`
       );
@@ -64,9 +61,10 @@ export default class TeamSettings extends AsyncView {
   };
 
   renderBody() {
-    let team = this.props.team;
+    let {location, organization} = this.context;
+    let {team} = this.props;
 
-    let access = new Set(this.context.organization.access);
+    let access = new Set(organization.access);
 
     return (
       <React.Fragment>
@@ -83,7 +81,7 @@ export default class TeamSettings extends AsyncView {
           }}
         >
           <Box>
-            <JsonForm location={this.context.location} forms={teamSettingsFields} />
+            <JsonForm location={location} forms={teamSettingsFields} />
           </Box>
         </Form>
 
