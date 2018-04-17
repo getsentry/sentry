@@ -2,7 +2,7 @@
 
 from __future__ import absolute_import
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import mock
 import pytz
@@ -20,8 +20,9 @@ from sentry.digests.notifications import build_digest, event_to_record
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import (
     Activity, Event, Group, GroupSubscription, OrganizationMember, OrganizationMemberTeam,
-    ProjectOwnership, Rule, UserOption, UserReport
+    ProjectOwnership, Rule, User, UserOption, UserReport
 )
+from sentry.ownership.grammar import Rule as grammar_rule
 from sentry.ownership.grammar import Owner, Matcher, dump_schema
 from sentry.plugins import Notification
 from sentry.plugins.sentry_mail.activity.base import ActivityEmail
@@ -489,14 +490,13 @@ class MailPluginOwnersTest(TestCase):
         return MailPlugin()
 
     def setUp(self):
-        from sentry.ownership.grammar import Rule
-        self.user = self.create_user(email='foo@example.com', is_active=True)
-        self.user2 = self.create_user(email='baz@example.com', is_active=True)
+        self.user = self.create_user(email='user1@example.com', is_active=True)
+        self.user2 = self.create_user(email='user2@example.com', is_active=True)
 
         self.organization = self.create_organization(owner=self.user)
         self.team = self.create_team(organization=self.organization)
 
-        self.project = self.create_project(name='Test', teams=[self.team])
+        self.project = self.create_project(name='Test Project', teams=[self.team])
         OrganizationMemberTeam.objects.create(
             organizationmember=OrganizationMember.objects.get(
                 user=self.user,
@@ -505,28 +505,64 @@ class MailPluginOwnersTest(TestCase):
             team=self.team,
         )
         self.create_member(user=self.user2, organization=self.organization, teams=[self.team])
-        self.group = self.create_group(
-            first_seen=timezone.now(),
-            last_seen=timezone.now(),
-            project=self.project,
-            message='hello  world',
-            logger='root',
-        )
+
+        self.rule_team = grammar_rule(Matcher('path', '*.py'), [Owner('team', self.team.slug)])
+        self.rule_user = grammar_rule(Matcher('path', '*.jx'), [Owner('user', self.user2.email)])
+        self.rule_users = grammar_rule(Matcher('path', '*.cbl'), [
+            Owner('user', self.user.email),
+            Owner('user', self.user2.email),
+        ])
         ProjectOwnership.objects.create(
             project_id=self.project.id,
             schema=dump_schema([
-                Rule(Matcher('path', '*.py'), [
-                    Owner('team', self.team.slug),
-                ]),
-                Rule(Matcher('path', '*.jx'), [
-                    Owner('user', self.user2.email),
-                ]),
-                Rule(Matcher('path', '*.cbl'), [
-                    Owner('user', self.user.email),
-                    Owner('user', self.user2.email),
-                ])
+                self.rule_team,
+                self.rule_user,
+                self.rule_users,
             ]),
             fallthrough=True,
+        )
+
+        self.group = self.create_group(
+            first_seen=timezone.now() - timedelta(days=3),
+            last_seen=timezone.now() - timedelta(hours=3),
+            project=self.project,
+            message='hello  world this is a group',
+            logger='root',
+        )
+        self.group1 = self.create_group(
+            project=self.project,
+            first_seen=timezone.now() - timedelta(days=2),
+            last_seen=timezone.now() - timedelta(hours=2),
+            message='group 2',
+            logger='root',
+        )
+        self.group2 = self.create_group(
+            project=self.project,
+            first_seen=timezone.now() - timedelta(days=1),
+            last_seen=timezone.now() - timedelta(hours=1),
+            message='group 3',
+            logger='root',
+        )
+        self.event_single_user = self.create_event(
+            group=self.group,
+            message=self.group.message,
+            datetime=self.group.last_seen,
+            project=self.project,
+            data=self.make_event_data('foo.jx'),
+        )
+        self.event_all_users = self.create_event(
+            group=self.group1,
+            message=self.group1.message,
+            datetime=self.group1.last_seen,
+            project=self.project,
+            data=self.make_event_data('foo.cbl'),
+        )
+        self.event_team = self.create_event(
+            group=self.group2,
+            message=self.group2.message,
+            datetime=self.group2.last_seen,
+            project=self.project,
+            data=self.make_event_data('foo.py'),
         )
 
     def make_event_data(self, filename, url='http://example.com'):
@@ -553,6 +589,30 @@ class MailPluginOwnersTest(TestCase):
         assert len(mail.outbox) == len(emails_sent_to)
         assert sorted(email.to[0] for email in mail.outbox) == sorted(emails_sent_to)
 
+    def assert_notify_users(self, event, users):
+        mail.outbox = []
+        with self.options({'system.url-prefix': 'http://example.com'}), self.tasks():
+            self.plugin.notify(Notification(event=event), users)
+        assert len(mail.outbox) == len(users)
+        assert sorted(
+            email.to[0] for email in mail.outbox) == sorted(
+            User.objects.filter(
+                id__in=users).values_list(
+                'email',
+                flat=True))
+
+    def assert_digest_email(self, email, user_email, subject=None,
+                            event_messages=None, not_event_messages=None):
+        assert email.to == [user_email]
+        if subject:
+            assert subject in email.subject
+        if event_messages:
+            for message in event_messages:
+                assert message in email.body
+        if not_event_messages:
+            for message in not_event_messages:
+                assert not (message in email.body)
+
     def test_get_send_to_with_team_owners(self):
         event = Event(
             group=self.group,
@@ -562,7 +622,7 @@ class MailPluginOwnersTest(TestCase):
             data=self.make_event_data('foo.py')
         )
         assert (sorted(set([self.user.pk, self.user2.pk])) == sorted(
-            self.plugin.get_send_to(self.project, event.data)))
+            self.plugin.get_send_to(self.project, event)))
 
     def test_get_send_to_with_user_owners(self):
         event = Event(
@@ -573,7 +633,7 @@ class MailPluginOwnersTest(TestCase):
             data=self.make_event_data('foo.cbl')
         )
         assert (sorted(set([self.user.pk, self.user2.pk])) == sorted(
-            self.plugin.get_send_to(self.project, event.data)))
+            self.plugin.get_send_to(self.project, event)))
 
     def test_get_send_to_with_user_owner(self):
         event = Event(
@@ -584,7 +644,7 @@ class MailPluginOwnersTest(TestCase):
             data=self.make_event_data('foo.jx')
         )
         assert (sorted(set([self.user2.pk])) == sorted(
-            self.plugin.get_send_to(self.project, event.data)))
+            self.plugin.get_send_to(self.project, event)))
 
     def test_get_send_to_with_fallthrough(self):
         event = Event(
@@ -595,7 +655,7 @@ class MailPluginOwnersTest(TestCase):
             data=self.make_event_data('foo.jx')
         )
         assert (sorted(set([self.user2.pk])) == sorted(
-            self.plugin.get_send_to(self.project, event.data)))
+            self.plugin.get_send_to(self.project, event)))
 
     def test_get_send_to_without_fallthrough(self):
         ProjectOwnership.objects.get(project_id=self.project.id).update(fallthrough=False)
@@ -606,32 +666,201 @@ class MailPluginOwnersTest(TestCase):
             datetime=self.group.last_seen,
             data=self.make_event_data('foo.cpp')
         )
-        assert [] == sorted(self.plugin.get_send_to(self.project, event.data))
+        assert [] == sorted(self.plugin.get_send_to(self.project, event))
+
+    def test_notify_with_specific_users(self):
+        group = self.create_group(project=self.project)
+        self.assert_notify_users(self.create_event(group=group), [self.user.id, self.user2.id])
+        self.assert_notify_users(self.create_event(group=group), [self.user.id])
+        self.assert_notify_users(self.create_event(group=group), [])
 
     def test_notify_users_with_owners(self):
-        event_all_users = Event(
-            group=self.group,
-            message=self.group.message,
-            project=self.project,
-            datetime=self.group.last_seen,
-            data=self.make_event_data('foo.cbl'),
-        )
-        self.assert_notify(event_all_users, [self.user.email, self.user2.email])
+        self.assert_notify(self.event_all_users, [self.user.email, self.user2.email])
+        self.assert_notify(self.event_team, [self.user.email, self.user2.email])
+        self.assert_notify(self.event_single_user, [self.user2.email])
 
-        event_team = Event(
-            group=self.group,
-            message=self.group.message,
-            project=self.project,
-            datetime=self.group.last_seen,
-            data=self.make_event_data('foo.py'),
+    def test_notify_digest_with_owners(self):
+        rule = self.project.rule_set.all()[0]
+        records = (
+            event_to_record(self.event_team, (rule,)),
+            event_to_record(self.event_all_users, (rule,)),
+            event_to_record(self.event_single_user, (rule,)),
         )
-        self.assert_notify(event_team, [self.user.email, self.user2.email])
+        digest = build_digest(self.project, records)
+        with self.tasks():
+            self.plugin.notify_digest(self.project, digest)
 
-        event_single_user = Event(
-            group=self.group,
-            message=self.group.message,
-            project=self.project,
-            datetime=self.group.last_seen,
-            data=self.make_event_data('foo.jx'),
+        assert len(mail.outbox) == 2
+        emails = sorted(mail.outbox, key=lambda e: e.to)
+
+        self.assert_digest_email(
+            email=emails[0],
+            user_email=self.user.email,
+            # subject=u'[Sentry] TEST-PROJECT-2 - group 2',
+            event_messages=[self.event_all_users.message, self.event_team.message],
+            not_event_messages=[self.event_single_user.message],
         )
-        self.assert_notify(event_single_user, [self.user2.email])
+        self.assert_digest_email(
+            email=emails[1],
+            user_email=self.user2.email,
+            # subject=u'[Sentry] TEST-PROJECT-1 - 2 new alerts',
+            event_messages=[self.event_single_user.message, self.event_all_users.message],
+        )
+
+    def test_notify_digest(self):
+        self.team1 = self.create_team()
+        self.team2 = self.create_team()
+        self.team3 = self.create_team()
+        self.project = self.create_project(teams=[self.team1, self.team2, self.team3])
+
+        self.user1 = self.create_user(email='1@foo.com')
+        self.user2 = self.create_user(email='2@foo.com')
+        self.user3 = self.create_user(email='3@foo.com')
+        self.user4 = self.create_user(email='4@foo.com')
+        self.user5 = self.create_user(email='5@foo.com')
+        self.user6 = self.create_user(email='6@foo.com')
+        self.user7 = self.create_user(email='7@foo.com')
+        self.user8 = self.create_user(email='8@foo.com')
+
+        self.create_member(user=self.user1, organization=self.organization, teams=[self.team1])
+        self.create_member(user=self.user2, organization=self.organization, teams=[self.team1])
+        self.create_member(user=self.user3, organization=self.organization, teams=[self.team1])
+        self.create_member(
+            user=self.user4,
+            organization=self.organization,
+            teams=[
+                self.team1,
+                self.team2])
+        self.create_member(
+            user=self.user5,
+            organization=self.organization,
+            teams=[
+                self.team2,
+                self.create_team()])
+        self.create_member(user=self.user6, organization=self.organization, teams=[self.team2])
+        self.create_member(user=self.user7, organization=self.organization, teams=[self.team3])
+        self.create_member(user=self.user8, organization=self.organization, teams=[self.team3])
+
+        self.matcher1 = Matcher('path', '*.py')
+        self.matcher2 = Matcher('url', '*.co')
+        self.matcher3 = Matcher('path', '*.cbl')
+        self.matcher4 = Matcher('path', '*.cpp')
+
+        self.rule1 = grammar_rule(
+            self.matcher1, [
+                Owner(
+                    'user', self.user1.email), Owner(
+                    'team', self.team1.slug)])
+        self.rule2 = grammar_rule(
+            self.matcher2, [
+                Owner(
+                    'user', self.user1.email), Owner(
+                    'team', self.team2.slug)])
+        self.rule3 = grammar_rule(self.matcher3, [
+            Owner('user', self.user6.email),
+            Owner('user', self.user4.email),
+            Owner('user', self.user3.email),
+            Owner('user', self.user1.email),
+        ])
+        self.rule4 = grammar_rule(
+            self.matcher3, [
+                Owner(
+                    'team', self.team1.slug), Owner(
+                    'team', self.team2.slug)])
+        self.rule5 = grammar_rule(self.matcher4, [Owner('user', self.user7.email)])
+
+        self.ownership = ProjectOwnership.objects.create(
+            project_id=self.project.id,
+            schema=dump_schema([
+                self.rule1,
+                self.rule2,
+                self.rule3,
+                self.rule4,
+                self.rule5,
+            ]),
+            fallthrough=True,
+        )
+
+        event1 = self.create_event(
+            data=self.make_event_data('hello.world'),
+            group=self.create_group(
+                project=self.project,
+                message='event1',
+            ),
+            message='event1',
+        )
+        event2 = self.create_event(
+            data=self.make_event_data('hello.py'),
+            group=self.create_group(
+                project=self.project,
+                message='event2',
+            ),
+            message='event2',
+        )
+        event3 = self.create_event(
+            data=self.make_event_data('hello.cbl'),
+            group=self.create_group(
+                project=self.project,
+                message='event3',
+            ),
+            message='event3',
+        )
+        event4 = self.create_event(
+            data=self.make_event_data('hello.world', 'hello.co'),
+            group=self.create_group(
+                project=self.project,
+                message='event4',
+            ),
+            message='event4',
+        )
+        event5 = self.create_event(
+            data=self.make_event_data('hello.py', 'hello.co'),
+            group=self.create_group(
+                project=self.project,
+                message='event5',
+            ),
+            message='event5',
+        )
+        event6 = self.create_event(
+            data=self.make_event_data('hello.cpp'),
+            group=self.create_group(
+                project=self.project,
+                message='event6'),
+            message='event6',
+        )
+
+        all_events = set([event1, event2, event3, event4, event5, event6])
+
+        rule = self.project.rule_set.all()[0]
+        digest = build_digest(
+            self.project,
+            [
+                event_to_record(event1, (rule,)),
+                event_to_record(event2, (rule,)),
+                event_to_record(event3, (rule,)),
+                event_to_record(event4, (rule,)),
+                event_to_record(event5, (rule,)),
+                event_to_record(event6, (rule,)),
+            ]
+        )
+
+        with self.tasks():
+            self.plugin.notify_digest(self.project, digest)
+
+        users = [self.user1, self.user2, self.user3, self.user4, self.user5, self.user6, self.user7]
+        expected_emails = sorted([u.email for u in users])
+        emails = sorted(mail.outbox, key=lambda e: e.to[0])
+        assert expected_emails == sorted([e.to[0] for e in mail.outbox])
+
+        expected = [set([event2, event3, event4, event5]), set([event3, event2, event5]), set([event2, event3, event5]),
+                    set([event2, event3, event4, event5]), set([event3, event4, event5]), set([event3, event4, event5]), set([event6])]
+
+        for user_email, email, events in zip(expected_emails, emails, expected):
+            event_messages = [e.message for e in events]
+            not_event_messages = [e.message for e in (all_events - events)]
+            self.assert_digest_email(
+                email=email,
+                user_email=user_email,
+                event_messages=event_messages,
+                not_event_messages=not_event_messages,
+            )

@@ -21,7 +21,8 @@ from django.utils.safestring import mark_safe
 from sentry import features, options
 from sentry.models import ProjectOwnership, User
 
-from sentry.digests.utilities import get_digest_metadata
+from sentry.digests.utilities import get_digest_metadata, get_digest_event_rules
+from sentry.digests.notifications import build_digest, event_to_record
 from sentry.plugins import register
 from sentry.plugins.base.structs import Notification
 from sentry.plugins.bases.notify import NotificationPlugin
@@ -127,9 +128,10 @@ class MailPlugin(NotificationPlugin):
             return []
 
         if event:
-            owners, _ = ProjectOwnership.get_owners(project.id, event.data)
-            if owners != ProjectOwnership.Everyone:
-                if not owners:
+            event_actors = ProjectOwnership.get_actors(project.id, [event])
+
+            if event_actors != ProjectOwnership.Everyone:
+                if not event_actors:
                     metrics.incr(
                         'features.owners.send_to',
                         tags={
@@ -139,7 +141,7 @@ class MailPlugin(NotificationPlugin):
                         skip_internal=True,
                     )
                     return []
-
+                owners = event_actors[event][0]
                 metrics.incr(
                     'features.owners.send_to',
                     tags={
@@ -190,7 +192,7 @@ class MailPlugin(NotificationPlugin):
             }
         )
 
-    def notify(self, notification):
+    def notify(self, notification, users=None):
         from sentry.models import Commit, Release
 
         event = notification.event
@@ -266,7 +268,9 @@ class MailPlugin(NotificationPlugin):
             'X-Sentry-Reply-To': group_id_to_email(group.id),
         }
 
-        for user_id in self.get_send_to(project=project, event=event):
+        send_to_users = users if users is not None else self.get_send_to(
+            project=project, event=event)
+        for user_id in send_to_users:
             self.add_unsubscribe_link(context, user_id, project)
             self._send_mail(
                 subject=subject,
@@ -288,23 +292,27 @@ class MailPlugin(NotificationPlugin):
             date=dateformat.format(date, 'N j, Y, P e'),
         )
 
-    def notify_digest(self, project, digest):
-        start, end, counts = get_digest_metadata(digest)
-
+    def render_digest_as_single_notification(self, counts, digest, users=None):
         # If there is only one group in this digest (regardless of how many
         # rules it appears in), we should just render this using the single
         # notification template. If there is more than one record for a group,
         # just choose the most recent one.
+        group = six.next(iter(counts))
+        record = max(
+            itertools.chain.from_iterable(
+                groups.get(group, []) for groups in six.itervalues(digest)
+            ),
+            key=lambda record: record.timestamp,
+        )
+        notification = Notification(record.value.event, rules=record.value.rules)
+        self.notify(notification, users)
+
+    def notify_digest(self, project, digest):
+        start, end, counts = get_digest_metadata(digest)
+
         if len(counts) == 1:
-            group = six.next(iter(counts))
-            record = max(
-                itertools.chain.from_iterable(
-                    groups.get(group, []) for groups in six.itervalues(digest)
-                ),
-                key=lambda record: record.timestamp,
-            )
-            notification = Notification(record.value.event, rules=record.value.rules)
-            return self.notify(notification)
+            self.render_digest_as_single_notification(counts, digest)
+            return
 
         context = {
             'start': start,
@@ -317,9 +325,17 @@ class MailPlugin(NotificationPlugin):
         headers = {
             'X-Sentry-Project': project.slug,
         }
-
         group = six.next(iter(counts))
         subject = self.get_digest_subject(group, counts, start)
+        event_rules = get_digest_event_rules(digest)
+
+        user_id_events, __ = ProjectOwnership.get_user_ids_to_events(
+            project.id, six.iterkeys(event_rules))
+
+        if user_id_events != ProjectOwnership.Everyone:
+            self.send_digest_with_owners(project, user_id_events, event_rules,
+                                         context, subject, headers)
+            return
 
         for user_id in self.get_send_to(project):
             self.add_unsubscribe_link(context, user_id, project)
@@ -334,6 +350,50 @@ class MailPlugin(NotificationPlugin):
                 context=context,
                 send_to=[user_id],
             )
+
+    def send_digest_with_owners(self, project, user_id_events, event_rules,
+                                context, subject, headers):
+        original_context = context
+
+        for user_id in self.get_send_to(project):
+            context = original_context
+
+            if user_id not in user_id_events:
+                continue
+
+            user_events = user_id_events[user_id]
+
+            context = self.build_custom_context(user_events, event_rules, project)
+            if len(context['counts']) == 1:
+                self.render_digest_as_single_notification(
+                    context['counts'], context['digest'], [user_id])
+                continue
+
+            self.add_unsubscribe_link(context, user_id, project)
+            self._send_mail(
+                subject=subject,
+                template='sentry/emails/digests/body.txt',
+                html_template='sentry/emails/digests/body.html',
+                project=project,
+                reference=project,
+                headers=headers,
+                type='notify.digest',
+                context=context,
+                send_to=[user_id],
+            )
+
+    def build_custom_context(self, user_events, event_rules, project):
+        records = [event_to_record(event, event_rules[event]) for event in user_events]
+        digest = build_digest(project, records)
+        start, end, counts = get_digest_metadata(digest)
+        context = {
+            'start': start,
+            'end': end,
+            'project': project,
+            'digest': digest,
+            'counts': counts,
+        }
+        return context
 
     def notify_about_activity(self, activity):
         email_cls = emails.get(activity.type)
