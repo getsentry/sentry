@@ -13,8 +13,9 @@ from sentry.utils.cache import cache
 
 class AvatarBase(Model):
     """
-    Base class for UserAvatar and OrganizationAvatar models, which
-    associate users/orgs with their avatar preferences/files.
+    Base class for UserAvatar, OrganizationAvatar, TeamAvatar,
+    and ProjectAvatar models. Associates those entities with their
+    avatar preferences/files.
     """
     __core__ = False
 
