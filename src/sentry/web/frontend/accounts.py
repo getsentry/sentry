@@ -580,6 +580,7 @@ def show_emails(request):
                 # Update newsletter subscription and mark as unverified
                 newsletter.update_subscription(
                     user=user,
+                    create=True,
                     verified=False,
                 )
 
@@ -640,7 +641,7 @@ def manage_subscriptions(request):
         return HttpResponse('bad request', status=400)
 
     kwargs = {
-        'list_id': list_id,
+        'list_ids': (list_id,),
         'subscribed': subscribed,
         'verified': email.is_verified,
     }
@@ -649,5 +650,5 @@ def manage_subscriptions(request):
     else:
         kwargs['subscribed_date'] = timezone.now()
 
-    newsletter.create_or_update_subscription(user, **kwargs)
+    newsletter.create_or_update_subscriptions(user, **kwargs)
     return HttpResponse()
