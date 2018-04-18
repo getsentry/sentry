@@ -31,18 +31,16 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
             <Flex
               align="center"
             >
-              <StyledFlex
-                align="center"
-              >
+              <StyledFlex>
                 <div
-                  className="css-ud6gq6-StyledFlex css-4jd5981"
+                  className="css-1qt63sy-StyledFlex css-9xhpuv1"
                 >
                   <Box
                     pr={1}
                   >
                     <StyledBox>
                       <div
-                        className="css-1xboc7d-StyledBox css-4jd5980"
+                        className="css-1xboc7d-StyledBox css-9xhpuv0"
                       >
                         <PluginIcon
                           pluginId="github"
@@ -98,19 +96,17 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                     justify="space-between"
                   >
                     <StyledFlex
-                      align="center"
                       className="css-bx554z-StyledPanelHeader css-9rpnl60"
-                      justify="space-between"
                     >
                       <div
-                        className="css-9rpnl60 css-fy31jr-StyledFlex css-4jd5981"
+                        className="css-9rpnl60 css-1hxrskg-StyledFlex css-9xhpuv1"
                       >
                         <Box
                           px={2}
                         >
                           <StyledBox>
                             <div
-                              className="css-1aj9gc4-StyledBox css-4jd5980"
+                              className="css-1aj9gc4-StyledBox css-9xhpuv0"
                             >
                               Workspaces
                             </div>
@@ -121,7 +117,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                         >
                           <StyledBox>
                             <div
-                              className="css-1xboc7d-StyledBox css-4jd5980"
+                              className="css-1xboc7d-StyledBox css-9xhpuv0"
                             >
                               <Button
                                 disabled={false}
@@ -139,11 +135,10 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                                     className="button-label"
                                   >
                                     <StyledFlex
-                                      align="center"
                                       className="button-label"
                                     >
                                       <div
-                                        className="button-label css-ud6gq6-StyledFlex css-4jd5981"
+                                        className="button-label css-1qt63sy-StyledFlex css-9xhpuv1"
                                       >
                                         <span
                                           className="icon icon-add"
@@ -190,14 +185,14 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                         className="css-g2y9ad-StyledPanelItem css-ggxnv80"
                       >
                         <div
-                          className="css-ggxnv80 css-1pf07em-StyledFlex css-4jd5981"
+                          className="css-ggxnv80 css-1pf07em-StyledFlex css-9xhpuv1"
                         >
                           <Box
                             pl={2}
                           >
                             <StyledBox>
                               <div
-                                className="css-1063ies-StyledBox css-4jd5980"
+                                className="css-1063ies-StyledBox css-9xhpuv0"
                               >
                                 <IntegrationIcon
                                   src="http://example.com/integration_icon.png"
@@ -216,7 +211,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                           >
                             <StyledBox>
                               <div
-                                className="css-vjb1rk-StyledBox css-4jd5980"
+                                className="css-vjb1rk-StyledBox css-9xhpuv0"
                               >
                                 <IntegrationName>
                                   <div
@@ -241,7 +236,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                           >
                             <StyledBox>
                               <div
-                                className="css-1mm7it9-StyledBox css-4jd5980"
+                                className="css-1mm7it9-StyledBox css-9xhpuv0"
                               >
                                 <Confirm
                                   cancelText="Cancel"
@@ -266,11 +261,10 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                                         className="button-label"
                                       >
                                         <StyledFlex
-                                          align="center"
                                           className="button-label"
                                         >
                                           <div
-                                            className="button-label css-ud6gq6-StyledFlex css-4jd5981"
+                                            className="button-label css-1qt63sy-StyledFlex css-9xhpuv1"
                                           >
                                             <span
                                               className="icon icon-trash"
@@ -425,7 +419,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
             className="css-1tzy8vl-Details css-1c1cwf03"
           >
             <div
-              className="css-1c1cwf03 css-fcpi36-StyledFlex css-4jd5981"
+              className="css-1c1cwf03 css-fcpi36-StyledFlex css-9xhpuv1"
             >
               <Box
                 width={0.625}
@@ -434,7 +428,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                   width={0.625}
                 >
                   <div
-                    className="css-1m695dv-StyledBox css-4jd5980"
+                    className="css-1m695dv-StyledBox css-9xhpuv0"
                     width={0.625}
                   >
                     <Description
@@ -470,7 +464,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
               >
                 <StyledBox>
                   <div
-                    className="css-1io2mi1-StyledBox css-4jd5980"
+                    className="css-1io2mi1-StyledBox css-9xhpuv0"
                   >
                     <MetadataLink
                       href="http://example.com/integration_issue_url"

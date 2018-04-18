@@ -65,11 +65,9 @@ exports[`OrganizationTeamProjects Should render 1`] = `
               <Flex
                 align="center"
               >
-                <StyledFlex
-                  align="center"
-                >
+                <StyledFlex>
                   <div
-                    className="css-ud6gq6-StyledFlex css-4jd5981"
+                    className="css-1qt63sy-StyledFlex css-9xhpuv1"
                   >
                     <Title>
                       <div
@@ -112,12 +110,10 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                           justify="space-between"
                         >
                           <StyledFlex
-                            align="center"
                             className="css-1u5qp3z-StyledPanelHeader css-9rpnl60"
-                            justify="space-between"
                           >
                             <div
-                              className="css-9rpnl60 css-gxehoh-StyledFlex css-4jd5981"
+                              className="css-9rpnl60 css-xe5c9x-StyledFlex css-9xhpuv1"
                             >
                               Projects Without Teams
                             </div>
@@ -149,21 +145,18 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                             p={2}
                           >
                             <StyledFlex
-                              align="center"
                               className="css-g2y9ad-StyledPanelItem css-ggxnv80"
                             >
                               <div
-                                className="css-ggxnv80 css-cfhnwf-StyledFlex css-4jd5981"
+                                className="css-ggxnv80 css-pts3wl-StyledFlex css-9xhpuv1"
                               >
                                 <Flex
                                   flex="1"
                                   justify="space-between"
                                 >
-                                  <StyledFlex
-                                    justify="space-between"
-                                  >
+                                  <StyledFlex>
                                     <div
-                                      className="css-1luekth-StyledFlex css-4jd5981"
+                                      className="css-1vhtlp-StyledFlex css-9xhpuv1"
                                     >
                                       <Link
                                         onlyActiveOnIndex={false}
@@ -221,7 +214,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                 >
                                   <StyledBox>
                                     <div
-                                      className="css-kq801w-StyledBox css-4jd5980"
+                                      className="css-kq801w-StyledBox css-9xhpuv0"
                                     >
                                       <Button
                                         disabled={false}
@@ -249,11 +242,10 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                               className="button-label"
                                             >
                                               <StyledFlex
-                                                align="center"
                                                 className="button-label"
                                               >
                                                 <div
-                                                  className="button-label css-ud6gq6-StyledFlex css-4jd5981"
+                                                  className="button-label css-1qt63sy-StyledFlex css-9xhpuv1"
                                                 >
                                                   Manage Project
                                                 </div>

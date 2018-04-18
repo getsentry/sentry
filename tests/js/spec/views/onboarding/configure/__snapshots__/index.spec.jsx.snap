@@ -220,12 +220,10 @@ exports[`Configure should render correctly render() should render platform docs 
                                       justify="space-between"
                                     >
                                       <StyledFlex
-                                        align="center"
                                         className="css-vzwv85-StyledPanelHeader css-9rpnl60"
-                                        justify="space-between"
                                       >
                                         <div
-                                          className="css-9rpnl60 css-fj6f8u-StyledFlex css-4jd5981"
+                                          className="css-9rpnl60 css-1g55458-StyledFlex css-9xhpuv1"
                                         >
                                           Configure node
                                           <Button
@@ -257,11 +255,10 @@ exports[`Configure should render correctly render() should render platform docs 
                                                   className="button-label"
                                                 >
                                                   <StyledFlex
-                                                    align="center"
                                                     className="button-label"
                                                   >
                                                     <div
-                                                      className="button-label css-ud6gq6-StyledFlex css-4jd5981"
+                                                      className="button-label css-1qt63sy-StyledFlex css-9xhpuv1"
                                                     >
                                                       Full Documentation
                                                     </div>

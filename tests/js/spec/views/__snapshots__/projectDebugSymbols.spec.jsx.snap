@@ -20,11 +20,9 @@ exports[`ProjectDebugSymbols renders 1`] = `
           <Flex
             align="center"
           >
-            <StyledFlex
-              align="center"
-            >
+            <StyledFlex>
               <div
-                className="css-ud6gq6-StyledFlex css-4jd5981"
+                className="css-1qt63sy-StyledFlex css-9xhpuv1"
               >
                 <Title>
                   <div
@@ -90,12 +88,10 @@ exports[`ProjectDebugSymbols renders 1`] = `
                   justify="space-between"
                 >
                   <StyledFlex
-                    align="center"
                     className="css-kf498j-StyledPanelHeader css-9rpnl60"
-                    justify="space-between"
                   >
                     <div
-                      className="css-9rpnl60 css-69xk6m-StyledFlex css-4jd5981"
+                      className="css-9rpnl60 css-u1nog2-StyledFlex css-9xhpuv1"
                     >
                       <div
                         className="app-icon"
@@ -138,11 +134,9 @@ exports[`ProjectDebugSymbols renders 1`] = `
                   >
                     <StyledFlex
                       className="css-g2y9ad-StyledPanelItem css-ggxnv80"
-                      direction="column"
                     >
                       <div
-                        className="css-ggxnv80 css-cfhnwf-StyledFlex css-4jd5981"
-                        direction="column"
+                        className="css-ggxnv80 css-fxcaoz-StyledFlex css-9xhpuv1"
                       >
                         <HoverablePanelItem
                           className="hoverable"
@@ -168,7 +162,7 @@ exports[`ProjectDebugSymbols renders 1`] = `
                                   onClick={[Function]}
                                 >
                                   <div
-                                    className="hoverable css-1v1uf2y2 css-ggxnv80 css-1ladx2t-StyledFlex css-4jd5981"
+                                    className="hoverable css-1v1uf2y2 css-ggxnv80 css-1ladx2t-StyledFlex css-9xhpuv1"
                                     onClick={[Function]}
                                   >
                                     <Flex
@@ -176,12 +170,9 @@ exports[`ProjectDebugSymbols renders 1`] = `
                                       flex="1"
                                       p={2}
                                     >
-                                      <StyledFlex
-                                        direction="column"
-                                      >
+                                      <StyledFlex>
                                         <div
-                                          className="css-1jmc4yx-StyledFlex css-4jd5981"
-                                          direction="column"
+                                          className="css-4udujv-StyledFlex css-9xhpuv1"
                                         >
                                           <h3
                                             className="truncate"
@@ -203,11 +194,10 @@ exports[`ProjectDebugSymbols renders 1`] = `
                                               className="css-1h38r0a-LastSeen css-1v1uf2y0"
                                             >
                                               <StyledFlex
-                                                align="center"
                                                 className="css-1h38r0a-LastSeen css-1v1uf2y0"
                                               >
                                                 <div
-                                                  className="css-1v1uf2y0 css-bwygja-StyledFlex css-4jd5981"
+                                                  className="css-1v1uf2y0 css-bb28s4-StyledFlex css-9xhpuv1"
                                                 >
                                                   <TimeIcon
                                                     className="icon icon-clock"
@@ -239,7 +229,7 @@ exports[`ProjectDebugSymbols renders 1`] = `
                                     >
                                       <StyledFlex>
                                         <div
-                                          className="css-1tj6rdd-StyledFlex css-4jd5981"
+                                          className="css-1tj6rdd-StyledFlex css-9xhpuv1"
                                         >
                                           Debug Information Files
                                           : 
@@ -274,11 +264,9 @@ exports[`ProjectDebugSymbols renders 1`] = `
             <Flex
               align="center"
             >
-              <StyledFlex
-                align="center"
-              >
+              <StyledFlex>
                 <div
-                  className="css-ud6gq6-StyledFlex css-4jd5981"
+                  className="css-1qt63sy-StyledFlex css-9xhpuv1"
                 >
                   <Title>
                     <div

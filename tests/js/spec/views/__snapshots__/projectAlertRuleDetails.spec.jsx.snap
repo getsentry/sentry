@@ -207,12 +207,10 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                         justify="space-between"
                       >
                         <StyledFlex
-                          align="center"
                           className="css-kf498j-StyledPanelHeader css-9rpnl60"
-                          justify="space-between"
                         >
                           <div
-                            className="css-9rpnl60 css-69xk6m-StyledFlex css-4jd5981"
+                            className="css-9rpnl60 css-u1nog2-StyledFlex css-9xhpuv1"
                           >
                             Edit Alert Rule
                           </div>
@@ -443,11 +441,10 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                             className="button-label"
                                           >
                                             <StyledFlex
-                                              align="center"
                                               className="button-label"
                                             >
                                               <div
-                                                className="button-label css-ud6gq6-StyledFlex css-4jd5981"
+                                                className="button-label css-1qt63sy-StyledFlex css-9xhpuv1"
                                               >
                                                 <span
                                                   className="icon icon-trash"
@@ -682,11 +679,10 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                             className="button-label"
                                           >
                                             <StyledFlex
-                                              align="center"
                                               className="button-label"
                                             >
                                               <div
-                                                className="button-label css-ud6gq6-StyledFlex css-4jd5981"
+                                                className="button-label css-1qt63sy-StyledFlex css-9xhpuv1"
                                               >
                                                 <span
                                                   className="icon icon-trash"
@@ -931,11 +927,10 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                   className="button-label"
                                 >
                                   <StyledFlex
-                                    align="center"
                                     className="button-label"
                                   >
                                     <div
-                                      className="button-label css-ud6gq6-StyledFlex css-4jd5981"
+                                      className="button-label css-1qt63sy-StyledFlex css-9xhpuv1"
                                     >
                                       Cancel
                                     </div>
@@ -960,11 +955,10 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                               className="button-label"
                             >
                               <StyledFlex
-                                align="center"
                                 className="button-label"
                               >
                                 <div
-                                  className="button-label css-ud6gq6-StyledFlex css-4jd5981"
+                                  className="button-label css-1qt63sy-StyledFlex css-9xhpuv1"
                                 >
                                   Save Rule
                                 </div>
@@ -1191,12 +1185,10 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                         justify="space-between"
                       >
                         <StyledFlex
-                          align="center"
                           className="css-kf498j-StyledPanelHeader css-9rpnl60"
-                          justify="space-between"
                         >
                           <div
-                            className="css-9rpnl60 css-69xk6m-StyledFlex css-4jd5981"
+                            className="css-9rpnl60 css-u1nog2-StyledFlex css-9xhpuv1"
                           >
                             New Alert Rule
                           </div>
@@ -1747,11 +1739,10 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                   className="button-label"
                                 >
                                   <StyledFlex
-                                    align="center"
                                     className="button-label"
                                   >
                                     <div
-                                      className="button-label css-ud6gq6-StyledFlex css-4jd5981"
+                                      className="button-label css-1qt63sy-StyledFlex css-9xhpuv1"
                                     >
                                       Cancel
                                     </div>
@@ -1776,11 +1767,10 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                               className="button-label"
                             >
                               <StyledFlex
-                                align="center"
                                 className="button-label"
                               >
                                 <div
-                                  className="button-label css-ud6gq6-StyledFlex css-4jd5981"
+                                  className="button-label css-1qt63sy-StyledFlex css-9xhpuv1"
                                 >
                                   Save Rule
                                 </div>

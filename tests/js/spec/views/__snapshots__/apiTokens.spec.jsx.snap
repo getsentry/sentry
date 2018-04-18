@@ -121,11 +121,9 @@ exports[`ApiTokens renders with result 1`] = `
               <Flex
                 align="center"
               >
-                <StyledFlex
-                  align="center"
-                >
+                <StyledFlex>
                   <div
-                    className="css-ud6gq6-StyledFlex css-4jd5981"
+                    className="css-1qt63sy-StyledFlex css-9xhpuv1"
                   >
                     <Title>
                       <div
@@ -163,11 +161,10 @@ exports[`ApiTokens renders with result 1`] = `
                               className="button-label"
                             >
                               <StyledFlex
-                                align="center"
                                 className="button-label"
                               >
                                 <div
-                                  className="button-label css-ud6gq6-StyledFlex css-4jd5981"
+                                  className="button-label css-1qt63sy-StyledFlex css-9xhpuv1"
                                 >
                                   Create New Token
                                 </div>
@@ -271,21 +268,17 @@ exports[`ApiTokens renders with result 1`] = `
                       justify="space-between"
                     >
                       <StyledFlex
-                        align="center"
                         className="css-18fb6u1-StyledPanelHeader css-9rpnl60"
-                        justify="space-between"
                       >
                         <div
-                          className="css-9rpnl60 css-qawref-StyledFlex css-4jd5981"
+                          className="css-9rpnl60 css-3349kl-StyledFlex css-9xhpuv1"
                         >
                           <Flex
                             align="center"
                           >
-                            <StyledFlex
-                              align="center"
-                            >
+                            <StyledFlex>
                               <div
-                                className="css-ud6gq6-StyledFlex css-4jd5981"
+                                className="css-1qt63sy-StyledFlex css-9xhpuv1"
                               >
                                 <Box
                                   flex="1"
@@ -293,7 +286,7 @@ exports[`ApiTokens renders with result 1`] = `
                                 >
                                   <StyledBox>
                                     <div
-                                      className="css-vjb1rk-StyledBox css-4jd5980"
+                                      className="css-vjb1rk-StyledBox css-9xhpuv0"
                                     >
                                       Auth Token
                                     </div>
@@ -349,20 +342,20 @@ exports[`ApiTokens renders with result 1`] = `
                               className="css-af3bus0 css-14lz8p1-StyledPanelItem css-ggxnv80"
                             >
                               <div
-                                className="css-af3bus0 css-ggxnv80 css-1v3zsqr-StyledFlex css-4jd5981"
+                                className="css-af3bus0 css-ggxnv80 css-1v3zsqr-StyledFlex css-9xhpuv1"
                               >
                                 <div>
                                   <Flex>
                                     <StyledFlex>
                                       <div
-                                        className="css-ud6gq6-StyledFlex css-4jd5981"
+                                        className="css-ud6gq6-StyledFlex css-9xhpuv1"
                                       >
                                         <Box
                                           flex="1"
                                         >
                                           <StyledBox>
                                             <div
-                                              className="css-fsjb0e-StyledBox css-4jd5980"
+                                              className="css-fsjb0e-StyledBox css-9xhpuv0"
                                             >
                                               <div
                                                 style={
@@ -380,7 +373,7 @@ exports[`ApiTokens renders with result 1`] = `
                                                     <Flex>
                                                       <StyledFlex>
                                                         <div
-                                                          className="css-ud6gq6-StyledFlex css-4jd5981"
+                                                          className="css-ud6gq6-StyledFlex css-9xhpuv1"
                                                         >
                                                           <OverflowContainer>
                                                             <div
@@ -435,7 +428,7 @@ exports[`ApiTokens renders with result 1`] = `
                                               className="css-h4reca-Action css-af3bus4"
                                             >
                                               <div
-                                                className="css-af3bus4 css-1ubwr0c-StyledBox css-4jd5980"
+                                                className="css-af3bus4 css-1ubwr0c-StyledBox css-9xhpuv0"
                                               >
                                                 <StyledButton
                                                   icon="icon-circle-subtract"
@@ -460,11 +453,10 @@ exports[`ApiTokens renders with result 1`] = `
                                                         className="button-label"
                                                       >
                                                         <StyledFlex
-                                                          align="center"
                                                           className="button-label"
                                                         >
                                                           <div
-                                                            className="button-label css-ud6gq6-StyledFlex css-4jd5981"
+                                                            className="button-label css-1qt63sy-StyledFlex css-9xhpuv1"
                                                           >
                                                             <Icon
                                                               size="small"
@@ -478,7 +470,7 @@ exports[`ApiTokens renders with result 1`] = `
                                                                   size="small"
                                                                 >
                                                                   <div
-                                                                    className="css-1i8rv9g0 css-128il38-StyledBox css-4jd5980"
+                                                                    className="css-1i8rv9g0 css-128il38-StyledBox css-9xhpuv0"
                                                                     size="small"
                                                                   >
                                                                     <StyledInlineSvg
@@ -541,14 +533,14 @@ exports[`ApiTokens renders with result 1`] = `
                                       className="css-1ftinlo-Details css-af3bus1"
                                     >
                                       <div
-                                        className="css-af3bus1 css-32vhku-StyledFlex css-4jd5981"
+                                        className="css-af3bus1 css-32vhku-StyledFlex css-9xhpuv1"
                                       >
                                         <Box
                                           flex="1"
                                         >
                                           <StyledBox>
                                             <div
-                                              className="css-fsjb0e-StyledBox css-4jd5980"
+                                              className="css-fsjb0e-StyledBox css-9xhpuv0"
                                             >
                                               <Heading>
                                                 <div
@@ -570,7 +562,7 @@ exports[`ApiTokens renders with result 1`] = `
                                         <Box>
                                           <StyledBox>
                                             <div
-                                              className="css-1m695dv-StyledBox css-4jd5980"
+                                              className="css-1m695dv-StyledBox css-9xhpuv0"
                                             >
                                               <Heading>
                                                 <div

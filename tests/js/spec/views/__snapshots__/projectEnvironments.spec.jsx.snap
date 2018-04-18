@@ -81,11 +81,9 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
           <Flex
             align="center"
           >
-            <StyledFlex
-              align="center"
-            >
+            <StyledFlex>
               <div
-                className="css-ud6gq6-StyledFlex css-4jd5981"
+                className="css-1qt63sy-StyledFlex css-9xhpuv1"
               >
                 <Title>
                   <div
@@ -173,12 +171,10 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
                   justify="space-between"
                 >
                   <StyledFlex
-                    align="center"
                     className="css-19pgfgl-StyledPanelHeader css-9rpnl60"
-                    justify="space-between"
                   >
                     <div
-                      className="css-9rpnl60 css-hhun9k-StyledFlex css-4jd5981"
+                      className="css-9rpnl60 css-ievpq9-StyledFlex css-9xhpuv1"
                     >
                       Active Environments
                     </div>
@@ -298,11 +294,9 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
           <Flex
             align="center"
           >
-            <StyledFlex
-              align="center"
-            >
+            <StyledFlex>
               <div
-                className="css-ud6gq6-StyledFlex css-4jd5981"
+                className="css-1qt63sy-StyledFlex css-9xhpuv1"
               >
                 <Title>
                   <div
@@ -390,12 +384,10 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                   justify="space-between"
                 >
                   <StyledFlex
-                    align="center"
                     className="css-19pgfgl-StyledPanelHeader css-9rpnl60"
-                    justify="space-between"
                   >
                     <div
-                      className="css-9rpnl60 css-hhun9k-StyledFlex css-4jd5981"
+                      className="css-9rpnl60 css-ievpq9-StyledFlex css-9xhpuv1"
                     >
                       Active Environments
                     </div>
@@ -443,21 +435,17 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                       p={2}
                     >
                       <StyledFlex
-                        align="center"
                         className="css-v9wio6-StyledPanelItem css-ggxnv80"
-                        justify="space-between"
                       >
                         <div
-                          className="css-ggxnv80 css-ht5a2f-StyledFlex css-4jd5981"
+                          className="css-ggxnv80 css-17kl3dc-StyledFlex css-9xhpuv1"
                         >
                           <Flex
                             align="center"
                           >
-                            <StyledFlex
-                              align="center"
-                            >
+                            <StyledFlex>
                               <div
-                                className="css-ud6gq6-StyledFlex css-4jd5981"
+                                className="css-1qt63sy-StyledFlex css-9xhpuv1"
                               >
                                 All Environments
                                  
@@ -486,11 +474,10 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                                     className="button-label"
                                   >
                                     <StyledFlex
-                                      align="center"
                                       className="button-label"
                                     >
                                       <div
-                                        className="button-label css-ud6gq6-StyledFlex css-4jd5981"
+                                        className="button-label css-1qt63sy-StyledFlex css-9xhpuv1"
                                       >
                                         Set as default
                                       </div>
@@ -542,21 +529,17 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                       p={2}
                     >
                       <StyledFlex
-                        align="center"
                         className="css-v9wio6-StyledPanelItem css-ggxnv80"
-                        justify="space-between"
                       >
                         <div
-                          className="css-ggxnv80 css-ht5a2f-StyledFlex css-4jd5981"
+                          className="css-ggxnv80 css-17kl3dc-StyledFlex css-9xhpuv1"
                         >
                           <Flex
                             align="center"
                           >
-                            <StyledFlex
-                              align="center"
-                            >
+                            <StyledFlex>
                               <div
-                                className="css-ud6gq6-StyledFlex css-4jd5981"
+                                className="css-1qt63sy-StyledFlex css-9xhpuv1"
                               >
                                 Production
                                  
@@ -588,11 +571,10 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                                     className="button-label"
                                   >
                                     <StyledFlex
-                                      align="center"
                                       className="button-label"
                                     >
                                       <div
-                                        className="button-label css-ud6gq6-StyledFlex css-4jd5981"
+                                        className="button-label css-1qt63sy-StyledFlex css-9xhpuv1"
                                       >
                                         Set as default
                                       </div>
@@ -622,11 +604,10 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                                     className="button-label"
                                   >
                                     <StyledFlex
-                                      align="center"
                                       className="button-label"
                                     >
                                       <div
-                                        className="button-label css-ud6gq6-StyledFlex css-4jd5981"
+                                        className="button-label css-1qt63sy-StyledFlex css-9xhpuv1"
                                       >
                                         Hide
                                       </div>
@@ -678,21 +659,17 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                       p={2}
                     >
                       <StyledFlex
-                        align="center"
                         className="css-v9wio6-StyledPanelItem css-ggxnv80"
-                        justify="space-between"
                       >
                         <div
-                          className="css-ggxnv80 css-ht5a2f-StyledFlex css-4jd5981"
+                          className="css-ggxnv80 css-17kl3dc-StyledFlex css-9xhpuv1"
                         >
                           <Flex
                             align="center"
                           >
-                            <StyledFlex
-                              align="center"
-                            >
+                            <StyledFlex>
                               <div
-                                className="css-ud6gq6-StyledFlex css-4jd5981"
+                                className="css-1qt63sy-StyledFlex css-9xhpuv1"
                               >
                                 Staging
                                  
@@ -737,11 +714,10 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                                     className="button-label"
                                   >
                                     <StyledFlex
-                                      align="center"
                                       className="button-label"
                                     >
                                       <div
-                                        className="button-label css-ud6gq6-StyledFlex css-4jd5981"
+                                        className="button-label css-1qt63sy-StyledFlex css-9xhpuv1"
                                       >
                                         Hide
                                       </div>
@@ -847,11 +823,9 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
           <Flex
             align="center"
           >
-            <StyledFlex
-              align="center"
-            >
+            <StyledFlex>
               <div
-                className="css-ud6gq6-StyledFlex css-4jd5981"
+                className="css-1qt63sy-StyledFlex css-9xhpuv1"
               >
                 <Title>
                   <div
@@ -939,12 +913,10 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
                   justify="space-between"
                 >
                   <StyledFlex
-                    align="center"
                     className="css-19pgfgl-StyledPanelHeader css-9rpnl60"
-                    justify="space-between"
                   >
                     <div
-                      className="css-9rpnl60 css-hhun9k-StyledFlex css-4jd5981"
+                      className="css-9rpnl60 css-ievpq9-StyledFlex css-9xhpuv1"
                     >
                       Hidden
                     </div>
@@ -1064,11 +1036,9 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
           <Flex
             align="center"
           >
-            <StyledFlex
-              align="center"
-            >
+            <StyledFlex>
               <div
-                className="css-ud6gq6-StyledFlex css-4jd5981"
+                className="css-1qt63sy-StyledFlex css-9xhpuv1"
               >
                 <Title>
                   <div
@@ -1156,12 +1126,10 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                   justify="space-between"
                 >
                   <StyledFlex
-                    align="center"
                     className="css-19pgfgl-StyledPanelHeader css-9rpnl60"
-                    justify="space-between"
                   >
                     <div
-                      className="css-9rpnl60 css-hhun9k-StyledFlex css-4jd5981"
+                      className="css-9rpnl60 css-ievpq9-StyledFlex css-9xhpuv1"
                     >
                       Hidden
                     </div>
@@ -1214,21 +1182,17 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                       p={2}
                     >
                       <StyledFlex
-                        align="center"
                         className="css-v9wio6-StyledPanelItem css-ggxnv80"
-                        justify="space-between"
                       >
                         <div
-                          className="css-ggxnv80 css-ht5a2f-StyledFlex css-4jd5981"
+                          className="css-ggxnv80 css-17kl3dc-StyledFlex css-9xhpuv1"
                         >
                           <Flex
                             align="center"
                           >
-                            <StyledFlex
-                              align="center"
-                            >
+                            <StyledFlex>
                               <div
-                                className="css-ud6gq6-StyledFlex css-4jd5981"
+                                className="css-1qt63sy-StyledFlex css-9xhpuv1"
                               >
                                 Zzz
                                  
@@ -1260,11 +1224,10 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                                     className="button-label"
                                   >
                                     <StyledFlex
-                                      align="center"
                                       className="button-label"
                                     >
                                       <div
-                                        className="button-label css-ud6gq6-StyledFlex css-4jd5981"
+                                        className="button-label css-1qt63sy-StyledFlex css-9xhpuv1"
                                       >
                                         Show
                                       </div>

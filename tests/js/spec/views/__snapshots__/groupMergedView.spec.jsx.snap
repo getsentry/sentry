@@ -416,11 +416,10 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                               className="button-label"
                             >
                               <StyledFlex
-                                align="center"
                                 className="button-label"
                               >
                                 <div
-                                  className="button-label css-ud6gq6-StyledFlex css-4jd5981"
+                                  className="button-label css-1qt63sy-StyledFlex css-9xhpuv1"
                                 >
                                   Compare
                                 </div>
@@ -456,11 +455,10 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                               className="button-label"
                             >
                               <StyledFlex
-                                align="center"
                                 className="button-label"
                               >
                                 <div
-                                  className="button-label css-ud6gq6-StyledFlex css-4jd5981"
+                                  className="button-label css-1qt63sy-StyledFlex css-9xhpuv1"
                                 >
                                   Collapse All
                                 </div>
@@ -1787,11 +1785,10 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                               className="button-label"
                             >
                               <StyledFlex
-                                align="center"
                                 className="button-label"
                               >
                                 <div
-                                  className="button-label css-ud6gq6-StyledFlex css-4jd5981"
+                                  className="button-label css-1qt63sy-StyledFlex css-9xhpuv1"
                                 >
                                   Compare
                                 </div>
@@ -1827,11 +1824,10 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                               className="button-label"
                             >
                               <StyledFlex
-                                align="center"
                                 className="button-label"
                               >
                                 <div
-                                  className="button-label css-ud6gq6-StyledFlex css-4jd5981"
+                                  className="button-label css-1qt63sy-StyledFlex css-9xhpuv1"
                                 >
                                   Collapse All
                                 </div>

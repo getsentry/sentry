@@ -65,11 +65,9 @@ exports[`OrganizationApiKeysList renders 1`] = `
           <Flex
             align="center"
           >
-            <StyledFlex
-              align="center"
-            >
+            <StyledFlex>
               <div
-                className="css-ud6gq6-StyledFlex css-4jd5981"
+                className="css-1qt63sy-StyledFlex css-9xhpuv1"
               >
                 <Title>
                   <div
@@ -96,11 +94,10 @@ exports[`OrganizationApiKeysList renders 1`] = `
                         className="button-label"
                       >
                         <StyledFlex
-                          align="center"
                           className="button-label"
                         >
                           <div
-                            className="button-label css-ud6gq6-StyledFlex css-4jd5981"
+                            className="button-label css-1qt63sy-StyledFlex css-9xhpuv1"
                           >
                             <Icon
                               size="small"
@@ -114,7 +111,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                                   size="small"
                                 >
                                   <div
-                                    className="css-1i8rv9g0 css-128il38-StyledBox css-4jd5980"
+                                    className="css-1i8rv9g0 css-128il38-StyledBox css-9xhpuv0"
                                     size="small"
                                   >
                                     <StyledInlineSvg
@@ -263,22 +260,18 @@ exports[`OrganizationApiKeysList renders 1`] = `
                   justify="space-between"
                 >
                   <StyledFlex
-                    align="center"
                     className="css-18fb6u1-StyledPanelHeader css-9rpnl60"
-                    justify="space-between"
                   >
                     <div
-                      className="css-9rpnl60 css-qawref-StyledFlex css-4jd5981"
+                      className="css-9rpnl60 css-3349kl-StyledFlex css-9xhpuv1"
                     >
                       <Flex
                         align="center"
                         flex="1"
                       >
-                        <StyledFlex
-                          align="center"
-                        >
+                        <StyledFlex>
                           <div
-                            className="css-1luekth-StyledFlex css-4jd5981"
+                            className="css-1kscf9w-StyledFlex css-9xhpuv1"
                           >
                             <Box
                               flex="1"
@@ -286,7 +279,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                             >
                               <StyledBox>
                                 <div
-                                  className="css-vjb1rk-StyledBox css-4jd5980"
+                                  className="css-vjb1rk-StyledBox css-9xhpuv0"
                                 >
                                   Name
                                 </div>
@@ -298,7 +291,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                             >
                               <StyledBox>
                                 <div
-                                  className="css-1sfe7n0-StyledBox css-4jd5980"
+                                  className="css-1sfe7n0-StyledBox css-9xhpuv0"
                                 >
                                   Key
                                 </div>
@@ -313,7 +306,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                       >
                         <StyledBox>
                           <div
-                            className="css-5qqgl5-StyledBox css-4jd5980"
+                            className="css-5qqgl5-StyledBox css-9xhpuv0"
                           >
                             Actions
                           </div>
@@ -351,21 +344,18 @@ exports[`OrganizationApiKeysList renders 1`] = `
                     py={1}
                   >
                     <StyledFlex
-                      align="center"
                       className="css-g2y9ad-StyledPanelItem css-ggxnv80"
                     >
                       <div
-                        className="css-ggxnv80 css-181i5nx-StyledFlex css-4jd5981"
+                        className="css-ggxnv80 css-1nj70gr-StyledFlex css-9xhpuv1"
                       >
                         <Flex
                           align="center"
                           flex="1"
                         >
-                          <StyledFlex
-                            align="center"
-                          >
+                          <StyledFlex>
                             <div
-                              className="css-1luekth-StyledFlex css-4jd5981"
+                              className="css-1kscf9w-StyledFlex css-9xhpuv1"
                             >
                               <Box
                                 align="center"
@@ -376,7 +366,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                                   align="center"
                                 >
                                   <div
-                                    className="css-vjb1rk-StyledBox css-4jd5980"
+                                    className="css-vjb1rk-StyledBox css-9xhpuv0"
                                   >
                                     <Link
                                       to="/organizations/org-slug/api-keys/1/"
@@ -396,7 +386,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                               >
                                 <StyledBox>
                                   <div
-                                    className="css-1sfe7n0-StyledBox css-4jd5980"
+                                    className="css-1sfe7n0-StyledBox css-9xhpuv0"
                                   >
                                     <div
                                       className="form-control disabled auto-select"
@@ -415,7 +405,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                         >
                           <StyledBox>
                             <div
-                              className="css-5qqgl5-StyledBox css-4jd5980"
+                              className="css-5qqgl5-StyledBox css-9xhpuv0"
                             >
                               <LinkWithConfirmation
                                 className="btn btn-default btn-sm"

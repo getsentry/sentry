@@ -36,11 +36,9 @@ exports[`CreateProject render() should render roles when available and allowed, 
           <Flex
             align="center"
           >
-            <StyledFlex
-              align="center"
-            >
+            <StyledFlex>
               <div
-                className="css-ud6gq6-StyledFlex css-4jd5981"
+                className="css-1qt63sy-StyledFlex css-9xhpuv1"
               >
                 <Title>
                   <div
@@ -149,12 +147,10 @@ exports[`CreateProject render() should render roles when available and allowed, 
                       justify="space-between"
                     >
                       <StyledFlex
-                        align="center"
                         className="css-kf498j-StyledPanelHeader css-9rpnl60"
-                        justify="space-between"
                       >
                         <div
-                          className="css-9rpnl60 css-69xk6m-StyledFlex css-4jd5981"
+                          className="css-9rpnl60 css-u1nog2-StyledFlex css-9xhpuv1"
                         >
                           Role
                         </div>
@@ -192,7 +188,7 @@ exports[`CreateProject render() should render roles when available and allowed, 
                           onClick={[Function]}
                         >
                           <div
-                            className="css-ggxnv80 css-cfhnwf-StyledFlex css-4jd5981"
+                            className="css-ggxnv80 css-cfhnwf-StyledFlex css-9xhpuv1"
                             onClick={[Function]}
                           >
                             <Label>
@@ -279,7 +275,7 @@ exports[`CreateProject render() should render roles when available and allowed, 
                           onClick={[Function]}
                         >
                           <div
-                            className="css-ggxnv80 css-cfhnwf-StyledFlex css-4jd5981"
+                            className="css-ggxnv80 css-cfhnwf-StyledFlex css-9xhpuv1"
                             onClick={[Function]}
                           >
                             <Label>
@@ -395,12 +391,10 @@ exports[`CreateProject render() should render roles when available and allowed, 
                       justify="space-between"
                     >
                       <StyledFlex
-                        align="center"
                         className="css-kf498j-StyledPanelHeader css-9rpnl60"
-                        justify="space-between"
                       >
                         <div
-                          className="css-9rpnl60 css-69xk6m-StyledFlex css-4jd5981"
+                          className="css-9rpnl60 css-u1nog2-StyledFlex css-9xhpuv1"
                         >
                           Team
                         </div>
@@ -434,7 +428,7 @@ exports[`CreateProject render() should render roles when available and allowed, 
                           className="css-8vtcto-StyledPanelItem css-ggxnv80"
                         >
                           <div
-                            className="css-ggxnv80 css-tb6jvc-StyledFlex css-4jd5981"
+                            className="css-ggxnv80 css-tb6jvc-StyledFlex css-9xhpuv1"
                           >
                             <TeamItem
                               key="bar"
@@ -531,11 +525,10 @@ exports[`CreateProject render() should render roles when available and allowed, 
             className="button-label"
           >
             <StyledFlex
-              align="center"
               className="button-label"
             >
               <div
-                className="button-label css-ud6gq6-StyledFlex css-4jd5981"
+                className="button-label css-1qt63sy-StyledFlex css-9xhpuv1"
               >
                 Add Member
               </div>

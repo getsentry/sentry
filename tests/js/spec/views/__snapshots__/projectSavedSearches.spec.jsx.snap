@@ -20,11 +20,9 @@ exports[`ProjectSavedSearches renders 1`] = `
           <Flex
             align="center"
           >
-            <StyledFlex
-              align="center"
-            >
+            <StyledFlex>
               <div
-                className="css-ud6gq6-StyledFlex css-4jd5981"
+                className="css-1qt63sy-StyledFlex css-9xhpuv1"
               >
                 <Title>
                   <div
@@ -60,19 +58,17 @@ exports[`ProjectSavedSearches renders 1`] = `
                   justify="space-between"
                 >
                   <StyledFlex
-                    align="center"
                     className="css-18fb6u1-StyledPanelHeader css-9rpnl60"
-                    justify="space-between"
                   >
                     <div
-                      className="css-9rpnl60 css-qawref-StyledFlex css-4jd5981"
+                      className="css-9rpnl60 css-3349kl-StyledFlex css-9xhpuv1"
                     >
                       <Flex
                         flex="1"
                       >
                         <StyledFlex>
                           <div
-                            className="css-1luekth-StyledFlex css-4jd5981"
+                            className="css-1luekth-StyledFlex css-9xhpuv1"
                           >
                             <Flex
                               flex="1"
@@ -80,7 +76,7 @@ exports[`ProjectSavedSearches renders 1`] = `
                             >
                               <StyledFlex>
                                 <div
-                                  className="css-kc8q98-StyledFlex css-4jd5981"
+                                  className="css-kc8q98-StyledFlex css-9xhpuv1"
                                 >
                                   Search
                                 </div>
@@ -91,18 +87,16 @@ exports[`ProjectSavedSearches renders 1`] = `
                             >
                               <StyledFlex>
                                 <div
-                                  className="css-1luekth-StyledFlex css-4jd5981"
+                                  className="css-1luekth-StyledFlex css-9xhpuv1"
                                 >
                                   <InputColumn>
                                     <Flex
                                       flex="1"
                                       justify="center"
                                     >
-                                      <StyledFlex
-                                        justify="center"
-                                      >
+                                      <StyledFlex>
                                         <div
-                                          className="css-1luekth-StyledFlex css-4jd5981"
+                                          className="css-15atr5h-StyledFlex css-9xhpuv1"
                                         >
                                           My Default
                                         </div>
@@ -114,11 +108,9 @@ exports[`ProjectSavedSearches renders 1`] = `
                                       flex="1"
                                       justify="center"
                                     >
-                                      <StyledFlex
-                                        justify="center"
-                                      >
+                                      <StyledFlex>
                                         <div
-                                          className="css-1luekth-StyledFlex css-4jd5981"
+                                          className="css-15atr5h-StyledFlex css-9xhpuv1"
                                         >
                                           Team Default
                                         </div>
@@ -130,11 +122,9 @@ exports[`ProjectSavedSearches renders 1`] = `
                                       flex="1"
                                       justify="center"
                                     >
-                                      <StyledFlex
-                                        justify="center"
-                                      >
+                                      <StyledFlex>
                                         <div
-                                          className="css-1luekth-StyledFlex css-4jd5981"
+                                          className="css-15atr5h-StyledFlex css-9xhpuv1"
                                         >
                                           Remove
                                         </div>
@@ -211,23 +201,19 @@ exports[`ProjectSavedSearches renders 1`] = `
                       py={2}
                     >
                       <StyledFlex
-                        align="center"
                         className="css-g2y9ad-StyledPanelItem css-ggxnv80"
                       >
                         <div
-                          className="css-ggxnv80 css-1pf07em-StyledFlex css-4jd5981"
+                          className="css-ggxnv80 css-1tqruj2-StyledFlex css-9xhpuv1"
                         >
                           <Flex
                             direction="column"
                             flex="1"
                             px={2}
                           >
-                            <StyledFlex
-                              direction="column"
-                            >
+                            <StyledFlex>
                               <div
-                                className="css-kc8q98-StyledFlex css-4jd5981"
-                                direction="column"
+                                className="css-1q8iki2-StyledFlex css-9xhpuv1"
                               >
                                 <SearchTitle>
                                   <div
@@ -247,18 +233,16 @@ exports[`ProjectSavedSearches renders 1`] = `
                           >
                             <StyledFlex>
                               <div
-                                className="css-1luekth-StyledFlex css-4jd5981"
+                                className="css-1luekth-StyledFlex css-9xhpuv1"
                               >
                                 <InputColumn>
                                   <Flex
                                     flex="1"
                                     justify="center"
                                   >
-                                    <StyledFlex
-                                      justify="center"
-                                    >
+                                    <StyledFlex>
                                       <div
-                                        className="css-1luekth-StyledFlex css-4jd5981"
+                                        className="css-15atr5h-StyledFlex css-9xhpuv1"
                                       >
                                         <input
                                           checked={false}
@@ -275,11 +259,9 @@ exports[`ProjectSavedSearches renders 1`] = `
                                     flex="1"
                                     justify="center"
                                   >
-                                    <StyledFlex
-                                      justify="center"
-                                    >
+                                    <StyledFlex>
                                       <div
-                                        className="css-1luekth-StyledFlex css-4jd5981"
+                                        className="css-15atr5h-StyledFlex css-9xhpuv1"
                                       >
                                         <input
                                           checked={true}
@@ -296,11 +278,9 @@ exports[`ProjectSavedSearches renders 1`] = `
                                     flex="1"
                                     justify="center"
                                   >
-                                    <StyledFlex
-                                      justify="center"
-                                    >
+                                    <StyledFlex>
                                       <div
-                                        className="css-1luekth-StyledFlex css-4jd5981"
+                                        className="css-15atr5h-StyledFlex css-9xhpuv1"
                                       >
                                         <Confirm
                                           cancelText="Cancel"
@@ -325,11 +305,10 @@ exports[`ProjectSavedSearches renders 1`] = `
                                                 className="button-label"
                                               >
                                                 <StyledFlex
-                                                  align="center"
                                                   className="button-label"
                                                 >
                                                   <div
-                                                    className="button-label css-ud6gq6-StyledFlex css-4jd5981"
+                                                    className="button-label css-1qt63sy-StyledFlex css-9xhpuv1"
                                                   >
                                                     <span
                                                       className="icon icon-trash"
@@ -455,23 +434,19 @@ exports[`ProjectSavedSearches renders 1`] = `
                       py={2}
                     >
                       <StyledFlex
-                        align="center"
                         className="css-g2y9ad-StyledPanelItem css-ggxnv80"
                       >
                         <div
-                          className="css-ggxnv80 css-1pf07em-StyledFlex css-4jd5981"
+                          className="css-ggxnv80 css-1tqruj2-StyledFlex css-9xhpuv1"
                         >
                           <Flex
                             direction="column"
                             flex="1"
                             px={2}
                           >
-                            <StyledFlex
-                              direction="column"
-                            >
+                            <StyledFlex>
                               <div
-                                className="css-kc8q98-StyledFlex css-4jd5981"
-                                direction="column"
+                                className="css-1q8iki2-StyledFlex css-9xhpuv1"
                               >
                                 <SearchTitle>
                                   <div
@@ -491,18 +466,16 @@ exports[`ProjectSavedSearches renders 1`] = `
                           >
                             <StyledFlex>
                               <div
-                                className="css-1luekth-StyledFlex css-4jd5981"
+                                className="css-1luekth-StyledFlex css-9xhpuv1"
                               >
                                 <InputColumn>
                                   <Flex
                                     flex="1"
                                     justify="center"
                                   >
-                                    <StyledFlex
-                                      justify="center"
-                                    >
+                                    <StyledFlex>
                                       <div
-                                        className="css-1luekth-StyledFlex css-4jd5981"
+                                        className="css-15atr5h-StyledFlex css-9xhpuv1"
                                       >
                                         <input
                                           checked={true}
@@ -519,11 +492,9 @@ exports[`ProjectSavedSearches renders 1`] = `
                                     flex="1"
                                     justify="center"
                                   >
-                                    <StyledFlex
-                                      justify="center"
-                                    >
+                                    <StyledFlex>
                                       <div
-                                        className="css-1luekth-StyledFlex css-4jd5981"
+                                        className="css-15atr5h-StyledFlex css-9xhpuv1"
                                       >
                                         <input
                                           checked={false}
@@ -540,11 +511,9 @@ exports[`ProjectSavedSearches renders 1`] = `
                                     flex="1"
                                     justify="center"
                                   >
-                                    <StyledFlex
-                                      justify="center"
-                                    >
+                                    <StyledFlex>
                                       <div
-                                        className="css-1luekth-StyledFlex css-4jd5981"
+                                        className="css-15atr5h-StyledFlex css-9xhpuv1"
                                       >
                                         <Confirm
                                           cancelText="Cancel"
@@ -569,11 +538,10 @@ exports[`ProjectSavedSearches renders 1`] = `
                                                 className="button-label"
                                               >
                                                 <StyledFlex
-                                                  align="center"
                                                   className="button-label"
                                                 >
                                                   <div
-                                                    className="button-label css-ud6gq6-StyledFlex css-4jd5981"
+                                                    className="button-label css-1qt63sy-StyledFlex css-9xhpuv1"
                                                   >
                                                     <span
                                                       className="icon icon-trash"
@@ -678,11 +646,9 @@ exports[`ProjectSavedSearches renders empty 1`] = `
           <Flex
             align="center"
           >
-            <StyledFlex
-              align="center"
-            >
+            <StyledFlex>
               <div
-                className="css-ud6gq6-StyledFlex css-4jd5981"
+                className="css-1qt63sy-StyledFlex css-9xhpuv1"
               >
                 <Title>
                   <div
@@ -718,19 +684,17 @@ exports[`ProjectSavedSearches renders empty 1`] = `
                   justify="space-between"
                 >
                   <StyledFlex
-                    align="center"
                     className="css-18fb6u1-StyledPanelHeader css-9rpnl60"
-                    justify="space-between"
                   >
                     <div
-                      className="css-9rpnl60 css-qawref-StyledFlex css-4jd5981"
+                      className="css-9rpnl60 css-3349kl-StyledFlex css-9xhpuv1"
                     >
                       <Flex
                         flex="1"
                       >
                         <StyledFlex>
                           <div
-                            className="css-1luekth-StyledFlex css-4jd5981"
+                            className="css-1luekth-StyledFlex css-9xhpuv1"
                           >
                             <Flex
                               flex="1"
@@ -738,7 +702,7 @@ exports[`ProjectSavedSearches renders empty 1`] = `
                             >
                               <StyledFlex>
                                 <div
-                                  className="css-kc8q98-StyledFlex css-4jd5981"
+                                  className="css-kc8q98-StyledFlex css-9xhpuv1"
                                 >
                                   Search
                                 </div>
@@ -749,18 +713,16 @@ exports[`ProjectSavedSearches renders empty 1`] = `
                             >
                               <StyledFlex>
                                 <div
-                                  className="css-1luekth-StyledFlex css-4jd5981"
+                                  className="css-1luekth-StyledFlex css-9xhpuv1"
                                 >
                                   <InputColumn>
                                     <Flex
                                       flex="1"
                                       justify="center"
                                     >
-                                      <StyledFlex
-                                        justify="center"
-                                      >
+                                      <StyledFlex>
                                         <div
-                                          className="css-1luekth-StyledFlex css-4jd5981"
+                                          className="css-15atr5h-StyledFlex css-9xhpuv1"
                                         >
                                           My Default
                                         </div>
@@ -772,11 +734,9 @@ exports[`ProjectSavedSearches renders empty 1`] = `
                                       flex="1"
                                       justify="center"
                                     >
-                                      <StyledFlex
-                                        justify="center"
-                                      >
+                                      <StyledFlex>
                                         <div
-                                          className="css-1luekth-StyledFlex css-4jd5981"
+                                          className="css-15atr5h-StyledFlex css-9xhpuv1"
                                         >
                                           Team Default
                                         </div>
@@ -788,11 +748,9 @@ exports[`ProjectSavedSearches renders empty 1`] = `
                                       flex="1"
                                       justify="center"
                                     >
-                                      <StyledFlex
-                                        justify="center"
-                                      >
+                                      <StyledFlex>
                                         <div
-                                          className="css-1luekth-StyledFlex css-4jd5981"
+                                          className="css-15atr5h-StyledFlex css-9xhpuv1"
                                         >
                                           Remove
                                         </div>

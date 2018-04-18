@@ -37,11 +37,9 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
               <Flex
                 align="center"
               >
-                <StyledFlex
-                  align="center"
-                >
+                <StyledFlex>
                   <div
-                    className="css-ud6gq6-StyledFlex css-4jd5981"
+                    className="css-1qt63sy-StyledFlex css-9xhpuv1"
                   >
                     <Title>
                       <div
@@ -79,11 +77,10 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                               className="button-label"
                             >
                               <StyledFlex
-                                align="center"
                                 className="button-label"
                               >
                                 <div
-                                  className="button-label css-ud6gq6-StyledFlex css-4jd5981"
+                                  className="button-label css-1qt63sy-StyledFlex css-9xhpuv1"
                                 >
                                   <Icon
                                     size="small"
@@ -97,7 +94,7 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                                         size="small"
                                       >
                                         <div
-                                          className="css-1i8rv9g0 css-128il38-StyledBox css-4jd5980"
+                                          className="css-1i8rv9g0 css-128il38-StyledBox css-9xhpuv0"
                                           size="small"
                                         >
                                           <StyledInlineSvg
@@ -168,12 +165,10 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                       justify="space-between"
                     >
                       <StyledFlex
-                        align="center"
                         className="css-vzwv85-StyledPanelHeader css-9rpnl60"
-                        justify="space-between"
                       >
                         <div
-                          className="css-9rpnl60 css-fj6f8u-StyledFlex css-4jd5981"
+                          className="css-9rpnl60 css-1g55458-StyledFlex css-9xhpuv1"
                         >
                           Projects
                           <form
@@ -223,11 +218,10 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                         p={0}
                       >
                         <StyledFlex
-                          align="center"
                           className="css-g2y9ad-StyledPanelItem css-ggxnv80"
                         >
                           <div
-                            className="css-ggxnv80 css-1bpreyl-StyledFlex css-4jd5981"
+                            className="css-ggxnv80 css-1vtnvd9-StyledFlex css-9xhpuv1"
                           >
                             <Box
                               flex="1"
@@ -235,7 +229,7 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                             >
                               <StyledBox>
                                 <div
-                                  className="css-f981yk-StyledBox css-4jd5980"
+                                  className="css-f981yk-StyledBox css-9xhpuv0"
                                 >
                                   <ProjectItem
                                     organization={
@@ -455,7 +449,7 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                             >
                               <StyledBox>
                                 <div
-                                  className="css-w94sfu-StyledBox css-4jd5980"
+                                  className="css-w94sfu-StyledBox css-9xhpuv0"
                                 >
                                   <ProjectListItem
                                     key="2"
@@ -484,7 +478,7 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                                 align="right"
                               >
                                 <div
-                                  className="css-g06q29-StyledBox css-4jd5980"
+                                  className="css-g06q29-StyledBox css-9xhpuv0"
                                 >
                                   <Button
                                     disabled={false}
@@ -512,11 +506,10 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                                           className="button-label"
                                         >
                                           <StyledFlex
-                                            align="center"
                                             className="button-label"
                                           >
                                             <div
-                                              className="button-label css-ud6gq6-StyledFlex css-4jd5981"
+                                              className="button-label css-1qt63sy-StyledFlex css-9xhpuv1"
                                             >
                                               View Issues
                                             </div>

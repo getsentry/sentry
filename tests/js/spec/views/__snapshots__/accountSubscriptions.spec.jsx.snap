@@ -54,11 +54,9 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
               <Flex
                 align="center"
               >
-                <StyledFlex
-                  align="center"
-                >
+                <StyledFlex>
                   <div
-                    className="css-ud6gq6-StyledFlex css-4jd5981"
+                    className="css-1qt63sy-StyledFlex css-9xhpuv1"
                   >
                     <Title>
                       <div
@@ -112,12 +110,10 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                         justify="space-between"
                       >
                         <StyledFlex
-                          align="center"
                           className="css-kf498j-StyledPanelHeader css-9rpnl60"
-                          justify="space-between"
                         >
                           <div
-                            className="css-9rpnl60 css-69xk6m-StyledFlex css-4jd5981"
+                            className="css-9rpnl60 css-u1nog2-StyledFlex css-9xhpuv1"
                           >
                             Subscription
                           </div>
@@ -149,11 +145,10 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                           p={2}
                         >
                           <StyledFlex
-                            align="center"
                             className="css-g2y9ad-StyledPanelItem css-ggxnv80"
                           >
                             <div
-                              className="css-ggxnv80 css-cfhnwf-StyledFlex css-4jd5981"
+                              className="css-ggxnv80 css-pts3wl-StyledFlex css-9xhpuv1"
                             >
                               <Box
                                 pr={2}
@@ -161,7 +156,7 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                               >
                                 <StyledBox>
                                   <div
-                                    className="css-1b52b86-StyledBox css-4jd5980"
+                                    className="css-1b52b86-StyledBox css-9xhpuv0"
                                   >
                                     <SubscriptionName>
                                       <div
@@ -203,7 +198,7 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                               <Box>
                                 <StyledBox>
                                   <div
-                                    className="css-1m695dv-StyledBox css-4jd5980"
+                                    className="css-1m695dv-StyledBox css-9xhpuv0"
                                   >
                                     <Switch
                                       isActive={true}
@@ -244,11 +239,10 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                           p={2}
                         >
                           <StyledFlex
-                            align="center"
                             className="css-g2y9ad-StyledPanelItem css-ggxnv80"
                           >
                             <div
-                              className="css-ggxnv80 css-cfhnwf-StyledFlex css-4jd5981"
+                              className="css-ggxnv80 css-pts3wl-StyledFlex css-9xhpuv1"
                             >
                               <Box
                                 pr={2}
@@ -256,7 +250,7 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                               >
                                 <StyledBox>
                                   <div
-                                    className="css-1b52b86-StyledBox css-4jd5980"
+                                    className="css-1b52b86-StyledBox css-9xhpuv0"
                                   >
                                     <SubscriptionName>
                                       <div
@@ -285,7 +279,7 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                               <Box>
                                 <StyledBox>
                                   <div
-                                    className="css-1m695dv-StyledBox css-4jd5980"
+                                    className="css-1m695dv-StyledBox css-9xhpuv0"
                                   >
                                     <Switch
                                       isActive={false}

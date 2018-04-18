@@ -26,11 +26,9 @@ exports[`ProjectTags renders 1`] = `
               <Flex
                 align="center"
               >
-                <StyledFlex
-                  align="center"
-                >
+                <StyledFlex>
                   <div
-                    className="css-ud6gq6-StyledFlex css-4jd5981"
+                    className="css-1qt63sy-StyledFlex css-9xhpuv1"
                   >
                     <Title>
                       <div
@@ -104,24 +102,22 @@ exports[`ProjectTags renders 1`] = `
                       justify="space-between"
                     >
                       <StyledFlex
-                        align="center"
                         className="css-kf498j-StyledPanelHeader css-9rpnl60"
-                        justify="space-between"
                       >
                         <div
-                          className="css-9rpnl60 css-69xk6m-StyledFlex css-4jd5981"
+                          className="css-9rpnl60 css-u1nog2-StyledFlex css-9xhpuv1"
                         >
                           <Flex>
                             <StyledFlex>
                               <div
-                                className="css-ud6gq6-StyledFlex css-4jd5981"
+                                className="css-ud6gq6-StyledFlex css-9xhpuv1"
                               >
                                 <Box
                                   flex="1"
                                 >
                                   <StyledBox>
                                     <div
-                                      className="css-fsjb0e-StyledBox css-4jd5980"
+                                      className="css-fsjb0e-StyledBox css-9xhpuv0"
                                     >
                                       Tags
                                     </div>
@@ -161,11 +157,10 @@ exports[`ProjectTags renders 1`] = `
                         p={0}
                       >
                         <StyledFlex
-                          align="center"
                           className="ref-tag-row css-g2y9ad-StyledPanelItem css-ggxnv80"
                         >
                           <div
-                            className="ref-tag-row css-ggxnv80 css-1bpreyl-StyledFlex css-4jd5981"
+                            className="ref-tag-row css-ggxnv80 css-1vtnvd9-StyledFlex css-9xhpuv1"
                           >
                             <Box
                               align="flex-end"
@@ -176,7 +171,7 @@ exports[`ProjectTags renders 1`] = `
                                 align="flex-end"
                               >
                                 <div
-                                  className="css-f981yk-StyledBox css-4jd5980"
+                                  className="css-f981yk-StyledBox css-9xhpuv0"
                                 >
                                   <span>
                                     Browser
@@ -195,11 +190,9 @@ exports[`ProjectTags renders 1`] = `
                               align="center"
                               p={2}
                             >
-                              <StyledFlex
-                                align="center"
-                              >
+                              <StyledFlex>
                                 <div
-                                  className="css-1tj6rdd-StyledFlex css-4jd5981"
+                                  className="css-1287js5-StyledFlex css-9xhpuv1"
                                 >
                                   <LinkWithConfirmation
                                     className="btn btn-sm btn-default"
@@ -305,11 +298,10 @@ exports[`ProjectTags renders 1`] = `
                         p={0}
                       >
                         <StyledFlex
-                          align="center"
                           className="ref-tag-row css-g2y9ad-StyledPanelItem css-ggxnv80"
                         >
                           <div
-                            className="ref-tag-row css-ggxnv80 css-1bpreyl-StyledFlex css-4jd5981"
+                            className="ref-tag-row css-ggxnv80 css-1vtnvd9-StyledFlex css-9xhpuv1"
                           >
                             <Box
                               align="flex-end"
@@ -320,7 +312,7 @@ exports[`ProjectTags renders 1`] = `
                                 align="flex-end"
                               >
                                 <div
-                                  className="css-f981yk-StyledBox css-4jd5980"
+                                  className="css-f981yk-StyledBox css-9xhpuv0"
                                 >
                                   <span>
                                     Device
@@ -339,11 +331,9 @@ exports[`ProjectTags renders 1`] = `
                               align="center"
                               p={2}
                             >
-                              <StyledFlex
-                                align="center"
-                              >
+                              <StyledFlex>
                                 <div
-                                  className="css-1tj6rdd-StyledFlex css-4jd5981"
+                                  className="css-1287js5-StyledFlex css-9xhpuv1"
                                 >
                                   <LinkWithConfirmation
                                     className="btn btn-sm btn-default"
@@ -449,11 +439,10 @@ exports[`ProjectTags renders 1`] = `
                         p={0}
                       >
                         <StyledFlex
-                          align="center"
                           className="ref-tag-row css-g2y9ad-StyledPanelItem css-ggxnv80"
                         >
                           <div
-                            className="ref-tag-row css-ggxnv80 css-1bpreyl-StyledFlex css-4jd5981"
+                            className="ref-tag-row css-ggxnv80 css-1vtnvd9-StyledFlex css-9xhpuv1"
                           >
                             <Box
                               align="flex-end"
@@ -464,7 +453,7 @@ exports[`ProjectTags renders 1`] = `
                                 align="flex-end"
                               >
                                 <div
-                                  className="css-f981yk-StyledBox css-4jd5980"
+                                  className="css-f981yk-StyledBox css-9xhpuv0"
                                 >
                                   <span>
                                     URL
@@ -483,11 +472,9 @@ exports[`ProjectTags renders 1`] = `
                               align="center"
                               p={2}
                             >
-                              <StyledFlex
-                                align="center"
-                              >
+                              <StyledFlex>
                                 <div
-                                  className="css-1tj6rdd-StyledFlex css-4jd5981"
+                                  className="css-1287js5-StyledFlex css-9xhpuv1"
                                 >
                                   <LinkWithConfirmation
                                     className="btn btn-sm btn-default"
@@ -593,11 +580,10 @@ exports[`ProjectTags renders 1`] = `
                         p={0}
                       >
                         <StyledFlex
-                          align="center"
                           className="ref-tag-row css-g2y9ad-StyledPanelItem css-ggxnv80"
                         >
                           <div
-                            className="ref-tag-row css-ggxnv80 css-1bpreyl-StyledFlex css-4jd5981"
+                            className="ref-tag-row css-ggxnv80 css-1vtnvd9-StyledFlex css-9xhpuv1"
                           >
                             <Box
                               align="flex-end"
@@ -608,7 +594,7 @@ exports[`ProjectTags renders 1`] = `
                                 align="flex-end"
                               >
                                 <div
-                                  className="css-f981yk-StyledBox css-4jd5980"
+                                  className="css-f981yk-StyledBox css-9xhpuv0"
                                 >
                                   <span>
                                     Environment
@@ -627,11 +613,9 @@ exports[`ProjectTags renders 1`] = `
                               align="center"
                               p={2}
                             >
-                              <StyledFlex
-                                align="center"
-                              >
+                              <StyledFlex>
                                 <div
-                                  className="css-1tj6rdd-StyledFlex css-4jd5981"
+                                  className="css-1287js5-StyledFlex css-9xhpuv1"
                                 >
                                   <Tooltip
                                     title="This tag cannot be deleted."

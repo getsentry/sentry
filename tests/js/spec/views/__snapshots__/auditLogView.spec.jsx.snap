@@ -581,11 +581,9 @@ exports[`AuditLogView renders 1`] = `
                   <Flex
                     align="center"
                   >
-                    <StyledFlex
-                      align="center"
-                    >
+                    <StyledFlex>
                       <div
-                        className="css-ud6gq6-StyledFlex css-4jd5981"
+                        className="css-1qt63sy-StyledFlex css-9xhpuv1"
                       >
                         <Title>
                           <div
@@ -817,12 +815,10 @@ exports[`AuditLogView renders 1`] = `
                           justify="space-between"
                         >
                           <StyledFlex
-                            align="center"
                             className="css-18fb6u1-StyledPanelHeader css-9rpnl60"
-                            justify="space-between"
                           >
                             <div
-                              className="css-9rpnl60 css-qawref-StyledFlex css-4jd5981"
+                              className="css-9rpnl60 css-3349kl-StyledFlex css-9xhpuv1"
                             >
                               <Box
                                 flex="1"
@@ -830,7 +826,7 @@ exports[`AuditLogView renders 1`] = `
                               >
                                 <StyledBox>
                                   <div
-                                    className="css-ygetu-StyledBox css-4jd5980"
+                                    className="css-ygetu-StyledBox css-9xhpuv0"
                                   >
                                     Member
                                   </div>
@@ -841,7 +837,7 @@ exports[`AuditLogView renders 1`] = `
                               >
                                 <StyledBox>
                                   <div
-                                    className="css-114w0vp-StyledBox css-4jd5980"
+                                    className="css-114w0vp-StyledBox css-9xhpuv0"
                                   >
                                     Action
                                   </div>
@@ -852,7 +848,7 @@ exports[`AuditLogView renders 1`] = `
                               >
                                 <StyledBox>
                                   <div
-                                    className="css-16ele83-StyledBox css-4jd5980"
+                                    className="css-16ele83-StyledBox css-9xhpuv0"
                                   >
                                     IP
                                   </div>
@@ -864,7 +860,7 @@ exports[`AuditLogView renders 1`] = `
                               >
                                 <StyledBox>
                                   <div
-                                    className="css-bz8bt0-StyledBox css-4jd5980"
+                                    className="css-bz8bt0-StyledBox css-9xhpuv0"
                                   >
                                     Time
                                   </div>
@@ -899,11 +895,10 @@ exports[`AuditLogView renders 1`] = `
                             p={0}
                           >
                             <StyledFlex
-                              align="center"
                               className="css-g2y9ad-StyledPanelItem css-ggxnv80"
                             >
                               <div
-                                className="css-ggxnv80 css-1bpreyl-StyledFlex css-4jd5981"
+                                className="css-ggxnv80 css-1vtnvd9-StyledFlex css-9xhpuv1"
                               >
                                 <UserInfo
                                   flex="1"
@@ -918,7 +913,7 @@ exports[`AuditLogView renders 1`] = `
                                       className="css-1oteggb-UserInfo css-h6appf0"
                                     >
                                       <div
-                                        className="css-h6appf0 css-1fo8iiv-StyledBox css-4jd5980"
+                                        className="css-h6appf0 css-1fo8iiv-StyledBox css-9xhpuv0"
                                       >
                                         <div>
                                           <Avatar
@@ -1180,7 +1175,7 @@ exports[`AuditLogView renders 1`] = `
                                 >
                                   <StyledBox>
                                     <div
-                                      className="css-114w0vp-StyledBox css-4jd5980"
+                                      className="css-114w0vp-StyledBox css-9xhpuv0"
                                     >
                                       project.edit
                                     </div>
@@ -1191,7 +1186,7 @@ exports[`AuditLogView renders 1`] = `
                                 >
                                   <StyledBox>
                                     <div
-                                      className="css-16ele83-StyledBox css-4jd5980"
+                                      className="css-16ele83-StyledBox css-9xhpuv0"
                                     >
                                       127.0.0.1
                                     </div>
@@ -1203,7 +1198,7 @@ exports[`AuditLogView renders 1`] = `
                                 >
                                   <StyledBox>
                                     <div
-                                      className="css-mak4de-StyledBox css-4jd5980"
+                                      className="css-mak4de-StyledBox css-9xhpuv0"
                                     >
                                       <DateTime
                                         date="2018-02-21T03:04:23.157Z"
@@ -1236,11 +1231,10 @@ exports[`AuditLogView renders 1`] = `
                             p={0}
                           >
                             <StyledFlex
-                              align="center"
                               className="css-g2y9ad-StyledPanelItem css-ggxnv80"
                             >
                               <div
-                                className="css-ggxnv80 css-1bpreyl-StyledFlex css-4jd5981"
+                                className="css-ggxnv80 css-1vtnvd9-StyledFlex css-9xhpuv1"
                               >
                                 <UserInfo
                                   flex="1"
@@ -1255,7 +1249,7 @@ exports[`AuditLogView renders 1`] = `
                                       className="css-1oteggb-UserInfo css-h6appf0"
                                     >
                                       <div
-                                        className="css-h6appf0 css-1fo8iiv-StyledBox css-4jd5980"
+                                        className="css-h6appf0 css-1fo8iiv-StyledBox css-9xhpuv0"
                                       >
                                         <div>
                                           <Avatar
@@ -1517,7 +1511,7 @@ exports[`AuditLogView renders 1`] = `
                                 >
                                   <StyledBox>
                                     <div
-                                      className="css-114w0vp-StyledBox css-4jd5980"
+                                      className="css-114w0vp-StyledBox css-9xhpuv0"
                                     >
                                       org.edit
                                     </div>
@@ -1528,7 +1522,7 @@ exports[`AuditLogView renders 1`] = `
                                 >
                                   <StyledBox>
                                     <div
-                                      className="css-16ele83-StyledBox css-4jd5980"
+                                      className="css-16ele83-StyledBox css-9xhpuv0"
                                     >
                                       127.0.0.1
                                     </div>
@@ -1540,7 +1534,7 @@ exports[`AuditLogView renders 1`] = `
                                 >
                                   <StyledBox>
                                     <div
-                                      className="css-mak4de-StyledBox css-4jd5980"
+                                      className="css-mak4de-StyledBox css-9xhpuv0"
                                     >
                                       <DateTime
                                         date="2018-02-16T23:45:59.813Z"

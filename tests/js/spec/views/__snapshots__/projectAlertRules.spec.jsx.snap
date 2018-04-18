@@ -88,11 +88,9 @@ exports[`projectAlertRules renders 1`] = `
             <Flex
               align="center"
             >
-              <StyledFlex
-                align="center"
-              >
+              <StyledFlex>
                 <div
-                  className="css-ud6gq6-StyledFlex css-4jd5981"
+                  className="css-1qt63sy-StyledFlex css-9xhpuv1"
                 >
                   <Title>
                     <div
@@ -130,11 +128,10 @@ exports[`projectAlertRules renders 1`] = `
                             className="button-label"
                           >
                             <StyledFlex
-                              align="center"
                               className="button-label"
                             >
                               <div
-                                className="button-label css-ud6gq6-StyledFlex css-4jd5981"
+                                className="button-label css-1qt63sy-StyledFlex css-9xhpuv1"
                               >
                                 <Icon
                                   size="small"
@@ -148,7 +145,7 @@ exports[`projectAlertRules renders 1`] = `
                                       size="small"
                                     >
                                       <div
-                                        className="css-1i8rv9g0 css-128il38-StyledBox css-4jd5980"
+                                        className="css-1i8rv9g0 css-128il38-StyledBox css-9xhpuv0"
                                         size="small"
                                       >
                                         <StyledInlineSvg
@@ -313,12 +310,10 @@ exports[`projectAlertRules renders 1`] = `
                         justify="space-between"
                       >
                         <StyledFlex
-                          align="center"
                           className="css-18dfj8-StyledPanelHeader css-9rpnl60"
-                          justify="space-between"
                         >
                           <div
-                            className="css-9rpnl60 css-iusw1w-StyledFlex css-4jd5981"
+                            className="css-9rpnl60 css-1yrcdhv-StyledFlex css-9xhpuv1"
                           >
                             <TextColorLink
                               to="1/"
@@ -380,11 +375,10 @@ exports[`projectAlertRules renders 1`] = `
                                       className="button-label"
                                     >
                                       <StyledFlex
-                                        align="center"
                                         className="button-label"
                                       >
                                         <div
-                                          className="button-label css-ud6gq6-StyledFlex css-4jd5981"
+                                          className="button-label css-1qt63sy-StyledFlex css-9xhpuv1"
                                         >
                                           Edit Rule
                                         </div>
@@ -416,11 +410,10 @@ exports[`projectAlertRules renders 1`] = `
                                       className="button-label"
                                     >
                                       <StyledFlex
-                                        align="center"
                                         className="button-label"
                                       >
                                         <div
-                                          className="button-label css-ud6gq6-StyledFlex css-4jd5981"
+                                          className="button-label css-1qt63sy-StyledFlex css-9xhpuv1"
                                         >
                                           <span
                                             className="icon-trash"
