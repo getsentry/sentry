@@ -74,7 +74,6 @@ var appEntry = {
     'ios-device-list',
     'emotion',
     'react-emotion',
-    'grid-emotion',
     'emotion-theming',
   ],
 };
