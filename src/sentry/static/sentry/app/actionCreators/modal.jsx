@@ -19,7 +19,12 @@ export function closeModal() {
 export function openSudo({onClose, ...args} = {}) {
   import(/* webpackChunkName: "SudoModal" */ '../components/modals/sudoModal')
     .then(mod => mod.default)
-    .then(SudoModal => openModal(deps => <SudoModal {...deps} {...args} />, {onClose}));
+    .then(SudoModal =>
+      openModal(deps => <SudoModal {...deps} {...args} />, {
+        modalClassName: 'sudo-modal',
+        onClose,
+      })
+    );
 }
 
 export function openDiffModal(options) {
