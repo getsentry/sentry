@@ -1,8 +1,6 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import {ThemeProvider} from 'emotion-theming';
-import theme from 'app/utils/theme';
 import MemberListStore from 'app/stores/memberListStore';
 import TeamStore from 'app/stores/teamStore';
 
@@ -48,9 +46,7 @@ describe('RuleBuilder', function() {
   describe('render()', function() {
     it('renders', function() {
       let wrapper = mount(
-        <ThemeProvider theme={theme}>
-          <RuleBuilder project={project} onAddRule={handleAdd} />
-        </ThemeProvider>,
+        <RuleBuilder project={project} onAddRule={handleAdd} />,
         TestStubs.routerContext()
       );
 
@@ -78,14 +74,12 @@ describe('RuleBuilder', function() {
   describe('renders with suggestions', function() {
     it('renders', function() {
       let wrapper = mount(
-        <ThemeProvider theme={theme}>
-          <RuleBuilder
-            project={project}
-            onAddRule={handleAdd}
-            urls={['example.com/a', 'example.com/a/foo']}
-            paths={['a/bar', 'a/foo']}
-          />
-        </ThemeProvider>,
+        <RuleBuilder
+          project={project}
+          onAddRule={handleAdd}
+          urls={['example.com/a', 'example.com/a/foo']}
+          paths={['a/bar', 'a/foo']}
+        />,
         TestStubs.routerContext()
       );
 

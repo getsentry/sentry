@@ -1,10 +1,8 @@
 import React from 'react';
 import {mount, shallow} from 'enzyme';
-import {ThemeProvider} from 'emotion-theming';
 
 import StreamActions from 'app/views/stream/actions';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
-import theme from 'app/utils/theme';
 
 describe('StreamActions', function() {
   let sandbox;
@@ -25,20 +23,19 @@ describe('StreamActions', function() {
         SelectedGroupStore.records = {};
         SelectedGroupStore.add([1, 2, 3]);
         wrapper = mount(
-          <ThemeProvider theme={theme}>
-            <StreamActions
-              allResultsVisible={false}
-              query=""
-              queryCount={1500}
-              orgId="1337"
-              projectId="1"
-              groupIds={[1, 2, 3]}
-              onRealtimeChange={function() {}}
-              onSelectStatsPeriod={function() {}}
-              realtimeActive={false}
-              statsPeriod="24h"
-            />
-          </ThemeProvider>
+          <StreamActions
+            allResultsVisible={false}
+            query=""
+            queryCount={1500}
+            orgId="1337"
+            projectId="1"
+            groupIds={[1, 2, 3]}
+            onRealtimeChange={function() {}}
+            onSelectStatsPeriod={function() {}}
+            realtimeActive={false}
+            statsPeriod="24h"
+          />,
+          TestStubs.routerContext()
         );
       });
 
@@ -82,20 +79,19 @@ describe('StreamActions', function() {
         SelectedGroupStore.records = {};
         SelectedGroupStore.add([1, 2, 3]);
         wrapper = mount(
-          <ThemeProvider theme={theme}>
-            <StreamActions
-              allResultsVisible={false}
-              query=""
-              queryCount={600}
-              orgId="1337"
-              projectId="1"
-              groupIds={[1, 2, 3]}
-              onRealtimeChange={function() {}}
-              onSelectStatsPeriod={function() {}}
-              realtimeActive={false}
-              statsPeriod="24h"
-            />
-          </ThemeProvider>
+          <StreamActions
+            allResultsVisible={false}
+            query=""
+            queryCount={600}
+            orgId="1337"
+            projectId="1"
+            groupIds={[1, 2, 3]}
+            onRealtimeChange={function() {}}
+            onSelectStatsPeriod={function() {}}
+            realtimeActive={false}
+            statsPeriod="24h"
+          />,
+          TestStubs.routerContext()
         );
       });
 
