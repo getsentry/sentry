@@ -10,7 +10,6 @@ import ApiMixin from '../mixins/apiMixin';
 import {loadStats} from '../actionCreators/projects';
 
 import GroupStore from '../stores/groupStore';
-import HookStore from '../stores/hookStore';
 import ProjectsStore from '../stores/projectsStore';
 import TeamStore from '../stores/teamStore';
 
@@ -501,17 +500,9 @@ const OrganizationDashboard = createReactClass({
   },
 
   getInitialState() {
-    // Allow injection via getsentry et all
-    let hooks = HookStore.get('organization:dashboard:secondary-column').map(cb => {
-      return cb({
-        params: this.props.params,
-      });
-    });
-
     return {
       teams: TeamStore.getAll(),
       projects: ProjectsStore.getAll(),
-      hooks,
     };
   },
 
@@ -573,7 +564,6 @@ const OrganizationDashboard = createReactClass({
             )}
           </div>
           <div className="col-md-4">
-            {this.state.hooks}
             <EventsPerHour {...this.props} />
             {features.has('new-teams') ? (
               <ProjectList {...this.props} projects={this.state.projects} />
