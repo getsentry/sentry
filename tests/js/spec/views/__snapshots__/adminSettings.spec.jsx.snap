@@ -204,9 +204,10 @@ exports[`AdminSettings render() renders 1`] = `
         key="beacon.anonymous"
         label="Usage Statistics"
         name="beacon.anonymous"
-        noLabel="Please keep my usage information anonymous"
+        noLabel="Send my contact information along with usage statistics"
         required={false}
-        yesLabel="Send my contact information along with usage statistics"
+        yesFirst={false}
+        yesLabel="Please keep my usage information anonymous"
       />
     </ApiForm>
   </div>
