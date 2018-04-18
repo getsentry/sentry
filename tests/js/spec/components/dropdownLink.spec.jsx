@@ -1,6 +1,11 @@
 import React from 'react';
+
 import {mount} from 'enzyme';
 import DropdownLink from 'app/components/dropdownLink';
+
+import {MENU_CLOSE_DELAY} from 'app/constants';
+
+jest.useFakeTimers();
 
 describe('DropdownLink', function() {
   const INPUT_1 = {
@@ -200,8 +205,36 @@ describe('DropdownLink', function() {
       wrapper.find('.dropdown-menu a').simulate('mouseEnter');
       expect(wrapper.find('.dropdown-menu')).toHaveLength(2);
 
+      // Leaving Nested Menu
       wrapper.find('a.nested-menu').simulate('mouseLeave');
 
+      // Nested menus have close delay
+      expect(wrapper.find('.dropdown-menu')).toHaveLength(2);
+      jest.advanceTimersByTime(MENU_CLOSE_DELAY - 1);
+      wrapper.update();
+
+      // Re-entering nested menu will cancel close
+      wrapper.find('a.nested-menu').simulate('mouseEnter');
+      jest.advanceTimersByTime(2);
+      wrapper.update();
+      expect(wrapper.find('.dropdown-menu')).toHaveLength(2);
+
+      // Re-entering an actor will also cancel close
+      expect(wrapper.find('.dropdown-menu')).toHaveLength(2);
+      jest.advanceTimersByTime(MENU_CLOSE_DELAY - 1);
+      wrapper.update();
+      wrapper
+        .find('.dropdown-menu a')
+        .first()
+        .simulate('mouseEnter');
+      jest.advanceTimersByTime(2);
+      wrapper.update();
+      expect(wrapper.find('.dropdown-menu')).toHaveLength(2);
+
+      // Leave menu
+      wrapper.find('a.nested-menu').simulate('mouseLeave');
+      jest.runAllTimers();
+      wrapper.update();
       expect(wrapper.find('.dropdown-menu')).toHaveLength(1);
     });
 
