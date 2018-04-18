@@ -23,7 +23,6 @@ import Indicators from '../components/indicators';
 import InstallWizard from './installWizard';
 import LoadingIndicator from '../components/loadingIndicator';
 import NewsletterConsent from './newsletterConsent';
-import OrganizationsLoader from '../components/organizations/organizationsLoader';
 import OrganizationsStore from '../stores/organizationsStore';
 import theme from '../utils/theme';
 
@@ -186,13 +185,13 @@ const App = createReactClass({
 
     return (
       <ThemeProvider theme={theme}>
-        <OrganizationsLoader>
+        <React.Fragment>
           <GlobalModal />
           <Alerts className="messages-container" />
           <Indicators className="indicators-container" />
           <ErrorBoundary>{this.renderBody()}</ErrorBoundary>
           {ConfigStore.get('features').has('assistant') && <AssistantHelper />}
-        </OrganizationsLoader>
+        </React.Fragment>
       </ThemeProvider>
     );
   },
