@@ -152,36 +152,35 @@ const KNOWN_CONTEXTS = [
 
 class EventContextSummary extends React.Component {
   static propTypes = {
-    group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
   };
 
   render() {
     let evt = this.props.event;
-    let selectedContextCount = 0;
+    let contextCount = 0;
 
     // Add defined contexts in the declared order, until we reach the limit
     // defined by MAX_CONTEXTS.
     let contexts = KNOWN_CONTEXTS.map(({key, Component, ...props}) => {
-      if (selectedContextCount >= MAX_CONTEXTS) return null;
+      if (contextCount >= MAX_CONTEXTS) return null;
       let data = evt.contexts[key] || evt[key];
       if (objectIsEmpty(data)) return null;
-      selectedContextCount += 1;
+      contextCount += 1;
       return <Component key={key} data={data} {...props} />;
     });
 
-    // Bail out if only the user context is set.
-    if (selectedContextCount === 1 && !objectIsEmpty(evt.user)) {
+    // Bail out if all contexts are empty or only the user context is set
+    if (contextCount === 0 || (contextCount === 1 && contexts[0])) {
       return null;
     }
 
-    if (selectedContextCount < MIN_CONTEXTS) {
+    if (contextCount < MIN_CONTEXTS) {
       // Add contents in the declared order until we have at least MIN_CONTEXTS
       // contexts in our list.
       contexts = KNOWN_CONTEXTS.map(({key, Component, ...props}, index) => {
         if (contexts[index]) return contexts[index];
-        if (selectedContextCount >= MIN_CONTEXTS) return null;
-        selectedContextCount += 1;
+        if (contextCount >= MIN_CONTEXTS) return null;
+        contextCount += 1;
         return <Component key={key} data={{}} {...props} />;
       });
     }
