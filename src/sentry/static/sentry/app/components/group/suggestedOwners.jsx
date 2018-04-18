@@ -11,6 +11,7 @@ import ApiMixin from '../../mixins/apiMixin';
 import GroupState from '../../mixins/groupState';
 import {assignToUser, assignToActor} from '../../actionCreators/group';
 import {t} from '../../locale';
+import {openCreateOwnershipRule} from '../../actionCreators/modal';
 
 const SuggestedOwners = createReactClass({
   displayName: 'SuggestedOwners',
@@ -190,23 +191,54 @@ const SuggestedOwners = createReactClass({
 
   render() {
     let {committers, owners} = this.state;
-    let showOwners = new Set(this.getOrganization().features).has('code-owners');
 
-    if (committers.length == 0 && (!showOwners || owners.length == 0)) {
-      return null;
-    }
+    let group = this.getGroup();
+    let project = this.getProject();
+    let org = this.getOrganization();
+
+    let orgFeatures = new Set(org.features);
+    let showOwners = orgFeatures.has('code-owners');
+
+    let showCreateRule = showOwners && orgFeatures.has('internal-catchall');
+
+    let showSuggestedAssignees =
+      committers.length > 0 || (showOwners && owners.length > 0);
 
     return (
-      <div className="m-b-1">
-        <h6>
-          <span>{t('Suggested Assignees')}</span>
-          <small style={{background: '#FFFFFF'}}>{t('Click to assign')}</small>
-        </h6>
-        <div className="avatar-grid">
-          {committers.map(this.renderCommitter)}
-          {showOwners && owners.map(this.renderOwner)}
-        </div>
-      </div>
+      <React.Fragment>
+        {showSuggestedAssignees && (
+          <div className="m-b-1">
+            <h6>
+              <span>{t('Suggested Assignees')}</span>
+              <small style={{background: '#FFFFFF'}}>{t('Click to assign')}</small>
+            </h6>
+
+            <div className="avatar-grid">
+              {committers.map(this.renderCommitter)}
+              {showOwners && owners.map(this.renderOwner)}
+            </div>
+          </div>
+        )}
+        {showCreateRule && (
+          <div className="m-b-1">
+            <h6>
+              <span>{t('Ownership Rules')}</span>
+            </h6>
+
+            <a
+              onClick={() =>
+                openCreateOwnershipRule({
+                  project,
+                  organization: org,
+                  issueId: group.id,
+                })}
+              className="btn btn-default btn-sm btn-create-ownership-rule"
+            >
+              {t('Create Ownership Rule')}
+            </a>
+          </div>
+        )}
+      </React.Fragment>
     );
   },
 });
