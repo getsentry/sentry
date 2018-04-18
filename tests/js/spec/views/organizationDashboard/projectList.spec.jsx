@@ -1,7 +1,7 @@
 import React from 'react';
 import {shallow} from 'enzyme';
 
-import {ProjectList} from 'app/views/organizationDashboard';
+import ProjectList from 'app/views/organizationDashboard/projectList';
 
 describe('ProjectList', function() {
   describe('render()', function() {
