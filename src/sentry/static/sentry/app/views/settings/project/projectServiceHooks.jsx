@@ -13,6 +13,7 @@ import IndicatorStore from '../../../stores/indicatorStore';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from '../../../components/panels';
 import SettingsPageHeader from '../components/settingsPageHeader';
 import Switch from '../../../components/switch';
+import Truncate from '../../../components/truncate';
 
 const ServiceHookRow = createReactClass({
   displayName: 'ServiceHookRow',
@@ -38,10 +39,12 @@ const ServiceHookRow = createReactClass({
     return (
       <Field
         label={
-          <Link to={`/settings/${orgId}/${projectId}/hooks/${hook.id}/`}>{hook.url}</Link>
+          <Link to={`/settings/${orgId}/${projectId}/hooks/${hook.id}/`}>
+            <Truncate value={hook.url} />
+          </Link>
         }
         help={
-          hook.events.length !== 0 ? (
+          hook.events && hook.events.length !== 0 ? (
             <small>{hook.events.join(', ')}</small>
           ) : (
             <small>

@@ -4,9 +4,9 @@ from sentry.models import ServiceHook
 from sentry.testutils import AcceptanceTestCase
 
 
-class ProjectTagsServiceHooksTest(AcceptanceTestCase):
+class ProjectServiceHooksTest(AcceptanceTestCase):
     def setUp(self):
-        super(ProjectTagsServiceHooksTest, self).setUp()
+        super(ProjectServiceHooksTest, self).setUp()
         self.user = self.create_user('foo@example.com')
         self.org = self.create_organization(
             name='Rowdy Tiger',
