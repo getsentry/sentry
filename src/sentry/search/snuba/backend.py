@@ -165,15 +165,6 @@ class SnubaSearchBackend(DjangoSearchBackend):
         # query with Snuba? Something else?
         group_ids = list(group_queryset.values_list('id', flat=True))
 
-        # TODO:
-        # * Snuba needs to filter on:
-        #     times_seen: count
-        #     date_from/to: window to search, handled by start/end
-        #     age_from/to: min timestamp
-        #     last_seen_from/to: max timestamp
-        #     tags
-        #     environment
-
         sort_expression, sort_value_to_cursor_value = sort_strategies[sort_by]
 
         search_results = do_search(
@@ -184,6 +175,7 @@ class SnubaSearchBackend(DjangoSearchBackend):
             end=end,
             sort=sort_expression,
             candidates=group_ids,
+            **parameters
         )
 
         paginator_results = SequencePaginator(
@@ -198,7 +190,8 @@ class SnubaSearchBackend(DjangoSearchBackend):
         return paginator_results
 
 
-def do_search(project_id, environment_id, tags, start, end, sort, candidates=None, limit=1000):
+def do_search(project_id, environment_id, tags, start, end,
+              sort, candidates=None, limit=1000, **parameters):
     from sentry.search.base import ANY
 
     filters = {
@@ -207,6 +200,13 @@ def do_search(project_id, environment_id, tags, start, end, sort, candidates=Non
 
     if environment_id is not None:
         filters['environment'] = [environment_id]
+
+    # TODO:
+    # * Snuba needs to filter on:
+    #     times_seen: count
+    #     date_from/to: window to search, handled by start/end
+    #     age_from/to: min timestamp
+    #     last_seen_from/to: max timestamp
 
     if candidates:
         hashes = list(
@@ -245,6 +245,7 @@ def do_search(project_id, environment_id, tags, start, end, sort, candidates=Non
         filter_keys=filters,
         aggregations=aggregations,
         orderby=sort,
+        limit=limit,
     )
 
     for obj in snuba_results.values():

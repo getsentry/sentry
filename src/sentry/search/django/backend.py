@@ -470,8 +470,6 @@ class DjangoSearchBackend(SearchBackend):
                     project_id=project.id,
                     environment_id=environment.id,
                     tags=tags,
-                    start=None,
-                    end=None,
                     candidates=candidates.keys(),
                     limit=len(candidates),
                 )
@@ -534,8 +532,6 @@ class DjangoSearchBackend(SearchBackend):
                     project_id=project.id,
                     environment_id=None,
                     tags=tags,
-                    start=None,
-                    end=None,
                     candidates=None,
                 )
 
