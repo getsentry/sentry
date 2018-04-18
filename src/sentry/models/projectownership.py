@@ -34,14 +34,25 @@ class ProjectOwnership(Model):
     @classmethod
     def get_actors(cls, project_id, events):
         """
-        For a given project_id, and event data blob.
+        get_actors(cls: Class, project_id: Int, events: List(Event)) -> Dict[Event, (List(Actor), Matcher)], Boolean
 
-        If Everyone is returned, this means we implicitly are
+        For a given project_id, and a list of events.
+
+        If an empty dictionary is returned, this means no events were given as input.
+
+        If an event's value in the dictionary is (Everyone, None), this means we implicitly are
         falling through our rules and everyone is responsible.
 
-        If an empty list is returned, this means there are explicitly
-        no owners.
+        If an event's value in the dictionary is ([], None), this means there are explicitly
+        no owners for that event.
+
+        Boolean represents whether actors were resolved.
         """
+        if len(events) == 0:
+            # TODO(LB): I debated this. what should be done if there is no event?
+            # the answer that makes sense with the new return value is an empty dict
+            return {}, False
+
         try:
             ownership = cls.objects.get(project_id=project_id)
         except cls.DoesNotExist:
@@ -51,27 +62,36 @@ class ProjectOwnership(Model):
 
         owners_by_event = {}
         owners = set()
+        no_match = [cls.Everyone] if ownership.fallthrough else []
+
         if ownership.schema is not None:
             rules = load_schema(ownership.schema)
-            for event in events:
-                for rule in rules:
-                    if rule.test(event.data):
-                        owners_by_event[event] = (rule.owners, rule.matcher)
-                        owners.update(rule.owners)
-                        break
+        else:
+            rules = []
 
-            if len(owners) != 0:
-                actors_by_identifier = resolve_actors(project_id, owners)
-                actors_by_event = {}
-                for event in events:
-                    owners_list = owners_by_event[event][0]
-                    matcher = owners_by_event[event][1]
-                    event_actors = [actors_by_identifier[owner.identifier] for owner in owners_list]
-                    actors_by_event[event] = (event_actors, matcher)
-                return actors_by_event
+        for event in events:
+            for rule in rules:
+                if rule.test(event.data):
+                    owners_by_event[event] = (rule.owners, rule.matcher)
+                    owners.update(rule.owners)
+                    break
+            if event not in owners_by_event:
+                owners_by_event[event] = (no_match, None)
 
-        owners = cls.Everyone if ownership.fallthrough else []
-        return owners, None  # TODO(LB): Not exactly consistent with other return value.
+        if len(owners) == 0:  # No owners to resolve to actors
+            return owners_by_event, False
+
+        actors_by_identifier = resolve_actors(project_id, owners)
+        actors_by_event = {}
+        for event in events:
+            owners_list = owners_by_event[event][0]
+            matcher = owners_by_event[event][1]
+            try:
+                event_actors = [actors_by_identifier[owner.identifier] for owner in owners_list]
+            except AttributeError:  # Everyone causes an error as it is a generic object and not an Actor.
+                event_actors = owners_list
+            actors_by_event[event] = (event_actors, matcher)
+        return actors_by_event, True
 
 
 class UnknownActor(Exception):

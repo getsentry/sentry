@@ -246,13 +246,17 @@ class GetPersonalizedDigestsTestCase(TestCase):
     def test_build_events_by_actor(self):
         events = self.team1_events + self.team2_events + self.user4_events
 
+        actors_by_event, __hasschema = ProjectOwnership.get_actors(self.project.id, events)
         events_by_actor = {
             Actor(self.team1.id, Team): set(self.team1_events),
             Actor(self.team2.id, Team): set(self.team2_events),
             Actor(self.user3.id, User): set(self.team1_events),
             Actor(self.user4.id, User): set(self.user4_events),
         }
-        assert build_events_by_actor(self.project.id, events, self.user_ids) == events_by_actor
+        assert build_events_by_actor(
+            self.project.id,
+            self.user_ids,
+            actors_by_event) == events_by_actor
 
     def test_simple(self):
         rule = self.project.rule_set.all()[0]

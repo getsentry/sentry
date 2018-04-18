@@ -8,7 +8,7 @@ from sentry.ownership.grammar import Rule, Owner, Matcher, dump_schema
 
 class ProjectOwnershipTestCase(TestCase):
     def test_get_actors_default(self):
-        assert ProjectOwnership.get_actors(self.project.id, {}) == (ProjectOwnership.Everyone, None)
+        assert ProjectOwnership.get_actors(self.project.id, []) == {}
 
     def test_get_actors_basic(self):
         matcher = Matcher('path', '*.py')
@@ -25,7 +25,7 @@ class ProjectOwnershipTestCase(TestCase):
         )
 
         # No data matches
-        assert ProjectOwnership.get_actors(self.project.id, {}) == (ProjectOwnership.Everyone, None)
+        assert ProjectOwnership.get_actors(self.project.id, []) == {}
 
         event = self.create_event(
             group=self.create_group(project=self.project),
@@ -51,7 +51,7 @@ class ProjectOwnershipTestCase(TestCase):
             })
         assert ProjectOwnership.get_actors(
             self.project.id, [event]
-        ) == (ProjectOwnership.Everyone, None)
+        )[event] == (ProjectOwnership.Everyone, None)
 
         # When fallthrough = False, we don't implicitly assign to Everyone
         ProjectOwnership.objects.filter(
@@ -69,4 +69,4 @@ class ProjectOwnershipTestCase(TestCase):
             })
         assert ProjectOwnership.get_actors(
             self.project.id, [event]
-        ) == ([], None)
+        )[event] == ([], None)

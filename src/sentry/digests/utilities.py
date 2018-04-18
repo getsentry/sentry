@@ -31,13 +31,10 @@ def get_personalized_digests(project_id, digest, user_ids):
     """
     get_personalized_digests(project_id: Int, digest: Digest, user_ids: Set[Int]) -> Iterator[user_id: Int, digest: Digest]
     """
-    # TODO(LB): I Know this is inefficent.
-    # In the case that ProjectOwnership does exist, I do the same query twice.
-    # Once with this statement and again with the call to ProjectOwnership.get_actors()
-    # Will follow up with another PR to reduce the number of queries.
-    if ProjectOwnership.objects.filter(project_id=project_id).exists():
-        events = get_event_from_groups_in_digest(digest)
-        events_by_actor = build_events_by_actor(project_id, events, user_ids)
+    events = get_event_from_groups_in_digest(digest)
+    actors_by_event, actors_resolved = ProjectOwnership.get_actors(project_id, events)
+    if actors_resolved:
+        events_by_actor = build_events_by_actor(project_id, user_ids, actors_by_event)
         events_by_user = convert_actors_to_users(events_by_actor, user_ids)
         for user_id, user_events in six.iteritems(events_by_user):
             yield user_id, build_custom_digest(digest, user_events)
@@ -78,21 +75,20 @@ def build_custom_digest(original_digest, events):
     return user_digest
 
 
-def build_events_by_actor(project_id, events, user_ids):
+def build_events_by_actor(project_id, user_ids, actors_by_events):
     """
     build_events_by_actor(project_id: Int, events: Set(Events), user_ids: Set[Int]) -> Map[Actor, Set(Events)]
     """
     events_by_actor = defaultdict(set)
-    for event in events:
-        # TODO(LB): I Know this is inefficent.
-        # ProjectOwnership.get_owners is O(n) queries and I'm doing that O(len(events)) times
-        # I will create a follow-up PR to address this method's efficency problem
-        # Just wanted to make as few changes as possible for now.
-        actors, __ = ProjectOwnership.get_owners(project_id, event.data)
-        if actors == ProjectOwnership.Everyone:
-            actors = [Actor(user_id, User) for user_id in user_ids]
+    everyone = [Actor(user_id, User) for user_id in user_ids]
+    for event in six.iterkeys(actors_by_events):
+        actors = actors_by_events[event][0]
         for actor in actors:
-            events_by_actor[actor].add(event)
+            if actor == ProjectOwnership.Everyone:
+                for actor in everyone:
+                    events_by_actor[actor].add(event)
+            else:
+                events_by_actor[actor].add(event)
     return events_by_actor
 
 
