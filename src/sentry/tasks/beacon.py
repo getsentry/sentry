@@ -56,7 +56,9 @@ def send_beacon():
         end=end,
     )['events.total']
 
-    anonymous = options.get('beacon.anonymous')
+    # we need this to be explicitly configured and it defaults to None,
+    # which is the same as False
+    anonymous = options.get('beacon.anonymous') is not False
 
     payload = {
         'install_id': install_id,

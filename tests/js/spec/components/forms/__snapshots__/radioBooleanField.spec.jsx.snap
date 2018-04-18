@@ -10,50 +10,54 @@ exports[`RadioBooleanField render() renders with form context 1`] = `
     <div
       className="control-group radio-boolean"
     >
-      <div
-        className="radio"
-      >
-        <label
-          style={
-            Object {
-              "fontWeight": "normal",
-            }
-          }
+      <React.Fragment>
+        <div
+          className="radio"
+          key="yes"
         >
-          <input
-            checked={true}
-            disabled={false}
-            name="fieldName"
-            onChange={[Function]}
-            type="radio"
-            value="true"
-          />
-           
-          Yes
-        </label>
-      </div>
-      <div
-        className="radio"
-      >
-        <label
-          style={
-            Object {
-              "fontWeight": "normal",
+          <label
+            style={
+              Object {
+                "fontWeight": "normal",
+              }
             }
-          }
+          >
+            <input
+              checked={true}
+              disabled={false}
+              name="fieldName"
+              onChange={[Function]}
+              type="radio"
+              value="true"
+            />
+             
+            Yes
+          </label>
+        </div>
+        <div
+          className="radio"
+          key="no"
         >
-          <input
-            checked={false}
-            disabled={false}
-            name="fieldName"
-            onChange={[Function]}
-            type="radio"
-            value="false"
-          />
-           
-          No
-        </label>
-      </div>
+          <label
+            style={
+              Object {
+                "fontWeight": "normal",
+              }
+            }
+          >
+            <input
+              checked={false}
+              disabled={false}
+              name="fieldName"
+              onChange={[Function]}
+              type="radio"
+              value="false"
+            />
+             
+            No
+          </label>
+        </div>
+      </React.Fragment>
     </div>
   </div>
 </div>
@@ -69,50 +73,54 @@ exports[`RadioBooleanField render() renders without form context 1`] = `
     <div
       className="control-group radio-boolean"
     >
-      <div
-        className="radio"
-      >
-        <label
-          style={
-            Object {
-              "fontWeight": "normal",
-            }
-          }
+      <React.Fragment>
+        <div
+          className="radio"
+          key="yes"
         >
-          <input
-            checked={false}
-            disabled={false}
-            name="fieldName"
-            onChange={[Function]}
-            type="radio"
-            value="true"
-          />
-           
-          Yes
-        </label>
-      </div>
-      <div
-        className="radio"
-      >
-        <label
-          style={
-            Object {
-              "fontWeight": "normal",
+          <label
+            style={
+              Object {
+                "fontWeight": "normal",
+              }
             }
-          }
+          >
+            <input
+              checked={false}
+              disabled={false}
+              name="fieldName"
+              onChange={[Function]}
+              type="radio"
+              value="true"
+            />
+             
+            Yes
+          </label>
+        </div>
+        <div
+          className="radio"
+          key="no"
         >
-          <input
-            checked={false}
-            disabled={false}
-            name="fieldName"
-            onChange={[Function]}
-            type="radio"
-            value="false"
-          />
-           
-          No
-        </label>
-      </div>
+          <label
+            style={
+              Object {
+                "fontWeight": "normal",
+              }
+            }
+          >
+            <input
+              checked={false}
+              disabled={false}
+              name="fieldName"
+              onChange={[Function]}
+              type="radio"
+              value="false"
+            />
+             
+            No
+          </label>
+        </div>
+      </React.Fragment>
     </div>
   </div>
 </div>

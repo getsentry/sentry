@@ -10,6 +10,14 @@ export default class RadioBooleanField extends InputField {
     ...InputField.propTypes,
     yesLabel: PropTypes.string.isRequired,
     noLabel: PropTypes.string.isRequired,
+    yesFirst: PropTypes.bool,
+  };
+
+  static defaultProps = {
+    ...InputField.defaultProps,
+    yesLabel: 'Yes',
+    noLabel: 'No',
+    yesFirst: true,
   };
 
   coerceValue(props) {
@@ -27,34 +35,49 @@ export default class RadioBooleanField extends InputField {
   }
 
   getField() {
+    let yesOption = (
+      <div className="radio" key="yes">
+        <label style={{fontWeight: 'normal'}}>
+          <input
+            type="radio"
+            value="true"
+            name={this.props.name}
+            checked={this.state.value === true}
+            onChange={this.onChange.bind(this)}
+            disabled={this.props.disabled}
+          />{' '}
+          {this.props.yesLabel}
+        </label>
+      </div>
+    );
+    let noOption = (
+      <div className="radio" key="no">
+        <label style={{fontWeight: 'normal'}}>
+          <input
+            type="radio"
+            name={this.props.name}
+            value="false"
+            checked={this.state.value === false}
+            onChange={this.onChange.bind(this)}
+            disabled={this.props.disabled}
+          />{' '}
+          {this.props.noLabel}
+        </label>
+      </div>
+    );
     return (
       <div className="control-group radio-boolean">
-        <div className="radio">
-          <label style={{fontWeight: 'normal'}}>
-            <input
-              type="radio"
-              value="true"
-              name={this.props.name}
-              checked={this.state.value === true}
-              onChange={this.onChange.bind(this)}
-              disabled={this.props.disabled}
-            />{' '}
-            {this.props.yesLabel}
-          </label>
-        </div>
-        <div className="radio">
-          <label style={{fontWeight: 'normal'}}>
-            <input
-              type="radio"
-              name={this.props.name}
-              value="false"
-              checked={this.state.value === false}
-              onChange={this.onChange.bind(this)}
-              disabled={this.props.disabled}
-            />{' '}
-            {this.props.noLabel}
-          </label>
-        </div>
+        {this.props.yesFirst ? (
+          <React.Fragment>
+            {yesOption}
+            {noOption}
+          </React.Fragment>
+        ) : (
+          <React.Fragment>
+            {noOption}
+            {yesOption}
+          </React.Fragment>
+        )}
       </div>
     );
   }
