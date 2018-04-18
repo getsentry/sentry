@@ -7,10 +7,10 @@ from sentry.ownership.grammar import Rule, Owner, Matcher, dump_schema
 
 
 class ProjectOwnershipTestCase(TestCase):
-    def test_get_owners_default(self):
-        assert ProjectOwnership.get_owners(self.project.id, {}) == (ProjectOwnership.Everyone, None)
+    def test_get_actors_default(self):
+        assert ProjectOwnership.get_actors(self.project.id, {}) == (ProjectOwnership.Everyone, None)
 
-    def test_get_owners_basic(self):
+    def test_get_actors_basic(self):
         matcher = Matcher('path', '*.py')
 
         ProjectOwnership.objects.create(
@@ -25,26 +25,32 @@ class ProjectOwnershipTestCase(TestCase):
         )
 
         # No data matches
-        assert ProjectOwnership.get_owners(self.project.id, {}) == (ProjectOwnership.Everyone, None)
+        assert ProjectOwnership.get_actors(self.project.id, {}) == (ProjectOwnership.Everyone, None)
 
-        assert ProjectOwnership.get_owners(
-            self.project.id, {
+        event = self.create_event(
+            group=self.create_group(project=self.project),
+            data={
                 'sentry.interfaces.Stacktrace': {
                     'frames': [{
                         'filename': 'foo.py',
                     }]
                 }
-            }
-        ) == ([Actor(self.user.id, User), Actor(self.team.id, Team)], matcher)
+            })
+        assert ProjectOwnership.get_actors(
+            self.project.id, [event]
+        )[event] == ([Actor(self.user.id, User), Actor(self.team.id, Team)], matcher)
 
-        assert ProjectOwnership.get_owners(
-            self.project.id, {
+        event = self.create_event(
+            group=self.create_group(project=self.project),
+            data={
                 'sentry.interfaces.Stacktrace': {
                     'frames': [{
                         'filename': 'xxxx',
                     }]
                 }
-            }
+            })
+        assert ProjectOwnership.get_actors(
+            self.project.id, [event]
         ) == (ProjectOwnership.Everyone, None)
 
         # When fallthrough = False, we don't implicitly assign to Everyone
@@ -52,12 +58,15 @@ class ProjectOwnershipTestCase(TestCase):
             project_id=self.project.id,
         ).update(fallthrough=False)
 
-        assert ProjectOwnership.get_owners(
-            self.project.id, {
+        event = self.create_event(
+            group=self.create_group(project=self.project),
+            data={
                 'sentry.interfaces.Stacktrace': {
                     'frames': [{
                         'filename': 'xxxx',
                     }]
                 }
-            }
+            })
+        assert ProjectOwnership.get_actors(
+            self.project.id, [event]
         ) == ([], None)
