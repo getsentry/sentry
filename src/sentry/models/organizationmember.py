@@ -248,7 +248,7 @@ class OrganizationMember(Model):
             'user':
             self.user_id,
             'teams': [t['id'] for t in teams],
-            'teams_slugs': [t['slugs'] for t in teams],
+            'teams_slugs': [t['slug'] for t in teams],
             'has_global_access':
             self.has_global_access,
             'role':
