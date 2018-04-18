@@ -2,6 +2,8 @@ import {browserHistory} from 'react-router';
 import React from 'react';
 
 import {Client} from '../../../../api';
+import {addSuccessMessage} from '../../../../actionCreators/indicator';
+import {t} from '../../../../locale';
 import LazyLoad from '../../../../components/lazyLoad';
 import AsyncView from '../../../asyncView';
 import SentryTypes from '../../../../proptypes';
@@ -53,6 +55,7 @@ class OrganizationApiKeysView extends AsyncView {
             routes: this.props.routes,
           })
         );
+        addSuccessMessage(t(`Created a new API key "${data.label}"`));
       },
       error: () => {
         this.setState({busy: false});

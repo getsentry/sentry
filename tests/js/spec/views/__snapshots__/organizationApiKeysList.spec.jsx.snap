@@ -48,13 +48,11 @@ exports[`OrganizationApiKeysList renders 1`] = `
         <Button
           busy={undefined}
           disabled={false}
+          icon="icon-circle-add"
           onClick={undefined}
-          priority="link"
+          priority="primary"
+          size="small"
         >
-          <PlusIcon
-            className="icon-plus"
-          />
-           
           New API Key
         </Button>
       }
@@ -85,10 +83,12 @@ exports[`OrganizationApiKeysList renders 1`] = `
                 <div>
                   <Button
                     disabled={false}
-                    priority="link"
+                    icon="icon-circle-add"
+                    priority="primary"
+                    size="small"
                   >
                     <button
-                      className="button button-link"
+                      className="button button-primary button-sm"
                       disabled={false}
                       onClick={[Function]}
                       role="button"
@@ -105,14 +105,50 @@ exports[`OrganizationApiKeysList renders 1`] = `
                             className="button-label css-5ipae5"
                             is={null}
                           >
-                            <PlusIcon
-                              className="icon-plus"
+                            <Icon
+                              size="small"
                             >
-                              <span
-                                className="icon-plus css-d6k0zi-PlusIcon css-q7bmn80"
-                              />
-                            </PlusIcon>
-                             
+                              <Base
+                                className="css-11bwulm-Icon css-1vxxnb60"
+                                size="small"
+                              >
+                                <div
+                                  className="css-11bwulm-Icon css-1vxxnb60"
+                                  is={null}
+                                  size="small"
+                                >
+                                  <StyledInlineSvg
+                                    size="12px"
+                                    src="icon-circle-add"
+                                  >
+                                    <InlineSvg
+                                      className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
+                                      size="12px"
+                                      src="icon-circle-add"
+                                    >
+                                      <StyledSvg
+                                        className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
+                                        height="12px"
+                                        viewBox={Object {}}
+                                        width="12px"
+                                      >
+                                        <svg
+                                          className="css-1vxxnb61 css-1rlza0i-StyledSvg css-adkcw30"
+                                          height="12px"
+                                          viewBox={Object {}}
+                                          width="12px"
+                                        >
+                                          <use
+                                            href="#test"
+                                            xlinkHref="#test"
+                                          />
+                                        </svg>
+                                      </StyledSvg>
+                                    </InlineSvg>
+                                  </StyledInlineSvg>
+                                </div>
+                              </Base>
+                            </Icon>
                             New API Key
                           </div>
                         </Base>
@@ -127,44 +163,48 @@ exports[`OrganizationApiKeysList renders 1`] = `
       </Wrapper>
     </SettingsPageHeading>
     <TextBlock>
-      <p
-        className="css-1eb9fn5-TextBlock css-q7bmn81"
+      <Component
+        className="css-ms59cf-TextBlock css-1gwew8k0"
       >
-        <span
-          key="5"
+        <div
+          className="css-ms59cf-TextBlock css-1gwew8k0"
         >
           <span
-            key="0"
+            key="5"
           >
-            API keys grant access to the 
-          </span>
-          <ExternalLink
-            href="https://docs.sentry.io/hosted/api/"
-            key="2"
-            rel="noreferrer noopener"
-            target="_blank"
-          >
-            <a
+            <span
+              key="0"
+            >
+              API keys grant access to the 
+            </span>
+            <ExternalLink
               href="https://docs.sentry.io/hosted/api/"
+              key="2"
               rel="noreferrer noopener"
               target="_blank"
             >
-              <span
-                key="1"
+              <a
+                href="https://docs.sentry.io/hosted/api/"
+                rel="noreferrer noopener"
+                target="_blank"
               >
-                developer web API
-              </span>
-            </a>
-          </ExternalLink>
-          <span
-            key="3"
-          >
-            .
+                <span
+                  key="1"
+                >
+                  developer web API
+                </span>
+              </a>
+            </ExternalLink>
+            <span
+              key="3"
+            >
+              .
           If you're looking to configure a Sentry client, you'll need a
           client key which is available in your project settings.
+            </span>
           </span>
-        </span>
-      </p>
+        </div>
+      </Component>
     </TextBlock>
     <div
       className="alert alert-block alert-info"
@@ -204,12 +244,15 @@ exports[`OrganizationApiKeysList renders 1`] = `
           className="css-wfa8ap-StyledPanel css-5bw71w0"
         >
           <PanelHeader
+            align="center"
             disablePadding={true}
           >
             <StyledPanelHeader
+              align="center"
               disablePadding={true}
             >
               <Component
+                align="center"
                 className="css-18fb6u1-StyledPanelHeader css-1t1cqk30"
                 disablePadding={true}
               >
@@ -229,85 +272,71 @@ exports[`OrganizationApiKeysList renders 1`] = `
                     >
                       <Flex
                         align="center"
+                        flex="1"
                       >
                         <Base
                           align="center"
-                          className="css-5ipae5"
+                          className="css-1yrw3fm"
+                          flex="1"
                         >
                           <div
-                            className="css-5ipae5"
+                            className="css-1yrw3fm"
                             is={null}
                           >
-                            <Flex
-                              align="center"
+                            <Box
                               flex="1"
+                              px={2}
                             >
                               <Base
-                                align="center"
-                                className="css-1yrw3fm"
+                                className="css-pcjga5"
                                 flex="1"
+                                px={2}
                               >
                                 <div
-                                  className="css-1yrw3fm"
+                                  className="css-pcjga5"
                                   is={null}
                                 >
-                                  <Box
-                                    flex="1"
-                                    px={2}
-                                  >
-                                    <Base
-                                      className="css-pcjga5"
-                                      flex="1"
-                                      px={2}
-                                    >
-                                      <div
-                                        className="css-pcjga5"
-                                        is={null}
-                                      >
-                                        Name
-                                      </div>
-                                    </Base>
-                                  </Box>
-                                  <Box
-                                    flex="2"
-                                    px={2}
-                                  >
-                                    <Base
-                                      className="css-1dp2adt"
-                                      flex="2"
-                                      px={2}
-                                    >
-                                      <div
-                                        className="css-1dp2adt"
-                                        is={null}
-                                      >
-                                        Key
-                                      </div>
-                                    </Base>
-                                  </Box>
+                                  Name
                                 </div>
                               </Base>
-                            </Flex>
+                            </Box>
                             <Box
+                              flex="2"
                               px={2}
-                              w={100}
                             >
                               <Base
-                                className="css-j9rhnd"
+                                className="css-1dp2adt"
+                                flex="2"
                                 px={2}
-                                w={100}
                               >
                                 <div
-                                  className="css-j9rhnd"
+                                  className="css-1dp2adt"
                                   is={null}
                                 >
-                                  Actions
+                                  Key
                                 </div>
                               </Base>
                             </Box>
                           </div>
                         </Base>
                       </Flex>
+                      <Box
+                        px={2}
+                        w={100}
+                      >
+                        <Base
+                          className="css-j9rhnd"
+                          px={2}
+                          w={100}
+                        >
+                          <div
+                            className="css-j9rhnd"
+                            is={null}
+                          >
+                            Actions
+                          </div>
+                        </Base>
+                      </Box>
                     </div>
                   </Base>
                 </Flex>
