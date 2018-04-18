@@ -78,7 +78,7 @@ class SnubaTagStorage(TagStorage):
         if group_id is not None:
             filters['issue'] = [group_id]
         conditions = [[tag, '!=', '']]
-        aggregations = [['count', '', 'count']]
+        aggregations = [['count()', '', 'count']]
 
         result = snuba.query(start, end, [], conditions, filters, aggregations)
         if result == 0:
@@ -98,7 +98,7 @@ class SnubaTagStorage(TagStorage):
         }
         if group_id is not None:
             filters['issue'] = [group_id]
-        aggregations = [['count', '', 'count']]
+        aggregations = [['count()', '', 'count']]
 
         result = snuba.query(start, end, ['tags.key'], [], filters, aggregations,
                              limit=limit, orderby='-count', arrayjoin='tags')
@@ -122,7 +122,7 @@ class SnubaTagStorage(TagStorage):
         conditions = [
             [tag, '=', value]
         ]
-        aggregations = [['count', '', 'count']]
+        aggregations = [['count()', '', 'count']]
 
         result = snuba.query(start, end, [], conditions, filters, aggregations)
 
@@ -147,7 +147,7 @@ class SnubaTagStorage(TagStorage):
             filters['issue'] = [group_id]
         conditions = [[tag, '!=', '']]
         aggregations = [
-            ['count', '', 'count'],
+            ['count()', '', 'count'],
             ['min', SEEN_COLUMN, 'first_seen'],
             ['max', SEEN_COLUMN, 'last_seen'],
         ]
@@ -176,7 +176,7 @@ class SnubaTagStorage(TagStorage):
             [tag, '=', value]
         ]
         aggregations = [
-            ['count', '', 'count'],
+            ['count()', '', 'count'],
             ['min', SEEN_COLUMN, 'first_seen'],
             ['max', SEEN_COLUMN, 'last_seen'],
         ]
@@ -202,7 +202,7 @@ class SnubaTagStorage(TagStorage):
             'issue': [group_id],
         }
         conditions = [[tag, '!=', '']]
-        aggregations = [['count', '', 'count']]
+        aggregations = [['count()', '', 'count']]
 
         return snuba.query(start, end, [], conditions, filters, aggregations)
 
@@ -216,7 +216,7 @@ class SnubaTagStorage(TagStorage):
         }
         conditions = [[tag, '!=', '']]
         aggregations = [
-            ['count', '', 'count'],
+            ['count()', '', 'count'],
             ['min', SEEN_COLUMN, 'first_seen'],
             ['max', SEEN_COLUMN, 'last_seen'],
         ]
@@ -243,7 +243,7 @@ class SnubaTagStorage(TagStorage):
         }
         aggregations = [
             ['topK(10)', 'tags.value', 'top'],
-            ['count', '', 'count'],
+            ['count()', '', 'count'],
             ['uniq', 'tags.key', 'uniq'],
         ]
         results = snuba.query(start, end, ['tags.key'], None, filters,
@@ -298,7 +298,7 @@ class SnubaTagStorage(TagStorage):
         # release ids which would need to be translated by the snuba util.
         conditions = [['release', 'IN', versions]]
         aggregations = [
-            ['count', '', 'count'],
+            ['count()', '', 'count'],
             ['min', SEEN_COLUMN, 'first_seen'],
             ['max', SEEN_COLUMN, 'last_seen'],
         ]
@@ -360,7 +360,7 @@ class SnubaTagStorage(TagStorage):
         ] if cond[2] != []]
         conditions = [or_conditions]
         aggregations = [
-            ['count', '', 'count'],
+            ['count()', '', 'count'],
             ['min', SEEN_COLUMN, 'first_seen'],
             ['max', SEEN_COLUMN, 'last_seen'],
         ]
