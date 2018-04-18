@@ -2,7 +2,9 @@ from __future__ import absolute_import
 
 import six
 
+import math
 import pytz
+from collections import defaultdict
 from datetime import timedelta, datetime
 
 from django.utils import timezone
@@ -58,22 +60,31 @@ def convert_snuba_result(obj):
     return obj
 
 
+# https://github.com/getsentry/sentry/blob/804c85100d0003cfdda91701911f21ed5f66f67c/src/sentry/event_manager.py#L241-L271
+priority_expr = 'toUInt32(log(times_seen) * 600) + toUInt32(last_seen)'
+
+
+def calculate_priority_cursor(data):
+    times_seen = sum(data['times_seen'])
+    last_seen = max(int(to_timestamp(d) * 1000) for d in data['last_seen'])
+    return ((math.log(times_seen) * 600) + last_seen)
+
 sort_strategies = {
-    # sort_by ->
-    #   Tuple[ String: expression to generate sort value (of type T, used below),
-    #   Function[T] -> int: function for converting sort value to cursor value),
+    # sort_by -> Tuple[
+    #   String: expression to generate sort value (of type T, used below),
+    #   Function[T] -> int: function for converting a group's data to a cursor value),
     # ]
     'priority': (
-        '-priority', int,
+        '-priority', calculate_priority_cursor,
     ),
     'date': (
-        '-last_seen', lambda score: int(to_timestamp(score) * 1000),
+        '-last_seen', lambda data: max(int(to_timestamp(d) * 1000) for d in data['last_seen']),
     ),
     'new': (
-        '-first_seen', lambda score: int(to_timestamp(score) * 1000),
+        '-first_seen', lambda data: min(int(to_timestamp(d) * 1000) for d in data['first_seen']),
     ),
     'freq': (
-        '-times_seen', int,
+        '-times_seen', lambda data: sum(data['times_seen']),
     ),
 }
 
@@ -163,9 +174,9 @@ class SnubaSearchBackend(DjangoSearchBackend):
         # query with Snuba? Something else?
         group_ids = list(group_queryset.values_list('id', flat=True))
 
-        sort_expression, sort_value_to_cursor_value = sort_strategies[sort_by]
+        sort_expression, calculate_cursor_for_group = sort_strategies[sort_by]
 
-        search_results = do_search(
+        group_data = do_search(
             project_id=project.id,
             environment_id=environment and environment.id,
             tags=tags,
@@ -176,8 +187,12 @@ class SnubaSearchBackend(DjangoSearchBackend):
             **parameters
         )
 
+        gorup_to_score = {}
+        for group_id, data in group_data.items():
+            gorup_to_score[group_id] = calculate_cursor_for_group(data)
+
         paginator_results = SequencePaginator(
-            [(sort_value_to_cursor_value(score), id) for (id, score) in search_results.items()],
+            [(score, id) for (id, score) in gorup_to_score.items()],
             reverse=True,
             **paginator_options
         ).get_result(limit, cursor, count_hits=count_hits)
@@ -232,10 +247,14 @@ def do_search(project_id, environment_id, tags, start, end,
         ['count', '', 'times_seen'],
         ['min', 'timestamp', 'first_seen'],
         ['max', 'timestamp', 'last_seen'],
-        # https://github.com/getsentry/sentry/blob/804c85100d0003cfdda91701911f21ed5f66f67c/src/sentry/event_manager.py#L241-L271
-        ['toUInt32(log(times_seen) * 600) + toUInt32(last_seen)', '', 'priority']
+        [priority_expr, '', 'priority']
     ]
 
+    # {hash -> {times_seen -> int
+    #           first_seen -> date_str,
+    #           last_seen -> date_str,
+    #           priority -> int},
+    #  ...}
     snuba_results = snuba.query(
         start=start,
         end=end,
@@ -247,29 +266,34 @@ def do_search(project_id, environment_id, tags, start, end,
         limit=limit,
     )
 
+    # convert fields, such as stringified dates -> datetime objects
     for obj in snuba_results.values():
         convert_snuba_result(obj)
 
+    # {hash -> group_id, ...}
     hash_to_group = dict(
         GroupHash.objects.filter(
-            project_id=project_id, hash__in=snuba_results.keys()
+            project_id=project_id,
+            hash__in=snuba_results.keys()
         ).values_list(
             'hash', 'group_id'
         ).distinct()
     )
 
-    score_field = sort[1:] if sort.startswith('-') else sort
-
-    groups = {}
+    # {group_id -> {field1: [...all values from field1 for all hashes...],
+    #               field2: [...all values from field2 for all hashes...]
+    #               ...}
+    #  ...}
+    group_data = {}
     for hash, obj in snuba_results.items():
         if hash in hash_to_group:
             group_id = hash_to_group[hash]
 
-            if hash in groups:
-                existing_obj = groups[hash]
-                obj = merge_snuba_results(obj, existing_obj)
+            if group_id not in group_data:
+                group_data[group_id] = defaultdict(list)
 
-            score = obj[score_field]
-            groups[group_id] = score
+            dest = group_data[group_id]
+            for k, v in obj.items():
+                dest[k].append(v)
 
-    return groups
+    return group_data
