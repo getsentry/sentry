@@ -64,7 +64,7 @@ class HookStats extends AsyncComponent {
       if (p.total) emptyStats = false;
       return {
         x: p.ts,
-        y: [p.accepted, p.dropped],
+        y: [p.total],
       };
     });
 
