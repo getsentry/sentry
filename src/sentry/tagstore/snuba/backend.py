@@ -23,7 +23,6 @@ from sentry.tagstore.exceptions import (
     TagValueNotFound,
 )
 from sentry.utils import snuba
-from sentry.models import GroupHash
 
 
 SEEN_COLUMN = 'timestamp'
@@ -393,44 +392,8 @@ class SnubaTagStorage(TagStorage):
         return defaultdict(int, result.items())
 
     def get_group_ids_for_search_filter(
-            self, project_id, environment_id, tags, start, end, candidates=None, limit=1000):
-
-        from sentry.search.base import ANY
-
-        filters = {
-            'project_id': [project_id],
-        }
-
-        if environment_id is not None:
-            filters['environment'] = [environment_id]
-
-        if candidates:
-            hashes = list(GroupHash.objects.filter(
-                group_id__in=candidates
-            ).values_list(
-                'hash', flat=True
-            ).distinct())
-
-            if not hashes:
-                return []
-
-            filters['primary_hash'] = hashes
-
-        conditions = []
-        for tag, val in six.iteritems(tags):
-            col = 'tags[{}]'.format(tag)
-            if val == ANY:
-                conditions.append((col, '!=', ''))
-            else:
-                conditions.append((col, '=', val))
-
-        hashes = snuba.query(start, end, ['primary_hash'], conditions, filters)
-
-        group_ids = GroupHash.objects.filter(
-            project_id=project_id, hash__in=hashes.keys()
-        ).values_list('group_id', flat=True).distinct()
-
-        return group_ids
+            self, project_id, environment_id, tags, candidates=None, limit=1000):
+        raise NotImplementedError
 
     # Everything from here down is basically no-ops
     def create_tag_key(self, project_id, environment_id, key, **kwargs):
@@ -521,10 +484,10 @@ class SnubaTagStorage(TagStorage):
         pass
 
     def get_tag_value_qs(self, project_id, environment_id, key, query=None):
-        return None
+        raise NotImplementedError
 
     def get_group_tag_value_qs(self, project_id, group_id, environment_id, key, value=None):
-        return None
+        raise NotImplementedError
 
     def get_event_tag_qs(self, project_id, environment_id, key, value):
-        return None
+        raise NotImplementedError
