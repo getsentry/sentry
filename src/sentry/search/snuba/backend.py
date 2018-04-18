@@ -59,12 +59,10 @@ def convert_snuba_result(obj):
 
 
 sort_strategies = {
-    # sort_by -> Tuple[ String: expression to generate sort value (of type T,
-    #   used below), Function[T] -> int: function for converting sort value to
-    #   cursor value),
+    # sort_by ->
+    #   Tuple[ String: expression to generate sort value (of type T, used below),
+    #   Function[T] -> int: function for converting sort value to cursor value),
     # ]
-    # TODO: Are these all really `-`? Where does Django environment search
-    # handle sorting (outside of the paginator)?
     'priority': (
         '-priority', int,
     ),
@@ -234,6 +232,7 @@ def do_search(project_id, environment_id, tags, start, end,
         ['count', '', 'times_seen'],
         ['min', 'timestamp', 'first_seen'],
         ['max', 'timestamp', 'last_seen'],
+        # https://github.com/getsentry/sentry/blob/804c85100d0003cfdda91701911f21ed5f66f67c/src/sentry/event_manager.py#L241-L271
         ['toUInt32(log(times_seen) * 600) + toUInt32(last_seen)', '', 'priority']
     ]
 
