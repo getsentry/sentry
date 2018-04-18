@@ -2,9 +2,9 @@ import {browserHistory} from 'react-router';
 import React from 'react';
 
 import {API_SCOPES} from '../../../../constants';
+import {addErrorMessage, addSuccessMessage} from '../../../../actionCreators/indicator';
 import {t} from '../../../../locale';
 import ApiForm from '../../../../components/forms/apiForm';
-import IndicatorStore from '../../../../stores/indicatorStore';
 import MultipleCheckboxField from '../../../../components/forms/multipleCheckboxField';
 import AsyncView from '../../../asyncView';
 import SentryTypes from '../../../../proptypes';
@@ -52,11 +52,20 @@ class OrganizationApiKeyDetailsView extends AsyncView {
   }
 
   handleSubmitSuccess = () => {
-    IndicatorStore.add(t('Saved changes'), 'success');
+    addSuccessMessage('Saved changes');
+
+    // Go back to API list
+    browserHistory.push(
+      recreateRoute('api-keys/', {
+        stepBack: -1,
+        routes: this.props.routes,
+        params: this.props.params,
+      })
+    );
   };
 
   handleSubmitError = () => {
-    IndicatorStore.add(t('Unable to save changes. Please try again.'), 'error');
+    addErrorMessage('Unable to save changes. Please try again.');
   };
 
   renderBody() {
