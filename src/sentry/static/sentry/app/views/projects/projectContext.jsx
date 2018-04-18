@@ -248,7 +248,7 @@ const ProjectContext = createReactClass({
         case ERROR_TYPES.PROJECT_NOT_FOUND:
           return (
             <div className="container">
-              <div className="alert alert-block">
+              <div className="alert alert-block" style={{margin: '30px 0 10px'}}>
                 {t('The project you were looking for was not found.')}
               </div>
             </div>

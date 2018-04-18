@@ -4,7 +4,7 @@ import {t} from '../../locale';
 class NotFound extends React.Component {
   render() {
     return (
-      <div className="alert alert-block alert-error">
+      <div className="alert alert-block alert-error" style={{margin: '30px 0 10px'}}>
         <div style={{fontSize: 24, marginBottom: 10}}>
           <span className="icon-exclamation" style={{fontSize: 20, marginRight: 10}} />
           <span>{t('Page Not Found')}</span>
