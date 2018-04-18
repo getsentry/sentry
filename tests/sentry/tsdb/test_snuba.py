@@ -120,7 +120,7 @@ class SnubaTSDBTest(TestCase):
         with responses.RequestsMock() as rsps:
             def snuba_response(request):
                 body = json.loads(request.body)
-                assert body['aggregations'] == [['count', None, 'aggregate']]
+                assert body['aggregations'] == [['count()', None, 'aggregate']]
                 assert body['project'] == [project.id]
                 assert body['groupby'] == ['issue', 'time']
 
@@ -152,7 +152,7 @@ class SnubaTSDBTest(TestCase):
         with responses.RequestsMock() as rsps:
             def snuba_response(request):
                 body = json.loads(request.body)
-                assert body['aggregations'] == [['count', None, 'aggregate']]
+                assert body['aggregations'] == [['count()', None, 'aggregate']]
                 assert body['project'] == [project.id]
                 assert body['groupby'] == ['release', 'time']
                 assert ['release', 'IN', ['version X']] in body['conditions']
@@ -175,7 +175,7 @@ class SnubaTSDBTest(TestCase):
         with responses.RequestsMock() as rsps:
             def snuba_response(request):
                 body = json.loads(request.body)
-                assert body['aggregations'] == [['count', None, 'aggregate']]
+                assert body['aggregations'] == [['count()', None, 'aggregate']]
                 assert body['project'] == [project.id]
                 assert body['groupby'] == ['project_id', 'time']
                 assert ['environment', 'IN', ['prod']] in body['conditions']
