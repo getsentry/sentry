@@ -70,6 +70,20 @@ class CreateAuditEntryTest(TestCase):
         deleted_org = DeletedOrganization.objects.get(slug=self.org.slug)
         self.assert_valid_deleted_log(deleted_org, self.org)
 
+    def test_audit_entry_org_restore_log(self):
+        entry = create_audit_entry(
+            request=self.req,
+            organization=self.org,
+            target_object=self.org.id,
+            event=AuditLogEntryEvent.ORG_RESTORE,
+            data=self.org.get_audit_log_data(),
+        )
+
+        assert ('restored') in entry.get_note()
+        assert entry.actor == self.user
+        assert entry.target_object == self.project.id
+        assert entry.event == AuditLogEntryEvent.ORG_RESTORE
+
     def test_audit_entry_team_delete_log(self):
         entry = create_audit_entry(
             request=self.req,

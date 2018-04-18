@@ -131,8 +131,10 @@ class OrganizationTest(TestCase):
     def test_flags_have_changed(self):
         org = self.create_organization()
         org.flags.early_adopter = True
+        org.flags.require_2fa = True
         assert org.flag_has_changed('early_adopter')
         assert org.flag_has_changed('allow_joinleave') is False
+        assert org.flag_has_changed('require_2fa') is True
 
     def test_send_setup_2fa_emails(self):
         owner = self.create_user('foo@example.com')
