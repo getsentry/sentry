@@ -7,7 +7,7 @@ from concurrent.futures import CancelledError, Future
 from contextlib import contextmanager
 from threading import Event
 
-from sentry.utils.concurrent import FutureSet, ThreadedExecutor, TimedFuture
+from sentry.utils.concurrent import FutureSet, SynchronousExecutor, ThreadedExecutor, TimedFuture
 
 
 def test_future_set_callback_success():
@@ -135,6 +135,23 @@ def test_timed_future_cancel():
         future.set_running_or_notify_cancel()
 
     assert future.get_timing() == (2.0, 1.0)
+
+
+def test_sychronous_executor():
+    executor = SynchronousExecutor()
+
+    assert executor.submit(lambda: mock.sentinel.RESULT).result() is mock.sentinel.RESULT
+
+    def callable():
+        raise Exception(mock.sentinel.MESSAGE)
+
+    future = executor.submit(callable)
+    try:
+        future.result()
+    except Exception as e:
+        assert e.message is mock.sentinel.MESSAGE
+    else:
+        assert False, 'expected future to raise'
 
 
 def test_threaded_executor():
