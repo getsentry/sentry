@@ -194,7 +194,8 @@ class OrganizationSerializer(serializers.Serializer):
                 'allow_joinleave': org.flags.allow_joinleave.is_set,
                 'enhanced_privacy': org.flags.enhanced_privacy.is_set,
                 'disable_shared_issues': org.flags.disable_shared_issues.is_set,
-                'early_adopter': org.flags.early_adopter.is_set
+                'early_adopter': org.flags.early_adopter.is_set,
+                'require_2fa': org.flags.require_2fa.is_set,
             }
         }
 
@@ -307,14 +308,14 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                         'model': Organization.__name__,
                     }
                 )
-
-            self.create_audit_entry(
-                request=request,
-                organization=organization,
-                target_object=organization.id,
-                event=AuditLogEntryEvent.ORG_EDIT,
-                data=changed_data
-            )
+            else:
+                self.create_audit_entry(
+                    request=request,
+                    organization=organization,
+                    target_object=organization.id,
+                    event=AuditLogEntryEvent.ORG_EDIT,
+                    data=changed_data
+                )
 
             return Response(
                 serialize(
