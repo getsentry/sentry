@@ -153,11 +153,9 @@ exports[`ProjectPluginDetails renders 1`] = `
                 <Flex
                   align="center"
                 >
-                  <StyledFlex
-                    align="center"
-                  >
+                  <StyledFlex>
                     <div
-                      className="css-ud6gq6-StyledFlex css-4jd5981"
+                      className="css-1qt63sy-StyledFlex css-9xhpuv1"
                     >
                       <Title>
                         <div
@@ -195,11 +193,10 @@ exports[`ProjectPluginDetails renders 1`] = `
                                 className="button-label"
                               >
                                 <StyledFlex
-                                  align="center"
                                   className="button-label"
                                 >
                                   <div
-                                    className="button-label css-ud6gq6-StyledFlex css-4jd5981"
+                                    className="button-label css-1qt63sy-StyledFlex css-9xhpuv1"
                                   >
                                     Enable Plugin
                                   </div>
@@ -222,11 +219,10 @@ exports[`ProjectPluginDetails renders 1`] = `
                                 className="button-label"
                               >
                                 <StyledFlex
-                                  align="center"
                                   className="button-label"
                                 >
                                   <div
-                                    className="button-label css-ud6gq6-StyledFlex css-4jd5981"
+                                    className="button-label css-1qt63sy-StyledFlex css-9xhpuv1"
                                   >
                                     Reset Configuration
                                   </div>
@@ -330,32 +326,26 @@ exports[`ProjectPluginDetails renders 1`] = `
                               justify="space-between"
                             >
                               <StyledFlex
-                                align="center"
                                 className="css-vzwv85-StyledPanelHeader css-9rpnl60"
-                                justify="space-between"
                               >
                                 <div
-                                  className="css-9rpnl60 css-fj6f8u-StyledFlex css-4jd5981"
+                                  className="css-9rpnl60 css-1g55458-StyledFlex css-9xhpuv1"
                                 >
                                   <Flex
                                     align="center"
                                     flex="1"
                                   >
-                                    <StyledFlex
-                                      align="center"
-                                    >
+                                    <StyledFlex>
                                       <div
-                                        className="css-1luekth-StyledFlex css-4jd5981"
+                                        className="css-1kscf9w-StyledFlex css-9xhpuv1"
                                       >
                                         <Flex
                                           align="center"
                                           mr={1}
                                         >
-                                          <StyledFlex
-                                            align="center"
-                                          >
+                                          <StyledFlex>
                                             <div
-                                              className="css-4hbmhp-StyledFlex css-4jd5981"
+                                              className="css-c07irf-StyledFlex css-9xhpuv1"
                                             >
                                               <PluginIcon
                                                 pluginId="amazon-sqs"
@@ -403,13 +393,9 @@ exports[`ProjectPluginDetails renders 1`] = `
                         >
                           <StyledFlex
                             className=""
-                            direction="column"
-                            wrap="wrap"
                           >
                             <div
-                              className="css-1t2rrpz-StyledFlex css-4jd5981"
-                              direction="column"
-                              wrap="wrap"
+                              className="css-uvw4ws-StyledFlex css-9xhpuv1"
                             >
                               <div
                                 dangerouslySetInnerHTML={

@@ -28,10 +28,10 @@ class Base extends React.Component {
     pb: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
     pt: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
     flex: PropTypes.string,
-    alignItems: PropTypes.string,
-    justifyContent: PropTypes.string,
-    flexDirection: PropTypes.string,
-    flexWrap: PropTypes.string,
+    align: PropTypes.string,
+    justify: PropTypes.string,
+    direction: PropTypes.string,
+    wrap: PropTypes.string,
   };
 
   getSpacingRules = () => {
@@ -114,13 +114,13 @@ class Base extends React.Component {
   getFlexRules = () => {
     const rules = [];
     const mapping = [
-      ['alignItems', 'align-items'],
-      ['justifyContent', 'justify-content'],
-      ['flexDirection', 'flex-direction'],
-      ['flexWrap', 'flex-wrap'],
+      ['align', 'align-items'],
+      ['justify', 'justify-content'],
+      ['direction', 'flex-direction'],
+      ['wrap', 'flex-wrap'],
     ];
 
-    mapping.forEach((prop, cssProperty) => {
+    mapping.forEach(([prop, cssProperty]) => {
       if (typeof this.props[prop] !== 'undefined') {
         rules.push(`${cssProperty}:${this.props[prop]};`);
       }
@@ -193,10 +193,10 @@ export class Flex extends Base {
       pt,
       pb,
       flex,
-      alignItems,
-      justifyContent,
-      flexDirection,
-      flexWrap,
+      align,
+      justify,
+      direction,
+      wrap,
       ...otherProps
     } = this.props;
 
