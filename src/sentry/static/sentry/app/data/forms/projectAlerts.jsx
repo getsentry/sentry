@@ -15,9 +15,9 @@ export const fields = {
 
     // additional data/props that is related to rendering of form field rather than data
     label: t('Subject Template'),
-    placeholder: 'e.g. [${tag:environment}]',
+    placeholder: 'e.g. $shortID - $title',
     help: t(
-      'The email subject to use (excluding the prefix) for individual alerts. Usable variables include: $project, $title, $shortID, and ${tag:key}, such as ${tag:environment} or ${tag:release}.'
+      'The email subject to use (excluding the prefix) for individual alerts. Usable variables include: $title, $shortID, $projectID, $orgID, and ${tag:key}, such as ${tag:environment} or ${tag:release}.'
     ),
   },
   digestsMinDelay: {

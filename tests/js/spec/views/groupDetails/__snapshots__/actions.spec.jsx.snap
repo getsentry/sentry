@@ -90,6 +90,7 @@ exports[`GroupActions render() renders correctly 1`] = `
           "ssn",
         ],
         "slug": "project",
+        "subjectPrefix": "[my-org]",
         "subjectTemplate": "[$project] \${tag:level}: $title",
         "teams": Array [],
         "verifySSL": true,

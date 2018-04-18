@@ -77,10 +77,10 @@ exports[`ProjectAlertSettings render() renders 1`] = `
         fields={
           Array [
             Object {
-              "help": "The email subject to use (excluding the prefix) for individual alerts. Usable variables include: $project, $title, $shortID, and \${tag:key}, such as \${tag:environment} or \${tag:release}.",
+              "help": "The email subject to use (excluding the prefix) for individual alerts. Usable variables include: $title, $shortID, $projectID, $orgID, and \${tag:key}, such as \${tag:environment} or \${tag:release}.",
               "label": "Subject Template",
               "name": "subjectTemplate",
-              "placeholder": "e.g. [\${tag:environment}]",
+              "placeholder": "e.g. $shortID - $title",
               "type": "string",
             },
           ]
@@ -179,6 +179,7 @@ exports[`ProjectAlertSettings render() renders 1`] = `
             "ssn",
           ],
           "slug": "project-slug",
+          "subjectPrefix": "[my-org]",
           "subjectTemplate": "[$project] \${tag:level}: $title",
           "teams": Array [],
           "verifySSL": true,
