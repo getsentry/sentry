@@ -239,7 +239,8 @@ class OrganizationMember(Model):
             id__in=OrganizationMemberTeam.objects.filter(
                 organizationmember=self,
                 is_active=True,
-            ).values_list('team', flat=True).values('id', 'slug'))
+            ).values_list('team', flat=True)
+        ).values('id', 'slug')
         )
 
         return {
