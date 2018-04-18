@@ -78,7 +78,57 @@ class TimedFuture(Future):
             return super(TimedFuture, self).set_exception_info(*args, **kwargs)
 
 
-class ThreadedExecutor(object):
+class Executor(object):
+    """
+    This class provides an API for executing tasks in different contexts
+    (immediately, or asynchronously.)
+
+    NOTE: This is *not* compatible with the ``concurrent.futures.Executor``
+    API! Rather than ``submit`` accepting the function arguments, the function
+    must already have the argument values bound (via ``functools.partial`` or
+    similar), and ``submit`` passes all additional arguments to ``queue.put``
+    to allow controlling whether or not queue insertion should be blocking.
+    """
+    Future = TimedFuture
+
+    def submit(self, callable, priority=0, block=True, timeout=None):
+        """
+        Enqueue a task to be executed, returning a ``TimedFuture``.
+
+        All implementations *must* accept the ``callable`` parameter, but other
+        parameters may or may not be implemented, depending on the specific
+        implementation used.
+        """
+        raise NotImplementedError
+
+
+class SynchronousExecutor(Executor):
+    """
+    This executor synchronously executes callables in the current thread.
+
+    This is primarily exists to provide API compatibility with
+    ``ThreadedExecutor`` for calls that do not do significant I/O.
+    """
+
+    # TODO: The ``Future`` implementation here could be replaced with a
+    # lock-free future for efficiency.
+
+    def submit(self, callable, *args, **kwargs):
+        """
+        Immediately execute a callable, returning a ``TimedFuture``.
+        """
+        future = self.Future()
+        assert future.set_running_or_notify_cancel()
+        try:
+            result = callable()
+        except Exception as error:
+            future.set_exception(error)
+        else:
+            future.set_result(result)
+        return future
+
+
+class ThreadedExecutor(Executor):
     """\
     This executor provides a method of executing callables in a threaded worker
     pool. The number of outstanding requests can be limited by the ``maxsize``
@@ -87,12 +137,6 @@ class ThreadedExecutor(object):
 
     All threads are daemon threads and will remain alive until the main thread
     exits. Any items remaining in the queue at this point may not be executed!
-
-    NOTE: This is *not* compatible with the ``concurrent.futures.Executor``
-    API! Rather than ``submit`` accepting the function arguments, the function
-    must already have the argument values bound (via ``functools.partial`` or
-    similar), and ``submit`` passes all additional arguments to ``queue.put``
-    to allow controlling whether or not queue insertion should be blocking.
     """
 
     def __init__(self, worker_count=1, maxsize=0):
@@ -143,7 +187,7 @@ class ThreadedExecutor(object):
         if not self.__started:
             self.start()
 
-        future = TimedFuture()
+        future = self.Future()
         task = (priority, (callable, future))
         try:
             self.__queue.put(task, block=block, timeout=timeout)
