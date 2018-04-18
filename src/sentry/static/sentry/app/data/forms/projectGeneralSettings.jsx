@@ -76,10 +76,11 @@ export const fields = {
     help: t('Update the team that owns this project'),
   },
 
-  subjectTemplate: {
-    name: 'subjectTemplate',
+  subjectPrefix: {
+    name: 'subjectPrefix',
     type: 'string',
     label: t('Subject Prefix'),
+    placeholder: t('e.g. [my-org]'),
     help: t('Choose a custom prefix for emails from this project'),
   },
 

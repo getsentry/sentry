@@ -654,6 +654,7 @@ window.TestStubs = {
   ProjectDetails: params => {
     return TestStubs.Project({
       subjectTemplate: '[$project] ${tag:level}: $title',
+      subjectPrefix: '[my-org]',
       digestsMinDelay: 5,
       digestsMaxDelay: 60,
       dataScrubber: false,
