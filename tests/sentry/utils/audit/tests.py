@@ -81,7 +81,7 @@ class CreateAuditEntryTest(TestCase):
 
         assert ('restored') in entry.get_note()
         assert entry.actor == self.user
-        assert entry.target_object == self.project.id
+        assert entry.target_object == self.org.id
         assert entry.event == AuditLogEntryEvent.ORG_RESTORE
 
     def test_audit_entry_team_delete_log(self):
