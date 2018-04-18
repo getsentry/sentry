@@ -30,7 +30,11 @@ _support_framework = re.compile(
 )
 SIM_PATH = '/Developer/CoreSimulator/Devices/'
 SIM_APP_PATH = '/Containers/Bundle/Application/'
-MAC_OS_PATH = '.app/Contents/'
+MAC_OS_PATHS = (
+    '.app/Contents/',
+    '/Users/',
+    '/usr/local/',
+)
 LINUX_SYS_PATHS = (
     '/lib/',
     '/usr/lib/',
@@ -157,7 +161,7 @@ class Symbolizer(object):
             return True
 
         sdk_name = sdk_info['sdk_name'].lower() if sdk_info else ''
-        if sdk_name == 'macos' and MAC_OS_PATH in obj_path:
+        if sdk_name == 'macos' and any(p in obj_path for p in MAC_OS_PATHS):
             return True
         if sdk_name == 'linux' and not obj_path.startswith(LINUX_SYS_PATHS):
             return True
