@@ -23,26 +23,10 @@ datetime_format = '%Y-%m-%dT%H:%M:%S+00:00'
 
 
 def snuba_to_datetime(d):
+    if isinstance(d, datetime):
+        return d
+
     return datetime.strptime(d, datetime_format).replace(tzinfo=pytz.utc)
-
-
-merge_rules = [
-    ('first_seen', min),
-    ('last_seen', max),
-    ('priority', max),
-    ('times_seen', sum)
-]
-
-
-def merge_snuba_results(obj1, obj2):
-    new_obj = {}
-
-    for rule in merge_rules:
-        field_name, fn = rule
-        if field_name in obj1:
-            new_obj[field_name] = fn([obj1[field_name], obj2[field_name]])
-
-    return new_obj
 
 
 convert_rules = [
@@ -68,6 +52,7 @@ def calculate_priority_cursor(data):
     times_seen = sum(data['times_seen'])
     last_seen = max(int(to_timestamp(d) * 1000) for d in data['last_seen'])
     return ((math.log(times_seen) * 600) + last_seen)
+
 
 sort_strategies = {
     # sort_by -> Tuple[
