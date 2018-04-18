@@ -37,7 +37,7 @@ class SnubaTSDB(BaseTSDB):
         super(SnubaTSDB, self).__init__(**options)
 
     def get_data(self, model, keys, start, end, rollup=None, environment_id=None,
-                 aggregation='count', group_on_model=True, group_on_time=False):
+                 aggregation='count()', group_on_model=True, group_on_time=False):
         """
         Normalizes all the TSDB parameters and sends a query to snuba.
 
@@ -56,7 +56,7 @@ class SnubaTSDB(BaseTSDB):
             groupby.append(model_group)
         if group_on_time:
             groupby.append('time')
-        if aggregation == 'count' and model_aggregate is not None:
+        if aggregation == 'count()' and model_aggregate is not None:
             # Special case, because count has different semantics, we change:
             # `COUNT(model_aggregate)` to `COUNT() GROUP BY model_aggregate`
             groupby.append(model_aggregate)
@@ -73,7 +73,7 @@ class SnubaTSDB(BaseTSDB):
 
     def get_range(self, model, keys, start, end, rollup=None, environment_id=None):
         result = self.get_data(model, keys, start, end, rollup, environment_id,
-                               aggregation='count', group_on_time=True)
+                               aggregation='count()', group_on_time=True)
         # convert
         #    {group:{timestamp:count, ...}}
         # into
@@ -135,7 +135,7 @@ class SnubaTSDB(BaseTSDB):
     def get_frequency_series(self, model, items, start, end=None,
                              rollup=None, environment_id=None):
         result = self.get_data(model, items, start, end, rollup, environment_id,
-                               aggregation='count', group_on_time=True)
+                               aggregation='count()', group_on_time=True)
         # convert
         #    {group:{timestamp:{agg:count}}}
         # into
@@ -144,7 +144,7 @@ class SnubaTSDB(BaseTSDB):
 
     def get_frequency_totals(self, model, items, start, end=None, rollup=None, environment_id=None):
         return self.get_data(model, items, start, end, rollup, environment_id,
-                             aggregation='count')
+                             aggregation='count()')
 
     def get_optimal_rollup(self, start):
         """

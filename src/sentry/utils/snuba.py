@@ -35,7 +35,7 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
     """
     groupby = groupby or []
     conditions = conditions or []
-    aggregations = aggregations or [['count', '', 'aggregate']]
+    aggregations = aggregations or [['count()', '', 'aggregate']]
     filter_keys = filter_keys or {}
 
     # Forward and reverse translation maps from model ids to snuba keys, per column
