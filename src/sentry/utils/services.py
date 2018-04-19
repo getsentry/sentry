@@ -6,6 +6,7 @@ import itertools
 import logging
 import threading
 
+import six
 from django.utils.functional import empty, LazyObject
 
 from sentry.utils import warnings
@@ -85,6 +86,15 @@ class LazyServiceWrapper(LazyObject):
                 context[key] = getattr(base, key)
 
 
+def resolve_callable(value):
+    if isinstance(value, callable):
+        return value
+    elif isinstance(value, six.string_types):
+        return import_string(value)
+    else:
+        raise TypeError('Expected callable or string')
+
+
 class ServiceDelegator(Service):
     """\
     This is backend that coordinates and delegates method execution to multiple
@@ -139,8 +149,11 @@ class ServiceDelegator(Service):
     undergoing testing may be included based on the result of a random number
     generator (essentially calling it in the background for a sample of calls.)
 
-    The selector function and callback function are both provided as paths to a
-    callable that will be imported at backend instantation.
+    The selector function and callback function can be provided as either:
+
+    - A dotted import path string (``path.to.callable``) that will be
+      imported at backend instantiation, or
+    - A reference to a callable object.
 
     Implementation notes:
 
@@ -201,10 +214,10 @@ class ServiceDelegator(Service):
                 load_executor(options.get('executor', {})),
             )
 
-        self.__selector_func = import_string(selector_func)
+        self.__selector_func = resolve_callable(selector_func)
 
         if callback_func is not None:
-            self.__callback_func = import_string(callback_func)
+            self.__callback_func = resolve_callable(callback_func)
         else:
             self.__callback_func = None
 
