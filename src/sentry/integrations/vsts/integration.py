@@ -12,6 +12,7 @@ metadata = IntegrationMetadata(
     author='The Sentry Team',
     issue_url='https://github.com/getsentry/sentry/issues/new?title=VSTS%20Integration:%20&labels=Component%3A%20Integrations',
     source_url='https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/vsts',
+    aspects={},
 )
 
 
@@ -43,4 +44,6 @@ class VSTSIntegration(Integration):
         return [identity_pipeline_view]
 
     def build_integration(self, state):
-        pass
+        return {
+            'external_id': state['name'],
+        }

@@ -1238,6 +1238,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     'sentry.integrations.slack.SlackIntegration',
     'sentry.integrations.github.GitHubIntegration',
     'sentry.integrations.jira.JiraIntegration',
+    'sentry.integrations.vsts.VSTSIntegration',
 )
 
 
