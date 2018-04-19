@@ -242,8 +242,13 @@ const ProjectContext = createReactClass({
   },
 
   renderBody() {
-    if (this.state.loading) return <LoadingIndicator />;
-    else if (this.state.error) {
+    if (this.state.loading) {
+      return (
+        <div className="loading-full-layout">
+          <LoadingIndicator />
+        </div>
+      );
+    } else if (this.state.error) {
       switch (this.state.errorType) {
         case ERROR_TYPES.PROJECT_NOT_FOUND:
           return (
