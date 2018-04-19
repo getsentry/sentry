@@ -29,7 +29,9 @@ exports[`SettingsLayout renders 1`] = `
       </Flex>
     </Container>
   </SettingsHeader>
-  <Container>
+  <Container
+    flex="1"
+  >
     <Content>
       <NewSettingsWarning />
     </Content>

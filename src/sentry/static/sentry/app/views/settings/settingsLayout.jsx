@@ -122,7 +122,7 @@ class SettingsLayout extends React.Component {
             </Flex>
           </Container>
         </SettingsHeader>
-        <Container>
+        <Container flex="1">
           {typeof renderNavigation === 'function' && (
             <SidebarWrapper>{renderNavigation()}</SidebarWrapper>
           )}
