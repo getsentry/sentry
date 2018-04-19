@@ -199,7 +199,7 @@ const SuggestedOwners = createReactClass({
     return (
       <div className="m-b-1">
         <h6>
-          <span>{t('Suggested Assignees')}</span>
+          <span>{t('Suggested Owners')}</span>
           <small style={{background: '#FFFFFF'}}>{t('Click to assign')}</small>
         </h6>
         <div className="avatar-grid">
