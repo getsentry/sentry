@@ -15,12 +15,12 @@ backends = []
 
 if settings.SENTRY_TAGSTORE == 'sentry.utils.services.ServiceDelegator':
     backends = [
-        backend: backend['path'] for backend in
+        backend['path'] for backend in
         settings.SENTRY_TAGSTORE_OPTIONS.get('backends', {}).values()
     ]
 elif settings.SENTRY_TAGSTORE.startswith('sentry.tagstore.multi'):
     backends = [
-        backend: backend[0] for backend in
+        backend[0] for backend in
         settings.SENTRY_TAGSTORE_OPTIONS.get('backends', [])
     ]
 else:
@@ -46,7 +46,7 @@ for i, backend in enumerate(backends):
                 # into the local (module) scope. This follows the same rules as
                 # the import statement itself, as defined in the refrence docs:
                 # https://docs.python.org/2.7/reference/simple_stmts.html#import
-                if getattr(models, '__all__'):
+                if getattr(models, '__all__', None) is not None:
                     predicate = lambda name: name in models.__all__
                 else:
                     predicate = lambda name: not name.startswith('_')
