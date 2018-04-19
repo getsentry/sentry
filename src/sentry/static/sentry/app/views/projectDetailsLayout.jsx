@@ -39,7 +39,7 @@ const ProjectDetailsLayout = createReactClass({
     if (!this.context.project) return null;
 
     return (
-      <div>
+      <React.Fragment>
         <ProjectHeader
           activeSection={this.state.projectNavSection}
           project={this.context.project}
@@ -55,7 +55,7 @@ const ProjectDetailsLayout = createReactClass({
             })}
           </div>
         </div>
-      </div>
+      </React.Fragment>
     );
   },
 });
