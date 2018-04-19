@@ -331,7 +331,7 @@ class FormField extends React.Component {
                       <this.props.children
                         innerRef={this.handleInputMount}
                         {...{
-                          ...this.props,
+                          ...props,
                           name,
                           id,
                           onKeyDown: this.handleKeyDown,
