@@ -87,7 +87,7 @@ class LazyServiceWrapper(LazyObject):
 
 
 def resolve_callable(value):
-    if isinstance(value, callable):
+    if callable(value):
         return value
     elif isinstance(value, six.string_types):
         return import_string(value)
