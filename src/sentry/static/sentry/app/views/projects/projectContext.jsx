@@ -246,6 +246,7 @@ const ProjectContext = createReactClass({
     else if (this.state.error) {
       switch (this.state.errorType) {
         case ERROR_TYPES.PROJECT_NOT_FOUND:
+          // TODO(chrissy): use scale for margin values
           return (
             <div className="container">
               <div className="alert alert-block" style={{margin: '30px 0 10px'}}>
