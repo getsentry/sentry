@@ -67,6 +67,11 @@ class IssueDetailsTest(AcceptanceTestCase):
         self.browser.wait_until('.entries')
         self.browser.snapshot('issue details javascript')
 
+        # make sure we can navigate to event
+        self.browser.click('.event-id')
+        self.browser.wait_until('.event-details-container')
+        self.browser.snapshot('issue details javascript - event details')
+
     def test_rust_event(self):
         # TODO: This should become its own "rust" platform type
         event = self.create_sample_event(
