@@ -11,6 +11,7 @@ body {
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
   padding-left: @sidebar-width;
+  min-height: 100vh;
 
   // Fake sidebar rendering until actual sidebar is loaded
 
@@ -23,12 +24,6 @@ body {
     background-image: none;
     background-color: #fcfcfc;
     padding: 0;
-    min-height: 100vh;
-
-    #blk_router,
-    .app {
-      min-height: 100vh;
-    }
 
     .messages-container {
       margin: 0;
@@ -37,6 +32,10 @@ body {
       z-index: 1000;
     }
   }
+}
+
+#blk_router {
+  min-height: 100vh;
 }
 
 /**
@@ -132,6 +131,7 @@ body.auth {
 .app {
   display: flex;
   flex-direction: column;
+  min-height: 100vh;
 }
 
 .container {
@@ -139,6 +139,7 @@ body.auth {
   padding-left: 30px;
   padding-right: 30px;
   width: 100% !important;
+  flex: 1;
 }
 
 /**
