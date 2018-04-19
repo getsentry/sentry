@@ -25,6 +25,8 @@ default_manager.add('organizations:new-teams', OrganizationFeature)  # NOQA
 default_manager.add('organizations:code-owners', OrganizationFeature)  # NOQA
 default_manager.add('organizations:unreleased-changes', OrganizationFeature)  # NOQA
 default_manager.add('projects:similarity-view', ProjectFeature)  # NOQA
+default_manager.add('organizations:environments', OrganizationFeature)  # NOQA
+default_manager.add('organizations:dashboard', OrganizationFeature)  # NOQA
 default_manager.add('projects:global-events', ProjectFeature)  # NOQA
 default_manager.add('projects:plugins', ProjectPluginFeature)  # NOQA
 default_manager.add('projects:data-forwarding', ProjectFeature)  # NOQA
@@ -36,7 +38,6 @@ default_manager.add('projects:similarity-indexing', ProjectFeature)  # NOQA
 default_manager.add('projects:discard-groups', ProjectFeature)  # NOQA
 default_manager.add('projects:custom-inbound-filters', ProjectFeature)  # NOQA
 default_manager.add('projects:minidump', ProjectFeature)  # NOQA
-default_manager.add('organizations:environments', OrganizationFeature)  # NOQA
 default_manager.add('user:assistant')
 
 # expose public api
