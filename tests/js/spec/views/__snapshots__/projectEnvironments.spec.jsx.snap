@@ -201,7 +201,7 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
               <EmptyMessage>
                 <Wrapper>
                   <div
-                    className="css-bq6a85-Wrapper css-toum0v0"
+                    className="css-bq6a85-Wrapper css-mb9f100"
                   >
                     <div
                       className="ref-message"
@@ -968,7 +968,7 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
               <EmptyMessage>
                 <Wrapper>
                   <div
-                    className="css-bq6a85-Wrapper css-toum0v0"
+                    className="css-bq6a85-Wrapper css-mb9f100"
                   >
                     <div
                       className="ref-message"

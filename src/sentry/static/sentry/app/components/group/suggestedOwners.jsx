@@ -1,8 +1,8 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import ReactDOMServer from 'react-dom/server';
 import moment from 'moment';
+import styled from 'react-emotion';
 
 import Avatar from '../avatar';
 import ActorAvatar from '../actorAvatar';
@@ -10,13 +10,20 @@ import Tooltip from '../tooltip';
 import ApiMixin from '../../mixins/apiMixin';
 import GroupState from '../../mixins/groupState';
 import {assignToUser, assignToActor} from '../../actionCreators/group';
-import {t} from '../../locale';
+import {t, tct} from '../../locale';
+import Button from '../buttons/button';
+import EmptyMessage from '../../views/settings/components/emptyMessage';
+import {openCreateOwnershipRule} from '../../actionCreators/modal';
+import SentryTypes from '../../proptypes';
 
 const SuggestedOwners = createReactClass({
   displayName: 'SuggestedOwners',
 
   propTypes: {
-    event: PropTypes.object,
+    event: SentryTypes.Event,
+    org: SentryTypes.Organization,
+    project: SentryTypes.Project,
+    group: SentryTypes.Group,
   },
 
   mixins: [ApiMixin, GroupState],
@@ -156,6 +163,7 @@ const SuggestedOwners = createReactClass({
 
   renderOwner(owner) {
     let {rule} = this.state;
+    let name = `${owner.type === 'team' ? '#' : ''}${owner.name}`;
     return (
       <span
         key={`${owner.id}:${owner.type}`}
@@ -172,12 +180,14 @@ const SuggestedOwners = createReactClass({
           }}
           title={ReactDOMServer.renderToStaticMarkup(
             <div>
-              <div className="tooltip-owners-name">{owner.name}</div>
+              <div className="tooltip-owners-name">
+                {tct('[name] is suggested based on Issue Owner rule', {
+                  name,
+                })}
+              </div>
               <ul className="tooltip-owners-commits">
-                {t("Assigned based on your Project's Issue Ownership settings")}
-              </ul>
-              <ul className="tooltip-owners-commits">
-                {rule[0] + t(' matched: ') + rule[1]}
+                {rule[0] + t(' matched: ')}
+                <code>{rule[1]}</code>
               </ul>
             </div>
           )}
@@ -189,12 +199,12 @@ const SuggestedOwners = createReactClass({
   },
 
   render() {
+    let {org, project, group} = this.props;
     let {committers, owners} = this.state;
-    let showOwners = new Set(this.getOrganization().features).has('code-owners');
+    let showOwners = new Set(org.features).has('code-owners');
 
-    if (committers.length == 0 && (!showOwners || owners.length == 0)) {
-      return null;
-    }
+    let isEmpty = (!committers || !committers.length) && (!owners || !owners.length);
+    let canAddRule = org.access.indexOf('project:write') > -1;
 
     return (
       <div className="m-b-1">
@@ -205,6 +215,36 @@ const SuggestedOwners = createReactClass({
         <div className="avatar-grid">
           {committers.map(this.renderCommitter)}
           {showOwners && owners.map(this.renderOwner)}
+
+          {isEmpty && (
+            <SmallEmptyMessage>
+              <MessageWrapper>
+                <Message>{t('No Owners')}</Message>{' '}
+                {showOwners && (
+                  <Tooltip
+                    disabled={canAddRule}
+                    title={t(
+                      'You need project:write access to create an Issue Owner rule.'
+                    )}
+                  >
+                    <Button
+                      disabled={!canAddRule}
+                      priority="primary"
+                      size="xsmall"
+                      onClick={() =>
+                        openCreateOwnershipRule({
+                          project,
+                          organization: org,
+                          issueId: group.id,
+                        })}
+                    >
+                      {t('Add Rule')}
+                    </Button>
+                  </Tooltip>
+                )}
+              </MessageWrapper>
+            </SmallEmptyMessage>
+          )}
         </div>
       </div>
     );
@@ -212,3 +252,18 @@ const SuggestedOwners = createReactClass({
 });
 
 export default SuggestedOwners;
+
+const SmallEmptyMessage = styled(EmptyMessage)`
+  padding: 0;
+  flex: 1;
+  align-items: stretch;
+`;
+
+const Message = styled('span')`
+  opacity: 0.4;
+`;
+
+const MessageWrapper = styled('div')`
+  display: flex;
+  justify-content: space-between;
+`;
