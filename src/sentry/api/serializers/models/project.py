@@ -247,6 +247,28 @@ class ProjectWithTeamSerializer(ProjectSerializer):
 
 
 class ProjectSummarySerializer(ProjectWithTeamSerializer):
+    def get_attrs(self, item_list, user):
+        attrs = super(ProjectSummarySerializer,
+                      self).get_attrs(item_list, user)
+
+        project_ids = [i.id for i in item_list]
+
+        platforms = ProjectPlatform.objects.filter(
+            project_id__in=project_ids,
+        ).values_list('project_id', 'platform')
+        platforms_by_project = defaultdict(list)
+        for project_id, platform in platforms:
+            platforms_by_project[project_id].append(platform)
+
+        for item in item_list:
+            attrs[item].update(
+                {
+                    'platforms': platforms_by_project[item.id],
+                }
+            )
+
+        return attrs
+
     def serialize(self, obj, attrs, user):
         context = {
             'team': attrs['teams'][0] if attrs['teams'] else None,
@@ -260,11 +282,8 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             'dateCreated': obj.date_added,
             'firstEvent': obj.first_event,
             'platform': obj.platform,
+            'platforms': attrs['platforms'],
         }
-
-        if hasattr(obj, 'platforms'):
-            context['platforms'] = getattr(obj, 'platforms')
-
         if 'stats' in attrs:
             context['stats'] = attrs['stats']
         return context

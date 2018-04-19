@@ -8,7 +8,7 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.auth import access
 from sentry.models import (
     ApiKey, Organization, OrganizationAccessRequest, OrganizationAvatar, OrganizationOnboardingTask,
-    OrganizationOption, OrganizationStatus, Project, ProjectStatus, Team, TeamStatus, ProjectPlatform
+    OrganizationOption, OrganizationStatus, Project, ProjectStatus, Team, TeamStatus
 )
 
 
@@ -87,9 +87,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
 
         for project in project_list:
             project._organization_cache = obj
-            project.platforms = ProjectPlatform.objects.filter(
-                project_id=project.id,
-            ).values_list('platform', flat=True)
 
         onboarding_tasks = list(
             OrganizationOnboardingTask.objects.filter(
