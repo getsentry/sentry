@@ -11,23 +11,46 @@ from __future__ import absolute_import
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 
-# HACK: This was taken from nodestore.models. Django doesn't play well with our
-# naming schemes, and we prefer our methods ways over Django's limited scoping
-if settings.SENTRY_TAGSTORE.startswith('sentry.tagstore.legacy'):
-    from sentry.tagstore.legacy.models import *  # NOQA
-elif settings.SENTRY_TAGSTORE.startswith('sentry.tagstore.v2'):
-    from sentry.tagstore.v2.models import *  # NOQA
+backends = []
 
-    # Prevent schema migration from adding DROP TABLE for Legacy
-    from sentry.tagstore.legacy import models as _legacy_models  # NOQA
+if settings.SENTRY_TAGSTORE == 'sentry.utils.services.ServiceDelegator':
+    backends = [
+        backend['path'] for backend in
+        settings.SENTRY_TAGSTORE_OPTIONS.get('backends', {}).values()
+    ]
 elif settings.SENTRY_TAGSTORE.startswith('sentry.tagstore.multi'):
-    for backend in settings.SENTRY_TAGSTORE_OPTIONS.get('backends', []):
-        if backend[0].startswith('sentry.tagstore.legacy'):
-            from sentry.tagstore.legacy.models import *  # NOQA
-        elif backend[0].startswith('sentry.tagstore.v2'):
-            from sentry.tagstore.v2 import models as _v2_models  # NOQA
-elif settings.SENTRY_TAGSTORE.startswith('sentry.tagstore.snuba'):
-    # TODO this shouldn't really be required but some tests depend on importing them
-    from sentry.tagstore.v2.models import *  # NOQA
+    backends = [
+        backend[0] for backend in
+        settings.SENTRY_TAGSTORE_OPTIONS.get('backends', [])
+    ]
 else:
-    raise ImproperlyConfigured("Found unknown tagstore backend '%s'" % settings.SENTRY_TAGSTORE)
+    backends = [settings.SENTRY_TAGSTORE]
+
+if not len(backends) > 0:
+    raise ImproperlyConfigured('One or more tagstore backend(s) must be specified')
+
+prefix_map = {
+    # backend path prefix: path to the `models` parent model used
+    'sentry.tagstore.legacy': 'sentry.tagstore.legacy',
+    'sentry.tagstore.v2': 'sentry.tagstore.v2',
+    'sentry.tagstore.snuba': 'sentry.tagstore.v2',
+}
+
+for i, backend in enumerate(backends):
+    for prefix, path in prefix_map.items():
+        if backend.startswith(prefix):
+            models = __import__(path, globals(), locals(), ['models'], level=0).models
+            if i == 0:
+                # If this is the first iteration of the loop, we need to
+                # emulate ``from x import *`` by copying the module contents
+                # into the local (module) scope. This follows the same rules as
+                # the import statement itself, as defined in the refrence docs:
+                # https://docs.python.org/2.7/reference/simple_stmts.html#import
+                if getattr(models, '__all__', None) is not None:
+                    predicate = lambda name: name in models.__all__
+                else:
+                    predicate = lambda name: not name.startswith('_')
+                locals().update({k: v for k, v in vars(models).items() if predicate(k)})
+            break
+    else:
+        raise ImproperlyConfigured("Found unknown tagstore backend '%s'" % backend)
