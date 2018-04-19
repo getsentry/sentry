@@ -1,7 +1,7 @@
 import React from 'react';
 import {shallow} from 'enzyme';
 import Cookies from 'js-cookie';
-import _ from 'lodash';
+import {pick, keys} from 'lodash';
 
 import {Client} from 'app/api';
 import CursorPoller from 'app/utils/cursorPoller';
@@ -466,7 +466,7 @@ describe('Stream', function() {
       };
 
       let actual = wrapper.instance().getInitialState();
-      expect(_.pick(actual, _.keys(expected))).toEqual(expected);
+      expect(pick(actual, keys(expected))).toEqual(expected);
     });
 
     it('handles no searchId or query', function() {
@@ -495,7 +495,7 @@ describe('Stream', function() {
       }).instance();
 
       let actual = stream.state;
-      expect(_.pick(actual, _.keys(expected))).toEqual(expected);
+      expect(pick(actual, keys(expected))).toEqual(expected);
     });
 
     it('handles valid searchId in routing params', function() {
@@ -529,7 +529,7 @@ describe('Stream', function() {
       });
 
       let actual = wrapper.instance().state;
-      expect(_.pick(actual, _.keys(expected))).toEqual(expected);
+      expect(pick(actual, keys(expected))).toEqual(expected);
     });
 
     it('handles invalid searchId in routing params', function() {
@@ -559,7 +559,7 @@ describe('Stream', function() {
       }).instance();
 
       let actual = stream.state;
-      expect(_.pick(actual, _.keys(expected))).toEqual(expected);
+      expect(pick(actual, keys(expected))).toEqual(expected);
     });
   });
 

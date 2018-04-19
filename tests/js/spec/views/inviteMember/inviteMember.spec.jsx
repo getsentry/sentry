@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {shallow, mount} from 'enzyme';
-import _ from 'lodash';
+import {cloneDeep} from 'lodash';
 import {InviteMember} from 'app/views/inviteMember/inviteMember';
 import ConfigStore from 'app/stores/configStore';
 
@@ -69,7 +69,7 @@ describe('CreateProject', function() {
         },
       });
 
-      let context = _.cloneDeep(baseContext);
+      let context = cloneDeep(baseContext);
 
       let team = context.context.organization.teams.slice(0, 1);
       context.context.organization.teams = team;
