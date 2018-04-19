@@ -12,7 +12,7 @@ class NarrowLayout extends React.Component {
 
   render() {
     return (
-      <React.Fragment>
+      <div className="app">
         <div className="pattern-bg" />
         <div className="container">
           <div className="box box-modal">
@@ -24,7 +24,7 @@ class NarrowLayout extends React.Component {
             <div className="box-content with-padding">{this.props.children}</div>
           </div>
         </div>
-      </React.Fragment>
+      </div>
     );
   }
 }

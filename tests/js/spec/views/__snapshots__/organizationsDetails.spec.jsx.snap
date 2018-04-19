@@ -5,41 +5,45 @@ exports[`OrganizationDetails render() deletion in progress should render a delet
   class="app"
 >
   <div
-    class="pattern-bg"
-  />
-  <div
-    class="container"
+    class="app"
   >
     <div
-      class="box box-modal"
+      class="pattern-bg"
+    />
+    <div
+      class="container"
     >
       <div
-        class="box-header"
+        class="box box-modal"
       >
-        <a
-          href="/"
+        <div
+          class="box-header"
         >
-          <span
-            class="icon-sentry-logo"
-          />
-        </a>
-      </div>
-      <div
-        class="box-content with-padding"
-      >
-        <p>
-          <span>
+          <a
+            href="/"
+          >
+            <span
+              class="icon-sentry-logo"
+            />
+          </a>
+        </div>
+        <div
+          class="box-content with-padding"
+        >
+          <p>
             <span>
-              The 
+              <span>
+                The 
+              </span>
+              <strong>
+                org-slug
+              </strong>
+              <span>
+                 organization is currently in the process of being deleted from Sentry.
+              </span>
             </span>
-            <strong>
-              org-slug
-            </strong>
-            <span>
-               organization is currently in the process of being deleted from Sentry.
-            </span>
-          </span>
-        </p>
+          </p>
+        </div>
       </div>
     </div>
   </div>
@@ -51,66 +55,70 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
   class="app"
 >
   <div
-    class="pattern-bg"
-  />
-  <div
-    class="container"
+    class="app"
   >
     <div
-      class="box box-modal"
+      class="pattern-bg"
+    />
+    <div
+      class="container"
     >
       <div
-        class="box-header"
+        class="box box-modal"
       >
-        <a
-          href="/"
+        <div
+          class="box-header"
         >
-          <span
-            class="icon-sentry-logo"
-          />
-        </a>
-      </div>
-      <div
-        class="box-content with-padding"
-      >
-        <h3>
-          Deletion Scheduled
-        </h3>
-        <p>
-          <span>
-            <span>
-              The 
-            </span>
-            <strong>
-              org-slug
-            </strong>
-            <span>
-               organization is currently scheduled for deletion.
-            </span>
-          </span>
-        </p>
-        <div>
+          <a
+            href="/"
+          >
+            <span
+              class="icon-sentry-logo"
+            />
+          </a>
+        </div>
+        <div
+          class="box-content with-padding"
+        >
+          <h3>
+            Deletion Scheduled
+          </h3>
           <p>
-            Would you like to cancel this process and restore the organization back to the original state?
+            <span>
+              <span>
+                The 
+              </span>
+              <strong>
+                org-slug
+              </strong>
+              <span>
+                 organization is currently scheduled for deletion.
+              </span>
+            </span>
           </p>
-          <p>
-            <button
-              class="button button-primary"
-              role="button"
-            >
-              <div
-                class="button-label css-5ipae5"
+          <div>
+            <p>
+              Would you like to cancel this process and restore the organization back to the original state?
+            </p>
+            <p>
+              <button
+                class="button button-primary"
+                role="button"
               >
-                Restore Organization
-              </div>
-            </button>
+                <div
+                  class="button-label css-5ipae5"
+                >
+                  Restore Organization
+                </div>
+              </button>
+            </p>
+          </div>
+          <p>
+            <small>
+              Note: Restoration is available until the process begins. Once it does, there's no recovering the data that has been removed.
+            </small>
           </p>
         </div>
-        <p>
-          <small>
-            Note: Restoration is available until the process begins. Once it does, there's no recovering the data that has been removed.
-          </small>
-        </p>
       </div>
     </div>
   </div>
@@ -122,52 +130,56 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
   class="app"
 >
   <div
-    class="pattern-bg"
-  />
-  <div
-    class="container"
+    class="app"
   >
     <div
-      class="box box-modal"
+      class="pattern-bg"
+    />
+    <div
+      class="container"
     >
       <div
-        class="box-header"
+        class="box box-modal"
       >
-        <a
-          href="/"
+        <div
+          class="box-header"
         >
-          <span
-            class="icon-sentry-logo"
-          />
-        </a>
-      </div>
-      <div
-        class="box-content with-padding"
-      >
-        <h3>
-          Deletion Scheduled
-        </h3>
-        <p>
-          <span>
+          <a
+            href="/"
+          >
+            <span
+              class="icon-sentry-logo"
+            />
+          </a>
+        </div>
+        <div
+          class="box-content with-padding"
+        >
+          <h3>
+            Deletion Scheduled
+          </h3>
+          <p>
             <span>
-              The 
+              <span>
+                The 
+              </span>
+              <strong>
+                org-slug
+              </strong>
+              <span>
+                 organization is currently scheduled for deletion.
+              </span>
             </span>
-            <strong>
-              org-slug
-            </strong>
-            <span>
-               organization is currently scheduled for deletion.
-            </span>
-          </span>
-        </p>
-        <p>
-          If this is a mistake, contact an organization owner and ask them to restore this organization.
-        </p>
-        <p>
-          <small>
-            Note: Restoration is available until the process begins. Once it does, there's no recovering the data that has been removed.
-          </small>
-        </p>
+          </p>
+          <p>
+            If this is a mistake, contact an organization owner and ask them to restore this organization.
+          </p>
+          <p>
+            <small>
+              Note: Restoration is available until the process begins. Once it does, there's no recovering the data that has been removed.
+            </small>
+          </p>
+        </div>
       </div>
     </div>
   </div>
