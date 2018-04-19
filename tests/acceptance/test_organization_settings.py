@@ -14,7 +14,7 @@ class OrganizationSettingsTest(AcceptanceTestCase):
         self.team = self.create_team(organization=self.org, name='Mariachi Band')
         self.project = self.create_project(
             organization=self.org,
-            team=self.team,
+            teams=[self.team],
             name='Bengal',
         )
         self.create_member(
@@ -33,7 +33,7 @@ class OrganizationSettingsTest(AcceptanceTestCase):
         assert self.browser.element_exists('.ref-organization-settings')
 
     def renders_2fa_setting(self):
-        return self.browser.element_exists('#id-require2FA')
+        return self.browser.element_exists('#require2FA')
 
     def test_simple(self):
         self.browser.get(self.path)
@@ -83,7 +83,10 @@ class OrganizationSettingsTest(AcceptanceTestCase):
             self.browser.get(path)
             self.browser.wait_until_not('.loading-indicator')
             assert not self.browser.element_exists('.ref-organization-settings .error')
-            self.browser.click('#id-require2FA')
-            self.browser.click('.ref-organization-settings button.btn.btn-primary')
+            self.browser.click('#require2FA')
+
+            self.browser.wait_until('.modal')
+            self.browser.click('.modal .button-primary')
+            self.browser.wait_until_not('.modal')
+            self.browser.wait_until('.ref-toast.ref-error')
             self.load_organization_helper("setting 2fa without 2fa enabled")
-            assert self.browser.element_exists('.ref-organization-settings .error')

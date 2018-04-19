@@ -97,12 +97,42 @@ class TSDBModel(Enum):
     # the number of events filtered because their group was discarded
     project_total_received_discarded = 610
 
+    servicehook_fired = 700
+
 
 class BaseTSDB(Service):
-    __all__ = (
-        'models', 'incr', 'incr_multi', 'get_range', 'get_rollups', 'get_sums', 'rollup',
-        'validate', 'make_series',
-    )
+    __all__ = frozenset([
+        'get_earliest_timestamp',
+        'get_optimal_rollup_series',
+        'get_rollups',
+        'make_series',
+        'models',
+        'models_with_environment_support',
+        'rollup',
+
+        'get_range',
+        'get_sums',
+        'get_distinct_counts_series',
+        'get_distinct_counts_totals',
+        'get_distinct_counts_union',
+        'get_most_frequent',
+        'get_most_frequent_series',
+        'get_frequency_series',
+        'get_frequency_totals',
+
+        'incr',
+        'incr_multi',
+        'merge',
+        'delete',
+        'record',
+        'record_multi',
+        'merge_distinct_counts',
+        'delete_distinct_counts',
+        'record_frequency_multi',
+        'merge_frequencies',
+        'delete_frequencies',
+        'flush',
+    ])
 
     models = TSDBModel
 
@@ -454,5 +484,11 @@ class BaseTSDB(Service):
                            timestamp=None, environment_ids=None):
         """
         Delete all frequency tables.
+        """
+        raise NotImplementedError
+
+    def flush(self):
+        """
+        Delete all data.
         """
         raise NotImplementedError

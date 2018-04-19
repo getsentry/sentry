@@ -1,5 +1,6 @@
 NPM_ROOT = ./node_modules
 STATIC_DIR = src/sentry/static/sentry
+DJANGO_VERSION := ">=1.6,<1.7"
 
 ifneq "$(wildcard /usr/local/opt/libxmlsec1/lib)" ""
 	LDFLAGS += -L/usr/local/opt/libxmlsec1/lib
@@ -8,7 +9,7 @@ ifneq "$(wildcard /usr/local/opt/openssl/lib)" ""
 	LDFLAGS += -L/usr/local/opt/openssl/lib
 endif
 
-PIP = LDFLAGS="$(LDFLAGS)" pip
+PIP = LDFLAGS="$(LDFLAGS)" pip -q
 
 develop-only: update-submodules install-brew install-python install-yarn
 
@@ -34,7 +35,6 @@ install-python-base:
 	$(PIP) install "setuptools>=0.9.8" "pip>=8.0.0"
 	# order matters here, base package must install first
 	$(PIP) install -e .
-	$(PIP) install ujson
 	$(PIP) install "file://`pwd`#egg=sentry[dev]"
 
 install-python-develop:
@@ -86,7 +86,7 @@ locale: build-js-po
 	cd src/sentry && sentry django compilemessages
 
 update-transifex: build-js-po
-	pip install transifex-client
+	pip install -q transifex-client
 	cd src/sentry && sentry django makemessages -i static -l en
 	./bin/merge-catalogs en
 	tx push -s
@@ -103,12 +103,12 @@ update-submodules:
 build-platform-assets:
 	@echo "--> Building platform assets"
 	sentry init
-	@echo "from sentry.utils.integrationdocs import sync_docs; sync_docs()" | sentry exec
+	@echo "from sentry.utils.integrationdocs import sync_docs; sync_docs(quiet=True)" | sentry exec
 
 test: develop lint test-js test-python test-cli
 
 testloop: develop
-	pip install pytest-xdist
+	pip install -q pytest-xdist
 	py.test tests -f
 
 test-cli:
@@ -123,7 +123,7 @@ test-cli:
 
 test-js:
 	@echo "--> Building static assets"
-	@${NPM_ROOT}/.bin/webpack
+	@${NPM_ROOT}/.bin/webpack --profile --json > webpack-stats.json
 	@echo "--> Running JavaScript tests"
 	@npm run test-ci
 	@echo ""
@@ -142,14 +142,19 @@ test-python: build-platform-assets
 test-network:
 	@echo "--> Building platform assets"
 	sentry init
-	@echo "from sentry.utils.integrationdocs import sync_docs; sync_docs()" | sentry exec
+	@echo "from sentry.utils.integrationdocs import sync_docs; sync_docs(quiet=True)" | sentry exec
 	@echo "--> Running network tests"
 	py.test tests/network --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml"
 	@echo ""
 
+test-snuba:
+	@echo "--> Running snuba tests"
+	py.test tests/snuba --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml"
+	@echo ""
+
 test-acceptance: build-platform-assets
 	@echo "--> Building static assets"
-	@${NPM_ROOT}/.bin/webpack
+	@${NPM_ROOT}/.bin/webpack --display errors-only
 	@echo "--> Running acceptance tests"
 	py.test tests/acceptance --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml" --html="pytest.html"
 	@echo ""
@@ -163,7 +168,13 @@ lint-python:
 
 lint-js:
 	@echo "--> Linting javascript"
-	bash -eo pipefail -c "bin/lint --js --parseable | tee eslint.codestyle.xml"
+	bash -eo pipefail -c "bin/lint --js --parseable | tee eslint.checkstyle.xml"
+	@echo ""
+
+scan-python:
+	@echo "--> Running Python vulnerability scanner"
+	python -m pip install -q safety
+	bin/scan
 	@echo ""
 
 coverage: develop
@@ -178,7 +189,7 @@ extract-api-docs:
 	cd api-docs; python generator.py
 
 
-.PHONY: develop dev-postgres dev-docs setup-git build clean locale update-transifex update-submodules test testloop test-cli test-js test-styleguide test-python test-acceptance lint lint-python lint-js coverage publish
+.PHONY: develop dev-postgres dev-docs setup-git build clean locale update-transifex update-submodules test testloop test-cli test-js test-styleguide test-python test-acceptance lint lint-python lint-js coverage publish scan-python
 
 
 ############################
@@ -187,36 +198,36 @@ extract-api-docs:
 
 # Bases for all builds
 travis-upgrade-pip:
-	python -m pip install "pip>=9,<10"
+	python -m pip install -q "pip>=9,<10"
 travis-setup-cassandra:
 	echo "create keyspace sentry with replication = {'class' : 'SimpleStrategy', 'replication_factor': 1};" | cqlsh --cqlversion=3.1.7
 	echo 'create table nodestore (key text primary key, value blob, flags int);' | cqlsh -k sentry --cqlversion=3.1.7
 travis-install-python:
+	pip install -q Django${DJANGO_VERSION}
 	$(MAKE) travis-upgrade-pip
 	$(MAKE) install-python-base
 	$(MAKE) install-python-tests
-	python -m pip install codecov
+	python -m pip install -q codecov
 travis-noop:
 	@echo "nothing to do here."
 
 .PHONY: travis-upgrade-pip travis-setup-cassandra travis-install-python travis-noop
 
-travis-install-danger:
-	bundle install
 travis-install-sqlite: travis-install-python
 travis-install-postgres: travis-install-python dev-postgres
 	psql -c 'create database sentry;' -U postgres
 travis-install-mysql: travis-install-python
-	pip install mysqlclient
+	pip install -q mysqlclient
 	echo 'create database sentry;' | mysql -uroot
 travis-install-acceptance: install-yarn travis-install-postgres
-	wget -N http://chromedriver.storage.googleapis.com/2.33/chromedriver_linux64.zip -P ~/
+	wget -N http://chromedriver.storage.googleapis.com/$(shell curl https://chromedriver.storage.googleapis.com/LATEST_RELEASE)/chromedriver_linux64.zip -P ~/
 	unzip ~/chromedriver_linux64.zip -d ~/
 	rm ~/chromedriver_linux64.zip
 	chmod +x ~/chromedriver
 	mkdir -p ~/.bin
 	mv ~/chromedriver ~/.bin/
 travis-install-network: travis-install-postgres
+travis-install-snuba: travis-install-postgres
 travis-install-js:
 	$(MAKE) travis-upgrade-pip
 	$(MAKE) travis-install-python install-yarn
@@ -225,32 +236,30 @@ travis-install-dist:
 	$(MAKE) travis-upgrade-pip
 	$(MAKE) travis-install-python install-yarn
 travis-install-django-18: travis-install-postgres
-	pip install "Django>=1.8,<1.9"
 
-.PHONY: travis-install-danger travis-install-sqlite travis-install-postgres travis-install-js travis-install-cli travis-install-dist
+.PHONY: travis-install-sqlite travis-install-postgres travis-install-js travis-install-cli travis-install-dist
 
 # Lint steps
-travis-lint-danger: travis-noop
 travis-lint-sqlite: lint-python
 travis-lint-postgres: lint-python
 travis-lint-mysql: lint-python
 travis-lint-acceptance: travis-noop
 travis-lint-network: lint-python
+travis-lint-snuba: lint-python
 travis-lint-js: lint-js
 travis-lint-cli: travis-noop
 travis-lint-dist: travis-noop
 travis-lint-django-18: travis-lint-postgres
 
-.PHONY: travis-lint-danger travis-lint-sqlite travis-lint-postgres travis-lint-mysql travis-lint-js travis-lint-cli travis-lint-dist
+.PHONY: travis-lint-sqlite travis-lint-postgres travis-lint-mysql travis-lint-js travis-lint-cli travis-lint-dist
 
 # Test steps
-travis-test-danger:
-	bundle exec danger
 travis-test-sqlite: test-python
 travis-test-postgres: test-python
 travis-test-mysql: test-python
 travis-test-acceptance: test-acceptance
 travis-test-network: test-network
+travis-test-snuba: test-snuba
 travis-test-js:
 	$(MAKE) test-js
 	$(MAKE) test-styleguide
@@ -260,4 +269,19 @@ travis-test-dist:
 	@ls -lh dist/
 travis-test-django-18: travis-test-postgres
 
-.PHONY: travis-test-danger travis-test-sqlite travis-test-postgres travis-test-mysql travis-test-js travis-test-cli travis-test-dist
+.PHONY: travis-test-sqlite travis-test-postgres travis-test-mysql travis-test-js travis-test-cli travis-test-dist
+
+
+# Scan steps
+travis-scan-sqlite: scan-python
+travis-scan-postgres: scan-python
+travis-scan-mysql: scan-python
+travis-scan-acceptance: travis-noop
+travis-scan-network: travis-noop
+travis-scan-snuba: scan-python
+travis-scan-js: travis-noop
+travis-scan-cli: travis-noop
+travis-scan-dist: travis-noop
+travis-scan-django-18: travis-noop
+
+.PHONY: travis-scan-sqlite travis-scan-postgres travis-scan-mysql travis-scan-acceptance travis-scan-network travis-scan-snuba travis-scan-js travis-scan-cli travis-scan-dist travis-scan-django-18

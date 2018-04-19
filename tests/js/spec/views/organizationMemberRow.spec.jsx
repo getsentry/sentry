@@ -59,7 +59,8 @@ describe('OrganizationMemberRow', function() {
         }}
       />
     );
-    expect(wrapper.find('.icon-exclamation')).toHaveLength(0);
+    expect(wrapper.find('NoTwoFactorIcon')).toHaveLength(0);
+    expect(wrapper.find('HasTwoFactorIcon')).toHaveLength(1);
   });
 
   it('has 2fa warning if user does not have 2fa enabled', function() {
@@ -75,7 +76,8 @@ describe('OrganizationMemberRow', function() {
         }}
       />
     );
-    expect(wrapper.find('.icon-exclamation')).toHaveLength(1);
+    expect(wrapper.find('NoTwoFactorIcon')).toHaveLength(1);
+    expect(wrapper.find('HasTwoFactorIcon')).toHaveLength(0);
   });
 
   describe('Pending user', function() {
@@ -100,7 +102,7 @@ describe('OrganizationMemberRow', function() {
 
       expect(findWithText(wrapper.find('strong'), 'Invited')).toHaveLength(1);
 
-      expect(findWithText(wrapper.find('Button'), 'Resend invite')).toHaveLength(0);
+      expect(wrapper.find('ResendInviteButton')).toHaveLength(0);
     });
 
     it('has "Resend Invite" button only if `canAddMembers` is true', function() {
@@ -108,13 +110,13 @@ describe('OrganizationMemberRow', function() {
 
       expect(findWithText(wrapper.find('strong'), 'Invited')).toHaveLength(1);
 
-      expect(findWithText(wrapper.find('Button'), 'Resend invite')).toHaveLength(1);
+      expect(wrapper.find('ResendInviteButton')).toHaveLength(1);
     });
 
     it('has the right inviting states', function() {
       let wrapper = shallow(<OrganizationMemberRow {...props} canAddMembers={true} />);
 
-      expect(findWithText(wrapper.find('Button'), 'Resend invite')).toHaveLength(1);
+      expect(wrapper.find('ResendInviteButton')).toHaveLength(1);
 
       wrapper = shallow(
         <OrganizationMemberRow {...props} canAddMembers={true} status="loading" />
@@ -123,7 +125,7 @@ describe('OrganizationMemberRow', function() {
       // Should have loader
       expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
       // No Resend Invite button
-      expect(findWithText(wrapper.find('Button'), 'Resend invite')).toHaveLength(0);
+      expect(wrapper.find('ResendInviteButton')).toHaveLength(0);
 
       wrapper = shallow(
         <OrganizationMemberRow {...props} canAddMembers={true} status="success" />
@@ -132,7 +134,7 @@ describe('OrganizationMemberRow', function() {
       // Should have loader
       expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
       // No Resend Invite button
-      expect(findWithText(wrapper.find('Button'), 'Resend invite')).toHaveLength(0);
+      expect(wrapper.find('ResendInviteButton')).toHaveLength(0);
       expect(findWithText(wrapper.find('span'), 'Sent!')).toHaveLength(1);
     });
   });
@@ -159,7 +161,7 @@ describe('OrganizationMemberRow', function() {
 
       expect(findWithText(wrapper.find('strong'), 'Invited')).toHaveLength(1);
 
-      expect(findWithText(wrapper.find('Button'), 'Resend invite')).toHaveLength(0);
+      expect(wrapper.find('ResendInviteButton')).toHaveLength(0);
     });
 
     it('shows "missing SSO link" message if user is registered and needs link', function() {
@@ -174,7 +176,7 @@ describe('OrganizationMemberRow', function() {
 
       expect(findWithText(wrapper.find('strong'), 'Invited')).toHaveLength(0);
       expect(findWithText(wrapper.find('strong'), 'Missing SSO Link')).toHaveLength(1);
-      expect(findWithText(wrapper.find('Button'), 'Resend invite')).toHaveLength(0);
+      expect(wrapper.find('ResendInviteButton')).toHaveLength(0);
     });
 
     it('has "Resend Invite" button only if `canAddMembers` is true and no link', function() {
@@ -188,7 +190,7 @@ describe('OrganizationMemberRow', function() {
         />
       );
 
-      expect(findWithText(wrapper.find('Button'), 'Resend invite')).toHaveLength(1);
+      expect(wrapper.find('ResendInviteButton')).toHaveLength(1);
     });
 
     it('has 2fa warning if user is linked does not have 2fa enabled', function() {
@@ -207,7 +209,8 @@ describe('OrganizationMemberRow', function() {
           }}
         />
       );
-      expect(wrapper.find('.icon-exclamation')).toHaveLength(1);
+      expect(wrapper.find('NoTwoFactorIcon')).toHaveLength(1);
+      expect(wrapper.find('HasTwoFactorIcon')).toHaveLength(0);
     });
   });
 

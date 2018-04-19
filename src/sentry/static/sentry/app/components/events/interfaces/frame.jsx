@@ -4,10 +4,10 @@ import createReactClass from 'create-react-class';
 import _ from 'lodash';
 import classNames from 'classnames';
 
-import ClippedBox from '../../../components/clippedBox';
-import TooltipMixin from '../../../mixins/tooltip';
+import ClippedBox from '../../clippedBox';
+import Tooltip from '../../tooltip';
 import StrictClick from '../../strictClick';
-import Truncate from '../../../components/truncate';
+import Truncate from '../../truncate';
 import {t} from '../../../locale';
 import {defined, objectIsEmpty, isUrl} from '../../../utils';
 
@@ -15,10 +15,9 @@ import ContextLine from './contextLine';
 import FrameVariables from './frameVariables';
 
 export function trimPackage(pkg) {
-  let pieces = pkg.split(/\//g);
-  let rv = pieces[pieces.length - 1] || pieces[pieces.length - 2] || pkg;
-  let match = rv.match(/^(.*?)\.(dylib|so|a)$/);
-  return (match && match[1]) || rv;
+  let pieces = pkg.split(/^[a-z]:\\/i.test(pkg) ? '\\' : '/');
+  let filename = pieces[pieces.length - 1] || pieces[pieces.length - 2] || pkg;
+  return filename.replace(/\.(dylib|so|a|dll|exe)$/, '');
 }
 
 const Frame = createReactClass({
@@ -34,14 +33,6 @@ const Frame = createReactClass({
     isOnlyFrame: PropTypes.bool,
     timesRepeated: PropTypes.number,
   },
-
-  mixins: [
-    TooltipMixin({
-      html: true,
-      selector: '.tip',
-      trigger: 'hover',
-    }),
-  ],
 
   getDefaultProps() {
     return {
@@ -145,13 +136,11 @@ const Frame = createReactClass({
       // we want to show a litle (?) icon that on hover shows the actual filename
       if (shouldPrioritizeModuleName && data.filename) {
         title.push(
-          <a
-            key="real-filename"
-            className="in-at tip real-filename"
-            data-title={_.escape(data.filename)}
-          >
-            <span className="icon-question" />
-          </a>
+          <Tooltip title={_.escape(data.filename)} tooltipOptions={{html: true}}>
+            <a className="in-at real-filename">
+              <span className="icon-question" />
+            </a>
+          </Tooltip>
         );
       }
 
@@ -217,13 +206,15 @@ const Frame = createReactClass({
 
     if (defined(data.origAbsPath)) {
       title.push(
-        <a
-          key="original-src"
-          className="in-at tip original-src"
-          data-title={this.renderOriginalSourceInfo()}
+        <Tooltip
+          key="info-tooltip"
+          title={this.renderOriginalSourceInfo()}
+          tooltipOptions={{html: true}}
         >
-          <span className="icon-question" />
-        </a>
+          <a className="in-at original-src">
+            <span className="icon-question" />
+          </a>
+        </Tooltip>
       );
     }
 
@@ -381,7 +372,7 @@ const Frame = createReactClass({
           )}
           <span className="address">{data.instructionAddr}</span>
           <span className="symbol">
-            <code>{data.function || '<unknown>'}</code>
+            <code>{data.function || '<unknown>'}</code>{' '}
             {data.filename && (
               <span className="filename">
                 {data.filename}

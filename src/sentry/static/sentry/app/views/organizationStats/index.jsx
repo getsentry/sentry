@@ -6,10 +6,9 @@ import ApiMixin from '../../mixins/apiMixin';
 import OrganizationState from '../../mixins/organizationState';
 
 import LazyLoad from '../../components/lazyLoad';
-import getSettingsComponent from '../../utils/getSettingsComponent';
 
-const OrganizationStats = createReactClass({
-  displayName: 'OrganizationStats',
+const OrganizationStatsContainer = createReactClass({
+  displayName: 'OrganizationStatsContainer ',
   propTypes: {
     routes: PropTypes.array,
   },
@@ -253,12 +252,8 @@ const OrganizationStats = createReactClass({
     return (
       <LazyLoad
         component={() =>
-          getSettingsComponent(
-            () =>
-              import(/* webpackChunkName: "organizationStats" */ '../settings/organization/stats/organizationStats'),
-            () =>
-              import(/* webpackChunkName: "organizationStats.old" */ './organizationStats.old'),
-            this.props.routes
+          import(/* webpackChunkName: "organizationStats" */ './organizationStatsDetails').then(
+            mod => mod.default
           )}
         organization={organization}
         {...this.state}
@@ -267,4 +262,4 @@ const OrganizationStats = createReactClass({
   },
 });
 
-export default OrganizationStats;
+export default OrganizationStatsContainer;

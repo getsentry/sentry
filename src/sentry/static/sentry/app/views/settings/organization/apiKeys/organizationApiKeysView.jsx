@@ -2,13 +2,14 @@ import {browserHistory} from 'react-router';
 import React from 'react';
 
 import {Client} from '../../../../api';
+import {addSuccessMessage} from '../../../../actionCreators/indicator';
+import {t} from '../../../../locale';
 import LazyLoad from '../../../../components/lazyLoad';
-import OrganizationSettingsView from '../../../organizationSettingsView';
+import AsyncView from '../../../asyncView';
 import SentryTypes from '../../../../proptypes';
-import getSettingsComponent from '../../../../utils/getSettingsComponent';
 import recreateRoute from '../../../../utils/recreateRoute';
 
-class OrganizationApiKeysView extends OrganizationSettingsView {
+class OrganizationApiKeysView extends AsyncView {
   static contextTypes = {
     organization: SentryTypes.Organization,
   };
@@ -54,6 +55,7 @@ class OrganizationApiKeysView extends OrganizationSettingsView {
             routes: this.props.routes,
           })
         );
+        addSuccessMessage(t(`Created a new API key "${data.label}"`));
       },
       error: () => {
         this.setState({busy: false});
@@ -65,12 +67,8 @@ class OrganizationApiKeysView extends OrganizationSettingsView {
     return (
       <LazyLoad
         component={() =>
-          getSettingsComponent(
-            () =>
-              import(/*webpackChunkName: "organizationApiKeysList"*/ './organizationApiKeysList'),
-            () =>
-              import(/*webpackChunkName: "organizationApiKeysList.old"*/ './organizationApiKeysList.old'),
-            this.props.routes
+          import(/*webpackChunkName: "organizationApiKeysList"*/ './organizationApiKeysList').then(
+            mod => mod.default
           )}
         busy={this.state.busy}
         keys={this.state.keys}

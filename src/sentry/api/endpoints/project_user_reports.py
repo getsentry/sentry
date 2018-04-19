@@ -10,7 +10,7 @@ from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize, ProjectUserReportSerializer
 from sentry.api.paginator import DateTimePaginator
-from sentry.models import (Event, EventUser, Group, GroupStatus, UserReport)
+from sentry.models import (Environment, Event, EventUser, Group, GroupStatus, UserReport)
 from sentry.signals import user_feedback_received
 from sentry.utils.apidocs import scenario, attach_scenarios
 
@@ -50,25 +50,37 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
         :pparam string project_slug: the slug of the project.
         :auth: required
         """
-        queryset = UserReport.objects.filter(
-            project=project,
-            group__isnull=False,
-        ).select_related('group')
-
-        status = request.GET.get('status', 'unresolved')
-        if status == 'unresolved':
-            queryset = queryset.filter(
-                group__status=GroupStatus.UNRESOLVED,
+        try:
+            environment = self._get_environment_from_request(
+                request,
+                project.organization_id,
             )
-        elif status:
-            return Response({'status': 'Invalid status choice'}, status=400)
+        except Environment.DoesNotExist:
+            queryset = UserReport.objects.none()
+        else:
+            queryset = UserReport.objects.filter(
+                project=project,
+                group__isnull=False,
+            ).select_related('group')
+            if environment is not None:
+                queryset = queryset.filter(
+                    environment=environment,
+                )
+
+            status = request.GET.get('status', 'unresolved')
+            if status == 'unresolved':
+                queryset = queryset.filter(
+                    group__status=GroupStatus.UNRESOLVED,
+                )
+            elif status:
+                return Response({'status': 'Invalid status choice'}, status=400)
 
         return self.paginate(
             request=request,
             queryset=queryset,
             order_by='-date_added',
             on_results=lambda x: serialize(x, request.user, ProjectUserReportSerializer(
-                environment_id_func=self._get_environment_id_func(
+                environment_func=self._get_environment_func(
                     request, project.organization_id)
             )),
             paginator_cls=DateTimePaginator,
@@ -106,9 +118,16 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
             report.event_user_id = euser.id
 
         try:
-            report.group = Group.objects.from_event_id(project, report.event_id)
-        except Group.DoesNotExist:
-            pass
+            event = Event.objects.filter(project_id=project.id,
+                                         event_id=report.event_id)[0]
+        except IndexError:
+            try:
+                report.group = Group.objects.from_event_id(project, report.event_id)
+            except Group.DoesNotExist:
+                pass
+        else:
+            report.environment = event.get_environment()
+            report.group = event.group
 
         try:
             with transaction.atomic():
@@ -141,7 +160,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
         user_feedback_received.send(project=report.project, group=report.group, sender=self)
 
         return Response(serialize(report, request.user, ProjectUserReportSerializer(
-            environment_id_func=self._get_environment_id_func(
+            environment_func=self._get_environment_func(
                 request, project.organization_id)
         )))
 

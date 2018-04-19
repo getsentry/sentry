@@ -4,9 +4,10 @@ import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 import ApiMixin from '../../mixins/apiMixin';
 import SentryTypes from '../../proptypes';
-import TooltipMixin from '../../mixins/tooltip';
+import Tooltip from '../tooltip';
 import {escape, percent, deviceNameMapper} from '../../utils';
 import {t} from '../../locale';
+import withEnvironment from '../../utils/withEnvironment';
 
 const TagDistributionMeter = createReactClass({
   displayName: 'TagDistributionMeter',
@@ -17,16 +18,10 @@ const TagDistributionMeter = createReactClass({
     name: PropTypes.string,
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
+    environment: SentryTypes.Environment,
   },
 
-  mixins: [
-    ApiMixin,
-    TooltipMixin({
-      html: true,
-      selector: '.segment',
-      container: 'body',
-    }),
-  ],
+  mixins: [ApiMixin],
 
   getInitialState() {
     return {
@@ -45,17 +40,21 @@ const TagDistributionMeter = createReactClass({
       this.state.loading !== nextState.loading ||
       this.state.error !== nextState.error ||
       this.props.tag !== nextProps.tag ||
-      this.props.name !== nextProps.name
+      this.props.name !== nextProps.name ||
+      this.props.environment !== nextProps.environment
     );
   },
 
+  componentDidUpdate(prevProps) {
+    if (prevProps.environment !== this.props.environment) {
+      this.fetchData();
+    }
+  },
+
   fetchData() {
-    let url =
-      '/issues/' +
-      this.props.group.id +
-      '/tags/' +
-      encodeURIComponent(this.props.tag) +
-      '/';
+    const {group, tag, environment} = this.props;
+    const url = `/issues/${group.id}/tags/${encodeURIComponent(tag)}/`;
+    const query = environment ? {environment: environment.name} : {};
 
     this.setState({
       loading: true,
@@ -63,7 +62,8 @@ const TagDistributionMeter = createReactClass({
     });
 
     this.api.request(url, {
-      success: (data, _, jqXHR) => {
+      query,
+      success: data => {
         this.setState({
           data,
           error: false,
@@ -103,30 +103,31 @@ const TagDistributionMeter = createReactClass({
     return (
       <div className="segments">
         {data.topValues.map((value, index) => {
-          let pct = percent(value.count, totalValues);
-          let pctLabel = Math.floor(pct);
-          let className = 'segment segment-' + index;
+          const pct = percent(value.count, totalValues);
+          const pctLabel = Math.floor(pct);
+          const className = 'segment segment-' + index;
+
+          const tooltipHtml =
+            '<div class="truncate">' +
+            escape(deviceNameMapper(value.name) || '') +
+            '</div>' +
+            pctLabel +
+            '%';
 
           return (
-            <Link
-              key={value.id}
-              className={className}
-              style={{width: pct + '%'}}
-              to={`/${orgId}/${projectId}/issues/${this.props.group.id}/tags/${this.props
-                .tag}/`}
-              title={
-                '<div class="truncate">' +
-                escape(deviceNameMapper(value.name) || '') +
-                '</div>' +
-                pctLabel +
-                '%'
-              }
-            >
-              <span className="tag-description">
-                <span className="tag-percentage">{pctLabel}%</span>
-                <span className="tag-label">{deviceNameMapper(value.name)}</span>
-              </span>
-            </Link>
+            <Tooltip key={value.id} title={tooltipHtml} tooltipOptions={{html: true}}>
+              <Link
+                className={className}
+                style={{width: pct + '%'}}
+                to={`/${orgId}/${projectId}/issues/${this.props.group.id}/tags/${this
+                  .props.tag}/`}
+              >
+                <span className="tag-description">
+                  <span className="tag-percentage">{pctLabel}%</span>
+                  <span className="tag-label">{deviceNameMapper(value.name)}</span>
+                </span>
+              </Link>
+            </Tooltip>
           );
         })}
         {hasOther && (
@@ -168,4 +169,5 @@ const TagDistributionMeter = createReactClass({
   },
 });
 
-export default TagDistributionMeter;
+export {TagDistributionMeter};
+export default withEnvironment(TagDistributionMeter);

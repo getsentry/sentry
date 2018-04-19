@@ -118,7 +118,7 @@ const Broadcasts = createReactClass({
         <a
           className="broadcasts-toggle"
           onClick={this.onShowPanel}
-          title="Updates from Sentry"
+          title={t('Updates from Sentry')}
         >
           <span className="icon icon-globe" />
           {this.getUnseenIds() > 0 && <span className="activity-indicator" />}

@@ -46,6 +46,7 @@ class UserNotificationsSerializer(Serializer):
     def get_attrs(self, item_list, user, *args, **kwargs):
         data = list(UserOption.objects.filter(
             user__in=item_list,
+            organization=None,
             project=None).select_related('user'))
 
         results = defaultdict(list)
@@ -93,7 +94,8 @@ class UserNotificationDetailsEndpoint(UserEndpoint):
             for key in serializer.object:
                 db_key = USER_OPTION_SETTINGS[key]['key']
                 val = six.text_type(int(serializer.object[key]))
-                (uo, created) = UserOption.objects.get_or_create(user=user, key=db_key, project=None)
+                (uo, created) = UserOption.objects.get_or_create(
+                    user=user, key=db_key, project=None, organization=None)
                 uo.update(value=val)
 
             return self.get(request, user)

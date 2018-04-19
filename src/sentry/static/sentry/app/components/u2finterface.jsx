@@ -214,8 +214,10 @@ class U2fInterface extends React.Component {
   };
 
   renderPrompt = () => {
+    let {style} = this.props;
     return (
       <div
+        style={style}
         className={
           'u2f-box' +
           (this.state.hasBeenTapped ? ' tapped' : '') +

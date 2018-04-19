@@ -36,21 +36,21 @@ from sentry.web.frontend.mailgun_inbound_webhook import \
 from sentry.web.frontend.oauth_authorize import OAuthAuthorizeView
 from sentry.web.frontend.oauth_token import OAuthTokenView
 from sentry.auth.providers.saml2 import SAML2AcceptACSView, SAML2SLSView, SAML2MetadataView
+from sentry.web.frontend.organization_avatar import OrganizationAvatarPhotoView
+from sentry.web.frontend.team_avatar import TeamAvatarPhotoView
 from sentry.web.frontend.organization_auth_settings import \
     OrganizationAuthSettingsView
 from sentry.web.frontend.organization_integration_setup import \
     OrganizationIntegrationSetupView
 from sentry.web.frontend.out import OutView
-from sentry.web.frontend.project_rule_edit import ProjectRuleEditView
 from sentry.web.frontend.react_page import GenericReactPageView, ReactPageView
 from sentry.web.frontend.reactivate_account import ReactivateAccountView
 from sentry.web.frontend.release_webhook import ReleaseWebhookView
 from sentry.web.frontend.remove_account import RemoveAccountView
-from sentry.web.frontend.remove_organization import RemoveOrganizationView
 from sentry.web.frontend.restore_organization import RestoreOrganizationView
 from sentry.web.frontend.remove_project import RemoveProjectView
 from sentry.web.frontend.transfer_project import TransferProjectView
-from sentry.web.frontend.accept_project_transfer import AcceptProjectTransferView
+from sentry.web.frontend.account_identity import AccountIdentityAssociateView, AccountIdentityLinkView
 from sentry.web.frontend.remove_team import RemoveTeamView
 from sentry.web.frontend.sudo import SudoView
 from sentry.web.frontend.unsubscribe_issue_notifications import \
@@ -87,6 +87,14 @@ if getattr(settings, 'DEBUG_VIEWS', settings.DEBUG):
     from sentry.web.debug_urls import urlpatterns as debug_urls
     urlpatterns += debug_urls
 
+# Special favicon in debug mode
+if settings.DEBUG:
+    urlpatterns += patterns('', url(
+        r'^_static/[^/]+/[^/]+/images/favicon\.ico$',
+        generic.dev_favicon,
+        name='sentry-dev-favicon'
+    ))
+
 urlpatterns += patterns(
     '',
     # Store endpoints first since they are the most active
@@ -102,8 +110,13 @@ urlpatterns += patterns(
         name='sentry-api-minidump'
     ),
     url(
+        r'^api/(?P<project_id>\d+)/security/$',
+        api.SecurityReportView.as_view(),
+        name='sentry-api-security-report'
+    ),
+    url(  # This URL to be deprecated
         r'^api/(?P<project_id>\d+)/csp-report/$',
-        api.CspReportView.as_view(),
+        api.SecurityReportView.as_view(),
         name='sentry-api-csp-report'
     ),
     url(
@@ -244,6 +257,16 @@ urlpatterns += patterns(
         name='sentry-account-disconnect-identity'
     ),
     url(
+        r'^account/settings/identities/associate/(?P<organization_slug>[^\/]+)/(?P<provider_key>[^\/]+)/$',
+        AccountIdentityAssociateView.as_view(),
+        name='sentry-account-associate-identity'
+    ),
+    url(
+        r'^account/settings/identities/associate/$',
+        AccountIdentityLinkView.as_view(),
+        name='sentry-account-link-identity'
+    ),
+    url(
         r'^account/settings/notifications/$',
         AccountNotificationView.as_view(),
         name='sentry-account-settings-notifications'
@@ -330,11 +353,8 @@ urlpatterns += patterns(
     url(r'^api/[^0]+/', generic_react_page_view),
     url(r'^out/$', OutView.as_view()),
 
-    url(r'^accept-transfer/$', AcceptProjectTransferView.as_view(),
-        name='sentry-accept-project-transfer'),
-
-    url(r'^settings/$', react_page_view),
-    url(r'^settings/account/$', react_page_view),
+    url(r'^accept-transfer/$', react_page_view, name='sentry-accept-project-transfer'),
+    url(r'^settings/', react_page_view),
 
     # Organizations
     url(r'^(?P<organization_slug>[\w_-]+)/$',
@@ -352,8 +372,13 @@ urlpatterns += patterns(
     ),
     url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/auth/$',
-        OrganizationAuthSettingsView.as_view(),
+        react_page_view,
         name='sentry-organization-auth-settings'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[\w_-]+)/auth/configure/$',
+        OrganizationAuthSettingsView.as_view(),
+        name='sentry-organization-auth-provider-settings'
     ),
     url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/integrations/(?P<provider_id>[\w_-]+)/setup/$',
@@ -387,11 +412,6 @@ urlpatterns += patterns(
     url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/teams/new/$', react_page_view),
     url(
-        r'^organizations/(?P<organization_slug>[\w_-]+)/remove/$',
-        RemoveOrganizationView.as_view(),
-        name='sentry-remove-organization'
-    ),
-    url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/restore/$',
         RestoreOrganizationView.as_view(),
         name='sentry-restore-organization'
@@ -423,19 +443,19 @@ urlpatterns += patterns(
         name='sentry-transfer-project'
     ),
     url(
-        r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/alerts/rules/new/$',
-        ProjectRuleEditView.as_view(),
-        name='sentry-new-project-rule'
-    ),
-    url(
-        r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/alerts/rules/(?P<rule_id>\d+)/$',
-        ProjectRuleEditView.as_view(),
-        name='sentry-edit-project-rule'
-    ),
-    url(
         r'^avatar/(?P<avatar_id>[^\/]+)/$',
         UserAvatarPhotoView.as_view(),
         name='sentry-user-avatar-url'
+    ),
+    url(
+        r'^organization-avatar/(?P<avatar_id>[^\/]+)/$',
+        OrganizationAvatarPhotoView.as_view(),
+        name='sentry-organization-avatar-url'
+    ),
+    url(
+        r'^team-avatar/(?P<avatar_id>[^\/]+)/$',
+        TeamAvatarPhotoView.as_view(),
+        name='sentry-team-avatar-url'
     ),
 
     # Generic

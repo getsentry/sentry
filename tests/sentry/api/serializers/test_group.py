@@ -285,7 +285,7 @@ class StreamGroupSerializerTestCase(TestCase):
             serialize(
                 [group],
                 serializer=StreamGroupSerializer(
-                    environment_id_func=lambda: environment.id,
+                    environment_func=lambda: environment,
                     stats_period='14d',
                 ),
             )
@@ -302,7 +302,7 @@ class StreamGroupSerializerTestCase(TestCase):
             serialize(
                 [group],
                 serializer=StreamGroupSerializer(
-                    environment_id_func=get_invalid_environment,
+                    environment_func=get_invalid_environment,
                     stats_period='14d',
                 )
             )

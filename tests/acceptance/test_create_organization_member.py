@@ -42,4 +42,4 @@ class CreateOrganizationMemberTest(AcceptanceTestCase):
         self.browser.click('.invite-member-submit')
 
         self.browser.wait_until_not('.loading')
-        self.browser.wait_until('.alert-success')
+        self.browser.wait_until('.ref-success')

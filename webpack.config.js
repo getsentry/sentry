@@ -15,7 +15,7 @@ if (process.env.SENTRY_STATIC_DIST_PATH) {
 }
 
 var IS_PRODUCTION = process.env.NODE_ENV === 'production';
-var IS_TEST = process.env.NODE_ENV === 'TEST' || process.env.TEST_SUITE;
+var IS_TEST = process.env.NODE_ENV === 'test' || process.env.TEST_SUITE;
 var WEBPACK_DEV_PORT = process.env.WEBPACK_DEV_PORT;
 var SENTRY_DEVSERVER_PORT = process.env.SENTRY_DEVSERVER_PORT;
 var USE_HOT_MODULE_RELOAD = !IS_PRODUCTION && WEBPACK_DEV_PORT && SENTRY_DEVSERVER_PORT;
@@ -72,6 +72,10 @@ var appEntry = {
     'select2',
     'vendor/simple-slider/simple-slider',
     'ios-device-list',
+    'emotion',
+    'react-emotion',
+    'grid-emotion',
+    'emotion-theming',
   ],
 };
 

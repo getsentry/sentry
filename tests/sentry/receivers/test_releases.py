@@ -5,33 +5,11 @@ from hashlib import sha1
 from mock import patch
 from uuid import uuid4
 
-from sentry import tagstore
 from sentry.models import (
     Activity, Commit, CommitAuthor, GroupAssignee, GroupLink, OrganizationMember,
     Release, Repository, UserEmail
 )
 from sentry.testutils import TestCase
-
-
-class EnsureReleaseExistsTest(TestCase):
-    def test_simple(self):
-        tv = tagstore.create_tag_value(
-            project_id=self.project.id,
-            environment_id=self.environment.id,
-            key='sentry:release',
-            value='1.0',
-        )
-
-        tv = tagstore.get_tag_value(self.project.id, self.environment.id, 'sentry:release', '1.0')
-        assert tv.data['release_id']
-
-        release = Release.objects.get(id=tv.data['release_id'])
-        assert release.version == tv.value
-        assert release.projects.first() == self.project
-        assert release.organization == self.project.organization
-
-        # ensure we dont hit some kind of error saving it again
-        tv.save()
 
 
 class ResolveGroupResolutionsTest(TestCase):
@@ -228,7 +206,13 @@ class ResolvedInCommitTest(TestCase):
 
         assert GroupAssignee.objects.filter(group=group, user=user).exists()
 
-        self.assertEqual(Activity.objects.filter(project=group.project,
-                                                 group=group,
-                                                 type=Activity.ASSIGNED,
-                                                 user=user,)[0].data, {'assignee': six.text_type(user.id), 'assigneeEmail': user.email})
+        assert Activity.objects.filter(
+            project=group.project,
+            group=group,
+            type=Activity.ASSIGNED,
+            user=user,
+        )[0].data == {
+            'assignee': six.text_type(user.id),
+            'assigneeEmail': user.email,
+            'assigneeType': 'user',
+        }

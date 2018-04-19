@@ -21,7 +21,7 @@ class EventUserReport extends React.Component {
         <div className="activity-container">
           <ul className="activity">
             <li className="activity-note">
-              <Avatar user={report} size={64} className="avatar" />
+              <Avatar user={report} size={38} className="avatar" />
               <div className="activity-bubble">
                 <div>
                   <TimeSince date={report.dateCreated} />
@@ -42,7 +42,7 @@ class EventUserReport extends React.Component {
                   </div>
                   <p
                     dangerouslySetInnerHTML={{
-                      __html: utils.nl2br(utils.urlize(utils.escape(report.comments))),
+                      __html: utils.nl2br(utils.escape(report.comments)),
                     }}
                   />
                 </div>

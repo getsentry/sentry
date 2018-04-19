@@ -7,8 +7,9 @@ class SelectInput extends React.Component {
     disabled: PropTypes.bool,
     multiple: PropTypes.bool,
     required: PropTypes.bool,
-    placeholder: PropTypes.string,
-    value: PropTypes.string,
+    showSearch: PropTypes.bool, // enables text search input
+    placeholder: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     onChange: PropTypes.func,
   };
 
@@ -19,8 +20,8 @@ class SelectInput extends React.Component {
     required: false,
 
     // Extra options
+    showSearch: true,
     placeholder: 'Select an option...',
-
     // Component options
     value: '',
     onChange: $.noop,
@@ -62,11 +63,14 @@ class SelectInput extends React.Component {
   create = () => {
     this.select2 = jQuery(this.refs.select).select2({
       width: 'element',
+      // disables filter input
+      minimumResultsForSearch: this.props.showSearch ? 0 : -1,
     });
     this.select2.on('change', this.onChange);
   };
 
   destroy = () => {
+    this.select2.off('change', this.onChange);
     jQuery(this.refs.select).select2('destroy');
   };
 
@@ -75,8 +79,11 @@ class SelectInput extends React.Component {
   };
 
   render() {
+    let {...props} = this.props;
+    delete props.showSearch;
+
     return (
-      <select ref="select" {...this.props}>
+      <select ref="select" {...props}>
         {this.props.children}
       </select>
     );

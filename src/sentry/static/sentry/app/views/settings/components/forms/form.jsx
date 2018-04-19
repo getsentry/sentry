@@ -13,15 +13,25 @@ export default class Form extends React.Component {
     onSubmit: PropTypes.func,
     onSubmitSuccess: PropTypes.func,
     onSubmitError: PropTypes.func,
+    onFieldChange: PropTypes.func,
     submitDisabled: PropTypes.bool,
     submitLabel: PropTypes.string,
+    submitPriority: PropTypes.string,
     footerClass: PropTypes.string,
+    footerStyle: PropTypes.object,
     extraButton: PropTypes.element,
     initialData: PropTypes.object,
+    // Require changes before able to submit form
     requireChanges: PropTypes.bool,
-    model: PropTypes.object,
+    // Reset form when there are errors, after submit
+    resetOnError: PropTypes.bool,
+    // Hide Footer
+    hideFooter: PropTypes.bool,
+    // Allow undo
     allowUndo: PropTypes.bool,
+    // Save field on control blur
     saveOnBlur: PropTypes.bool,
+    model: PropTypes.object,
     apiMethod: PropTypes.string,
     apiEndpoint: PropTypes.string,
   };
@@ -30,11 +40,14 @@ export default class Form extends React.Component {
     cancelLabel: t('Cancel'),
     submitLabel: t('Save Changes'),
     submitDisabled: false,
+    submitPriority: 'primary',
     footerClass: 'form-actions align-right',
     className: 'form-stacked',
     requireChanges: false,
     allowUndo: false,
     saveOnBlur: false,
+    onSubmitSuccess: () => {},
+    onSubmitError: () => {},
   };
 
   static childContextTypes = {
@@ -48,8 +61,10 @@ export default class Form extends React.Component {
       saveOnBlur,
       apiEndpoint,
       apiMethod,
+      resetOnError,
       onSubmitSuccess,
       onSubmitError,
+      onFieldChange,
       initialData,
       model,
       allowUndo,
@@ -58,7 +73,9 @@ export default class Form extends React.Component {
     this.model = model || new FormModel();
     this.model.setInitialData(initialData);
     this.model.setFormOptions({
+      resetOnError,
       allowUndo,
+      onFieldChange,
       onSubmitSuccess,
       onSubmitError,
       saveOnBlur,
@@ -85,17 +102,26 @@ export default class Form extends React.Component {
       return;
     }
 
-    this.props.onSubmit(this.model.getData(), this.onSubmitSuccess, this.onSubmitError);
+    if (this.props.onSubmit) {
+      this.props.onSubmit(
+        this.model.getData(),
+        this.onSubmitSuccess,
+        this.onSubmitError,
+        e
+      );
+    } else {
+      this.model.saveForm();
+    }
   };
 
   onSubmitSuccess = data => {
     this.model.submitSuccess(data);
-    this.props.onSubmitSuccess && this.props.onSubmitSuccess(data, this.model);
+    this.props.onSubmitSuccess(data, this.model);
   };
 
   onSubmitError = error => {
     this.model.submitError(error);
-    this.props.onSubmitError && this.props.onSubmitError(error, this.model);
+    this.props.onSubmitError(error, this.model);
   };
 
   render() {
@@ -104,26 +130,29 @@ export default class Form extends React.Component {
       className,
       children,
       footerClass,
+      footerStyle,
       submitDisabled,
       submitLabel,
+      submitPriority,
       cancelLabel,
       onCancel,
       extraButton,
       requireChanges,
       saveOnBlur,
+      hideFooter,
     } = this.props;
-    let shouldShowFooter = !saveOnBlur;
+    let shouldShowFooter = typeof hideFooter !== 'undefined' ? !hideFooter : !saveOnBlur;
 
     return (
       <form onSubmit={this.onSubmit} className={className}>
-        {children}
+        <div>{children}</div>
 
         {shouldShowFooter && (
-          <div className={footerClass} style={{marginTop: 25}}>
+          <div className={footerClass} style={{marginTop: 25, ...footerStyle}}>
             <Observer>
               {() => (
                 <Button
-                  priority="primary"
+                  priority={submitPriority}
                   disabled={
                     this.model.isError ||
                     isSaving ||

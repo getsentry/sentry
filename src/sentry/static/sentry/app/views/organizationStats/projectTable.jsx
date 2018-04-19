@@ -1,11 +1,9 @@
+import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
-import {Link} from 'react-router';
-import PureRenderMixin from 'react-addons-pure-render-mixin';
 
-import Count from '../../components/count';
 import {t} from '../../locale';
+import Count from '../../components/count';
 
 let getPercent = (item, total) => {
   if (total === 0) {
@@ -17,23 +15,20 @@ let getPercent = (item, total) => {
   return parseInt(item / total * 100, 10) + '%';
 };
 
-const ProjectTable = createReactClass({
-  displayName: 'ProjectTable',
-
-  propTypes: {
+class ProjectTable extends React.PureComponent {
+  static propTypes = {
     projectMap: PropTypes.object.isRequired,
     projectTotals: PropTypes.array.isRequired,
     orgTotal: PropTypes.object.isRequired,
     organization: PropTypes.object.isRequired,
-  },
-
-  mixins: [PureRenderMixin],
+  };
 
   render() {
     let projectMap = this.props.projectMap;
     let projectTotals = this.props.projectTotals;
     let orgTotal = this.props.orgTotal;
     let org = this.props.organization;
+    let features = new Set(org.features);
 
     if (!projectTotals) {
       return <div />;
@@ -75,7 +70,9 @@ const ProjectTable = createReactClass({
               <tr key={item.id}>
                 <td>
                   <Link to={`/${org.slug}/${project.slug}/`}>
-                    {project.team.name} / {project.name}
+                    {features.has('new-teams')
+                      ? project.slug
+                      : `${project.team.name} / ${project.name}`}
                   </Link>
                 </td>
                 <td className="align-right">
@@ -104,7 +101,7 @@ const ProjectTable = createReactClass({
         </tbody>
       </table>
     );
-  },
-});
+  }
+}
 
 export default ProjectTable;

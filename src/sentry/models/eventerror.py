@@ -26,6 +26,8 @@ class EventError(object):
     UNKNOWN_ERROR = 'unknown_error'
     SECURITY_VIOLATION = 'security_violation'
     RESTRICTED_IP = 'restricted_ip'
+    FUTURE_TIMESTAMP = 'future_timestamp'
+    PAST_TIMESTAMP = 'past_timestamp'
 
     JS_GENERIC_FETCH_ERROR = 'js_generic_fetch_error'  # deprecated in favor of FETCH_GENERIC_ERROR
     FETCH_GENERIC_ERROR = 'fetch_generic_error'
@@ -63,6 +65,8 @@ class EventError(object):
         UNKNOWN_ERROR: u'Unknown error',
         SECURITY_VIOLATION: u'Cannot fetch resource due to security violation on {url}',
         RESTRICTED_IP: u'Cannot fetch resource due to restricted IP address on {url}',
+        FUTURE_TIMESTAMP: u'Invalid timestamp (in future)',
+        PAST_TIMESTAMP: u'Invalid timestamp (too old)',
         # deprecated in favor of FETCH_GENERIC_ERROR
         JS_GENERIC_FETCH_ERROR: u'Unable to fetch resource: {url}',
         FETCH_GENERIC_ERROR: u'Unable to fetch resource: {url}',
@@ -85,13 +89,13 @@ class EventError(object):
         FETCH_TIMEOUT: u'Remote file took too long to load: ({timeout}s, {url})',
         NATIVE_NO_CRASHED_THREAD: u'No crashed thread found in crash report',
         NATIVE_INTERNAL_FAILURE: u'Internal failure when attempting to symbolicate: {error}',
-        NATIVE_BAD_DSYM: u'The debug symbol file used was broken.',
-        NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM: u'An optional debug symbol file was missing.',
-        NATIVE_MISSING_DSYM: u'A required debug symbol file was missing.',
-        NATIVE_MISSING_SYSTEM_DSYM: u'A system debug symbol file was missing.',
+        NATIVE_BAD_DSYM: u'The debug information file used was broken.',
+        NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM: u'An optional debug information file was missing.',
+        NATIVE_MISSING_DSYM: u'A required debug information file was missing.',
+        NATIVE_MISSING_SYSTEM_DSYM: u'A system debug information file was missing.',
         NATIVE_MISSING_SYMBOL: u'Unable to resolve a symbol.',
         NATIVE_SIMULATOR_FRAME: u'Encountered an unprocessable simulator frame.',
-        NATIVE_UNKNOWN_IMAGE: u'An binary image is referenced that is unknown.',
+        NATIVE_UNKNOWN_IMAGE: u'A binary image is referenced that is unknown.',
         PROGUARD_MISSING_MAPPING: u'A proguard mapping file was missing.',
         PROGUARD_MISSING_LINENO: u'A proguard mapping file does not contain line info.',
     }

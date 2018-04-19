@@ -8,7 +8,8 @@ from django.utils import timezone
 
 from sentry.app import tsdb
 from sentry.api.serializers import Serializer, register
-from sentry.models import Environment
+from sentry.models import Environment, EnvironmentProject
+
 
 StatsPeriod = namedtuple('StatsPeriod', ('segments', 'interval'))
 
@@ -19,6 +20,16 @@ class EnvironmentSerializer(Serializer):
         return {
             'id': six.text_type(obj.id),
             'name': obj.name,
+        }
+
+
+@register(EnvironmentProject)
+class EnvironmentProjectSerializer(Serializer):
+    def serialize(self, obj, attrs, user):
+        return {
+            'id': six.text_type(obj.id),
+            'name': obj.environment.name,
+            'isHidden': obj.is_hidden is True,
         }
 
 

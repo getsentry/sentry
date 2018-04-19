@@ -1,13 +1,17 @@
+import {Box, Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import _ from 'lodash';
+import createReactClass from 'create-react-class';
 
+import {t} from '../locale';
 import ApiMixin from '../mixins/apiMixin';
+import Button from './buttons/button';
 import IndicatorStore from '../stores/indicatorStore';
 import LoadingIndicator from '../components/loadingIndicator';
+import {Panel, PanelBody, PanelHeader} from './panels';
+import PluginIcon from '../plugins/components/pluginIcon';
 import plugins from '../plugins';
-import {t} from '../locale';
 
 const PluginConfig = createReactClass({
   displayName: 'PluginConfig',
@@ -17,15 +21,14 @@ const PluginConfig = createReactClass({
     project: PropTypes.object.isRequired,
     data: PropTypes.object.isRequired,
     onDisablePlugin: PropTypes.func,
+    enabled: PropTypes.bool,
   },
 
   mixins: [ApiMixin],
 
   getDefaultProps() {
     return {
-      onDisablePlugin: () => {
-        window.location.reload();
-      },
+      onDisablePlugin: () => {},
     };
   },
 
@@ -69,17 +72,7 @@ const PluginConfig = createReactClass({
   },
 
   disablePlugin() {
-    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
-    this.api.request(this.getPluginEndpoint(), {
-      method: 'DELETE',
-      success: () => {
-        this.props.onDisablePlugin();
-        IndicatorStore.remove(loadingIndicator);
-      },
-      error: error => {
-        IndicatorStore.add(t('Unable to disable plugin. Please try again.'), 'error');
-      },
-    });
+    this.props.onDisablePlugin(this.props.data);
   },
 
   testPlugin() {
@@ -108,31 +101,43 @@ const PluginConfig = createReactClass({
   },
 
   render() {
-    let data = this.props.data;
+    let {data} = this.props;
+    // If passed via props, use that value instead of from `data`
+    let enabled =
+      typeof this.props.enabled !== 'undefined' ? this.props.enabled : data.enabled;
 
     return (
-      <div className={`box ref-plugin-config-${data.id}`}>
-        <div className="box-header">
+      <Panel className={`plugin-config ref-plugin-config-${data.id}`}>
+        <PanelHeader hasButtons>
+          <Flex align="center" flex="1">
+            <Flex align="center" mr={1}>
+              <PluginIcon pluginId={data.id} />
+            </Flex>
+            <span>{data.name}</span>
+          </Flex>
           {data.canDisable &&
-            data.enabled && (
-              <div className="pull-right">
-                {data.isTestable && (
-                  <a onClick={this.testPlugin} className="btn btn-sm btn-default">
-                    {t('Test Plugin')}
-                  </a>
-                )}
-                <a className="btn btn-sm btn-default" onClick={this.disablePlugin}>
-                  {t('Disable')}
-                </a>
-              </div>
+            enabled && (
+              <Flex align="center">
+                <Box mr={1}>
+                  {data.isTestable && (
+                    <Button onClick={this.testPlugin} size="small">
+                      {t('Test Plugin')}
+                    </Button>
+                  )}
+                </Box>
+                <Box>
+                  <Button size="small" onClick={this.disablePlugin}>
+                    {t('Disable')}
+                  </Button>
+                </Box>
+              </Flex>
             )}
-          <h3>{data.name}</h3>
-        </div>
-        <div className="box-content with-padding">
+        </PanelHeader>
+        <PanelBody px={2} pt={2} flex wrap="wrap">
           {data.status === 'beta' ? (
             <div className="alert alert-block alert-warning">
               <strong>
-                Note: This plugin is considered beta and may change in the future.
+                {t('Note: This plugin is considered beta and may change in the future.')}
               </strong>
             </div>
           ) : null}
@@ -151,8 +156,8 @@ const PluginConfig = createReactClass({
               project: this.props.project,
             })
           )}
-        </div>
-      </div>
+        </PanelBody>
+      </Panel>
     );
   },
 });

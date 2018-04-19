@@ -1,8 +1,9 @@
 import $ from 'jquery';
-import _ from 'lodash';
+import {isUndefined} from 'lodash';
+import idx from 'idx';
 
+import {openSudo} from './actionCreators/modal';
 import GroupActions from './actions/groupActions';
-import {openSudo} from './actionCreators/sudo';
 
 export class Request {
   constructor(xhr) {
@@ -30,7 +31,7 @@ export function paramsToQueryArgs(params) {
 
 export class Client {
   constructor(options) {
-    if (_.isUndefined(options)) {
+    if (isUndefined(options)) {
       options = {};
     }
     this.baseUrl = options.baseUrl || '/api/0';
@@ -48,7 +49,7 @@ export class Client {
 
   wrapCallback(id, func, cleanup) {
     /*eslint consistent-return:0*/
-    if (_.isUndefined(func)) {
+    if (isUndefined(func)) {
       return;
     }
 
@@ -70,11 +71,13 @@ export class Client {
   }
 
   handleRequestError({id, path, requestOptions}, response, ...responseArgs) {
-    let isSudoRequired =
-      response && response.responseJSON && response.responseJSON.sudoRequired;
+    let code = response && idx(response, _ => _.responseJSON.detail.code);
+    let isSudoRequired = code === 'sudo-required' || code === 'superuser-required';
 
     if (isSudoRequired) {
       openSudo({
+        superuser: code === 'superuser-required',
+        sudo: code === 'sudo-required',
         retryRequest: () => {
           return this.requestPromise(path, requestOptions)
             .then((...args) => {
@@ -86,6 +89,11 @@ export class Client {
               if (typeof requestOptions.error !== 'function') return;
               requestOptions.error(...args);
             });
+        },
+        onClose: () => {
+          if (typeof requestOptions.error !== 'function') return;
+          // If modal was closed, then forward the original response
+          requestOptions.error(response);
         },
       });
       return;
@@ -103,7 +111,7 @@ export class Client {
     let data = options.data;
     let id = this.uniqueId();
 
-    if (!_.isUndefined(data) && method !== 'GET') {
+    if (!isUndefined(data) && method !== 'GET') {
       data = JSON.stringify(data);
     }
 
@@ -152,6 +160,7 @@ export class Client {
       this.request(path, {
         ...options,
         success: (data, ...args) => {
+          // This fails if we need jqXhr :(
           resolve(data);
         },
         error: (error, ...args) => {
@@ -162,7 +171,7 @@ export class Client {
   }
 
   _chain(...funcs) {
-    funcs = funcs.filter(f => !_.isUndefined(f) && f);
+    funcs = funcs.filter(f => !isUndefined(f) && f);
     return (...args) => {
       funcs.forEach(func => {
         func.apply(funcs, args);
@@ -171,7 +180,7 @@ export class Client {
   }
 
   _wrapRequest(path, options, extraParams) {
-    if (_.isUndefined(extraParams)) {
+    if (isUndefined(extraParams)) {
       extraParams = {};
     }
 
@@ -247,33 +256,6 @@ export class Client {
         },
         error: error => {
           GroupActions.mergeError(id, params.itemIds, error);
-        },
-      },
-      options
-    );
-  }
-
-  assignTo(params, options) {
-    let path = '/issues/' + params.id + '/';
-    let id = this.uniqueId();
-
-    GroupActions.assignTo(id, params.id, {
-      email: (params.member && params.member.email) || '',
-    });
-
-    return this._wrapRequest(
-      path,
-      {
-        method: 'PUT',
-        // Sending an empty value to assignedTo is the same as "clear",
-        // so if no member exists, that implies that we want to clear the
-        // current assignee.
-        data: {assignedTo: (params.member && params.member.id) || ''},
-        success: response => {
-          GroupActions.assignToSuccess(id, params.id, response);
-        },
-        error: error => {
-          GroupActions.assignToError(id, params.id, error);
         },
       },
       options

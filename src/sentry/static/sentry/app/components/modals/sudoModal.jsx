@@ -1,83 +1,82 @@
-import {browserHistory} from 'react-router';
-import Modal from 'react-bootstrap/lib/Modal';
+import {withRouter} from 'react-router';
+import PropTypes from 'prop-types';
 import React from 'react';
-import Reflux from 'reflux';
-import classNames from 'classnames';
+import createReactClass from 'create-react-class';
 
 import {t} from '../../locale';
-import ApiForm from '../forms/apiForm';
+import Alert from '../alert';
 import ApiMixin from '../../mixins/apiMixin';
-import LoadingIndicator from '../loadingIndicator';
-import SimplePasswordField from '../forms/simplePasswordField';
-import SudoActions from '../../actions/sudoActions';
-import SudoModalStore from '../../stores/sudoModalStore';
+import Button from '../buttons/button';
+import ConfigStore from '../../stores/configStore';
+import Form from '../../views/settings/components/forms/form';
+import InputField from '../../views/settings/components/forms/inputField';
+import TextBlock from '../../views/settings/components/text/textBlock';
 import U2fContainer from '../u2fContainer';
+import space from '../../styles/space';
 
-const SudoModal = React.createClass({
-  mixins: [ApiMixin, Reflux.connect(SudoModalStore, 'modalProps')],
+class SudoModal extends React.Component {
+  static propTypes = {
+    api: PropTypes.object,
+    closeModal: PropTypes.func.isRequired,
+    /**
+     * expects a function that returns a Promise
+     */
+    retryRequest: PropTypes.func.isRequired,
+    superuser: PropTypes.bool,
+    router: PropTypes.object,
+    user: PropTypes.object,
 
-  getInitialState() {
-    return {
-      modalProps: false,
+    Header: PropTypes.oneOfType([PropTypes.func, PropTypes.node]).isRequired,
+    Body: PropTypes.oneOfType([PropTypes.func, PropTypes.node]).isRequired,
+  };
+
+  constructor(...args) {
+    super(...args);
+    this.state = {
       error: false,
       busy: false,
     };
-  },
+  }
 
-  componentDidMount() {
-    // Listen for route changes so we can dismiss modal
-    this.unlisten = browserHistory.listen(() =>
-      this.setState({
-        modalProps: false,
-      })
-    );
-  },
+  handleSuccess = () => {
+    let {closeModal, superuser, router, retryRequest} = this.props;
+    if (!retryRequest) return;
 
-  componentWillUnmount() {
-    if (this.unlisten) {
-      this.unlisten();
+    if (superuser) {
+      router.replace({...router.getCurrentLocation(), state: {forceUpdate: new Date()}});
+      return;
     }
-  },
-
-  handleSubmit() {
-    this.setState({busy: true});
-  },
-
-  handleSuccess() {
-    if (!this.state.modalProps || !this.state.modalProps.retryRequest) return;
 
     this.setState(
       {
         busy: true,
       },
       () => {
-        if (!this.state.modalProps) return;
-
-        this.state.modalProps.retryRequest().then(() => {
+        retryRequest().then(() => {
           this.setState(
             {
               busy: false,
             },
-            SudoActions.closeModal
+            closeModal
           );
         });
       }
     );
-  },
+  };
 
-  handleError() {
+  handleError = () => {
     this.setState({
       busy: false,
       error: true,
     });
-  },
+  };
 
-  handleU2fTap(data) {
+  handleU2fTap = data => {
     this.setState({busy: true});
     // u2Interface expects this to return a promise
-    return this.api
-      .requestPromise('/sudo/', {
-        method: 'POST',
+    return this.props.api
+      .requestPromise('/auth/', {
+        method: 'PUT',
         data,
       })
       .then(() => {
@@ -89,54 +88,86 @@ const SudoModal = React.createClass({
         // u2fInterface relies on this
         throw err;
       });
-  },
+  };
 
   render() {
-    let {className} = this.props;
-    let cx = classNames('sudo-modal', className);
-    let showModal = !!this.state.modalProps;
+    let {closeModal, user, Header, Body} = this.props;
 
     return (
-      <Modal
-        className={cx}
-        show={showModal}
-        animation={false}
-        onHide={SudoActions.closeModal}
-      >
-        {showModal && (
-          <ApiForm
-            apiMethod="POST"
-            apiEndpoint="/sudo/"
-            footerClass="modal-footer"
-            submitLabel={t('Continue')}
-            onSubmit={this.handleSubmit}
-            onSubmitSuccess={this.handleSuccess}
-            onSubmitError={this.handleError}
-            hideErrors
-            resetOnError
-          >
-            <Modal.Header closeButton onHide={SudoActions.closeModal}>
-              {t('Confirm Your Identity')}
-            </Modal.Header>
+      <React.Fragment>
+        <Header closeButton onHide={closeModal}>
+          {t('Confirm Your Identity')}
+        </Header>
 
-            <Modal.Body>
-              {this.state.busy && <LoadingIndicator overlay />}
-              <p>{t('Help us keep your account safe by confirming your identity.')}</p>
+        <Body>
+          {!user.hasPasswordAuth ? (
+            <div>
+              <TextBlock>{t('You will need to reauthenticate to continue.')}</TextBlock>
+              <Button
+                priority="primary"
+                href={`/auth/login/?next=${encodeURIComponent(location.pathname)}`}
+              >
+                {t('Continue')}
+              </Button>
+            </div>
+          ) : (
+            <React.Fragment>
+              <TextBlock css={{marginBottom: space(1)}}>
+                {t('Help us keep your account safe by confirming your identity.')}
+              </TextBlock>
+
               {this.state.error && (
-                <div className="alert alert-error alert-block">
+                <Alert
+                  css={{marginBottom: 0}}
+                  type="error"
+                  icon="icon-circle-exclamation"
+                >
                   {t('Incorrect password')}
-                </div>
+                </Alert>
               )}
 
-              <SimplePasswordField label={t('Password')} required name="password" />
-
-              <U2fContainer displayMode="sudo" onTap={this.handleU2fTap} />
-            </Modal.Body>
-          </ApiForm>
-        )}
-      </Modal>
+              <Form
+                apiMethod="PUT"
+                apiEndpoint="/auth/"
+                submitLabel={t('Continue')}
+                onSubmit={this.handleSubmit}
+                onSubmitSuccess={this.handleSuccess}
+                onSubmitError={this.handleError}
+                hideErrors
+                resetOnError
+                hideFooter={!user.hasPasswordAuth}
+              >
+                <InputField
+                  type="password"
+                  inline={false}
+                  label={t('Password')}
+                  flexibleControlStateSize
+                  name="password"
+                  css={{
+                    paddingLeft: 0,
+                    paddingRight: 0,
+                    borderBottom: 'none',
+                  }}
+                />
+                <U2fContainer displayMode="sudo" onTap={this.handleU2fTap} />
+              </Form>
+            </React.Fragment>
+          )}
+        </Body>
+      </React.Fragment>
     );
+  }
+}
+
+const SudoModalContainer = createReactClass({
+  displayName: 'SudoModalContainer',
+  mixins: [ApiMixin],
+
+  render() {
+    let user = ConfigStore.get('user');
+    return <SudoModal {...this.props} user={user} api={this.api} />;
   },
 });
 
-export default SudoModal;
+export default withRouter(SudoModalContainer);
+export {SudoModal};

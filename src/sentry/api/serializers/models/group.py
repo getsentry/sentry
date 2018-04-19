@@ -11,6 +11,8 @@ from django.utils import timezone
 
 from sentry import tagstore, tsdb
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.models.actor import ActorSerializer
+from sentry.api.fields.actor import Actor
 from sentry.constants import LOG_LEVELS, StatsPeriod
 from sentry.models import (
     Environment, Group, GroupAssignee, GroupBookmark, GroupMeta, GroupResolution, GroupSeen, GroupSnooze,
@@ -35,8 +37,8 @@ disabled = object()
 
 @register(Group)
 class GroupSerializer(Serializer):
-    def __init__(self, environment_id_func=None):
-        self.environment_id_func = environment_id_func if environment_id_func is not None else lambda: None
+    def __init__(self, environment_func=None):
+        self.environment_func = environment_func if environment_func is not None else lambda: None
 
     def _get_subscriptions(self, item_list, user):
         """
@@ -137,20 +139,49 @@ class GroupSerializer(Serializer):
             seen_groups = {}
             subscriptions = defaultdict(lambda: (False, None))
 
-        assignees = dict(
-            (a.group_id, a.user)
-            for a in GroupAssignee.objects.filter(
+        assignees = {
+            a.group_id: a.assigned_actor() for a in
+            GroupAssignee.objects.filter(
                 group__in=item_list,
-            ).select_related('user')
-        )
+            )
+        }
+        resolved_assignees = Actor.resolve_dict(assignees)
 
         try:
-            environment_id = self.environment_id_func()
+            environment = self.environment_func()
         except Environment.DoesNotExist:
             user_counts = {}
+            first_seen = {}
+            last_seen = {}
+            times_seen = {}
         else:
+            project_id = item_list[0].project_id
+            item_ids = [g.id for g in item_list]
             user_counts = tagstore.get_groups_user_counts(
-                item_list[0].project_id, [g.id for g in item_list], environment_id=environment_id)
+                project_id,
+                item_ids,
+                environment_id=environment and environment.id,
+            )
+            first_seen = {}
+            last_seen = {}
+            times_seen = {}
+            if environment is not None:
+                environment_tagvalues = tagstore.get_group_list_tag_value(
+                    project_id,
+                    item_ids,
+                    environment.id,
+                    'environment',
+                    environment.name,
+                )
+                for item_id, value in environment_tagvalues.items():
+                    first_seen[item_id] = value.first_seen
+                    last_seen[item_id] = value.last_seen
+                    times_seen[item_id] = value.times_seen
+            else:
+                for item in item_list:
+                    first_seen[item.id] = item.first_seen
+                    last_seen[item.id] = item.last_seen
+                    times_seen[item.id] = item.times_seen
 
         ignore_items = {g.group_id: g for g in GroupSnooze.objects.filter(
             group__in=item_list,
@@ -207,7 +238,7 @@ class GroupSerializer(Serializer):
                 ignore_actor = None
 
             result[item] = {
-                'assigned_to': serialize(assignees.get(item.id)),
+                'assigned_to': resolved_assignees.get(item.id),
                 'is_bookmarked': item.id in bookmarks,
                 'subscription': subscriptions[item.id],
                 'has_seen': seen_groups.get(item.id, active_date) > active_date,
@@ -218,6 +249,9 @@ class GroupSerializer(Serializer):
                 'resolution': resolution,
                 'resolution_actor': resolution_actor,
                 'share_id': share_ids.get(item.id),
+                'times_seen': times_seen.get(item.id, 0),
+                'first_seen': first_seen.get(item.id),  # TODO: missing?
+                'last_seen': last_seen.get(item.id),
             }
         return result
 
@@ -302,26 +336,27 @@ class GroupSerializer(Serializer):
             'id': six.text_type(obj.id),
             'shareId': share_id,
             'shortId': obj.qualified_short_id,
-            'count': six.text_type(obj.times_seen),
+            'count': six.text_type(attrs['times_seen']),
             'userCount': attrs['user_count'],
             'title': obj.title,
             'culprit': obj.culprit,
             'permalink': permalink,
-            'firstSeen': obj.first_seen,
-            'lastSeen': obj.last_seen,
+            'firstSeen': attrs['first_seen'],
+            'lastSeen': attrs['last_seen'],
             'logger': obj.logger or None,
             'level': LOG_LEVELS.get(obj.level, 'unknown'),
             'status': status_label,
             'statusDetails': status_details,
             'isPublic': share_id is not None,
             'project': {
+                'id': six.text_type(obj.project.id),
                 'name': obj.project.name,
                 'slug': obj.project.slug,
             },
             'type': obj.get_event_type(),
             'metadata': obj.get_event_metadata(),
             'numComments': obj.num_comments,
-            'assignedTo': attrs['assigned_to'],
+            'assignedTo': serialize(attrs['assigned_to'], user, ActorSerializer()),
             'isBookmarked': attrs['is_bookmarked'],
             'isSubscribed': is_subscribed,
             'subscriptionDetails': subscription_details,
@@ -336,8 +371,8 @@ class StreamGroupSerializer(GroupSerializer):
         '24h': StatsPeriod(24, timedelta(hours=1)),
     }
 
-    def __init__(self, environment_id_func=None, stats_period=None, matching_event_id=None):
-        super(StreamGroupSerializer, self).__init__(environment_id_func)
+    def __init__(self, environment_func=None, stats_period=None, matching_event_id=None):
+        super(StreamGroupSerializer, self).__init__(environment_func)
 
         if stats_period is not None:
             assert stats_period in self.STATS_PERIOD_CHOICES
@@ -359,17 +394,21 @@ class StreamGroupSerializer(GroupSerializer):
                 'end': now,
                 'rollup': int(interval.total_seconds()),
             }
+
             try:
+                environment = self.environment_func()
+            except Environment.DoesNotExist:
+                stats = {key: tsdb.make_series(0, **query_params) for key in group_ids}
+            else:
                 stats = tsdb.get_range(
                     model=tsdb.models.group,
                     keys=group_ids,
-                    environment_id=self.environment_id_func(),
+                    environment_id=environment and environment.id,
                     **query_params
                 )
-            except Environment.DoesNotExist:
-                stats = {key: tsdb.make_series(0, **query_params) for key in group_ids}
 
             for item in item_list:
+
                 attrs[item].update({
                     'stats': stats[item.id],
                 })

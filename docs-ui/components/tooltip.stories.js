@@ -1,31 +1,39 @@
 import React from 'react';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
+import {text, boolean} from '@storybook/addon-knobs';
 
 import Tooltip from 'sentry-ui/tooltip';
 import Button from 'sentry-ui/buttons/button';
 
 storiesOf('Tooltip', module).add(
   'default',
-  withInfo('Description')(() => (
-    <div>
-      <h1>Test</h1>
-      <div>
-        <Tooltip title="My tooltip">
-          <Button>Custom React Component</Button>
-        </Tooltip>
-      </div>
+  withInfo('Description')(() => {
+    let title = text('My tooltip', 'My tooltip');
+    let disabled = boolean('Disabled', false);
 
+    return (
       <div>
-        <Tooltip
-          title="My tooltip with options"
-          tooltipOptions={{
-            placement: 'bottom',
-          }}
-        >
-          <button>Native button</button>
-        </Tooltip>
+        <p>Test</p>
+        <div>
+          <Tooltip title={title} disabled={disabled}>
+            <Button>Custom React Component</Button>
+          </Tooltip>
+        </div>
+        <p>Test with options</p>
+
+        <div>
+          <Tooltip
+            title={title}
+            disabled={disabled}
+            tooltipOptions={{
+              placement: 'bottom',
+            }}
+          >
+            <button>Native button</button>
+          </Tooltip>
+        </div>
       </div>
-    </div>
-  ))
+    );
+  })
 );

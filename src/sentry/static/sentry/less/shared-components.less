@@ -168,6 +168,11 @@ dl.flat dd {
   box-shadow: none;
 }
 
+// Align the dropdown menu tip to the center of the open button
+.btn-group > .dropdown.open > .dropdown-menu {
+  left: -5px;
+}
+
 // Disabled buttons
 
 .btn-primary.disabled,
@@ -303,69 +308,6 @@ fieldset[disabled] .btn-danger.active,
   }
 }
 
-/* Justified button group */
-
-.btn-group-justified {
-  display: block;
-
-  .btn {
-    height: 38px;
-    background: #fff;
-    border-color: @gray-lighter;
-    color: @gray-dark;
-    font-weight: 400;
-
-    &.active {
-      font-weight: bold;
-      text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.15);
-
-      &:hover {
-        background: @blue-dark;
-        border-color: darken(@blue-dark, 20);
-      }
-    }
-
-    &:hover {
-      color: @gray-darker;
-      background: @white-dark;
-    }
-
-    &:active {
-      top: 0;
-      box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.06);
-      text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.15);
-    }
-  }
-  .btn-middle {
-    border-left: 0;
-    border-right: 0;
-    position: relative;
-    &:before,
-    &:after {
-      display: block;
-      content: '';
-      position: absolute;
-      top: -1px;
-      bottom: -1px;
-      width: 1px;
-      background: transparent;
-    }
-    &:after {
-      left: -1px;
-    }
-    &:before {
-      right: -1px;
-    }
-
-    &.active {
-      &:after,
-      &:before {
-        background: darken(@blue, 20);
-      }
-    }
-  }
-}
-
 /**
 * Tables
 * ============================================================================
@@ -415,7 +357,6 @@ table.table {
     }
 
     .avatar {
-      .square(36px);
       position: absolute;
       left: 20px;
     }
@@ -437,9 +378,8 @@ pre.plain {
 
 .external-icon {
   .transition(0.1s linear color);
-  color: inherit;
   font-size: 11px;
-  padding: 0 5px;
+  margin: 0 5px;
   color: @gray-light;
   line-height: 1;
 
@@ -501,28 +441,6 @@ table.integrations {
   td:first-child {
     position: relative;
     padding-left: 78px !important;
-  }
-
-  .icon-integration {
-    position: absolute;
-    top: 15px;
-    left: 16px;
-    .square(48px);
-    border-radius: 2px;
-    border: 0;
-    /* this is so that there aren't gray boxes before load */
-    background-color: #fff;
-    display: inline-block;
-  }
-
-  .auto-tag-browsers,
-  .auto-tag-device,
-  .auto-tag-interface-types,
-  .auto-tag-operating-systems,
-  .auto-tag-urls {
-    .icon-integration {
-      .icon-sentry;
-    }
   }
 
   h5 {
@@ -589,7 +507,6 @@ table.integrations {
 
       .avatar {
         top: 50%;
-        .square(24px);
         margin-top: -12px;
       }
 
@@ -612,7 +529,6 @@ table.integrations {
   width: 20px;
   height: 20px;
   vertical-align: middle;
-  border-radius: 2px;
   position: relative;
   display: inline-block;
 
@@ -708,8 +624,8 @@ table.integrations {
 
   .loading-indicator {
     position: relative;
-    border: @check-thickness solid @white-darker;
-    border-left-color: @gray;
+    border: @check-thickness solid @white-darkest;
+    border-left-color: @purple;
     -webkit-animation: loading 0.5s infinite linear;
     animation: loading 0.55s infinite linear;
     margin: 0 auto;
@@ -810,12 +726,18 @@ table.integrations {
   .loading-indicator {
     margin: 0;
     border-radius: 50%;
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
     border-width: 2px;
     position: absolute;
     left: 0;
     top: 0;
+
+    &.relative {
+      position: relative;
+      left: auto;
+      top: auto;
+    }
   }
 
   .loading-message {
@@ -841,63 +763,6 @@ table.integrations {
 .hint-leave.hint-leave-active {
   opacity: 0.01;
   transition: opacity 300ms ease-in;
-}
-
-.toast {
-  .loading.mini();
-  padding: 20px 30px;
-  font-size: 15px;
-  z-index: 100000;
-  border-radius: 3px;
-
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  color: #fff;
-  opacity: 1;
-
-  .toast-message {
-    display: inline-block;
-    padding-left: 15px;
-  }
-
-  &.loading {
-    background: rgba(52, 60, 69, 0.8);
-    &.toast-leave {
-      display: none; /* hides immediately*/
-    }
-  }
-
-  &.success {
-    background: @green;
-    color: @white;
-    .icon:before {
-      content: '\e60a'; // checkmark
-    }
-  }
-  &.error {
-    background: @red;
-    color: @white;
-    .icon:before {
-      content: '\e615'; // exclamation
-    }
-  }
-  &.success.toast-leave,
-  &.error.toast-leave {
-    opacity: 0;
-    .transition(opacity 0.2s linear);
-  }
-
-  .loading-indicator {
-    border-color: rgba(255, 255, 255, 0.4);
-    border-left-color: rgba(255, 255, 255, 1);
-    top: 20px;
-    left: 24px;
-  }
-
-  .loading-message {
-    padding-left: 24px;
-  }
 }
 
 // Loading Gif
@@ -980,13 +845,13 @@ table.integrations {
 
   .switch-toggle {
     top: 2px;
-    left: 2px;
+    transform: translateX(2px);
     .square(@switch-sm-height - 6); // (3*2) Room for border and padding on top and bottom
   }
 
   &.switch-on {
     .switch-toggle {
-      left: @switch-sm-height + 2;
+      transform: translateX(@switch-sm-height + 2);
     }
   }
 }
@@ -1000,13 +865,13 @@ table.integrations {
 
   .switch-toggle {
     top: 4px;
-    left: 4px;
+    transform: translateX(4px);
     .square(@switch-lg-height - 10); // (10*2) Room for border and padding on top and bottom
   }
 
   &.switch-on {
     .switch-toggle {
-      left: @switch-lg-height + 4;
+      transform: translateX(@switch-lg-height + 4);
     }
   }
 }
@@ -1033,55 +898,6 @@ table.integrations {
 * Filter Grid
 * ============================================================================
 */
-
-.filter-grid-item {
-  background: #f7f8f9;
-  border-radius: 3px;
-  position: relative;
-  padding: 10px 65px 6px 58px;
-
-  h5 {
-    font-size: 14px;
-    margin: 0 0 2px;
-  }
-
-  p {
-    margin: 0;
-    font-size: 13px;
-  }
-
-  .switch {
-    background: #fff;
-    position: absolute;
-    top: 17px;
-    right: 12px;
-  }
-}
-
-.filter-grid-icon {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  width: 38px;
-  height: 38px;
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: 38px 38px;
-}
-
-.filter-grid-filter {
-  strong {
-    margin-right: 5px;
-  }
-
-  .divider {
-    display: inline-block;
-    height: 16px;
-    border-left: 1px solid #f1f2f3;
-    margin: 0 5px;
-  }
-}
-
 .inbound-filters-stats {
   .bar-chart figure a {
     height: 50px;
@@ -1169,22 +985,6 @@ table.integrations {
     font-size: 14px;
   }
 
-  .search-save-search {
-    position: absolute;
-    right: 34px;
-    top: 12px;
-    font-size: 12px;
-    padding: 1px 5px 0;
-    color: lighten(@gray, 10);
-    border-radius: 3px;
-
-    &:focus,
-    &:active {
-      position: absolute;
-      top: 13px;
-    }
-  }
-
   .search-input {
     padding: 8px 24px 8px 37px;
     font-size: 14px;
@@ -1194,14 +994,6 @@ table.integrations {
     &:focus {
       border-radius: 3px 3px 0 0;
     }
-  }
-
-  .search-toggle {
-    color: #8e8e97;
-    position: absolute;
-    right: 2px;
-    top: -1px;
-    padding: 10px;
   }
 
   &.disabled {
@@ -1386,35 +1178,26 @@ table.integrations {
   position: static;
 
   .dropdown-toggle {
-    border: 1px solid @gray-lighter;
-    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.08);
-    border-radius: 50%;
-    height: 21px;
-    width: 21px;
+    height: 23px;
+    width: 23px;
     line-height: 21px;
-    // text-align: center;
     position: relative;
-    top: -1px;
 
-    margin-left: 10px;
+    margin-left: 2px;
     display: inline-block;
     vertical-align: middle;
-
-    &:hover {
-      background: @white-darker;
-      border-color: @gray-light;
-    }
 
     .icon-arrow-down {
       position: relative;
       left: 2px;
       font-size: 15px !important;
       color: @gray;
-      top: 1px;
+      top: -1px;
     }
   }
 
   .dropdown-menu {
+    z-index: 1001;
     min-width: 250px;
     max-width: 500px;
     width: auto;
@@ -1482,10 +1265,9 @@ table.integrations {
 
       > a {
         .truncate();
-        padding: 6px 0 6px 6px;
+        padding: 6px 0;
         border-radius: 0;
         line-height: 1;
-        margin-left: -6px;
         border-left: 3px solid transparent;
 
         &:hover {
@@ -1518,7 +1300,6 @@ table.integrations {
 
         // need to override bootstrap for <a> in dropdown-menu
         a {
-          margin-left: 0;
           border-radius: 3px;
           font-weight: 600;
           color: #ffffff;
@@ -1527,57 +1308,6 @@ table.integrations {
           }
         }
       }
-    }
-  }
-
-  &.open .dropdown-toggle {
-    border-color: darken(@purple, 15);
-    background-color: @purple;
-    .icon-arrow-down {
-      color: #fff;
-    }
-  }
-}
-
-/**
-* Charts
-* ============================================================================
-*/
-
-.team-chart {
-  margin-bottom: 30px !important;
-}
-
-.chart {
-  display: block;
-  position: relative;
-  height: 100%;
-  margin-bottom: 20px;
-
-  > .title {
-    font-size: 2em;
-    text-transform: uppercase;
-    position: absolute;
-    left: 1px;
-    top: 1px;
-    color: #dfe3e9;
-    .opacity(70);
-    background: #fff;
-    padding: 5px 8px;
-    line-height: 100%;
-  }
-
-  > .legend {
-    position: absolute;
-    left: 0;
-    top: 0;
-    white-space: nowrap;
-    padding-left: 10px;
-    height: 100%;
-    text-align: left;
-    color: @link-color;
-    .legendLabel {
-      padding: 0 5px;
     }
   }
 }
@@ -1806,10 +1536,6 @@ ul.faces {
   li {
     float: left;
     margin: 0 5px 5px 0;
-
-    .avatar {
-      .square(28px);
-    }
   }
 }
 
@@ -1878,8 +1604,26 @@ ul.faces {
       vertical-align: text-bottom;
     }
 
+    .pill-icon,
     .external-icon {
+      .transition(0.1s linear color);
       display: inline;
+      margin: 0 0 0 8px;
+      color: @gray-light;
+
+      &:hover {
+        color: @gray;
+      }
+    }
+
+    // Some pill icons are hovercard wrappers, so select the direct anchor
+    // element and correctly color that
+    .pill-icon > a {
+      color: @gray-light;
+
+      &:hover {
+        color: @gray;
+      }
     }
   }
 
@@ -1894,64 +1638,30 @@ ul.faces {
 */
 
 .assignee-selector {
-  height: 24px;
-
-  .loading {
-    display: inline-block;
-  }
-
-  .btn-group {
-    height: 24px;
-
-    &.open {
-      .dropdown-toggle {
-        color: @gray-dark;
-      }
-    }
-  }
+  display: flex;
+  justify-content: flex-end;
 
   .icon-arrow-down {
-    right: -2px;
+    position: static;
     top: 0;
-  }
-
-  .avatar {
-    display: inline-block;
-    width: 24px;
-    height: 24px;
-    position: relative;
-    left: -2px;
-    top: -1px;
   }
 
   .dropdown-toggle {
     color: inherit;
-
-    .avatar + span,
-    .icon-user + span {
-      display: none;
-    }
   }
 
   .dropdown-menu {
-    left: auto;
     right: -14px !important;
     min-width: 180px;
-    padding-top: 0;
-    padding-bottom: 3px;
     max-width: 250px;
-    top: 30px;
-    z-index: @zindex-dropdown;
+    padding: 0;
     font-size: 13px;
 
     .form-control {
       border: 0;
-      border: 0;
       border-bottom: 1px solid #e9ebec;
-      background: none;
-      box-shadow: none;
       padding-bottom: 8px;
-      margin-bottom: 6px;
+      box-shadow: none;
       border-radius: 0;
       font-size: 13px;
 
@@ -1969,7 +1679,6 @@ ul.faces {
     li {
       &.not-found span {
         padding: 5px 8px;
-        padding-left: 10px;
         display: block;
         font-style: italic;
         text-align: center;
@@ -1981,127 +1690,34 @@ ul.faces {
       }
 
       a {
-        padding: 5px 8px;
-        display: block;
-        padding-left: 33px;
-        position: relative;
-        max-width: 100%;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        text-align: left;
-
-        span.avatar {
-          margin-right: 5px;
-          position: absolute;
-          left: 8px;
-          top: 4px;
-          .square(20px);
-        }
+        padding: 0;
       }
     }
   }
 
   &.unassigned {
     .icon-user {
+      display: block;
       margin-right: 3px;
-      position: relative;
-      top: 3px;
       font-size: 20px;
+    }
+  }
+
+  .invite-member a {
+    .icon-plus {
+      font-size: 16px;
+      opacity: 0.3;
+      margin-right: 5px;
     }
   }
 
   .clear-assignee a {
     background: rgba(52, 60, 69, 0.03);
     border-bottom: 1px solid rgba(52, 60, 69, 0.06);
-    margin-top: -6px;
-    margin-bottom: 2px;
-    padding: 4px 0 2px 33px !important;
-
-    .icon-circle-cross {
-      font-size: 16px;
-      position: absolute;
-      left: 10px;
-      top: 4px;
-      opacity: 0.3;
-    }
   }
 
   .list-loading-container {
     padding: 15px 0 10px 0;
-  }
-}
-
-/**
-* Settings modal
-* ============================================================================
-*/
-
-.settings-modal {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.65);
-  z-index: @zindex-settings-modal;
-  overflow: auto;
-
-  .container {
-    max-width: 760px;
-  }
-
-  .settings-modal-wrap {
-    margin-top: 80px;
-    margin-bottom: 30px;
-    border-radius: 5px;
-    background: #fff;
-    z-index: @zindex-settings-modal;
-  }
-
-  .settings-modal-header {
-    background: #f7f7f7;
-    padding: 15px 20px;
-    border-radius: 5px 5px 0 0;
-
-    h3 {
-      margin: 0;
-    }
-  }
-
-  .settings-modal-body {
-    padding: 20px;
-  }
-
-  .settings-modal-footer {
-    border-top: 1px solid #e9ebec;
-    padding: 15px 20px;
-    text-align: right;
-  }
-}
-
-// Back Arrow
-
-.back-arrow {
-  position: absolute;
-  left: -25px;
-  top: -4px;
-
-  .icon-arrow-left {
-    font-size: 28px !important;
-    font-weight: bold;
-    color: lighten(@gray, 30);
-    .transition(color 0.2s linear);
-  }
-
-  &:hover {
-    .icon-arrow-left {
-      color: lighten(@gray, 20);
-    }
-  }
-
-  &:active {
-    top: -3px;
   }
 }
 
@@ -2349,9 +1965,6 @@ ul.faces {
  */
 
 .messages-container {
-  margin-top: -30px;
-  margin-bottom: 30px;
-
   .alert {
     color: #fff;
     font-weight: bold;
@@ -2531,21 +2144,6 @@ header + .alert {
   .btn-default {
     border-color: darken(@alert-success-border-color, 5);
   }
-}
-
-.active-alerts {
-  margin: 15px 25px 0;
-  padding: 0 5px;
-  li.alert {
-    margin-bottom: 5px;
-  }
-}
-
-.early-adopter-banner {
-  .box;
-  font-size: 13px;
-  padding: 8px 15px;
-  background: @white-dark;
 }
 
 .email-alert-button {
@@ -2869,52 +2467,6 @@ header + .alert {
   }
 }
 
-.nav-tabs-xs {
-  a {
-    font-size: 13px !important;
-    padding: 6px 0 5px !important;
-  }
-}
-
-.text-tabs {
-  a {
-    font-size: 20px !important;
-    padding: 0 !important;
-    line-height: 1 !important;
-  }
-
-  li {
-    padding-left: 17px;
-    margin-right: 15px;
-    position: relative;
-
-    &:before {
-      display: block;
-      content: '';
-      position: absolute;
-      top: 1px;
-      left: 0;
-      height: 18px;
-      width: 1px;
-      background: @trim;
-    }
-
-    &:first-child {
-      padding: 0 !important;
-      &:before {
-        display: none;
-      }
-    }
-  }
-
-  li.active a,
-  li.active a:hover,
-  li.active a:focus,
-  li.active a:active {
-    border: 0;
-  }
-}
-
 /**
 * Badge
 * ============================================================================
@@ -3032,74 +2584,6 @@ header + .alert {
 * Project nav
 * ============================================================================
 */
-
-.nav.project-nav {
-  display: none;
-  margin: -10px 0 30px;
-  border-radius: 3px 3px 0 0;
-
-  .icon-settings {
-    position: relative;
-    top: 1px;
-    margin-right: 2px;
-    opacity: 0.45;
-  }
-}
-
-/**
-* Datepicker
-* ============================================================================
-*/
-
-.datepicker-modal {
-  .modal-dialog {
-    margin-top: -200px;
-  }
-}
-
-.datepicker-box {
-  h6 {
-    margin-bottom: 15px;
-  }
-
-  .datepicker-wrapper {
-    width: 57%;
-    float: left;
-
-    .datepicker__input {
-      box-shadow: inset 0 1px 1px rgba(70, 82, 98, 0.04);
-      height: auto;
-      border: 1px solid darken(@trim, 4);
-      padding: 8px 12px 7px;
-      position: relative;
-      border-radius: 2px;
-
-      .placeholder(lighten(@gray, 28));
-
-      &:focus {
-        box-shadow: none;
-        border-color: darken(@trim, 10);
-      }
-      display: block;
-      line-height: 1.4 !important;
-      padding-right: 4px !important;
-      padding-left: 8px !important;
-      width: 100%;
-    }
-  }
-
-  .form-control {
-    display: inline-block;
-    line-height: 1.2 !important;
-    padding-right: 4px !important;
-    padding-left: 8px !important;
-
-    &.time {
-      margin-left: 2%;
-      width: 41%;
-    }
-  }
-}
 
 ul.radio-inputs {
   .list-unstyled;
@@ -3246,10 +2730,24 @@ ul.radio-inputs {
   }
 }
 
-// Modal Small
+// Command Palette
+.command-palette.modal {
+  .modal-content {
+    padding: 0;
+    overflow: visible;
+  }
+}
 
-.modal-sm {
-  width: 400px;
+.create-ownership-rule-modal {
+  @media (min-width: 767px) {
+    .modal-dialog {
+      width: 80%;
+      margin-left: -40%;
+    }
+  }
+  .modal-content {
+    overflow: initial;
+  }
 }
 
 // Broadcast Modal
@@ -3354,34 +2852,6 @@ ul.radio-inputs {
 }
 
 /**
-* Popovers
-* ============================================================================
-*/
-
-.popover {
-  width: auto;
-  min-width: 236px;
-  max-width: 600px;
-}
-
-.popover * {
-  font-size: 11px;
-  line-height: 14px;
-  margin-top: 0;
-  margin-bottom: 0;
-}
-.popover-title {
-  font-size: 10px;
-  background: @blue;
-  color: #fff;
-}
-
-.popover-title,
-.popover-content {
-  padding: 4px 10px;
-}
-
-/**
 * Tag List
 * ============================================================================
 */
@@ -3406,79 +2876,6 @@ ul.tag-list {
     span {
       position: absolute;
       right: 10px;
-    }
-  }
-}
-
-/**
-* Mini tag list
-* ============================================================================
-*/
-
-.mini-tag-list {
-  .clearfix();
-  .list-unstyled();
-  margin: -10px 0 5px;
-
-  > li {
-    float: left;
-    background: #fff;
-    border-radius: 3px;
-    margin: 0 20px 5px 0;
-
-    span:nth-child(2) {
-      color: #aaa;
-    }
-
-    a {
-      word-break: break-all;
-    }
-  }
-}
-
-/**
-* Integration list
-* ============================================================================
-*/
-
-.integration-list {
-  .clearfix();
-  .list-unstyled();
-  margin-bottom: 18px;
-
-  li {
-    display: inline-block;
-    margin-bottom: 2px;
-
-    button {
-      width: 175px;
-      text-align: center;
-      font-size: 12px;
-      color: darken(#e4e8ed, 30%);
-      letter-spacing: 0.1px;
-      font-weight: 600;
-      text-transform: uppercase;
-      border: 1px solid #eee;
-      background: inherit;
-      border-radius: 4px;
-      padding: 10px;
-      display: block;
-      margin-right: 5px;
-
-      &:hover {
-        border-color: #ccc;
-      }
-      .icon-integration {
-        position: relative;
-        top: 4px;
-        right: 5px;
-        .square(20px);
-        border-radius: 2px;
-        border: 0;
-        /* this is so that there aren't gray boxes before load */
-        background-color: #fff;
-        display: inline-block;
-      }
     }
   }
 }
@@ -3682,20 +3079,6 @@ ul.tag-list {
 }
 
 /**
- * Reusable project label
- * ============================================================================
- */
-.project-label {
-  .callsign-addon {
-    color: @blue;
-    font-weight: bold;
-    padding-left: 7px;
-    font-size: 80%;
-    vertical-align: top;
-  }
-}
-
-/**
 * QR Code
 * ============================================================================
 */
@@ -3762,35 +3145,6 @@ div.qrcode {
   &.expanded .full-value {
     z-index: 10;
     display: block;
-  }
-}
-
-/**
- * react-code-input
- * ============================================================================
- */
-.react-code-input {
-  text-align: center;
-  display: block !important;
-
-  input::-webkit-outer-spin-button,
-  input::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-  }
-  input[type='number'] {
-    -moz-appearance: textfield;
-  }
-  input {
-    text-align: center !important;
-    padding: 0 !important;
-    color: transparent !important;
-    text-shadow: 0 0 0 black !important;
-    &::selection {
-      background: transparent;
-    }
-    &::-moz-selection {
-      background: transparent;
-    }
   }
 }
 

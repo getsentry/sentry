@@ -1,22 +1,21 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import classNames from 'classnames';
+import createReactClass from 'create-react-class';
 
-import GroupingStore from '../../stores/groupingStore';
-import GroupingActions from '../../actions/groupingActions';
-import ProjectActions from '../../actions/projectActions';
-
-import Count from '../../components/count';
-import EventOrGroupHeader from '../../components/eventOrGroupHeader';
-import EventOrGroupExtraDetails from '../../components/eventOrGroupExtraDetails';
-import SpreadLayout from '../../components/spreadLayout';
-import FlowLayout from '../../components/flowLayout';
+import {openDiffModal} from '../../actionCreators/modal';
 import Checkbox from '../../components/checkbox';
-import ScoreBar from '../../components/scoreBar';
+import Count from '../../components/count';
+import EventOrGroupExtraDetails from '../../components/eventOrGroupExtraDetails';
+import EventOrGroupHeader from '../../components/eventOrGroupHeader';
+import FlowLayout from '../../components/flowLayout';
+import GroupingActions from '../../actions/groupingActions';
+import GroupingStore from '../../stores/groupingStore';
 import Hovercard from '../../components/hovercard';
+import ScoreBar from '../../components/scoreBar';
 import SimilarScoreCard from '../../components/similarScoreCard';
+import SpreadLayout from '../../components/spreadLayout';
 
 const similarInterfaces = ['exception', 'message'];
 
@@ -91,7 +90,7 @@ const SimilarIssueItem = createReactClass({
 
   handleShowDiff(e) {
     let {groupId, issue} = this.props;
-    ProjectActions.openDiffModal({
+    openDiffModal({
       baseIssueId: groupId,
       targetIssueId: issue.id,
     });

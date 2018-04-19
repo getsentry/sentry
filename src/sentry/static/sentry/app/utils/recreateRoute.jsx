@@ -8,7 +8,7 @@ import replaceRouterParams from './replaceRouterParams';
 // Can additionally specify the number of routes to move back
 //
 // See tests for examples
-export default function recreateRoute(to, {routes, params, stepBack}) {
+export default function recreateRoute(to, {routes, params, location, stepBack}) {
   let paths = routes.map(({path}) => path || '');
   let lastRootIndex = findLastIndex(paths, path => path[0] === '/');
   let routeIndex;
@@ -23,7 +23,9 @@ export default function recreateRoute(to, {routes, params, stepBack}) {
     baseRoute = baseRoute.slice(0, stepBack);
   }
 
-  let fullRoute = `${baseRoute.join('')}${routeToRoute ? '' : to}`;
+  let query = typeof location !== 'undefined' && location.search ? location.search : '';
+
+  let fullRoute = `${baseRoute.join('')}${routeToRoute ? '' : to}${query}`;
 
   return replaceRouterParams(fullRoute, params);
 }

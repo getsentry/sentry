@@ -1,8 +1,22 @@
+import {Box, Flex} from 'grid-emotion';
 import React from 'react';
+import styled from 'react-emotion';
+
+import {t, tct} from '../locale';
 import AsyncView from './asyncView';
-import {t} from '../locale';
+import EmptyMessage from './settings/components/emptyMessage';
 import ExternalLink from '../components/externalLink';
 import LinkWithConfirmation from '../components/linkWithConfirmation';
+import {Panel, PanelBody, PanelHeader, PanelItem} from '../components/panels';
+import SettingsPageHeader from './settings/components/settingsPageHeader';
+import TextBlock from './settings/components/text/textBlock';
+import Tooltip from '../components/tooltip';
+
+const Description = styled.span`
+  font-size: 0.8em;
+  color: ${p => p.theme.gray1};
+  margin-left: 8px;
+`;
 
 export default class ProjectTags extends AsyncView {
   getEndpoints() {
@@ -29,54 +43,77 @@ export default class ProjectTags extends AsyncView {
     });
   }
 
+  renderLink(key, canDelete, idx) {
+    return (
+      <LinkWithConfirmation
+        className={'btn btn-sm btn-default'}
+        title={'Remove tag?'}
+        message={'Are you sure you want to remove this tag?'}
+        onConfirm={() => this.onDelete(key, idx)}
+        disabled={!canDelete}
+      >
+        <span className="icon icon-trash" />
+      </LinkWithConfirmation>
+    );
+  }
+
   renderBody() {
+    let {tags} = this.state;
+    let isEmpty = !tags || tags.length === 0;
+
     return (
       <div>
-        <h2>{t('Tags')}</h2>
-        <p>
-          Each event in Sentry may be annotated with various tags (key and value pairs).
-          Learn how to{' '}
-          <ExternalLink href="https://docs.sentry.io/hosted/learn/context/">
-            add custom tags
-          </ExternalLink>
-          .
-        </p>
+        <SettingsPageHeader title={t('Tags')} />
+        <TextBlock>
+          {tct(
+            `Each event in Sentry may be annotated with various tags (key and value pairs).
+          Learn how to [link:add custom tags].`,
+            {
+              link: <ExternalLink href="https://docs.sentry.io/hosted/learn/context/" />,
+            }
+          )}
+        </TextBlock>
 
-        <div className="panel panel-default">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Tags</th>
-                <th style={{width: 20}} />
-              </tr>
-            </thead>
-            <tbody>
-              {this.state.tags.map(({key, name}, idx) => {
+        <Panel>
+          <PanelHeader>
+            <Flex>
+              <Box flex="1">{t('Tags')}</Box>
+            </Flex>
+          </PanelHeader>
+
+          <PanelBody>
+            {isEmpty && (
+              <EmptyMessage>
+                {tct('There are no tags, [link:learn to add tags]', {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/hosted/learn/context/" />
+                  ),
+                })}
+              </EmptyMessage>
+            )}
+
+            {!isEmpty &&
+              tags.map(({key, name, canDelete}, idx) => {
                 return (
-                  <tr key={key}>
-                    <td>
-                      <h5>
-                        {name}
-                        &nbsp;
-                        <small>({key})</small>
-                      </h5>
-                    </td>
-                    <td>
-                      <LinkWithConfirmation
-                        className="btn btn-sm btn-default"
-                        title={'Remove tag?'}
-                        message={'Are you sure you want to remove this tag?'}
-                        onConfirm={() => this.onDelete(key, idx)}
-                      >
-                        <span className="icon icon-trash" />
-                      </LinkWithConfirmation>
-                    </td>
-                  </tr>
+                  <PanelItem p={0} align="center" key={key} className="ref-tag-row">
+                    <Box align="flex-end" flex="1" p={2}>
+                      <span>{name}</span>
+                      <Description>{key}</Description>
+                    </Box>
+                    <Flex align="center" p={2}>
+                      {canDelete ? (
+                        this.renderLink(key, canDelete, idx)
+                      ) : (
+                        <Tooltip title={t('This tag cannot be deleted.')}>
+                          <span>{this.renderLink(key, canDelete, idx)}</span>
+                        </Tooltip>
+                      )}
+                    </Flex>
+                  </PanelItem>
                 );
               })}
-            </tbody>
-          </table>
-        </div>
+          </PanelBody>
+        </Panel>
       </div>
     );
   }

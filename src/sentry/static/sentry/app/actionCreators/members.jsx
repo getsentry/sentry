@@ -15,7 +15,7 @@ export function updateMember(api, params) {
       error: data => {
         MemberActions.updateError(data);
         reject(data);
-      }
+      },
     })
   );
 }
@@ -29,7 +29,7 @@ export function resendMemberInvite(api, params) {
       method: 'PUT',
       data: {
         regenerate: params.regenerate,
-        reinvite: true
+        reinvite: true,
       },
       success: data => {
         MemberActions.resendMemberInviteSuccess(data);
@@ -38,7 +38,7 @@ export function resendMemberInvite(api, params) {
       error: data => {
         MemberActions.resendMemberInviteError(data);
         reject(data);
-      }
+      },
     })
   );
 }

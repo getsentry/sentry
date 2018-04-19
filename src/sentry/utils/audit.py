@@ -61,7 +61,7 @@ def create_org_delete_log(entry):
 def create_project_delete_log(entry):
     delete_log = DeletedProject()
 
-    project = Project.objects.select_related('team').get(id=entry.target_object)
+    project = Project.objects.get(id=entry.target_object)
     delete_log.name = project.name
     delete_log.slug = project.slug
     delete_log.date_created = project.date_added
@@ -70,11 +70,6 @@ def create_project_delete_log(entry):
     delete_log.organization_id = entry.organization.id
     delete_log.organization_name = entry.organization.name
     delete_log.organization_slug = entry.organization.slug
-
-    team = project.team
-    delete_log.team_id = team.id
-    delete_log.team_name = team.name
-    delete_log.team_slug = team.slug
 
     complete_delete_log(delete_log, entry)
 

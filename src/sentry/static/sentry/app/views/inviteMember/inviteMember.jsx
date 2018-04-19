@@ -1,25 +1,55 @@
-import {browserHistory} from 'react-router';
-import React from 'react';
-import createReactClass from 'create-react-class';
-import classNames from 'classnames';
+import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
+import React from 'react';
+import classNames from 'classnames';
+import createReactClass from 'create-react-class';
 
-import {t} from '../../locale';
-import AlertActions from '../../actions/alertActions';
+import {addErrorMessage, addSuccessMessage} from '../../actionCreators/indicator';
+import {t, tct} from '../../locale';
 import ApiMixin from '../../mixins/apiMixin';
 import Button from '../../components/buttons/button';
 import ConfigStore from '../../stores/configStore';
 import LoadingIndicator from '../../components/loadingIndicator';
 import OrganizationState from '../../mixins/organizationState';
 import RoleSelect from './roleSelect';
+import SettingsPageHeader from '../settings/components/settingsPageHeader';
 import TeamSelect from './teamSelect';
+import TextBlock from '../settings/components/text/textBlock';
 import TextField from '../../components/forms/textField';
-import recreateRoute from '../../utils/recreateRoute';
+import replaceRouterParams from '../../utils/replaceRouterParams';
+
+// These don't have allowed and are only used for superusers. superceded by server result of allowed roles
+const STATIC_ROLE_LIST = [
+  {
+    id: 'member',
+    name: 'Member',
+    desc:
+      'Members can view and act on events, as well as view most other data within the organization.',
+  },
+  {
+    id: 'admin',
+    name: 'Admin',
+    desc:
+      "Admin privileges on any teams of which they're a member. They can create new teams and projects, as well as remove teams and projects which they already hold membership on.",
+  },
+  {
+    id: 'manager',
+    name: 'Manager',
+    desc:
+      'Gains admin access on all teams as well as the ability to add and remove members.',
+  },
+  {
+    id: 'owner',
+    name: 'Owner',
+    desc:
+      'Gains full permission across the organization. Can manage members as well as perform catastrophic operations such as removing the organization.',
+  },
+];
 
 const InviteMember = createReactClass({
   displayName: 'InviteMember',
   propTypes: {
-    routes: PropTypes.array,
+    router: PropTypes.object,
   },
   mixins: [ApiMixin, OrganizationState],
 
@@ -42,6 +72,8 @@ const InviteMember = createReactClass({
 
   componentDidMount() {
     let {slug} = this.getOrganization();
+    let {isSuperuser} = ConfigStore.get('user');
+
     this.api.request(`/organizations/${slug}/members/me/`, {
       method: 'GET',
       success: resp => {
@@ -68,21 +100,27 @@ const InviteMember = createReactClass({
         }
       },
       error: error => {
-        Raven.captureMessage('[members]: data fetch error ', {
-          extra: {error, state: this.state},
-        });
+        if (error.status == 404 && isSuperuser) {
+          // use the static list
+          this.setState({roleList: STATIC_ROLE_LIST, loading: false});
+        } else {
+          Raven.captureMessage('[members]: data fetch error ', {
+            extra: {error, state: this.state},
+          });
+        }
       },
     });
   },
 
   redirectToMemberPage() {
     // Get path to parent route (`/organizations/${slug}/members/`)
-    let pathToParentRoute = recreateRoute('', {
-      params: this.props.params,
-      routes: this.props.routes,
-      stepBack: -1,
-    });
-    browserHistory.push(pathToParentRoute);
+    // `recreateRoute` fucks up because of getsentry hooks
+    let {params, router} = this.props;
+    let isNewSettings = /^\/settings\//.test(router.location.pathname);
+    let pathToParentRoute = isNewSettings
+      ? '/settings/:orgId/members/'
+      : '/organizations/:orgId/members/';
+    router.push(replaceRouterParams(pathToParentRoute, params));
   },
 
   splitEmails(text) {
@@ -104,27 +142,23 @@ const InviteMember = createReactClass({
           user: email,
           teams: Array.from(selectedTeams.keys()),
           role: selectedRole,
+          referrer: this.props.location.query.referrer,
         },
         success: () => {
-          // TODO(billy): Use SettingsIndicator when these views only exist in Settings area
-          AlertActions.addAlert({
-            message: `Added ${email}`,
-            type: 'success',
-          });
+          addSuccessMessage(
+            tct('Added [email] to [organization]', {
+              email,
+              organization: slug,
+            })
+          );
           resolve();
         },
         error: err => {
           if (err.status === 403) {
-            AlertActions.addAlert({
-              message: "You aren't allowed to invite members.",
-              type: 'error',
-            });
+            addErrorMessage(t("You aren't allowed to invite members."));
             reject(err.responseJSON);
           } else if (err.status === 409) {
-            AlertActions.addAlert({
-              message: `User already exists: ${email}`,
-              type: 'info',
-            });
+            addErrorMessage(`User already exists: ${email}`);
             resolve();
           } else {
             reject(err.responseJSON);
@@ -142,8 +176,8 @@ const InviteMember = createReactClass({
     Promise.all(emails.map(this.inviteUser))
       .then(() => this.redirectToMemberPage())
       .catch(error => {
-        if (!error.email && !error.role) {
-          Raven.captureMessage('unkown error ', {
+        if (error && !error.email && !error.role) {
+          Raven.captureMessage('Unknown invite member api response', {
             extra: {error, state: this.state},
           });
         }
@@ -169,10 +203,12 @@ const InviteMember = createReactClass({
     let {error, loading, roleList, selectedRole, selectedTeams} = this.state;
     let {teams} = this.getOrganization();
     let {invitesEnabled} = ConfigStore.getConfig();
+    let {isSuperuser} = ConfigStore.get('user');
+
     return (
       <div>
-        <h3>{t('Add Member to Organization')}</h3>
-        <p>
+        <SettingsPageHeader title={t('Add Member to Organization')} />
+        <TextBlock>
           {invitesEnabled
             ? t(
                 'Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one. Multiple emails delimited by commas.'
@@ -180,7 +216,7 @@ const InviteMember = createReactClass({
             : t(
                 'You may add a user by their username if they already have an account. Multiple inputs delimited by commas.'
               )}
-        </p>
+        </TextBlock>
 
         {loading && <LoadingIndicator />}
         {!loading && (
@@ -197,7 +233,7 @@ const InviteMember = createReactClass({
             </div>
             {error && error.role && <p className="error alert-error">{error.role}</p>}
             <RoleSelect
-              enforceAllowed
+              enforceAllowed={!isSuperuser}
               roleList={roleList}
               selectedRole={selectedRole}
               setRole={slug => this.setState({selectedRole: slug})}
@@ -222,4 +258,5 @@ const InviteMember = createReactClass({
   },
 });
 
-export default InviteMember;
+export {InviteMember};
+export default withRouter(InviteMember);

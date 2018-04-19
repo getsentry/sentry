@@ -4,6 +4,7 @@ import classNames from 'classnames';
 
 import {t} from '../../locale';
 import InlineSvg from '../../components/inlineSvg';
+import Button from '../../components/buttons/button';
 
 class DetailedError extends React.Component {
   static propTypes = {
@@ -22,6 +23,20 @@ class DetailedError extends React.Component {
     hideSupportLinks: false,
   };
 
+  componentDidMount() {
+    // window.Raven.lastEventId() may not be immediatly true, so double-check after raven has time to send an error
+    setTimeout(() => {
+      this.forceUpdate();
+    }, 100);
+  }
+
+  openFeedback(e) {
+    e.preventDefault();
+    if (window.Raven) {
+      window.Raven.lastEventId() && window.Raven.showReportDialog();
+    }
+  }
+
   render() {
     const {className, heading, message, onRetry, hideSupportLinks} = this.props;
     const cx = classNames('detailed-error', className);
@@ -36,7 +51,7 @@ class DetailedError extends React.Component {
         <div className="detailed-error-content">
           <h4>{heading}</h4>
 
-          <div className="detailed-error-content-body">{message}</div>
+          <p className="detailed-error-content-body">{message}</p>
 
           {showFooter && (
             <div className="detailed-error-content-footer">
@@ -50,9 +65,15 @@ class DetailedError extends React.Component {
 
               {!hideSupportLinks && (
                 <div className="detailed-error-support-links">
-                  <a href="https://status.sentry.io/">Service status</a>
+                  {window.Raven &&
+                    window.Raven.lastEventId() && (
+                      <Button priority="link" onClick={this.openFeedback}>
+                        {t('Fill out a report')}
+                      </Button>
+                    )}
+                  <a href="https://status.sentry.io/">{t('Service status')}</a>
 
-                  <a href="https://sentry.io/support/">Contact support</a>
+                  <a href="https://sentry.io/support/">{t('Contact support')}</a>
                 </div>
               )}
             </div>

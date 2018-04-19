@@ -2,8 +2,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import GroupEventDataSection from '../eventDataSection';
 import SentryTypes from '../../../proptypes';
+import GuideAnchor from '../../../components/assistant/guideAnchor';
 import Breadcrumb from './breadcrumbs/breadcrumb';
-import {t} from '../../../locale';
+import {t, tct} from '../../../locale';
 
 function Collapsed(props) {
   return (
@@ -11,7 +12,9 @@ function Collapsed(props) {
       <span className="icon-container">
         <span className="icon icon-ellipsis" />
       </span>
-      <a onClick={props.onClick}>Show {props.count} collapsed crumbs</a>
+      <a onClick={props.onClick}>
+        {tct('Show [count] collapsed crumbs', {count: props.count})}
+      </a>
     </li>
   );
 }
@@ -174,8 +177,9 @@ class BreadcrumbsInterface extends React.Component {
 
     let title = (
       <div>
+        <GuideAnchor target="breadcrumbs" type="text" />
         <h3>
-          <strong>{'Breadcrumbs'}</strong>
+          <strong>{t('Breadcrumbs')}</strong>
         </h3>
         {this.getSearchField()}
       </div>

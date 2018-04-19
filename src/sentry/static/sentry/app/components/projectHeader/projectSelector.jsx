@@ -75,27 +75,36 @@ const ProjectSelector = createReactClass({
   getProjectState(state) {
     state = state || this.state;
     let org = this.props.organization;
+    let features = new Set(org.features);
     let filter = state.filter.toLowerCase();
     let projectList = [];
+
     let activeTeam;
     let activeProject;
-    org.teams.forEach(team => {
-      if (!team.isMember) {
+
+    org.projects.forEach(project => {
+      // TODO(jess): stop relying on this soon
+      let team = project.team;
+      if (!project.isMember) {
         return;
       }
-      team.projects.forEach(project => {
-        if (project.slug == this.props.projectId) {
-          activeProject = project;
-          activeTeam = team;
-        }
-        let fullName = [team.name, project.name, team.slug, project.slug]
-          .join(' ')
-          .toLowerCase();
-        if (filter && fullName.indexOf(filter) === -1) {
-          return;
-        }
-        projectList.push([team, project]);
-      });
+      if (project.slug === this.props.projectId) {
+        activeProject = project;
+        activeTeam = project.team;
+      }
+
+      let fullName;
+      if (features.has('new-teams')) {
+        fullName = [project.name, project.slug];
+      } else {
+        fullName = [team.name, project.name, team.slug, project.slug];
+      }
+      fullName = fullName.join(' ').toLowerCase();
+
+      if (filter && fullName.indexOf(filter) === -1) {
+        return;
+      }
+      projectList.push([team, project]);
     });
     return {
       projectList,
@@ -213,7 +222,12 @@ const ProjectSelector = createReactClass({
 
   getProjectLabel(team, project, hasSingleTeam, highlightText) {
     let label, text;
-    if (!hasSingleTeam && project.name.indexOf(team.name) === -1) {
+    let features = new Set(this.props.organization.features);
+
+    if (features.has('new-teams')) {
+      label = <span>{project.slug}</span>;
+      text = project.slug;
+    } else if (!hasSingleTeam && project.name.indexOf(team.name) === -1) {
       label = (
         <span>
           {team.name} /{' '}
@@ -302,12 +316,20 @@ const ProjectSelector = createReactClass({
 
   render() {
     let org = this.props.organization;
+    let features = new Set(org.features);
     let access = new Set(org.access);
     let hasSingleTeam = org.teams.length === 1;
 
-    let projectList = sortArray(this.state.projectList, ([team, project]) => {
-      return [!project.isBookmarked, team.name, project.name];
-    });
+    let projectList;
+    if (features.has('new-teams')) {
+      projectList = sortArray(this.state.projectList, ([team, project]) => {
+        return [!project.isBookmarked, project.name];
+      });
+    } else {
+      projectList = sortArray(this.state.projectList, ([team, project]) => {
+        return [!project.isBookmarked, team.name, project.name];
+      });
+    }
 
     let children = projectList.map(([team, project], index) => {
       return this.getProjectNode(
@@ -330,9 +352,17 @@ const ProjectSelector = createReactClass({
           <Link to={`/${org.slug}/`} className="home-crumb">
             <span className="icon-home" />
           </Link>
-          {this.state.activeProject
-            ? this.getLinkNode(this.state.activeTeam, this.state.activeProject)
-            : t('Select a project')}
+          {this.state.activeProject ? (
+            this.getLinkNode(this.state.activeTeam, this.state.activeProject)
+          ) : (
+            <span
+              role="button"
+              style={{cursor: 'pointer'}}
+              onClick={() => (this.state.isOpen ? this.onClose() : this.onOpen())}
+            >
+              {t('Select a project')}
+            </span>
+          )}
           <DropdownLink
             title=""
             topLevelClasses={dropdownClassNames}

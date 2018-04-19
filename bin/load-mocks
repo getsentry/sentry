@@ -17,7 +17,7 @@ from django.utils import timezone
 from loremipsum import Generator
 from pytz import utc
 
-from sentry import buffer, roles
+from sentry import buffer, roles, tsdb
 from sentry.event_manager import HashDiscarded
 from sentry.models import (
     Activity, Broadcast, Commit, CommitAuthor, CommitFileChange, Deploy,
@@ -28,7 +28,6 @@ from sentry.models import (
 )
 from sentry.signals import mocks_loaded
 from sentry.similarity import features
-from sentry.tsdb import backend as tsdb
 from sentry.utils.hashlib import md5_text
 from sentry.utils.samples import create_sample_event as _create_sample_event
 from sentry.utils.samples import generate_user
@@ -57,6 +56,7 @@ ENVIRONMENTS = itertools.cycle([
     'staging',
     'alpha',
     'beta',
+    ''
 ])
 
 
@@ -76,10 +76,14 @@ def create_sample_event(*args, **kwargs):
             features.record([event])
             return event
 
+
 def generate_commits(user):
     commits = []
     for i in range(random.randint(0, 20)):
-        filename = random.choice(loremipsum.words)
+        if i == 1:
+            filename = 'raven/base.py'
+        else:
+            filename = random.choice(loremipsum.words) + '.js'
         if random.randint(0, 5) == 1:
             author = (user.name, user.email)
         else:
@@ -95,7 +99,7 @@ def generate_commits(user):
 
         commits.append({
             'key': sha1(uuid4().hex).hexdigest(),
-            'message': 'modified {}.js}',
+            'message': 'feat: Do something to {}\n{}'.format(filename, make_sentence()),
             'author': author,
             'files': [
                 (filename, 'M'),
@@ -343,7 +347,6 @@ def main(num_events=1, extra_events=False):
         for project_name in project_names:
             print('  > Mocking project {}'.format(project_name))
             project, _ = Project.objects.get_or_create(
-                team=team,
                 name=project_name,
                 defaults={
                     'organization': org,
@@ -439,6 +442,21 @@ def main(num_events=1, extra_events=False):
                     commit=commit,
                     order=commit_index,
                 )
+
+            # create an unreleased commit
+            Commit.objects.get_or_create(
+                organization_id=org.id,
+                repository_id=repo[0].id,
+                key=sha1(uuid4().hex).hexdigest(),
+                defaults={
+                    'author': CommitAuthor.objects.get_or_create(
+                        organization_id=org.id,
+                        email=user.email,
+                        defaults={'name': user.name}
+                    )[0],
+                    'message': 'feat: Do something to {}\n{}'.format(random.choice(loremipsum.words) + '.js', make_sentence()),
+                },
+            )[0]
 
             Activity.objects.create(
                 type=Activity.RELEASE,

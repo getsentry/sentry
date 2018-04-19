@@ -1,13 +1,11 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import ReactDOM from 'react-dom';
 
 class SearchBar extends React.PureComponent {
   static propTypes = {
     query: PropTypes.string,
     defaultQuery: PropTypes.string,
     onSearch: PropTypes.func,
-    onQueryChange: PropTypes.func,
     placeholder: PropTypes.string,
   };
 
@@ -15,7 +13,6 @@ class SearchBar extends React.PureComponent {
     defaultQuery: '',
     query: '',
     onSearch: function() {},
-    onQueryChange: function() {},
   };
 
   constructor(...args) {
@@ -25,8 +22,16 @@ class SearchBar extends React.PureComponent {
     };
   }
 
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.query !== this.props.query) {
+      this.setState({
+        query: nextProps.query,
+      });
+    }
+  }
+
   blur = () => {
-    ReactDOM.findDOMNode(this.refs.searchInput).blur();
+    this.searchInput.blur();
   };
 
   onSubmit = evt => {
@@ -58,14 +63,14 @@ class SearchBar extends React.PureComponent {
   render() {
     return (
       <div className="search">
-        <form className="form-horizontal" ref="searchForm" onSubmit={this.onSubmit}>
+        <form className="form-horizontal" onSubmit={this.onSubmit}>
           <div>
             <input
               type="text"
               className="search-input form-control"
               placeholder={this.props.placeholder}
               name="query"
-              ref="searchInput"
+              ref={el => (this.searchInput = el)}
               autoComplete="off"
               value={this.state.query}
               onBlur={this.onQueryBlur}

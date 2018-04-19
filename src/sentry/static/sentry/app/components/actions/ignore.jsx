@@ -9,6 +9,8 @@ import Duration from '../duration';
 import CustomIgnoreCountModal from '../customIgnoreCountModal';
 import CustomIgnoreDurationModal from '../customIgnoreDurationModal';
 import ActionLink from './actionLink';
+import Tooltip from '../tooltip';
+import GuideAnchor from '../assistant/guideAnchor';
 
 export default class IgnoreActions extends React.Component {
   static propTypes = {
@@ -80,13 +82,11 @@ export default class IgnoreActions extends React.Component {
     if (isIgnored) {
       return (
         <div className="btn-group">
-          <a
-            className={linkClassName + ' tip'}
-            title={t('Change status to unresolved')}
-            onClick={() => onUpdate({status: 'unresolved'})}
-          >
-            <span className="icon-ban" />
-          </a>
+          <Tooltip title={t('Change status to unresolved')}>
+            <a className={linkClassName} onClick={() => onUpdate({status: 'unresolved'})}>
+              <span className="icon-ban" />
+            </a>
+          </Tooltip>
         </div>
       );
     }
@@ -102,7 +102,7 @@ export default class IgnoreActions extends React.Component {
           show={this.state.modal === 'count'}
           onSelected={details => this.onCustomIgnore(details)}
           onCanceled={() => this.setState({modal: null})}
-          label={t('Ignore this issue until it occurs again .. ')}
+          label={t('Ignore this issue until it occurs again\u2026')}
           countLabel={t('Number of times')}
           countName="ignoreCount"
           windowName="ignoreWindow"
@@ -112,7 +112,7 @@ export default class IgnoreActions extends React.Component {
           show={this.state.modal === 'users'}
           onSelected={details => this.onCustomIgnore(details)}
           onCanceled={() => this.setState({modal: null})}
-          label={t('Ignore this issue until it affects an additional .. ')}
+          label={t('Ignore this issue until it affects an additional\u2026')}
           countLabel={t('Numbers of users')}
           countName="ignoreUserCount"
           windowName="ignoreUserWindow"
@@ -125,6 +125,7 @@ export default class IgnoreActions extends React.Component {
             onAction={() => onUpdate({status: 'ignored'})}
           >
             <span className="icon-ban" style={{marginRight: 5}} />
+            <GuideAnchor target="ignore_delete_discard" type="text" />
             {t('Ignore')}
           </ActionLink>
 
@@ -135,10 +136,10 @@ export default class IgnoreActions extends React.Component {
             alwaysRenderMenu
             disabled={disabled}
           >
-            <MenuItem header={true}>Ignore Until</MenuItem>
+            <MenuItem header={true}>Ignore</MenuItem>
             <li className="dropdown-submenu">
               <DropdownLink
-                title="This occurs again after .."
+                title={'For\u2026'}
                 caret={false}
                 isNestedDropdown={true}
                 alwaysRenderMenu
@@ -163,7 +164,7 @@ export default class IgnoreActions extends React.Component {
             </li>
             <li className="dropdown-submenu">
               <DropdownLink
-                title="This occurs again .."
+                title={'Until this occurs again\u2026'}
                 caret={false}
                 isNestedDropdown={true}
                 alwaysRenderMenu
@@ -213,7 +214,7 @@ export default class IgnoreActions extends React.Component {
             </li>
             <li className="dropdown-submenu">
               <DropdownLink
-                title="This affects an additional .."
+                title={'Until this affects an additional\u2026'}
                 caret={false}
                 isNestedDropdown={true}
                 alwaysRenderMenu

@@ -63,7 +63,9 @@ exports[`OrganizationAuthView renders from api 1`] = `
         requireChanges={false}
         resetOnError={false}
         submitDisabled={false}
+        submitErrorMessage="There was an error saving your changes."
         submitLabel="Save Settings"
+        submitLoadingMessage="Saving changes.."
       >
         <BooleanField
           disabled={false}

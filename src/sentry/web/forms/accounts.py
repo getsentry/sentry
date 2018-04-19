@@ -7,24 +7,25 @@ sentry.web.forms.accounts
 """
 from __future__ import absolute_import
 
-from datetime import datetime
-
 import pytz
+import six
+
+from datetime import datetime
 from django import forms
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
 from django.db.models import Q
-from django.utils.text import capfirst
+from django.utils.text import capfirst, mark_safe
 from django.utils.translation import ugettext_lazy as _
 
-from sentry import options
+from sentry import newsletter, options
 from sentry.auth import password_validation
-from sentry.app import ratelimiter, newsletter
+from sentry.app import ratelimiter
 from sentry.constants import LANGUAGES
 from sentry.models import (Organization, OrganizationStatus, User, UserOption, UserOptionValue)
 from sentry.security import capture_security_activity
 from sentry.utils.auth import find_users, logger
-from sentry.web.forms.fields import ReadOnlyTextField
+from sentry.web.forms.fields import CustomTypedChoiceField, ReadOnlyTextField
 from six.moves import range
 
 
@@ -191,16 +192,28 @@ class RegistrationForm(forms.ModelForm):
     password = forms.CharField(
         required=True, widget=forms.PasswordInput(attrs={'placeholder': 'something super secret'})
     )
-    subscribe = forms.BooleanField(
-        label=_('Subscribe to product updates newsletter'),
-        required=False,
+    subscribe = CustomTypedChoiceField(
+        coerce=lambda x: six.text_type(x) == u'1',
+        label=_("Email updates"),
+        choices=(
+            (1, 'Yes, I would like to receive updates via email'),
+            (0, "No, I'd prefer not to receive these updates"),
+        ),
+        widget=forms.RadioSelect,
+        required=True,
         initial=False,
     )
 
     def __init__(self, *args, **kwargs):
         super(RegistrationForm, self).__init__(*args, **kwargs)
-        if not newsletter.enabled:
+        if not newsletter.is_enabled():
             del self.fields['subscribe']
+        else:
+            # NOTE: the text here is duplicated within the ``NewsletterConsent`` component
+            # in the UI
+            self.fields['subscribe'].help_text = mark_safe("We'd love to keep you updated via email with product and feature announcements, promotions, educational materials, and events. Our updates focus on relevant information and never sell your data to marketing companies. See our <a href=\"%(privacy_link)s\">Privacy Policy</a> for more details.".format(
+                privacy_link=settings.PRIVACY_URL,
+            ))
 
     class Meta:
         fields = ('username', 'name')
@@ -228,7 +241,7 @@ class RegistrationForm(forms.ModelForm):
         if commit:
             user.save()
             if self.cleaned_data.get('subscribe'):
-                newsletter.create_or_update_subscription(user, list_id=newsletter.DEFAULT_LIST_ID)
+                newsletter.create_or_update_subscription(user, list_id=newsletter.get_default_list_id())
         return user
 
 

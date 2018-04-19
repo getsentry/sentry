@@ -12,7 +12,7 @@ from exam import fixture
 from social_auth.models import UserSocialAuth
 
 from sentry.models import (
-    UserEmail, LostPasswordHash, User, UserOption
+    UserEmail, LostPasswordHash, User, UserOption, TotpInterface
 )
 from sentry.testutils import TestCase
 
@@ -48,37 +48,6 @@ class AppearanceSettingsTest(TestCase):
         assert options.get('language') == 'en'
         assert options.get('stacktrace_order') == '2'
         assert options.get('clock_24_hours') is True
-
-
-class SettingsEmailTest(TestCase):
-    @fixture
-    def path(self):
-        return reverse('sentry-account-settings-emails')
-
-    def test_change_primary_email(self):
-        self.login_as(self.user)
-        self.create_user('foo@example.com')
-
-        # setting primary email changes it
-        self.client.post(self.path, {
-            'new_primary_email': 'foo1@example.com',
-            'primary': 1
-        })
-        assert User.objects.get(id=self.user.id).email == 'foo1@example.com'
-
-        # setting primary email to an existing user's email leaves it unchanged
-        self.client.post(self.path, {
-            'new_primary_email': 'foo@example.com',
-            'primary': 1
-        })
-        assert User.objects.get(id=self.user.id).email == 'foo1@example.com'
-
-        # setting primary to existing email + whitespace leaves it unchanged
-        self.client.post(self.path, {
-            'new_primary_email': 'foo@example.com\n\n',
-            'primary': 1
-        })
-        assert User.objects.get(id=self.user.id).email == 'foo1@example.com'
 
 
 class SettingsTest(TestCase):
@@ -271,6 +240,39 @@ class SettingsTest(TestCase):
         assert not user.check_password('foobar')
         assert not user.check_password('foobars')
 
+    def test_password_hash_invalidated_when_email_changes(self):
+        self.login_as(self.user)
+
+        LostPasswordHash.objects.create(user=self.user)
+
+        params = self.params()
+        params['password'] = 'admin'
+        params['email'] = 'bizbaz@example.com'
+
+        resp = self.client.post(self.path, params)
+        assert resp.status_code == 302
+        user = User.objects.get(id=self.user.id)
+        assert user.email == 'bizbaz@example.com'
+        assert not LostPasswordHash.objects.filter(user=self.user).exists()
+
+    def test_password_hash_invalidated_when_password_changes(self):
+        old_nonce = self.user.session_nonce
+        self.login_as(self.user)
+
+        LostPasswordHash.objects.create(user=self.user)
+
+        params = self.params()
+        params['password'] = 'admin'
+        params['new_password'] = 'foobar'
+        params['verify_new_password'] = 'foobar'
+
+        resp = self.client.post(self.path, params)
+        assert resp.status_code == 302
+        user = User.objects.get(id=self.user.id)
+        assert user.check_password('foobar')
+        assert user.session_nonce != old_nonce
+        assert not LostPasswordHash.objects.filter(user=self.user).exists()
+
 
 class ListIdentitiesTest(TestCase):
     @fixture
@@ -332,6 +334,18 @@ class RecoverPasswordTest(TestCase):
         assert 'email' in resp.context
         send_recover_mail.call_count == 1
 
+    @mock.patch('sentry.models.LostPasswordHash.send_email')
+    def test_lost_password_hash_invalid_after_successful_login(self, send_recover_mail):
+        resp = self.client.post(self.path, {
+            'user': self.user.username
+        })
+        assert resp.status_code == 200
+        send_recover_mail.call_count == 1
+
+        assert LostPasswordHash.objects.get(user=self.user).is_valid()
+        self.login_as(self.user)
+        assert not LostPasswordHash.objects.filter(user=self.user).exists()
+
 
 class RecoverPasswordConfirmTest(TestCase):
     def setUp(self):
@@ -366,6 +380,24 @@ class RecoverPasswordConfirmTest(TestCase):
         user = User.objects.get(id=self.user.id)
         assert user.check_password('bar')
         assert user.session_nonce != old_nonce
+        assert not LostPasswordHash.objects.filter(user=user).exists()
+
+    def test_normal_signin(self):
+        resp = self.client.post(self.path, {
+            'password': 'bar',
+            'confirm_password': 'bar'
+        })
+        assert resp.status_code == 302
+        assert self.client.session.get('_auth_user_id') is not None
+
+    def test_2fa_no_signin(self):
+        TotpInterface().enroll(self.user)
+        resp = self.client.post(self.path, {
+            'password': 'bar',
+            'confirm_password': 'bar'
+        })
+        assert resp.status_code == 302
+        assert self.client.session.get('_auth_user_id') is None
 
 
 class ConfirmEmailSendTest(TestCase):
@@ -416,6 +448,7 @@ class ConfirmEmailTest(TestCase):
         self.assertRedirects(resp, reverse('sentry-account-settings-emails'), status_code=302)
         email = self.user.emails.first()
         assert email.is_verified
+        assert not email.hash_is_valid()
 
 
 class DisconnectIdentityTest(TestCase):

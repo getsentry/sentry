@@ -9,13 +9,14 @@ from __future__ import absolute_import
 
 import six
 
-from django.db import models, router, transaction, DataError
+from django.db import models, router, transaction, DataError, connections
 from django.utils import timezone
 
 from sentry.api.serializers import Serializer, register
 from sentry.db.models import (
-    Model, BoundedPositiveIntegerField, BaseManager, FlexibleForeignKey, sane_repr
+    Model, BoundedPositiveIntegerField, BoundedBigIntegerField, FlexibleForeignKey, sane_repr
 )
+from sentry.tagstore.query import TagStoreManager
 
 
 class GroupTagValue(Model):
@@ -25,8 +26,8 @@ class GroupTagValue(Model):
     """
     __core__ = False
 
-    project_id = BoundedPositiveIntegerField(db_index=True)
-    group_id = BoundedPositiveIntegerField(db_index=True)
+    project_id = BoundedBigIntegerField(db_index=True)
+    group_id = BoundedBigIntegerField(db_index=True)
     times_seen = BoundedPositiveIntegerField(default=0)
     _key = FlexibleForeignKey('tagstore.TagKey', db_column='key_id')
     _value = FlexibleForeignKey('tagstore.TagValue', db_column='value_id')
@@ -35,22 +36,75 @@ class GroupTagValue(Model):
     first_seen = models.DateTimeField(
         default=timezone.now, db_index=True, null=True)
 
-    objects = BaseManager()
+    objects = TagStoreManager()
 
     class Meta:
         app_label = 'tagstore'
         unique_together = (('project_id', 'group_id', '_key', '_value'), )
         index_together = (('project_id', '_key', '_value', 'last_seen'), )
 
-    __repr__ = sane_repr('project_id', 'group_id', '_key', '_value')
+    __repr__ = sane_repr('project_id', 'group_id', '_key_id', '_value_id')
+
+    def delete(self):
+        using = router.db_for_read(GroupTagValue)
+        cursor = connections[using].cursor()
+        cursor.execute(
+            """
+            DELETE FROM tagstore_grouptagvalue
+            WHERE project_id = %s
+              AND id = %s
+        """, [self.project_id, self.id]
+        )
 
     @property
     def key(self):
-        return self._key.key
+        if hasattr(self, '_set_key'):
+            return self._set_key
+
+        if hasattr(self, '__key_cache'):
+            return self._key.key
+
+        # fallback
+        from sentry.tagstore.v2.models import TagKey
+
+        tk = TagKey.objects.filter(
+            project_id=self.project_id,
+            id=self._key_id,
+        ).values_list('key', flat=True).get()
+
+        # cache for future calls
+        self.key = tk
+
+        return tk
+
+    @key.setter
+    def key(self, key):
+        self._set_key = key
 
     @property
     def value(self):
-        return self._value.value
+        if hasattr(self, '_set_value'):
+            return self._set_value
+
+        if hasattr(self, '__value_cache'):
+            return self._value.value
+
+        # fallback
+        from sentry.tagstore.v2.models import TagValue
+
+        tv = TagValue.objects.filter(
+            project_id=self.project_id,
+            id=self._value_id,
+        ).values_list('value', flat=True).get()
+
+        # cache for future calls
+        self.value = tv
+
+        return tv
+
+    @value.setter
+    def value(self, value):
+        self._set_value = value
 
     def save(self, *args, **kwargs):
         if not self.first_seen:
@@ -62,10 +116,15 @@ class GroupTagValue(Model):
             with transaction.atomic(using=router.db_for_write(GroupTagValue)):
                 new_obj = GroupTagValue.objects.get(
                     group_id=new_group.id,
+                    project_id=new_group.project_id,
                     _key_id=self._key_id,
                     _value_id=self._value_id,
                 )
-                new_obj.update(
+
+                GroupTagValue.objects.filter(
+                    id=new_obj.id,
+                    project_id=new_group.project_id,
+                ).update(
                     first_seen=min(new_obj.first_seen, self.first_seen),
                     last_seen=max(new_obj.last_seen, self.last_seen),
                     times_seen=new_obj.times_seen + self.times_seen,

@@ -24,6 +24,48 @@ describe('ProjectSelector', function() {
         ],
       },
     ],
+    projects: [
+      {
+        slug: 'test-project',
+        name: 'Test Project',
+        isMember: true,
+        team: {
+          name: 'Test Team',
+          slug: 'test-team',
+          isMember: true,
+          projects: [
+            {
+              slug: 'test-project',
+              name: 'Test Project',
+            },
+            {
+              slug: 'another-project',
+              name: 'Another Project',
+            },
+          ],
+        },
+      },
+      {
+        slug: 'another-project',
+        name: 'Another Project',
+        isMember: true,
+        team: {
+          name: 'Test Team',
+          slug: 'test-team',
+          isMember: true,
+          projects: [
+            {
+              slug: 'test-project',
+              name: 'Test Project',
+            },
+            {
+              slug: 'another-project',
+              name: 'Another Project',
+            },
+          ],
+        },
+      },
+    ],
     access: [],
   };
 
@@ -39,6 +81,7 @@ describe('ProjectSelector', function() {
             id: 'org',
             slug: 'org-slug',
             teams: [],
+            projects: [],
             access: [],
           }}
           projectId=""
@@ -57,6 +100,7 @@ describe('ProjectSelector', function() {
             id: 'org',
             slug: 'org-slug',
             teams: [],
+            projects: [],
             access: ['project:write'],
           }}
           projectId=""
@@ -105,7 +149,7 @@ describe('ProjectSelector', function() {
       const input = wrapper.find('.project-filter input');
       input.simulate('click', {target: input});
 
-      expect(wrapper.find('.dropdown-menu').length).toBe(1);
+      expect(wrapper.find('.dropdown-menu')).toHaveLength(1);
     });
 
     it('closes dropdown when project is selected', function() {
@@ -116,7 +160,7 @@ describe('ProjectSelector', function() {
         .find('.dropdown-menu [role="presentation"] a')
         .first()
         .simulate('click');
-      expect(wrapper.find('.dropdown-menu').length).toBe(0);
+      expect(wrapper.find('.dropdown-menu')).toHaveLength(0);
     });
 
     it('shows empty filter message when filtering has no results', function() {

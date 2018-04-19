@@ -5,7 +5,7 @@ import six
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import Project, ProjectBookmark, ProjectStatus, UserOption, DeletedProject
+from sentry.models import Project, ProjectBookmark, ProjectStatus, UserOption, DeletedProject, ProjectRedirect
 from sentry.testutils import APITestCase
 
 
@@ -40,7 +40,7 @@ class ProjectDetailsTest(APITestCase):
         project = self.create_project(
             name='Bar',
             slug='bar',
-            team=team,
+            teams=[team],
         )
         # We want to make sure we don't hit the LegacyProjectRedirect view at all.
         url = '/api/0/projects/%s/%s/' % (org.slug, project.slug)
@@ -62,6 +62,22 @@ class ProjectDetailsTest(APITestCase):
         response = self.client.get(url + '?include=stats')
         assert response.status_code == 200
         assert response.data['stats']['unresolved'] == 1
+
+    def test_project_renamed_302(self):
+        project = self.create_project()
+        self.login_as(user=self.user)
+
+        url = reverse('sentry-api-0-project-details', kwargs={
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug,
+        })
+
+        # Rename the project
+        self.client.put(url, data={'slug': 'foobar'})
+
+        response = self.client.get(url)
+        assert response.status_code == 302
+        assert response.data['detail']['slug'] == 'foobar'
 
 
 class ProjectUpdateTest(APITestCase):
@@ -91,7 +107,6 @@ class ProjectUpdateTest(APITestCase):
         )
         assert resp.status_code == 200, resp.content
         project = Project.objects.get(id=project.id)
-        assert project.team == team
         assert project.teams.first() == team
 
     def test_team_changes_not_found(self):
@@ -113,7 +128,7 @@ class ProjectUpdateTest(APITestCase):
         assert resp.data['detail'][0] == 'The new team is not found.'
         project = Project.objects.get(id=project.id)
 
-        assert project.team == self.team
+        assert project.teams.first() == self.team
 
     def test_simple_member_restriction(self):
         project = self.create_project()
@@ -121,7 +136,7 @@ class ProjectUpdateTest(APITestCase):
         self.create_member(
             user=user,
             organization=project.organization,
-            teams=[project.team],
+            teams=[project.teams.first()],
             role='member',
         )
         self.login_as(user)
@@ -141,7 +156,7 @@ class ProjectUpdateTest(APITestCase):
         self.create_member(
             user=user,
             organization=project.organization,
-            teams=[project.team],
+            teams=[project.teams.first()],
             role='member',
         )
         self.login_as(user=user)
@@ -182,6 +197,10 @@ class ProjectUpdateTest(APITestCase):
         assert resp.status_code == 200, resp.content
         project = Project.objects.get(id=self.project.id)
         assert project.slug == 'foobar'
+        assert ProjectRedirect.objects.filter(
+            project=self.project,
+            redirect_slug=self.project.slug,
+        )
 
     def test_invalid_slug(self):
         new_project = self.create_project()
@@ -416,6 +435,91 @@ class ProjectUpdateTest(APITestCase):
         assert resp.status_code == 200, resp.content
         assert self.project.get_option('sentry:scrub_defaults') is False
         assert resp.data['dataScrubberDefaults'] is False
+
+    def test_digests_delay(self):
+        resp = self.client.put(self.path, data={
+            'digestsMinDelay': 1000
+        })
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_option('digests:mail:minimum_delay') == 1000
+
+        resp = self.client.put(self.path, data={
+            'digestsMaxDelay': 1200
+        })
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_option('digests:mail:maximum_delay') == 1200
+
+        resp = self.client.put(self.path, data={
+            'digestsMinDelay': 300,
+            'digestsMaxDelay': 600,
+        })
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_option('digests:mail:minimum_delay') == 300
+        assert self.project.get_option('digests:mail:maximum_delay') == 600
+
+    def test_digests_min_without_max(self):
+        resp = self.client.put(self.path, data={
+            'digestsMinDelay': 1200
+        })
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_option('digests:mail:minimum_delay') == 1200
+
+    def test_digests_max_without_min(self):
+        resp = self.client.put(self.path, data={
+            'digestsMaxDelay': 1200
+        })
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_option('digests:mail:maximum_delay') == 1200
+
+    def test_invalid_digests_min_delay(self):
+        min_delay = 120
+
+        self.project.update_option('digests:mail:minimum_delay', min_delay)
+
+        resp = self.client.put(self.path, data={
+            'digestsMinDelay': 59
+        })
+        assert resp.status_code == 400
+
+        resp = self.client.put(self.path, data={
+            'digestsMinDelay': 3601
+        })
+        assert resp.status_code == 400
+        assert self.project.get_option('digests:mail:minimum_delay') == min_delay
+
+    def test_invalid_digests_max_delay(self):
+        min_delay = 120
+        max_delay = 360
+
+        self.project.update_option('digests:mail:minimum_delay', min_delay)
+        self.project.update_option('digests:mail:maximum_delay', max_delay)
+
+        resp = self.client.put(self.path, data={
+            'digestsMaxDelay': 59
+        })
+        assert resp.status_code == 400
+
+        resp = self.client.put(self.path, data={
+            'digestsMaxDelay': 3601
+        })
+        assert resp.status_code == 400
+        assert self.project.get_option('digests:mail:maximum_delay') == max_delay
+
+        # test sending only max
+        resp = self.client.put(self.path, data={
+            'digestsMaxDelay': 100
+        })
+        assert resp.status_code == 400
+        assert self.project.get_option('digests:mail:maximum_delay') == max_delay
+
+        # test sending min + invalid max
+        resp = self.client.put(self.path, data={
+            'digestsMinDelay': 120,
+            'digestsMaxDelay': 100,
+        })
+        assert resp.status_code == 400
+        assert self.project.get_option('digests:mail:minimum_delay') == min_delay
+        assert self.project.get_option('digests:mail:maximum_delay') == max_delay
 
 
 class ProjectDeleteTest(APITestCase):

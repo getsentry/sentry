@@ -19,6 +19,7 @@ from rest_framework.views import APIView
 
 from sentry import tsdb
 from sentry.app import raven
+from sentry.auth import access
 from sentry.models import Environment
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_datetime
@@ -83,7 +84,7 @@ class Endpoint(APIView):
 
     def handle_exception(self, request, exc):
         try:
-            return super(Endpoint, self).handle_exception(exc)
+            response = super(Endpoint, self).handle_exception(exc)
         except Exception as exc:
             import sys
             import traceback
@@ -93,7 +94,9 @@ class Endpoint(APIView):
                 'detail': 'Internal Error',
                 'errorId': event_id,
             }
-            return Response(context, status=500)
+            response = Response(context, status=500)
+            response.exception = True
+        return response
 
     def create_audit_entry(self, request, transaction_id=None, **kwargs):
         return create_audit_entry(request, transaction_id, audit_logger, **kwargs)
@@ -160,6 +163,10 @@ class Endpoint(APIView):
             else:
                 handler = self.http_method_not_allowed
 
+            if getattr(request, 'access', None) is None:
+                # setup default access
+                request.access = access.from_request(request)
+
             response = handler(request, *args, **kwargs)
 
         except Exception as exc:
@@ -222,9 +229,9 @@ class Endpoint(APIView):
 
 
 class EnvironmentMixin(object):
-    def _get_environment_id_func(self, request, organization_id):
+    def _get_environment_func(self, request, organization_id):
         """\
-        Creates a function that when called returns the environment_id
+        Creates a function that when called returns the ``Environment``
         associated with a request object, or ``None`` if no environment was
         provided. If the environment doesn't exist, an ``Environment.DoesNotExist``
         exception will be raised.
@@ -236,7 +243,7 @@ class EnvironmentMixin(object):
         provided.)
         """
         return functools.partial(
-            self._get_environment_id_from_request,
+            self._get_environment_from_request,
             request,
             organization_id,
         )

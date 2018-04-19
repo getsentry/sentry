@@ -10,7 +10,6 @@ from __future__ import absolute_import, print_function
 import logging
 import math
 import re
-import six
 import time
 import warnings
 
@@ -84,8 +83,8 @@ class GroupManager(BaseManager):
         match = _short_id_re.match(short_id.strip())
         if match is None:
             raise Group.DoesNotExist()
-        callsign, id = match.groups()
-        callsign = callsign.lower()
+        slug, id = match.groups()
+        slug = slug.lower()
         try:
             short_id = base32_decode(id)
             # We need to make sure the short id is not overflowing the
@@ -97,7 +96,7 @@ class GroupManager(BaseManager):
             raise Group.DoesNotExist()
         return Group.objects.get(
             project__organization=organization_id,
-            project__slug=callsign,
+            project__slug=slug,
             short_id=short_id,
         )
 
@@ -405,18 +404,13 @@ class Group(Model):
         return self.project.organization
 
     @property
-    def team(self):
-        return self.project.team
-
-    @property
     def checksum(self):
         warnings.warn('Group.checksum is no longer used', DeprecationWarning)
         return ''
 
     def get_email_subject(self):
-        return '[%s] %s: %s' % (
-            self.project.get_full_name().encode('utf-8'),
-            six.text_type(self.get_level_display()).upper().encode('utf-8'),
+        return '%s - %s' % (
+            self.qualified_short_id.encode('utf-8'),
             self.title.encode('utf-8')
         )
 

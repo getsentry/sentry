@@ -1,17 +1,25 @@
 import React from 'react';
-
+import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 
-import DiffModal from '../components/modals/diffModal';
+import SentryTypes from '../proptypes';
+import EnvironmentStore from '../stores/environmentStore';
 import ProjectHeader from '../components/projectHeader';
 import ProjectState from '../mixins/projectState';
+import withEnvironment from '../utils/withEnvironment';
 
 const ProjectDetailsLayout = createReactClass({
   displayName: 'ProjectDetailsLayout',
-  mixins: [ProjectState],
+
+  propTypes: {
+    environment: SentryTypes.Environment,
+  },
+
+  mixins: [ProjectState, Reflux.connect(EnvironmentStore, 'environments')],
 
   getInitialState() {
     return {
+      environments: EnvironmentStore.getActive() || [],
       projectNavSection: null,
     };
   },
@@ -36,6 +44,8 @@ const ProjectDetailsLayout = createReactClass({
           activeSection={this.state.projectNavSection}
           project={this.context.project}
           organization={this.getOrganization()}
+          environments={this.state.environments}
+          activeEnvironment={this.props.environment}
         />
         <div className="container">
           <div className="content">
@@ -45,11 +55,9 @@ const ProjectDetailsLayout = createReactClass({
             })}
           </div>
         </div>
-
-        <DiffModal />
       </div>
     );
   },
 });
 
-export default ProjectDetailsLayout;
+export default withEnvironment(ProjectDetailsLayout);

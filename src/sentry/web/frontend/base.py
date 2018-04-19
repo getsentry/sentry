@@ -5,23 +5,25 @@ import six
 
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseNotFound, HttpResponseRedirect
 from django.middleware.csrf import CsrfViewMiddleware
 from django.views.generic import View
 from django.views.decorators.csrf import csrf_exempt
 from sudo.views import redirect_to_sudo
 
 from sentry import roles
+from sentry.api.serializers import serialize
 from sentry.auth import access
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
-    Organization, OrganizationMember, OrganizationStatus, Project, ProjectStatus,
+    Authenticator, Organization, OrganizationMember, OrganizationStatus, Project, ProjectStatus,
     Team, TeamStatus
 )
 from sentry.utils import auth
 from sentry.utils.audit import create_audit_entry
 from sentry.web.helpers import render_to_response
-from sentry.api.serializers import serialize
+from sentry.web.frontend.generic import FOREVER_CACHE
+
 
 logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger('sentry.audit.ui')
@@ -105,6 +107,9 @@ class OrganizationMixin(object):
             user=user,
             organization=organization,
         ).exists()
+
+    def is_not_2fa_compliant(self, user, organization):
+        return organization.flags.require_2fa and not Authenticator.objects.user_has_2fa(user)
 
     def get_active_team(self, request, organization, team_slug):
         """
@@ -208,6 +213,10 @@ class BaseView(View, OrganizationMixin):
         if not self.has_permission(request, *args, **kwargs):
             return self.handle_permission_required(request, *args, **kwargs)
 
+        if 'organization' in kwargs and self.is_not_2fa_compliant(
+                request.user, kwargs['organization']):
+            return self.handle_not_2fa_compliant(request, *args, **kwargs)
+
         self.request = request
         self.default_context = self.get_context_data(request, *args, **kwargs)
 
@@ -252,8 +261,15 @@ class BaseView(View, OrganizationMixin):
         redirect_uri = self.get_no_permission_url(request, *args, **kwargs)
         return self.redirect(redirect_uri)
 
+    def handle_not_2fa_compliant(self, request, *args, **kwargs):
+        redirect_uri = self.get_not_2fa_compliant_url(request, *args, **kwargs)
+        return self.redirect(redirect_uri)
+
     def get_no_permission_url(request, *args, **kwargs):
         return reverse('sentry-login')
+
+    def get_not_2fa_compliant_url(self, request, *args, **kwargs):
+        return reverse('sentry-account-settings-2fa')
 
     def get_context_data(self, request, **kwargs):
         context = csrf(request)
@@ -460,40 +476,40 @@ class TeamView(OrganizationView):
         return (args, kwargs)
 
 
-class ProjectView(TeamView):
+class ProjectView(OrganizationView):
     """
     Any view acting on behalf of a project should inherit from this base and the
-    matching URL pattern must pass 'team_slug' as well as 'project_slug'.
+    matching URL pattern must pass 'org_slug' as well as 'project_slug'.
 
     Three keyword arguments are added to the resulting dispatch:
 
     - organization
-    - team
     - project
     """
 
-    def get_context_data(self, request, organization, team, project, **kwargs):
-        context = super(ProjectView, self).get_context_data(request, organization, team)
+    def get_context_data(self, request, organization, project, **kwargs):
+        context = super(ProjectView, self).get_context_data(request, organization)
         context['project'] = project
         context['processing_issues'] = serialize(project).get('processingIssues', 0)
         return context
 
-    def has_permission(self, request, organization, team, project, *args, **kwargs):
+    def has_permission(self, request, organization, project, *args, **kwargs):
         if project is None:
             return False
-        if team is None:
-            return False
-        rv = super(ProjectView, self).has_permission(request, organization, team)
+        rv = super(ProjectView, self).has_permission(request, organization)
         if not rv:
             return rv
+
+        teams = list(project.teams.all())
+
         if self.required_scope:
-            if not request.access.has_team_scope(team, self.required_scope):
+            if not any(request.access.has_team_scope(team, self.required_scope) for team in teams):
                 logger.info(
                     'User %s does not have %s permission to access project %s', request.user,
                     self.required_scope, project
                 )
                 return False
-        elif not request.access.has_team(team):
+        elif not any(request.access.has_team(team) for team in teams):
             logger.info('User %s does not have access to project %s', request.user, project)
             return False
         return True
@@ -513,13 +529,36 @@ class ProjectView(TeamView):
         else:
             active_project = None
 
-        if active_project:
-            active_team = active_project.team
-        else:
-            active_team = None
-
         kwargs['project'] = active_project
-        kwargs['team'] = active_team
         kwargs['organization'] = active_organization
 
         return (args, kwargs)
+
+
+class AvatarPhotoView(View):
+    model = None
+
+    def get(self, request, *args, **kwargs):
+        avatar_id = kwargs['avatar_id']
+        try:
+            avatar = self.model.objects.get(ident=avatar_id)
+        except self.model.DoesNotExist:
+            return HttpResponseNotFound()
+
+        photo = avatar.file
+        if not photo:
+            return HttpResponseNotFound()
+
+        size = request.GET.get('s')
+        photo_file = photo.getfile()
+        if size:
+            try:
+                size = int(size)
+            except ValueError:
+                return HttpResponseBadRequest()
+            else:
+                photo_file = avatar.get_cached_photo(size)
+
+        res = HttpResponse(photo_file, content_type='image/png')
+        res['Cache-Control'] = FOREVER_CACHE
+        return res

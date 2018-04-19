@@ -57,6 +57,7 @@ class TagStorage(Service):
         'get_group_tag_keys',
         'get_group_tag_value',
         'get_group_tag_values',
+        'get_group_list_tag_value',
 
         'delete_tag_key',
         'delete_all_group_tag_keys',
@@ -79,39 +80,10 @@ class TagStorage(Service):
 
         'get_tag_value_qs',
         'get_group_tag_value_qs',
+        'get_event_tag_qs',
+
+        'get_group_tag_keys_and_top_values',
     )
-
-    def setup_deletions(self, tagvalue_model, grouptagkey_model,
-                        grouptagvalue_model, eventtag_model):
-        from sentry.deletions import default_manager as deletion_manager
-        from sentry.deletions.defaults import BulkModelDeletionTask
-        from sentry.deletions.base import ModelRelation, ModelDeletionTask
-        from sentry.models import Group, Event
-
-        deletion_manager.register(tagvalue_model, BulkModelDeletionTask)
-        deletion_manager.register(grouptagkey_model, BulkModelDeletionTask)
-        deletion_manager.register(grouptagvalue_model, BulkModelDeletionTask)
-        deletion_manager.register(eventtag_model, BulkModelDeletionTask)
-
-        deletion_manager.add_dependencies(Group, [
-            lambda instance: ModelRelation(eventtag_model, {'group_id': instance.id}),
-            lambda instance: ModelRelation(grouptagkey_model, {'group_id': instance.id}),
-            lambda instance: ModelRelation(grouptagvalue_model, {'group_id': instance.id}),
-        ])
-        deletion_manager.add_bulk_dependencies(Event, [
-            lambda instance_list: ModelRelation(eventtag_model,
-                                                {'event_id__in': [i.id for i in instance_list]},
-                                                ModelDeletionTask),
-        ])
-
-    def setup_cleanup(self, tagvalue_model, grouptagvalue_model, eventtag_model):
-        from sentry.runner.commands import cleanup
-
-        cleanup.EXTRA_BULK_QUERY_DELETES += [
-            (grouptagvalue_model, 'last_seen', None),
-            (tagvalue_model, 'last_seen', None),
-            (eventtag_model, 'date_added', 'date_added'),
-        ]
 
     def setup_merge(self, grouptagkey_model, grouptagvalue_model):
         from sentry.tasks import merge
@@ -120,14 +92,6 @@ class TagStorage(Service):
             grouptagvalue_model,
             grouptagkey_model,
         ]
-
-    def setup_receivers(self, tagvalue_model, grouptagvalue_model):
-        from django.db.models.signals import post_save
-        from sentry.receivers.releases import ensure_release_exists
-
-        post_save.connect(
-            ensure_release_exists, sender=tagvalue_model, dispatch_uid="ensure_release_exists", weak=False
-        )
 
     def is_valid_key(self, key):
         return bool(TAG_KEY_RE.match(key))
@@ -146,9 +110,7 @@ class TagStorage(Service):
             return key
 
     def get_standardized_key(self, key):
-        if key.startswith('sentry:'):
-            return key.split('sentry:', 1)[-1]
-        return key
+        return key.split('sentry:', 1)[-1]
 
     def get_tag_key_label(self, key):
         return TAG_LABELS.get(key) or key.replace('_', ' ').title()
@@ -222,7 +184,8 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def create_event_tags(self, project_id, group_id, environment_id, event_id, tags):
+    def create_event_tags(self, project_id, group_id, environment_id,
+                          event_id, tags, date_added=None):
         """
         >>> create_event_tags(1, 2, 3, 4, [('foo', 'bar'), ('baz', 'qux')])
         """
@@ -276,6 +239,12 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
+    def get_group_list_tag_value(self, project_id, group_id_list, environment_id, key, value):
+        """
+        >>> get_group_tag_value(1, [1, 2, 3, 4, 5], 3, "key1", "value1")
+        """
+        raise NotImplementedError
+
     def delete_tag_key(self, project_id, key):
         """
         >>> delete_tag_key(1, "key1")
@@ -320,9 +289,15 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_group_tag_value_qs(self, project_id, group_id, environment_id, key):
+    def get_group_tag_value_qs(self, project_id, group_id, environment_id, key, value=None):
         """
         >>> get_group_tag_value_qs(1, 2, 3, 'environment')
+        """
+        raise NotImplementedError
+
+    def get_event_tag_qs(self, project_id, environment_id, key, value):
+        """
+        >>> get_event_tag_qs(1, 2, 'environment', 'prod')
         """
         raise NotImplementedError
 
@@ -374,7 +349,8 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_group_ids_for_search_filter(self, project_id, environment_id, tags):
+    def get_group_ids_for_search_filter(
+            self, project_id, environment_id, tags, candidates=None, limit=1000):
         """
         >>> get_group_ids_for_search_filter(1, 2, [('key1', 'value1'), ('key2', 'value2')])
         """
@@ -391,3 +367,16 @@ class TagStorage(Service):
         >>> update_group_tag_key_values_seen(1, [2, 3])
         """
         raise NotImplementedError
+
+    def get_group_tag_keys_and_top_values(self, project_id, group_id, environment_id, user=None):
+        from sentry.api.serializers import serialize
+
+        tag_keys = self.get_group_tag_keys(project_id, group_id, environment_id)
+
+        return [dict(
+            totalValues=self.get_group_tag_value_count(
+                project_id, group_id, environment_id, tk.key),
+            topValues=serialize(self.get_top_group_tag_values(
+                project_id, group_id, environment_id, tk.key, limit=10)),
+            **serialize([tk])[0]
+        ) for tk in tag_keys]

@@ -11,7 +11,6 @@ body {
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
   padding-left: @sidebar-width;
-  padding-top: 30px;
 
   // Fake sidebar rendering until actual sidebar is loaded
 
@@ -28,6 +27,9 @@ body {
     .messages-container {
       margin: 0;
     }
+    .sentry-error-embed-wrapper {
+      z-index: 1000;
+    }
   }
 }
 
@@ -38,9 +40,13 @@ body {
 
 body.narrow {
   zoom: 1;
-  padding: 30px 0 0;
+  padding: 0;
 
   background: #fff;
+
+  &.dialog {
+    padding-top: 0;
+  }
 
   h3,
   h4 {
@@ -48,11 +54,16 @@ body.narrow {
   }
 
   .app > .container {
-    padding-top: 10px;
+    padding-top: 40px;
     max-width: 860px;
 
     .box-header {
-      padding: 15px 30px 10px;
+      padding: 15px 30px 12px;
+
+      .logo-with-action {
+        display: flex;
+        align-items: center;
+      }
 
       a {
         font-size: 20px;
@@ -133,7 +144,7 @@ body.auth {
   color: @gray-dark;
   border-bottom: 1px solid darken(@trim, 5);
   position: relative;
-  margin: -30px 0 20px; // Offset body padding-top
+  margin: 0 0 20px;
   line-height: 1;
   font-size: 16px;
   min-height: 62px;
@@ -158,6 +169,47 @@ body.auth {
       &:hover {
         color: @gray-darkest;
       }
+    }
+  }
+
+  .project-header {
+    display: flex;
+    &-main {
+      flex-grow: 1;
+    }
+    &-toggle {
+      text-align: right;
+      label {
+        color: @gray-lighter;
+        font-size: 14px;
+        font-weight: normal;
+        display: block;
+        margin-top: 8px;
+      }
+    }
+  }
+
+  .project-select-wrapper {
+    display: flex;
+    align-items: center;
+  }
+
+  .project-select-bookmark {
+    border-left: 1px solid @gray-lightest;
+    padding-left: 10px;
+    margin-left: 10px;
+    color: @40;
+    &.active {
+      color: @yellow-orange;
+    }
+  }
+
+  .environment-selector-toggle {
+    color: @gray-darkest;
+    font-weight: 600;
+
+    + .dropdown-menu {
+      z-index: @zindex-sticky-bar + 2;
     }
   }
 
@@ -213,7 +265,7 @@ body.auth {
     }
   }
 
-  .project-select + .nav-tabs,
+  .project-select-wrapper + .nav-tabs,
   #blk_projectselect + .nav-tabs {
     margin-top: 10px;
   }
@@ -276,46 +328,6 @@ footer {
     width: 32px;
     margin: 0 auto;
     display: block;
-  }
-}
-
-/**
-* Project action menu
-* ============================================================================
-*/
-
-.project-actions {
-  .btn-sm {
-    font-size: 13px;
-    margin-left: 7px;
-    line-height: 21px;
-    padding: 4px 9px;
-  }
-
-  .icon {
-    font-size: 14px;
-    padding-right: 5px;
-    color: @40;
-    position: relative;
-
-    &.icon-star-solid {
-      top: 0;
-      margin: 0;
-    }
-
-    &.icon-signal {
-      font-size: 18px;
-      top: 1px;
-    }
-
-    &.icon-settings {
-      top: 2px;
-      font-size: 15px;
-    }
-
-    &.active {
-      color: @yellow-orange;
-    }
   }
 }
 
@@ -431,6 +443,11 @@ footer {
   .narrow .app > .container,
   .narrow.windowed-small .app > .container {
     padding-top: 30px !important;
+  }
+
+  .narrow.dialog .app > .container,
+  .narrow.dialog.windowed-small .app > .container {
+    padding-top: 10px !important;
   }
 
   .nav-tabs {

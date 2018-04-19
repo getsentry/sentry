@@ -12,13 +12,14 @@ import GroupState from '../../mixins/groupState';
 import HookStore from '../../stores/hookStore';
 import IndicatorStore from '../../stores/indicatorStore';
 import IssuePluginActions from '../../components/group/issuePluginActions';
+import GuideAnchor from '../../components/assistant/guideAnchor';
 import LinkWithConfirmation from '../../components/linkWithConfirmation';
 import MenuItem from '../../components/menuItem';
 import ShareIssue from '../../components/shareIssue';
-import TooltipMixin from '../../mixins/tooltip';
 
 import ResolveActions from '../../components/actions/resolve';
 import IgnoreActions from '../../components/actions/ignore';
+import {openCreateOwnershipRule} from '../../actionCreators/modal';
 
 class DeleteActions extends React.Component {
   static propTypes = {
@@ -54,6 +55,7 @@ class DeleteActions extends React.Component {
             )}
             onConfirm={this.props.onDiscard}
           >
+            <GuideAnchor type="text" target="delete_discard" />
             <span>{t('Delete and discard future events')}</span>
           </LinkWithConfirmation>
         </li>
@@ -63,6 +65,8 @@ class DeleteActions extends React.Component {
 
   render() {
     let features = new Set(this.props.project.features);
+    let hasDiscard = features.has('discard-groups');
+
     return (
       <div className="btn-group">
         <LinkWithConfirmation
@@ -74,10 +78,9 @@ class DeleteActions extends React.Component {
           onConfirm={this.props.onDelete}
         >
           <span className="icon-trash" />
+          <GuideAnchor type="text" target="ignore_delete_discard" />
         </LinkWithConfirmation>
-        {features.has('discard-groups')
-          ? this.renderDiscard()
-          : this.renderDisabledDiscard()}
+        {hasDiscard ? this.renderDiscard() : this.renderDisabledDiscard()}
       </div>
     );
   }
@@ -86,14 +89,7 @@ class DeleteActions extends React.Component {
 const GroupDetailsActions = createReactClass({
   displayName: 'GroupDetailsActions',
 
-  mixins: [
-    ApiMixin,
-    GroupState,
-    TooltipMixin({
-      selector: '.tip',
-      container: 'body',
-    }),
-  ],
+  mixins: [ApiMixin, GroupState],
 
   getInitialState() {
     return {ignoreModal: null, shareBusy: false};
@@ -226,6 +222,8 @@ const GroupDetailsActions = createReactClass({
     }
 
     let hasRelease = this.getProjectFeatures().has('releases');
+    let hasOwners =
+      orgFeatures.has('code-owners') && orgFeatures.has('internal-catchall');
 
     // account for both old and new style plugins
     let hasIssueTracking = group.pluginActions.length || group.pluginIssues.length;
@@ -261,6 +259,22 @@ const GroupDetailsActions = createReactClass({
           onDelete={this.onDelete}
           onDiscard={this.onDiscard}
         />
+
+        {hasOwners && (
+          <div className="btn-group">
+            <a
+              onClick={() =>
+                openCreateOwnershipRule({
+                  project,
+                  organization: org,
+                  issueId: group.id,
+                })}
+              className={'btn btn-default btn-sm btn-create-ownership-rule'}
+            >
+              {t('Create Ownership Rule')}
+            </a>
+          </div>
+        )}
 
         {orgFeatures.has('shared-issues') && (
           <div className="btn-group">
@@ -304,13 +318,15 @@ const GroupDetailsActions = createReactClass({
             return <IssuePluginActions key={plugin.slug} plugin={plugin} />;
           })}
         {!hasIssueTracking && (
-          <a
-            href={`/${this.getOrganization().slug}/${this.getProject()
-              .slug}/settings/issue-tracking/`}
-            className={'btn btn-default btn-sm btn-config-issue-tracking'}
-          >
-            {t('Link Issue Tracker')}
-          </a>
+          <GuideAnchor type="text" target="issue_tracking">
+            <a
+              href={`/${this.getOrganization().slug}/${this.getProject()
+                .slug}/settings/issue-tracking/`}
+              className={'btn btn-default btn-sm btn-config-issue-tracking'}
+            >
+              {t('Link Issue Tracker')}
+            </a>
+          </GuideAnchor>
         )}
       </div>
     );

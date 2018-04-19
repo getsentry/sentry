@@ -1,49 +1,46 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import createReactClass from 'create-react-class';
-
-import ApiMixin from '../mixins/apiMixin';
+import {enablePlugin, disablePlugin} from '../actionCreators/plugins';
 import InactivePlugins from './inactivePlugins';
-import IndicatorStore from '../stores/indicatorStore';
 import PluginConfig from './pluginConfig';
 import {t} from '../locale';
 
-export default createReactClass({
-  displayName: 'pluginList',
-
-  propTypes: {
+export default class PluginList extends React.Component {
+  static propTypes = {
     organization: PropTypes.object.isRequired,
     project: PropTypes.object.isRequired,
     pluginList: PropTypes.array.isRequired,
     onDisablePlugin: PropTypes.func.isRequired,
     onEnablePlugin: PropTypes.func.isRequired,
-  },
+  };
 
-  mixins: [ApiMixin],
+  static defaultProps = {
+    onDisablePlugin: () => {},
+    onEnablePlugin: () => {},
+  };
 
-  enablePlugin(plugin) {
-    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+  handleEnablePlugin = plugin => {
     let {organization, project} = this.props;
-    this.api.request(
-      `/projects/${organization.slug}/${project.slug}/plugins/${plugin.id}/`,
-      {
-        method: 'POST',
-        success: () => {
-          IndicatorStore.remove(loadingIndicator);
-          this.props.onEnablePlugin(plugin);
-        },
-        error: error => {
-          IndicatorStore.remove(loadingIndicator);
-          IndicatorStore.add(t('Unable to save changes. Please try again.'), 'error');
-        },
-      }
-    );
-  },
+    enablePlugin({
+      projectId: project.slug,
+      orgId: organization.slug,
+      pluginId: plugin.slug,
+    });
 
-  onDisablePlugin(plugin) {
+    this.props.onEnablePlugin(plugin);
+  };
+
+  handleDisablePlugin = plugin => {
+    let {organization, project} = this.props;
+    disablePlugin({
+      projectId: project.slug,
+      orgId: organization.slug,
+      pluginId: plugin.slug,
+    });
+
     this.props.onDisablePlugin(plugin);
-  },
+  };
 
   render() {
     let {organization, pluginList, project} = this.props;
@@ -52,7 +49,9 @@ export default createReactClass({
       return (
         <div className="panel panel-default">
           <div className="panel-body p-b-0">
-            <p>{"Oops! Looks like there aren't any available integrations installed."}</p>
+            <p>
+              {t("Oops! Looks like there aren't any available integrations installed.")}
+            </p>
           </div>
         </div>
       );
@@ -67,15 +66,16 @@ export default createReactClass({
               organization={organization}
               project={project}
               key={data.id}
-              onDisablePlugin={this.onDisablePlugin.bind(this, data)}
+              onDisablePlugin={this.handleDisablePlugin}
             />
           );
         })}
+
         <InactivePlugins
           plugins={pluginList.filter(p => !p.enabled)}
-          onEnablePlugin={this.enablePlugin}
+          onEnablePlugin={this.handleEnablePlugin}
         />
       </div>
     );
-  },
-});
+  }
+}

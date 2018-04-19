@@ -4,7 +4,7 @@ exports[`OnboardingWizard render() should render NotFound if no matching organiz
 <div
   className="onboarding-container"
 >
-  <DocumentTitle
+  <SideEffect(DocumentTitle)
     title="Sentry"
   />
   <div
@@ -39,9 +39,13 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
   <div
     className="onboarding-container"
   >
-    <DocumentTitle
+    <SideEffect(DocumentTitle)
       title="Sentry"
-    />
+    >
+      <DocumentTitle
+        title="Sentry"
+      />
+    </SideEffect(DocumentTitle)>
     <div
       className="step-container"
     >
@@ -114,10 +118,10 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
       <div>
         <OnboardingProject
           name=""
-          next={[Function]}
+          next={[MockFunction]}
           platform=""
-          setName={[Function]}
-          setPlatform={[Function]}
+          setName={[MockFunction]}
+          setPlatform={[MockFunction]}
           setTeam={[Function]}
           team=""
           teams={Array []}
@@ -130,10 +134,10 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
             </h4>
             <PlatformPicker
               name=""
-              next={[Function]}
+              next={[MockFunction]}
               platform=""
-              setName={[Function]}
-              setPlatform={[Function]}
+              setName={[MockFunction]}
+              setPlatform={[MockFunction]}
               setTeam={[Function]}
               showOther={true}
               team=""
@@ -173,7 +177,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                     activeClassName="active"
                     index={false}
                     isActive={[Function]}
-                    key="Popular"
+                    key="popular"
                     onClick={[Function]}
                     to=""
                   >
@@ -199,7 +203,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                     activeClassName="active"
                     index={false}
                     isActive={[Function]}
-                    key="Frontend"
+                    key="browser"
                     onClick={[Function]}
                     to=""
                   >
@@ -216,7 +220,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                           onClick={[Function]}
                           style={Object {}}
                         >
-                          Frontend
+                          Browser
                         </a>
                       </Link>
                     </li>
@@ -225,7 +229,33 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                     activeClassName="active"
                     index={false}
                     isActive={[Function]}
-                    key="Mobile"
+                    key="server"
+                    onClick={[Function]}
+                    to=""
+                  >
+                    <li
+                      className=""
+                    >
+                      <Link
+                        onClick={[Function]}
+                        onlyActiveOnIndex={false}
+                        style={Object {}}
+                        to=""
+                      >
+                        <a
+                          onClick={[Function]}
+                          style={Object {}}
+                        >
+                          Server
+                        </a>
+                      </Link>
+                    </li>
+                  </ListLink>
+                  <ListLink
+                    activeClassName="active"
+                    index={false}
+                    isActive={[Function]}
+                    key="mobile"
                     onClick={[Function]}
                     to=""
                   >
@@ -251,7 +281,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                     activeClassName="active"
                     index={false}
                     isActive={[Function]}
-                    key="Backend"
+                    key="desktop"
                     onClick={[Function]}
                     to=""
                   >
@@ -268,7 +298,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                           onClick={[Function]}
                           style={Object {}}
                         >
-                          Backend
+                          Desktop
                         </a>
                       </Link>
                     </li>
@@ -277,7 +307,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                     activeClassName="active"
                     index={false}
                     isActive={[Function]}
-                    key="All"
+                    key="all"
                     onClick={[Function]}
                     to=""
                   >
@@ -320,7 +350,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled csharp csharp "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-csharp"
@@ -351,7 +380,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled java java "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-java"
@@ -382,7 +410,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled javascript-angular javascript "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-javascript-angular"
@@ -413,7 +440,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled javascript javascript "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-javascript"
@@ -444,7 +470,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled javascript-react javascript "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-javascript-react"
@@ -475,7 +500,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled node-express node "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-node-express"
@@ -506,7 +530,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled node node "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-node"
@@ -537,7 +560,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled php-laravel php "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-php-laravel"
@@ -568,7 +590,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled php php "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-php"
@@ -599,7 +620,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled php-symfony2 php "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-php-symfony2"
@@ -630,7 +650,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled python-django python "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-python-django"
@@ -661,7 +680,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled python-flask python "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-python-flask"
@@ -692,7 +710,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled python python "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-python"
@@ -723,7 +740,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled cocoa cocoa "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-cocoa"
@@ -754,7 +770,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled ruby-rails ruby "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-ruby-rails"
@@ -785,7 +800,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled ruby ruby "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-ruby"
@@ -873,9 +887,13 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
   <div
     className="onboarding-container"
   >
-    <DocumentTitle
+    <SideEffect(DocumentTitle)
       title="Sentry"
-    />
+    >
+      <DocumentTitle
+        title="Sentry"
+      />
+    </SideEffect(DocumentTitle)>
     <div
       className="step-container"
     >
@@ -948,10 +966,18 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
       <div>
         <OnboardingProject
           name=""
-          next={[Function]}
+          next={[MockFunction]}
           platform=""
-          setName={[Function]}
-          setPlatform={[Function]}
+          setName={[MockFunction]}
+          setPlatform={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  "csharp",
+                ],
+              ],
+            }
+          }
           setTeam={[Function]}
           team=""
           teams={Array []}
@@ -964,10 +990,18 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
             </h4>
             <PlatformPicker
               name=""
-              next={[Function]}
+              next={[MockFunction]}
               platform=""
-              setName={[Function]}
-              setPlatform={[Function]}
+              setName={[MockFunction]}
+              setPlatform={
+                [MockFunction] {
+                  "calls": Array [
+                    Array [
+                      "csharp",
+                    ],
+                  ],
+                }
+              }
               setTeam={[Function]}
               showOther={true}
               team=""
@@ -1007,7 +1041,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                     activeClassName="active"
                     index={false}
                     isActive={[Function]}
-                    key="Popular"
+                    key="popular"
                     onClick={[Function]}
                     to=""
                   >
@@ -1033,7 +1067,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                     activeClassName="active"
                     index={false}
                     isActive={[Function]}
-                    key="Frontend"
+                    key="browser"
                     onClick={[Function]}
                     to=""
                   >
@@ -1050,7 +1084,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                           onClick={[Function]}
                           style={Object {}}
                         >
-                          Frontend
+                          Browser
                         </a>
                       </Link>
                     </li>
@@ -1059,7 +1093,33 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                     activeClassName="active"
                     index={false}
                     isActive={[Function]}
-                    key="Mobile"
+                    key="server"
+                    onClick={[Function]}
+                    to=""
+                  >
+                    <li
+                      className=""
+                    >
+                      <Link
+                        onClick={[Function]}
+                        onlyActiveOnIndex={false}
+                        style={Object {}}
+                        to=""
+                      >
+                        <a
+                          onClick={[Function]}
+                          style={Object {}}
+                        >
+                          Server
+                        </a>
+                      </Link>
+                    </li>
+                  </ListLink>
+                  <ListLink
+                    activeClassName="active"
+                    index={false}
+                    isActive={[Function]}
+                    key="mobile"
                     onClick={[Function]}
                     to=""
                   >
@@ -1085,7 +1145,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                     activeClassName="active"
                     index={false}
                     isActive={[Function]}
-                    key="Backend"
+                    key="desktop"
                     onClick={[Function]}
                     to=""
                   >
@@ -1102,7 +1162,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                           onClick={[Function]}
                           style={Object {}}
                         >
-                          Backend
+                          Desktop
                         </a>
                       </Link>
                     </li>
@@ -1111,7 +1171,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                     activeClassName="active"
                     index={false}
                     isActive={[Function]}
-                    key="All"
+                    key="all"
                     onClick={[Function]}
                     to=""
                   >
@@ -1154,7 +1214,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled csharp csharp "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-csharp"
@@ -1185,7 +1244,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled java java "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-java"
@@ -1216,7 +1274,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled javascript-angular javascript "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-javascript-angular"
@@ -1247,7 +1304,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled javascript javascript "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-javascript"
@@ -1278,7 +1334,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled javascript-react javascript "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-javascript-react"
@@ -1309,7 +1364,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled node-express node "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-node-express"
@@ -1340,7 +1394,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled node node "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-node"
@@ -1371,7 +1424,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled php-laravel php "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-php-laravel"
@@ -1402,7 +1454,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled php php "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-php"
@@ -1433,7 +1484,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled php-symfony2 php "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-php-symfony2"
@@ -1464,7 +1514,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled python-django python "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-python-django"
@@ -1495,7 +1544,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled python-flask python "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-python-flask"
@@ -1526,7 +1574,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled python python "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-python"
@@ -1557,7 +1604,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled cocoa cocoa "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-cocoa"
@@ -1588,7 +1634,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled ruby-rails ruby "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-ruby-rails"
@@ -1619,7 +1664,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled ruby ruby "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-ruby"

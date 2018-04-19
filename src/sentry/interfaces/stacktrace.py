@@ -44,6 +44,18 @@ _java_enhancer_re = re.compile(r'''
 # Clojure anon functions are compiled down to myapp.mymodule$fn__12345
 _clojure_enhancer_re = re.compile(r'''(\$fn__)\d+''', re.X)
 
+# fields that need to be the same between frames for them to be considered
+# recursive calls
+RECURSION_COMPARISON_FIELDS = [
+    'abs_path',
+    'package',
+    'module',
+    'filename',
+    'function',
+    'lineno',
+    'colno',
+]
+
 
 def max_addr(cur, addr):
     if addr is None:
@@ -252,6 +264,15 @@ def handle_nan(value):
     return value
 
 
+def is_recursion(frame1, frame2):
+    "Returns a boolean indicating whether frames are recursive calls."
+    for field in RECURSION_COMPARISON_FIELDS:
+        if getattr(frame1, field, None) != getattr(frame2, field, None):
+            return False
+
+    return True
+
+
 class Frame(Interface):
 
     path = 'frame'
@@ -385,7 +406,7 @@ class Frame(Interface):
             return output
 
         if self.module:
-            if self.is_unhashable_module():
+            if self.is_unhashable_module(platform):
                 output.append('<module>')
             else:
                 output.append(remove_module_outliers(self.module))
@@ -497,9 +518,15 @@ class Frame(Interface):
         # values (see raven-java#125)
         return self.filename.startswith('Caused by: ')
 
-    def is_unhashable_module(self):
-        # TODO(dcramer): this is Java specific
-        return '$$Lambda$' in self.module
+    def is_unhashable_module(self, platform):
+        # Fix for the case where module is a partial copy of the URL
+        # and should not be hashed
+        if (platform == 'javascript' and '/' in self.module
+                and self.abs_path and self.abs_path.endswith(self.module)):
+            return True
+        elif platform == 'java' and '$$Lambda$' in self.module:
+            return True
+        return False
 
     def is_unhashable_function(self):
         # TODO(dcramer): lambda$ is Java specific
@@ -750,9 +777,20 @@ class Stacktrace(Interface):
             if len(frames) / float(total_frames) < 0.10:
                 return []
 
+        if not frames:
+            return []
+
         output = []
-        for frame in frames:
-            output.extend(frame.get_hash(platform))
+
+        # stacktraces that only differ by the number of recursive calls should
+        # hash the same, so we squash recursive calls by comparing each frame
+        # to the previous frame
+        output.extend(frames[0].get_hash(platform))
+        prev_frame = frames[0]
+        for frame in frames[1:]:
+            if not is_recursion(frame, prev_frame):
+                output.extend(frame.get_hash(platform))
+            prev_frame = frame
         return output
 
     def to_string(self, event, is_public=False, **kwargs):

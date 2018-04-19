@@ -1,22 +1,23 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import SentryTypes from '../../../proptypes';
+import {getOrganizationState} from '../../../mixins/organizationState';
+import {openCreateTeamModal} from '../../../actionCreators/modal';
 import {t} from '../../../locale';
-import ExpandedTeamList from './expandedTeamList';
 import AllTeamsList from './allTeamsList';
-import ListLink from '../../../components/listLink';
+import Button from '../../../components/buttons/button';
+import {Panel, PanelBody, PanelHeader} from '../../../components/panels';
+import SentryTypes from '../../../proptypes';
+import SettingsPageHeader from '../components/settingsPageHeader';
 import recreateRoute from '../../../utils/recreateRoute';
 
 class OrganizationTeamsView extends React.Component {
   static propTypes = {
     allTeams: PropTypes.arrayOf(SentryTypes.Team),
     activeTeams: PropTypes.arrayOf(SentryTypes.Team),
-    projectStats: PropTypes.array,
     organization: SentryTypes.Organization,
     access: PropTypes.object,
     features: PropTypes.object,
-    route: PropTypes.object,
     routes: PropTypes.array,
     params: PropTypes.object,
   };
@@ -25,11 +26,9 @@ class OrganizationTeamsView extends React.Component {
     let {
       allTeams,
       activeTeams,
-      projectStats,
       organization,
       access,
       features,
-      route,
       routes,
       params,
     } = this.props;
@@ -37,35 +36,65 @@ class OrganizationTeamsView extends React.Component {
 
     if (!organization) return null;
 
+    let canCreateTeams = getOrganizationState(organization)
+      .getAccess()
+      .has('project:admin');
+
+    let action = (
+      <Button
+        priority="primary"
+        size="small"
+        disabled={!canCreateTeams}
+        title={
+          !canCreateTeams ? t('You do not have permission to create teams') : undefined
+        }
+        onClick={() =>
+          openCreateTeamModal({
+            organization,
+          })}
+        icon="icon-circle-add"
+      >
+        {t('Create Team')}
+      </Button>
+    );
+
     let teamRoute = routes.find(({path}) => path === 'teams/');
     let urlPrefix = recreateRoute(teamRoute, {routes, params, stepBack: -1});
 
+    let activeTeamIds = new Set(activeTeams.map(team => team.id));
+    let otherTeams = allTeams.filter(team => !activeTeamIds.has(team.id));
+
     return (
       <div className="team-list">
-        <ul className="nav nav-tabs border-bottom">
-          <ListLink to={`${urlPrefix}teams/your-teams/`}>{t('Your Teams')}</ListLink>
-          <ListLink to={`${urlPrefix}teams/all-teams/`}>
-            {t('All Teams')} <span className="badge badge-soft">{allTeams.length}</span>
-          </ListLink>
-        </ul>
-        {route.allTeams /* should be AllTeamsList */ ? (
-          <AllTeamsList
-            urlPrefix={urlPrefix}
-            organization={org}
-            teamList={allTeams}
-            access={access}
-            openMembership={features.has('open-membership') || access.has('org:write')}
-          />
-        ) : (
-          <ExpandedTeamList
-            urlPrefix={urlPrefix}
-            organization={org}
-            teamList={activeTeams}
-            projectStats={projectStats}
-            hasTeams={allTeams.length !== 0}
-            access={access}
-          />
-        )}
+        <SettingsPageHeader title={t('Teams')} action={action} />
+        <Panel>
+          <PanelHeader>{t('Your Teams')}</PanelHeader>
+          <PanelBody>
+            <AllTeamsList
+              useCreateModal
+              urlPrefix={urlPrefix}
+              organization={org}
+              teamList={activeTeams}
+              access={access}
+              openMembership={false}
+            />
+          </PanelBody>
+        </Panel>
+        <Panel>
+          <PanelHeader>{t('Other Teams')}</PanelHeader>
+          <PanelBody>
+            <AllTeamsList
+              useCreateModal
+              urlPrefix={urlPrefix}
+              organization={org}
+              teamList={otherTeams}
+              access={access}
+              openMembership={
+                !!(features.has('open-membership') || access.has('org:write'))
+              }
+            />
+          </PanelBody>
+        </Panel>
       </div>
     );
   }

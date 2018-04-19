@@ -4,10 +4,7 @@ import {Flex, Box} from 'grid-emotion';
 
 import {t, tct} from '../../../../locale';
 import Button from '../../../../components/buttons/button';
-import Panel from '../../components/panel';
-import PanelBody from '../../components/panelBody';
-import PanelHeader from '../../components/panelHeader';
-import PanelItem from '../../components/panelItem';
+import {Panel, PanelBody, PanelHeader, PanelItem} from '../../../../components/panels';
 import SentryTypes from '../../../../proptypes';
 
 class OrganizationAccessRequests extends React.Component {
@@ -59,11 +56,11 @@ class OrganizationAccessRequests extends React.Component {
               member.user &&
               (member.user.name || member.user.email || member.user.username);
             return (
-              <PanelItem key={id} align="center">
+              <PanelItem p={0} key={id} align="center">
                 <Box p={2} flex="1">
                   {tct('[name] requests access to the [team] team.', {
                     name: <strong>{displayName}</strong>,
-                    team: <strong>{team.name}</strong>,
+                    team: <strong>#{team.slug}</strong>,
                   })}
                 </Box>
                 <Box p={2}>

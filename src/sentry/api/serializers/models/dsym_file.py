@@ -11,7 +11,8 @@ class DSymFileSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         d = {
             'id': six.text_type(obj.id),
-            'uuid': obj.uuid,
+            'uuid': obj.debug_id[:36],
+            'debugId': obj.debug_id,
             'cpuName': obj.cpu_name,
             'objectName': obj.object_name,
             'symbolType': obj.dsym_type,

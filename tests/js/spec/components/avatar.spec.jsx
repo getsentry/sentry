@@ -1,25 +1,34 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+import {mount} from 'enzyme';
 import Avatar from 'app/components/avatar';
 
-describe('Avatar', function() {
-  let sandbox;
+jest.mock('app/stores/configStore', () => {
+  return {
+    getConfig: () => ({
+      gravatarBaseUrl: 'gravatarBaseUrl',
+    }),
+  };
+});
 
+describe('Avatar', function() {
   const USER = {
-    id: 1,
+    id: '1',
     name: 'Jane Doe',
     email: 'janedoe@example.com',
   };
 
-  beforeEach(function() {
-    sandbox = sinon.sandbox.create();
-  });
-
-  afterEach(function() {
-    sandbox.restore();
-  });
-
   describe('render()', function() {
+    it('has `avatar` className', function() {
+      let user = Object.assign({}, USER, {
+        avatar: {
+          avatarType: 'gravatar',
+          avatarUuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e',
+        },
+      });
+      let avatar = mount(<Avatar user={user} />);
+      expect(avatar.find('.avatar')).toHaveLength(1);
+    });
+
     it('should show a gravatar when avatar type is gravatar', function() {
       let user = Object.assign({}, USER, {
         avatar: {
@@ -27,12 +36,12 @@ describe('Avatar', function() {
           avatarUuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e',
         },
       });
-      let avatar = shallow(<Avatar user={user} />).instance();
-      sandbox.stub(avatar, 'buildGravatarUrl');
-      sandbox.stub(avatar, 'buildProfileUrl');
-      avatar.renderImg();
-      expect(avatar.buildGravatarUrl.calledOnce).toBeTruthy();
-      expect(avatar.buildProfileUrl.called).not.toBeTruthy();
+      let avatar = mount(<Avatar user={user} />);
+
+      expect(avatar.find('BaseAvatar').prop('type')).toBe('gravatar');
+      expect(avatar.find('BaseAvatar img').prop('src')).toMatch(
+        'gravatarBaseUrl/avatar/'
+      );
     });
 
     it('should show an upload when avatar type is upload', function() {
@@ -42,12 +51,42 @@ describe('Avatar', function() {
           avatarUuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e',
         },
       });
-      let avatar = shallow(<Avatar user={user} />).instance();
-      sandbox.stub(avatar, 'buildGravatarUrl');
-      sandbox.stub(avatar, 'buildProfileUrl');
-      avatar.renderImg();
-      expect(avatar.buildProfileUrl.calledOnce).toBeTruthy();
-      expect(avatar.buildGravatarUrl.called).not.toBeTruthy();
+      let avatar = mount(<Avatar user={user} />);
+      expect(avatar.find('BaseAvatar').prop('type')).toBe('upload');
+      expect(avatar.find('BaseAvatar').prop('uploadId')).toBe(
+        '2d641b5d-8c74-44de-9cb6-fbd54701b35e'
+      );
+      expect(avatar.find('BaseAvatar img').prop('src')).toMatch(
+        '/avatar/2d641b5d-8c74-44de-9cb6-fbd54701b35e'
+      );
+    });
+
+    it('should show an upload with the correct size', function() {
+      let user = Object.assign({}, USER, {
+        avatar: {
+          avatarType: 'upload',
+          avatarUuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e',
+        },
+      });
+      let avatar = mount(<Avatar user={user} size={76} />);
+      expect(avatar.find('BaseAvatar img').prop('src')).toMatch(
+        '/avatar/2d641b5d-8c74-44de-9cb6-fbd54701b35e/?s=80'
+      );
+
+      avatar = mount(<Avatar user={user} size={121} />);
+      expect(avatar.find('BaseAvatar img').prop('src')).toMatch(
+        '/avatar/2d641b5d-8c74-44de-9cb6-fbd54701b35e/?s=120'
+      );
+
+      avatar = mount(<Avatar user={user} size={32} />);
+      expect(avatar.find('BaseAvatar img').prop('src')).toMatch(
+        '/avatar/2d641b5d-8c74-44de-9cb6-fbd54701b35e/?s=32'
+      );
+
+      avatar = mount(<Avatar user={user} size={1} />);
+      expect(avatar.find('BaseAvatar img').prop('src')).toMatch(
+        '/avatar/2d641b5d-8c74-44de-9cb6-fbd54701b35e/?s=20'
+      );
     });
 
     it('should not show upload or gravatar when avatar type is letter', function() {
@@ -57,32 +96,35 @@ describe('Avatar', function() {
           avatarUuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e',
         },
       });
-      let avatar = shallow(<Avatar user={user} />).instance();
-      sandbox.stub(avatar, 'buildGravatarUrl');
-      sandbox.stub(avatar, 'buildProfileUrl');
-      avatar.renderImg();
-      expect(avatar.buildProfileUrl.called).not.toBeTruthy();
-      expect(avatar.buildGravatarUrl.called).not.toBeTruthy();
+      let avatar = mount(<Avatar user={user} />);
+      expect(avatar.find('BaseAvatar').prop('type')).toBe('letter_avatar');
     });
 
     it('should show a gravatar when no avatar type is set and user has an email address', function() {
-      let avatar = shallow(<Avatar user={USER} />).instance();
-      sandbox.stub(avatar, 'buildGravatarUrl');
-      sandbox.stub(avatar, 'buildProfileUrl');
-      avatar.renderImg();
-      expect(avatar.buildGravatarUrl.calledOnce).toBeTruthy();
-      expect(avatar.buildProfileUrl.called).not.toBeTruthy();
+      let avatar = mount(<Avatar user={USER} />);
+      expect(avatar.find('BaseAvatar').prop('type')).toBe('gravatar');
     });
 
     it('should not show a gravatar when no avatar type is set and user has no email address', function() {
       let user = Object.assign({}, USER);
       delete user.email;
-      let avatar = shallow(<Avatar user={user} />).instance();
-      sandbox.stub(avatar, 'buildGravatarUrl');
-      sandbox.stub(avatar, 'buildProfileUrl');
-      avatar.renderImg();
-      expect(avatar.buildGravatarUrl.called).not.toBeTruthy();
-      expect(avatar.buildProfileUrl.called).not.toBeTruthy();
+      let avatar = mount(<Avatar user={user} />);
+
+      expect(avatar.find('BaseAvatar').prop('type')).toBe('letter_avatar');
+    });
+
+    it('can display a team Avatar', function() {
+      let team = TestStubs.Team({slug: 'test-team_test'});
+      let avatar = mount(<Avatar team={team} />);
+      expect(avatar.find('LetterAvatar').prop('displayName')).toBe('test team test');
+      expect(avatar.find('LetterAvatar').prop('identifier')).toBe('test-team_test');
+    });
+
+    it('can display an organization Avatar', function() {
+      let organization = TestStubs.Organization({slug: 'test-organization'});
+      let avatar = mount(<Avatar organization={organization} />);
+      expect(avatar.find('LetterAvatar').prop('displayName')).toBe('test organization');
+      expect(avatar.find('LetterAvatar').prop('identifier')).toBe('test-organization');
     });
   });
 });

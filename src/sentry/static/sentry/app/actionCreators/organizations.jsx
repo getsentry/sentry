@@ -1,14 +1,19 @@
 import {browserHistory} from 'react-router';
 
+import {Client} from '../api';
 import IndicatorStore from '../stores/indicatorStore';
-import OrganizationsStore from '../stores/organizationsStore';
 import OrganizationsActions from '../actions/organizationsActions';
+import OrganizationsStore from '../stores/organizationsStore';
+import ProjectsStore from '../stores/projectsStore';
+import TeamStore from '../stores/teamStore';
 
 export function redirectToRemainingOrganization({orgId}) {
   // Remove queued, should redirect
-  let allOrgs = OrganizationsStore.getAll().filter(org => org.slug !== orgId);
+  let allOrgs = OrganizationsStore.getAll().filter(
+    org => org.status.id === 'active' && org.slug !== orgId
+  );
   if (!allOrgs.length) {
-    // This is bad...
+    browserHistory.push('/organizations/new/');
     return;
   }
 
@@ -53,4 +58,25 @@ export function changeOrganizationSlug(prev, next) {
 
 export function updateOrganization(org) {
   OrganizationsActions.update(org);
+}
+
+export function fetchOrganizationDetails(orgId, {setActive, loadProjects, loadTeam}) {
+  let api = new Client();
+  let request = api.requestPromise(`/organizations/${orgId}/`);
+
+  request.then(data => {
+    if (setActive) {
+      setActiveOrganization(data);
+    }
+
+    if (loadTeam) {
+      TeamStore.loadInitialData(data.teams);
+    }
+
+    if (loadProjects) {
+      ProjectsStore.loadInitialData(data.projects || []);
+    }
+  });
+
+  return request;
 }

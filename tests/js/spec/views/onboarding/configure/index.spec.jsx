@@ -1,28 +1,87 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import {shallow, mount} from 'enzyme';
 
 import {Client} from 'app/api';
 import Configure from 'app/views/onboarding/configure';
-import SentryTypes from '../../../../../../src/sentry/static/sentry/app/proptypes';
+import ProjectsStore from 'app/stores/projectsStore';
+import SentryTypes from 'app/proptypes';
 
 describe('Configure should render correctly', function() {
   let sandbox;
-  let stubbedApiRequest;
 
   beforeEach(function() {
     sandbox = sinon.sandbox.create();
-    stubbedApiRequest = sandbox.stub(Client.prototype, 'request');
+    Client.addMockResponse({
+      url: '/projects/testOrg/project-slug/',
+      body: TestStubs.Project(),
+    });
+    Client.addMockResponse({
+      url: '/projects/testOrg/project-slug/events/',
+      body: {},
+    });
+    Client.addMockResponse({
+      url: '/projects/testOrg/project-slug/members/',
+      body: [],
+    });
+    Client.addMockResponse({
+      url: '/projects/testOrg/project-slug/environments/',
+      body: {},
+    });
+    Client.addMockResponse({
+      url: '/projects/testOrg/project-slug/docs/',
+      body: {
+        dsn: 'https://9ed7cdc60:20e868d7b@sentry.io/300733',
+        platforms: [
+          {
+            integrations: [
+              {
+                type: 'language',
+                link: 'https://docs.getsentry.com/hosted/clients/csharp/',
+                id: 'node',
+                name: 'node',
+              },
+            ],
+            name: 'js',
+            id: 'javascript',
+          },
+        ],
+        dsnPublic: 'https://9ed7cdc6581145bcb46044b77bd82aa0@sentry.io/300733',
+      },
+    });
+    Client.addMockResponse({
+      url: '/projects/testOrg/project-slug/docs/node/',
+      body: {},
+    });
+
+    ProjectsStore.loadInitialData([
+      {
+        name: 'Test Project',
+        slug: 'project-slug',
+        id: 'testProject',
+        hasAccess: true,
+        isBookmarked: false,
+        teams: [
+          {
+            slug: 'coolteam',
+            id: 'coolid',
+            hasAccess: true,
+          },
+        ],
+      },
+    ]);
   });
 
   afterEach(function() {
     sandbox.restore();
+    ProjectsStore.loadInitialData([]);
   });
 
   describe('render()', function() {
     const baseProps = {
       next: () => {},
       params: {
-        projectId: 'testProject',
+        projectId: 'project-slug',
         orgId: 'testOrg',
       },
     };
@@ -34,7 +93,7 @@ describe('Configure should render correctly', function() {
       props.params.platform = 'node';
 
       let wrapper = shallow(<Configure {...props} />, {
-        context: {organization: {id: '1337', slug: 'testOrg', teams: [['testProject']]}},
+        context: {organization: {id: '1337', slug: 'testOrg', teams: [['project-slug']]}},
         childContextTypes: {organization: SentryTypes.Organization},
       });
 
@@ -65,7 +124,7 @@ describe('Configure should render correctly', function() {
           organization: {
             id: '1337',
             slug: 'testOrg',
-            teams: [['testProject']],
+            teams: [['project-slug']],
           },
         },
       });
@@ -74,7 +133,7 @@ describe('Configure should render correctly', function() {
       expect(handleSubmitStub.callCount).toEqual(1);
     });
 
-    it('should render platform docs', function() {
+    it('should render platform docs', function(done) {
       let props = {
         ...baseProps,
       };
@@ -82,17 +141,36 @@ describe('Configure should render correctly', function() {
 
       let wrapper = mount(<Configure {...props} />, {
         context: {
+          router: TestStubs.router(),
+          project: TestStubs.Project(),
           organization: {
             id: '1337',
             slug: 'testOrg',
+            projects: [
+              {
+                name: 'Test Project',
+                slug: 'project-slug',
+                id: 'testProject',
+                hasAccess: true,
+                isBookmarked: false,
+                teams: [
+                  {
+                    id: 'coolteam',
+                    slug: 'coolteam',
+                    hasAccess: true,
+                  },
+                ],
+              },
+            ],
             teams: [
               {
                 id: 'coolteam',
+                slug: 'coolteam',
                 hasAccess: true,
                 projects: [
                   {
                     name: 'Test Project',
-                    slug: 'testProject',
+                    slug: 'project-slug',
                     id: 'testProject',
                   },
                 ],
@@ -100,10 +178,18 @@ describe('Configure should render correctly', function() {
             ],
           },
         },
-        childContextTypes: {organization: SentryTypes.Organization},
+        childContextTypes: {
+          organization: SentryTypes.Organization,
+          project: SentryTypes.Project,
+          router: PropTypes.object,
+        },
       });
-      expect(wrapper).toMatchSnapshot();
-      expect(stubbedApiRequest.callCount).toEqual(5);
+
+      setTimeout(() => {
+        wrapper.update();
+        expect(wrapper).toMatchSnapshot();
+        done();
+      });
     });
   });
 });

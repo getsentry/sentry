@@ -1,12 +1,13 @@
+import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Link} from 'react-router';
 
-import SentryTypes from '../../../proptypes';
-
-import Panel from '../components/panel';
-import AllTeamsRow from './allTeamsRow';
+import {openCreateTeamModal} from '../../../actionCreators/modal';
 import {tct} from '../../../locale';
+import AllTeamsRow from './allTeamsRow';
+import EmptyMessage from '../components/emptyMessage';
+import SentryTypes from '../../../proptypes';
+import TextBlock from '../components/text/textBlock';
 
 class AllTeamsList extends React.Component {
   static propTypes = {
@@ -15,10 +16,24 @@ class AllTeamsList extends React.Component {
     organization: SentryTypes.Organization,
     teamList: PropTypes.arrayOf(SentryTypes.Team),
     openMembership: PropTypes.bool,
+    useCreateModal: PropTypes.bool,
+  };
+
+  handleCreateTeam = e => {
+    let {useCreateModal, organization} = this.props;
+
+    if (!useCreateModal) return;
+
+    e.preventDefault();
+
+    openCreateTeamModal({
+      organization,
+      onClose: () => {},
+    });
   };
 
   render() {
-    let {access, organization, urlPrefix, openMembership} = this.props;
+    let {access, organization, urlPrefix, openMembership, useCreateModal} = this.props;
     let teamNodes = this.props.teamList.map((team, teamIdx) => {
       return (
         <AllTeamsRow
@@ -33,15 +48,17 @@ class AllTeamsList extends React.Component {
     });
 
     if (teamNodes.length !== 0) {
-      return <Panel>{teamNodes}</Panel>;
+      return teamNodes;
     }
 
-    return tct(
-      "You don't have any teams for this organization yet. Get started by [link:creating your first team].",
-      {
-        root: <p />,
-        link: <Link to={`${urlPrefix}teams/new/`} />,
-      }
+    let to = useCreateModal ? '#' : `/organizations/${organization.slug}/teams/new/`;
+    return (
+      <EmptyMessage>
+        {tct('No teams here. You can always [link:create one].', {
+          root: <TextBlock noMargin />,
+          link: <Link to={to} onClick={this.handleCreateTeam} />,
+        })}
+      </EmptyMessage>
     );
   }
 }

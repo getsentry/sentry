@@ -266,7 +266,7 @@ STATIC_URL = '/_static/{version}/'
 
 # various middleware will use this to identify resources which should not access
 # cookies
-ANONYMOUS_STATIC_PREFIXES = ('/_static/', '/avatar/')
+ANONYMOUS_STATIC_PREFIXES = ('/_static/', '/avatar/', '/organization-avatar/', '/team-avatar/')
 
 STATICFILES_FINDERS = (
     "django.contrib.staticfiles.finders.FileSystemFinder",
@@ -434,10 +434,14 @@ CELERY_IMPORTS = (
     'sentry.tasks.process_buffer', 'sentry.tasks.reports', 'sentry.tasks.reprocessing',
     'sentry.tasks.scheduler', 'sentry.tasks.signals', 'sentry.tasks.store', 'sentry.tasks.unmerge',
     'sentry.tasks.symcache_update', 'sentry.tasks.servicehooks',
+    'sentry.tagstore.tasks', 'sentry.tasks.assemble'
 )
 CELERY_QUEUES = [
+    Queue('activity.notify', routing_key='activity.notify'),
     Queue('alerts', routing_key='alerts'),
     Queue('auth', routing_key='auth'),
+    Queue('assemble', routing_key='assemble'),
+    Queue('buffers.process_pending', routing_key='buffers.process_pending'),
     Queue('commits', routing_key='commits'),
     Queue('cleanup', routing_key='cleanup'),
     Queue('default', routing_key='default'),
@@ -518,7 +522,7 @@ CELERYBEAT_SCHEDULE = {
         'schedule': timedelta(seconds=10),
         'options': {
             'expires': 10,
-            'queue': 'counters-0',
+            'queue': 'buffers.process_pending',
         }
     },
     'sync-options': {
@@ -739,6 +743,7 @@ SENTRY_FEATURES = {
     'auth:register': True,
     'organizations:api-keys': False,
     'organizations:create': True,
+    'organizations:repos': True,
     'organizations:sso': True,
     'organizations:sso-saml2': False,
     'organizations:sso-rippling': False,
@@ -747,6 +752,11 @@ SENTRY_FEATURES = {
     'organizations:invite-members': True,
     'organizations:new-settings': False,
     'organizations:require-2fa': False,
+    'organizations:environments': False,
+    'organizations:internal-catchall': False,
+    'organizations:new-teams': False,
+    'organizations:code-owners': False,
+    'organizations:unreleased-changes': False,
     'projects:global-events': False,
     'projects:plugins': True,
     'projects:dsym': False,
@@ -755,7 +765,7 @@ SENTRY_FEATURES = {
     'projects:rate-limits': True,
     'projects:discard-groups': False,
     'projects:custom-inbound-filters': False,
-    'projects:minidump': False,
+    'projects:minidump': True,
 }
 
 # Default time zone for localization in the UI.
@@ -782,6 +792,7 @@ SENTRY_LOGIN_URL = None
 
 # Default project ID (for internal errors)
 SENTRY_PROJECT = 1
+SENTRY_PROJECT_KEY = None
 
 # Project ID for recording frontend (javascript) exceptions
 SENTRY_FRONTEND_PROJECT = None
@@ -813,7 +824,9 @@ SENTRY_SMTP_HOST = 'localhost'
 SENTRY_SMTP_PORT = 1025
 
 SENTRY_INTERFACES = {
-    'csp': 'sentry.interfaces.csp.Csp',
+    'csp': 'sentry.interfaces.security.Csp',
+    'expectct': 'sentry.interfaces.security.ExpectCT',
+    'expectstaple': 'sentry.interfaces.security.ExpectStaple',
     'device': 'sentry.interfaces.device.Device',
     'exception': 'sentry.interfaces.exception.Exception',
     'logentry': 'sentry.interfaces.message.Message',
@@ -836,7 +849,7 @@ SENTRY_INTERFACES = {
     'sentry.interfaces.Query': 'sentry.interfaces.query.Query',
     'sentry.interfaces.Http': 'sentry.interfaces.http.Http',
     'sentry.interfaces.User': 'sentry.interfaces.user.User',
-    'sentry.interfaces.Csp': 'sentry.interfaces.csp.Csp',
+    'sentry.interfaces.Csp': 'sentry.interfaces.security.Csp',
     'sentry.interfaces.AppleCrashReport': 'sentry.interfaces.applecrash.AppleCrashReport',
     'sentry.interfaces.Breadcrumbs': 'sentry.interfaces.breadcrumbs.Breadcrumbs',
     'sentry.interfaces.Contexts': 'sentry.interfaces.contexts.Contexts',
@@ -1106,6 +1119,7 @@ SENTRY_ROLES = (
                 'team:read',
                 'team:write',
                 'team:admin',
+                'org:integrations',
             ]
         ),
     }, {
@@ -1250,14 +1264,14 @@ SUDO_URL = 'sentry-sudo'
 
 # TODO(dcramer): move this to sentry.io so it can be automated
 SDK_VERSIONS = {
-    'raven-js': '3.16.0',
-    'raven-node': '2.1.0',
-    'raven-python': '6.1.0',
-    'raven-ruby': '2.5.3',
-    'sentry-cocoa': '3.1.2',
-    'sentry-java': '1.2.0',
-    'sentry-laravel': '0.7.0',
-    'sentry-php': '1.7.0',
+    'raven-js': '3.21.0',
+    'raven-node': '2.3.0',
+    'raven-python': '6.4.0',
+    'raven-ruby': '2.7.1',
+    'sentry-cocoa': '3.11.1',
+    'sentry-java': '1.6.4',
+    'sentry-laravel': '0.8.0',
+    'sentry-php': '1.8.2',
 }
 
 SDK_URLS = {
@@ -1289,3 +1303,11 @@ DEPRECATED_SDKS = {
 }
 
 SOUTH_TESTS_MIGRATE = os.environ.get('SOUTH_TESTS_MIGRATE', '0') == '1'
+
+TERMS_URL = None
+PRIVACY_URL = None
+
+# Toggles whether minidumps should be cached
+SENTRY_MINIDUMP_CACHE = False
+# The location for cached minidumps
+SENTRY_MINIDUMP_PATH = '/tmp/minidump'

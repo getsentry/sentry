@@ -34,6 +34,7 @@ class Note extends React.Component {
               <a onClick={onEdit}>{t('Edit')}</a>
               <LinkWithConfirmation
                 className="danger"
+                title="Remove"
                 message={t('Are you sure you wish to delete this comment?')}
                 onConfirm={onDelete}
               >

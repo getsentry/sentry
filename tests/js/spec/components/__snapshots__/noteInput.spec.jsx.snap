@@ -3,6 +3,7 @@
 exports[`NoteInput renders 1`] = `
 <form
   className="activity-field"
+  noValidate={true}
   onSubmit={[Function]}
 >
   <div
@@ -45,10 +46,11 @@ exports[`NoteInput renders 1`] = `
     <withDefaultStyle(MentionsInput)
       autoFocus={true}
       displayTransform={[Function]}
-      markup="**__display__**"
+      markup="**[sentry.strip:__type__]__display__**"
       onChange={[Function]}
       onKeyDown={[Function]}
-      placeholder="Add details or updates to this event"
+      placeholder="Add details or updates to this event. 
+Tag users with @"
       required={true}
       style={
         Object {
@@ -117,6 +119,7 @@ exports[`NoteInput renders 1`] = `
         onRemove={[Function]}
         renderSuggestion={null}
         trigger="@"
+        type="member"
       />
     </withDefaultStyle(MentionsInput)>
     <div

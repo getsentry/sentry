@@ -1,11 +1,13 @@
+import {browserHistory, Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import {browserHistory, Link} from 'react-router';
-
-import AutoSelectText from '../../components/autoSelectText';
-import PlatformPicker from '../onboarding/project/platformpicker';
 
 import {t, tct} from '../../locale';
+import AutoSelectText from '../../components/autoSelectText';
+import PlatformPicker from '../onboarding/project/platformpicker';
+import SettingsPageHeader from '../settings/components/settingsPageHeader';
+import TextBlock from '../settings/components/text/textBlock';
+import recreateRoute from '../../utils/recreateRoute';
 
 class ProjectInstallOverview extends React.Component {
   static propTypes = {
@@ -25,7 +27,8 @@ class ProjectInstallOverview extends React.Component {
 
   redirectToDocs = platform => {
     let {orgId, projectId} = this.props.params;
-    let rootUrl = `/${orgId}/${projectId}/settings/install`;
+    let prefix = recreateRoute('', {...this.props, stepBack: -3});
+    let rootUrl = `${prefix}install`;
 
     if (this.isGettingStarted()) {
       rootUrl = `/${orgId}/${projectId}/getting-started`;
@@ -44,12 +47,13 @@ class ProjectInstallOverview extends React.Component {
 
     return (
       <div>
-        <h1>{t('Configure your application')}</h1>
-        <p>
+        <SettingsPageHeader title={t('Configure your application')} />
+
+        <TextBlock>
           {t(
             'Get started by selecting the platform or language that powers your application.'
           )}
-        </p>
+        </TextBlock>
 
         {this.state.showDsn ? (
           <div>
@@ -90,7 +94,7 @@ class ProjectInstallOverview extends React.Component {
           {tct(
             `
              For a complete list of
-             client integrations, please visit see [docLink:our in-depth documentation].
+             client integrations, please see [docLink:our in-depth documentation].
           `,
             {
               docLink: <a href="https://docs.sentry.io" />,

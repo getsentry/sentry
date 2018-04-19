@@ -1,24 +1,29 @@
+import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import DocumentTitle from 'react-document-title';
 
+import {t} from '../locale';
 import ApiMixin from '../mixins/apiMixin';
 import Count from '../components/count';
+import ExternalLink from '../components/externalLink';
 import ListLink from '../components/listLink';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
-import ReleaseStats from '../components/releaseStats';
 import ProjectState from '../mixins/projectState';
+import ReleaseStats from '../components/releaseStats';
+import SentryTypes from '../proptypes';
+import TextOverflow from '../components/textOverflow';
 import TimeSince from '../components/timeSince';
 import Version from '../components/version';
-import {t} from '../locale';
+import withEnvironmentInQueryString from '../utils/withEnvironmentInQueryString';
 
 const ReleaseDetails = createReactClass({
   displayName: 'ReleaseDetails',
 
   propTypes: {
     setProjectNavSection: PropTypes.func,
+    environment: SentryTypes.Environment,
   },
 
   contextTypes: {
@@ -50,11 +55,16 @@ const ReleaseDetails = createReactClass({
     this.fetchData();
   },
 
+  componentDidUpdate(prevProps) {
+    if (this.props.environment !== prevProps.environment) {
+      this.fetchData();
+    }
+  },
+
   getTitle() {
     let project = this.getProject();
-    let team = this.getTeam();
     let params = this.props.params;
-    return 'Release ' + params.version + ' | ' + team.name + ' / ' + project.name;
+    return 'Release ' + params.version + ' | ' + project.slug;
   },
 
   fetchData() {
@@ -63,7 +73,11 @@ const ReleaseDetails = createReactClass({
       error: false,
     });
 
+    const {environment} = this.props;
+    const query = environment ? {environment: environment.name} : {};
+
     this.api.request(this.getReleaseDetailsEndpoint(), {
+      query,
       success: data => {
         this.setState({
           loading: false,
@@ -104,7 +118,7 @@ const ReleaseDetails = createReactClass({
     let {orgId, projectId} = this.props.params;
     return (
       <DocumentTitle title={this.getTitle()}>
-        <div>
+        <div className="ref-release-details">
           <div className="release-details">
             <div className="row">
               <div className="col-sm-4 col-xs-12">
@@ -119,6 +133,13 @@ const ReleaseDetails = createReactClass({
                     />
                   </strong>
                 </h3>
+                {!!release.url && (
+                  <div>
+                    <ExternalLink href={release.url}>
+                      <TextOverflow>{release.url}</TextOverflow>
+                    </ExternalLink>
+                  </div>
+                )}
                 <div className="release-meta">
                   <span className="icon icon-clock" />{' '}
                   <TimeSince date={release.dateCreated} />
@@ -205,6 +226,7 @@ const ReleaseDetails = createReactClass({
           </div>
           {React.cloneElement(this.props.children, {
             release,
+            environment: this.props.environment,
           })}
         </div>
       </DocumentTitle>
@@ -212,4 +234,4 @@ const ReleaseDetails = createReactClass({
   },
 });
 
-export default ReleaseDetails;
+export default withEnvironmentInQueryString(ReleaseDetails);

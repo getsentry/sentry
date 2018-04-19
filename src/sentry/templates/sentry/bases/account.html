@@ -21,11 +21,11 @@
     </a>
   </div>
   <div class="box-content with-padding">
-    <h4 class="m-b-1">My Settings</h4>
+    <h4 class="m-b-1">{% trans "My Settings" %}</h4>
     {% block nav %}
       <div class="dropdown pull-right anchor-right">
         <a class="dropdown-toggle" data-toggle="dropdown">
-          More <i class="icon-arrow-down"></i>
+          {% trans "More" %} <i class="icon-arrow-down"></i>
         </a>
         <ul class="dropdown-menu dropdown-menu-right">
           <li><a href="{% absolute_uri '/account/authorizations/' %}">{% trans "Authorized Applications" %}</a></li>

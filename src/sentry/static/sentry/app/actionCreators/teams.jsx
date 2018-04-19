@@ -1,4 +1,6 @@
 import TeamActions from '../actions/teamActions';
+import {tct} from '../locale';
+import {addSuccessMessage, addErrorMessage} from './indicator';
 
 const doCallback = (params = {}, name, ...args) => {
   if (typeof params[name] === 'function') {
@@ -36,19 +38,18 @@ export function fetchTeamDetails(api, params, options) {
 }
 
 export function updateTeam(api, params, options) {
-  let id = api.uniqueId();
   let endpoint = `/teams/${params.orgId}/${params.teamId}/`;
-  TeamActions.update(id, params.teamId, params.data);
+  TeamActions.update(params.teamId, params.data);
 
   return api.request(endpoint, {
     method: 'PUT',
     data: params.data,
     success: data => {
-      TeamActions.updateSuccess(id, params.teamId, data);
+      TeamActions.updateSuccess(params.teamId, data);
       doCallback(options, 'success', data);
     },
     error: error => {
-      TeamActions.updateError(id, params.teamId, error);
+      TeamActions.updateError(params.teamId, error);
       doCallback(options, 'error', error);
     },
   });
@@ -65,7 +66,7 @@ export function joinTeam(api, params, options) {
     method: 'POST',
     data: params.data,
     success: data => {
-      TeamActions.updateSuccess(id, params.teamId, data);
+      TeamActions.updateSuccess(params.teamId, data);
       doCallback(options, 'success', data);
     },
     error: error => {
@@ -85,7 +86,7 @@ export function leaveTeam(api, params, options) {
   return api.request(endpoint, {
     method: 'DELETE',
     success: data => {
-      TeamActions.updateSuccess(id, params.teamId, data);
+      TeamActions.updateSuccess(params.teamId, data);
       doCallback(options, 'success', data);
     },
     error: error => {
@@ -93,4 +94,67 @@ export function leaveTeam(api, params, options) {
       doCallback(options, 'error', error);
     },
   });
+}
+
+export function createTeam(api, team, params, options) {
+  TeamActions.createTeam(team);
+
+  return api
+    .requestPromise(`/organizations/${params.orgId}/teams/`, {
+      method: 'POST',
+      data: team,
+    })
+    .then(
+      data => {
+        TeamActions.createTeamSuccess(data);
+        addSuccessMessage(
+          tct('[team] has been add to the [organization] organization', {
+            team: `#${data.slug}`,
+            organization: params.orgId,
+          })
+        );
+        return data;
+      },
+      err => {
+        TeamActions.createTeamError(team.slug || team.name, err);
+        addErrorMessage(
+          tct('Unable to create [team] in the [organization] organization', {
+            team: `#${team.slug || team.name}`,
+            organization: params.orgId,
+          })
+        );
+        throw err;
+      }
+    );
+}
+
+export function removeTeam(api, params, options) {
+  TeamActions.removeTeam(params.teamId);
+
+  return api
+    .requestPromise(`/teams/${params.orgId}/${params.teamId}/`, {
+      method: 'DELETE',
+    })
+    .then(
+      data => {
+        TeamActions.removeTeamSuccess(params.teamId, data);
+        addSuccessMessage(
+          tct('[team] has been removed from the [organization] organization', {
+            team: `#${params.teamId}`,
+            organization: params.orgId,
+          })
+        );
+        return data;
+      },
+      err => {
+        TeamActions.removeTeamError(params.teamId, err);
+        addErrorMessage(
+          tct('Unable to remove [team] from the [organization] organization', {
+            team: `#${params.teamId}`,
+            organization: params.orgId,
+          })
+        );
+        throw err;
+      }
+    );
 }

@@ -1,19 +1,20 @@
 /*eslint getsentry/jsx-needs-il8n:0*/
 import React from 'react';
 
+import AsyncView from './asyncView';
 import InternalStatChart from '../components/internalStatChart';
 
-class AdminBuffer extends React.Component {
-  constructor(...args) {
-    super(...args);
-    this.state = {
-      since: new Date().getTime() / 1000 - 3600 * 24 * 7,
+export default class AdminBuffer extends AsyncView {
+  getDefaultState() {
+    return {
+      ...super.getDefaultState(),
       resolution: '1h',
     };
   }
 
-  render() {
+  renderBody() {
     // TODO(dcramer): show buffer configuration when its moved into option store
+    const since = new Date().getTime() / 1000 - 3600 * 24 * 7;
     return (
       <div>
         <h3>Buffers</h3>
@@ -39,7 +40,7 @@ class AdminBuffer extends React.Component {
             <h4>Updates Processed</h4>
           </div>
           <InternalStatChart
-            since={this.state.since}
+            since={since}
             resolution={this.state.resolution}
             stat="jobs.finished.sentry.tasks.process_buffer.process_incr"
             label="Jobs"
@@ -51,7 +52,7 @@ class AdminBuffer extends React.Component {
             <h4>Revoked Updates</h4>
           </div>
           <InternalStatChart
-            since={this.state.since}
+            since={since}
             resolution={this.state.resolution}
             stat="buffer.revoked"
             label="Jobs"
@@ -61,5 +62,3 @@ class AdminBuffer extends React.Component {
     );
   }
 }
-
-export default AdminBuffer;

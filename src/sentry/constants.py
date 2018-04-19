@@ -37,7 +37,7 @@ def get_all_languages():
 MODULE_ROOT = os.path.dirname(__import__('sentry').__file__)
 DATA_ROOT = os.path.join(MODULE_ROOT, 'data')
 
-VERSION_LENGTH = 250
+VERSION_LENGTH = 200
 
 SORT_OPTIONS = OrderedDict(
     (
@@ -86,7 +86,8 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         'pricing', 'subscribe', 'enterprise', 'about', 'jobs', 'thanks', 'guide', 'privacy',
         'security', 'terms', 'from', 'sponsorship', 'for', 'at', 'platforms', 'branding', 'vs',
         'answers', '_admin', 'support', 'contact', 'onboarding', 'ext', 'extension', 'extensions',
-        'plugins', 'themonitor', 'settings',
+        'plugins', 'themonitor', 'settings', 'legal', 'avatar', 'organization-avatar',
+        'team-avatar',
     )
 )
 
@@ -124,6 +125,12 @@ TAG_LABELS = {
     'url': 'URL',
     'server_name': 'Server',
 }
+
+PROTECTED_TAG_KEYS = frozenset([
+    'environment',
+    'release',
+    'sentry:release',
+])
 
 # TODO(dcramer): once this is more flushed out we want this to be extendable
 SENTRY_RULES = (
@@ -208,6 +215,7 @@ MAX_SYM = 256
 KNOWN_DSYM_TYPES = {
     'text/x-breakpad': 'breakpad',
     'application/x-mach-binary': 'macho',
+    'application/x-elf-binary': 'elf',
     'text/x-proguard+plain': 'proguard',
 }
 

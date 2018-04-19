@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import pytest
 from django.template import Context, Template
 
 
@@ -10,3 +11,38 @@ def test_system_origin():
     """).render(Context()).strip()
 
     assert result == 'http://testserver'
+
+
+@pytest.mark.parametrize(
+    'input,output', (
+        # Empty tag
+        ("{% absolute_uri %}", 'http://testserver'),
+        # Basic, no variables
+        ("{% absolute_uri '/matt/' %}", 'http://testserver/matt/'),
+        # String substitution
+        ("{% absolute_uri '/{}/' 'matt' %}", 'http://testserver/matt/'),
+        # String substitution with variable
+        ("{% absolute_uri '/{}/' who %}", 'http://testserver/matt/'),
+        # String substitution with missing variable
+        ("{% absolute_uri '/foo/{}/' xxx %}", 'http://testserver/foo//'),
+        # String substitution with multple vars
+        ("{% absolute_uri '/{}/{}/' who desc %}", 'http://testserver/matt/awesome/'),
+        # Empty tag, as other var
+        ("{% absolute_uri as uri %}hello {{ uri }}!", 'hello http://testserver!'),
+        # Basic, as other var
+        ("{% absolute_uri '/matt/' as uri %}hello {{ uri }}!", 'hello http://testserver/matt/!'),
+        # String substitution, as other var
+        ("{% absolute_uri '/{}/' 'matt' as uri %}hello {{ uri }}!", 'hello http://testserver/matt/!'),
+        # String substitution with variable, as other var
+        ("{% absolute_uri '/{}/' who as uri %}hello {{ uri }}!", 'hello http://testserver/matt/!'),
+        # Mix it all up
+        ("{% absolute_uri '/{}/{}/{}/{}/' who 'xxx' nope desc as uri %}hello {{ uri }}!",
+         'hello http://testserver/matt/xxx//awesome/!')
+    )
+)
+def test_absolute_uri(input, output):
+    prefix = '{% load sentry_helpers %}'
+    result = Template(prefix + input).render(
+        Context({'who': 'matt', 'desc': 'awesome'})
+    ).strip()
+    assert result == output

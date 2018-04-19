@@ -8,7 +8,9 @@ export default Reflux.createActions([
   'loadStats',
   'loadStatsError',
   'loadStatsSuccess',
-  'openDiffModal',
-  'closeDiffModal',
+  'removeProject',
+  'removeProjectError',
+  'removeProjectSuccess',
   'setActive',
+  'changeSlug',
 ]);

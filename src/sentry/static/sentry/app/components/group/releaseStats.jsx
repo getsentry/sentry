@@ -1,99 +1,56 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
-import {browserHistory} from 'react-router';
+import {get as getPath} from 'lodash';
 
 import ApiMixin from '../../mixins/apiMixin';
 import DropdownLink from '../dropdownLink';
+import {setActiveEnvironment} from '../../actionCreators/environments';
 import EnvironmentStore from '../../stores/environmentStore';
+import LatestContextStore from '../../stores/latestContextStore';
 import LoadingIndicator from '../loadingIndicator';
 import LoadingError from '../loadingError';
 import GroupState from '../../mixins/groupState';
 import GroupReleaseChart from './releaseChart';
 import MenuItem from '../menuItem';
 import SeenInfo from './seenInfo';
-import {toTitleCase} from '../../utils';
 import {t} from '../../locale';
 
-const DEFAULT_ENV_NAME = '(Default Environment)';
-
-const PRODUCTION_ENV_NAMES = new Set([
-  'production',
-  'prod',
-  'release',
-  'master',
-  'trunk',
-]);
-
-// TODO(dcramer): this should listen to EnvironmentStore
-// changes
 const GroupReleaseStats = createReactClass({
   displayName: 'GroupReleaseStats',
 
   propTypes: {
-    defaultEnvironment: PropTypes.string,
     group: PropTypes.object,
   },
 
-  mixins: [ApiMixin, GroupState],
-
-  getDefaultProps() {
-    return {
-      defaultEnvironment: '',
-    };
+  contextTypes: {
+    organization: PropTypes.object,
   },
 
+  mixins: [
+    ApiMixin,
+    GroupState,
+    Reflux.listenTo(LatestContextStore, 'onLatestContextChange'),
+  ],
+
   getInitialState() {
-    let envList = EnvironmentStore.getAll();
-    let queryParams = this.props.location.query;
-
-    let selectedEnvironment = queryParams.hasOwnProperty('environment')
-      ? queryParams.environment
-      : this.props.defaultEnvironment;
-
-    if (
-      selectedEnvironment &&
-      envList.filter(e => e.name === selectedEnvironment).length === 0
-    ) {
-      selectedEnvironment = null;
-    }
-
-    if (!selectedEnvironment) {
-      let prodEnvs = envList.filter(e => PRODUCTION_ENV_NAMES.has(e.name));
-      selectedEnvironment = prodEnvs.length && prodEnvs[0].name;
-    }
-
-    if (!selectedEnvironment) {
-      selectedEnvironment = envList.length && envList[0].name;
-    }
+    let envList = EnvironmentStore.getActive();
 
     return {
       loading: true,
       error: false,
-      data: null,
+      data: {environment: {}},
       envList,
-      environment: selectedEnvironment || '',
+      environment: LatestContextStore.getInitialState().environment,
+      hasEnvironmentsFeature: new Set(this.context.organization.features).has(
+        'environments'
+      ),
     };
   },
 
   componentWillMount() {
-    if (this.state.loading) {
-      this.fetchData();
-    }
-  },
-
-  componentWillReceiveProps(nextProps) {
-    let queryParams = nextProps.location.query;
-    if (queryParams.environment !== this.props.location.query.environment) {
-      this.setState(
-        {
-          environment: queryParams.environment,
-          loading: true,
-          error: false,
-        },
-        this.fetchData
-      );
-    }
+    this.fetchData();
   },
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -101,19 +58,41 @@ const GroupReleaseStats = createReactClass({
       this.state.loading !== nextState.loading ||
       this.state.error !== nextState.error ||
       this.state.environment !== nextState.environment ||
-      this.props.group.id !== nextProps.group.id
+      this.props.group.id !== nextProps.group.id ||
+      this.state.data !== nextState.data
     );
   },
 
-  fetchData() {
-    let group = this.props.group;
-    let env = this.state.environment || 'none';
-    let stats = this.props.group.stats['24h'];
+  getEnvironment(envName) {
+    let defaultEnv = EnvironmentStore.getDefault();
+    let queriedEnvironment = EnvironmentStore.getByName(envName);
 
+    return queriedEnvironment || defaultEnv;
+  },
+
+  onLatestContextChange(context) {
+    this.setState({environment: context.environment || null}, this.fetchData);
+  },
+
+  fetchData() {
+    if (this.state.environment) {
+      this.fetchEnvironmentData();
+    } else {
+      this.fetchAllEnvironmentsData();
+    }
+  },
+
+  fetchEnvironmentData() {
     // due to the current stats logic in Sentry we need to extend the bounds
+    let group = this.props.group;
+    let env = this.state.environment;
+
+    let stats = group.stats['24h'];
     let until = stats[stats.length - 1][0] + 1;
 
-    this.api.request(`/issues/${group.id}/environments/${env}/`, {
+    // TODO(lyn): We might not need to make this request anymore since the group
+    // endpoint now accepts the environment parameter
+    this.api.request(`/issues/${group.id}/environments/${env.urlRoutingName}/`, {
       query: {
         until,
       },
@@ -134,49 +113,76 @@ const GroupReleaseStats = createReactClass({
     });
   },
 
-  switchEnv(env) {
-    if (this.state.environment === env) return;
+  fetchAllEnvironmentsData() {
+    let group = this.props.group;
 
-    let queryParams = Object.assign({}, this.props.location.query);
-    queryParams.environment = env;
+    // Grab data for all environments and set on state, following the format of /issues/group/environments/{envname}
+    let data = {
+      environment: {stats: group.stats},
+    };
 
-    browserHistory.push({
-      pathname: this.props.location.pathname,
-      query: queryParams,
+    if (group.firstRelease) {
+      data.firstRelease = {
+        release: group.firstRelease,
+        environment: getPath(group, 'firstRelease.lastDeploy.environment'),
+      };
+    }
+
+    if (group.lastRelease) {
+      data.lastRelease = {
+        release: group.lastRelease,
+        environment: getPath(group, 'lastDeploy.lastDeploy.environment'),
+      };
+    }
+
+    data.firstSeen = group.firstSeen;
+    data.lastSeen = group.lastSeen;
+
+    this.setState({
+      data,
+      loading: false,
     });
   },
 
   render() {
     let group = this.props.group;
+    let {environment, data, hasEnvironmentsFeature} = this.state;
+
+    let envList = this.state.envList || [];
+
+    let envName = environment ? environment.displayName : t('All Environments');
+
     let projectId = this.getProject().slug;
     let orgId = this.getOrganization().slug;
-    let environment = this.state.environment;
-    let data = this.state.data || {};
-    let firstSeenEnv = data.firstSeen;
-    let lastSeenEnv = data.lastSeen;
-
-    let envList = this.state.envList;
     let hasRelease = this.getProjectFeatures().has('releases');
 
     return (
       <div className="env-stats">
         <h6>
           <span>
-            <DropdownLink
-              title={environment ? toTitleCase(environment) : DEFAULT_ENV_NAME}
-            >
-              {envList.map(e => {
-                return (
-                  <MenuItem
-                    key={e.name}
-                    isActive={environment === e.name}
-                    onClick={this.switchEnv.bind(this, e.name)}
-                  >
-                    {toTitleCase(e.name) || DEFAULT_ENV_NAME}
-                  </MenuItem>
-                );
-              })}
-            </DropdownLink>
+            {hasEnvironmentsFeature ? (
+              envName
+            ) : (
+              <DropdownLink title={envName}>
+                <MenuItem
+                  isActive={environment === null}
+                  onClick={() => setActiveEnvironment(null)}
+                >
+                  {t('All Environments')}
+                </MenuItem>
+                {envList.map(env => {
+                  return (
+                    <MenuItem
+                      key={env.name}
+                      isActive={env.name === envName}
+                      onClick={() => setActiveEnvironment(env)}
+                    >
+                      {env.displayName}
+                    </MenuItem>
+                  );
+                })}
+              </DropdownLink>
+            )}
           </span>
         </h6>
         <div className="env-content">
@@ -188,7 +194,7 @@ const GroupReleaseStats = createReactClass({
             <div>
               <GroupReleaseChart
                 group={group}
-                environment={environment}
+                environment={envName}
                 environmentStats={data.environment.stats}
                 release={data.currentRelease ? data.currentRelease.release : null}
                 releaseStats={data.currentRelease ? data.currentRelease.stats : null}
@@ -197,10 +203,9 @@ const GroupReleaseStats = createReactClass({
                 firstSeen={group.firstSeen}
                 lastSeen={group.lastSeen}
               />
-
               <GroupReleaseChart
                 group={group}
-                environment={environment}
+                environment={envName}
                 environmentStats={data.environment.stats}
                 release={data.currentRelease ? data.currentRelease.release : null}
                 releaseStats={data.currentRelease ? data.currentRelease.stats : null}
@@ -210,34 +215,33 @@ const GroupReleaseStats = createReactClass({
                 firstSeen={group.firstSeen}
                 lastSeen={group.lastSeen}
               />
-
               <h6>
                 <span>{t('First seen')}</span>
-                {environment && <small>({environment})</small>}
+                {environment ? <small>({environment.displayName})</small> : null}
               </h6>
 
               <SeenInfo
                 orgId={orgId}
                 projectId={projectId}
-                date={firstSeenEnv}
+                date={data.firstSeen}
                 dateGlobal={group.firstSeen}
                 hasRelease={hasRelease}
-                environment={environment}
+                environment={environment ? environment.name : null}
                 release={data.firstRelease ? data.firstRelease.release : null}
                 title={t('First seen')}
               />
 
               <h6>
                 <span>{t('Last seen')}</span>
-                {environment && <small>({environment})</small>}
+                {environment ? <small>({environment.displayName})</small> : null}
               </h6>
               <SeenInfo
                 orgId={orgId}
                 projectId={projectId}
-                date={lastSeenEnv}
+                date={data.lastSeen}
                 dateGlobal={group.lastSeen}
                 hasRelease={hasRelease}
-                environment={environment}
+                environment={environment ? environment.name : null}
                 release={data.lastRelease ? data.lastRelease.release : null}
                 title={t('Last seen')}
               />

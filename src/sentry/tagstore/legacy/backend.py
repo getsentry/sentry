@@ -8,6 +8,7 @@ sentry.tagstore.legacy.backend
 
 from __future__ import absolute_import
 
+import collections
 import six
 
 from collections import defaultdict
@@ -33,35 +34,71 @@ class LegacyTagStorage(TagStorage):
     """
 
     def setup(self):
-        self.setup_deletions(
-            tagvalue_model=TagValue,
-            grouptagkey_model=GroupTagKey,
-            grouptagvalue_model=GroupTagValue,
-            eventtag_model=EventTag,
-        )
+        self.setup_deletions()
 
-        self.setup_cleanup(
-            tagvalue_model=TagValue,
-            grouptagvalue_model=GroupTagValue,
-            eventtag_model=EventTag,
-        )
+        self.setup_cleanup()
 
         self.setup_merge(
             grouptagkey_model=GroupTagKey,
             grouptagvalue_model=GroupTagValue,
         )
 
-        self.setup_receivers(
-            tagvalue_model=TagValue,
-            grouptagvalue_model=GroupTagValue,
-        )
+        self.setup_receivers()
 
-    def setup_deletions(self, **kwargs):
-        super(LegacyTagStorage, self).setup_deletions(**kwargs)
+    def setup_cleanup(self):
+        from sentry.runner.commands import cleanup
 
+        cleanup.EXTRA_BULK_QUERY_DELETES += [
+            (GroupTagValue, 'last_seen', None),
+            (TagValue, 'last_seen', None),
+            (EventTag, 'date_added', 'date_added', 50000),
+        ]
+
+    def setup_deletions(self):
         from sentry.deletions import default_manager as deletion_manager
-        from sentry.deletions.base import ModelRelation, ModelDeletionTask
-        from sentry.models import Project
+        from sentry.deletions.defaults import BulkModelDeletionTask, ModelDeletionTask
+        from sentry.deletions.base import ModelRelation
+        from sentry.models import Event, Group, Project
+
+        deletion_manager.add_bulk_dependencies(Event, [
+            lambda instance_list: ModelRelation(EventTag,
+                                                {'event_id__in': [i.id for i in instance_list]},
+                                                ModelDeletionTask),
+        ])
+
+        deletion_manager.register(TagValue, BulkModelDeletionTask)
+        deletion_manager.register(GroupTagKey, BulkModelDeletionTask)
+        deletion_manager.register(GroupTagValue, BulkModelDeletionTask)
+        deletion_manager.register(EventTag, BulkModelDeletionTask)
+
+        deletion_manager.add_dependencies(Group, [
+            lambda instance: ModelRelation(
+                EventTag,
+                query={
+                    'group_id': instance.id,
+                }),
+            lambda instance: ModelRelation(
+                GroupTagKey,
+                query={
+                    'group_id': instance.id,
+                }),
+            lambda instance: ModelRelation(
+                GroupTagValue,
+                query={
+                    'group_id': instance.id,
+                }),
+        ])
+
+        deletion_manager.add_dependencies(Project, [
+            lambda instance: ModelRelation(TagKey,
+                                           query={'project_id': instance.id}),
+            lambda instance: ModelRelation(TagValue,
+                                           query={'project_id': instance.id}),
+            lambda instance: ModelRelation(GroupTagKey,
+                                           query={'project_id': instance.id}),
+            lambda instance: ModelRelation(GroupTagValue,
+                                           query={'project_id': instance.id}),
+        ])
 
         class TagKeyDeletionTask(ModelDeletionTask):
             def get_child_relations(self, instance):
@@ -81,16 +118,8 @@ class LegacyTagStorage(TagStorage):
                         instance.update(status=TagKeyStatus.DELETION_IN_PROGRESS)
 
         deletion_manager.register(TagKey, TagKeyDeletionTask)
-        deletion_manager.add_dependencies(Project, [
-            lambda instance: ModelRelation(TagKey, {'project_id': instance.id}),
-            lambda instance: ModelRelation(TagValue, {'project_id': instance.id}),
-            lambda instance: ModelRelation(GroupTagKey, {'project_id': instance.id}),
-            lambda instance: ModelRelation(GroupTagValue, {'project_id': instance.id}),
-        ])
 
-    def setup_receivers(self, **kwargs):
-        super(LegacyTagStorage, self).setup_receivers(**kwargs)
-
+    def setup_receivers(self):
         from sentry.signals import buffer_incr_complete
 
         # Legacy tag write flow:
@@ -189,7 +218,11 @@ class LegacyTagStorage(TagStorage):
         return GroupTagValue.objects.get_or_create(
             project_id=project_id, group_id=group_id, key=key, value=value, **kwargs)
 
-    def create_event_tags(self, project_id, group_id, environment_id, event_id, tags):
+    def create_event_tags(self, project_id, group_id, environment_id,
+                          event_id, tags, date_added=None):
+        if date_added is None:
+            date_added = timezone.now()
+
         tag_ids = []
         for key, value in tags:
             tagkey, _ = self.get_or_create_tag_key(project_id, environment_id, key)
@@ -210,6 +243,7 @@ class LegacyTagStorage(TagStorage):
                         event_id=event_id,
                         key_id=key_id,
                         value_id=value_id,
+                        date_added=date_added,
                     )
                     for key_id, value_id in tag_ids
                 ])
@@ -282,14 +316,18 @@ class LegacyTagStorage(TagStorage):
     def get_group_tag_value(self, project_id, group_id, environment_id, key, value):
         from sentry.tagstore.exceptions import GroupTagValueNotFound
 
-        try:
-            return GroupTagValue.objects.get(
-                group_id=group_id,
-                key=key,
-                value=value,
-            )
-        except GroupTagValue.DoesNotExist:
+        value = self.get_group_list_tag_value(
+            project_id,
+            [group_id],
+            environment_id,
+            key,
+            value,
+        ).get(group_id)
+
+        if value is None:
             raise GroupTagValueNotFound
+
+        return value
 
     def get_group_tag_values(self, project_id, group_id, environment_id, key):
         qs = GroupTagValue.objects.filter(
@@ -298,6 +336,14 @@ class LegacyTagStorage(TagStorage):
         )
 
         return list(qs)
+
+    def get_group_list_tag_value(self, project_id, group_id_list, environment_id, key, value):
+        qs = GroupTagValue.objects.filter(
+            group_id__in=group_id_list,
+            key=key,
+            value=value,
+        )
+        return {result.group_id: result for result in qs}
 
     def delete_tag_key(self, project_id, key):
         from sentry.tagstore.tasks import delete_tag_key as delete_tag_key_task
@@ -525,25 +571,23 @@ class LegacyTagStorage(TagStorage):
             key='sentry:user',
         ).order_by('-last_seen')[:limit])
 
-    def get_group_ids_for_search_filter(self, project_id, environment_id, tags):
-        from sentry.search.base import ANY, EMPTY
+    def get_group_ids_for_search_filter(
+            self, project_id, environment_id, tags, candidates=None, limit=1000):
+        from sentry.search.base import ANY
         # Django doesnt support union, so we limit results and try to find
         # reasonable matches
 
         # ANY matches should come last since they're the least specific and
         # will provide the largest range of matches
-        tag_lookups = sorted(six.iteritems(tags), key=lambda x: x != ANY)
+        tag_lookups = sorted(six.iteritems(tags), key=lambda (k, v): v == ANY)
 
         # get initial matches to start the filter
-        matches = None
+        matches = candidates
 
         # for each remaining tag, find matches contained in our
         # existing set, pruning it down each iteration
         for k, v in tag_lookups:
-            if v is EMPTY:
-                return None
-
-            elif v != ANY:
+            if v != ANY:
                 base_qs = GroupTagValue.objects.filter(
                     key=k,
                     value=v,
@@ -562,7 +606,7 @@ class LegacyTagStorage(TagStorage):
                 # restrict matches to only the most recently seen issues
                 base_qs = base_qs.order_by('-last_seen')
 
-            matches = list(base_qs.values_list('group_id', flat=True)[:1000])
+            matches = list(base_qs.values_list('group_id', flat=True)[:limit])
 
             if not matches:
                 return None
@@ -595,11 +639,21 @@ class LegacyTagStorage(TagStorage):
 
         return queryset
 
-    def get_group_tag_value_qs(self, project_id, group_id, environment_id, key):
-        return GroupTagValue.objects.filter(
-            group_id=group_id,
-            key=key,
-        )
+    def get_group_tag_value_qs(self, project_id, group_id, environment_id, key, value=None):
+        queryset = GroupTagValue.objects.filter(key=key)
+
+        if isinstance(group_id, collections.Iterable):
+            queryset = queryset.filter(group_id__in=group_id)
+        else:
+            queryset = queryset.filter(group_id=group_id)
+
+        if value is not None:
+            queryset = queryset.filter(value=value)
+
+        return queryset
+
+    def get_event_tag_qs(self, project_id, environment_id, key, value):
+        raise NotImplementedError  # there is no index that can appopriate satisfy this query
 
     def update_group_for_events(self, project_id, event_ids, destination_id):
         return EventTag.objects.filter(

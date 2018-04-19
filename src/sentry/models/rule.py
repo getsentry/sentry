@@ -32,6 +32,7 @@ class Rule(Model):
     DEFAULT_FREQUENCY = 30  # minutes
 
     project = FlexibleForeignKey('sentry.Project')
+    environment_id = BoundedPositiveIntegerField(null=True)
     label = models.CharField(max_length=64)
     data = GzippedDictField()
     status = BoundedPositiveIntegerField(

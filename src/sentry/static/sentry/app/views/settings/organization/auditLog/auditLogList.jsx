@@ -1,4 +1,4 @@
-import {Box, Flex} from 'grid-emotion';
+import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -8,12 +8,9 @@ import Avatar from '../../../../components/avatar';
 import DateTime from '../../../../components/dateTime';
 import EmptyMessage from '../../components/emptyMessage';
 import Pagination from '../../../../components/pagination';
-import Panel from '../../components/panel';
-import PanelBody from '../../components/panelBody';
-import PanelHeader from '../../components/panelHeader';
+import {Panel, PanelBody, PanelHeader, PanelItem} from '../../../../components/panels';
 import SelectInput from '../../../../components/selectInput';
 import SettingsPageHeader from '../../components/settingsPageHeader';
-import SpreadLayout from '../../../../components/spreadLayout';
 
 const UserInfo = styled(Box)`
   display: flex;
@@ -42,16 +39,6 @@ const avatarStyle = {
   marginRight: 8,
 };
 
-const Row = styled.div`
-  display: flex;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
-  align-items: center;
-
-  &:last-child {
-    border: 0;
-  }
-`;
-
 class AuditLogList extends React.Component {
   static propTypes = {
     entries: PropTypes.array,
@@ -65,46 +52,38 @@ class AuditLogList extends React.Component {
     let {pageLinks, entries, eventType, eventTypes, onEventSelect} = this.props;
     let hasEntries = entries && entries.length > 0;
 
+    let action = (
+      <form>
+        <SelectInput
+          name="event"
+          onChange={onEventSelect}
+          value={eventType}
+          style={{width: 250}}
+        >
+          <option key="any" value="">
+            {t('Any action')}
+          </option>
+          {eventTypes.map(type => {
+            return <option key={type}>{type}</option>;
+          })}
+        </SelectInput>
+      </form>
+    );
+
     return (
       <div>
-        <SettingsPageHeader label={t('Audit Log')} />
-
-        <SpreadLayout>
-          <p>{t('Sentry keeps track of important events within your organization.')}</p>
-
-          <form className="form-horizontal" style={{marginBottom: 20}}>
-            <div className="control-group">
-              <div className="controls">
-                <SelectInput
-                  name="event"
-                  onChange={onEventSelect}
-                  value={eventType}
-                  style={{width: 250}}
-                >
-                  <option key="any" value="">
-                    {t('Any')}
-                  </option>
-                  {eventTypes.map(type => {
-                    return <option key={type}>{type}</option>;
-                  })}
-                </SelectInput>
-              </div>
-            </div>
-          </form>
-        </SpreadLayout>
+        <SettingsPageHeader title={t('Audit Log')} action={action} />
 
         <Panel>
           <PanelHeader disablePadding>
-            <Flex align="center">
-              <Box flex="1" pl={2}>
-                {t('Member')}
-              </Box>
-              <Box w={150}>{t('Action')}</Box>
-              <Box w={130}>{t('IP')}</Box>
-              <Box w={150} px={1}>
-                {t('Time')}
-              </Box>
-            </Flex>
+            <Box flex="1" pl={2}>
+              {t('Member')}
+            </Box>
+            <Box w={150}>{t('Action')}</Box>
+            <Box w={130}>{t('IP')}</Box>
+            <Box w={150} px={1}>
+              {t('Time')}
+            </Box>
           </PanelHeader>
 
           <PanelBody>
@@ -115,7 +94,7 @@ class AuditLogList extends React.Component {
             {hasEntries &&
               entries.map(entry => {
                 return (
-                  <Row key={entry.id}>
+                  <PanelItem p={0} align="center" key={entry.id}>
                     <UserInfo flex="1" p={2}>
                       <div>
                         {entry.actor.email && (
@@ -132,7 +111,7 @@ class AuditLogList extends React.Component {
                     <Box w={150} p={1}>
                       <DateTime date={entry.dateCreated} />
                     </Box>
-                  </Row>
+                  </PanelItem>
                 );
               })}
           </PanelBody>

@@ -1,16 +1,28 @@
+import {Flex, Box} from 'grid-emotion';
 import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
+import styled from 'react-emotion';
 
-import FlowLayout from '../flowLayout';
+import ExternalLink from '../externalLink';
+import InlineSvg from '../inlineSvg';
 
 import '../../../less/components/button.less';
 
+const Icon = styled(Box)`
+  margin-right: ${p => (p.size === 'small' ? '6px' : '8px')};
+  margin-left: -2px;
+`;
+
+const StyledInlineSvg = styled(InlineSvg)`
+  display: block;
+`;
+
 class Button extends React.Component {
   static propTypes = {
-    priority: PropTypes.oneOf(['primary', 'danger', 'link']),
-    size: PropTypes.oneOf(['small', 'xsmall', 'large']),
+    priority: PropTypes.oneOf(['primary', 'danger', 'link', 'success']),
+    size: PropTypes.oneOf(['zero', 'small', 'xsmall', 'large']),
     disabled: PropTypes.bool,
     busy: PropTypes.bool,
     /**
@@ -21,10 +33,15 @@ class Button extends React.Component {
      * Use this prop if button should use a normal (non-react-router) link
      */
     href: PropTypes.string,
+    icon: PropTypes.string,
     /**
      * Tooltip text
      */
     title: PropTypes.string,
+    /**
+     * Is an external link? (Will open in new tab)
+     */
+    external: PropTypes.bool,
     borderless: PropTypes.bool,
     onClick: PropTypes.func,
   };
@@ -63,6 +80,8 @@ class Button extends React.Component {
       busy,
       title,
       borderless,
+      icon,
+      external,
 
       // destructure from `buttonProps`
       // not necessary, but just in case someone re-orders props
@@ -73,6 +92,7 @@ class Button extends React.Component {
 
     let isPrimary = priority === 'primary' && !disabled;
     let isDanger = priority === 'danger' && !disabled;
+    let isSuccess = priority === 'success' && !disabled;
     let isLink = priority === 'link';
 
     let cx = classNames(className, 'button', {
@@ -80,8 +100,10 @@ class Button extends React.Component {
       'button-no-border': borderless,
       'button-primary': isPrimary,
       'button-danger': isDanger,
+      'button-success': isSuccess,
       'button-link': isLink && !isPrimary && !isDanger,
       'button-default': !isLink && !isPrimary && !isDanger,
+      'button-zero': size === 'zero',
       'button-sm': size === 'small',
       'button-xs': size === 'xsmall',
       'button-lg': size === 'large',
@@ -89,12 +111,15 @@ class Button extends React.Component {
       'button-disabled': disabled,
     });
 
-    // This container is useless now, but leaves room for when we need to add
-    // components (i.e. icons, busy indicator, etc)
     let childContainer = (
-      <FlowLayout truncate={false}>
-        <span className="button-label">{children}</span>
-      </FlowLayout>
+      <Flex align="center" className="button-label">
+        {icon && (
+          <Icon size={size}>
+            <StyledInlineSvg src={icon} size={size === 'small' ? '12px' : '16px'} />
+          </Icon>
+        )}
+        {children}
+      </Flex>
     );
 
     // Buttons come in 3 flavors: Link, anchor, and regular buttons. Let's
@@ -115,6 +140,10 @@ class Button extends React.Component {
     // Handle react-router Links
     if (to) {
       return <Link to={this.getUrl()} {...componentProps} />;
+    }
+
+    if (href && external) {
+      return <ExternalLink href={this.getUrl()} {...componentProps} />;
     }
 
     // Handle traditional links

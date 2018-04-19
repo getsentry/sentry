@@ -8,14 +8,17 @@ from django.db.models import Q
 from django.db.models.aggregates import Count
 from django.utils import timezone
 
-from sentry import tsdb, options
+from sentry import options, roles, tsdb
 from sentry.api.serializers import register, serialize, Serializer
 from sentry.api.serializers.models.plugin import PluginSerializer
+from sentry.api.serializers.models.team import get_org_roles, get_team_memberships
+from sentry.app import env
+from sentry.auth.superuser import is_active_superuser
 from sentry.constants import StatsPeriod
 from sentry.digests import backend as digests
 from sentry.models import (
-    Project, ProjectBookmark, ProjectOption, ProjectPlatform, ProjectStatus, Release, UserOption,
-    DEFAULT_SUBJECT_TEMPLATE
+    Project, ProjectBookmark, ProjectOption, ProjectPlatform, ProjectStatus, ProjectTeam,
+    Release, UserOption, DEFAULT_SUBJECT_TEMPLATE
 )
 from sentry.utils.data_filters import FilterTypes
 
@@ -40,11 +43,52 @@ class ProjectSerializer(Serializer):
     such as "show all projects for this organization", and its attributes be kept to a minimum.
     """
 
-    def __init__(self, stats_period=None):
+    def __init__(self, environment_id=None, stats_period=None):
         if stats_period is not None:
             assert stats_period in STATS_PERIOD_CHOICES
 
+        self.environment_id = environment_id
         self.stats_period = stats_period
+
+    def get_access_by_project(self, item_list, user):
+        request = env.request
+
+        project_teams = list(
+            ProjectTeam.objects.filter(
+                project__in=item_list,
+            ).select_related('team')
+        )
+
+        project_team_map = defaultdict(list)
+
+        for pt in project_teams:
+            project_team_map[pt.project_id].append(pt.team)
+
+        team_memberships = get_team_memberships([pt.team for pt in project_teams], user)
+        org_roles = get_org_roles([i.organization_id for i in item_list], user)
+
+        is_superuser = (request and is_active_superuser(request) and request.user == user)
+        result = {}
+        for project in item_list:
+            is_member = any(
+                t.id in team_memberships for t in project_team_map.get(project.id, [])
+            )
+            org_role = org_roles.get(project.organization_id)
+            if is_member:
+                has_access = True
+            elif is_superuser:
+                has_access = True
+            elif project.organization.flags.allow_joinleave:
+                has_access = True
+            elif org_role and roles.get(org_role).is_global:
+                has_access = True
+            else:
+                has_access = False
+            result[project] = {
+                'is_member': is_member,
+                'has_access': has_access,
+            }
+        return result
 
     def get_attrs(self, item_list, user):
         project_ids = [i.id for i in item_list]
@@ -76,25 +120,26 @@ class ProjectSerializer(Serializer):
             segments, interval = STATS_PERIOD_CHOICES[self.stats_period]
             now = timezone.now()
             stats = tsdb.get_range(
-                model=tsdb.models.project_total_received,
+                model=tsdb.models.project,
                 keys=project_ids,
                 end=now,
                 start=now - ((segments - 1) * interval),
                 rollup=int(interval.total_seconds()),
+                environment_id=self.environment_id,
             )
         else:
             stats = None
 
-        result = {}
+        result = self.get_access_by_project(item_list, user)
         for item in item_list:
-            result[item] = {
+            result[item].update({
                 'is_bookmarked': item.id in bookmarks,
                 'is_subscribed':
                 bool(user_options.get(
                     (item.id, 'mail:alert'),
                     default_subscribe,
                 )),
-            }
+            })
             if stats:
                 result[item]['stats'] = stats[item.id]
         return result
@@ -105,7 +150,7 @@ class ProjectSerializer(Serializer):
         feature_list = []
         for feature in (
             'global-events', 'data-forwarding', 'rate-limits', 'discard-groups', 'similarity-view',
-            'custom-inbound-filters', 'minidump',
+            'custom-inbound-filters',
         ):
             if features.has('projects:' + feature, obj, actor=user):
                 feature_list.append(feature)
@@ -121,14 +166,15 @@ class ProjectSerializer(Serializer):
             'name': obj.name,
             'isPublic': obj.public,
             'isBookmarked': attrs['is_bookmarked'],
-            'callSign': obj.callsign,
             'color': obj.color,
             'dateCreated': obj.date_added,
             'firstEvent': obj.first_event,
             'features': feature_list,
             'status': status_label,
             'platform': obj.platform,
-            'isInternal': obj.is_internal_project()
+            'isInternal': obj.is_internal_project(),
+            'isMember': attrs['is_member'],
+            'hasAccess': attrs['has_access'],
         }
         if 'stats' in attrs:
             context['stats'] = attrs['stats']
@@ -159,17 +205,54 @@ class ProjectWithTeamSerializer(ProjectSerializer):
         attrs = super(ProjectWithTeamSerializer,
                       self).get_attrs(item_list, user)
 
-        teams = {d['id']: d for d in serialize(
-            list(set(i.team for i in item_list)), user)}
+        project_teams = list(ProjectTeam.objects.filter(
+            project__in=item_list,
+        ).select_related('team'))
+
+        teams = {pt.team_id: {
+            'id': six.text_type(pt.team.id),
+            'slug': pt.team.slug,
+            'name': pt.team.name,
+        } for pt in project_teams}
+
+        teams_by_project_id = defaultdict(list)
+        for pt in project_teams:
+            teams_by_project_id[pt.project_id].append(teams[pt.team_id])
+
         for item in item_list:
-            attrs[item]['team'] = teams[six.text_type(item.team_id)]
+            attrs[item]['teams'] = teams_by_project_id[item.id]
         return attrs
 
     def serialize(self, obj, attrs, user):
         data = super(ProjectWithTeamSerializer,
                      self).serialize(obj, attrs, user)
-        data['team'] = attrs['team']
+        # TODO(jess): remove this when this is deprecated
+        try:
+            data['team'] = attrs['teams'][0]
+        except IndexError:
+            pass
+        data['teams'] = attrs['teams']
         return data
+
+
+class ProjectSummarySerializer(ProjectWithTeamSerializer):
+    def serialize(self, obj, attrs, user):
+        context = {
+            'team': attrs['teams'][0] if attrs['teams'] else None,
+            'teams': attrs['teams'],
+            'id': six.text_type(obj.id),
+            'name': obj.name,
+            'slug': obj.slug,
+            'isBookmarked': attrs['is_bookmarked'],
+            'isMember': attrs['is_member'],
+            'hasAccess': attrs['has_access'],
+            'dateCreated': obj.date_added,
+            'firstEvent': obj.first_event,
+            'platform': obj.platform,
+        }
+        if 'stats' in attrs:
+            context['stats'] = attrs['stats']
+        return context
 
 
 class DetailedProjectSerializer(ProjectWithTeamSerializer):
@@ -373,7 +456,6 @@ class SharedProjectSerializer(Serializer):
         return {
             'slug': obj.slug,
             'name': obj.name,
-            'callSign': obj.callsign,
             'color': obj.color,
             'features': feature_list,
             'organization': {

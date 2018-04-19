@@ -1,44 +1,55 @@
 import React from 'react';
-import createReactClass from 'create-react-class';
-import Reflux from 'reflux';
 
+import {t} from '../../locale';
 import {fetchPlugins, enablePlugin, disablePlugin} from '../../actionCreators/plugins';
-import ApiMixin from '../../mixins/apiMixin';
-import PluginsStore from '../../stores/pluginsStore';
+import withPlugins from '../../utils/withPlugins';
 import ProjectPlugins from './projectPlugins';
+import OrganizationIntegrations from './organizationIntegrations';
+import SentryTypes from '../../proptypes';
+import SettingsPageHeader from '../settings/components/settingsPageHeader';
 
-const ProjectPluginsContainer = createReactClass({
-  displayName: 'ProjectPluginsContainer',
-  mixins: [ApiMixin, Reflux.connect(PluginsStore, 'store')],
+class ProjectPluginsContainer extends React.Component {
+  static propTypes = {
+    plugins: SentryTypes.PluginsStore,
+  };
 
   componentDidMount() {
     this.fetchData();
-  },
+  }
 
   fetchData() {
-    fetchPlugins(this.api, this.props.params);
-  },
+    fetchPlugins(this.props.params);
+  }
 
-  handleChange(pluginId, shouldEnable) {
+  handleChange = (pluginId, shouldEnable) => {
     let {projectId, orgId} = this.props.params;
     let actionCreator = shouldEnable ? enablePlugin : disablePlugin;
-    actionCreator(this.api, {projectId, orgId, pluginId});
-  },
+    actionCreator({projectId, orgId, pluginId});
+  };
 
   render() {
-    let {store} = this.state;
+    let {loading, error, plugins} = this.props.plugins || {};
 
     return (
-      <ProjectPlugins
-        {...this.props}
-        onError={this.fetchData}
-        onChange={this.handleChange}
-        loading={store.loading}
-        error={store.error}
-        plugins={store.plugins}
-      />
-    );
-  },
-});
+      <React.Fragment>
+        <SettingsPageHeader title={t('Integrations')} />
 
-export default ProjectPluginsContainer;
+        <OrganizationIntegrations
+          orgId={this.props.params.orgId}
+          projectId={this.props.params.projectId}
+        />
+
+        <ProjectPlugins
+          {...this.props}
+          onError={this.fetchData}
+          onChange={this.handleChange}
+          loading={loading}
+          error={error}
+          plugins={plugins}
+        />
+      </React.Fragment>
+    );
+  }
+}
+
+export default withPlugins(ProjectPluginsContainer);

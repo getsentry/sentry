@@ -1,7 +1,6 @@
 import {Box, Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
 
 import {t, tct} from '../../../../locale';
 import Button from '../../../../components/buttons/button';
@@ -9,27 +8,10 @@ import EmptyMessage from '../../components/emptyMessage';
 import ExternalLink from '../../../../components/externalLink';
 import Link from '../../../../components/link';
 import LinkWithConfirmation from '../../../../components/linkWithConfirmation';
-import Panel from '../../components/panel';
-import PanelBody from '../../components/panelBody';
-import PanelHeader from '../../components/panelHeader';
+import {Panel, PanelBody, PanelHeader, PanelItem} from '../../../../components/panels';
 import SettingsPageHeader from '../../components/settingsPageHeader';
+import TextBlock from '../../components/text/textBlock';
 import recreateRoute from '../../../../utils/recreateRoute';
-
-const Row = styled(Flex)`
-  border-bottom: 1px solid ${p => p.theme.borderLight};
-
-  &:last-child {
-    border: 0;
-  }
-`;
-
-const PlusIcon = styled.span`
-  margin-right: 4px;
-`;
-
-const TextBlock = styled.p`
-  line-height: 1.8;
-`;
 
 class OrganizationApiKeysList extends React.Component {
   static propTypes = {
@@ -45,13 +27,20 @@ class OrganizationApiKeysList extends React.Component {
     let hasKeys = keys && keys.length;
 
     let action = (
-      <Button priority="link" busy={busy} disabled={busy} onClick={onAddApiKey}>
-        <PlusIcon className="icon-plus" /> {t('New API Key')}
+      <Button
+        priority="primary"
+        size="small"
+        icon="icon-circle-add"
+        busy={busy}
+        disabled={busy}
+        onClick={onAddApiKey}
+      >
+        {t('New API Key')}
       </Button>
     );
     return (
       <div>
-        <SettingsPageHeader label={t('API Keys')} action={action} />
+        <SettingsPageHeader title={t('API Keys')} action={action} />
 
         <TextBlock>
           {tct(
@@ -74,21 +63,19 @@ class OrganizationApiKeysList extends React.Component {
         </div>
 
         <Panel>
-          <PanelHeader disablePadding={true}>
-            <Flex align="center">
-              <Flex align="center" flex="1">
-                <Box px={2} flex="1">
-                  {t('Name')}
-                </Box>
-                <Box px={2} flex="2">
-                  {t('Key')}
-                </Box>
-              </Flex>
-
-              <Box px={2} w={100}>
-                {t('Actions')}
+          <PanelHeader disablePadding={true} align="center">
+            <Flex align="center" flex="1">
+              <Box px={2} flex="1">
+                {t('Name')}
+              </Box>
+              <Box px={2} flex="2">
+                {t('Key')}
               </Box>
             </Flex>
+
+            <Box px={2} w={100}>
+              {t('Actions')}
+            </Box>
           </PanelHeader>
 
           <PanelBody>
@@ -104,7 +91,7 @@ class OrganizationApiKeysList extends React.Component {
                 });
 
                 return (
-                  <Row align="center" py={1} key={id}>
+                  <PanelItem align="center" p={0} py={1} key={id}>
                     <Flex align="center" flex="1">
                       <Box px={2} flex="1" align="center">
                         <Link to={apiDetailsUrl}>{label}</Link>
@@ -124,7 +111,7 @@ class OrganizationApiKeysList extends React.Component {
                         <span className="icon-trash" />
                       </LinkWithConfirmation>
                     </Box>
-                  </Row>
+                  </PanelItem>
                 );
               })}
           </PanelBody>

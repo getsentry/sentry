@@ -8,7 +8,7 @@ from symbolic import SymbolicError, ObjectLookup, LineInfo, parse_addr
 from sentry.utils.safe import trim
 from sentry.utils.compat import implements_to_string
 from sentry.models import EventError, ProjectDSymFile
-from sentry.lang.native.utils import rebase_addr
+from sentry.lang.native.utils import image_name, rebase_addr
 from sentry.constants import MAX_SYM, NATIVE_UNKNOWN_STRING
 
 FATAL_ERRORS = (EventError.NATIVE_MISSING_DSYM, EventError.NATIVE_BAD_DSYM, )
@@ -30,7 +30,17 @@ _support_framework = re.compile(
 )
 SIM_PATH = '/Developer/CoreSimulator/Devices/'
 SIM_APP_PATH = '/Containers/Bundle/Application/'
-MAC_OS_PATH = '.app/Contents/'
+MAC_OS_PATHS = (
+    '.app/Contents/',
+    '/Users/',
+    '/usr/local/',
+)
+LINUX_SYS_PATHS = (
+    '/lib/',
+    '/usr/lib/',
+    'linux-gate.so',
+)
+WINDOWS_SYS_PATH = re.compile(r'^[a-z]:\\windows', re.IGNORECASE)
 
 _internal_function_re = re.compile(
     r'(kscm_|kscrash_|KSCrash |SentryClient |RNSentry )')
@@ -53,10 +63,10 @@ class SymbolicationFailed(Exception):
         self.image_name = None
         self.image_path = None
         if obj is not None:
-            self.image_uuid = six.text_type(obj.uuid)
+            self.image_uuid = six.text_type(obj.id)
             if obj.name:
                 self.image_path = obj.name
-                self.image_name = obj.name.rsplit('/', 1)[-1]
+                self.image_name = image_name(obj.name)
             self.image_arch = obj.arch
         else:
             self.image_uuid = None
@@ -79,7 +89,7 @@ class SymbolicationFailed(Exception):
 
     def get_data(self):
         """Returns the event data."""
-        rv = {'message': self.message}
+        rv = {'message': self.message, 'type': self.type}
         if self.image_path is not None:
             rv['image_path'] = self.image_path
         if self.image_uuid is not None:
@@ -140,17 +150,25 @@ class Symbolizer(object):
         return frame
 
     def is_image_from_app_bundle(self, obj, sdk_info=None):
-        fn = obj.name
-        if not fn:
+        obj_path = obj.name
+        if not obj_path:
             return False
-        is_mac_platform = (
-            sdk_info is not None and sdk_info['sdk_name'].lower() == 'macos')
-        if not (
-            fn.startswith(APP_BUNDLE_PATHS) or (SIM_PATH in fn and SIM_APP_PATH in fn) or
-            (is_mac_platform and MAC_OS_PATH in fn)
-        ):
-            return False
-        return True
+
+        if obj_path.startswith(APP_BUNDLE_PATHS):
+            return True
+
+        if SIM_PATH in obj_path and SIM_APP_PATH in obj_path:
+            return True
+
+        sdk_name = sdk_info['sdk_name'].lower() if sdk_info else ''
+        if sdk_name == 'macos' and any(p in obj_path for p in MAC_OS_PATHS):
+            return True
+        if sdk_name == 'linux' and not obj_path.startswith(LINUX_SYS_PATHS):
+            return True
+        if sdk_name == 'windows' and not WINDOWS_SYS_PATH.match(obj_path):
+            return True
+
+        return False
 
     def _is_support_framework(self, obj):
         """True if the frame is from a framework that is known and app
@@ -204,13 +222,13 @@ class Symbolizer(object):
         return obj.name and _sim_platform_re.search(obj.name) is not None
 
     def _symbolize_app_frame(self, instruction_addr, obj, sdk_info=None):
-        symcache = self.symcaches.get(obj.uuid)
+        symcache = self.symcaches.get(obj.id)
         if symcache is None:
             # In case we know what error happened on symcache conversion
             # we can report it to the user now.
-            if obj.uuid in self.symcaches_conversion_errors:
+            if obj.id in self.symcaches_conversion_errors:
                 raise SymbolicationFailed(
-                    message=self.symcaches_conversion_errors[obj.uuid],
+                    message=self.symcaches_conversion_errors[obj.id],
                     type=EventError.NATIVE_BAD_DSYM,
                     obj=obj
                 )

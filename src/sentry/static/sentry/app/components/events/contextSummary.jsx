@@ -107,86 +107,85 @@ class DeviceSummary extends React.Component {
   render() {
     let data = this.props.data;
 
-    if (objectIsEmpty(data) || !data.model) {
+    if (objectIsEmpty(data)) {
       return <NoSummary title={t('Unknown Device')} />;
     }
 
     // TODO(dcramer): we need a better way to parse it
-    let className = generateClassName(data.model);
+    let className = data.model && generateClassName(data.model);
+
+    let subTitle = <p />;
+
+    if (data.arch) {
+      subTitle = (
+        <p>
+          <strong>{t('Arch:')}</strong> {data.arch}
+        </p>
+      );
+    } else if (data.model_id) {
+      subTitle = (
+        <p>
+          <strong>{t('Model:')}</strong> {data.model_id}
+        </p>
+      );
+    }
 
     return (
       <div className={`context-item ${className}`}>
         <span className="context-item-icon" />
-        <h3>{deviceNameMapper(data.model)}</h3>
-        <p>{data.arch || data.model_id || ''}</p>
+        <h3>{data.model ? deviceNameMapper(data.model) : t('Unknown Device')}</h3>
+        {subTitle}
       </div>
     );
   }
 }
 
+const MIN_CONTEXTS = 3;
+const MAX_CONTEXTS = 4;
+const KNOWN_CONTEXTS = [
+  {key: 'user', Component: UserSummary},
+  {key: 'browser', Component: GenericSummary, unknownTitle: t('Unknown Browser')},
+  {key: 'runtime', Component: GenericSummary, unknownTitle: t('Unknown Runtime')},
+  {key: 'os', Component: GenericSummary, unknownTitle: t('Unknown OS')},
+  {key: 'device', Component: DeviceSummary},
+];
+
 class EventContextSummary extends React.Component {
   static propTypes = {
-    group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
   };
 
   render() {
     let evt = this.props.event;
-    let contexts = evt.contexts;
+    let contextCount = 0;
 
-    let children = [<UserSummary key="user" data={evt.user} />];
-    switch (evt.platform) {
-      case 'cocoa':
-      // fallthrough
-      case 'native':
-        children.push(<DeviceSummary key="device" data={contexts.device} />);
-        children.push(
-          <GenericSummary key="os" data={contexts.os} unknownTitle={t('Unknown OS')} />
-        );
-        break;
-      case 'java':
-        if (contexts.os && contexts.os.name === 'Android') {
-          children.push(<DeviceSummary key="device" data={contexts.device} />);
-          children.push(
-            <GenericSummary key="os" data={contexts.os} unknownTitle={t('Unknown OS')} />
-          );
-        }
-        break;
-      case 'javascript':
-        children.push(
-          <GenericSummary
-            key="browser"
-            data={contexts.browser}
-            unknownTitle={t('Unknown Browser')}
-          />
-        );
-        children.push(
-          contexts.os ? (
-            <GenericSummary key="os" data={contexts.os} unknownTitle={t('Unknown OS')} />
-          ) : (
-            <DeviceSummary key="device" data={contexts.device} />
-          )
-        );
-        break;
-      default:
-        children.push(
-          <GenericSummary
-            key="runtime"
-            data={contexts.runtime}
-            unknownTitle={t('Unknown Runtime')}
-          />
-        );
-        children.push(
-          contexts.os ? (
-            <GenericSummary key="os" data={contexts.os} unknownTitle={t('Unknown OS')} />
-          ) : (
-            <DeviceSummary key="device" data={contexts.device} />
-          )
-        );
-        break;
+    // Add defined contexts in the declared order, until we reach the limit
+    // defined by MAX_CONTEXTS.
+    let contexts = KNOWN_CONTEXTS.map(({key, Component, ...props}) => {
+      if (contextCount >= MAX_CONTEXTS) return null;
+      let data = evt.contexts[key] || evt[key];
+      if (objectIsEmpty(data)) return null;
+      contextCount += 1;
+      return <Component key={key} data={data} {...props} />;
+    });
+
+    // Bail out if all contexts are empty or only the user context is set
+    if (contextCount === 0 || (contextCount === 1 && contexts[0])) {
+      return null;
     }
 
-    return <div className="context-summary">{children}</div>;
+    if (contextCount < MIN_CONTEXTS) {
+      // Add contents in the declared order until we have at least MIN_CONTEXTS
+      // contexts in our list.
+      contexts = KNOWN_CONTEXTS.map(({key, Component, ...props}, index) => {
+        if (contexts[index]) return contexts[index];
+        if (contextCount >= MIN_CONTEXTS) return null;
+        contextCount += 1;
+        return <Component key={key} data={{}} {...props} />;
+      });
+    }
+
+    return <div className="context-summary">{contexts}</div>;
   }
 }
 

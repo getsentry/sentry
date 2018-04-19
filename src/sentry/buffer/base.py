@@ -53,7 +53,7 @@ class Buffer(Service):
             }
         )
 
-    def process_pending(self):
+    def process_pending(self, partition=None):
         return []
 
     def process(self, model, columns, filters, extra=None):

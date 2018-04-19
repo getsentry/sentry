@@ -1,23 +1,10 @@
 import React from 'react';
-import TestUtils from 'react-addons-test-utils';
+import {shallow} from 'enzyme';
 
 import Frame from 'app/components/events/interfaces/frame';
-import FrameVariables from 'app/components/events/interfaces/frameVariables';
-
-import stubReactComponents from '../../../../helpers/stubReactComponent';
 
 describe('Frame', function() {
-  let sandbox;
   let data;
-
-  beforeEach(function() {
-    sandbox = sinon.sandbox.create();
-    stubReactComponents(sandbox, [FrameVariables]);
-  });
-
-  afterEach(function() {
-    sandbox.restore();
-  });
 
   describe('renderOriginalSourceInfo()', function() {
     beforeEach(function() {
@@ -33,12 +20,9 @@ describe('Frame', function() {
     });
 
     it('should render the source map information as a HTML string', function() {
-      let frame = TestUtils.renderIntoDocument(<Frame data={data} />);
+      let frame = shallow(<Frame data={data} />);
 
-      // NOTE: indentation/whitespace intentional to match output string
-      expect(frame.renderOriginalSourceInfo()).toEqual(
-        '\n    <div>\n      <strong>Source Map</strong><br/>https://beta.getsentry.com/_static/sentry/dist/vendor.js.map<br/></div>'
-      );
+      expect(frame.find('Tooltip').prop('title')).toMatchSnapshot();
     });
   });
 });

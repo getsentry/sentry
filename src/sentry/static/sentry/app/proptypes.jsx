@@ -105,16 +105,38 @@ export const Tag = PropTypes.shape({
   uniqueValues: PropTypes.number,
 });
 
+export const Actor = PropTypes.shape({
+  type: PropTypes.oneOf(['user', 'team']),
+  id: PropTypes.string.isRequired,
+  name: PropTypes.string.isRequired,
+});
+
+export const Team = PropTypes.shape({
+  id: PropTypes.string.isRequired,
+  slug: PropTypes.string.isRequired,
+});
+
 export const Project = PropTypes.shape({
   id: PropTypes.string.isRequired,
   name: PropTypes.string.isRequired,
   slug: PropTypes.string.isRequired,
-  callSign: PropTypes.string,
+  isBookmarked: PropTypes.bool.isRequired,
+  teams: PropTypes.arrayOf(Team).isRequired,
+  status: PropTypes.string,
+});
+
+export const ProjectDetail = PropTypes.shape({
+  id: PropTypes.string.isRequired,
+  name: PropTypes.string.isRequired,
+  slug: PropTypes.string.isRequired,
+  dateCreated: PropTypes.string.isRequired,
+  isBookmarked: PropTypes.bool.isRequired,
+  isMember: PropTypes.bool.isRequired,
+  hasAccess: PropTypes.bool.isRequired,
+  teams: PropTypes.arrayOf(Team).isRequired,
   color: PropTypes.string,
-  dateCreated: PropTypes.string,
   features: PropTypes.arrayOf(PropTypes.string),
   firstEvent: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]),
-  isBookmarked: PropTypes.bool,
   isPublic: PropTypes.bool,
   platform: PropTypes.string,
   stats: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.number)),
@@ -146,6 +168,13 @@ export const NavigationObject = PropTypes.shape({
   ),
 });
 
+export const Environment = PropTypes.shape({
+  id: PropTypes.string.isRequired,
+  name: PropTypes.string.isRequired,
+});
+
+export const PageLinks = PropTypes.string;
+
 export const Plugin = {
   assets: PropTypes.array,
   author: PropTypes.shape({
@@ -170,27 +199,62 @@ export const Plugin = {
 
 export const PluginShape = PropTypes.shape(Plugin);
 
+export const PluginsStore = PropTypes.shape({
+  loading: PropTypes.bool,
+  plugins: PropTypes.arrayOf(PluginShape),
+  error: PropTypes.object,
+  pageLinks: PropTypes.any,
+});
+
+export const ProjectDsn = {
+  secret: PropTypes.string,
+  minidump: PropTypes.string,
+  public: PropTypes.string,
+  csp: PropTypes.string,
+};
+
+export const ProjectDsnShape = PropTypes.shape(ProjectDsn);
+
+export const ProjectKey = PropTypes.shape({
+  dsn: ProjectDsnShape,
+  public: PropTypes.string,
+  secret: PropTypes.string,
+  name: PropTypes.string,
+  rateLimit: PropTypes.shape({
+    count: PropTypes.number,
+    window: PropTypes.number,
+  }),
+  projectId: PropTypes.number,
+  dateCreated: PropTypes.string,
+  id: PropTypes.string,
+  isActive: PropTypes.bool,
+  label: PropTypes.string,
+});
+
 let SentryTypes = {
   AnyModel: PropTypes.shape({
     id: PropTypes.string.isRequired,
   }),
+  Actor,
   Group,
+  Environment,
   Event,
   Organization: PropTypes.shape({
     id: PropTypes.string.isRequired,
   }),
   Tag,
+  PageLinks,
   Project,
   TagKey: PropTypes.shape({
     key: PropTypes.string.isRequired,
   }),
-  Team: PropTypes.shape({
-    id: PropTypes.string.isRequired,
-  }),
+  Team,
   NavigationObject,
   Member,
   Plugin,
   PluginShape,
+  PluginsStore,
+  ProjectKey,
   User,
 };
 

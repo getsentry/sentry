@@ -4,106 +4,136 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import InlineSvg from '../../components/inlineSvg';
-import SettingsActivity from './components/settingsActivity';
+import Alert from '../../components/alert';
+import Footer from '../../components/footer';
+import SettingsBackButton from './components/settingsBackButton';
 import SettingsBreadcrumb from './components/settingsBreadcrumb';
 import SettingsHeader from './components/settingsHeader';
 import SettingsSearch from './components/settingsSearch';
 
-const StyledIconCircleExclamation = styled(props => (
-  <InlineSvg size="36px" src="icon-circle-exclamation" {...props} />
-))`
-  color: ${p => p.theme.blue};
-  opacity: 0.6;
-`;
-
-let StyledWarning = styled.div`
+let StyledAlert = styled(Alert)`
   margin: 30px 0;
-  background: ${p => p.theme.alert.info.background};
-  border: 1px solid ${p => p.theme.alert.info.border};
-  padding: 15px 20px;
-  border-radius: ${p => p.theme.borderRadius};
-  line-height: ${p => p.theme.text.lineHeightBody};
-  font-size: ${p => p.theme.text.size.small};
-  box-shadow: ${p => p.theme.dropShadowLight};
 `;
 
-// TODO(billy): Temp
+// TODO(billy): Temp #NEW-SETTINGS
 let NewSettingsWarning = ({location = {}}) => {
-  // TODO(billy): Remove this warning when ready
-  let oldLocation = location.pathname
-    ? location.pathname.replace(/^\/settings\/organization\//, '/organizations/')
-    : '';
+  // This translates current URLs back to "old" settings URLs
+  // This is so that we can move from new settings back to old settings
+  let projectRegex = /^\/settings\/([^\/]+)\/([^\/]+)\//;
+  let accountRegex = /^\/settings\/account\/([^\/]+)\//;
+  let orgSettingsIndex = /^\/settings\/([^\/]+)\/$/;
+  let orgRegex = /^\/settings\/([^\/]+)\/(settings|projects|teams|stats|members|auth|api-keys|audit-log|rate-limits|repos|billing|payments|subscription|legal|support)\//;
+  let isProject = projectRegex.test(location.pathname);
+  let isOrgIndex = orgSettingsIndex.test(location.pathname);
+  let isOrg = orgRegex.test(location.pathname);
+  let isAccount = accountRegex.test(location.pathname);
+  let oldLocation;
 
-  //if (oldLocation === location.pathname) return null;
+  if (isAccount) {
+    oldLocation = location.pathname
+      .replace(accountRegex, '/account/settings/$1/')
+      .replace('details/', '')
+      .replace('settings/close-account/', 'remove/')
+      .replace('account/settings/api/', 'api/')
+      .replace('auth-tokens/', '');
+  } else if (isOrgIndex) {
+    oldLocation = location.pathname.replace(
+      orgSettingsIndex,
+      '/organizations/$1/settings/'
+    );
+  } else if (isOrg) {
+    oldLocation = location.pathname.replace(orgRegex, '/organizations/$1/$2/');
+  } else if (isProject) {
+    oldLocation = location.pathname.replace(projectRegex, '/$1/$2/settings/');
+  }
 
-  // auth should not be react routes
-  let isRouter = !/\/(auth)\//.test(location.pathname);
+  // original org auth view and account settings are django views so we can't use react router navigation
+  let isRouter = !/\/(auth|account)\//.test(location.pathname);
   let linkProps = {
     href: isRouter ? undefined : oldLocation,
     to: isRouter ? oldLocation : undefined,
   };
-  let Component = isRouter ? Link : 'a';
+  let LinkWithFallback = isRouter ? Link : 'a';
   return (
-    <StyledWarning>
-      <Flex align="center">
-        <Box w={32} mr={2}>
-          <StyledIconCircleExclamation />
-        </Box>
-        <Box>
-          These settings are currently in beta. Please report any issues. You can
-          temporarily visit the <Component {...linkProps}>old settings page</Component> if
-          necessary.
-        </Box>
-      </Flex>
-    </StyledWarning>
+    <StyledAlert type="info" icon="icon-circle-exclamation">
+      These settings are currently in beta. Please report any issues. You can temporarily
+      visit the <LinkWithFallback {...linkProps}>old settings page</LinkWithFallback> if
+      necessary.
+    </StyledAlert>
   );
 };
 
+const Container = styled(Flex)`
+  max-width: ${p => p.theme.settings.containerWidth};
+  margin: 0 auto;
+  padding: 0 ${p => p.theme.grid * 2}px;
+`;
+
+const SidebarWrapper = styled(Box)`
+  flex: 0 0 ${p => p.theme.settings.sidebarWidth};
+`;
+
 const Content = styled(Box)`
   flex: 1;
+`;
+
+const SettingsSubheader = styled.div`
+  position: relative;
+  z-index: ${p => p.theme.zIndex.dropdown};
+  padding: ${p => p.theme.grid}px 0;
+  margin-bottom: ${p => p.theme.grid * 3}px;
+  border-bottom: 1px solid ${p => p.theme.borderLight};
+  background: ${p => p.theme.offWhite};
+  font-size: 14px;
 `;
 
 class SettingsLayout extends React.Component {
   static propTypes = {
     renderNavigation: PropTypes.func,
     route: PropTypes.object,
+    router: PropTypes.object,
     routes: PropTypes.array,
   };
 
   render() {
-    let {params, routes, route, renderNavigation, children} = this.props;
+    let {params, routes, route, router, renderNavigation, children} = this.props;
     // We want child's view's props
     let childProps = (children && children.props) || this.props;
     let childRoutes = childProps.routes || routes || [];
     let childRoute = childProps.route || route || {};
     return (
-      <div>
+      <React.Fragment>
         <SettingsHeader>
-          <Box flex="1">
-            <SettingsBreadcrumb params={params} routes={childRoutes} route={childRoute} />
-          </Box>
-          <SettingsSearch params={params} />
+          <SettingsSubheader>
+            <Container>
+              <SettingsBackButton params={params}>Back to Project</SettingsBackButton>
+            </Container>
+          </SettingsSubheader>
+          <Container>
+            <Flex align="center" width={1}>
+              <Box flex="1">
+                <SettingsBreadcrumb
+                  params={params}
+                  routes={childRoutes}
+                  route={childRoute}
+                />
+              </Box>
+              <SettingsSearch routes={routes} router={router} params={params} />
+            </Flex>
+          </Container>
         </SettingsHeader>
-        <Flex>
+        <Container>
           {typeof renderNavigation === 'function' && (
-            <Box flex="0 0 210px">
-              <StickySidebar>{renderNavigation()}</StickySidebar>
-            </Box>
+            <SidebarWrapper>{renderNavigation()}</SidebarWrapper>
           )}
           <Content>
             {children}
             <NewSettingsWarning location={this.props.location} />
           </Content>
-        </Flex>
-        <SettingsActivity />
-      </div>
+        </Container>
+        <Footer />
+      </React.Fragment>
     );
   }
 }
-const StickySidebar = styled.div`
-  position: sticky;
-  top: 105px;
-`;
-
 export default SettingsLayout;

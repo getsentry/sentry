@@ -1,0 +1,1295 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ProjectEnvironments render active renders empty message 1`] = `
+<ProjectEnvironments
+  params={
+    Object {
+      "orgId": "org-slug",
+      "projectId": "project-slug",
+    }
+  }
+  route={
+    Object {
+      "path": "environments/",
+    }
+  }
+  routes={Array []}
+>
+  <div>
+    <SettingsPageHeading
+      tabs={
+        <ul
+          className="nav nav-tabs"
+          style={
+            Object {
+              "borderBottom": "1px solid #ddd",
+            }
+          }
+        >
+          <ListLink
+            activeClassName="active"
+            index={true}
+            isActive={[Function]}
+            to="/org-slug/project-slug/settings/environments/"
+          >
+            Environments
+          </ListLink>
+          <ListLink
+            activeClassName="active"
+            index={true}
+            isActive={[Function]}
+            to="/org-slug/project-slug/settings/environments/hidden/"
+          >
+            Hidden
+          </ListLink>
+        </ul>
+      }
+      title="Manage Environments"
+    >
+      <Wrapper
+        tabs={
+          <ul
+            className="nav nav-tabs"
+            style={
+              Object {
+                "borderBottom": "1px solid #ddd",
+              }
+            }
+          >
+            <ListLink
+              activeClassName="active"
+              index={true}
+              isActive={[Function]}
+              to="/org-slug/project-slug/settings/environments/"
+            >
+              Environments
+            </ListLink>
+            <ListLink
+              activeClassName="active"
+              index={true}
+              isActive={[Function]}
+              to="/org-slug/project-slug/settings/environments/hidden/"
+            >
+              Hidden
+            </ListLink>
+          </ul>
+        }
+      >
+        <div
+          className="css-t5gfr9-Wrapper css-17jmgia0"
+        >
+          <Flex
+            align="center"
+          >
+            <Base
+              align="center"
+              className="css-5ipae5"
+            >
+              <div
+                className="css-5ipae5"
+                is={null}
+              >
+                <Title>
+                  <div
+                    className="css-zmdcxu-Title css-17jmgia1"
+                  >
+                    Manage Environments
+                  </div>
+                </Title>
+              </div>
+            </Base>
+          </Flex>
+          <div>
+            <ul
+              className="nav nav-tabs"
+              style={
+                Object {
+                  "borderBottom": "1px solid #ddd",
+                }
+              }
+            >
+              <ListLink
+                activeClassName="active"
+                index={true}
+                isActive={[Function]}
+                to="/org-slug/project-slug/settings/environments/"
+              >
+                <li
+                  className="active"
+                >
+                  <Link
+                    onlyActiveOnIndex={true}
+                    style={Object {}}
+                    to="/org-slug/project-slug/settings/environments/"
+                  >
+                    <a
+                      onClick={[Function]}
+                      style={Object {}}
+                    >
+                      Environments
+                    </a>
+                  </Link>
+                </li>
+              </ListLink>
+              <ListLink
+                activeClassName="active"
+                index={true}
+                isActive={[Function]}
+                to="/org-slug/project-slug/settings/environments/hidden/"
+              >
+                <li
+                  className=""
+                >
+                  <Link
+                    onlyActiveOnIndex={true}
+                    style={Object {}}
+                    to="/org-slug/project-slug/settings/environments/hidden/"
+                  >
+                    <a
+                      onClick={[Function]}
+                      style={Object {}}
+                    >
+                      Hidden
+                    </a>
+                  </Link>
+                </li>
+              </ListLink>
+            </ul>
+          </div>
+        </div>
+      </Wrapper>
+    </SettingsPageHeading>
+    <Panel>
+      <StyledPanel>
+        <div
+          className="css-17bqt4b-StyledPanel css-5bw71w0"
+        >
+          <PanelHeader>
+            <StyledPanelHeader>
+              <Component
+                className="css-19pgfgl-StyledPanelHeader css-1t1cqk30"
+              >
+                <Flex
+                  align="center"
+                  className="css-19pgfgl-StyledPanelHeader css-1t1cqk30"
+                  justify="space-between"
+                >
+                  <Base
+                    align="center"
+                    className="css-1t1cqk30 css-14dugjz"
+                    justify="space-between"
+                  >
+                    <div
+                      className="css-1t1cqk30 css-14dugjz"
+                      is={null}
+                    >
+                      Active Environments
+                    </div>
+                  </Base>
+                </Flex>
+              </Component>
+            </StyledPanelHeader>
+          </PanelHeader>
+          <PanelBody
+            direction="column"
+            disablePadding={true}
+            flex={false}
+          >
+            <div
+              className=""
+            >
+              <EmptyMessage>
+                <Wrapper>
+                  <div
+                    className="css-bq6a85-Wrapper css-toum0v0"
+                  >
+                    <div
+                      className="ref-message"
+                    >
+                      You don't have any environments yet.
+                    </div>
+                  </div>
+                </Wrapper>
+              </EmptyMessage>
+            </div>
+          </PanelBody>
+        </div>
+      </StyledPanel>
+    </Panel>
+  </div>
+</ProjectEnvironments>
+`;
+
+exports[`ProjectEnvironments render active renders environment list and sets staging as default env 1`] = `
+<ProjectEnvironments
+  params={
+    Object {
+      "orgId": "org-slug",
+      "projectId": "project-slug",
+    }
+  }
+  route={
+    Object {
+      "path": "environments/",
+    }
+  }
+  routes={Array []}
+>
+  <div>
+    <SettingsPageHeading
+      tabs={
+        <ul
+          className="nav nav-tabs"
+          style={
+            Object {
+              "borderBottom": "1px solid #ddd",
+            }
+          }
+        >
+          <ListLink
+            activeClassName="active"
+            index={true}
+            isActive={[Function]}
+            to="/org-slug/project-slug/settings/environments/"
+          >
+            Environments
+          </ListLink>
+          <ListLink
+            activeClassName="active"
+            index={true}
+            isActive={[Function]}
+            to="/org-slug/project-slug/settings/environments/hidden/"
+          >
+            Hidden
+          </ListLink>
+        </ul>
+      }
+      title="Manage Environments"
+    >
+      <Wrapper
+        tabs={
+          <ul
+            className="nav nav-tabs"
+            style={
+              Object {
+                "borderBottom": "1px solid #ddd",
+              }
+            }
+          >
+            <ListLink
+              activeClassName="active"
+              index={true}
+              isActive={[Function]}
+              to="/org-slug/project-slug/settings/environments/"
+            >
+              Environments
+            </ListLink>
+            <ListLink
+              activeClassName="active"
+              index={true}
+              isActive={[Function]}
+              to="/org-slug/project-slug/settings/environments/hidden/"
+            >
+              Hidden
+            </ListLink>
+          </ul>
+        }
+      >
+        <div
+          className="css-t5gfr9-Wrapper css-17jmgia0"
+        >
+          <Flex
+            align="center"
+          >
+            <Base
+              align="center"
+              className="css-5ipae5"
+            >
+              <div
+                className="css-5ipae5"
+                is={null}
+              >
+                <Title>
+                  <div
+                    className="css-zmdcxu-Title css-17jmgia1"
+                  >
+                    Manage Environments
+                  </div>
+                </Title>
+              </div>
+            </Base>
+          </Flex>
+          <div>
+            <ul
+              className="nav nav-tabs"
+              style={
+                Object {
+                  "borderBottom": "1px solid #ddd",
+                }
+              }
+            >
+              <ListLink
+                activeClassName="active"
+                index={true}
+                isActive={[Function]}
+                to="/org-slug/project-slug/settings/environments/"
+              >
+                <li
+                  className="active"
+                >
+                  <Link
+                    onlyActiveOnIndex={true}
+                    style={Object {}}
+                    to="/org-slug/project-slug/settings/environments/"
+                  >
+                    <a
+                      onClick={[Function]}
+                      style={Object {}}
+                    >
+                      Environments
+                    </a>
+                  </Link>
+                </li>
+              </ListLink>
+              <ListLink
+                activeClassName="active"
+                index={true}
+                isActive={[Function]}
+                to="/org-slug/project-slug/settings/environments/hidden/"
+              >
+                <li
+                  className=""
+                >
+                  <Link
+                    onlyActiveOnIndex={true}
+                    style={Object {}}
+                    to="/org-slug/project-slug/settings/environments/hidden/"
+                  >
+                    <a
+                      onClick={[Function]}
+                      style={Object {}}
+                    >
+                      Hidden
+                    </a>
+                  </Link>
+                </li>
+              </ListLink>
+            </ul>
+          </div>
+        </div>
+      </Wrapper>
+    </SettingsPageHeading>
+    <Panel>
+      <StyledPanel>
+        <div
+          className="css-17bqt4b-StyledPanel css-5bw71w0"
+        >
+          <PanelHeader>
+            <StyledPanelHeader>
+              <Component
+                className="css-19pgfgl-StyledPanelHeader css-1t1cqk30"
+              >
+                <Flex
+                  align="center"
+                  className="css-19pgfgl-StyledPanelHeader css-1t1cqk30"
+                  justify="space-between"
+                >
+                  <Base
+                    align="center"
+                    className="css-1t1cqk30 css-14dugjz"
+                    justify="space-between"
+                  >
+                    <div
+                      className="css-1t1cqk30 css-14dugjz"
+                      is={null}
+                    >
+                      Active Environments
+                    </div>
+                  </Base>
+                </Flex>
+              </Component>
+            </StyledPanelHeader>
+          </PanelHeader>
+          <PanelBody
+            direction="column"
+            disablePadding={true}
+            flex={false}
+          >
+            <div
+              className=""
+            >
+              <EnvironmentRow
+                environment={
+                  Object {
+                    "displayName": "All Environments",
+                    "id": "__all_environments__",
+                    "name": "__all_environments__",
+                  }
+                }
+                hideName={true}
+                isDefault={false}
+                name="__all_environments__"
+                onSetAsDefault={[Function]}
+                shouldShowSetDefault={true}
+              >
+                <PanelItem
+                  align="center"
+                  justify="space-between"
+                  p={2}
+                >
+                  <StyledPanelItem
+                    align="center"
+                    justify="space-between"
+                    p={2}
+                  >
+                    <Base
+                      align="center"
+                      className="css-qcergp-StyledPanelItem css-q9h14u0"
+                      justify="space-between"
+                      p={2}
+                    >
+                      <div
+                        className="css-qcergp-StyledPanelItem css-q9h14u0"
+                        is={null}
+                      >
+                        <Flex
+                          align="center"
+                        >
+                          <Base
+                            align="center"
+                            className="css-5ipae5"
+                          >
+                            <div
+                              className="css-5ipae5"
+                              is={null}
+                            >
+                              All Environments
+                               
+                            </div>
+                          </Base>
+                        </Flex>
+                        <div>
+                          <EnvironmentButton
+                            onClick={[Function]}
+                            size="xsmall"
+                          >
+                            <Button
+                              className="css-10adnmx-EnvironmentButton css-d1dasp0"
+                              disabled={false}
+                              onClick={[Function]}
+                              size="xsmall"
+                            >
+                              <button
+                                className="css-10adnmx-EnvironmentButton css-d1dasp0 button button-default button-xs"
+                                disabled={false}
+                                onClick={[Function]}
+                                role="button"
+                              >
+                                <Flex
+                                  align="center"
+                                  className="button-label"
+                                >
+                                  <Base
+                                    align="center"
+                                    className="button-label css-5ipae5"
+                                  >
+                                    <div
+                                      className="button-label css-5ipae5"
+                                      is={null}
+                                    >
+                                      Set as default
+                                    </div>
+                                  </Base>
+                                </Flex>
+                              </button>
+                            </Button>
+                          </EnvironmentButton>
+                        </div>
+                      </div>
+                    </Base>
+                  </StyledPanelItem>
+                </PanelItem>
+              </EnvironmentRow>
+              <EnvironmentRow
+                actionText="Hide"
+                environment={
+                  Object {
+                    "displayName": "Production",
+                    "id": "1",
+                    "name": "production",
+                    "urlRoutingName": "production",
+                  }
+                }
+                isDefault={false}
+                isHidden={false}
+                key="1"
+                name="production"
+                onHide={[Function]}
+                onSetAsDefault={[Function]}
+                shouldShowAction={true}
+                shouldShowSetDefault={true}
+              >
+                <PanelItem
+                  align="center"
+                  justify="space-between"
+                  p={2}
+                >
+                  <StyledPanelItem
+                    align="center"
+                    justify="space-between"
+                    p={2}
+                  >
+                    <Base
+                      align="center"
+                      className="css-qcergp-StyledPanelItem css-q9h14u0"
+                      justify="space-between"
+                      p={2}
+                    >
+                      <div
+                        className="css-qcergp-StyledPanelItem css-q9h14u0"
+                        is={null}
+                      >
+                        <Flex
+                          align="center"
+                        >
+                          <Base
+                            align="center"
+                            className="css-5ipae5"
+                          >
+                            <div
+                              className="css-5ipae5"
+                              is={null}
+                            >
+                              Production
+                               
+                              <code>
+                                production
+                              </code>
+                            </div>
+                          </Base>
+                        </Flex>
+                        <div>
+                          <EnvironmentButton
+                            onClick={[Function]}
+                            size="xsmall"
+                          >
+                            <Button
+                              className="css-10adnmx-EnvironmentButton css-d1dasp0"
+                              disabled={false}
+                              onClick={[Function]}
+                              size="xsmall"
+                            >
+                              <button
+                                className="css-10adnmx-EnvironmentButton css-d1dasp0 button button-default button-xs"
+                                disabled={false}
+                                onClick={[Function]}
+                                role="button"
+                              >
+                                <Flex
+                                  align="center"
+                                  className="button-label"
+                                >
+                                  <Base
+                                    align="center"
+                                    className="button-label css-5ipae5"
+                                  >
+                                    <div
+                                      className="button-label css-5ipae5"
+                                      is={null}
+                                    >
+                                      Set as default
+                                    </div>
+                                  </Base>
+                                </Flex>
+                              </button>
+                            </Button>
+                          </EnvironmentButton>
+                          <EnvironmentButton
+                            onClick={[Function]}
+                            size="xsmall"
+                          >
+                            <Button
+                              className="css-10adnmx-EnvironmentButton css-d1dasp0"
+                              disabled={false}
+                              onClick={[Function]}
+                              size="xsmall"
+                            >
+                              <button
+                                className="css-10adnmx-EnvironmentButton css-d1dasp0 button button-default button-xs"
+                                disabled={false}
+                                onClick={[Function]}
+                                role="button"
+                              >
+                                <Flex
+                                  align="center"
+                                  className="button-label"
+                                >
+                                  <Base
+                                    align="center"
+                                    className="button-label css-5ipae5"
+                                  >
+                                    <div
+                                      className="button-label css-5ipae5"
+                                      is={null}
+                                    >
+                                      Hide
+                                    </div>
+                                  </Base>
+                                </Flex>
+                              </button>
+                            </Button>
+                          </EnvironmentButton>
+                        </div>
+                      </div>
+                    </Base>
+                  </StyledPanelItem>
+                </PanelItem>
+              </EnvironmentRow>
+              <EnvironmentRow
+                actionText="Hide"
+                environment={
+                  Object {
+                    "displayName": "Staging",
+                    "id": "2",
+                    "name": "staging",
+                    "urlRoutingName": "staging",
+                  }
+                }
+                isDefault={true}
+                isHidden={false}
+                key="2"
+                name="staging"
+                onHide={[Function]}
+                onSetAsDefault={[Function]}
+                shouldShowAction={true}
+                shouldShowSetDefault={false}
+              >
+                <PanelItem
+                  align="center"
+                  justify="space-between"
+                  p={2}
+                >
+                  <StyledPanelItem
+                    align="center"
+                    justify="space-between"
+                    p={2}
+                  >
+                    <Base
+                      align="center"
+                      className="css-qcergp-StyledPanelItem css-q9h14u0"
+                      justify="space-between"
+                      p={2}
+                    >
+                      <div
+                        className="css-qcergp-StyledPanelItem css-q9h14u0"
+                        is={null}
+                      >
+                        <Flex
+                          align="center"
+                        >
+                          <Base
+                            align="center"
+                            className="css-5ipae5"
+                          >
+                            <div
+                              className="css-5ipae5"
+                              is={null}
+                            >
+                              Staging
+                               
+                              <code>
+                                staging
+                              </code>
+                              <Tag
+                                priority="success"
+                              >
+                                <TagTextStyled
+                                  priority="success"
+                                >
+                                  <span
+                                    className="css-giy4xh-TagTextStyled css-3x95g0"
+                                  >
+                                    Default
+                                  </span>
+                                </TagTextStyled>
+                              </Tag>
+                            </div>
+                          </Base>
+                        </Flex>
+                        <div>
+                          <EnvironmentButton
+                            onClick={[Function]}
+                            size="xsmall"
+                          >
+                            <Button
+                              className="css-10adnmx-EnvironmentButton css-d1dasp0"
+                              disabled={false}
+                              onClick={[Function]}
+                              size="xsmall"
+                            >
+                              <button
+                                className="css-10adnmx-EnvironmentButton css-d1dasp0 button button-default button-xs"
+                                disabled={false}
+                                onClick={[Function]}
+                                role="button"
+                              >
+                                <Flex
+                                  align="center"
+                                  className="button-label"
+                                >
+                                  <Base
+                                    align="center"
+                                    className="button-label css-5ipae5"
+                                  >
+                                    <div
+                                      className="button-label css-5ipae5"
+                                      is={null}
+                                    >
+                                      Hide
+                                    </div>
+                                  </Base>
+                                </Flex>
+                              </button>
+                            </Button>
+                          </EnvironmentButton>
+                        </div>
+                      </div>
+                    </Base>
+                  </StyledPanelItem>
+                </PanelItem>
+              </EnvironmentRow>
+            </div>
+          </PanelBody>
+        </div>
+      </StyledPanel>
+    </Panel>
+  </div>
+</ProjectEnvironments>
+`;
+
+exports[`ProjectEnvironments render hidden renders empty message 1`] = `
+<ProjectEnvironments
+  params={
+    Object {
+      "orgId": "org-slug",
+      "projectId": "project-slug",
+    }
+  }
+  route={
+    Object {
+      "path": "environments/hidden/",
+    }
+  }
+  routes={Array []}
+>
+  <div>
+    <SettingsPageHeading
+      tabs={
+        <ul
+          className="nav nav-tabs"
+          style={
+            Object {
+              "borderBottom": "1px solid #ddd",
+            }
+          }
+        >
+          <ListLink
+            activeClassName="active"
+            index={true}
+            isActive={[Function]}
+            to="/org-slug/project-slug/settings/environments/"
+          >
+            Environments
+          </ListLink>
+          <ListLink
+            activeClassName="active"
+            index={true}
+            isActive={[Function]}
+            to="/org-slug/project-slug/settings/environments/hidden/"
+          >
+            Hidden
+          </ListLink>
+        </ul>
+      }
+      title="Manage Environments"
+    >
+      <Wrapper
+        tabs={
+          <ul
+            className="nav nav-tabs"
+            style={
+              Object {
+                "borderBottom": "1px solid #ddd",
+              }
+            }
+          >
+            <ListLink
+              activeClassName="active"
+              index={true}
+              isActive={[Function]}
+              to="/org-slug/project-slug/settings/environments/"
+            >
+              Environments
+            </ListLink>
+            <ListLink
+              activeClassName="active"
+              index={true}
+              isActive={[Function]}
+              to="/org-slug/project-slug/settings/environments/hidden/"
+            >
+              Hidden
+            </ListLink>
+          </ul>
+        }
+      >
+        <div
+          className="css-t5gfr9-Wrapper css-17jmgia0"
+        >
+          <Flex
+            align="center"
+          >
+            <Base
+              align="center"
+              className="css-5ipae5"
+            >
+              <div
+                className="css-5ipae5"
+                is={null}
+              >
+                <Title>
+                  <div
+                    className="css-zmdcxu-Title css-17jmgia1"
+                  >
+                    Manage Environments
+                  </div>
+                </Title>
+              </div>
+            </Base>
+          </Flex>
+          <div>
+            <ul
+              className="nav nav-tabs"
+              style={
+                Object {
+                  "borderBottom": "1px solid #ddd",
+                }
+              }
+            >
+              <ListLink
+                activeClassName="active"
+                index={true}
+                isActive={[Function]}
+                to="/org-slug/project-slug/settings/environments/"
+              >
+                <li
+                  className=""
+                >
+                  <Link
+                    onlyActiveOnIndex={true}
+                    style={Object {}}
+                    to="/org-slug/project-slug/settings/environments/"
+                  >
+                    <a
+                      onClick={[Function]}
+                      style={Object {}}
+                    >
+                      Environments
+                    </a>
+                  </Link>
+                </li>
+              </ListLink>
+              <ListLink
+                activeClassName="active"
+                index={true}
+                isActive={[Function]}
+                to="/org-slug/project-slug/settings/environments/hidden/"
+              >
+                <li
+                  className="active"
+                >
+                  <Link
+                    onlyActiveOnIndex={true}
+                    style={Object {}}
+                    to="/org-slug/project-slug/settings/environments/hidden/"
+                  >
+                    <a
+                      onClick={[Function]}
+                      style={Object {}}
+                    >
+                      Hidden
+                    </a>
+                  </Link>
+                </li>
+              </ListLink>
+            </ul>
+          </div>
+        </div>
+      </Wrapper>
+    </SettingsPageHeading>
+    <Panel>
+      <StyledPanel>
+        <div
+          className="css-17bqt4b-StyledPanel css-5bw71w0"
+        >
+          <PanelHeader>
+            <StyledPanelHeader>
+              <Component
+                className="css-19pgfgl-StyledPanelHeader css-1t1cqk30"
+              >
+                <Flex
+                  align="center"
+                  className="css-19pgfgl-StyledPanelHeader css-1t1cqk30"
+                  justify="space-between"
+                >
+                  <Base
+                    align="center"
+                    className="css-1t1cqk30 css-14dugjz"
+                    justify="space-between"
+                  >
+                    <div
+                      className="css-1t1cqk30 css-14dugjz"
+                      is={null}
+                    >
+                      Hidden
+                    </div>
+                  </Base>
+                </Flex>
+              </Component>
+            </StyledPanelHeader>
+          </PanelHeader>
+          <PanelBody
+            direction="column"
+            disablePadding={true}
+            flex={false}
+          >
+            <div
+              className=""
+            >
+              <EmptyMessage>
+                <Wrapper>
+                  <div
+                    className="css-bq6a85-Wrapper css-toum0v0"
+                  >
+                    <div
+                      className="ref-message"
+                    >
+                      You don't have any hidden environments.
+                    </div>
+                  </div>
+                </Wrapper>
+              </EmptyMessage>
+            </div>
+          </PanelBody>
+        </div>
+      </StyledPanel>
+    </Panel>
+  </div>
+</ProjectEnvironments>
+`;
+
+exports[`ProjectEnvironments render hidden renders environment list 1`] = `
+<ProjectEnvironments
+  params={
+    Object {
+      "orgId": "org-slug",
+      "projectId": "project-slug",
+    }
+  }
+  route={
+    Object {
+      "path": "environments/hidden/",
+    }
+  }
+  routes={Array []}
+>
+  <div>
+    <SettingsPageHeading
+      tabs={
+        <ul
+          className="nav nav-tabs"
+          style={
+            Object {
+              "borderBottom": "1px solid #ddd",
+            }
+          }
+        >
+          <ListLink
+            activeClassName="active"
+            index={true}
+            isActive={[Function]}
+            to="/org-slug/project-slug/settings/environments/"
+          >
+            Environments
+          </ListLink>
+          <ListLink
+            activeClassName="active"
+            index={true}
+            isActive={[Function]}
+            to="/org-slug/project-slug/settings/environments/hidden/"
+          >
+            Hidden
+          </ListLink>
+        </ul>
+      }
+      title="Manage Environments"
+    >
+      <Wrapper
+        tabs={
+          <ul
+            className="nav nav-tabs"
+            style={
+              Object {
+                "borderBottom": "1px solid #ddd",
+              }
+            }
+          >
+            <ListLink
+              activeClassName="active"
+              index={true}
+              isActive={[Function]}
+              to="/org-slug/project-slug/settings/environments/"
+            >
+              Environments
+            </ListLink>
+            <ListLink
+              activeClassName="active"
+              index={true}
+              isActive={[Function]}
+              to="/org-slug/project-slug/settings/environments/hidden/"
+            >
+              Hidden
+            </ListLink>
+          </ul>
+        }
+      >
+        <div
+          className="css-t5gfr9-Wrapper css-17jmgia0"
+        >
+          <Flex
+            align="center"
+          >
+            <Base
+              align="center"
+              className="css-5ipae5"
+            >
+              <div
+                className="css-5ipae5"
+                is={null}
+              >
+                <Title>
+                  <div
+                    className="css-zmdcxu-Title css-17jmgia1"
+                  >
+                    Manage Environments
+                  </div>
+                </Title>
+              </div>
+            </Base>
+          </Flex>
+          <div>
+            <ul
+              className="nav nav-tabs"
+              style={
+                Object {
+                  "borderBottom": "1px solid #ddd",
+                }
+              }
+            >
+              <ListLink
+                activeClassName="active"
+                index={true}
+                isActive={[Function]}
+                to="/org-slug/project-slug/settings/environments/"
+              >
+                <li
+                  className=""
+                >
+                  <Link
+                    onlyActiveOnIndex={true}
+                    style={Object {}}
+                    to="/org-slug/project-slug/settings/environments/"
+                  >
+                    <a
+                      onClick={[Function]}
+                      style={Object {}}
+                    >
+                      Environments
+                    </a>
+                  </Link>
+                </li>
+              </ListLink>
+              <ListLink
+                activeClassName="active"
+                index={true}
+                isActive={[Function]}
+                to="/org-slug/project-slug/settings/environments/hidden/"
+              >
+                <li
+                  className="active"
+                >
+                  <Link
+                    onlyActiveOnIndex={true}
+                    style={Object {}}
+                    to="/org-slug/project-slug/settings/environments/hidden/"
+                  >
+                    <a
+                      onClick={[Function]}
+                      style={Object {}}
+                    >
+                      Hidden
+                    </a>
+                  </Link>
+                </li>
+              </ListLink>
+            </ul>
+          </div>
+        </div>
+      </Wrapper>
+    </SettingsPageHeading>
+    <Panel>
+      <StyledPanel>
+        <div
+          className="css-17bqt4b-StyledPanel css-5bw71w0"
+        >
+          <PanelHeader>
+            <StyledPanelHeader>
+              <Component
+                className="css-19pgfgl-StyledPanelHeader css-1t1cqk30"
+              >
+                <Flex
+                  align="center"
+                  className="css-19pgfgl-StyledPanelHeader css-1t1cqk30"
+                  justify="space-between"
+                >
+                  <Base
+                    align="center"
+                    className="css-1t1cqk30 css-14dugjz"
+                    justify="space-between"
+                  >
+                    <div
+                      className="css-1t1cqk30 css-14dugjz"
+                      is={null}
+                    >
+                      Hidden
+                    </div>
+                  </Base>
+                </Flex>
+              </Component>
+            </StyledPanelHeader>
+          </PanelHeader>
+          <PanelBody
+            direction="column"
+            disablePadding={true}
+            flex={false}
+          >
+            <div
+              className=""
+            >
+              <EnvironmentRow
+                actionText="Show"
+                environment={
+                  Object {
+                    "displayName": "Zzz",
+                    "id": "1",
+                    "name": "zzz",
+                    "urlRoutingName": "zzz",
+                  }
+                }
+                isDefault={false}
+                isHidden={true}
+                key="1"
+                name="zzz"
+                onHide={[Function]}
+                onSetAsDefault={[Function]}
+                shouldShowAction={true}
+                shouldShowSetDefault={false}
+              >
+                <PanelItem
+                  align="center"
+                  justify="space-between"
+                  p={2}
+                >
+                  <StyledPanelItem
+                    align="center"
+                    justify="space-between"
+                    p={2}
+                  >
+                    <Base
+                      align="center"
+                      className="css-qcergp-StyledPanelItem css-q9h14u0"
+                      justify="space-between"
+                      p={2}
+                    >
+                      <div
+                        className="css-qcergp-StyledPanelItem css-q9h14u0"
+                        is={null}
+                      >
+                        <Flex
+                          align="center"
+                        >
+                          <Base
+                            align="center"
+                            className="css-5ipae5"
+                          >
+                            <div
+                              className="css-5ipae5"
+                              is={null}
+                            >
+                              Zzz
+                               
+                              <code>
+                                zzz
+                              </code>
+                            </div>
+                          </Base>
+                        </Flex>
+                        <div>
+                          <EnvironmentButton
+                            onClick={[Function]}
+                            size="xsmall"
+                          >
+                            <Button
+                              className="css-10adnmx-EnvironmentButton css-d1dasp0"
+                              disabled={false}
+                              onClick={[Function]}
+                              size="xsmall"
+                            >
+                              <button
+                                className="css-10adnmx-EnvironmentButton css-d1dasp0 button button-default button-xs"
+                                disabled={false}
+                                onClick={[Function]}
+                                role="button"
+                              >
+                                <Flex
+                                  align="center"
+                                  className="button-label"
+                                >
+                                  <Base
+                                    align="center"
+                                    className="button-label css-5ipae5"
+                                  >
+                                    <div
+                                      className="button-label css-5ipae5"
+                                      is={null}
+                                    >
+                                      Show
+                                    </div>
+                                  </Base>
+                                </Flex>
+                              </button>
+                            </Button>
+                          </EnvironmentButton>
+                        </div>
+                      </div>
+                    </Base>
+                  </StyledPanelItem>
+                </PanelItem>
+              </EnvironmentRow>
+            </div>
+          </PanelBody>
+        </div>
+      </StyledPanel>
+    </Panel>
+  </div>
+</ProjectEnvironments>
+`;

@@ -9,24 +9,44 @@ const ProjectsStore = Reflux.createStore({
     this.listenTo(ProjectActions.createSuccess, this.onCreateSuccess);
     this.listenTo(ProjectActions.updateSuccess, this.onUpdateSuccess);
     this.listenTo(ProjectActions.loadStatsSuccess, this.onStatsLoadSuccess);
+    this.listenTo(ProjectActions.changeSlug, this.onChangeSlug);
   },
 
   reset() {
-    this.items = [];
     this.itemsById = {};
   },
 
   loadInitialData(items) {
-    this.items = items;
-    this.itemsById = this.items.reduce((map, project) => {
+    this.itemsById = items.reduce((map, project) => {
       map[project.id] = project;
       return map;
     }, {});
     this.trigger(new Set(Object.keys(this.itemsById)));
   },
 
+  onChangeSlug(prevSlug, newSlug) {
+    let prevProject = this.getBySlug(prevSlug);
+
+    // This shouldn't happen
+    if (!prevProject) return;
+
+    const newProject = {
+      ...prevProject,
+      slug: newSlug,
+    };
+
+    this.itemsById = {
+      ...this.itemsById,
+    };
+
+    this.itemsById[newProject.id] = newProject;
+
+    // Ideally we'd always trigger this.itemsById, but following existing patterns
+    // so we don't break things
+    this.trigger(new Set([prevProject.id]));
+  },
+
   onCreateSuccess(project) {
-    this.items.push(project);
     this.itemsById[project.id] = project;
     this.trigger(new Set([project.id]));
   },
@@ -49,11 +69,15 @@ const ProjectsStore = Reflux.createStore({
   },
 
   getAll() {
-    return this.items;
+    return Object.values(this.itemsById).sort((a, b) => {
+      if (a.slug > b.slug) return 1;
+      if (a.slug < b.slug) return -1;
+      return 0;
+    });
   },
 
   getAllGroupedByOrganization() {
-    return this.items.reduce((acc, project) => {
+    return this.getAll().reduce((acc, project) => {
       const orgSlug = project.organization.slug;
       if (acc[orgSlug]) {
         acc[orgSlug].projects.push(project);
@@ -68,11 +92,11 @@ const ProjectsStore = Reflux.createStore({
   },
 
   getById(id) {
-    return this.items.find(project => project.id === id);
+    return this.getAll().find(project => project.id === id);
   },
 
   getBySlug(slug) {
-    return this.items.find(project => project.slug === slug);
+    return this.getAll().find(project => project.slug === slug);
   },
 });
 

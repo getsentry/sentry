@@ -19,26 +19,35 @@ class Client {
     Client.mockResponses = [];
   }
 
+  // Returns a jest mock that represents Client.request calls
   static addMockResponse(response) {
-    Client.mockResponses.push({
-      statusCode: 200,
-      body: '',
-      method: 'GET',
-      callCount: 0,
-      ...response,
-    });
+    let mock = jest.fn();
+    Client.mockResponses.unshift([
+      {
+        statusCode: 200,
+        body: '',
+        method: 'GET',
+        callCount: 0,
+        ...response,
+        headers: response.headers || {},
+      },
+      mock,
+    ]);
+
+    return mock;
   }
 
   static findMockResponse(url, options) {
-    return Client.mockResponses.find(response => {
+    return Client.mockResponses.find(([response]) => {
       return url === response.url && (options.method || 'GET') === response.method;
     });
   }
 
-  static getCallCount(response) {
-    return Client.findMockResponse(response.url, response).callCount;
+  uniqueId() {
+    return '123';
   }
 
+  // In the real client, this clears in-flight responses. It's NOT clearMockResponses. You probably don't want to call this from a test.
   clear() {}
 
   static mockAsync = false;
@@ -67,7 +76,8 @@ class Client {
   }
 
   request(url, options) {
-    let response = Client.findMockResponse(url, options);
+    let [response, mock] = Client.findMockResponse(url, options) || [];
+
     if (!response) {
       // eslint-disable-next-line no-console
       console.error(
@@ -81,34 +91,44 @@ class Client {
         responseJSON: null,
       };
       respond(Client.mockAsync, options.error, resp);
-    } else if (response.statusCode !== 200) {
-      response.callCount++;
-      let resp = {
-        status: response.statusCode,
-        responseText: JSON.stringify(response.body),
-        responseJSON: response.body,
-      };
-      this.handleRequestError(
-        {
-          path: url,
-          requestOptions: options,
-        },
-        resp
-      );
     } else {
-      response.callCount++;
-      respond(
-        Client.mockAsync,
-        options.success,
-        response.body,
-        {},
-        {getResponseHeader: () => {}}
-      );
+      // has mocked response
+
+      // mock gets returned when we add a mock response, will represent calls to api.request
+      mock(url, options);
+      if (response.statusCode !== 200) {
+        response.callCount++;
+        let resp = {
+          status: response.statusCode,
+          responseText: JSON.stringify(response.body),
+          responseJSON: response.body,
+        };
+        this.handleRequestError(
+          {
+            path: url,
+            requestOptions: options,
+          },
+          resp
+        );
+      } else {
+        response.callCount++;
+        respond(
+          Client.mockAsync,
+          options.success,
+          response.body,
+          {},
+          {
+            getResponseHeader: key => response.headers[key],
+          }
+        );
+      }
     }
+
     respond(Client.mockAsync, options.complete);
   }
 }
 
 Client.prototype.handleRequestError = RealClient.Client.prototype.handleRequestError;
+Client.prototype.uniqueId = RealClient.Client.prototype.uniqueId;
 
 export {Client};

@@ -83,7 +83,7 @@ class AuthSAML2Test(AuthProviderTestCase):
 
     @fixture
     def setup_path(self):
-        return reverse('sentry-organization-auth-settings', args=['saml2-org'])
+        return reverse('sentry-organization-auth-provider-settings', args=['saml2-org'])
 
     def test_redirects_to_idp(self):
         resp = self.client.post(self.login_path, {'init': True})

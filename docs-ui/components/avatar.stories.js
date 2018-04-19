@@ -1,6 +1,5 @@
 import React from 'react';
 import {storiesOf} from '@storybook/react';
-// import {action} from '@storybook/addon-actions';
 import {withInfo} from '@storybook/addon-info';
 
 import Avatar from 'sentry-ui/avatar';
@@ -45,5 +44,15 @@ storiesOf('Avatar', module)
         },
       });
       return <Avatar user={user} />;
+    })
+  )
+  .add(
+    'Team Avatar',
+    withInfo('Avatar for teams')(() => {
+      let team = {
+        name: 'Captain Planet',
+        slug: 'captain-planet',
+      };
+      return <Avatar team={team} />;
     })
   );

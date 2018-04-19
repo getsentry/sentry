@@ -13,6 +13,7 @@ class OrganizationTeamsView extends React.Component {
   static propTypes = {
     allTeams: PropTypes.arrayOf(SentryTypes.Team),
     activeTeams: PropTypes.arrayOf(SentryTypes.Team),
+    projectList: PropTypes.arrayOf(SentryTypes.Project),
     projectStats: PropTypes.array,
     organization: SentryTypes.Organization,
     access: PropTypes.object,
@@ -22,10 +23,15 @@ class OrganizationTeamsView extends React.Component {
     params: PropTypes.object,
   };
 
+  static contextTypes = {
+    location: PropTypes.object.isRequired,
+  };
+
   render() {
     let {
       allTeams,
       activeTeams,
+      projectList,
       projectStats,
       organization,
       access,
@@ -45,7 +51,15 @@ class OrganizationTeamsView extends React.Component {
         <div className="col-md-9">
           <div className="team-list">
             <ul className="nav nav-tabs border-bottom">
-              <ListLink to={`${urlPrefix}teams/your-teams/`}>{t('Your Teams')}</ListLink>
+              <ListLink
+                to={`${urlPrefix}teams/your-teams/`}
+                isActive={loc => {
+                  let pathname = this.context.location.pathname;
+                  return pathname === `${urlPrefix}teams/` || pathname === loc.pathname;
+                }}
+              >
+                {t('Your Teams')}
+              </ListLink>
               <ListLink to={`${urlPrefix}teams/all-teams/`}>
                 {t('All Teams')}{' '}
                 <span className="badge badge-soft">{allTeams.length}</span>
@@ -66,6 +80,7 @@ class OrganizationTeamsView extends React.Component {
                 urlPrefix={urlPrefix}
                 organization={org}
                 teamList={activeTeams}
+                projectList={projectList}
                 projectStats={projectStats}
                 hasTeams={allTeams.length !== 0}
                 access={access}

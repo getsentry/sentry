@@ -180,7 +180,7 @@ class ProjectKey(Model):
         if not endpoint:
             endpoint = options.get('system.url-prefix')
 
-        return '%s%s?sentry_key=%s' % (
+        return '%s%s/?sentry_key=%s' % (
             endpoint,
             reverse('sentry-api-minidump', args=[self.project_id]),
             self.public_key,

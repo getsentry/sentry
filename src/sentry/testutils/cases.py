@@ -9,9 +9,9 @@ sentry.testutils.cases
 from __future__ import absolute_import
 
 __all__ = (
-    'TestCase', 'TransactionTestCase', 'APITestCase', 'AuthProviderTestCase', 'RuleTestCase',
+    'TestCase', 'TransactionTestCase', 'APITestCase', 'TwoFactorAPITestCase', 'AuthProviderTestCase', 'RuleTestCase',
     'PermissionTestCase', 'PluginTestCase', 'CliTestCase', 'AcceptanceTestCase',
-    'IntegrationTestCase',
+    'IntegrationTestCase', 'UserReportEnvironmentTestCase',
 )
 
 import base64
@@ -20,6 +20,7 @@ import os.path
 import pytest
 import six
 import types
+import logging
 
 from click.testing import CliRunner
 from contextlib import contextmanager
@@ -46,7 +47,9 @@ from sentry.auth.superuser import (
     Superuser, COOKIE_SALT as SU_COOKIE_SALT, COOKIE_NAME as SU_COOKIE_NAME
 )
 from sentry.constants import MODULE_ROOT
-from sentry.models import GroupMeta, ProjectOption, DeletedOrganization
+from sentry.models import (
+    GroupMeta, ProjectOption, DeletedOrganization, Environment, GroupStatus, Organization, TotpInterface, UserReport
+)
 from sentry.plugins import plugins
 from sentry.rules import EventState
 from sentry.utils import json
@@ -315,6 +318,120 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
     pass
 
 
+class TwoFactorAPITestCase(APITestCase):
+    @fixture
+    def path_2fa(self):
+        return reverse('sentry-account-settings-2fa')
+
+    def enable_org_2fa(self, organization):
+        organization.flags.require_2fa = True
+        organization.save()
+
+    def api_enable_org_2fa(self, organization, user):
+        self.login_as(user)
+        url = reverse('sentry-api-0-organization-details', kwargs={
+            'organization_slug': organization.slug
+        })
+        return self.client.put(url, data={'require2FA': True})
+
+    def api_disable_org_2fa(self, organization, user):
+        url = reverse('sentry-api-0-organization-details', kwargs={
+            'organization_slug': organization.slug,
+        })
+        return self.client.put(url, data={'require2FA': False})
+
+    def assert_can_enable_org_2fa(self, organization, user, status_code=200):
+        self.__helper_enable_organization_2fa(organization, user, status_code)
+
+    def assert_cannot_enable_org_2fa(self, organization, user, status_code):
+        self.__helper_enable_organization_2fa(organization, user, status_code)
+
+    def __helper_enable_organization_2fa(self, organization, user, status_code):
+        response = self.api_enable_org_2fa(organization, user)
+        assert response.status_code == status_code, response.content
+        organization = Organization.objects.get(id=organization.id)
+
+        if status_code >= 200 and status_code < 300:
+            assert organization.flags.require_2fa
+        else:
+            assert not organization.flags.require_2fa
+
+    def add_2fa_users_to_org(self, organization, num_of_users=10, num_with_2fa=5):
+        non_compliant_members = []
+        for num in range(0, num_of_users):
+            user = self.create_user('foo_%s@example.com' % num)
+            self.create_member(organization=organization, user=user)
+            if num_with_2fa:
+                TotpInterface().enroll(user)
+                num_with_2fa -= 1
+            else:
+                non_compliant_members.append(user.email)
+        return non_compliant_members
+
+
+class UserReportEnvironmentTestCase(APITestCase):
+    def setUp(self):
+
+        self.project = self.create_project()
+        self.env1 = self.create_environment(self.project, 'production')
+        self.env2 = self.create_environment(self.project, 'staging')
+
+        self.group = self.create_group(project=self.project, status=GroupStatus.UNRESOLVED)
+
+        self.env1_events = self.create_events_for_environment(self.group, self.env1, 5)
+        self.env2_events = self.create_events_for_environment(self.group, self.env2, 5)
+
+        self.env1_userreports = self.create_user_report_for_events(
+            self.project, self.group, self.env1_events, self.env1)
+        self.env2_userreports = self.create_user_report_for_events(
+            self.project, self.group, self.env2_events, self.env2)
+
+    def make_event(self, **kwargs):
+        result = {
+            'event_id': 'a' * 32,
+            'message': 'foo',
+            'timestamp': 1403007314.570599,
+            'level': logging.ERROR,
+            'logger': 'default',
+            'tags': [],
+        }
+        result.update(kwargs)
+        return result
+
+    def create_environment(self, project, name):
+        env = Environment.objects.create(
+            project_id=project.id,
+            organization_id=project.organization_id,
+            name=name,
+        )
+        env.add_project(project)
+        return env
+
+    def create_events_for_environment(self, group, environment, num_events):
+        return [self.create_event(group=group, tags={
+            'environment': environment.name}) for __i in range(num_events)]
+
+    def create_user_report_for_events(self, project, group, events, environment):
+        reports = []
+        for i, event in enumerate(events):
+            reports.append(UserReport.objects.create(
+                group=group,
+                project=project,
+                event_id=event.event_id,
+                name='foo%d' % i,
+                email='bar%d@example.com' % i,
+                comments='It Broke!!!',
+                environment=environment,
+            ))
+        return reports
+
+    def assert_same_userreports(self, response_data, userreports):
+        assert sorted(int(r.get('id')) for r in response_data) == sorted(
+            r.id for r in userreports)
+        assert sorted(r.get('eventID') for r in response_data) == sorted(
+            r.event_id for r in userreports)
+
+
 class AuthProviderTestCase(TestCase):
     provider = DummyProvider
     provider_name = 'dummy'
@@ -333,16 +450,15 @@ class RuleTestCase(TestCase):
     def get_event(self):
         return self.event
 
-    def get_rule(self, data=None):
-        return self.rule_cls(
-            project=self.project,
-            data=data or {},
-        )
+    def get_rule(self, **kwargs):
+        kwargs.setdefault('project', self.project)
+        kwargs.setdefault('data', {})
+        return self.rule_cls(**kwargs)
 
     def get_state(self, **kwargs):
         kwargs.setdefault('is_new', True)
         kwargs.setdefault('is_regression', True)
-        kwargs.setdefault('is_sample', True)
+        kwargs.setdefault('is_new_group_environment', True)
         return EventState(**kwargs)
 
     def assertPasses(self, rule, event=None, **kwargs):
@@ -544,21 +660,23 @@ class IntegrationTestCase(TestCase):
     provider = None
 
     def setUp(self):
-        from sentry.integrations.helper import PipelineHelper
+        from sentry.integrations.pipeline import IntegrationPipeline
 
         super(IntegrationTestCase, self).setUp()
 
         self.organization = self.create_organization(name='foo', owner=self.user)
         self.login_as(self.user)
-        self.path = '/extensions/{}/setup/'.format(self.provider.id)
+        self.path = '/extensions/{}/setup/'.format(self.provider.key)
         self.request = self.make_request(self.user)
         # XXX(dcramer): this is a bit of a hack, but it helps contain this test
-        self.helper = PipelineHelper.initialize(
+        self.pipeline = IntegrationPipeline(
             request=self.request,
             organization=self.organization,
-            provider_id=self.provider.id,
-            dialog=True,
+            provider_key=self.provider.key,
         )
+
+        self.pipeline.initialize()
+
         self.save_session()
 
         feature = Feature('organizations:integrations-v3')

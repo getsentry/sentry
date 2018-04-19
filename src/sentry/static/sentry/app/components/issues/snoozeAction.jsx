@@ -44,14 +44,15 @@ class SnoozeAction extends React.Component {
 
   render() {
     return (
-      <a
-        title={this.props.tooltip}
-        className={this.props.className}
-        disabled={this.props.disabled}
-        onClick={this.toggleModal}
-      >
-        <span>{t('zZz')}</span>
-
+      <React.Fragment>
+        <a
+          title={this.props.tooltip}
+          className={this.props.className}
+          disabled={this.props.disabled}
+          onClick={this.toggleModal}
+        >
+          <span>{t('zZz')}</span>
+        </a>
         <Modal
           show={this.state.isModalOpen}
           title={t('Please confirm')}
@@ -87,7 +88,7 @@ class SnoozeAction extends React.Component {
             </button>
           </div>
         </Modal>
-      </a>
+      </React.Fragment>
     );
   }
 }

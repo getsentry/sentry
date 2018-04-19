@@ -7,7 +7,10 @@ describe('ProjectPlugins', function() {
   let plugins = TestStubs.Plugins();
   let org = TestStubs.Organization();
   let project = TestStubs.Project();
-  let params = {orgId: org.slug, projectId: project.slug};
+  let params = {
+    orgId: org.slug,
+    projectId: project.slug,
+  };
 
   it('renders', function() {
     wrapper = shallow(<ProjectPlugins params={params} plugins={plugins} />);

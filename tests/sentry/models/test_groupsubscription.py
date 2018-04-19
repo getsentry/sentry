@@ -24,12 +24,88 @@ class SubscribeTest(TestCase):
         # should not error
         GroupSubscription.objects.subscribe(group=group, user=user)
 
+    def test_bulk(self):
+        group = self.create_group()
+
+        user_ids = []
+        for i in range(20):
+            user = self.create_user()
+            user_ids.append(user.id)
+
+        GroupSubscription.objects.bulk_subscribe(group=group, user_ids=user_ids)
+
+        assert len(GroupSubscription.objects.filter(
+            group=group,
+        )) == 20
+
+        one_more = self.create_user()
+        user_ids.append(one_more.id)
+
+        # should not error
+        GroupSubscription.objects.bulk_subscribe(group=group, user_ids=user_ids)
+
+        assert len(GroupSubscription.objects.filter(
+            group=group,
+        )) == 21
+
+    def test_bulk_dupes(self):
+        group = self.create_group()
+
+        user_ids = []
+
+        user = self.create_user()
+        user_ids.append(user.id)
+        user_ids.append(user.id)
+
+        GroupSubscription.objects.bulk_subscribe(group=group, user_ids=user_ids)
+
+        assert len(GroupSubscription.objects.filter(
+            group=group,
+        )) == 1
+
+    def test_actor_user(self):
+        group = self.create_group()
+        user = self.create_user()
+
+        GroupSubscription.objects.subscribe_actor(group=group, actor=user)
+
+        assert GroupSubscription.objects.filter(
+            group=group,
+            user=user,
+        ).exists()
+
+        # should not error
+        GroupSubscription.objects.subscribe_actor(group=group, actor=user)
+
+    def test_actor_team(self):
+        org = self.create_organization()
+        group = self.create_group(organization=org)
+        user = self.create_user()
+        team = self.create_team(organization=org)
+        self.create_member(
+            user=user,
+            email='bar@example.com',
+            organization=org,
+            role='owner',
+            teams=[team],
+        )
+
+        GroupSubscription.objects.subscribe_actor(group=group, actor=team)
+
+        assert GroupSubscription.objects.filter(
+            group=group,
+            user=user,
+        ).exists()
+
+        # should not error
+        GroupSubscription.objects.subscribe_actor(group=group, actor=team)
+
 
 class GetParticipantsTest(TestCase):
     def test_simple(self):
         org = self.create_organization()
         team = self.create_team(organization=org)
-        project = self.create_project(team=team, organization=org)
+        project = self.create_project(teams=[team], organization=org)
         group = self.create_group(project=project)
         user = self.create_user('foo@example.com')
         user2 = self.create_user('bar@example.com')
@@ -89,7 +165,7 @@ class GetParticipantsTest(TestCase):
     def test_no_conversations(self):
         org = self.create_organization()
         team = self.create_team(organization=org)
-        project = self.create_project(team=team, organization=org)
+        project = self.create_project(teams=[team], organization=org)
         group = self.create_group(project=project)
         user = self.create_user()
         self.create_member(user=user, organization=org, teams=[team])
@@ -210,7 +286,7 @@ class GetParticipantsTest(TestCase):
     def test_participating_only(self):
         org = self.create_organization()
         team = self.create_team(organization=org)
-        project = self.create_project(team=team, organization=org)
+        project = self.create_project(teams=[team], organization=org)
         group = self.create_group(project=project)
         user = self.create_user()
         self.create_member(user=user, organization=org, teams=[team])
@@ -378,7 +454,7 @@ class GetParticipantsTest(TestCase):
     def test_does_not_include_nonmember(self):
         org = self.create_organization()
         team = self.create_team(organization=org)
-        project = self.create_project(team=team, organization=org)
+        project = self.create_project(teams=[team], organization=org)
         group = self.create_group(project=project)
         user = self.create_user('foo@example.com')
 

@@ -1,11 +1,12 @@
 from __future__ import absolute_import
 
 import logging
+import six
 
 from django.core.urlresolvers import reverse
 
 from sentry.exceptions import InvalidIdentity, PluginError
-from sentry.models import Deploy, Release, ReleaseHeadCommit, Repository, User
+from sentry.models import Deploy, LatestRelease, Release, ReleaseHeadCommit, Repository, User
 from sentry.plugins import bindings
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils.email import MessageBuilder
@@ -42,8 +43,8 @@ def generate_fetch_commits_error_email(release, error_message):
         html_template='sentry/emails/unable-to-fetch-commits.html',
     )
 
-# we're future proofing this function a bit so it could be used with other code
 
+# we're future proofing this function a bit so it could be used with other code
 
 def handle_invalid_identity(identity, commit_failure=False):
     # email the user
@@ -62,6 +63,7 @@ def handle_invalid_identity(identity, commit_failure=False):
 )
 @retry(exclude=(Release.DoesNotExist, User.DoesNotExist, ))
 def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
+    # TODO(dcramer): this function could use some cleanup/refactoring as its a bit unwieldly
     commit_list = []
 
     release = Release.objects.get(id=release_id)
@@ -163,7 +165,45 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
             release=release,
             notified=False,
         ).values_list(
-            'id', flat=True
+            'id', 'environment_id', 'date_finished'
         )
-        for d_id in deploys:
-            Deploy.notify_if_ready(d_id, fetch_complete=True)
+
+        # XXX(dcramer): i dont know why this would have multiple environments, but for
+        # our sanity lets assume it can
+        pending_notifications = []
+        last_deploy_per_environment = {}
+        for deploy_id, environment_id, date_finished in deploys:
+            last_deploy_per_environment[environment_id] = (deploy_id, date_finished)
+            pending_notifications.append(deploy_id)
+
+        repo_queryset = ReleaseHeadCommit.objects.filter(
+            organization_id=release.organization_id,
+            release=release,
+        ).values_list(
+            'repository_id', 'commit',
+        )
+
+        # we need to mark LatestRelease, but only if there's not a deploy which has completed
+        # *after* this deploy (given we might process commits out of order)
+        for repository_id, commit_id in repo_queryset:
+            for environment_id, (deploy_id, date_finished) in six.iteritems(
+                    last_deploy_per_environment):
+                if not Deploy.objects.filter(
+                    id__in=LatestRelease.objects.filter(
+                        repository_id=repository_id,
+                        environment_id=environment_id,
+                    ).values('deploy_id'),
+                    date_finished__gt=date_finished,
+                ).exists():
+                    LatestRelease.objects.create_or_update(
+                        repository_id=repository_id,
+                        environment_id=environment_id,
+                        values={
+                            'release_id': release.id,
+                            'deploy_id': deploy_id,
+                            'commit_id': commit_id,
+                        }
+                    )
+
+        for deploy_id in pending_notifications:
+            Deploy.notify_if_ready(deploy_id, fetch_complete=True)

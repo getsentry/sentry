@@ -1,34 +1,98 @@
+import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 
+import {t} from '../../../locale';
 import AsyncView from '../../asyncView';
-import ApiForm from '../components/forms/apiForm';
-
-import Select2Field from '../components/forms/select2Field';
-import Panel from '../components/panel';
-import PanelBody from '../components/panelBody';
-import PanelHeader from '../components/panelHeader';
-
+import Form from '../components/forms/form';
+import JsonForm from '../components/forms/jsonForm';
+import {Panel, PanelBody, PanelHeader} from '../../../components/panels';
 import ProjectsStore from '../../../stores/projectsStore';
+import Select2Field from '../components/forms/select2Field';
+import SettingsPageHeader from '../components/settingsPageHeader';
+import TextBlock from '../components/text/textBlock';
+import {fields} from '../../../data/forms/accountNotificationSettings';
+import withOrganizations from '../../../utils/withOrganizations';
 
 const ACCOUNT_NOTIFICATION_FIELDS = {
-  'project-alerts/': {
-    name: 'subscribeByDefault',
+  alerts: {
+    title: 'Project Alerts',
+    description: t('Control alerts that you receive per project.'),
     type: 'select',
-    choices: [['default', 'Default'], ['on', 'On'], ['off', 'Off']],
+    choices: [[-1, t('Default')], [1, t('On')], [0, t('Off')]],
+    defaultFieldName: 'subscribeByDefault',
+  },
+  workflow: {
+    title: 'Workflow Notifications',
+    description: t(
+      'Control workflow notifications, e.g. changes in issue assignment, resolution status, and comments.'
+    ),
+    type: 'select',
+    choices: [
+      [-1, t('Default')],
+      [0, t('Always')],
+      [1, t('Only on issues I subscribe to')],
+      [2, t('Never')],
+    ],
+    defaultFieldName: 'workflowNotifications',
+  },
+  deploy: {
+    title: t('Deploy Notifications'),
+    description: t(
+      'Control deploy notifications that include release, environment, and commit overviews.'
+    ),
+    type: 'select',
+    choices: [
+      [-1, t('Default')],
+      [2, t('Always')],
+      [3, t('Only on deploys with my commits')],
+      [4, t('Never')],
+    ],
+    defaultFieldName: 'deployNotifications',
+  },
+  reports: {
+    title: t('Weekly Reports'),
+    description: t(
+      "Reports contain a summary of what's happened within the organization."
+    ),
+    type: 'select',
+    choices: [[1, t('On')], [0, t('Off')]],
+    defaultFieldName: 'weeklyReports',
+  },
+
+  email: {
+    title: t('Email Routing'),
+    description: t(
+      'On a per project basis, route emails to an alternative email address.'
+    ),
+    type: 'select',
+    // No choices here because it's going to have dynamic content
+    // Component will create choices
   },
 };
 
-export default class AccountNotificationDetails extends AsyncView {
-  getEndpoints() {
-    return [['notifications', '/users/me/notifications/'], ['projects', '/projects/']];
-  }
+const PanelBodyLineItem = styled(PanelBody)`
+  font-size: 1.4rem;
+  border-bottom: 1px solid ${p => p.theme.borderLight};
+`;
 
-  getFieldData(fieldName, projectList) {
-    ProjectsStore.loadInitialData(projectList);
+// Which fine tuning parts are grouped by project
+const isGroupedByProject = type => ['alerts', 'workflow', 'email'].indexOf(type) > -1;
+
+class AccountNotificationsByProject extends React.Component {
+  static propTypes = {
+    projects: PropTypes.array,
+    field: PropTypes.object,
+  };
+
+  getFieldData() {
+    let {projects, field} = this.props;
+    ProjectsStore.loadInitialData(projects);
 
     const projectsByOrg = ProjectsStore.getAllGroupedByOrganization();
 
-    const fieldConfig = ACCOUNT_NOTIFICATION_FIELDS[fieldName];
+    // eslint-disable-next-line no-unused-vars
+    const {title, description, ...fieldConfig} = field;
 
     // Display as select box in this view regardless of the type specified in the config
     return Object.values(projectsByOrg).map(org => {
@@ -37,46 +101,175 @@ export default class AccountNotificationDetails extends AsyncView {
         projects: org.projects.map(project => {
           return {
             ...fieldConfig,
-            name: project.slug,
-            label: project.name,
+            // `name` key refers to field name
+            // we use project.id because slugs are not unique across orgs
+            name: project.id,
+            label: project.slug,
           };
         }),
       };
     });
   }
 
+  render() {
+    const data = this.getFieldData();
+
+    return data.map(({name, projects: projectFields}) => {
+      return (
+        <div key={name}>
+          <PanelHeader>{name}</PanelHeader>
+          {projectFields.map(field => {
+            return (
+              <PanelBodyLineItem key={field.name}>
+                <Select2Field
+                  name={field.name}
+                  choices={field.choices}
+                  label={field.label}
+                  small={true}
+                />
+              </PanelBodyLineItem>
+            );
+          })}
+        </div>
+      );
+    });
+  }
+}
+
+class AccountNotificationsByOrganization extends React.Component {
+  static propTypes = {
+    organizations: PropTypes.array,
+    field: PropTypes.object,
+  };
+
+  getFieldData() {
+    const {field, organizations} = this.props;
+    // eslint-disable-next-line no-unused-vars
+    const {title, description, ...fieldConfig} = field;
+
+    // Display as select box in this view regardless of the type specified in the config
+    return organizations.map(org => {
+      return {
+        ...fieldConfig,
+        // `name` key refers to field name
+        // we use org.id to remain consistent project.id use (which is required because slugs are not unique across orgs)
+        name: org.id,
+        label: org.slug,
+      };
+    });
+  }
+
+  render() {
+    const orgFields = this.getFieldData();
+
+    return (
+      <React.Fragment>
+        <PanelHeader>{t('Organizations')}</PanelHeader>
+        {orgFields.map(field => {
+          return (
+            <PanelBodyLineItem key={field.name}>
+              <Select2Field
+                name={field.name}
+                choices={field.choices}
+                label={field.label}
+                small
+              />
+            </PanelBodyLineItem>
+          );
+        })}
+      </React.Fragment>
+    );
+  }
+}
+
+const AccountNotificationsByOrganizationContainer = withOrganizations(
+  AccountNotificationsByOrganization
+);
+
+export default class AccountNotificationFineTuning extends AsyncView {
+  getEndpoints() {
+    const {fineTuneType} = this.props.params;
+    const endpoints = [
+      ['notifications', '/users/me/notifications/'],
+      ['fineTuneData', `/users/me/notifications/${fineTuneType}/`],
+    ];
+
+    if (isGroupedByProject(fineTuneType)) {
+      endpoints.push(['projects', '/projects/']);
+    }
+
+    endpoints.push(['emails', '/users/me/emails/']);
+    if (fineTuneType === 'email') {
+      endpoints.push(['emails', '/users/me/emails/']);
+    }
+
+    return endpoints;
+  }
+
+  // Return a sorted list of user's verified emails
+  getEmailChoices() {
+    let {emails} = this.state;
+    if (!emails) return [];
+
+    return emails.filter(({isVerified}) => isVerified).sort((a, b) => {
+      // Sort by primary -> email
+      if (a.isPrimary) {
+        return -1;
+      } else if (b.isPrimary) {
+        return 1;
+      }
+
+      return a.email < b.email ? -1 : 1;
+    });
+  }
+
   renderBody() {
-    const {path} = this.props.route;
-    const data = this.getFieldData(path, this.state.projects);
+    const {fineTuneType} = this.props.params;
+    const isProject = isGroupedByProject(fineTuneType);
+    const field = ACCOUNT_NOTIFICATION_FIELDS[fineTuneType];
+    const {title, description} = field;
+
+    if (fineTuneType === 'email') {
+      // Fetch verified email addresses
+      field.choices = this.getEmailChoices().map(({email}) => [email, email]);
+    }
 
     return (
       <div>
-        <ApiForm apiMethod="PUT" apiEndpoint={'/users/me/notifications/'}>
-          <Panel>
-            <PanelHeader>
-              <div className="text-light">{this.props.route.name}</div>
-            </PanelHeader>
+        <SettingsPageHeader title={title} />
+        {description && <TextBlock>{description}</TextBlock>}
 
-            {data.map(org => {
-              return (
-                <div key={org.name}>
-                  <PanelHeader>{org.name}</PanelHeader>
-                  {org.projects.map((project, idx) => {
-                    return (
-                      <PanelBody key={idx}>
-                        <Select2Field
-                          name={project.name}
-                          choices={project.choices}
-                          label={project.label}
-                        />
-                      </PanelBody>
-                    );
-                  })}
-                </div>
-              );
-            })}
+        {field &&
+          field.defaultFieldName && (
+            <Form
+              saveOnBlur
+              apiMethod="PUT"
+              apiEndpoint={'/users/me/notifications/'}
+              initialData={this.state.notifications}
+            >
+              <JsonForm
+                title={`Default ${title}`}
+                fields={[fields[field.defaultFieldName]]}
+              />
+            </Form>
+          )}
+        <Form
+          saveOnBlur
+          apiMethod="PUT"
+          apiEndpoint={`/users/me/notifications/${this.props.params.fineTuneType}/`}
+          initialData={this.state.fineTuneData}
+        >
+          <Panel>
+            {isProject && (
+              <AccountNotificationsByProject
+                projects={this.state.projects}
+                field={field}
+              />
+            )}
+
+            {!isProject && <AccountNotificationsByOrganizationContainer field={field} />}
           </Panel>
-        </ApiForm>
+        </Form>
       </div>
     );
   }

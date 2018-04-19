@@ -5,7 +5,7 @@ from django.db import IntegrityError, transaction
 from rest_framework.response import Response
 
 from .project_releases import ReleaseSerializer
-from sentry.api.base import DocSection
+from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import InvalidRepository
 from sentry.api.paginator import OffsetPaginator
@@ -13,7 +13,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import (
     ReleaseHeadCommitSerializer, ReleaseHeadCommitSerializerDeprecated, ListField
 )
-from sentry.models import Activity, Release
+from sentry.models import Activity, Environment, Release, ReleaseEnvironment
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
@@ -49,7 +49,7 @@ class ReleaseSerializerWithProjects(ReleaseSerializer):
     )
 
 
-class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint):
+class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, EnvironmentMixin):
     doc_section = DocSection.RELEASES
 
     @attach_scenarios([list_org_releases_scenario])
@@ -64,11 +64,24 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint):
                               "starts with" filter for the version.
         """
         query = request.GET.get('query')
+        try:
+            environment = self._get_environment_from_request(
+                request,
+                organization.id,
+            )
+        except Environment.DoesNotExist:
+            queryset = Release.objects.none()
+        else:
+            queryset = Release.objects.filter(
+                organization=organization,
+                projects__in=self.get_allowed_projects(request, organization)
+            ).select_related('owner')
 
-        queryset = Release.objects.filter(
-            organization=organization,
-            projects__in=self.get_allowed_projects(request, organization)
-        ).select_related('owner')
+            if environment is not None:
+                queryset = queryset.filter(id__in=ReleaseEnvironment.objects.filter(
+                    organization_id=organization.id,
+                    environment_id=environment.id,
+                ).values_list('release_id', flat=True))
 
         if query:
             queryset = queryset.filter(
@@ -170,7 +183,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint):
                     Activity.objects.create(
                         type=Activity.RELEASE,
                         project=project,
-                        ident=result['version'],
+                        ident=Activity.get_version_ident(result['version']),
                         data={'version': result['version']},
                         datetime=release.date_released,
                     )

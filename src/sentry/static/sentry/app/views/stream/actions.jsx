@@ -1,12 +1,12 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import PureRenderMixin from 'react-addons-pure-render-mixin';
 import Reflux from 'reflux';
 import {capitalize} from 'lodash';
+import styled from 'react-emotion';
+import {Flex, Box} from 'grid-emotion';
 
 import ApiMixin from '../../mixins/apiMixin';
-import TooltipMixin from '../../mixins/tooltip';
 import DropdownLink from '../../components/dropdownLink';
 import IndicatorStore from '../../stores/indicatorStore';
 import MenuItem from '../../components/menuItem';
@@ -14,11 +14,11 @@ import SelectedGroupStore from '../../stores/selectedGroupStore';
 import {t, tct, tn} from '../../locale';
 
 import Checkbox from '../../components/checkbox';
-import Toolbar from '../../components/toolbar';
 import ToolbarHeader from '../../components/toolbarHeader';
 import ResolveActions from '../../components/actions/resolve';
 import IgnoreActions from '../../components/actions/ignore';
 import ActionLink from '../../components/actions/actionLink';
+import Tooltip from '../../components/tooltip';
 
 const BULK_LIMIT_STR = '1,000';
 
@@ -116,21 +116,7 @@ const StreamActions = createReactClass({
     latestRelease: PropTypes.object,
   },
 
-  mixins: [
-    ApiMixin,
-    TooltipMixin({
-      selector: '.tip',
-      placement: 'bottom',
-      container: 'body',
-      constraints: [
-        {
-          attachment: 'together',
-        },
-      ],
-    }),
-    Reflux.listenTo(SelectedGroupStore, 'onSelectedGroupChange'),
-    PureRenderMixin,
-  ],
+  mixins: [ApiMixin, Reflux.listenTo(SelectedGroupStore, 'onSelectedGroupChange')],
 
   getDefaultProps() {
     return {hasReleases: false, latestRelease: null};
@@ -139,20 +125,12 @@ const StreamActions = createReactClass({
   getInitialState() {
     return {
       datePickerActive: false,
-
       anySelected: false,
       multiSelected: false, // more than one selected
       pageSelected: false, // all on current page selected (e.g. 25)
       allInQuerySelected: false, // all in current search query selected (e.g. 1000+)
+      selectedIds: new Set(),
     };
-  },
-
-  componentWillReceiveProps({realtimeActive}) {
-    // Need to re-attach tooltips
-    if (this.props.realtimeActive !== realtimeActive) {
-      this.removeTooltips();
-      this.attachTooltips();
-    }
   },
 
   selectAll() {
@@ -252,6 +230,7 @@ const StreamActions = createReactClass({
       multiSelected: SelectedGroupStore.multiSelected(),
       anySelected: SelectedGroupStore.anySelected(),
       allInQuerySelected: false, // any change resets
+      selectedIds: SelectedGroupStore.getSelectedIds(),
     });
   },
 
@@ -282,24 +261,19 @@ const StreamActions = createReactClass({
 
   render() {
     // TODO(mitsuhiko): very unclear how to translate this
-    let issues = SelectedGroupStore.getSelectedIds();
+    let issues = this.state.selectedIds;
     let numIssues = issues.size;
-    let {allInQuerySelected, anySelected} = this.state;
-    let disabled = !anySelected;
+    let {allInQuerySelected, anySelected, multiSelected} = this.state;
     let confirm = getConfirm(numIssues, allInQuerySelected, this.props.query);
     let label = getLabel(numIssues, allInQuerySelected);
 
     return (
-      <div>
-        <Toolbar className="stream-actions row">
-          <div className="stream-actions-left col-md-6 col-sm-8 col-xs-8">
-            <div className="checkbox">
-              <Checkbox
-                className="chk-select-all"
-                onChange={this.onSelectAll}
-                checked={this.state.pageSelected}
-              />
-            </div>
+      <Sticky>
+        <StyledFlex py={1}>
+          <ActionsCheckbox pl={2}>
+            <Checkbox onChange={this.onSelectAll} checked={this.state.pageSelected} />
+          </ActionsCheckbox>
+          <ActionSet w={[8 / 12, 8 / 12, 6 / 12]} mx={1} flex="1">
             <ResolveActions
               hasRelease={this.props.hasReleases}
               latestRelease={this.props.latestRelease}
@@ -309,16 +283,29 @@ const StreamActions = createReactClass({
               shouldConfirm={this.shouldConfirm('resolve')}
               confirmMessage={confirm('resolve', true)}
               confirmLabel={label('resolve')}
-              disabled={disabled}
+              disabled={!anySelected}
             />
             <IgnoreActions
               onUpdate={this.onUpdate}
               shouldConfirm={this.shouldConfirm('ignore')}
               confirmMessage={confirm('ignore', true)}
               confirmLabel={label('ignore')}
-              disabled={disabled}
+              disabled={!anySelected}
             />
-            <div className="btn-group">
+            <div className="btn-group hidden-sm hidden-xs">
+              <ActionLink
+                className={'btn btn-default btn-sm action-merge'}
+                disabled={!multiSelected}
+                onAction={this.onMerge}
+                shouldConfirm={this.shouldConfirm('merge')}
+                message={confirm('merge', false)}
+                confirmLabel={label('merge')}
+                title={t('Merge Selected Issues')}
+              >
+                {t('Merge')}
+              </ActionLink>
+            </div>
+            <div className="btn-group hidden-xs">
               <ActionLink
                 className={'btn btn-default btn-sm action-bookmark'}
                 onAction={() => this.onUpdate({isBookmarked: true})}
@@ -326,7 +313,7 @@ const StreamActions = createReactClass({
                 message={confirm('bookmark', false)}
                 confirmLabel={label('bookmark')}
                 title={t('Add to Bookmarks')}
-                disabled={disabled}
+                disabled={!anySelected}
               >
                 <i aria-hidden="true" className="icon-star-solid" />
               </ActionLink>
@@ -341,20 +328,8 @@ const StreamActions = createReactClass({
               >
                 <MenuItem noAnchor={true}>
                   <ActionLink
-                    className="action-merge"
-                    disabled={disabled}
-                    onAction={this.onMerge}
-                    shouldConfirm={this.shouldConfirm('merge')}
-                    message={confirm('merge', false)}
-                    confirmLabel={label('merge')}
-                  >
-                    {t('Merge Issues')}
-                  </ActionLink>
-                </MenuItem>
-                <MenuItem noAnchor={true}>
-                  <ActionLink
                     className="action-remove-bookmark"
-                    disabled={disabled}
+                    disabled={!anySelected}
                     onAction={() => this.onUpdate({isBookmarked: false})}
                     shouldConfirm={this.shouldConfirm('unbookmark')}
                     message={confirm('remove', false, ' from your bookmarks')}
@@ -367,7 +342,7 @@ const StreamActions = createReactClass({
                 <MenuItem noAnchor={true}>
                   <ActionLink
                     className="action-unresolve"
-                    disabled={disabled}
+                    disabled={!anySelected}
                     onAction={() => this.onUpdate({status: 'unresolved'})}
                     shouldConfirm={this.shouldConfirm('unresolve')}
                     message={confirm('unresolve', true)}
@@ -380,7 +355,7 @@ const StreamActions = createReactClass({
                 <MenuItem noAnchor={true}>
                   <ActionLink
                     className="action-delete"
-                    disabled={disabled || this.state.allInQuerySelected}
+                    disabled={!anySelected || this.state.allInQuerySelected}
                     onAction={this.onDelete}
                     shouldConfirm={this.shouldConfirm('delete')}
                     message={confirm('delete', false)}
@@ -392,45 +367,54 @@ const StreamActions = createReactClass({
                 </MenuItem>
               </DropdownLink>
             </div>
-
             <div className="btn-group">
-              <a
-                className="btn btn-default btn-sm hidden-xs realtime-control tip"
-                title={`${this.props.realtimeActive
-                  ? 'Pause'
-                  : 'Enable'} real-time updates`}
-                onClick={this.onRealtimeChange}
-              >
-                {this.props.realtimeActive ? (
-                  <span className="icon icon-pause" />
-                ) : (
-                  <span className="icon icon-play" />
+              <Tooltip
+                title={t(
+                  '%s real-time updates',
+                  this.props.realtimeActive ? t('Pause') : t('Enable')
                 )}
-              </a>
+              >
+                <a
+                  className="btn btn-default btn-sm hidden-xs realtime-control"
+                  onClick={this.onRealtimeChange}
+                >
+                  {this.props.realtimeActive ? (
+                    <span className="icon icon-pause" />
+                  ) : (
+                    <span className="icon icon-play" />
+                  )}
+                </a>
+              </Tooltip>
             </div>
-          </div>
-          <div className="hidden-sm stream-actions-assignee col-md-1" />
-          <div className="stream-actions-level col-md-1 hidden-xs" />
-          <div className="hidden-sm hidden-xs stream-actions-graph col-md-2">
-            <ToolbarHeader className="stream-actions-graph-label">
-              {t('Graph:')}
-            </ToolbarHeader>
-            <ul className="toggle-graph">
-              <li className={this.props.statsPeriod === '24h' ? 'active' : ''}>
-                <a onClick={this.selectStatsPeriod.bind(this, '24h')}>{t('24h')}</a>
-              </li>
-              <li className={this.props.statsPeriod === '14d' ? 'active' : ''}>
-                <a onClick={this.selectStatsPeriod.bind(this, '14d')}>{t('14d')}</a>
-              </li>
-            </ul>
-          </div>
-          <ToolbarHeader className="stream-actions-count align-right col-md-1 col-sm-2 col-xs-2">
-            {t('Events')}
-          </ToolbarHeader>
-          <ToolbarHeader className="stream-actions-users align-right col-md-1 col-sm-2 col-xs-2">
-            {t('Users')}
-          </ToolbarHeader>
-        </Toolbar>
+          </ActionSet>
+          <Box w={160} mx={2} className="hidden-xs hidden-sm">
+            <Flex>
+              <StyledToolbarHeader>{t('Graph:')}</StyledToolbarHeader>
+              <GraphToggle
+                active={this.props.statsPeriod === '24h'}
+                onClick={this.selectStatsPeriod.bind(this, '24h')}
+              >
+                {t('24h')}
+              </GraphToggle>
+
+              <GraphToggle
+                active={this.props.statsPeriod === '14d'}
+                onClick={this.selectStatsPeriod.bind(this, '14d')}
+              >
+                {t('14d')}
+              </GraphToggle>
+            </Flex>
+          </Box>
+          <Box w={[40, 60, 80, 80]} mx={2} className="align-right">
+            <ToolbarHeader>{t('Events')}</ToolbarHeader>
+          </Box>
+          <Box w={[40, 60, 80, 80]} mx={2} className="align-right">
+            <ToolbarHeader>{t('Users')}</ToolbarHeader>
+          </Box>
+          <Box w={80} mx={2} className="align-right hidden-xs hidden-sm">
+            <ToolbarHeader>{t('Assignee')}</ToolbarHeader>
+          </Box>
+        </StyledFlex>
 
         {!this.props.allResultsVisible &&
           this.state.pageSelected && (
@@ -465,9 +449,54 @@ const StreamActions = createReactClass({
               </div>
             </div>
           )}
-      </div>
+      </Sticky>
     );
   },
 });
+
+const Sticky = styled.div`
+  position: sticky;
+  z-index: ${p => p.theme.zIndex.header};
+  top: -1px;
+`;
+
+const StyledFlex = styled(Flex)`
+  align-items: center;
+  background: ${p => p.theme.offWhite};
+  border-bottom: 1px solid ${p => p.theme.borderDark};
+  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
+  margin-bottom: -1px;
+`;
+
+const ActionsCheckbox = styled(Box)`
+  & input[type='checkbox'] {
+    margin: 0;
+    display: block;
+  }
+`;
+
+const ActionSet = styled(Box)`
+  display: flex;
+
+  .btn-group {
+    margin-right: 6px;
+  }
+`;
+
+const StyledToolbarHeader = styled(ToolbarHeader)`
+  flex: 1;
+`;
+
+const GraphToggle = styled.a`
+  font-size: 13px;
+  padding-left: 8px;
+
+  &,
+  &:hover,
+  &:focus,
+  &:active {
+    color: ${p => (p.active ? p.theme.gray4 : p.theme.gray1)};
+  }
+`;
 
 export default StreamActions;

@@ -1,9 +1,32 @@
+import {Box, Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 
 import {t} from '../locale';
+import {Panel, PanelBody, PanelHeader} from './panels';
+import PluginIcon from '../plugins/components/pluginIcon';
+import TextOverflow from './textOverflow';
 
-export default class extends React.Component {
+const IntegrationButton = styled.button`
+  width: 175px;
+  text-align: center;
+  font-size: 12px;
+  color: #889ab0;
+  letter-spacing: 0.1px;
+  font-weight: 600;
+  text-transform: uppercase;
+  border: 1px solid #eee;
+  background: inherit;
+  border-radius: 4px;
+  padding: 10px;
+
+  &:hover {
+    border-color: #ccc;
+  }
+`;
+
+class InactivePlugins extends React.Component {
   static propTypes = {
     plugins: PropTypes.array.isRequired,
     onEnablePlugin: PropTypes.func.isRequired,
@@ -17,28 +40,33 @@ export default class extends React.Component {
     let plugins = this.props.plugins;
     if (plugins.length === 0) return null;
     return (
-      <div className="box">
-        <div className="box-header">
-          <h3>{t('Inactive Integrations')}</h3>
-        </div>
-        <div className="box-content with-padding">
-          <ul className="integration-list">
+      <Panel>
+        <PanelHeader>{t('Inactive Integrations')}</PanelHeader>
+
+        <PanelBody>
+          <Flex p={1} flex="1" wrap="wrap">
             {plugins.map(plugin => {
               return (
-                <li key={plugin.id}>
-                  <button
+                <Box m={1} key={plugin.id}>
+                  <IntegrationButton
                     onClick={this.enablePlugin.bind(this, plugin)}
                     className={`ref-plugin-enable-${plugin.id}`}
                   >
-                    <div className={'icon-integration icon-' + plugin.id} />
-                    {plugin.shortName || plugin.name}
-                  </button>
-                </li>
+                    <Flex justify="center" align="center">
+                      <Flex align="center" mr={1}>
+                        <PluginIcon pluginId={plugin.id} />
+                      </Flex>
+                      <TextOverflow>{plugin.shortName || plugin.name}</TextOverflow>
+                    </Flex>
+                  </IntegrationButton>
+                </Box>
               );
             })}
-          </ul>
-        </div>
-      </div>
+          </Flex>
+        </PanelBody>
+      </Panel>
     );
   }
 }
+
+export default InactivePlugins;

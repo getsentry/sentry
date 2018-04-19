@@ -2,18 +2,23 @@
 
 exports[`CreateProject render() should render loading 1`] = `
 <div>
-  <h3>
-    Add Member to Organization
-  </h3>
-  <p>
+  <SettingsPageHeading
+    title="Add Member to Organization"
+  />
+  <TextBlock>
     Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one. Multiple emails delimited by commas.
-  </p>
+  </TextBlock>
   <LoadingIndicator />
 </div>
 `;
 
 exports[`CreateProject render() should render roles when available and allowed, and handle submitting 1`] = `
 <InviteMember
+  location={
+    Object {
+      "query": Object {},
+    }
+  }
   params={
     Object {
       "orgId": "testOrg",
@@ -21,12 +26,48 @@ exports[`CreateProject render() should render roles when available and allowed, 
   }
 >
   <div>
-    <h3>
-      Add Member to Organization
-    </h3>
-    <p>
-      Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one. Multiple emails delimited by commas.
-    </p>
+    <SettingsPageHeading
+      title="Add Member to Organization"
+    >
+      <Wrapper>
+        <div
+          className="css-foidy-Wrapper css-17jmgia0"
+        >
+          <Flex
+            align="center"
+          >
+            <Base
+              align="center"
+              className="css-5ipae5"
+            >
+              <div
+                className="css-5ipae5"
+                is={null}
+              >
+                <Title>
+                  <div
+                    className="css-zmdcxu-Title css-17jmgia1"
+                  >
+                    Add Member to Organization
+                  </div>
+                </Title>
+              </div>
+            </Base>
+          </Flex>
+        </div>
+      </Wrapper>
+    </SettingsPageHeading>
+    <TextBlock>
+      <Component
+        className="css-ms59cf-TextBlock css-1gwew8k0"
+      >
+        <div
+          className="css-ms59cf-TextBlock css-1gwew8k0"
+        >
+          Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one. Multiple emails delimited by commas.
+        </div>
+      </Component>
+    </TextBlock>
     <div>
       <div
         className=""
@@ -57,6 +98,7 @@ exports[`CreateProject render() should render roles when available and allowed, 
                 className="form-control"
                 disabled={false}
                 id="id-email"
+                name="email"
                 onChange={[Function]}
                 placeholder="e.g. teammate@example.com"
                 required={false}
@@ -89,89 +131,220 @@ exports[`CreateProject render() should render roles when available and allowed, 
         selectedRole="member"
         setRole={[Function]}
       >
-        <div
-          className="new-invite-team box"
+        <Panel
+          className="new-invite-team"
         >
-          <div
-            className="box-header"
+          <StyledPanel
+            className="new-invite-team"
           >
-            <h4>
-              Role
-            </h4>
-          </div>
-          <div
-            className="box-content with-padding"
-          >
-            <ul
-              className="radio-inputs"
+            <div
+              className="new-invite-team css-wfa8ap-StyledPanel css-5bw71w0"
             >
-              <li
-                className="radio"
-                key="1"
-                onClick={[Function]}
-                style={Object {}}
+              <PanelHeader>
+                <StyledPanelHeader>
+                  <Component
+                    className="css-kf498j-StyledPanelHeader css-1t1cqk30"
+                  >
+                    <Flex
+                      align="center"
+                      className="css-kf498j-StyledPanelHeader css-1t1cqk30"
+                      justify="space-between"
+                    >
+                      <Base
+                        align="center"
+                        className="css-1t1cqk30 css-hj6snb"
+                        justify="space-between"
+                      >
+                        <div
+                          className="css-1t1cqk30 css-hj6snb"
+                          is={null}
+                        >
+                          Role
+                        </div>
+                      </Base>
+                    </Flex>
+                  </Component>
+                </StyledPanelHeader>
+              </PanelHeader>
+              <PanelBody
+                direction="column"
+                disablePadding={true}
+                flex={false}
               >
-                <label
-                  style={Object {}}
+                <div
+                  className=""
                 >
-                  <Radio
-                    checked={false}
-                    id="1"
-                    readOnly={true}
-                    value="member"
+                  <PanelItem
+                    className="css-0"
+                    key="1"
+                    onClick={[Function]}
+                    p={2}
                   >
-                    <input
-                      checked={false}
-                      className="radio-select"
-                      id="1"
-                      readOnly={true}
-                      type="radio"
-                      value="member"
-                    />
-                  </Radio>
-                  member
-                  <div
-                    className="help-block"
+                    <StyledPanelItem
+                      className="css-0"
+                      onClick={[Function]}
+                      p={2}
+                    >
+                      <Base
+                        className="css-11r4q5-StyledPanelItem css-q9h14u0"
+                        onClick={[Function]}
+                        p={2}
+                      >
+                        <div
+                          className="css-11r4q5-StyledPanelItem css-q9h14u0"
+                          is={null}
+                          onClick={[Function]}
+                        >
+                          <Label>
+                            <label
+                              className="css-r8kahz-Label css-ydltot0"
+                            >
+                              <Radio
+                                checked={false}
+                                id="1"
+                                readOnly={true}
+                                style={
+                                  Object {
+                                    "margin": 0,
+                                  }
+                                }
+                                value="member"
+                              >
+                                <input
+                                  checked={false}
+                                  className="radio-select"
+                                  id="1"
+                                  readOnly={true}
+                                  style={
+                                    Object {
+                                      "margin": 0,
+                                    }
+                                  }
+                                  type="radio"
+                                  value="member"
+                                />
+                              </Radio>
+                              <div
+                                style={
+                                  Object {
+                                    "flex": 1,
+                                    "padding": "0 16px",
+                                  }
+                                }
+                              >
+                                member
+                                <TextBlock
+                                  className="css-gx0lhm"
+                                >
+                                  <Component
+                                    className="css-b3mf8s-TextBlock css-1gwew8k0"
+                                  >
+                                    <div
+                                      className="css-b3mf8s-TextBlock css-1gwew8k0"
+                                    >
+                                      <div
+                                        className="help-block"
+                                      >
+                                        a normal member
+                                      </div>
+                                    </div>
+                                  </Component>
+                                </TextBlock>
+                              </div>
+                            </label>
+                          </Label>
+                        </div>
+                      </Base>
+                    </StyledPanelItem>
+                  </PanelItem>
+                  <PanelItem
+                    className="css-0"
+                    key="2"
+                    onClick={[Function]}
+                    p={2}
                   >
-                    a normal member
-                  </div>
-                </label>
-              </li>
-              <li
-                className="radio"
-                key="2"
-                onClick={[Function]}
-                style={Object {}}
-              >
-                <label
-                  style={Object {}}
-                >
-                  <Radio
-                    checked={false}
-                    id="2"
-                    readOnly={true}
-                    value="bar"
-                  >
-                    <input
-                      checked={false}
-                      className="radio-select"
-                      id="2"
-                      readOnly={true}
-                      type="radio"
-                      value="bar"
-                    />
-                  </Radio>
-                  bar
-                  <div
-                    className="help-block"
-                  >
-                    another role
-                  </div>
-                </label>
-              </li>
-            </ul>
-          </div>
-        </div>
+                    <StyledPanelItem
+                      className="css-0"
+                      onClick={[Function]}
+                      p={2}
+                    >
+                      <Base
+                        className="css-11r4q5-StyledPanelItem css-q9h14u0"
+                        onClick={[Function]}
+                        p={2}
+                      >
+                        <div
+                          className="css-11r4q5-StyledPanelItem css-q9h14u0"
+                          is={null}
+                          onClick={[Function]}
+                        >
+                          <Label>
+                            <label
+                              className="css-r8kahz-Label css-ydltot0"
+                            >
+                              <Radio
+                                checked={false}
+                                id="2"
+                                readOnly={true}
+                                style={
+                                  Object {
+                                    "margin": 0,
+                                  }
+                                }
+                                value="bar"
+                              >
+                                <input
+                                  checked={false}
+                                  className="radio-select"
+                                  id="2"
+                                  readOnly={true}
+                                  style={
+                                    Object {
+                                      "margin": 0,
+                                    }
+                                  }
+                                  type="radio"
+                                  value="bar"
+                                />
+                              </Radio>
+                              <div
+                                style={
+                                  Object {
+                                    "flex": 1,
+                                    "padding": "0 16px",
+                                  }
+                                }
+                              >
+                                bar
+                                <TextBlock
+                                  className="css-gx0lhm"
+                                >
+                                  <Component
+                                    className="css-b3mf8s-TextBlock css-1gwew8k0"
+                                  >
+                                    <div
+                                      className="css-b3mf8s-TextBlock css-1gwew8k0"
+                                    >
+                                      <div
+                                        className="help-block"
+                                      >
+                                        another role
+                                      </div>
+                                    </div>
+                                  </Component>
+                                </TextBlock>
+                              </div>
+                            </label>
+                          </Label>
+                        </div>
+                      </Base>
+                    </StyledPanelItem>
+                  </PanelItem>
+                </div>
+              </PanelBody>
+            </div>
+          </StyledPanel>
+        </Panel>
       </RoleSelect>
       <TeamSelect
         selectedTeams={
@@ -197,77 +370,141 @@ exports[`CreateProject render() should render roles when available and allowed, 
         }
         toggleTeam={[Function]}
       >
-        <div
-          className="new-invite-team box"
+        <Panel
+          className="new-invite-team"
         >
-          <div
-            className="box-header"
-          >
-            <h4>
-              Team
-            </h4>
-          </div>
-          <div
-            className="grouping-controls team-choices row box-content with-padding"
+          <StyledPanel
+            className="new-invite-team"
           >
             <div
-              className="col-md-3"
-              key="bar"
+              className="new-invite-team css-wfa8ap-StyledPanel css-5bw71w0"
             >
-              <label
-                className="checkbox"
+              <PanelHeader>
+                <StyledPanelHeader>
+                  <Component
+                    className="css-kf498j-StyledPanelHeader css-1t1cqk30"
+                  >
+                    <Flex
+                      align="center"
+                      className="css-kf498j-StyledPanelHeader css-1t1cqk30"
+                      justify="space-between"
+                    >
+                      <Base
+                        align="center"
+                        className="css-1t1cqk30 css-hj6snb"
+                        justify="space-between"
+                      >
+                        <div
+                          className="css-1t1cqk30 css-hj6snb"
+                          is={null}
+                        >
+                          Team
+                        </div>
+                      </Base>
+                    </Flex>
+                  </Component>
+                </StyledPanelHeader>
+              </PanelHeader>
+              <PanelBody
+                className="grouping-controls team-choices"
+                direction="column"
+                disablePadding={true}
+                flex={false}
               >
-                <Checkbox
-                  checked={false}
-                  id="bar"
-                  onChange={[Function]}
+                <div
+                  className="grouping-controls team-choices"
                 >
-                  <input
-                    checked={false}
-                    className="chk-select"
-                    id="bar"
-                    onChange={[Function]}
-                    type="checkbox"
-                  />
-                </Checkbox>
-                bar
-                <span
-                  className="team-slug"
-                >
-                  bar
-                </span>
-              </label>
+                  <PanelItem
+                    className="css-1jkp9i7"
+                    p={2}
+                  >
+                    <StyledPanelItem
+                      className="css-1jkp9i7"
+                      p={2}
+                    >
+                      <Base
+                        className="css-13vowjc-StyledPanelItem css-q9h14u0"
+                        p={2}
+                      >
+                        <div
+                          className="css-13vowjc-StyledPanelItem css-q9h14u0"
+                          is={null}
+                        >
+                          <TeamItem
+                            key="bar"
+                          >
+                            <div
+                              className="css-16v1fbz-TeamItem css-114hxzd0"
+                            >
+                              <label
+                                className="checkbox"
+                              >
+                                <Checkbox
+                                  checked={false}
+                                  id="bar"
+                                  onChange={[Function]}
+                                >
+                                  <input
+                                    checked={false}
+                                    className="chk-select"
+                                    id="bar"
+                                    onChange={[Function]}
+                                    type="checkbox"
+                                  />
+                                </Checkbox>
+                                <span>
+                                  bar
+                                </span>
+                                <span
+                                  className="team-slug"
+                                >
+                                  bar
+                                </span>
+                              </label>
+                            </div>
+                          </TeamItem>
+                          <TeamItem
+                            key="foo"
+                          >
+                            <div
+                              className="css-16v1fbz-TeamItem css-114hxzd0"
+                            >
+                              <label
+                                className="checkbox"
+                              >
+                                <Checkbox
+                                  checked={false}
+                                  id="foo"
+                                  onChange={[Function]}
+                                >
+                                  <input
+                                    checked={false}
+                                    className="chk-select"
+                                    id="foo"
+                                    onChange={[Function]}
+                                    type="checkbox"
+                                  />
+                                </Checkbox>
+                                <span>
+                                  foo
+                                </span>
+                                <span
+                                  className="team-slug"
+                                >
+                                  foo
+                                </span>
+                              </label>
+                            </div>
+                          </TeamItem>
+                        </div>
+                      </Base>
+                    </StyledPanelItem>
+                  </PanelItem>
+                </div>
+              </PanelBody>
             </div>
-            <div
-              className="col-md-3"
-              key="foo"
-            >
-              <label
-                className="checkbox"
-              >
-                <Checkbox
-                  checked={false}
-                  id="foo"
-                  onChange={[Function]}
-                >
-                  <input
-                    checked={false}
-                    className="chk-select"
-                    id="foo"
-                    onChange={[Function]}
-                    type="checkbox"
-                  />
-                </Checkbox>
-                foo
-                <span
-                  className="team-slug"
-                >
-                  foo
-                </span>
-              </label>
-            </div>
-          </div>
-        </div>
+          </StyledPanel>
+        </Panel>
       </TeamSelect>
       <Button
         busy={false}
@@ -282,19 +519,22 @@ exports[`CreateProject render() should render roles when available and allowed, 
           onClick={[Function]}
           role="button"
         >
-          <FlowLayout
-            truncate={false}
+          <Flex
+            align="center"
+            className="button-label"
           >
-            <div
-              className="flow-layout"
+            <Base
+              align="center"
+              className="button-label css-5ipae5"
             >
-              <span
-                className="button-label"
+              <div
+                className="button-label css-5ipae5"
+                is={null}
               >
                 Add Member
-              </span>
-            </div>
-          </FlowLayout>
+              </div>
+            </Base>
+          </Flex>
         </button>
       </Button>
     </div>
@@ -303,7 +543,7 @@ exports[`CreateProject render() should render roles when available and allowed, 
 `;
 
 exports[`CreateProject render() should use invite/add language based on config 1`] = `
-<p>
+<TextBlock>
   You may add a user by their username if they already have an account. Multiple inputs delimited by commas.
-</p>
+</TextBlock>
 `;

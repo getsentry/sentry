@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import PureRenderMixin from 'react-addons-pure-render-mixin';
+import styled from 'react-emotion';
 import ProjectState from '../mixins/projectState';
 
 import AutoSelectText from './autoSelectText';
@@ -11,10 +11,9 @@ const ShortId = createReactClass({
 
   propTypes: {
     shortId: PropTypes.string,
-    project: PropTypes.object,
   },
 
-  mixins: [PureRenderMixin, ProjectState],
+  mixins: [ProjectState],
 
   preventPropagation(e) {
     // this is a hack for the stream so the click handler doesn't
@@ -28,11 +27,15 @@ const ShortId = createReactClass({
       return null;
     }
     return (
-      <span className="short-id" onClick={this.preventPropagation}>
+      <StyledShortId onClick={this.preventPropagation} {...this.props}>
         <AutoSelectText>{shortId}</AutoSelectText>
-      </span>
+      </StyledShortId>
     );
   },
 });
+
+const StyledShortId = styled.div`
+  font-family: ${p => p.theme.text.familyMono};
+`;
 
 export default ShortId;

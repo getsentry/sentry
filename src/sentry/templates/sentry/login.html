@@ -52,11 +52,33 @@
         {{ register_form|as_crispy_errors }}
 
         {% for field in register_form %}
-          {{ field|as_crispy_field }}
+          {% if not field.name == 'subscribe' %}
+            {{ field|as_crispy_field }}
+          {% endif %}
         {% endfor %}
+
+        {% if register_form.subscribe %}
+          {% with register_form.subscribe as field %}
+            <fieldset class="{% if field.errors %}is-invalid{% endif %} boolean-radio-select">
+              <label> {{ field.label }}</label>
+              <div class="help-block">{{ field.help_text }}</div>
+              <div class="inputs-list radio">
+                {{ field }}
+                {% if field.errors %}
+                  {% for error in field.errors %}
+                    <p class="form-text"><small>{{ error }}</small></p>
+                  {% endfor %}
+                {% endif %}
+              </div>
+            </fieldset>
+          {% endwith %}
+        {% endif %}
 
         <fieldset class="form-actions">
           <button type="submit" class="btn btn-primary">{% trans "Continue" %}</button>
+          <a class="pull-right" style="margin-top: 9px" href="https://sentry.io/privacy/" target="_blank">
+            {% trans "Privacy Policy" %}
+          </a>
         </fieldset>
       </form>
     </div>

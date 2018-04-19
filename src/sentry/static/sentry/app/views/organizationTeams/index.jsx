@@ -8,6 +8,7 @@ import {sortArray} from '../../utils';
 import ApiMixin from '../../mixins/apiMixin';
 import LoadingIndicator from '../../components/loadingIndicator';
 import OrganizationState from '../../mixins/organizationState';
+import ProjectsStore from '../../stores/projectsStore';
 import TeamStore from '../../stores/teamStore';
 import getSettingsComponent from '../../utils/getSettingsComponent';
 
@@ -18,12 +19,20 @@ const OrganizationTeams = createReactClass({
     routes: PropTypes.arrayOf(PropTypes.object),
   },
 
-  mixins: [ApiMixin, OrganizationState, Reflux.listenTo(TeamStore, 'onTeamListChange')],
+  mixins: [
+    ApiMixin,
+    OrganizationState,
+    Reflux.listenTo(TeamStore, 'onTeamListChange'),
+    Reflux.listenTo(ProjectsStore, 'onProjectListChange'),
+  ],
 
   getInitialState() {
     return {
       Component: null,
       teamList: sortArray(TeamStore.getAll(), function(o) {
+        return o && o.name;
+      }),
+      projectList: sortArray(ProjectsStore.getAll(), function(o) {
         return o && o.name;
       }),
       projectStats: {},
@@ -65,6 +74,16 @@ const OrganizationTeams = createReactClass({
     });
   },
 
+  onProjectListChange() {
+    let newProjectList = ProjectsStore.getAll();
+
+    this.setState({
+      projectList: sortArray(newProjectList, function(o) {
+        return o.name;
+      }),
+    });
+  },
+
   render() {
     if (!this.context.organization) return null;
     if (!this.state.Component) return <LoadingIndicator />;
@@ -82,6 +101,7 @@ const OrganizationTeams = createReactClass({
         access={access}
         features={features}
         organization={org}
+        projectList={this.state.projectList}
         allTeams={allTeams}
         activeTeams={activeTeams}
       />

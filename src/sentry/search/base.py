@@ -11,11 +11,12 @@ from __future__ import absolute_import
 from sentry.utils.services import Service
 
 ANY = object()
-EMPTY = object()
 
 
 class SearchBackend(Service):
-    __all__ = ('query', 'validate')
+    __all__ = frozenset([
+        'query',
+    ])
 
     def __init__(self, **options):
         pass

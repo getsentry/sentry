@@ -1,401 +1,350 @@
+import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
+import Reflux from 'reflux';
+import createReactClass from 'create-react-class';
 
 import {
-  ApiForm,
-  BooleanField,
-  RangeField,
-  Select2Field,
-  TextareaField,
-  TextField,
-} from '../components/forms';
-import IndicatorStore from '../stores/indicatorStore';
-
+  changeProjectSlug,
+  removeProject,
+  transferProject,
+} from '../actionCreators/projects';
+import {fields} from '../data/forms/projectGeneralSettings';
+import {getOrganizationState} from '../mixins/organizationState';
 import {t, tct} from '../locale';
 import AsyncView from './asyncView';
-import {getOrganizationState} from '../mixins/organizationState';
+import Button from '../components/buttons/button';
+import Confirm from '../components/confirm';
+import Field from './settings/components/forms/field';
+import Form from './settings/components/forms/form';
+import JsonForm from './settings/components/forms/jsonForm';
+import {Panel, PanelAlert, PanelHeader} from '../components/panels';
+import ProjectsStore from '../stores/projectsStore';
+import SettingsPageHeader from './settings/components/settingsPageHeader';
+import TextBlock from './settings/components/text/textBlock';
+import TextField from './settings/components/forms/textField';
+import recreateRoute from '../utils/recreateRoute';
 
-class ListAsTextareaField extends TextareaField {
-  getValue(props, context) {
-    let value = super.getValue(props, context);
-    return value ? value.join('\n') : '';
-  }
+class ProjectGeneralSettings extends AsyncView {
+  static propTypes = {
+    onChangeSlug: PropTypes.func,
+  };
 
-  coerceValue(value) {
-    return value ? value.split('\n') : [];
-  }
-}
-
-export default class ProjectGeneralSettings extends AsyncView {
   static contextTypes = {
     organization: PropTypes.object.isRequired,
   };
 
-  getEndpoint() {
+  constructor(...args) {
+    super(...args);
+    this._form = {};
+  }
+
+  getTitle() {
+    let {projectId} = this.props.params;
+    return t('%s Settings', projectId);
+  }
+
+  getEndpoints() {
     let {orgId, projectId} = this.props.params;
-    return `/projects/${orgId}/${projectId}/`;
+    return [['data', `/projects/${orgId}/${projectId}/`]];
   }
 
-  getTeamChoices() {
-    return this.context.organization.teams
-      .filter(o => o.isMember)
-      .map(o => [o.slug, o.slug]);
-  }
+  handleTransferFieldChange = (id, value) => {
+    this._form[id] = value;
+  };
 
-  getResolveAgeAllowedValues() {
-    let i = 0;
-    let values = [];
-    while (i <= 720) {
-      values.push(i);
-      if (i < 12) {
-        i += 1;
-      } else if (i < 24) {
-        i += 3;
-      } else if (i < 36) {
-        i += 6;
-      } else if (i < 48) {
-        i += 12;
-      } else {
-        i += 24;
-      }
-    }
-    return values;
-  }
+  handleRemoveProject = () => {
+    let {orgId} = this.props.params;
+    let project = this.state.data;
+    if (!project) return;
 
-  formatResolveAgeLabel(val) {
-    val = parseInt(val, 10);
-    if (val === 0) {
-      return 'Disabled';
-    } else if (val > 23 && val % 24 === 0) {
-      val = val / 24;
-      return val + ' day' + (val != 1 ? 's' : '');
-    }
-    return val + ' hour' + (val != 1 ? 's' : '');
-  }
+    removeProject(this.api, orgId, project).then(() => {
+      // Need to hard reload because lots of components do not listen to Projects Store
+      window.location.assign('/');
+    });
+  };
+
+  handleTransferProject = () => {
+    let {orgId} = this.props.params;
+    let project = this.state.data;
+    if (!project) return;
+    if (!this._form.email) return;
+
+    transferProject(this.api, orgId, project, this._form.email).then(() => {
+      // Need to hard reload because lots of components do not listen to Projects Store
+      window.location.assign('/');
+    });
+  };
 
   renderRemoveProject() {
-    let {orgId, projectId} = this.props.params;
-
     let project = this.state.data;
-
     let isProjectAdmin = getOrganizationState(this.context.organization)
       .getAccess()
       .has('project:admin');
+    let {isInternal} = project;
 
-    if (!isProjectAdmin) {
-      return (
-        <p>{t('You do not have the required permission to remove this project.')}</p>
-      );
-    } else if (project.isInternal) {
-      return (
-        <p>
-          {t(
+    return (
+      <Field
+        label={t('Remove Project')}
+        help={tct(
+          'Remove the [project] project and all related data. [linebreak] Careful, this action cannot be undone.',
+          {
+            project: <strong>{project.slug}</strong>,
+            linebreak: <br />,
+          }
+        )}
+      >
+        {!isProjectAdmin &&
+          t('You do not have the required permission to remove this project.')}
+
+        {isInternal &&
+          t(
             'This project cannot be removed. It is used internally by the Sentry server.'
           )}
-        </p>
-      );
-    } else {
-      return (
-        <p>
-          <a
-            href={`/${orgId}/${projectId}/settings/remove/`}
-            className="btn btn-danger pull-right"
-          >
-            {t('Remove Project')}
-          </a>
-          Remove the <strong>{project.slug}</strong> project and all related data.
-          <br />
-          Careful, this action cannot be undone.
-        </p>
-      );
-    }
+
+        {isProjectAdmin &&
+          !isInternal && (
+            <Confirm
+              onConfirm={this.handleRemoveProject}
+              priority="danger"
+              title={t('Remove project?')}
+              confirmText={t('Remove project')}
+              message={
+                <div>
+                  <TextBlock>
+                    <strong>
+                      {t('Removing this project is permanent and cannot be undone!')}
+                    </strong>
+                  </TextBlock>
+                  <TextBlock>
+                    {t('This will also remove all associated event data.')}
+                  </TextBlock>
+                </div>
+              }
+            >
+              <div>
+                <Button className="ref-remove-project" type="button" priority="danger">
+                  {t('Remove Project')}
+                </Button>
+              </div>
+            </Confirm>
+          )}
+      </Field>
+    );
   }
 
   renderTransferProject() {
-    let {orgId, projectId} = this.props.params;
-
     let project = this.state.data;
     let isProjectAdmin = getOrganizationState(this.context.organization)
       .getAccess()
       .has('project:admin');
+    let {isInternal} = project;
 
-    if (!isProjectAdmin) {
-      return (
-        <p>{t('You do not have the required permission to transfer this project.')}</p>
-      );
-    } else if (project.isInternal) {
-      return (
-        <p>
-          {t(
-            'This project cannot be removed. It is used internally by the Sentry server.'
+    return (
+      <Field
+        label={t('Transfer Project')}
+        help={tct(
+          'Transfer the [project] project and all related data. [linebreak] Careful, this action cannot be undone.',
+          {
+            project: <strong>{project.slug}</strong>,
+            linebreak: <br />,
+          }
+        )}
+      >
+        {!isProjectAdmin &&
+          t('You do not have the required permission to transfer this project.')}
+
+        {isInternal &&
+          t(
+            'This project cannot be transferred. It is used internally by the Sentry server.'
           )}
-        </p>
-      );
-    } else {
-      return (
-        <p>
-          <a
-            href={`/${orgId}/${projectId}/settings/transfer/`}
-            className="btn btn-danger pull-right"
-          >
-            {t('Transfer Project')}
-          </a>
-          Transfer the <strong>{project.slug}</strong> project and all related data.
-          <br />
-          Careful, this action cannot be undone.
-        </p>
-      );
-    }
+
+        {isProjectAdmin &&
+          !isInternal && (
+            <Confirm
+              onConfirm={this.handleTransferProject}
+              priority="danger"
+              title={`${t('Transfer project')}?`}
+              confirmText={t('Transfer project')}
+              renderMessage={({confirm}) => (
+                <div>
+                  <TextBlock>
+                    <strong>
+                      {t('Transferring this project is permanent and cannot be undone!')}
+                    </strong>
+                  </TextBlock>
+                  <TextBlock>
+                    {t(
+                      'Please enter the organization owner you would like to transfer this project to.'
+                    )}
+                  </TextBlock>
+                  <Panel>
+                    <Form
+                      hideFooter
+                      onFieldChange={this.handleTransferFieldChange}
+                      onSubmit={(data, onSuccess, onError, e) => {
+                        e.stopPropagation();
+                        confirm();
+                      }}
+                    >
+                      <TextField
+                        name="email"
+                        label={t('Organization Owner')}
+                        placeholder="admin@example.com"
+                        required
+                        help={tct(
+                          'A request will be emailed to the new owner in order to transfer [project] to a new organization.',
+                          {
+                            project: <strong> {project.slug} </strong>,
+                          }
+                        )}
+                      />
+                    </Form>
+                  </Panel>
+                </div>
+              )}
+            >
+              <div>
+                <Button className="ref-transfer-project" type="button" priority="danger">
+                  {t('Transfer Project')}
+                </Button>
+              </div>
+            </Confirm>
+          )}
+      </Field>
+    );
   }
 
   renderBody() {
-    // These values cannot be changed on a project basis if any of them are 'true' at the org level
-    let orgOverrideFields = ['dataScrubber', 'dataScrubberDefaults', 'scrubIPAddresses'];
-
-    let orgOverrides = orgOverrideFields.reduce((res, key) => {
-      res[key] = this.context.organization[key];
-      return res;
-    }, {});
-
-    let orgOverrideDisabledReason = t(
-      "This option is enforced by your organization's settings and cannot be customized per-project."
-    );
-
+    let {organization} = this.context;
     let project = this.state.data;
     let {orgId, projectId} = this.props.params;
-    let initialData = {
-      name: project.name,
-      slug: project.slug,
-      team: project.team && project.team.slug,
-      allowedDomains: project.allowedDomains,
-      resolveAge: project.resolveAge,
-      dataScrubber: project.dataScrubber,
-      dataScrubberDefaults: project.dataScrubberDefaults,
-      sensitiveFields: project.sensitiveFields,
-      safeFields: project.safeFields,
-      defaultEnvironment: project.defaultEnvironment,
-      subjectPrefix: project.subjectPrefix,
-      scrubIPAddresses: project.scrubIPAddresses,
-      securityToken: project.securityToken,
-      securityHeader: project.securityHeader,
-      securityTokenHeader: project.securityTokenHeader,
-      verifySSL: project.verifySSL,
-      scrapeJavaScript: project.scrapeJavaScript,
+    let endpoint = `/projects/${orgId}/${projectId}/`;
+    let jsonFormProps = {
+      additionalFieldProps: {organization},
+      access: new Set(organization.access),
     };
-
-    let teamChoices = this.getTeamChoices();
 
     return (
       <div>
-        <h2>{t('Project Settings')}</h2>
-        <ApiForm
-          initialData={initialData}
+        <SettingsPageHeader title={t('Project Settings')} />
+
+        <Form
+          saveOnBlur
+          allowUndo
+          initialData={{
+            ...project,
+            team: project.team && project.team.slug,
+          }}
           apiMethod="PUT"
-          apiEndpoint={this.getEndpoint()}
+          apiEndpoint={endpoint}
           onSubmitSuccess={resp => {
-            IndicatorStore.add(t('Your changes were saved'), 'success', {duration: 2000});
-            // Reload if slug has changed
             if (projectId !== resp.slug) {
-              window.location = `/${orgId}/${resp.slug}/settings/`;
+              changeProjectSlug(projectId, resp.slug);
+              // Container will redirect after stores get updated with new slug
+              this.props.onChangeSlug(resp.slug);
             }
           }}
         >
-          <div className="box">
-            <div className="box-header">
-              <h3>{t('Project Details')}</h3>
-            </div>
-            <div className="box-content with-padding">
-              <TextField
-                name="name"
-                label={t('Project Name')}
-                required={true}
-                placeholder={t('e.g. My Service Name')}
-              />
-              <TextField
-                name="slug"
-                label={t('Short name')}
-                required={true}
-                help={t('A unique ID used to identify this project.')}
-              />
-              {teamChoices.length > 1 ? (
-                <Select2Field
-                  name="team"
-                  className="control-group"
-                  label={t('Team')}
-                  required={true}
-                  choices={this.getTeamChoices()}
-                />
-              ) : null}
-            </div>
-          </div>
+          <JsonForm
+            {...jsonFormProps}
+            title={t('Project Details')}
+            fields={[fields.slug, fields.name, fields.team]}
+          />
 
-          <div className="box">
-            <div className="box-header">
-              <h3>{t('Email')}</h3>
-            </div>
-            <div className="box-content with-padding">
-              <TextField
-                name="subjectPrefix"
-                label={t('Subject prefix')}
-                help={t('Choose a custom prefix for emails from this project.')}
-              />
-            </div>
-          </div>
-          <div className="box">
-            <div className="box-header">
-              <h3>{t('Event Settings')}</h3>
-            </div>
-            <div className="box-content with-padding">
-              <TextField
-                name="defaultEnvironment"
-                label={t('Default environment')}
-                help={t('The default selected environment when viewing issues.')}
-                placeholder={t('e.g. production')}
-              />
-              <RangeField
-                name="resolveAge"
-                label={t('Auto resolve')}
-                help={t(
-                  "Automatically resolve an issue if it hasn't been seen for this amount of time."
-                )}
-                min={0}
-                max={720}
-                step={1}
-                allowedValues={this.getResolveAgeAllowedValues()}
-                formatLabel={this.formatResolveAgeLabel}
-              />
-              <p>
-                <small>
-                  <strong>
-                    Note: Enabling auto resolve will immediately resolve anything that has
-                    not been seen within this period of time. There is no undo!
-                  </strong>
-                </small>
-              </p>
-            </div>
-          </div>
+          <JsonForm
+            {...jsonFormProps}
+            title={t('Email')}
+            fields={[fields.subjectPrefix]}
+          />
 
-          <div className="box">
-            <div className="box-header">
-              <h3>{t('Data Privacy')}</h3>
-            </div>
-            <div className="box-content with-padding">
-              <BooleanField
-                disabled={orgOverrides.dataScrubber}
-                disabledReason={orgOverrideDisabledReason}
-                value={orgOverrides.dataScrubber || null}
-                name="dataScrubber"
-                label={t('Data scrubber')}
-                help={t('Enable server-side data scrubbing.')}
-              />
-              <BooleanField
-                disabled={orgOverrides.dataScrubberDefaults}
-                value={orgOverrides.dataScrubberDefaults || null}
-                disabledReason={orgOverrideDisabledReason}
-                name="dataScrubberDefaults"
-                label={t('Use default scrubbers')}
-                help={t(
-                  'Apply default scrubbers to prevent things like passwords and credit cards from being stored.'
-                )}
-              />
-              <ListAsTextareaField
-                name="sensitiveFields"
-                label={t('Additional sensitive fields')}
-                help={t(
-                  'Additional field names to match against when scrubbing data. Separate multiple entries with a newline.'
-                )}
-                placeholder={t('e.g. email')}
-              />
-              <ListAsTextareaField
-                name="safeFields"
-                label={t('Safe fields')}
-                help={t(
-                  'Field names which data scrubbers should ignore. Separate multiple entries with a newline.'
-                )}
-                placeholder={t('e.g. email')}
-              />
-              <BooleanField
-                disabled={orgOverrides.scrubIPAddresses}
-                value={orgOverrides.scrubIPAddresses || null}
-                disabledReason={orgOverrideDisabledReason}
-                name="scrubIPAddresses"
-                label={t("Don't store IP Addresses")}
-                help={t('Prevent IP addresses from being stored for new events.')}
-              />
-            </div>
-          </div>
+          <JsonForm
+            {...jsonFormProps}
+            title={t('Event Settings')}
+            fields={[fields.resolveAge]}
+          />
 
-          <div className="box">
-            <div className="box-header">
-              <h3>{t('Client Security')}</h3>
-            </div>
-            <div className="box-content with-padding">
-              <p>
-                {tct(
-                  'Configure origin URLs which Sentry should accept events from. This is used for communication with clients like [link].',
-                  {
-                    link: <a href="https://github.com/getsentry/raven-js">raven-js</a>,
-                  }
-                )}{' '}
-                {tct(
-                  'This will restrict requests based on the [Origin] and [Referer] headers.',
-                  {
-                    Origin: <code>Origin</code>,
-                    Referer: <code>Referer</code>,
-                  }
-                )}
-              </p>
-              <ListAsTextareaField
-                name="allowedDomains"
-                label={t('Allowed domains')}
-                help={t('Separate multiple entries with a newline. Cannot be empty.')}
-                placeholder={t('e.g. https://example.com or example.com')}
-              />
-              <BooleanField
-                name="scrapeJavaScript"
-                label={t('Enable JavaScript source fetching')}
-                help={t(
-                  'Allow Sentry to scrape missing JavaScript source context when possible.'
-                )}
-              />
-              <TextField
-                name="securityToken"
-                label={t('Security token')}
-                help={t(
-                  'Outbound requests matching Allowed Domains will have the header "{token_header}: {token}" appended.'
-                )}
-              />
-              <TextField
-                name="securityTokenHeader"
-                label={t('Security token header')}
-                help={t(
-                  'Outbound requests matching Allowed Domains will have the header "{token_header}: {token}" appended.'
-                )}
-                placeholder={t('e.g. X-Sentry-Token')}
-              />
-              <BooleanField
-                name="verifySSL"
-                label={t('Verify TLS/SSL')}
-                help={t(
-                  'Outbound requests will verify TLS (sometimes known as SSL) connections.'
-                )}
-              />
-            </div>
-          </div>
-          <div className="box">
-            <div className="box-header">
-              <h3>{t('Remove Project')}</h3>
-            </div>
-            <div className="box-content with-padding">{this.renderRemoveProject()}</div>
-          </div>
-          <div className="box">
-            <div className="box-header">
-              <h3>{t('Transfer Project')}</h3>
-            </div>
-            <div className="box-content with-padding">{this.renderTransferProject()}</div>
-          </div>
-        </ApiForm>
+          <JsonForm
+            {...jsonFormProps}
+            title={t('Data Privacy')}
+            fields={[
+              fields.dataScrubber,
+              fields.dataScrubberDefaults,
+              fields.scrubIPAddresses,
+              fields.sensitiveFields,
+              fields.safeFields,
+            ]}
+          />
+
+          <JsonForm
+            {...jsonFormProps}
+            title={t('Client Security')}
+            fields={[
+              fields.allowedDomains,
+              fields.scrapeJavaScript,
+              fields.securityToken,
+              fields.securityTokenHeader,
+              fields.verifySSL,
+            ]}
+            renderHeader={() => (
+              <PanelAlert type="info">
+                <TextBlock noMargin>
+                  {tct(
+                    'Configure origin URLs which Sentry should accept events from. This is used for communication with clients like [link].',
+                    {
+                      link: <a href="https://github.com/getsentry/raven-js">raven-js</a>,
+                    }
+                  )}{' '}
+                  {tct(
+                    'This will restrict requests based on the [Origin] and [Referer] headers.',
+                    {
+                      Origin: <code>Origin</code>,
+                      Referer: <code>Referer</code>,
+                    }
+                  )}
+                </TextBlock>
+              </PanelAlert>
+            )}
+          />
+        </Form>
+
+        <Panel>
+          <PanelHeader>{t('Project Administration')}</PanelHeader>
+          {this.renderRemoveProject()}
+          {this.renderTransferProject()}
+        </Panel>
       </div>
     );
   }
 }
+
+const ProjectGeneralSettingsContainer = createReactClass({
+  mixins: [Reflux.listenTo(ProjectsStore, 'onProjectsUpdate')],
+  onProjectsUpdate(projects) {
+    if (!this.changedSlug) return;
+    let project = ProjectsStore.getBySlug(this.changedSlug);
+
+    if (!project) return;
+
+    browserHistory.replace(
+      recreateRoute('', {
+        ...this.props,
+        params: {
+          ...this.props.params,
+          projectId: this.changedSlug,
+        },
+      })
+    );
+  },
+
+  render() {
+    return (
+      <ProjectGeneralSettings
+        onChangeSlug={newSlug => (this.changedSlug = newSlug)}
+        {...this.props}
+      />
+    );
+  },
+});
+
+export default ProjectGeneralSettingsContainer;

@@ -6,12 +6,17 @@ import {action} from '@storybook/addon-actions';
 
 import {
   Form as LegacyForm,
-  TextField,
+  TextField as LegacyTextField,
   PasswordField,
   BooleanField,
 } from 'sentry-ui/forms';
+import NewBooleanField from 'settings-ui/forms/booleanField';
 import RadioField from 'settings-ui/forms/radioField';
+import RadioGroup from 'settings-ui/forms/controls/radioGroup';
+import RangeSlider from 'settings-ui/forms/controls/rangeSlider';
 import Form from 'settings-ui/forms/form';
+import FormField from 'settings-ui/forms/formField';
+import TextField from 'settings-ui/forms/textField';
 
 class UndoButton extends React.Component {
   static contextTypes = {
@@ -45,36 +50,25 @@ storiesOf('Forms/Form', module)
     'save on blur and undo',
     withInfo('Saves on blur and has undo')(() => (
       <LegacyForm saveOnBlur allowUndo>
-        <TextField
+        <LegacyTextField
           name="name"
           label="Team Name"
           placeholder="e.g. Operations, Web, Desktop"
           required
         />
-        <TextField name="slug" label="Short name" placeholder="e.g. api-team" />
+        <LegacyTextField name="slug" label="Short name" placeholder="e.g. api-team" />
         <UndoButton />
       </LegacyForm>
     ))
   );
 
-storiesOf('Forms/Fields', module)
-  .add(
-    'TextField',
-    withInfo('Simple text input')(() => (
-      <LegacyForm saveOnBlur allowUndo>
-        <TextField
-          name="name"
-          label="Team Name"
-          placeholder="e.g. Operations, Web, Desktop"
-          required
-        />
-        <TextField name="slug" label="Short name" placeholder="e.g. api-team" />
-      </LegacyForm>
-    ))
-  )
+storiesOf('Forms/Fields/Old', module)
   .add(
     'PasswordField',
-    withInfo('Password input')(() => (
+    withInfo({
+      text: 'Password input',
+      propTablesExclude: [LegacyForm],
+    })(() => (
       <LegacyForm>
         <PasswordField hasSavedValue name="password" label="password" />
       </LegacyForm>
@@ -82,15 +76,62 @@ storiesOf('Forms/Fields', module)
   )
   .add(
     'BooleanField',
-    withInfo('Boolean field (i.e. checkbox)')(() => (
+    withInfo({
+      text: 'Boolean field (i.e. checkbox)',
+      propTablesExclude: [LegacyForm],
+    })(() => (
       <LegacyForm>
         <BooleanField name="field" />
       </LegacyForm>
     ))
+  );
+
+storiesOf('Forms/Fields/New', module)
+  .add(
+    'TextField',
+    withInfo({
+      text: 'Simple text input',
+      propTablesExclude: [Form],
+    })(() => (
+      <Form initialData={{context: {location: 'cat'}}}>
+        <TextField
+          name="simpletextfield"
+          label="Simple Text Field"
+          placeholder="Simple Text Field"
+        />
+        <TextField
+          name="textfieldwithreturnsubmit"
+          label="Text Field With Return Submit"
+          placeholder="Type here to show the return button"
+          showReturnButton
+        />
+        <TextField
+          name="textfieldflexiblecontrol"
+          label="Text Field With Flexible Control State Size"
+          placeholder="Type text and then delete it"
+          required
+          flexibleControlStateSize
+        />
+      </Form>
+    ))
+  )
+  .add(
+    'BooleanField',
+    withInfo({
+      text: 'Boolean field (i.e. checkbox)',
+      propTablesExclude: [Form],
+    })(() => (
+      <Form>
+        <NewBooleanField name="field" label="New Boolean Field" />
+      </Form>
+    ))
   )
   .add(
     'RadioField',
-    withInfo('Radio field')(() => (
+    withInfo({
+      text: 'Radio field',
+      propTablesExclude: [Form],
+    })(() => (
       <Form>
         <RadioField
           name="radio"
@@ -102,5 +143,46 @@ storiesOf('Forms/Fields', module)
           ]}
         />
       </Form>
+    ))
+  )
+  .add(
+    'Non-inline field',
+    withInfo({
+      text: 'Radio Group used w/ FormField',
+      propTablesExclude: [Form],
+    })(() => (
+      <Form>
+        <FormField name="radio" label="Radio Field" inline={false}>
+          {({value, label, onChange}) => (
+            <RadioGroup
+              onChange={onChange}
+              label={label}
+              value={value}
+              choices={[
+                ['choice_one', 'Choice One'],
+                ['choice_two', 'Choice Two'],
+                ['choice_three', 'Choice Three'],
+              ]}
+            />
+          )}
+        </FormField>
+      </Form>
+    ))
+  )
+  .add(
+    'RangeSlider',
+    withInfo('Range slider')(() => (
+      <div style={{backgroundColor: '#fff', padding: 20}}>
+        <RangeSlider
+          name="rangeField"
+          min={1}
+          max={10}
+          step={1}
+          value={1}
+          formatLabel={value => {
+            return `${value} Toaster Strudle${value > 1 ? 's' : ''}`;
+          }}
+        />
+      </div>
     ))
   );

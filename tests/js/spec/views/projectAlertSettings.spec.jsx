@@ -2,7 +2,7 @@ import React from 'react';
 import {shallow} from 'enzyme';
 
 import {Client} from 'app/api';
-import ProjectAlertSettings from 'app/views/projectAlertSettings';
+import ProjectAlertSettings from 'app/views/settings/projectAlerts/projectAlertSettings';
 
 describe('ProjectAlertSettings', function() {
   let org;
@@ -10,7 +10,7 @@ describe('ProjectAlertSettings', function() {
 
   beforeEach(function() {
     org = TestStubs.Organization();
-    project = TestStubs.Project();
+    project = TestStubs.ProjectDetails();
 
     Client.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
@@ -30,6 +30,7 @@ describe('ProjectAlertSettings', function() {
         <ProjectAlertSettings
           params={{orgId: org.slug, projectId: project.slug}}
           organization={org}
+          routes={[]}
         />,
         {
           context: {

@@ -116,28 +116,6 @@
 * ============================================================================
 */
 
-.rule-form {
-  vertical-align: middle;
-  height: 48px;
-}
-
-.rule-form input[type='text'],
-.rule-form input[type='number'] {
-  .form-control;
-  display: inline-block;
-  padding: 3px 8px;
-  width: auto;
-  vertical-align: middle;
-  position: relative;
-  top: -1px;
-  line-height: 1.5;
-  margin: 0 6px;
-}
-
-.rule-form .select2-container {
-  margin: 0 6px;
-}
-
 .rules-list {
   h6 {
     margin-bottom: 15px;
@@ -149,15 +127,6 @@
 
 .rules-list,
 .rule-detail {
-  .node-match-selector {
-    .select2-container {
-      margin: 0 5px;
-      display: inline-block;
-      width: 100px;
-      max-width: none;
-    }
-  }
-
   h6 {
     font-weight: 600;
 
@@ -199,26 +168,6 @@
       }
     }
   }
-
-  .actions {
-    padding: 20px;
-    border-top: 1px solid lighten(@trim, 4);
-    margin: 0 -20px -20px;
-  }
-}
-
-.rule-action-list,
-.rule-condition-list {
-  .select2-container {
-    max-width: 40%;
-  }
-
-  .node-selector .select2-container {
-    width: 100%;
-    max-width: 100%;
-  }
-
-  margin-bottom: 20px;
 }
 
 /**
@@ -243,6 +192,8 @@
 }
 
 .install-language-nav {
+  background-color: @white;
+
   .list-group {
     font-size: 14px;
     border-radius: 3px;
@@ -283,54 +234,5 @@
         margin-right: -1px;
       }
     }
-  }
-}
-
-/**
-  * Client Keys
-  * ============================================================================
-  */
-
-.client-key-list {
-  border: 1px solid @trim;
-  border-radius: 4px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
-
-  h5 {
-    margin-bottom: 15px;
-
-    a {
-      color: @gray;
-      &:hover {
-        color: @gray-dark;
-      }
-    }
-  }
-  .client-key-item {
-    border-bottom: 1px solid lighten(@trim, 6);
-    padding: 20px;
-
-    &:last-child {
-      border: 0;
-    }
-
-    .pull-right {
-      margin-top: -5px;
-    }
-
-    .form-control {
-      overflow: hidden;
-      border: 1px solid @trim;
-      background: #f7f8f9;
-    }
-
-    .btn-revoke:hover {
-      background: @red;
-      border-color: darken(@red, 25);
-      color: #fff;
-    }
-  }
-  .client-key-item.disabled {
-    opacity: 0.5;
   }
 }

@@ -63,10 +63,14 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             tokens = tokenize_query(query)
             for key, value in six.iteritems(tokens):
                 if key == 'email':
-                    queryset = queryset.filter(
-                        Q(user__email__in=value) | Q(
-                            user__emails__email__in=value)
-                    )
+                    queryset = queryset.filter(Q(user__email__in=value) |
+                                               Q(user__emails__email__in=value))
+                elif key == 'query':
+                    value = ' '.join(value)
+                    queryset = queryset.filter(Q(user__email__icontains=value) |
+                                               Q(user__name__icontains=value))
+                else:
+                    queryset = queryset.none()
 
         return self.paginate(
             request=request,
@@ -150,7 +154,8 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
 
         if settings.SENTRY_ENABLE_INVITES:
             om.send_invite_email()
-            member_invited.send(member=om, user=request.user, sender=self)
+            member_invited.send(member=om, user=request.user, sender=self,
+                                referrer=request.DATA.get('referrer'))
 
         self.create_audit_entry(
             request=request,

@@ -8,15 +8,20 @@ sentry.tagstore.multi.backend
 
 from __future__ import absolute_import
 
+import logging
 import six
 import random
 from threading import Thread
 from six.moves.queue import Queue, Full
-from django.conf import settings
 from operator import itemgetter
 
+from sentry import options
 from sentry.tagstore.base import TagStorage
+from sentry.utils import metrics
 from sentry.utils.imports import import_string
+
+
+logger = logging.getLogger('sentry.tagstore.multi')
 
 
 class QueuedRunner(object):
@@ -28,29 +33,61 @@ class QueuedRunner(object):
     """
 
     def __init__(self):
-        self.q = q = Queue(maxsize=100)
-        self.sample_channel = getattr(settings, 'SENTRY_TAGSTORE_MULTI_SAMPLING', 1.0)
+        self.q = Queue(maxsize=100)
+        self.worker_running = False
 
+    def start_worker(self):
         def worker():
             while True:
-                (func, args, kwargs) = q.get()
+                (func, args, kwargs) = self.q.get()
                 try:
                     func(*args, **kwargs)
-                except Exception:
-                    pass
+                    metrics.incr(
+                        'tagstore.multi.runner.execute',
+                        instance='success',
+                        skip_internal=True,
+                    )
+                except Exception as e:
+                    logger.exception(e)
+                    metrics.incr(
+                        'tagstore.multi.runner.execute',
+                        instance='fail',
+                        skip_internal=True,
+                    )
                 finally:
-                    q.task_done()
+                    self.q.task_done()
 
         t = Thread(target=worker)
         t.setDaemon(True)
         t.start()
 
+        self.worker_running = True
+
     def run(self, f, *args, **kwargs):
-        if random.random() <= self.sample_channel:
+        if random.random() <= options.get('tagstore.multi-sampling'):
+            if not self.worker_running:
+                self.start_worker()
+
             try:
                 self.q.put((f, args, kwargs), block=False)
+                metrics.incr(
+                    'tagstore.multi.runner.schedule',
+                    instance='put',
+                    skip_internal=True,
+                )
             except Full:
+                metrics.incr(
+                    'tagstore.multi.runner.schedule',
+                    instance='full',
+                    skip_internal=True,
+                )
                 return
+        else:
+            metrics.incr(
+                'tagstore.multi.runner.schedule',
+                instance='sampled',
+                skip_internal=True,
+            )
 
 
 class ImmediateRunner(object):
@@ -94,6 +131,12 @@ class MultiTagStorage(TagStorage):
         Call `func` on all backends, returning the first backend's return value, or raising any exception.
         """
 
+        metrics.incr(
+            'tagstore.multi.call',
+            instance=func,
+            skip_internal=True,
+        )
+
         ret_val = None
         exc = None
         for i, backend in enumerate(self.backends):
@@ -121,7 +164,8 @@ class MultiTagStorage(TagStorage):
         return getattr(backend, func)(*args, **kwargs)
 
     def setup(self):
-        return self._call_all_backends('setup')
+        for backend in self.backends:
+            backend.setup()
 
     def create_tag_key(self, *args, **kwargs):
         return self._call_all_backends('create_tag_key', *args, **kwargs)
@@ -173,6 +217,9 @@ class MultiTagStorage(TagStorage):
 
     def get_group_tag_values(self, *args, **kwargs):
         return self._call_one_backend('get_group_tag_values', *args, **kwargs)
+
+    def get_group_list_tag_value(self, *args, **kwargs):
+        return self._call_one_backend('get_group_list_tag_value', *args, **kwargs)
 
     def delete_tag_key(self, *args, **kwargs):
         return self._call_all_backends('delete_tag_key', *args, **kwargs)
@@ -233,6 +280,9 @@ class MultiTagStorage(TagStorage):
 
     def get_group_tag_value_qs(self, *args, **kwargs):
         return self._call_one_backend('get_group_tag_value_qs', *args, **kwargs)
+
+    def get_event_tag_qs(self, *args, **kwargs):
+        return self._call_one_backend('get_event_tag_qs', *args, **kwargs)
 
     def update_group_for_events(self, *args, **kwargs):
         return self._call_all_backends('update_group_for_events', *args, **kwargs)

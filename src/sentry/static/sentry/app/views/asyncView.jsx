@@ -3,19 +3,17 @@ import React from 'react';
 
 import AsyncComponent from '../components/asyncComponent';
 
-class AsyncView extends AsyncComponent {
-  constructor(...args) {
-    super(...args);
+export default class AsyncView extends AsyncComponent {
+  getTitle() {
+    return '';
   }
 
-  getTitle() {
-    return 'Sentry';
-  }
   render() {
+    let title = this.getTitle();
     return (
-      <DocumentTitle title={this.getTitle()}>{this.renderComponent()}</DocumentTitle>
+      <DocumentTitle title={`${title ? `${title} - ` : ''}Sentry`}>
+        {this.renderComponent()}
+      </DocumentTitle>
     );
   }
 }
-
-export default AsyncView;

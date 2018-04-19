@@ -47,7 +47,7 @@ class TeamGroupsNewEndpoint(TeamEndpoint, EnvironmentMixin):
                 group_list,
                 request.user,
                 GroupSerializer(
-                    environment_id_func=self._get_environment_id_func(request, team.organization_id)
+                    environment_func=self._get_environment_func(request, team.organization_id)
                 )
             )
         )

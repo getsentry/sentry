@@ -3,11 +3,10 @@ import React from 'react';
 import {sortArray} from '../utils';
 import {t} from '../locale';
 import IndicatorStore from '../stores/indicatorStore';
-import OrganizationSettingsView from './organizationSettingsView';
+import AsyncView from './asyncView';
 import LazyLoad from '../components/lazyLoad';
-import getSettingsComponent from '../utils/getSettingsComponent';
 
-class OrganizationRepositoriesView extends OrganizationSettingsView {
+class OrganizationRepositoriesView extends AsyncView {
   getEndpoints() {
     let {orgId} = this.props.params;
     return [
@@ -85,12 +84,8 @@ class OrganizationRepositoriesView extends OrganizationSettingsView {
     return (
       <LazyLoad
         component={() =>
-          getSettingsComponent(
-            () =>
-              import(/*webpackChunkName: "organizationRepositories"*/ './settings/organization/repositories/organizationRepositories'),
-            () =>
-              import(/*webpackChunkName: "organizationRepositories.old"*/ './organizationRepositories.old'),
-            this.props.routes
+          import(/*webpackChunkName: "organizationRepositories"*/ './settings/organization/repositories/organizationRepositories').then(
+            mod => mod.default
           )}
         {...this.props}
         {...this.state}

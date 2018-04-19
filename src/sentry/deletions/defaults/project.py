@@ -18,7 +18,8 @@ class ProjectDeletionTask(ModelDeletionTask):
             models.GroupAssignee, models.GroupBookmark, models.GroupEmailThread,
             models.GroupHash, models.GroupRelease, models.GroupRuleStatus, models.GroupSeen,
             models.GroupShare, models.GroupSubscription, models.ProjectBookmark, models.ProjectKey,
-            models.SavedSearchUserDefault, models.SavedSearch, models.ServiceHook, models.UserReport,
+            models.ProjectTeam, models.SavedSearchUserDefault, models.SavedSearch, models.ServiceHook,
+            models.UserReport,
         )
 
         relations.extend(
@@ -42,7 +43,7 @@ class ProjectDeletionTask(ModelDeletionTask):
         # in bulk
         # Release needs to handle deletes after Group is cleaned up as the foreign
         # key is protected
-        model_list = (models.Group, models.ReleaseProject, models.ProjectDSymFile,
+        model_list = (models.Group, models.ReleaseProject, models.ReleaseProjectEnvironment, models.ProjectDSymFile,
                       models.ProjectSymCacheFile)
         relations.extend(
             [ModelRelation(m, {'project_id': instance.id}, ModelDeletionTask) for m in model_list]

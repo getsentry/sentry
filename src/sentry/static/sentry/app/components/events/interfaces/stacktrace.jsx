@@ -12,11 +12,11 @@ export function isStacktraceNewestFirst() {
   // user may not be authenticated
   let options = user ? user.options : {};
   switch (options.stacktraceOrder) {
-    case 'newestFirst':
+    case 2:
       return true;
-    case 'newestLast':
+    case 1:
       return false;
-    case 'default': // is "default" a valid value? or bad case statement
+    case -1:
     default:
       return true;
   }
@@ -28,7 +28,6 @@ class StacktraceInterface extends React.Component {
     event: SentryTypes.Event.isRequired,
     type: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
-    platform: PropTypes.string,
   };
 
   constructor(...args) {

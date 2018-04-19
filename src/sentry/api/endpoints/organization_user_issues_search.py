@@ -22,7 +22,7 @@ class OrganizationUserIssuesSearchEndpoint(OrganizationEndpoint, EnvironmentMixi
         # limit to only teams user has opted into
         project_ids = list(
             Project.objects.filter(
-                team__in=OrganizationMemberTeam.objects.filter(
+                teams__in=OrganizationMemberTeam.objects.filter(
                     organizationmember__user=request.user,
                     organizationmember__organization=organization,
                     is_active=True,
@@ -44,7 +44,7 @@ class OrganizationUserIssuesSearchEndpoint(OrganizationEndpoint, EnvironmentMixi
         ).order_by('-last_seen')[:limit]
 
         context = serialize(list(groups), request.user, GroupSerializer(
-            environment_id_func=self._get_environment_id_func(
+            environment_func=self._get_environment_func(
                 request, organization.id)
         ))
 

@@ -5,11 +5,15 @@ import classNames from 'classnames';
 class Switch extends React.Component {
   static propTypes = {
     id: PropTypes.string,
-    size: PropTypes.string,
+    size: PropTypes.oneOf(['sm', 'lg']).isRequired,
     isActive: PropTypes.bool,
     isLoading: PropTypes.bool,
     isDisabled: PropTypes.bool,
     toggle: PropTypes.func.isRequired,
+  };
+
+  static defaultProps = {
+    size: 'sm',
   };
 
   render() {

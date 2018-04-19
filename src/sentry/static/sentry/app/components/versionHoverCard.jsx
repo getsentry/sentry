@@ -12,7 +12,7 @@ import TimeSince from './timeSince';
 import Hovercard from './hovercard';
 
 import {getShortVersion} from '../utils';
-import {t} from '../locale';
+import {t, tct} from '../locale';
 
 import ApiMixin from '../mixins/apiMixin';
 
@@ -147,13 +147,17 @@ const VersionHoverCard = createReactClass({
       mostRecentDeploySlice = Object.keys(recentDeploysByEnviroment).slice(0, 3);
     }
     return {
-      header: <span className="truncate">Release {shortVersion}</span>,
+      header: (
+        <span className="truncate">
+          {tct('Release [version]', {version: shortVersion})}
+        </span>
+      ),
       body: (
         <div>
           <div className="row row-flex">
             <div className="col-xs-4">
-              <h6>New Issues</h6>
-              <div className="count">{release.newGroups}</div>
+              <h6>{t('New Issues')}</h6>
+              <div className="count-since">{release.newGroups}</div>
             </div>
             <div className="col-xs-8">
               <h6>
@@ -181,7 +185,7 @@ const VersionHoverCard = createReactClass({
           {deploys.length > 0 && (
             <div>
               <div className="divider">
-                <h6 className="deploy-heading">Deploys</h6>
+                <h6 className="deploy-heading">{t('Deploys')}</h6>
               </div>
               {mostRecentDeploySlice.map((env, idx) => {
                 let dateFinished = recentDeploysByEnviroment[env];
@@ -241,7 +245,7 @@ const VersionHoverCard = createReactClass({
     }
 
     return (
-      <Hovercard header={header} body={body}>
+      <Hovercard {...this.props} header={header} body={body}>
         {this.props.children}
       </Hovercard>
     );

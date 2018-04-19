@@ -2,6 +2,8 @@ import React from 'react';
 import {shallow, mount} from 'enzyme';
 import ProjectPluginRow from 'app/views/projectPlugins/projectPluginRow';
 
+jest.mock('app/utils/recreateRoute');
+
 describe('ProjectPluginRow', function() {
   let wrapper;
   let plugin = TestStubs.Plugin();
@@ -20,7 +22,7 @@ describe('ProjectPluginRow', function() {
     wrapper = mount(<ProjectPluginRow {...params} {...plugin} onChange={onChange} />);
 
     expect(onChange).not.toHaveBeenCalled();
-    wrapper.find('Checkbox').simulate('change');
+    wrapper.find('Switch').simulate('click');
     expect(onChange).toHaveBeenCalledWith('amazon-sqs', true);
   });
 });

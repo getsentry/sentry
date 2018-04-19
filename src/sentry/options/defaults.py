@@ -16,7 +16,7 @@ from sentry.options import (
     FLAG_ALLOW_EMPTY,
     register,
 )
-from sentry.utils.types import Dict, String, Sequence
+from sentry.utils.types import Bool, Dict, String, Sequence
 
 # Cache
 # register('cache.backend', flags=FLAG_NOSTORE)
@@ -29,11 +29,14 @@ register('system.security-email', flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register('system.databases', type=Dict, flags=FLAG_NOSTORE)
 # register('system.debug', default=False, flags=FLAG_NOSTORE)
 register('system.rate-limit', default=0, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+register('system.event-retention-days', default=0, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register('system.secret-key', flags=FLAG_NOSTORE)
 # Absolute URL to the sentry root directory. Should not include a trailing slash.
 register('system.url-prefix', ttl=60, grace=3600, flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
 register('system.root-api-key', flags=FLAG_PRIORITIZE_DISK)
 register('system.logging-format', default=LoggingFormat.HUMAN, flags=FLAG_NOSTORE)
+# This is used for the chunk upload endpoint
+register('system.upload-url-prefix', flags=FLAG_PRIORITIZE_DISK)
 
 # Redis
 register(
@@ -91,7 +94,7 @@ register('api.rate-limit.org-create', default=5, flags=FLAG_ALLOW_EMPTY | FLAG_P
 
 # Beacon
 
-register('beacon.anonymous', default=True, flags=FLAG_REQUIRED)
+register('beacon.anonymous', type=Bool, flags=FLAG_REQUIRED)
 
 # Filestore
 register('filestore.backend', default='filesystem', flags=FLAG_NOSTORE)
@@ -110,3 +113,6 @@ register('analytics.backend', default='noop', flags=FLAG_NOSTORE)
 register('analytics.options', default={}, flags=FLAG_NOSTORE)
 
 register('cloudflare.secret-key', default='')
+
+# Tagstore
+register('tagstore.multi-sampling', default=0.0)

@@ -25,8 +25,13 @@ class AutoComplete extends React.Component {
     itemToString: PropTypes.func.isRequired,
     defaultHighlightedIndex: PropTypes.number,
     defaultInputValue: PropTypes.string,
+    /**
+     * Currently, this does not act as a "controlled" prop, only for initial state of dropdown
+     */
     isOpen: PropTypes.bool,
     onSelect: PropTypes.func,
+    onOpen: PropTypes.func,
+    onClose: PropTypes.func,
   };
 
   static defaultProps = {
@@ -40,6 +45,7 @@ class AutoComplete extends React.Component {
       isOpen: !!props.isOpen,
       highlightedIndex: props.defaultHighlightedIndex || 0,
       inputValue: props.defaultInputValue || '',
+      selectedItem: null,
     };
 
     this.items = new Map();
@@ -52,6 +58,14 @@ class AutoComplete extends React.Component {
   componentWillUpdate() {
     this.items.clear();
   }
+
+  isControlled = () => typeof this.props.isOpen !== 'undefined';
+
+  getOpenState = () => {
+    let {isOpen} = this.props;
+
+    return this.isControlled() ? isOpen : this.state.isOpen;
+  };
 
   /**
    * Resets `this.items` and `this.state.highlightedIndex`.
@@ -70,9 +84,9 @@ class AutoComplete extends React.Component {
     // We force `isOpen: true` here because:
     // 1) it's possible to have menu closed but input with focus (i.e. hitting "Esc")
     // 2) you select an item, input still has focus, and then change input
+    this.openMenu();
     this.setState({
       inputValue: value,
-      isOpen: true,
     });
 
     callIfFunction(onChange, e);
@@ -142,7 +156,10 @@ class AutoComplete extends React.Component {
     callIfFunction(onSelect, item);
 
     this.closeMenu();
-    this.setState({inputValue: itemToString(item)});
+    this.setState({
+      selectedItem: item,
+      inputValue: itemToString(item),
+    });
   };
 
   moveHighlightedIndex = (step, e) => {
@@ -157,13 +174,35 @@ class AutoComplete extends React.Component {
     });
   };
 
-  openMenu = () => {
+  /**
+   * Open dropdown menu
+   *
+   * This is exposed to render function
+   */
+  openMenu = (...args) => {
+    let {onOpen} = this.props;
+    if (this.isControlled() && typeof onOpen === 'function') {
+      onOpen(...args);
+      return;
+    }
+    this.resetHighlightState();
     this.setState({
       isOpen: true,
     });
   };
 
-  closeMenu = () => {
+  /**
+   * Close dropdown menu
+   *
+   * This is exposed to render function
+   */
+  closeMenu = (...args) => {
+    let {onClose} = this.props;
+    if (this.isControlled() && typeof onClose === 'function') {
+      onClose(...args);
+      return;
+    }
+
     this.setState({
       isOpen: false,
     });
@@ -199,12 +238,10 @@ class AutoComplete extends React.Component {
 
   render() {
     let {children} = this.props;
+    let isOpen = this.getOpenState();
 
     return (
-      <DropdownMenu
-        isOpen={this.state.isOpen}
-        onClickOutside={() => this.setState({isOpen: false})}
-      >
+      <DropdownMenu isOpen={isOpen} onClickOutside={this.closeMenu}>
         {dropdownMenuProps =>
           children({
             ...dropdownMenuProps,
@@ -213,7 +250,12 @@ class AutoComplete extends React.Component {
             },
             getItemProps: this.getItemProps,
             inputValue: this.state.inputValue,
+            selectedItem: this.state.selectedItem,
             highlightedIndex: this.state.highlightedIndex,
+            actions: {
+              open: this.openMenu,
+              close: this.closeMenu,
+            },
           })}
       </DropdownMenu>
     );

@@ -1,6 +1,7 @@
 """
 sentry.rules.actions.notify_event_service
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Used for notifying a *specific* plugin
 
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
@@ -31,6 +32,15 @@ class NotifyEventServiceForm(forms.Form):
 class NotifyEventServiceAction(EventAction):
     form_cls = NotifyEventServiceForm
     label = 'Send a notification via {service}'
+
+    def __init__(self, *args, **kwargs):
+        super(NotifyEventServiceAction, self).__init__(*args, **kwargs)
+        self.form_fields = {
+            'service': {
+                'type': 'choice',
+                'choices': [[i.slug, i.title] for i in self.get_plugins()]
+            }
+        }
 
     def after(self, event, state):
         service = self.get_option('service')

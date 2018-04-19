@@ -1,32 +1,48 @@
-import {createSearchMap} from './util';
-import {extractMultilineFields} from '../../utils';
+import React from 'react';
 
-const forms = [
+import {extractMultilineFields} from '../../utils';
+import {t, tct} from '../../locale';
+
+// Export route to make these forms searchable by label/help
+export const route = '/settings/:orgId/';
+
+const formGroups = [
   {
     // Form "section"/"panel"
-    title: 'General',
+    title: t('General'),
     fields: [
+      {
+        name: 'slug',
+        type: 'string',
+        required: true,
+        label: t('Name'),
+        help: t('A unique ID used to identify this organization'),
+
+        saveOnBlur: false,
+        saveMessageAlertType: 'info',
+        saveMessage: t(
+          'You will be redirected to the new organization slug after saving'
+        ),
+      },
       {
         name: 'name',
         type: 'string',
         required: true,
 
-        // additional data/props that is related to rendering of form field rather than data
-        label: 'Name',
-        help: 'The name of your organization. e.g. My Company',
-      },
-      {
-        name: 'slug',
-        type: 'string',
-        required: true,
-        label: 'Short Name',
-        help: 'A unique ID used to identify this organization.',
+        label: t('Legacy Name'),
+        help: tct(
+          '[Deprecated] In the future, only [Name] will be used to identify your organization',
+          {
+            Deprecated: <strong>DEPRECATED</strong>,
+            Name: <strong>Name</strong>,
+          }
+        ),
       },
       {
         name: 'isEarlyAdopter',
         type: 'boolean',
-        label: 'Early Adopter',
-        help: "Opt-in to new features before they're released to the public.",
+        label: t('Early Adopter'),
+        help: t("Opt-in to new features before they're released to the public"),
       },
     ],
   },
@@ -38,68 +54,80 @@ const forms = [
         name: 'defaultRole',
         type: 'array',
         required: true,
-        label: 'Default Role',
+        label: t('Default Role'),
         // seems weird to have choices in initial form data
         choices: ({initialData} = {}) =>
           (initialData.availableRoles &&
             initialData.availableRoles.map(r => [r.id, r.name])) ||
           [],
-        help: 'The default role new members will receive.',
+        help: t('The default role new members will receive'),
         disabled: ({access}) => !access.has('org:admin'),
       },
       {
         name: 'openMembership',
         type: 'boolean',
         required: true,
-        label: 'Open Membership',
-        help: 'Allow organization members to freely join or leave any team.',
+        label: t('Open Membership'),
+        help: t('Allow organization members to freely join or leave any team'),
       },
     ],
   },
 
   {
-    title: 'Security & Privacy',
+    title: t('Security & Privacy'),
     fields: [
+      {
+        name: 'require2FA',
+        type: 'boolean',
+        label: t('Require Two-Factor Authentication'),
+        help: t('Require two-factor authentication for all members'),
+        confirm: t(
+          'Enabling this feature will disable all accounts without two-factor authentication. It will also send an email to all users to enable two-factor authentication. Do you want to continue?'
+        ),
+        visible: ({features}) => features.has('require-2fa'),
+      },
       {
         name: 'allowSharedIssues',
         type: 'boolean',
 
-        label: 'Allow Shared Issues',
-        help: 'Enable sharing of limited details on issues to anonymous users.',
+        label: t('Allow Shared Issues'),
+        help: t('Enable sharing of limited details on issues to anonymous users'),
       },
       {
         name: 'enhancedPrivacy',
         type: 'boolean',
 
-        label: 'Enhanced Privacy',
-        help:
-          'Enable enhanced privacy controls to limit personally identifiable information (PII) as well as source code in things like notifications.',
+        label: t('Enhanced Privacy'),
+        help: t(
+          'Enable enhanced privacy controls to limit personally identifiable information (PII) as well as source code in things like notifications'
+        ),
       },
       {
         name: 'dataScrubber',
         type: 'boolean',
-        label: 'Require Data Scrubber',
-        help: 'Require server-side data scrubbing be enabled for all projects.',
+        label: t('Require Data Scrubber'),
+        help: t('Require server-side data scrubbing be enabled for all projects'),
       },
       {
         name: 'dataScrubberDefaults',
         type: 'boolean',
-
-        required: true,
-        label: 'Require Using Default Scrubbers',
-        help:
-          'Require the default scrubbers be applied to prevent things like passwords and credit cards from being stored for all projects.',
+        label: t('Require Using Default Scrubbers'),
+        help: t(
+          'Require the default scrubbers be applied to prevent things like passwords and credit cards from being stored for all projects'
+        ),
       },
       {
         name: 'sensitiveFields',
         type: 'string',
         multiline: true,
         placeholder: 'e.g. email',
-        label: 'Global sensitive fields',
-        help:
-          'Additional field names to match against when scrubbing data for all projects. Separate multiple entries with a newline.',
-        extraHelp:
-          'Note: These fields will be used in addition to project specific fields.',
+        label: t('Global sensitive fields'),
+        help: t(
+          'Additional field names to match against when scrubbing data for all projects. Separate multiple entries with a newline.'
+        ),
+        extraHelp: t(
+          'Note: These fields will be used in addition to project specific fields.'
+        ),
         getValue: val => extractMultilineFields(val),
         setValue: val => (val && typeof val.join === 'function' && val.join('\n')) || '',
       },
@@ -107,36 +135,27 @@ const forms = [
         name: 'safeFields',
         type: 'string',
         multiline: true,
-        placeholder: 'e.g. business-email',
-        label: 'Global safe fields',
-        help:
-          'Field names which data scrubbers should ignore. Separate multiple entries with a newline.',
-        extraHelp:
-          'Note: These fields will be used in addition to project specific fields.',
+        placeholder: t('e.g. business-email'),
+        label: t('Global safe fields'),
+        help: t(
+          'Field names which data scrubbers should ignore. Separate multiple entries with a newline.'
+        ),
+        extraHelp: t(
+          'Note: These fields will be used in addition to project specific fields'
+        ),
         getValue: val => extractMultilineFields(val),
         setValue: val => (val && typeof val.join === 'function' && val.join('\n')) || '',
       },
       {
         name: 'scrubIPAddresses',
         type: 'boolean',
-        label: 'Prevent Storing of IP Addresses',
-        help: 'Preventing IP addresses from being stored for new events on all projects.',
+        label: t('Prevent Storing of IP Addresses'),
+        help: t(
+          'Preventing IP addresses from being stored for new events on all projects'
+        ),
       },
     ],
   },
 ];
 
-export default forms;
-
-// generate search index from form fields
-export const searchIndex = createSearchMap({
-  route: '/settings/organization/:orgId/settings/',
-  requireParams: ['orgId'],
-  formGroups: forms,
-});
-
-// need to associate index -> form group -> route
-// so when we search for a term we need to find:
-//   * what field(s) it matches:
-//     * what form group it belongs to
-//     * what route that belongs to
+export default formGroups;

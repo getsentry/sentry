@@ -1,28 +1,25 @@
 import {Observer} from 'mobx-react';
 import PropTypes from 'prop-types';
 import React from 'react';
-import ReactDOM from 'react-dom';
 import styled from 'react-emotion';
 
 import {defined} from '../../../../../utils';
+import {pulse, fadeOut} from '../../../../../styles/animations';
+import {t} from '../../../../../locale';
+import Button from '../../../../../components/buttons/button';
+import Field from '../field';
+import FieldControl from '../field/fieldControl';
 import FormState from '../../../../../components/forms/state';
-import FormFieldWrapper from './formFieldWrapper';
-import FormFieldDescription from './formFieldDescription';
-import FormFieldControl from './formFieldControl';
-import FormFieldControlState from './formFieldControlState';
-import FormFieldHelp from './formFieldHelp';
-import FormFieldLabel from './formFieldLabel';
-import FormFieldRequiredBadge from './formFieldRequiredBadge';
-
 import InlineSvg from '../../../../../components/inlineSvg';
-import Spinner from '../styled/spinner';
-import {pulse, fadeOut} from '../styled/animations';
+import PanelAlert from '../../../../../components/panels/panelAlert';
+import Spinner from '../spinner';
+import returnButton from '../returnButton';
+import space from '../../../../../styles/space';
 
 const FormFieldErrorReason = styled.div`
   color: ${p => p.theme.redDark};
   position: absolute;
   background: #fff;
-  left: 10px;
   padding: 6px 8px;
   font-weight: 600;
   font-size: 12px;
@@ -34,13 +31,29 @@ const FormFieldErrorReason = styled.div`
 const FormFieldError = styled.div`
   color: ${p => p.theme.redDark};
   animation: ${pulse} 1s ease infinite;
-  width: 16px;
-  margin-left: auto;
 `;
 
 const FormFieldIsSaved = styled.div`
   color: ${p => p.theme.green};
   animation: ${fadeOut} 0.3s ease 2s 1 forwards;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const FormSpinner = styled(Spinner)`
+  margin-left: 0;
+`;
+
+const ReturnButtonStyled = styled(returnButton)`
+  position: absolute;
+  right: 0;
+  top: 0;
 `;
 
 /**
@@ -58,20 +71,101 @@ const getValueFromEvent = (valueOrEvent, e) => {
   };
 };
 
+const ControlStateWrapper = styled('div')`
+  padding: 0 8px;
+`;
+
+/**
+ * ControlState (i.e. loading/error icons) for connected form components
+ */
+class ControlState extends React.Component {
+  static propTypes = {
+    model: PropTypes.object,
+    name: PropTypes.string,
+  };
+
+  render() {
+    let {model, name} = this.props;
+
+    return (
+      <React.Fragment>
+        <Observer>
+          {() => {
+            let isSaving = model.getFieldState(name, FormState.SAVING);
+            let isSaved = model.getFieldState(name, FormState.READY);
+
+            if (isSaving) {
+              return (
+                <ControlStateWrapper>
+                  <FormSpinner />
+                </ControlStateWrapper>
+              );
+            } else if (isSaved) {
+              return (
+                <ControlStateWrapper>
+                  <FormFieldIsSaved>
+                    <InlineSvg src="icon-checkmark-sm" size="18px" />
+                  </FormFieldIsSaved>
+                </ControlStateWrapper>
+              );
+            }
+
+            return null;
+          }}
+        </Observer>
+
+        <Observer>
+          {() => {
+            let error = model.getError(name);
+
+            if (!error) return null;
+
+            return (
+              <ControlStateWrapper>
+                <FormFieldError>
+                  <InlineSvg src="icon-warning-sm" size="18px" />
+                </FormFieldError>
+              </ControlStateWrapper>
+            );
+          }}
+        </Observer>
+      </React.Fragment>
+    );
+  }
+}
+
 class FormField extends React.Component {
   static propTypes = {
     name: PropTypes.string.isRequired,
+
     /** Inline style */
     style: PropTypes.object,
 
-    label: PropTypes.string,
-    defaultValue: PropTypes.any,
-    disabled: PropTypes.oneOfType([PropTypes.bool, PropTypes.func]),
-    disabledReason: PropTypes.string,
-    help: PropTypes.oneOfType([PropTypes.string, PropTypes.element]),
-    required: PropTypes.bool,
+    /**
+     * Iff false, disable saveOnBlur for field, instead show a save/cancel button
+     */
+    saveOnBlur: PropTypes.bool,
+
+    /**
+     * If saveOnBlur is false, then an optional saveMessage can be used to let
+     * the user know what's going to happen when they save a field.
+     */
+    saveMessage: PropTypes.node,
+
+    /**
+     * The "alert type" to use for the save message.
+     * Probably only "info"/"warning" should be used.
+     */
+    saveMessageAlertType: PropTypes.oneOf(['', 'info', 'warning', 'success', 'error']),
+
+    /**
+     * Should hide error message?
+     */
     hideErrorMessage: PropTypes.bool,
-    highlighted: PropTypes.bool,
+    /**
+     * Hides control state component
+     */
+    flexibleControlStateSize: PropTypes.bool,
 
     // the following should only be used without form context
     onChange: PropTypes.func,
@@ -79,14 +173,11 @@ class FormField extends React.Component {
     onKeyDown: PropTypes.func,
     onMouseOver: PropTypes.func,
     onMouseOut: PropTypes.func,
-    error: PropTypes.string,
-    value: PropTypes.any,
   };
 
   static defaultProps = {
     hideErrorMessage: false,
-    disabled: false,
-    required: false,
+    flexibleControlStateSize: false,
   };
 
   static contextTypes = {
@@ -95,22 +186,8 @@ class FormField extends React.Component {
   };
 
   componentDidMount() {
-    // this.attachTooltips();
     // Tell model about this field's props
     this.getModel().setFieldDescriptor(this.props.name, this.props);
-  }
-
-  componentWillUnmount() {
-    //this.removeTooltips();
-    jQuery(ReactDOM.findDOMNode(this)).unbind();
-  }
-
-  attachTooltips() {
-    jQuery('.tip', ReactDOM.findDOMNode(this)).tooltip();
-  }
-
-  removeTooltips() {
-    jQuery('.tip', ReactDOM.findDOMNode(this)).tooltip('destroy');
   }
 
   getError(props, context) {
@@ -126,11 +203,13 @@ class FormField extends React.Component {
   }
 
   // Only works for styled inputs
+  // Attempts to autofocus input field if field's name is in url hash
   handleInputMount = ref => {
     if (ref && !this.input) {
-      let hash = this.context.location.hash;
+      let hash = this.context.location && this.context.location.hash;
 
       if (!hash) return;
+
       if (hash !== `#${this.props.name}`) return;
 
       ref.focus();
@@ -167,7 +246,7 @@ class FormField extends React.Component {
     }
 
     // Always call this, so model can decide what to do
-    model.handleFieldBlur(name, value);
+    model.handleBlurField(name, value);
   };
 
   /**
@@ -179,7 +258,7 @@ class FormField extends React.Component {
     let model = this.getModel();
 
     if (event.key === 'Enter') {
-      model.handleFieldBlur(name, value);
+      model.handleBlurField(name, value);
     }
 
     if (onKeyDown) {
@@ -187,108 +266,145 @@ class FormField extends React.Component {
     }
   };
 
+  /**
+   * Handle saving an individual field via UI button
+   */
+  handleSaveField = (...args) => {
+    let {name} = this.props;
+    let model = this.getModel();
+
+    model.handleSaveField(name, model.getValue(name));
+  };
+
+  handleCancelField = (...args) => {
+    let {name} = this.props;
+    let model = this.getModel();
+
+    model.handleCancelSaveField(name);
+  };
+
   render() {
     let {
-      highlighted,
-      required,
-      label,
-      disabled,
-      disabledReason,
+      className,
+      name,
       hideErrorMessage,
-      help,
+      flexibleControlStateSize,
+      saveOnBlur,
+      saveMessage,
+      saveMessageAlertType,
+      ...props
     } = this.props;
     let id = this.getId();
     let model = this.getModel();
-    let isDisabled = typeof disabled === 'function' ? disabled(this.props) : disabled;
+    let saveOnBlurFieldOverride = typeof saveOnBlur !== 'undefined' && !saveOnBlur;
 
     return (
-      <FormFieldWrapper highlighted={highlighted}>
-        <FormFieldDescription>
-          {label && (
-            <FormFieldLabel>
-              {label} {required && <FormFieldRequiredBadge />}
-            </FormFieldLabel>
-          )}
-          {help && <FormFieldHelp>{help}</FormFieldHelp>}
-        </FormFieldDescription>
-        <FormFieldControl>
-          <Observer>
-            {() => {
-              let error = this.getError();
-              let value = model.getValue(this.props.name);
-
-              return (
-                <this.props.children
-                  innerRef={this.handleInputMount}
-                  {...{
-                    ...this.props,
-                    id,
-                    onKeyDown: this.handleKeyDown,
-                    onChange: this.handleChange,
-                    onBlur: this.handleBlur,
-                    value,
-                    error,
-                    disabled: isDisabled,
+      <React.Fragment>
+        <Field id={id} name={name} className={className} {...props}>
+          {({alignRight, inline, disabled, disabledReason}) => (
+            <FieldControl
+              disabled={disabled}
+              disabledReason={disabledReason}
+              inline={inline}
+              alignRight={alignRight}
+              flexibleControlStateSize={flexibleControlStateSize}
+              controlState={<ControlState model={model} name={name} />}
+              errorState={
+                <Observer>
+                  {() => {
+                    let error = this.getError();
+                    let shouldShowErrorMessage = error && !hideErrorMessage;
+                    if (!shouldShowErrorMessage) return null;
+                    return <FormFieldErrorReason>{error}</FormFieldErrorReason>;
                   }}
-                  initialData={model.initialData}
-                />
-              );
-            }}
-          </Observer>
-
-          {isDisabled &&
-            disabledReason && (
-              <span className="disabled-indicator tip" title={disabledReason}>
-                <span className="icon-question" />
-              </span>
-            )}
-
-          <Observer>
-            {() => {
-              let error = this.getError();
-              let shouldShowErrorMessage = error && !hideErrorMessage;
-              if (!shouldShowErrorMessage) return null;
-              return <FormFieldErrorReason>{error}</FormFieldErrorReason>;
-            }}
-          </Observer>
-        </FormFieldControl>
-        <FormFieldControlState>
-          <Observer>
-            {() => {
-              let isSaving = model.getFieldState(this.props.name, FormState.SAVING);
-              let isSaved = model.getFieldState(this.props.name, FormState.READY);
-
-              if (isSaving) {
-                return <Spinner />;
-              } else if (isSaved) {
-                return (
-                  <FormFieldIsSaved>
-                    <InlineSvg src="icon-checkmark-sm" size="18px" />
-                  </FormFieldIsSaved>
-                );
+                </Observer>
               }
+            >
+              <Observer>
+                {() => {
+                  let error = this.getError();
+                  let value = model.getValue(name);
+                  let showReturnButton = model.getFieldState(name, 'showReturnButton');
 
-              return null;
-            }}
-          </Observer>
-
+                  return (
+                    <React.Fragment>
+                      <this.props.children
+                        innerRef={this.handleInputMount}
+                        {...{
+                          ...this.props,
+                          name,
+                          id,
+                          onKeyDown: this.handleKeyDown,
+                          onChange: this.handleChange,
+                          onBlur: this.handleBlur,
+                          // Fixes react warnings about input switching from controlled to uncontrolled
+                          // So force to empty string for null values
+                          value: value === null ? '' : value,
+                          error,
+                          disabled,
+                        }}
+                        initialData={model.initialData}
+                      />
+                      {showReturnButton && <ReturnButtonStyled />}
+                    </React.Fragment>
+                  );
+                }}
+              </Observer>
+            </FieldControl>
+          )}
+        </Field>
+        {saveOnBlurFieldOverride && (
           <Observer>
             {() => {
-              let error = this.getError();
+              let showFieldSave = model.getFieldState(name, 'showSave');
 
-              if (!error) return null;
+              if (!showFieldSave) return null;
 
               return (
-                <FormFieldError>
-                  <InlineSvg src="icon-warning-sm" size="18px" />
-                </FormFieldError>
+                <PanelAlert type={saveMessageAlertType}>
+                  <MessageAndActions>
+                    <div>{saveMessage}</div>
+                    <Actions>
+                      <CancelButton onClick={this.handleCancelField}>
+                        {t('Cancel')}
+                      </CancelButton>
+                      <SaveButton
+                        priority="primary"
+                        type="button"
+                        onClick={this.handleSaveField}
+                      >
+                        {t('Save')}
+                      </SaveButton>
+                    </Actions>
+                  </MessageAndActions>
+                </PanelAlert>
               );
             }}
           </Observer>
-        </FormFieldControlState>
-      </FormFieldWrapper>
+        )}
+      </React.Fragment>
     );
   }
 }
 
 export default FormField;
+
+const MessageAndActions = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const Actions = styled('div')`
+  height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+`;
+
+const CancelButton = styled(Button)`
+  margin-left: ${space(2)};
+`;
+const SaveButton = styled(Button)`
+  margin-left: ${space(1)};
+`;

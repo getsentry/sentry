@@ -1,18 +1,25 @@
+import {Flex} from 'grid-emotion';
+import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Link} from 'react-router';
+import styled, {css} from 'react-emotion';
 
 import {t} from '../../locale';
-import Checkbox from '../../components/checkbox';
+import DynamicWrapper from '../../components/dynamicWrapper';
 import ExternalLink from '../../components/externalLink';
+import PluginIcon from '../../plugins/components/pluginIcon';
 import SentryTypes from '../../proptypes';
+import Switch from '../../components/switch';
+import recreateRoute from '../../utils/recreateRoute';
+
+const grayText = css`
+  color: #979ba0;
+`;
 
 class ProjectPluginRow extends React.PureComponent {
   static propTypes = {
     ...SentryTypes.Plugin,
     onChange: PropTypes.func,
-    orgId: PropTypes.string,
-    projectId: PropTypes.string,
   };
 
   handleChange = () => {
@@ -21,45 +28,63 @@ class ProjectPluginRow extends React.PureComponent {
   };
 
   render() {
-    let {
-      orgId,
-      projectId,
-      id,
-      name,
-      slug,
-      version,
-      author,
-      hasConfiguration,
-      enabled,
-    } = this.props;
+    let {id, name, slug, version, author, hasConfiguration, enabled} = this.props;
 
+    let configureUrl = recreateRoute(id, this.props);
     return (
-      <tr key={id} className={slug}>
-        <td colSpan={2}>
-          <div className={`icon-integration icon-${id}`} />
-          <h5>
-            {`${name} `}
-            <span>{version ? `v${version}` : <em>{t('n/a')}</em>}</span>
-          </h5>
-          <p>
-            {author && <ExternalLink href={author.url}>{author.name}</ExternalLink>}
-            {hasConfiguration && (
-              <span>
-                {' '}
-                &middot;{' '}
-                <Link to={`/${orgId}/${projectId}/settings/plugins/${id}`}>
-                  {t('Configure plugin')}
-                </Link>
-              </span>
-            )}
-          </p>
-        </td>
-        <td className="align-right">
-          <Checkbox name={slug} checked={enabled} onChange={this.handleChange} />
-        </td>
-      </tr>
+      <Flex key={id} className={slug} flex="1" align="center">
+        <PluginInfo>
+          <StyledPluginIcon size={48} pluginId={id} />
+          <Flex justify="center" direction="column">
+            <PluginName>
+              {`${name} `}
+              <DynamicWrapper
+                value={<Version>{version ? `v${version}` : <em>{t('n/a')}</em>}</Version>}
+                fixed={<Version>v10</Version>}
+              />
+            </PluginName>
+            <div>
+              {author && (
+                <ExternalLink css={grayText} href={author.url}>
+                  {author.name}
+                </ExternalLink>
+              )}
+              {hasConfiguration && (
+                <span>
+                  {' '}
+                  &middot;{' '}
+                  <Link css={grayText} to={configureUrl}>
+                    {t('Configure plugin')}
+                  </Link>
+                </span>
+              )}
+            </div>
+          </Flex>
+        </PluginInfo>
+        <Switch size="lg" isActive={enabled} toggle={this.handleChange} />
+      </Flex>
     );
   }
 }
 
 export default ProjectPluginRow;
+
+// Includes icon, name, version, configure link
+const PluginInfo = styled.div`
+  display: flex;
+  flex: 1;
+  line-height: 24px;
+`;
+
+const PluginName = styled.div`
+  font-size: 16px;
+`;
+
+const StyledPluginIcon = styled(PluginIcon)`
+  margin-right: 16px;
+`;
+
+// Keeping these colors the same from old integrations page
+const Version = styled.span`
+  color: #babec2;
+`;

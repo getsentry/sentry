@@ -14,6 +14,7 @@ from sentry.models import (
     UserAvatar,
     UserOption,
     UserEmail,
+    UserPermission,
 )
 from sentry.auth.superuser import is_active_superuser
 from sentry.utils.avatar import get_gravatar_url
@@ -69,6 +70,7 @@ class UserSerializer(Serializer):
             'email': obj.email,
             'avatarUrl': get_gravatar_url(obj.email, size=32),
             'isActive': obj.is_active,
+            'hasPasswordAuth': obj.password not in ('!', ''),
             'isManaged': obj.is_managed,
             'dateJoined': obj.date_joined,
             'lastLogin': obj.last_login,
@@ -84,12 +86,6 @@ class UserSerializer(Serializer):
                 )
             }
             stacktrace_order = int(options.get('stacktrace_order', -1) or -1)
-            if stacktrace_order == -1:
-                stacktrace_order = 'default'
-            elif stacktrace_order == 2:
-                stacktrace_order = 'newestFirst'
-            elif stacktrace_order == 1:
-                stacktrace_order = 'newestLast'
 
             d['options'] = {
                 'language': options.get('language') or 'en',
@@ -97,6 +93,12 @@ class UserSerializer(Serializer):
                 'timezone': options.get('timezone') or settings.SENTRY_DEFAULT_TIME_ZONE,
                 'clock24Hours': options.get('clock_24_hours') or False,
                 'seenReleaseBroadcast': options.get('seen_release_broadcast'),
+            }
+
+            d['permissions'] = list(UserPermission.for_user(obj.id))
+
+            d['flags'] = {
+                'newsletter_consent_prompt': bool(obj.flags.newsletter_consent_prompt),
             }
 
         if attrs.get('avatar'):

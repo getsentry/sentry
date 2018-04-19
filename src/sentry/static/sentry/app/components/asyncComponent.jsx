@@ -1,12 +1,23 @@
+import {isEqual} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
-import {isEqual} from 'lodash';
 
-import LoadingIndicator from '../components/loadingIndicator';
-import RouteError from './../views/routeError';
 import {Client} from '../api';
+import {t} from '../locale';
+import LoadingError from './loadingError';
+import LoadingIndicator from '../components/loadingIndicator';
+import PermissionDenied from '../views/permissionDenied';
+import RouteError from './../views/routeError';
 
 class AsyncComponent extends React.Component {
+  static propTypes = {
+    location: PropTypes.object,
+  };
+
+  static contextTypes = {
+    router: PropTypes.object,
+  };
+
   constructor(props, context) {
     super(props, context);
 
@@ -21,11 +32,22 @@ class AsyncComponent extends React.Component {
     this.fetchData();
   }
 
-  componentWillReceiveProps(nextProps) {
+  componentWillReceiveProps(nextProps, nextContext) {
+    const isRouterInContext = !!this.context.router;
+    const isLocationInProps = nextProps.location !== undefined;
+
+    const currentLocation = isLocationInProps
+      ? this.props.location
+      : isRouterInContext ? this.context.router.location : null;
+    const nextLocation = isLocationInProps
+      ? nextProps.location
+      : isRouterInContext ? nextContext.router.location : null;
+
     // re-fetch data when router params change
     if (
       !isEqual(this.props.params, nextProps.params) ||
-      this.props.location.search !== nextProps.location.search
+      currentLocation.search !== nextLocation.search ||
+      currentLocation.state !== nextLocation.state
     ) {
       this.remountComponent();
     }
@@ -51,12 +73,11 @@ class AsyncComponent extends React.Component {
     return state;
   }
 
-  remountComponent() {
+  remountComponent = () => {
     this.setState(this.getDefaultState(), this.fetchData);
-  }
+  };
 
-  // TODO(dcramer): we'd like to support multiple initial api requests
-  fetchData() {
+  fetchData = () => {
     let endpoints = this.getEndpoints();
 
     if (!endpoints.length) {
@@ -76,16 +97,26 @@ class AsyncComponent extends React.Component {
 
     endpoints.forEach(([stateKey, endpoint, params, options]) => {
       options = options || {};
+      let locationQuery = (this.props.location && this.props.location.query) || {};
+      let query = (params && params.query) || {};
+      // If paginate option then pass entire `query` object to API call
+      // It should only be expecting `query.cursor` for pagination
+      if (options.paginate) {
+        query = {...locationQuery, ...query};
+      }
+
       this.api.request(endpoint, {
         method: 'GET',
         ...params,
+        query,
         success: (data, _, jqXHR) => {
           this.setState(prevState => {
             return {
               [stateKey]: data,
+              // TODO(billy): This currently fails if this request is retried by SudoModal
+              [`${stateKey}PageLinks`]: jqXHR && jqXHR.getResponseHeader('Link'),
               remainingRequests: prevState.remainingRequests - 1,
               loading: prevState.remainingRequests > 1,
-              pageLinks: jqXHR.getResponseHeader('Link'),
             };
           });
         },
@@ -95,20 +126,24 @@ class AsyncComponent extends React.Component {
             error = null;
           }
 
-          this.setState(prevState => {
-            return {
-              [stateKey]: null,
-              errors: {
-                ...prevState.errors,
-                [stateKey]: error,
-              },
-              remainingRequests: prevState.remainingRequests - 1,
-              loading: prevState.remainingRequests > 1,
-              error: !!error,
-            };
-          });
+          this.handleError(error, [stateKey, endpoint, params, options]);
         },
       });
+    });
+  };
+
+  handleError(error, [stateKey]) {
+    this.setState(prevState => {
+      return {
+        [stateKey]: null,
+        errors: {
+          ...prevState.errors,
+          [stateKey]: error,
+        },
+        remainingRequests: prevState.remainingRequests - 1,
+        loading: prevState.remainingRequests > 1,
+        error: prevState.error || !!error,
+      };
     });
   }
 
@@ -144,6 +179,28 @@ class AsyncComponent extends React.Component {
   }
 
   renderError(error) {
+    let unauthorizedErrors = Object.keys(this.state.errors).find(endpointName => {
+      let result = this.state.errors[endpointName];
+      // 401s are captured by SudaModal, but may be passed back to AsyncComponent if they close the modal without identifying
+      return result && result.status === 401;
+    });
+
+    // Look through endpoint results to see if we had any 403s, means their role can not access resource
+    let permissionErrors = Object.keys(this.state.errors).find(endpointName => {
+      let result = this.state.errors[endpointName];
+      return result && result.status === 403;
+    });
+
+    if (unauthorizedErrors) {
+      return (
+        <LoadingError message={t('You are not authorized to access this resource.')} />
+      );
+    }
+
+    if (permissionErrors) {
+      return <PermissionDenied />;
+    }
+
     return <RouteError error={error} component={this} onRetry={this.remountComponent} />;
   }
 
@@ -176,10 +233,6 @@ AsyncComponent.errorHandler = (component, fn) => {
       return null;
     }
   };
-};
-
-AsyncComponent.contextTypes = {
-  router: PropTypes.object.isRequired,
 };
 
 export default AsyncComponent;

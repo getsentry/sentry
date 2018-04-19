@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import {t} from '../../../locale';
 import GroupEventDataSection from '../eventDataSection';
 import SentryTypes from '../../../proptypes';
 import {isStacktraceNewestFirst} from './stacktrace';
@@ -45,6 +46,7 @@ class ExceptionInterface extends React.Component {
     let title = (
       <CrashHeader
         group={group}
+        title={t('Exception')}
         platform={event.platform}
         exception={data}
         stackView={stackView}

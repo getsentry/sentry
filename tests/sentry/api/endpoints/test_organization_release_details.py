@@ -5,7 +5,7 @@ from datetime import datetime
 from django.core.urlresolvers import reverse
 
 from sentry.models import (
-    Activity, File, Release, ReleaseCommit, ReleaseFile, ReleaseProject, Repository
+    Activity, Environment, File, Release, ReleaseCommit, ReleaseFile, ReleaseProject, ReleaseProjectEnvironment, Repository
 )
 from sentry.testutils import APITestCase
 
@@ -20,8 +20,8 @@ class ReleaseDetailsTest(APITestCase):
         team1 = self.create_team(organization=org)
         team2 = self.create_team(organization=org)
 
-        project = self.create_project(team=team1, organization=org)
-        project2 = self.create_project(team=team2, organization=org)
+        project = self.create_project(teams=[team1], organization=org)
+        project2 = self.create_project(teams=[team2], organization=org)
 
         release = Release.objects.create(
             organization_id=org.id,
@@ -34,10 +34,23 @@ class ReleaseDetailsTest(APITestCase):
         release.add_project(project)
         release2.add_project(project2)
 
+        environment = Environment.objects.create(
+            organization_id=org.id,
+            name='prod',
+        )
+        environment.add_project(project)
+        environment.add_project(project2)
+
         self.create_member(teams=[team1], user=user, organization=org)
 
         self.login_as(user=user)
 
+        ReleaseProjectEnvironment.objects.create(
+            project_id=project.id,
+            release_id=release.id,
+            environment_id=environment.id,
+            new_issues_count=5,
+        )
         ReleaseProject.objects.filter(project=project, release=release).update(new_groups=5)
 
         url = reverse(
@@ -73,8 +86,8 @@ class ReleaseDetailsTest(APITestCase):
         team1 = self.create_team(organization=org)
         team2 = self.create_team(organization=org)
 
-        project = self.create_project(team=team1, organization=org)
-        project2 = self.create_project(team=team2, organization=org)
+        project = self.create_project(teams=[team1], organization=org)
+        project2 = self.create_project(teams=[team2], organization=org)
 
         release = Release.objects.create(
             organization_id=org.id,
@@ -121,8 +134,8 @@ class UpdateReleaseDetailsTest(APITestCase):
         team1 = self.create_team(organization=org)
         team2 = self.create_team(organization=org)
 
-        project = self.create_project(team=team1, organization=org)
-        project2 = self.create_project(team=team2, organization=org)
+        project = self.create_project(teams=[team1], organization=org)
+        project2 = self.create_project(teams=[team2], organization=org)
 
         base_release = Release.objects.create(
             organization_id=org.id,
@@ -251,8 +264,8 @@ class UpdateReleaseDetailsTest(APITestCase):
         team1 = self.create_team(organization=org)
         team2 = self.create_team(organization=org)
 
-        project = self.create_project(team=team1, organization=org)
-        project2 = self.create_project(team=team2, organization=org)
+        project = self.create_project(teams=[team1], organization=org)
+        project2 = self.create_project(teams=[team2], organization=org)
 
         base_release = Release.objects.create(
             organization_id=org.id,
@@ -371,7 +384,7 @@ class UpdateReleaseDetailsTest(APITestCase):
 
         team = self.create_team(organization=org)
 
-        project = self.create_project(team=team, organization=org)
+        project = self.create_project(teams=[team], organization=org)
 
         release = Release.objects.create(
             organization_id=org.id,
@@ -423,7 +436,7 @@ class UpdateReleaseDetailsTest(APITestCase):
 
         team = self.create_team(organization=org)
 
-        project = self.create_project(team=team, organization=org)
+        project = self.create_project(teams=[team], organization=org)
 
         release = Release.objects.create(
             organization_id=org.id,
@@ -461,6 +474,52 @@ class UpdateReleaseDetailsTest(APITestCase):
         )
         assert activity.exists()
 
+    def test_activity_generation_long_release(self):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.organization
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team = self.create_team(organization=org)
+
+        project = self.create_project(teams=[team], organization=org)
+
+        release = Release.objects.create(
+            organization_id=org.id,
+            version='x' * 65,
+        )
+
+        release.add_project(project)
+
+        self.create_member(teams=[team], user=user, organization=org)
+
+        self.login_as(user=user)
+
+        url = reverse(
+            'sentry-api-0-organization-release-details',
+            kwargs={
+                'organization_slug': org.slug,
+                'version': release.version,
+            }
+        )
+        response = self.client.put(
+            url, data={
+                'dateReleased': datetime.utcnow().isoformat() + 'Z',
+            }
+        )
+
+        assert response.status_code == 200, (response.status_code, response.content)
+
+        release = Release.objects.get(id=release.id)
+        assert release.date_released
+
+        activity = Activity.objects.filter(
+            type=Activity.RELEASE,
+            project=project,
+            ident=release.version[:64],
+        )
+        assert activity.exists()
+
 
 class ReleaseDeleteTest(APITestCase):
     def test_simple(self):
@@ -471,7 +530,7 @@ class ReleaseDeleteTest(APITestCase):
 
         team = self.create_team(organization=org)
 
-        project = self.create_project(team=team, organization=org)
+        project = self.create_project(teams=[team], organization=org)
 
         release = Release.objects.create(
             organization_id=org.id,
@@ -515,7 +574,7 @@ class ReleaseDeleteTest(APITestCase):
 
         team = self.create_team(organization=org)
 
-        project = self.create_project(team=team, organization=org)
+        project = self.create_project(teams=[team], organization=org)
 
         release = Release.objects.create(
             organization_id=org.id,
@@ -549,7 +608,7 @@ class ReleaseDeleteTest(APITestCase):
         org.save()
 
         team = self.create_team(organization=org)
-        project = self.create_project(name='foo', organization=org, team=team)
+        project = self.create_project(name='foo', organization=org, teams=[team])
         release = Release.objects.create(
             organization_id=org.id,
             version='abcabcabc',
@@ -588,7 +647,7 @@ class ReleaseDeleteTest(APITestCase):
         org.save()
 
         team = self.create_team(organization=org)
-        project = self.create_project(name='foo', organization=org, team=team)
+        project = self.create_project(name='foo', organization=org, teams=[team])
         Repository.objects.create(organization_id=org.id, name='a_repo')
         release = Release.objects.create(
             organization_id=org.id,

@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 
-from sentry.tsdb import backend as tsdb
+from sentry import tsdb
 from sentry.models import EventUser
 from sentry.testutils import APITestCase
 
@@ -14,7 +14,7 @@ class ProjectUserDetailsTest(APITestCase):
         self.user = self.create_user()
         self.org = self.create_organization(owner=None)
         self.team = self.create_team(organization=self.org)
-        self.project = self.create_project(organization=self.org, team=self.team)
+        self.project = self.create_project(organization=self.org, teams=[self.team])
         self.create_member(
             user=self.user,
             organization=self.org,

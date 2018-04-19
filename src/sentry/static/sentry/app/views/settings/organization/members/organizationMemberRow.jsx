@@ -1,16 +1,18 @@
-import {Flex, Box} from 'grid-emotion';
+import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import {PanelItem} from '../../../../components/panels';
 import {t, tct} from '../../../../locale';
 import Avatar from '../../../../components/avatar';
 import Button from '../../../../components/buttons/button';
 import Confirm from '../../../../components/confirm';
+import InlineSvg from '../../../../components/inlineSvg';
 import Link from '../../../../components/link';
-import Tooltip from '../../../../components/tooltip';
 import LoadingIndicator from '../../../../components/loadingIndicator';
 import SentryTypes from '../../../../proptypes';
+import Tooltip from '../../../../components/tooltip';
 import recreateRoute from '../../../../utils/recreateRoute';
 
 const UserName = styled(Link)`
@@ -20,14 +22,6 @@ const UserName = styled(Link)`
 const Email = styled.div`
   color: ${p => p.theme.gray3};
   font-size: 14px;
-`;
-
-const Row = styled(Flex)`
-  border-bottom: 1px solid ${p => p.theme.borderLight};
-
-  &:last-child {
-    border: 0;
-  }
 `;
 
 export default class OrganizationMemberRow extends React.PureComponent {
@@ -108,9 +102,9 @@ export default class OrganizationMemberRow extends React.PureComponent {
     let isInviting = status === 'loading';
 
     return (
-      <Row align="center" py={2}>
+      <PanelItem align="center" p={0} py={2}>
         <Box pl={2}>
-          <Avatar style={{width: 32, height: 32}} user={user ? user : {email}} />
+          <Avatar size={32} user={user ? user : {email}} />
         </Box>
 
         <Box pl={1} pr={2} flex="1">
@@ -141,27 +135,23 @@ export default class OrganizationMemberRow extends React.PureComponent {
                 !isInviteSuccessful &&
                 canAddMembers &&
                 (pending || needsSso) && (
-                  <Button
+                  <ResendInviteButton
                     priority="primary"
                     size="xsmall"
                     onClick={this.handleSendInvite}
-                    style={{
-                      padding: '0 4px',
-                      marginTop: 2,
-                    }}
                   >
                     {t('Resend invite')}
-                  </Button>
+                  </ResendInviteButton>
                 )}
             </div>
           ) : (
             <div>
               {!has2fa ? (
                 <Tooltip title={t('Two-factor auth not enabled')}>
-                  <span style={{color: '#B64236'}} className="icon-exclamation" />
+                  <NoTwoFactorIcon />
                 </Tooltip>
               ) : (
-                <span style={{color: 'green'}} className="icon-check" />
+                <HasTwoFactorIcon />
               )}
             </div>
           )}
@@ -190,8 +180,8 @@ export default class OrganizationMemberRow extends React.PureComponent {
                     orgName,
                   })}
                 >
-                  <Button priority="danger" size="small" busy={this.state.busy}>
-                    <span className="icon icon-trash" /> {t('Remove')}
+                  <Button icon="icon-circle-subtract" size="small" busy={this.state.busy}>
+                    {t('Remove')}
                   </Button>
                 </Confirm>
               )}
@@ -202,8 +192,9 @@ export default class OrganizationMemberRow extends React.PureComponent {
                   disabled
                   size="small"
                   title={t('You do not have access to remove member')}
+                  icon="icon-circle-subtract"
                 >
-                  <span className="icon icon-trash" /> {t('Remove')}
+                  {t('Remove')}
                 </Button>
               )}
 
@@ -241,7 +232,25 @@ export default class OrganizationMemberRow extends React.PureComponent {
               )}
           </Box>
         ) : null}
-      </Row>
+      </PanelItem>
     );
   }
 }
+
+const NoTwoFactorIcon = styled(props => (
+  <InlineSvg {...props} src="icon-circle-exclamation" />
+))`
+  color: ${p => p.theme.error};
+  font-size: 18px;
+`;
+const HasTwoFactorIcon = styled(props => (
+  <InlineSvg {...props} src="icon-circle-check" />
+))`
+  color: ${p => p.theme.success};
+  font-size: 18px;
+`;
+
+const ResendInviteButton = styled(Button)`
+  padding: 0 4px;
+  margin-top: 2px;
+`;

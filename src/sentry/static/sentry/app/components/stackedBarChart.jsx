@@ -1,10 +1,10 @@
 import React from 'react';
 import createReactClass from 'create-react-class';
 import PropTypes from 'prop-types';
-import moment from 'moment';
+import moment from 'moment-timezone';
 import _ from 'lodash';
 
-import TooltipMixin from '../mixins/tooltip';
+import Tooltip from '../components/tooltip';
 import Count from './count';
 import ConfigStore from '../stores/configStore';
 
@@ -31,10 +31,8 @@ const StackedBarChart = createReactClass({
         label: PropTypes.string,
       })
     ),
-    interval: PropTypes.string,
     height: PropTypes.number,
     width: PropTypes.number,
-    placement: PropTypes.string,
     label: PropTypes.string,
     markers: PropTypes.arrayOf(
       PropTypes.shape({
@@ -45,33 +43,6 @@ const StackedBarChart = createReactClass({
     tooltip: PropTypes.func,
     barClasses: PropTypes.array,
   },
-
-  mixins: [
-    TooltipMixin(function() {
-      let chart = this;
-
-      return {
-        html: true,
-        placement: this.props.placement,
-        selector: '.tip',
-        viewport: this.props.viewport,
-
-        // This callback is fired when the user hovers over the
-        // barchart / triggers tooltip rendering. This is better
-        // than using data-title, which renders up-front for each
-        // StackedBarChart (slow).
-        title: function(instance) {
-          // `this` is the targeted element
-          let pointIdx = this.getAttribute('data-point-index');
-          let tooltipFunc = chart.props.tooltip || chart.renderTooltip;
-
-          if (pointIdx)
-            return tooltipFunc(chart.state.pointIndex[pointIdx], pointIdx, chart);
-          else return this.getAttribute('data-title');
-        },
-      };
-    }),
-  ],
 
   statics: {
     getInterval(series) {
@@ -113,13 +84,11 @@ const StackedBarChart = createReactClass({
       className: 'sparkline',
       height: null,
       label: '',
-      placement: 'bottom',
       points: [],
       series: [],
       markers: [],
       width: null,
       barClasses: ['chart-bar'],
-      tooltip: this.renderTooltip,
     };
   },
 
@@ -161,7 +130,7 @@ const StackedBarChart = createReactClass({
   },
 
   shouldComponentUpdate(nextProps, nextState) {
-    return !_.isEqual(this.props, nextProps, true);
+    return !_.isEqual(this.props, nextProps);
   },
 
   use24Hours() {
@@ -243,15 +212,17 @@ const StackedBarChart = createReactClass({
     let timeLabel = moment(marker.x * 1000).format('lll');
     let title =
       '<div style="width:130px">' + marker.label + '<br/>' + timeLabel + '</div>';
-    let className = 'chart-marker tip ' + (marker.className || '');
+    let className = 'chart-marker ' + (marker.className || '');
 
     // example key: m-last-seen-22811123, m-first-seen-228191
     let key = ['m', marker.className, marker.x].join('-');
 
     return (
-      <a key={key} className={className} style={{height: '100%'}} data-title={title}>
-        <span>{marker.label}</span>
-      </a>
+      <Tooltip title={title} key={key} tooltipOptions={{html: true, placement: 'bottom'}}>
+        <a className={className} style={{height: '100%'}}>
+          <span>{marker.label}</span>
+        </a>
+      </Tooltip>
     );
   },
 
@@ -298,15 +269,20 @@ const StackedBarChart = createReactClass({
       prevPct += pct;
       return pt;
     });
+
+    let pointIdx = point.x;
+    let tooltipFunc = this.props.tooltip || this.renderTooltip;
+
     return (
-      <a
+      <Tooltip
+        title={tooltipFunc(this.state.pointIndex[pointIdx], pointIdx, this)}
         key={point.x}
-        className="chart-column tip"
-        data-point-index={point.x}
-        style={{width: pointWidth, height: '100%'}}
+        tooltipOptions={{html: true, placement: 'bottom'}}
       >
-        {pts}
-      </a>
+        <a className="chart-column" style={{width: pointWidth, height: '100%'}}>
+          {pts}
+        </a>
+      </Tooltip>
     );
   },
 
@@ -351,14 +327,12 @@ const StackedBarChart = createReactClass({
   },
 
   render() {
-    let figureClass = [this.props.className, 'barchart'].join(' ');
+    let {className, style, height, width} = this.props;
+    let figureClass = [className, 'barchart'].join(' ');
     let maxval = this.maxPointValue();
 
     return (
-      <figure
-        className={figureClass}
-        style={{height: this.props.height, width: this.props.width}}
-      >
+      <figure className={figureClass} style={{height, width, ...style}}>
         <span className="max-y">
           <Count value={maxval} />
         </span>

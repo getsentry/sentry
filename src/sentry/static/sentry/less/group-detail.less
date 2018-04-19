@@ -25,12 +25,6 @@
     }
   }
 
-  .short-id {
-    font-size: 17px !important;
-    font-family: @font-family-code;
-    margin-top: 11px;
-  }
-
   .event-message,
   .event-meta {
     line-height: 1.2;
@@ -57,7 +51,7 @@
 
   .event-annotation {
     display: inline-block;
-    margin: 0 0 5px 9px;
+    margin-left: 9px;
     font-size: 13px;
     line-height: 1;
     border-left: 1px solid lighten(@trim, 6);
@@ -75,7 +69,7 @@
 
   .count span {
     font-size: 22px;
-    display: block;
+    display: inline-block;
     line-height: 1.2;
   }
 
@@ -164,20 +158,6 @@
   .nav-tabs {
     margin-top: 20px;
     margin-bottom: 0;
-  }
-
-  // loading indicator for the group needs extra fixing up.
-  .assignee-selector {
-    display: inline-block;
-
-    .loading {
-      margin: 0;
-
-      .loading-indicator {
-        left: auto !important;
-        right: 0 !important;
-      }
-    }
   }
 
   &:before {
@@ -602,7 +582,6 @@
         position: absolute;
         left: 0;
         top: 0;
-        .square(38px);
       }
 
       .activity-bubble {
@@ -737,9 +716,7 @@
         opacity: 0.6;
       }
 
-      .avatar {
-        width: 18px;
-        height: 18px;
+      .activity-avatar {
         margin-right: 4px;
         border-radius: 2px;
         position: relative;
@@ -752,7 +729,6 @@
           color: @gray-darker;
           font-size: 16px;
           background: @white;
-          top: -4px;
         }
       }
 
@@ -1138,16 +1114,6 @@
   }
 }
 
-.sticky .event-toolbar {
-  margin: 0 0 0 200px;
-  padding-left: 20px;
-  padding-right: 20px;
-}
-
-.sticky + div .event {
-  margin-top: 82px;
-}
-
 .module-user .avatar {
   .square(64px);
 
@@ -1186,14 +1152,6 @@
   }
 }
 
-.sticky-sidebar {
-  .event-stats {
-    position: fixed;
-    top: 84px;
-    right: 20px;
-  }
-}
-
 .user-widget {
   position: relative;
   margin-bottom: 20px;
@@ -1204,6 +1162,7 @@
     top: 0;
     right: 0;
     box-shadow: 0 0 0 5px #fff;
+    border-radius: 5px;
   }
 
   .btn-group {
@@ -1375,18 +1334,6 @@ div.traceback > ul {
 
       .informal {
         font-style: italic;
-      }
-
-      a.annotation {
-        &.trigger-popover {
-          cursor: pointer;
-        }
-        color: inherit;
-        padding: 0 1px;
-        border-bottom: 1px dotted #666;
-        &:hover {
-          text-decoration: none;
-        }
       }
     }
 
@@ -2749,18 +2696,6 @@ ul.crumbs {
 
     .meta {
       font-size: 13px;
-    }
-
-    .assignee-selector {
-      .dropdown-menu {
-        left: 0 !important;
-        right: auto !important;
-
-        &:before,
-        &:after {
-          display: none;
-        }
-      }
     }
 
     .short-id-box {

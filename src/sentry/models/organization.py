@@ -7,7 +7,10 @@ sentry.models.organization
 """
 from __future__ import absolute_import, print_function
 
+import six
+
 from datetime import timedelta
+from enum import IntEnum
 
 from bitfield import BitField
 from django.conf import settings
@@ -15,7 +18,6 @@ from django.core.urlresolvers import reverse
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 from django.utils.functional import cached_property
-from django.utils.translation import ugettext_lazy as _
 
 from sentry import roles
 from sentry.app import locks
@@ -24,13 +26,43 @@ from sentry.db.models import (BaseManager, BoundedPositiveIntegerField, Model, s
 from sentry.db.models.utils import slugify_instance
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
+from sentry.models import Authenticator
 
 
-# TODO(dcramer): pull in enum library
-class OrganizationStatus(object):
-    VISIBLE = 0
+class OrganizationStatus(IntEnum):
+    ACTIVE = 0
     PENDING_DELETION = 1
     DELETION_IN_PROGRESS = 2
+
+    # alias
+    VISIBLE = 0
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def label(self):
+        return OrganizationStatus._labels[self]
+
+    @classmethod
+    def as_choices(cls):
+        result = []
+        for name, member in six.iteritems(cls.__members__):
+            # an alias
+            if name != member.name:
+                continue
+            # realistically Enum shouldn't even creating these, but alas
+            if name.startswith('_'):
+                continue
+            result.append((member.value, member.label))
+        return tuple(result)
+
+
+OrganizationStatus._labels = {
+    OrganizationStatus.ACTIVE: 'active',
+    OrganizationStatus.PENDING_DELETION: 'pending deletion',
+    OrganizationStatus.DELETION_IN_PROGRESS: 'deletion in progress',
+}
 
 
 class OrganizationManager(BaseManager):
@@ -48,13 +80,13 @@ class OrganizationManager(BaseManager):
 
         if settings.SENTRY_PUBLIC and scope is None:
             if only_visible:
-                return list(self.filter(status=OrganizationStatus.VISIBLE))
+                return list(self.filter(status=OrganizationStatus.ACTIVE))
             else:
                 return list(self.filter())
 
         qs = OrganizationMember.objects.filter(user=user).select_related('organization')
         if only_visible:
-            qs = qs.filter(organization__status=OrganizationStatus.VISIBLE)
+            qs = qs.filter(organization__status=OrganizationStatus.ACTIVE)
 
         results = list(qs)
 
@@ -72,12 +104,10 @@ class Organization(Model):
     name = models.CharField(max_length=64)
     slug = models.SlugField(unique=True)
     status = BoundedPositiveIntegerField(
-        choices=(
-            (OrganizationStatus.VISIBLE,
-             _('Visible')), (OrganizationStatus.PENDING_DELETION, _('Pending Deletion')),
-            (OrganizationStatus.DELETION_IN_PROGRESS, _('Deletion in Progress')),
-        ),
-        default=OrganizationStatus.VISIBLE
+        choices=OrganizationStatus.as_choices(),
+        # south will generate a default value of `'<OrganizationStatus.ACTIVE: 0>'`
+        # if `.value` is omitted
+        default=OrganizationStatus.ACTIVE.value
     )
     date_added = models.DateTimeField(default=timezone.now)
     members = models.ManyToManyField(
@@ -127,7 +157,7 @@ class Organization(Model):
         Return the organization used in single organization mode.
         """
         return cls.objects.filter(
-            status=OrganizationStatus.VISIBLE,
+            status=OrganizationStatus.ACTIVE,
         )[0]
 
     def __unicode__(self):
@@ -166,7 +196,7 @@ class Organization(Model):
             'id': self.id,
             'slug': self.slug,
             'name': self.name,
-            'status': self.status,
+            'status': int(self.status),
             'flags': self.flags,
             'default_role': self.default_role,
         }
@@ -328,3 +358,28 @@ class Organization(Model):
     def flag_has_changed(self, flag_name):
         "Returns ``True`` if ``flag`` has changed since initialization."
         return getattr(self.old_value('flags'), flag_name, None) != getattr(self.flags, flag_name)
+
+    def send_setup_2fa_emails(self):
+        from sentry import options
+        from sentry.utils.email import MessageBuilder
+        from sentry.models import User
+
+        for user in User.objects.filter(
+            is_active=True,
+            sentry_orgmember_set__organization=self,
+        ):
+            if not Authenticator.objects.user_has_2fa(user):
+                context = {
+                    'user': user,
+                    'url': absolute_uri(reverse('sentry-account-settings-2fa')),
+                    'organization': self
+                }
+                message = MessageBuilder(
+                    subject='%s %s Mandatory: Enable Two-Factor Authentication' % (
+                        options.get('mail.subject-prefix'), self.name),
+                    template='sentry/emails/setup_2fa.txt',
+                    html_template='sentry/emails/setup_2fa.html',
+                    type='user.setup_2fa',
+                    context=context,
+                )
+                message.send_async([user.email])

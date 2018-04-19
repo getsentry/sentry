@@ -32,7 +32,8 @@ def get_activity_notifiers(project):
     return results
 
 
-@instrumented_task(name='sentry.tasks.activity.send_activity_notifications')
+@instrumented_task(name='sentry.tasks.activity.send_activity_notifications',
+                   queue='activity.notify')
 def send_activity_notifications(activity_id):
     from sentry.models import Activity
 

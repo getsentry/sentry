@@ -18,8 +18,7 @@ class GroupEnvironmentDetailsEndpoint(GroupEndpoint):
             environment = Environment.objects.get(
                 projects=project,
                 organization_id=project.organization_id,
-                # XXX(dcramer): we have no great way to pass the empty env
-                name='' if environment == 'none' else environment,
+                name=Environment.get_name_from_path_segment(environment),
             )
         except Environment.DoesNotExist:
             raise ResourceDoesNotExist

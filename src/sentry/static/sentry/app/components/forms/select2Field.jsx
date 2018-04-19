@@ -71,10 +71,6 @@ export default class Select2Field extends InputField {
     };
   }
 
-  getClassName() {
-    return '';
-  }
-
   componentDidMount() {
     super.componentDidMount();
     jQuery(this.refs.input)

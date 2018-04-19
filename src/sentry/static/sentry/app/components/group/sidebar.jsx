@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import _ from 'lodash';
 
 import createReactClass from 'create-react-class';
 
@@ -49,6 +50,20 @@ const GroupSidebar = createReactClass({
         this.setState({
           participants: data,
           error: false,
+        });
+      },
+      error: () => {
+        this.setState({
+          error: true,
+        });
+      },
+    });
+    // Fetch group data for all environments since the one in GroupState is filtered for the selected environment
+    // The charts rely on having all environment data as well as the data for the selected env
+    this.api.request(`/issues/${group.id}/`, {
+      success: data => {
+        this.setState({
+          allEnvironmentsGroupData: data,
         });
       },
       error: () => {
@@ -118,7 +133,9 @@ const GroupSidebar = createReactClass({
           <dl key={plugin.slug}>
             <dt>{`${plugin.shortName || plugin.name || plugin.title}: `}</dt>
             <dd>
-              <a href={issue.url}>{issue.label}</a>
+              <a href={issue.url}>
+                {_.isObject(issue.label) ? issue.label.id : issue.label}
+              </a>
             </dd>
           </dl>
         );
@@ -194,18 +211,14 @@ const GroupSidebar = createReactClass({
     let project = this.getProject();
     let projectId = project.slug;
     let orgId = this.getOrganization().slug;
-    let defaultEnvironment = project.defaultEnvironment;
     let group = this.getGroup();
 
     return (
       <div className="group-stats">
         <SuggestedOwners event={this.props.event} />
-
-        <GroupReleaseStats
-          group={group}
-          location={this.context.location}
-          defaultEnvironment={defaultEnvironment}
-        />
+        {this.state.allEnvironmentsGroupData && (
+          <GroupReleaseStats group={this.state.allEnvironmentsGroupData} />
+        )}
 
         {this.renderPluginIssue()}
 

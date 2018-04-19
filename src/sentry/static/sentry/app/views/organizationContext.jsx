@@ -22,10 +22,6 @@ let ERROR_TYPES = {
   ORG_NOT_FOUND: 'ORG_NOT_FOUND',
 };
 
-function getRequiredAdminActions(org) {
-  return [];
-}
-
 const OrganizationContext = createReactClass({
   displayName: 'OrganizationContext',
 
@@ -88,7 +84,11 @@ const OrganizationContext = createReactClass({
           hooks.push(cb(data));
         });
 
-        data.requiredAdminActions = getRequiredAdminActions(data);
+        setActiveOrganization(data);
+
+        TeamStore.loadInitialData(data.teams);
+        ProjectsStore.loadInitialData(data.projects);
+
         this.setState({
           organization: data,
           loading: false,
@@ -97,15 +97,6 @@ const OrganizationContext = createReactClass({
           hooks,
           showBroadcast: this.shouldShowBroadcast(data),
         });
-
-        setActiveOrganization(data);
-
-        TeamStore.loadInitialData(data.teams);
-        ProjectsStore.loadInitialData(
-          data.teams.reduce((out, team) => {
-            return out.concat(team.projects);
-          }, [])
-        );
       },
 
       error: (_, textStatus, errorThrown) => {

@@ -3,9 +3,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import LazyLoad from '../../../../components/lazyLoad';
-import OrganizationSettingsView from '../../../organizationSettingsView';
+import AsyncView from '../../../asyncView';
 import SentryTypes from '../../../../proptypes';
-import getSettingsComponent from '../../../../utils/getSettingsComponent';
 
 const EVENT_TYPES = [
   'member.invite',
@@ -41,7 +40,7 @@ const EVENT_TYPES = [
   'api-key.remove',
 ].sort();
 
-class AuditLogView extends OrganizationSettingsView {
+class AuditLogView extends AsyncView {
   static propTypes = {
     routes: PropTypes.array,
   };
@@ -87,10 +86,8 @@ class AuditLogView extends OrganizationSettingsView {
     return (
       <LazyLoad
         component={() =>
-          getSettingsComponent(
-            () => import(/*webpackChunkName: "auditLogList"*/ './auditLogList'),
-            () => import(/*webpackChunkName: "auditLogList.old"*/ './auditLogList.old'),
-            this.props.routes
+          import(/*webpackChunkName: "auditLogList"*/ './auditLogList').then(
+            mod => mod.default
           )}
         entries={this.state.entryList}
         pageLinks={this.state.pageLinks}

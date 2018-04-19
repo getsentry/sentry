@@ -11,7 +11,7 @@ from sentry.web.frontend.base import ProjectView
 class GroupEventJsonView(ProjectView):
     required_scope = 'event:read'
 
-    def get(self, request, organization, project, team, group_id, event_id_or_latest):
+    def get(self, request, organization, project, group_id, event_id_or_latest):
         try:
             # TODO(tkaemming): This should *actually* redirect, see similar
             # comment in ``GroupEndpoint.convert_args``.

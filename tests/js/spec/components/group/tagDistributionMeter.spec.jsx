@@ -1,10 +1,10 @@
 import React from 'react';
 import ReactDOMServer from 'react-dom/server';
 
-import TestUtils from 'react-addons-test-utils';
+import TestUtils from 'react-dom/test-utils';
 
 import {Client} from 'app/api';
-import TagDistributionMeter from 'app/components/group/tagDistributionMeter';
+import {TagDistributionMeter} from 'app/components/group/tagDistributionMeter';
 
 describe('TagDistributionMeter', function() {
   let sandbox;
@@ -102,7 +102,7 @@ describe('TagDistributionMeter', function() {
         },
         () => {
           element.renderBody();
-          expect(element.renderSegments.calledOnce);
+          expect(element.renderSegments.callCount).toBeTruthy();
           done();
         }
       );

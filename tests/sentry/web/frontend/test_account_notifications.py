@@ -31,13 +31,13 @@ class NotificationSettingsTest(TestCase):
         user = self.create_user('foo@example.com')
         organization = self.create_organization()
         team = self.create_team(organization=organization)
-        project = self.create_project(organization=organization, team=team)
+        project = self.create_project(organization=organization, teams=[team])
         team2 = self.create_team(organization=organization)
         self.create_project(
-            organization=organization, team=team, status=ProjectStatus.PENDING_DELETION
+            organization=organization, teams=[team], status=ProjectStatus.PENDING_DELETION
         )
-        self.create_project(organization=organization, team=team2)
-        self.create_member(organization=organization, user=user, teams=[project.team])
+        self.create_project(organization=organization, teams=[team2])
+        self.create_member(organization=organization, user=user, teams=[project.teams.first()])
         self.login_as(user)
         resp = self.client.get(self.path)
         assert resp.status_code == 200

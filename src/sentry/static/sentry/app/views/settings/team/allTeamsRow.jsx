@@ -1,14 +1,14 @@
+import {Box} from 'grid-emotion';
+import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import {Link} from 'react-router';
-import {Box} from 'grid-emotion';
 
-import ApiMixin from '../../../mixins/apiMixin';
-import AlertActions from '../../../actions/alertActions';
-import PanelItem from '../components/panelItem';
+import {addErrorMessage, addSuccessMessage} from '../../../actionCreators/indicator';
 import {joinTeam, leaveTeam} from '../../../actionCreators/teams';
-import {t} from '../../../locale';
+import {t, tct} from '../../../locale';
+import ApiMixin from '../../../mixins/apiMixin';
+import {PanelItem} from '../../../components/panels';
 
 // TODO(dcramer): this isnt great UX
 
@@ -33,6 +33,8 @@ const AllTeamsRow = createReactClass({
   },
 
   joinTeam() {
+    let {organization, team} = this.props;
+
     this.setState({
       loading: true,
     });
@@ -40,8 +42,8 @@ const AllTeamsRow = createReactClass({
     joinTeam(
       this.api,
       {
-        orgId: this.props.organization.slug,
-        teamId: this.props.team.slug,
+        orgId: organization.slug,
+        teamId: team.slug,
       },
       {
         success: () => {
@@ -49,22 +51,30 @@ const AllTeamsRow = createReactClass({
             loading: false,
             error: false,
           });
+          addSuccessMessage(
+            tct('You have joined [team]', {
+              team: `#${team.slug}`,
+            })
+          );
         },
         error: () => {
           this.setState({
             loading: false,
             error: true,
           });
-          AlertActions.addAlert({
-            message: t('There was an error while trying to join the team.'),
-            type: 'error',
-          });
+          addErrorMessage(
+            tct('Unable to join [team]', {
+              team: `#${team.slug}`,
+            })
+          );
         },
       }
     );
   },
 
   leaveTeam() {
+    let {organization, team} = this.props;
+
     this.setState({
       loading: true,
     });
@@ -72,8 +82,8 @@ const AllTeamsRow = createReactClass({
     leaveTeam(
       this.api,
       {
-        orgId: this.props.organization.slug,
-        teamId: this.props.team.slug,
+        orgId: organization.slug,
+        teamId: team.slug,
       },
       {
         success: () => {
@@ -81,29 +91,41 @@ const AllTeamsRow = createReactClass({
             loading: false,
             error: false,
           });
+          addSuccessMessage(
+            tct('You have left [team]', {
+              team: `#${team.slug}`,
+            })
+          );
         },
         error: () => {
           this.setState({
             loading: false,
             error: true,
           });
-          AlertActions.addAlert({
-            message: t('There was an error while trying to leave the team.'),
-            type: 'error',
-          });
+          addErrorMessage(
+            tct('Unable to leave [team]', {
+              team: `#${team.slug}`,
+            })
+          );
         },
       }
     );
   },
 
   render() {
-    let {access, team, urlPrefix, openMembership} = this.props;
+    let {access, team, urlPrefix, openMembership, organization} = this.props;
+    let features = new Set(organization.features);
+    let display = features.has('new-teams') ? `#${team.slug}` : team.name;
     return (
-      <PanelItem align="center">
-        <Box w={1 / 2} p={2}>
-          {team.name}
+      <PanelItem p={0} align="center">
+        <Box flex="1" p={2}>
+          {access.has('team:write') ? (
+            <Link to={`${urlPrefix}teams/${team.slug}/`}>{display}</Link>
+          ) : (
+            display
+          )}
         </Box>
-        <Box w={1 / 2} p={2} style={{textAlign: 'right'}}>
+        <Box p={2}>
           {this.state.loading ? (
             <a className="btn btn-default btn-sm btn-loading btn-disabled">...</a>
           ) : team.isMember ? (
@@ -120,15 +142,6 @@ const AllTeamsRow = createReactClass({
             <a className="btn btn-default btn-sm" onClick={this.joinTeam}>
               {t('Request Access')}
             </a>
-          )}
-          {access.has('team:write') && (
-            <Link
-              className="btn btn-default btn-sm"
-              to={`${urlPrefix}teams/${team.slug}/settings/`}
-              style={{marginLeft: 5}}
-            >
-              {t('Team Settings')}
-            </Link>
           )}
         </Box>
       </PanelItem>

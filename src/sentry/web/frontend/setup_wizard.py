@@ -1,13 +1,14 @@
 from __future__ import absolute_import
 
 from sentry.cache import default_cache
-from django.core.urlresolvers import reverse
 
-from sentry.api import client
+from sentry import roles
 from sentry.models import ApiToken
 from sentry.api.serializers import serialize
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
+from sentry.models import (Organization, OrganizationStatus, Project, ProjectKey,
+                           ProjectKeyStatus, ProjectStatus)
 from sentry.api.endpoints.setup_wizard import SETUP_WIZARD_CACHE_KEY, SETUP_WIZARD_CACHE_TIMEOUT
 
 
@@ -27,23 +28,28 @@ class SetupWizardView(BaseView):
         if wizard_data is None:
             return self.redirect_to_org(request)
 
-        orgs = client.get(
-            reverse('sentry-api-0-organizations'), request=request)
+        orgs = Organization.objects.filter(
+            member_set__role__in=[x.id for x in roles.with_scope('org:read')],
+            member_set__user=request.user,
+            status=OrganizationStatus.VISIBLE,
+        ).order_by('-date_added')[:50]
 
         filled_projects = []
 
-        for org in orgs.data:
-            projects = client.get(reverse('sentry-api-0-organization-projects', kwargs={
-                'organization_slug': org.get('slug')
-            }), request=request)
-            for project in projects.data:
-                enriched_project = project
-                enriched_project['organization'] = org
-                keys = client.get(reverse('sentry-api-0-project-keys', kwargs={
-                    'organization_slug': org.get('slug'),
-                    'project_slug': project.get('slug')
-                }), request=request)
-                enriched_project['keys'] = keys.data
+        for org in orgs:
+            projects = list(Project.objects.filter(
+                organization=org,
+                status=ProjectStatus.VISIBLE,
+            ).order_by('-date_added')[:50])
+            for project in projects:
+                enriched_project = serialize(project)
+                enriched_project['organization'] = serialize(org)
+                keys = list(ProjectKey.objects.filter(
+                    project=project,
+                    roles=ProjectKey.roles.store,
+                    status=ProjectKeyStatus.ACTIVE,
+                ))
+                enriched_project['keys'] = serialize(keys)
                 filled_projects.append(enriched_project)
 
         # Fetching or creating a token

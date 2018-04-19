@@ -1,10 +1,18 @@
 import React from 'react';
+import Raven from 'raven-js';
 import DocumentTitle from 'react-document-title';
+
 import Footer from '../components/footer';
 import Sidebar from '../components/sidebar';
 import NotFound from '../components/errors/notFound';
 
 class RouteNotFound extends React.Component {
+  componentDidMount() {
+    Raven.captureException(new Error('Route not found'), {
+      fingerprint: ['RouteNotFound'],
+    });
+  }
+
   getTitle = () => {
     return 'Page Not Found';
   };

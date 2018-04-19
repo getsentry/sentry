@@ -72,6 +72,7 @@ class Provider(object):
         >>>     "id": "foo@example.com",
         >>>     "email": "foo@example.com",
         >>>     "name": "Foo Bar",
+        >>>     "email_verified": True,
         >>> }
 
         The ``email`` and ``id`` keys are required, ``name`` is optional.
@@ -79,6 +80,9 @@ class Provider(object):
         The ``id`` may be passed in as a ``MigratingIdentityId`` should the
         the id key be migrating from one value to another and have multiple
         lookup values.
+
+        The provider is trustable and the email address is verified by the provider,
+        the ``email_verified`` attribute should be set to ``True``.
 
         If the identity can not be constructed an ``IdentityNotValid`` error
         should be raised.

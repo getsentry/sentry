@@ -56,6 +56,9 @@ CLEAN_MODULE_RE = re.compile(
 VERSION_RE = re.compile(r'^[a-f0-9]{32}|[a-f0-9]{40}$', re.I)
 NODE_MODULES_RE = re.compile(r'\bnode_modules/')
 SOURCE_MAPPING_URL_RE = re.compile(r'\/\/# sourceMappingURL=(.*)$')
+CACHE_CONTROL_RE = re.compile(r'max-age=(\d+)')
+CACHE_CONTROL_MAX = 7200
+CACHE_CONTROL_MIN = 60
 # the maximum number of remote resources (i.e. source files) that should be
 # fetched
 MAX_RESOURCE_FETCHES = 100
@@ -331,7 +334,24 @@ def fetch_file(url, project=None, release=None, dist=None, allow_scraping=True):
         with metrics.timer('sourcemaps.fetch'):
             result = http.fetch_file(url, headers=headers, verify_ssl=verify_ssl)
             z_body = zlib.compress(result.body)
-            cache.set(cache_key, (url, result.headers, z_body, result.status, result.encoding), 60)
+            cache.set(
+                cache_key,
+                (url,
+                 result.headers,
+                 z_body,
+                 result.status,
+                 result.encoding),
+                get_max_age(result.headers))
+
+    # If we did not get a 200 OK we just raise a cannot fetch here.
+    if result.status != 200:
+        raise http.CannotFetch(
+            {
+                'type': EventError.FETCH_INVALID_HTTP_CODE,
+                'value': result.status,
+                'url': http.expose_url(url),
+            }
+        )
 
     # Make sure the file we're getting back is six.binary_type. The only
     # reason it'd not be binary would be from old cached blobs, so
@@ -369,6 +389,17 @@ def fetch_file(url, project=None, release=None, dist=None, allow_scraping=True):
             raise http.CannotFetch(error)
 
     return result
+
+
+def get_max_age(headers):
+    cache_control = headers.get('cache-control')
+    max_age = CACHE_CONTROL_MIN
+
+    if cache_control:
+        match = CACHE_CONTROL_RE.search(cache_control)
+        if match:
+            max_age = max(CACHE_CONTROL_MIN, int(match.group(1)))
+    return min(max_age, CACHE_CONTROL_MAX)
 
 
 def fetch_sourcemap(url, project=None, release=None, dist=None, allow_scraping=True):
@@ -415,9 +446,6 @@ def generate_module(src):
         return UNKNOWN_MODULE
 
     filename, ext = splitext(urlsplit(src).path)
-    if ext not in ('.js', '.jsx', '.coffee'):
-        return UNKNOWN_MODULE
-
     if filename.endswith('.min'):
         filename = filename[:-4]
 

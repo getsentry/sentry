@@ -102,8 +102,8 @@ class ActivityEmail(object):
     def get_subject(self):
         group = self.group
 
-        return u'[%s] %s: %s' % (
-            self.project.get_full_name(), group.get_level_display(), group.title
+        return u'%s - %s' % (
+            group.qualified_short_id, group.title
         )
 
     def get_subject_with_prefix(self):
@@ -138,7 +138,6 @@ class ActivityEmail(object):
         group = self.group
 
         headers = {
-            'X-Sentry-Team': project.team.slug,
             'X-Sentry-Project': project.slug,
         }
 

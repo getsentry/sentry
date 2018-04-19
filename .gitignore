@@ -13,6 +13,7 @@ pip-log.txt
 celerybeat-schedule
 sentry-package.json
 /htmlcov
+/coverage/
 /cover
 /build
 /dist
@@ -34,6 +35,7 @@ example/db.sqlite
 /test_cli/
 Gemfile.lock
 .idea/
+.pytest_cache/
 .vscode/tags
 coverage.xml
 junit.xml

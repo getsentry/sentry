@@ -6,10 +6,7 @@ import six
 from six.moves.urllib.parse import parse_qs, urlencode, urlparse
 
 from sentry.integrations.slack import SlackIntegration
-from sentry.models import (
-    Identity, IdentityProvider, IdentityStatus, Integration,
-    OrganizationIntegration, UserIdentity
-)
+from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration, OrganizationIntegration
 from sentry.testutils import IntegrationTestCase
 
 
@@ -25,7 +22,7 @@ class SlackIntegrationTest(IntegrationTestCase):
         assert redirect.netloc == 'slack.com'
         assert redirect.path == '/oauth/authorize'
         params = parse_qs(redirect.query)
-        assert params['scope'] == [' '.join(self.provider.oauth_scopes)]
+        assert params['scope'] == [' '.join(self.provider.identity_oauth_scopes)]
         assert params['state']
         assert params['redirect_uri'] == ['http://testserver/extensions/slack/setup/']
         assert params['response_type'] == ['code']
@@ -35,19 +32,27 @@ class SlackIntegrationTest(IntegrationTestCase):
         authorize_params = {k: v[0] for k, v in six.iteritems(params)}
 
         responses.add(
-            responses.POST, 'https://slack.com/api/oauth.access',
+            responses.POST, 'https://slack.com/api/oauth.token',
             json={
                 'ok': True,
                 'user_id': 'UXXXXXXX1',
                 'access_token': 'xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx',
                 'team_id': 'TXXXXXXX1',
                 'team_name': 'Example',
-                'bot': {
-                    'bot_access_token': 'xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx',
-                    'bot_user_id': 'UXXXXXXX2',
+                'installer_user_id': 'UXXXXXXX1',
+            }
+        )
+
+        responses.add(
+            responses.GET, 'https://slack.com/api/team.info',
+            json={
+                'ok': True,
+                'team': {
+                    'domain': 'test-slack-workspace',
+                    'icon': {'image_132': 'http://example.com/ws_icon.jpg'},
                 },
-                'scope': ','.join(authorize_params['scope'].split(' ')),
-            })
+            }
+        )
 
         resp = self.client.get('{}?{}'.format(
             self.path,
@@ -57,7 +62,7 @@ class SlackIntegrationTest(IntegrationTestCase):
             })
         ))
 
-        mock_request = responses.calls[-1].request
+        mock_request = responses.calls[0].request
         req_params = parse_qs(mock_request.body)
         assert req_params['grant_type'] == ['authorization_code']
         assert req_params['code'] == ['oauth-code']
@@ -68,14 +73,14 @@ class SlackIntegrationTest(IntegrationTestCase):
         assert resp.status_code == 200
         self.assertDialogSuccess(resp)
 
-        integration = Integration.objects.get(provider=self.provider.id)
+        integration = Integration.objects.get(provider=self.provider.key)
         assert integration.external_id == 'TXXXXXXX1'
         assert integration.name == 'Example'
         assert integration.metadata == {
             'access_token': 'xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx',
-            'bot_access_token': 'xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx',
-            'bot_user_id': 'UXXXXXXX2',
-            'scopes': list(self.provider.oauth_scopes),
+            'scopes': sorted(self.provider.identity_oauth_scopes),
+            'icon': 'http://example.com/ws_icon.jpg',
+            'domain_name': 'test-slack-workspace.slack.com',
         }
         oi = OrganizationIntegration.objects.get(
             integration=integration,
@@ -85,19 +90,11 @@ class SlackIntegrationTest(IntegrationTestCase):
 
         idp = IdentityProvider.objects.get(
             type='slack',
-            instance='slack.com',
+            organization=self.organization,
         )
         identity = Identity.objects.get(
             idp=idp,
+            user=self.user,
             external_id='UXXXXXXX1',
         )
         assert identity.status == IdentityStatus.VALID
-        assert identity.scopes == list(self.provider.oauth_scopes)
-        assert identity.data == {
-            'access_token': 'xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx',
-        }
-
-        assert UserIdentity.objects.filter(
-            user=self.user,
-            identity=identity,
-        ).exists()

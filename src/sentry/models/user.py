@@ -10,6 +10,7 @@ from __future__ import absolute_import
 import logging
 import warnings
 
+from bitfield import BitField
 from django.contrib.auth.models import AbstractBaseUser, UserManager
 from django.core.urlresolvers import reverse
 from django.db import IntegrityError, models, transaction
@@ -17,6 +18,7 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.db.models import BaseManager, BaseModel, BoundedAutoField
+from sentry.models import LostPasswordHash
 from sentry.utils.http import absolute_uri
 
 audit_logger = logging.getLogger('sentry.audit.user')
@@ -78,6 +80,17 @@ class User(BaseModel, AbstractBaseUser):
         _('date of last password change'),
         null=True,
         help_text=_('The date the password was changed last.')
+    )
+
+    flags = BitField(
+        flags=(
+            (
+                'newsletter_consent_prompt',
+                'Do we need to ask this user for newsletter consent?'
+            ),
+        ),
+        default=0,
+        null=True,
     )
 
     session_nonce = models.CharField(max_length=12, null=True)
@@ -278,3 +291,9 @@ class User(BaseModel, AbstractBaseUser):
                 user=self,
             ).values('organization'),
         )
+
+    def clear_lost_passwords(self):
+        LostPasswordHash.objects.filter(user=self).delete()
+
+# HACK(dcramer): last_login needs nullable for Django 1.8
+User._meta.get_field('last_login').null = True

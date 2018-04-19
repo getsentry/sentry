@@ -1,14 +1,14 @@
-import React from 'react';
 import PropTypes from 'prop-types';
+import React from 'react';
 import queryString from 'query-string';
 
-import ClippedBox from '../../clippedBox';
-import KeyValueList from './keyValueList';
-import ContextData from '../../contextData';
-
-import {objectToSortedTupleArray} from './utils';
 import {objectIsEmpty} from '../../../utils';
+import {objectToSortedTupleArray} from './utils';
 import {t} from '../../../locale';
+import ClippedBox from '../../clippedBox';
+import ContextData from '../../contextData';
+import ErrorBoundary from '../../errorBoundary';
+import KeyValueList from './keyValueList';
 
 class RichHttpContent extends React.Component {
   static propTypes = {
@@ -50,33 +50,43 @@ class RichHttpContent extends React.Component {
       <div>
         {data.query && (
           <ClippedBox title={t('Query String')}>
-            {this.getQueryStringOrRaw(data.query)}
+            <ErrorBoundary mini>{this.getQueryStringOrRaw(data.query)}</ErrorBoundary>
           </ClippedBox>
         )}
         {data.fragment && (
           <ClippedBox title={t('Fragment')}>
-            <pre>{data.fragment}</pre>
+            <ErrorBoundary mini>
+              <pre>{data.fragment}</pre>
+            </ErrorBoundary>
           </ClippedBox>
         )}
 
         {data.data && (
-          <ClippedBox title={t('Body')}>{this.getBodySection(data)}</ClippedBox>
+          <ClippedBox title={t('Body')}>
+            <ErrorBoundary mini>{this.getBodySection(data)}</ErrorBoundary>
+          </ClippedBox>
         )}
 
         {data.cookies &&
           !objectIsEmpty(data.cookies) && (
             <ClippedBox title={t('Cookies')} defaultCollapsed>
-              <KeyValueList data={data.cookies} />
+              <ErrorBoundary mini>
+                <KeyValueList data={data.cookies} />
+              </ErrorBoundary>
             </ClippedBox>
           )}
         {!objectIsEmpty(data.headers) && (
           <ClippedBox title={t('Headers')}>
-            <KeyValueList data={data.headers} />
+            <ErrorBoundary mini>
+              <KeyValueList data={data.headers} />
+            </ErrorBoundary>
           </ClippedBox>
         )}
         {!objectIsEmpty(data.env) && (
           <ClippedBox title={t('Environment')} defaultCollapsed>
-            <KeyValueList data={objectToSortedTupleArray(data.env)} />
+            <ErrorBoundary mini>
+              <KeyValueList data={objectToSortedTupleArray(data.env)} />
+            </ErrorBoundary>
           </ClippedBox>
         )}
       </div>

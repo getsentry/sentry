@@ -20,6 +20,7 @@ class UserReport(Model):
     group = FlexibleForeignKey('sentry.Group', null=True)
     event_user_id = BoundedBigIntegerField(null=True)
     event_id = models.CharField(max_length=32)
+    environment = FlexibleForeignKey('sentry.Environment', null=True)
     name = models.CharField(max_length=128)
     email = models.EmailField(max_length=75)
     comments = models.TextField()

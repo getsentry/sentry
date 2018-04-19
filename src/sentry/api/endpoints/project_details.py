@@ -19,8 +19,8 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import DetailedProjectSerializer
 from sentry.api.serializers.rest_framework import ListField, OriginField
 from sentry.models import (
-    AuditLogEntryEvent, Group, GroupStatus, Project, ProjectBookmark, ProjectStatus,
-    ProjectTeam, UserOption, Team,
+    AuditLogEntryEvent, Group, GroupStatus, Project, ProjectBookmark, ProjectRedirect,
+    ProjectStatus, ProjectTeam, UserOption, Team,
 )
 from sentry.tasks.deletion import delete_project
 from sentry.utils.apidocs import scenario, attach_scenarios
@@ -97,8 +97,23 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     resolveAge = serializers.IntegerField(required=False)
     platform = serializers.CharField(required=False)
 
+    def validate_digestsMinDelay(self, attrs, source):
+        max_delay = attrs['digestsMaxDelay'] if 'digestsMaxDelay' in attrs else self.context['project'].get_option(
+            'digests:mail:maximum_delay')
+
+        # allow min to be set if max is not set
+        if max_delay is not None and attrs[source] > max_delay:
+            raise serializers.ValidationError(
+                'The minimum delay on digests must be lower than the maximum.'
+            )
+        return attrs
+
     def validate_digestsMaxDelay(self, attrs, source):
-        if attrs[source] < attrs['digestsMinDelay']:
+        min_delay = attrs['digestsMinDelay'] if 'digestsMinDelay' in attrs else self.context['project'].get_option(
+            'digests:mail:minimum_delay')
+
+        # allows max to be set if min is not set
+        if min_delay is not None and attrs[source] < min_delay:
             raise serializers.ValidationError(
                 'The maximum delay on digests must be higher than the minimum.'
             )
@@ -191,7 +206,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         :pparam string project_slug: the slug of the project to delete.
         :param string name: the new name for the project.
         :param string slug: the new slug for the project.
-        :param string team: the slug of new team for the project.
+        :param string team: the slug of new team for the project. Note, will be deprecated
+                            soon when multiple teams can have access to a project.
         :param string platform: the new platform for the project.
         :param boolean isBookmarked: in case this API call is invoked with a
                                      user context this allows changing of
@@ -234,7 +250,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     )
 
         changed = False
+
+        old_slug = None
         if result.get('slug'):
+            old_slug = project.slug
             project.slug = result['slug']
             changed = True
 
@@ -243,7 +262,17 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             changed = True
 
         old_team_id = None
+        new_team = None
         if result.get('team'):
+            if features.has('organizations:new-teams',
+                            project.organization, actor=request.user):
+                return Response(
+                    {
+                        'detail': ['Editing a team via this endpoint has been deprecated.']
+                    },
+                    status=400
+                )
+
             team_list = [
                 t for t in Team.objects.get_for_user(
                     organization=project.organization,
@@ -258,8 +287,13 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                         'detail': ['The new team is not found.']
                     }, status=400
                 )
-            old_team_id = project.team_id
-            project.team = team_list[0]
+            # TODO(jess): update / deprecate this functionality
+            try:
+                old_team_id = project.teams.values_list('id', flat=True)[0]
+            except IndexError:
+                pass
+
+            new_team = team_list[0]
             changed = True
 
         if result.get('platform'):
@@ -272,7 +306,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 ProjectTeam.objects.filter(
                     project=project,
                     team_id=old_team_id,
-                ).update(team=project.team)
+                ).update(team=new_team)
+
+            if old_slug:
+                ProjectRedirect.record(project, old_slug)
 
         if result.get('isBookmarked'):
             try:

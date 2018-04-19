@@ -20,7 +20,7 @@ class CreateAuditEntryTest(TestCase):
         self.req = FakeHttpRequest(self.user)
         self.org = self.create_organization(owner=self.user)
         self.team = self.create_team(organization=self.org)
-        self.project = self.create_project(team=self.team, platform='java')
+        self.project = self.create_project(teams=[self.team], platform='java')
 
     def assert_no_delete_log_created(self):
         assert not DeletedOrganization.objects.filter(slug=self.org.slug).exists()
@@ -70,6 +70,20 @@ class CreateAuditEntryTest(TestCase):
         deleted_org = DeletedOrganization.objects.get(slug=self.org.slug)
         self.assert_valid_deleted_log(deleted_org, self.org)
 
+    def test_audit_entry_org_restore_log(self):
+        entry = create_audit_entry(
+            request=self.req,
+            organization=self.org,
+            target_object=self.org.id,
+            event=AuditLogEntryEvent.ORG_RESTORE,
+            data=self.org.get_audit_log_data(),
+        )
+
+        assert ('restored') in entry.get_note()
+        assert entry.actor == self.user
+        assert entry.target_object == self.org.id
+        assert entry.event == AuditLogEntryEvent.ORG_RESTORE
+
     def test_audit_entry_team_delete_log(self):
         entry = create_audit_entry(
             request=self.req,
@@ -102,3 +116,46 @@ class CreateAuditEntryTest(TestCase):
         deleted_project = DeletedProject.objects.get(slug=self.project.slug)
         self.assert_valid_deleted_log(deleted_project, self.project)
         assert deleted_project.platform == self.project.platform
+
+    def test_audit_entry_integration_log(self):
+        project = self.create_project()
+        self.login_as(user=self.user)
+
+        entry = create_audit_entry(
+            request=self.req,
+            organization=self.project.organization,
+            target_object=self.project.id,
+            event=AuditLogEntryEvent.INTEGRATION_ADD,
+            data={'integration': 'webhooks', 'project': project.slug},
+        )
+
+        assert ('enabled') in entry.get_note()
+        assert entry.actor == self.user
+        assert entry.target_object == self.project.id
+        assert entry.event == AuditLogEntryEvent.INTEGRATION_ADD
+
+        entry2 = create_audit_entry(
+            request=self.req,
+            organization=self.project.organization,
+            target_object=self.project.id,
+            event=AuditLogEntryEvent.INTEGRATION_EDIT,
+            data={'integration': 'webhooks', 'project': project.slug},
+        )
+
+        assert ('edited') in entry2.get_note()
+        assert entry2.actor == self.user
+        assert entry2.target_object == self.project.id
+        assert entry2.event == AuditLogEntryEvent.INTEGRATION_EDIT
+
+        entry3 = create_audit_entry(
+            request=self.req,
+            organization=self.project.organization,
+            target_object=self.project.id,
+            event=AuditLogEntryEvent.INTEGRATION_REMOVE,
+            data={'integration': 'webhooks', 'project': project.slug},
+        )
+
+        assert ('disable') in entry3.get_note()
+        assert entry3.actor == self.user
+        assert entry3.target_object == self.project.id
+        assert entry3.event == AuditLogEntryEvent.INTEGRATION_REMOVE

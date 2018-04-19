@@ -6,8 +6,12 @@ coverage:
       default: false
       python:
         paths:
-        - "src/sentry"
+        - "src/sentry/**/*.py"
         target: 90%
+      javascript:
+        paths:
+        - "src/sentry/static/sentry/app"
+        target: 60%
   ignore:
   - src/sentry/lint/.*
   - src/sentry/runner/.*
@@ -18,4 +22,5 @@ coverage:
   - src/debug_toolbar/.*
   - src/social_auth/.*
   - src/south/.*
+  - src/sentry/static/sentry/app/routes.jsx
 comment: false

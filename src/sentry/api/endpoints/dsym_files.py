@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+
 import logging
 import posixpath
 
@@ -6,6 +7,7 @@ from rest_framework.response import Response
 from rest_framework import serializers
 
 from sentry import ratelimits
+
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.content_negotiation import ConditionalContentNegotiation
@@ -21,7 +23,7 @@ except ImportError:
 
 
 logger = logging.getLogger('sentry.api')
-ERR_FILE_EXISTS = 'A file matching this uuid already exists'
+ERR_FILE_EXISTS = 'A file matching this debug identifier already exists'
 
 
 class AssociateDsymSerializer(serializers.Serializer):
@@ -67,26 +69,26 @@ class DSymFilesEndpoint(ProjectEndpoint):
                 }, status=403
             )
 
-        dsym = ProjectDSymFile.objects.filter(
+        debug_file = ProjectDSymFile.objects.filter(
             id=project_dsym_id
         ).first()
 
-        if dsym is None:
+        if debug_file is None:
             raise Http404
 
         suffix = ".dSYM"
-        if dsym.dsym_type == 'proguard' and dsym.object_name == 'proguard-mapping':
+        if debug_file.dsym_type == 'proguard' and debug_file.object_name == 'proguard-mapping':
             suffix = ".txt"
 
         try:
-            fp = dsym.file.getfile()
+            fp = debug_file.file.getfile()
             response = StreamingHttpResponse(
                 iter(lambda: fp.read(4096), b''),
                 content_type='application/octet-stream'
             )
-            response['Content-Length'] = dsym.file.size
+            response['Content-Length'] = debug_file.file.size
             response['Content-Disposition'] = 'attachment; filename="%s%s"' % (posixpath.basename(
-                dsym.uuid
+                debug_file.debug_id
             ), suffix)
             return response
         except IOError:
@@ -109,7 +111,7 @@ class DSymFilesEndpoint(ProjectEndpoint):
         apps = DSymApp.objects.filter(project=project)
         dsym_files = VersionDSymFile.objects.filter(
             dsym_app=apps
-        ).select_related('projectdsymfile').order_by('-build', 'version')
+        ).select_related('dsym_file').order_by('-build', 'version')
 
         file_list = ProjectDSymFile.objects.filter(
             project=project,

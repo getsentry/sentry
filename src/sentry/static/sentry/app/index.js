@@ -1,51 +1,41 @@
 /* global module */
-import jQuery from 'jquery';
-import moment from 'moment';
+import {AppContainer} from 'react-hot-loader';
+import {renderToStaticMarkup} from 'react-dom/server';
+import * as Emotion from 'emotion';
+import * as EmotionTheming from 'emotion-theming';
+import * as GridEmotion from 'grid-emotion';
+import JsCookie from 'js-cookie';
+import PropTypes from 'prop-types';
 import Raven from 'raven-js';
 import React from 'react';
+import ReactBootstrapModal from 'react-bootstrap/lib/Modal';
 import ReactDOM from 'react-dom';
-import createReactClass from 'create-react-class';
-import {AppContainer} from 'react-hot-loader';
-import PropTypes from 'prop-types';
-import {renderToStaticMarkup} from 'react-dom/server';
+import * as ReactEmotion from 'react-emotion';
 import Reflux from 'reflux';
 import * as Router from 'react-router';
-import ReactBootstrapModal from 'react-bootstrap/lib/Modal';
-import JsCookie from 'js-cookie';
+import createReactClass from 'create-react-class';
+import jQuery from 'jquery';
+import moment from 'moment';
 
+import './utils/emotion-setup';
+
+import {CSRF_COOKIE_NAME} from './constants';
+import Main from './main';
 import * as api from './api';
+import getCookie from './utils/getCookie';
 import * as il8n from './locale';
 import plugins from './plugins';
-import Main from './main';
-
-const csrfCookieName = window.csrfCookieName || 'sc';
-
-// setup jquery for CSRF tokens
-function getCookie(name) {
-  let cookieValue = null;
-  if (document.cookie && document.cookie !== '') {
-    let cookies = document.cookie.split(';');
-    for (let i = 0; i < cookies.length; i++) {
-      let cookie = jQuery.trim(cookies[i]);
-      // Does this cookie string begin with the name we want?
-      if (cookie.substring(0, name.length + 1) == name + '=') {
-        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-        break;
-      }
-    }
-  }
-  return cookieValue;
-}
 
 function csrfSafeMethod(method) {
   // these HTTP methods do not require CSRF protection
   return /^(GET|HEAD|OPTIONS|TRACE)$/.test(method);
 }
 
+// setup jquery for CSRF tokens
 jQuery.ajaxSetup({
   beforeSend: function(xhr, settings) {
     if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-      xhr.setRequestHeader('X-CSRFToken', getCookie(csrfCookieName));
+      xhr.setRequestHeader('X-CSRFToken', getCookie(CSRF_COOKIE_NAME));
     }
   },
 });
@@ -90,6 +80,11 @@ export default {
   Reflux,
   Router,
   JsCookie,
+  Emotion,
+  EmotionTheming,
+  ReactEmotion,
+  GridEmotion,
+
   SentryRenderApp: () => render(Main),
 
   Sentry: {
@@ -99,8 +94,10 @@ export default {
       // all needed by sentry.io
       ApiForm: require('./components/forms/apiForm').default,
       BooleanField: require('./components/forms/booleanField').default,
+      DateTimeField: require('./components/forms/dateTimeField').default,
       EmailField: require('./components/forms/emailField').default,
       Form: require('./components/forms/form').default,
+      RadioBooleanField: require('./components/forms/radioBooleanField').default,
       RangeField: require('./components/forms/rangeField').default,
       Select2Field: require('./components/forms/select2Field').default,
       TextField: require('./components/forms/textField').default,
@@ -115,8 +112,11 @@ export default {
 
     Alerts: require('./components/alerts').default,
     AlertActions: require('./actions/alertActions').default,
-    // TODO: remove when old personal settings are deprecated
+    AsyncComponent: require('./components/asyncComponent').default,
+    AsyncView: require('./views/asyncView').default,
+    // TODO(billy): remove when old personal settings are deprecated #new-settings
     AvatarSettings: require('./components/avatarSettings').default,
+    Button: require('./components/buttons/button').default,
     mixins: {
       ApiMixin: require('./mixins/apiMixin').default,
       TooltipMixin: require('./mixins/tooltip').default,
@@ -128,8 +128,10 @@ export default {
     DateTime: require('./components/dateTime').default,
     DropdownLink: require('./components/dropdownLink').default,
     DynamicWrapper: require('./components/dynamicWrapper').default,
+    ErrorBoundary: require('./components/errorBoundary').default,
     Form: require('./components/forms/form').default,
     FormState: require('./components/forms/index').FormState,
+    GuideAnchor: require('./components/assistant/guideAnchor').default,
     HookStore: require('./stores/hookStore').default,
     Indicators: require('./components/indicators').default,
     IndicatorStore: require('./stores/indicatorStore').default,
@@ -145,21 +147,28 @@ export default {
       .default,
     OrganizationMembersView: require('./views/settings/organization/members/organizationMembersView')
       .default,
+    Panel: require('./components/panels/panel').default,
+    PanelHeader: require('./components/panels/panelHeader').default,
+    PanelBody: require('./components/panels/panelBody').default,
+    PanelItem: require('./components/panels/panelItem').default,
     Pagination: require('./components/pagination').default,
     PluginConfig: require('./components/pluginConfig').default,
     ProjectIssueTracking: require('./views/projectIssueTracking').default,
     ProjectSelector: require('./components/projectHeader/projectSelector').default,
-    RuleEditor: require('./views/ruleEditor').default,
+    SettingsPageHeader: require('./views/settings/components/settingsPageHeader').default,
     Sidebar: require('./components/sidebar').default,
     StackedBarChart: require('./components/stackedBarChart').default,
+    TextBlock: require('./views/settings/components/text/textBlock').default,
     TimeSince: require('./components/timeSince').default,
     TodoList: require('./components/onboardingWizard/todos').default,
+    Tooltip: require('./components/tooltip').default,
     U2fEnrollment: require('./components/u2fenrollment').default,
     U2fSign: require('./components/u2fsign').default,
     Badge: require('./components/badge').default,
     Switch: require('./components/switch').default,
-    NumberConfirm: require('./components/confirms/numberConfirm').default,
+    GlobalModal: require('./components/globalModal').default,
     SetupWizard: require('./components/setupWizard').default,
+    theme: require('./utils/theme').default,
     utils: {
       errorHandler: require('./utils/errorHandler').default,
       logging: require('./utils/logging'),

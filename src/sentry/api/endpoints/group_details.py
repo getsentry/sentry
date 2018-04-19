@@ -178,7 +178,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             group,
             request.user,
             GroupSerializer(
-                environment_id_func=self._get_environment_id_func(
+                environment_func=self._get_environment_func(
                     request, group.project.organization_id)
             )
         )
@@ -208,10 +208,16 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             get_range = lambda model, keys, start, end, **kwargs: \
                 {k: tsdb.make_series(0, start, end) for k in keys}
             tags = []
+            user_reports = UserReport.objects.none()
+
         else:
             get_range = functools.partial(tsdb.get_range, environment_id=environment_id)
             tags = tagstore.get_group_tag_keys(
                 group.project_id, group.id, environment_id, limit=100)
+            if environment_id is None:
+                user_reports = UserReport.objects.filter(group=group)
+            else:
+                user_reports = UserReport.objects.filter(group=group, environment_id=environment_id)
 
         now = timezone.now()
         hourly_stats = tsdb.rollup(
@@ -248,7 +254,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 'pluginActions': action_list,
                 'pluginIssues': self._get_available_issue_plugins(request, group),
                 'pluginContexts': self._get_context_plugins(request, group),
-                'userReportCount': UserReport.objects.filter(group=group).count(),
+                'userReportCount': user_reports.count(),
                 'tags': sorted(serialize(tags, request.user), key=lambda x: x['name']),
                 'stats': {
                     '24h': hourly_stats,
@@ -272,8 +278,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         :param string status: the new status for the issue.  Valid values
                               are ``"resolved"``, ``resolvedInNextRelease``,
                               ``"unresolved"``, and ``"ignored"``.
-        :param string assignedTo: the username of the user that should be
-                               assigned to this issue.
+        :param string assignedTo: the actor id (or username) of the user or team that should be
+                                  assigned to this issue.
         :param boolean hasSeen: in case this API call is invoked with a user
                                 context this allows changing of the flag
                                 that indicates if the user has seen the
@@ -289,17 +295,20 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
 
         # TODO(dcramer): we need to implement assignedTo in the bulk mutation
         # endpoint
-        response = client.put(
-            path='/projects/{}/{}/issues/'.format(
-                group.project.organization.slug,
-                group.project.slug,
-            ),
-            params={
-                'id': group.id,
-            },
-            data=request.DATA,
-            request=request,
-        )
+        try:
+            response = client.put(
+                path='/projects/{}/{}/issues/'.format(
+                    group.project.organization.slug,
+                    group.project.slug,
+                ),
+                params={
+                    'id': group.id,
+                },
+                data=request.DATA,
+                request=request,
+            )
+        except client.ApiError as e:
+            return Response(e.body, status=e.status_code)
 
         # if action was discard, there isn't a group to serialize anymore
         if discard:
@@ -317,7 +326,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             group,
             request.user,
             GroupSerializer(
-                environment_id_func=self._get_environment_id_func(
+                environment_func=self._get_environment_func(
                     request, group.project.organization_id)
             )
         )

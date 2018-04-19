@@ -3,7 +3,7 @@
 exports[`OrganizationAccessRequests renders empty 1`] = `""`;
 
 exports[`OrganizationAccessRequests renders list 1`] = `
-<Styled(div)>
+<Panel>
   <PanelHeader
     disablePadding={true}
   >
@@ -16,10 +16,15 @@ exports[`OrganizationAccessRequests renders list 1`] = `
       </Box>
     </Flex>
   </PanelHeader>
-  <Styled(div)>
-    <Styled(Base)
+  <PanelBody
+    direction="column"
+    disablePadding={true}
+    flex={false}
+  >
+    <PanelItem
       align="center"
       key="id"
+      p={0}
     >
       <Box
         flex="1"
@@ -41,7 +46,8 @@ exports[`OrganizationAccessRequests renders list 1`] = `
           <strong
             key="2"
           >
-            Team Name
+            #
+            team-slug
           </strong>
           <span
             key="3"
@@ -74,7 +80,7 @@ exports[`OrganizationAccessRequests renders list 1`] = `
           Deny
         </Button>
       </Box>
-    </Styled(Base)>
-  </Styled(div)>
-</Styled(div)>
+    </PanelItem>
+  </PanelBody>
+</Panel>
 `;

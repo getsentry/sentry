@@ -3,6 +3,7 @@ import React from 'react';
 
 import createReactClass from 'create-react-class';
 
+import withEnvironmentInQueryString from '../../utils/withEnvironmentInQueryString';
 import LoadingIndicator from '../../components/loadingIndicator';
 import LoadingError from '../../components/loadingError';
 import IconOpen from '../../icons/icon-open';
@@ -16,15 +17,22 @@ import TimeSince from '../../components/timeSince';
 import ApiMixin from '../../mixins/apiMixin';
 
 import {t} from '../../locale';
+import SentryTypes from '../../proptypes';
+import OrganizationState from '../../mixins/organizationState';
+import {Panel, PanelBody, PanelItem} from '../../components/panels';
 
 const ReleaseOverview = createReactClass({
   displayName: 'ReleaseOverview',
+
+  propTypes: {
+    environment: SentryTypes.Environment,
+  },
 
   contextTypes: {
     release: PropTypes.object,
   },
 
-  mixins: [ApiMixin],
+  mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
     return {
@@ -38,14 +46,33 @@ const ReleaseOverview = createReactClass({
   },
 
   componentDidMount() {
+    this.fetchAll();
+  },
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.environment !== this.props.environment) {
+      this.fetchAll();
+    }
+  },
+
+  fetchAll() {
     let {orgId, version} = this.props.params;
+    let query = {
+      ...this.props.location.query,
+    };
+
+    if (this.props.environment) {
+      query.environment = this.props.environment.name;
+    } else {
+      delete query.environment;
+    }
 
     let path = `/organizations/${orgId}/releases/${encodeURIComponent(
       version
     )}/commitfiles/`;
     this.api.request(path, {
       method: 'GET',
-      data: this.props.location.query,
+      data: query,
       success: (data, _, jqXHR) => {
         this.setState({
           fileList: data,
@@ -64,8 +91,11 @@ const ReleaseOverview = createReactClass({
 
   getReleaseProjects() {
     let {orgId, version} = this.props.params;
+    let query = this.props.environment ? {environment: this.props.environment.name} : {};
+
     let path = `/organizations/${orgId}/releases/${encodeURIComponent(version)}/`;
     this.api.request(path, {
+      query,
       method: 'GET',
       success: (data, _, jqXHR) => {
         this.setState({
@@ -82,6 +112,7 @@ const ReleaseOverview = createReactClass({
 
   getDeploys() {
     let {orgId, version} = this.props.params;
+
     let path = `/organizations/${orgId}/releases/${encodeURIComponent(version)}/deploys/`;
     this.api.request(path, {
       method: 'GET',
@@ -101,9 +132,12 @@ const ReleaseOverview = createReactClass({
 
   getRepos() {
     let {orgId} = this.props.params;
+    let query = this.props.environment ? {environment: this.props.environment.name} : {};
+
     let path = `/organizations/${orgId}/repos/`;
     this.api.request(path, {
       method: 'GET',
+      query,
       success: (data, _, jqXHR) => {
         this.setState({
           hasRepos: data.length > 0,
@@ -155,6 +189,9 @@ const ReleaseOverview = createReactClass({
     }, {});
 
     let deploys = this.state.deploys;
+
+    let query = this.props.environment ? {environment: this.props.environment.name} : {};
+
     return (
       <div>
         <div className="row" style={{paddingTop: 10}}>
@@ -164,11 +201,16 @@ const ReleaseOverview = createReactClass({
               endpoint={`/projects/${orgId}/${projectId}/releases/${encodeURIComponent(
                 version
               )}/resolved/`}
+              query={query}
               pagination={false}
               renderEmpty={() => (
-                <div className="box empty m-b-2" key="none">
-                  {t('No issues resolved')}
-                </div>
+                <Panel>
+                  <PanelBody>
+                    <PanelItem key="none" justify="center">
+                      {t('No issues resolved')}
+                    </PanelItem>
+                  </PanelBody>
+                </Panel>
               )}
               ref="issueList"
               showActions={false}
@@ -179,15 +221,18 @@ const ReleaseOverview = createReactClass({
             <IssueList
               endpoint={`/projects/${orgId}/${projectId}/issues/`}
               query={{
+                ...query,
                 query: 'first-release:"' + version + '"',
                 limit: 5,
               }}
               statsPeriod="0"
               pagination={false}
               renderEmpty={() => (
-                <div className="box empty m-b-2" key="none">
-                  {t('No new issues')}
-                </div>
+                <Panel>
+                  <PanelBody>
+                    <PanelItem justify="center">{t('No new issues')}</PanelItem>
+                  </PanelBody>
+                </Panel>
               )}
               ref="issueList"
               showActions={false}
@@ -219,7 +264,7 @@ const ReleaseOverview = createReactClass({
                   projectId={projectId}
                   version={version}
                 />
-                <h6 className="nav-header m-b-1">Other Projects Affected</h6>
+                <h6 className="nav-header m-b-1">{t('Other Projects Affected')}</h6>
                 <ul className="nav nav-stacked">
                   {projects.length === 1
                     ? this.renderEmpty()
@@ -256,15 +301,22 @@ const ReleaseOverview = createReactClass({
               {!deploys.length
                 ? this.renderEmpty()
                 : deploys.map(deploy => {
-                    let query = encodeURIComponent(
-                      `environment:${deploy.environment} release:${version}`
-                    );
+                    let href = `/${orgId}/${projectId}/?query=release:${version}&environment=${encodeURIComponent(
+                      deploy.environment
+                    )}`;
+
+                    // TODO(lyn): Remove when environment feature switched on
+                    if (!this.getFeatures().has('environments')) {
+                      let q = encodeURIComponent(
+                        `environment:${deploy.environment} release:${version}`
+                      );
+                      href = `/${orgId}/${projectId}/?query=${q}`;
+                    }
+                    // End remove block
+
                     return (
                       <li key={deploy.id}>
-                        <a
-                          href={`/${orgId}/${projectId}/?query=${query}`}
-                          title={t('View in stream')}
-                        >
+                        <a href={href} title={t('View in stream')}>
                           <div className="row row-flex row-center-vertically">
                             <div className="col-xs-6">
                               <span
@@ -297,4 +349,4 @@ const ReleaseOverview = createReactClass({
   },
 });
 
-export default ReleaseOverview;
+export default withEnvironmentInQueryString(ReleaseOverview);

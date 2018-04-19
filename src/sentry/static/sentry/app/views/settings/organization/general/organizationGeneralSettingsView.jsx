@@ -2,8 +2,9 @@ import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import Reflux from 'reflux';
 
+import {Panel, PanelHeader} from '../../../../components/panels';
+import {addLoadingMessage} from '../../../../actionCreators/indicator';
 import {
   changeOrganizationSlug,
   removeAndRedirectToRemainingOrganization,
@@ -11,18 +12,12 @@ import {
 } from '../../../../actionCreators/organizations';
 import {t, tct} from '../../../../locale';
 import ApiMixin from '../../../../mixins/apiMixin';
-import FormFieldWrapper from '../../components/forms/formField/formFieldWrapper';
-import FormFieldDescription from '../../components/forms/formField/formFieldDescription';
-import FormFieldControl from '../../components/forms/formField/formFieldControl';
-import FormFieldHelp from '../../components/forms/formField/formFieldHelp';
-import FormFieldLabel from '../../components/forms/formField/formFieldLabel';
+import Field from '../../components/forms/field';
 import LinkWithConfirmation from '../../../../components/linkWithConfirmation';
+import LoadingError from '../../../../components/loadingError';
 import LoadingIndicator from '../../../../components/loadingIndicator';
-import OrganizationsStore from '../../../../stores/organizationsStore';
-import Panel from '../../components/panel';
-import PanelHeader from '../../components/panelHeader';
 import SettingsPageHeader from '../../components/settingsPageHeader';
-import getSettingsComponent from '../../../../utils/getSettingsComponent';
+import TextBlock from '../../components/text/textBlock';
 import recreateRoute from '../../../../utils/recreateRoute';
 
 const OrganizationGeneralSettingsView = createReactClass({
@@ -32,7 +27,7 @@ const OrganizationGeneralSettingsView = createReactClass({
     routes: PropTypes.arrayOf(PropTypes.object),
   },
 
-  mixins: [ApiMixin, Reflux.connect(OrganizationsStore, 'organizations')],
+  mixins: [ApiMixin],
 
   getInitialState() {
     return {
@@ -43,14 +38,10 @@ const OrganizationGeneralSettingsView = createReactClass({
   },
 
   componentDidMount() {
-    let {routes} = this.props;
-    let fetchForm = getSettingsComponent(
-      () =>
-        import(/*webpackChunkName: "organizationSettingsForm"*/ './organizationSettingsForm'),
-      () =>
-        import(/*webpackChunkName: "organizationSettingsForm.old"*/ './organizationSettingsForm.old'),
-      routes
+    let fetchForm = import(/*webpackChunkName: "organizationSettingsForm"*/ './organizationSettingsForm').then(
+      mod => mod.default
     );
+
     Promise.all([this.fetchData(), fetchForm]).then(
       ([data, Form]) => {
         // Redirect if can't write to org
@@ -59,7 +50,7 @@ const OrganizationGeneralSettingsView = createReactClass({
           data.access.indexOf('org:admin') === -1 &&
           data.access.indexOf('org:write') === -1
         ) {
-          browserHistory.push(
+          browserHistory.replace(
             recreateRoute('teams', {
               params: this.props.params,
               routes: this.props.routes,
@@ -95,10 +86,7 @@ const OrganizationGeneralSettingsView = createReactClass({
     let {data} = this.state || {};
     if (!data) return;
 
-    // Can't remove if this is only org
-    let allOrgs = OrganizationsStore.getAll();
-    if (allOrgs && allOrgs.length < 2) return;
-
+    addLoadingMessage();
     removeAndRedirectToRemainingOrganization(this.api, {
       orgId: this.props.params.orgId,
       successMessage: `${data.name} is queued for deletion.`,
@@ -109,7 +97,7 @@ const OrganizationGeneralSettingsView = createReactClass({
   handleSave(prevData, data) {
     if (data.slug && data.slug !== prevData.slug) {
       changeOrganizationSlug(prevData, data);
-      browserHistory.push(`/settings/organization/${data.slug}/settings/`);
+      browserHistory.replace(`/settings/${data.slug}/`);
     } else {
       // TODO(dcramer): this should propagate
       this.setState({data});
@@ -119,22 +107,23 @@ const OrganizationGeneralSettingsView = createReactClass({
   },
 
   render() {
-    let {data, organizations} = this.state;
+    let {data, loading, error, Form} = this.state;
     let orgId = this.props.params.orgId;
     let access = data && new Set(data.access);
 
-    let hasTeams = data && data.teams && !!data.teams.length;
-    let hasMultipleOrgs = data && organizations.length > 1;
+    let hasProjects = data && data.projects && !!data.projects.length;
 
     return (
       <div>
-        {this.state.loading && <LoadingIndicator />}
+        {loading && <LoadingIndicator />}
+        {error && <LoadingError />}
 
-        {!this.state.loading &&
-          this.state.Form && (
+        {!loading &&
+          !error &&
+          Form && (
             <div>
-              <SettingsPageHeader label={t('Organization Settings')} />
-              <this.state.Form
+              <SettingsPageHeader title={t('Organization Settings')} />
+              <Form
                 {...this.props}
                 initialData={data}
                 orgId={orgId}
@@ -143,47 +132,42 @@ const OrganizationGeneralSettingsView = createReactClass({
               />
 
               {access.has('org:admin') &&
-                !data.isDefault &&
-                hasMultipleOrgs && (
+                !data.isDefault && (
                   <Panel>
                     <PanelHeader>{t('Remove Organization')}</PanelHeader>
-                    <FormFieldWrapper>
-                      <FormFieldDescription>
-                        <FormFieldLabel>{t('Remove Organization')}</FormFieldLabel>
-                        <FormFieldHelp>
-                          {t(
-                            'Removing this organization will delete all data including projects and their associated events.'
-                          )}
-                        </FormFieldHelp>
-                      </FormFieldDescription>
-
-                      <FormFieldControl>
+                    <Field
+                      label={t('Remove Organization')}
+                      help={t(
+                        'Removing this organization will delete all data including projects and their associated events.'
+                      )}
+                    >
+                      <div>
                         <LinkWithConfirmation
                           className="btn btn-danger"
                           priority="danger"
                           size="small"
-                          title={tct('Remove [name] organization', {
-                            name: data && data.name,
-                          })}
+                          title={t('Remove %s organization', data && data.name)}
                           message={
                             <div>
-                              <p>
+                              <TextBlock>
                                 {tct(
-                                  'Removing the [name] organization is permanent and cannot be undone!',
-                                  {name: data && data.name}
+                                  'Removing the organization, [name] is permanent and cannot be undone! Are you sure you want to continue?',
+                                  {
+                                    name: data && <strong>{data.name}</strong>,
+                                  }
                                 )}
-                              </p>
+                              </TextBlock>
 
-                              {hasTeams && (
+                              {hasProjects && (
                                 <div>
-                                  <p>
+                                  <TextBlock noMargin>
                                     {t(
-                                      'This will also remove the following teams and all associated projects:'
+                                      'This will also remove the following associated projects:'
                                     )}
-                                  </p>
-                                  <ul>
-                                    {data.teams.map(team => (
-                                      <li key={team.slug}>{team.name}</li>
+                                  </TextBlock>
+                                  <ul className="ref-projects">
+                                    {data.projects.map(project => (
+                                      <li key={project.slug}>{project.slug}</li>
                                     ))}
                                   </ul>
                                 </div>
@@ -194,8 +178,8 @@ const OrganizationGeneralSettingsView = createReactClass({
                         >
                           {t('Remove Organization')}
                         </LinkWithConfirmation>
-                      </FormFieldControl>
-                    </FormFieldWrapper>
+                      </div>
+                    </Field>
                   </Panel>
                 )}
             </div>

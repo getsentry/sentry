@@ -9,9 +9,11 @@ import MutedBox from '../components/mutedBox';
 import GroupEventDetailsLoadingError from '../components/errors/groupEventDetailsLoadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import ResolutionBox from '../components/resolutionBox';
+import withEnvironmentInQueryString from '../utils/withEnvironmentInQueryString';
 
 const GroupEventDetails = createReactClass({
   displayName: 'GroupEventDetails',
+
   mixins: [ApiMixin, GroupState],
 
   getInitialState() {
@@ -120,4 +122,4 @@ const GroupEventDetails = createReactClass({
   },
 });
 
-export default GroupEventDetails;
+export default withEnvironmentInQueryString(GroupEventDetails);

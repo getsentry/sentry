@@ -57,10 +57,10 @@ class Migration(SchemaMigration):
                     self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Group'])
                 ), (
                     'date_changed',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ), (
                     'date_added',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ), (
                     'id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(
                         primary_key=True

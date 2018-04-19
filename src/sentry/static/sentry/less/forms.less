@@ -50,6 +50,13 @@
   }
 }
 
+.form-stacked .required .controls .radio label {
+  // it should only appear on the first label (e.g. multi inputs)
+  &:after {
+    content: '';
+  }
+}
+
 .form-group,
 .control-group {
   margin-bottom: 15px;
@@ -91,6 +98,12 @@ textarea.form-control {
   max-width: 100%;
 }
 
+select.form-control,
+.select2-container.form-control {
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.04);
+  background: linear-gradient(@white, @white-dark);
+}
+
 legend {
   margin: 20px 0;
   border-bottom: 1px solid #e9ebec;
@@ -100,6 +113,7 @@ legend {
 .inputs-list label {
   padding-left: 18px;
 }
+
 .inputs-list label input[type='radio'],
 .inputs-list label input[type='checkbox'] {
   float: left;
@@ -118,6 +132,22 @@ label {
       top: 1px;
       left: 0;
       margin-left: 0 !important;
+    }
+  }
+}
+
+.boolean-radio-select .inputs-list ul {
+  list-style: none;
+  margin-bottom: 0;
+  padding-left: 0;
+
+  li {
+    margin-bottom: 5px;
+    &:last-child {
+      margin-bottom: 0;
+    }
+    label {
+      font-weight: normal;
     }
   }
 }

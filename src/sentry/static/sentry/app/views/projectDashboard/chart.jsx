@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import moment from 'moment';
+import SentryTypes from '../../proptypes';
 import ApiMixin from '../../mixins/apiMixin';
 import BarChart from '../../components/barChart';
 import DynamicWrapper from '../../components/dynamicWrapper';
@@ -15,6 +16,7 @@ const ProjectChart = createReactClass({
   propTypes: {
     dateSince: PropTypes.number.isRequired,
     resolution: PropTypes.string.isRequired,
+    environment: SentryTypes.Environment,
   },
 
   mixins: [ApiMixin, ProjectState],
@@ -25,6 +27,7 @@ const ProjectChart = createReactClass({
       error: false,
       stats: [],
       releaseList: [],
+      environment: this.props.environment,
     };
   },
 
@@ -32,14 +35,21 @@ const ProjectChart = createReactClass({
     this.fetchData();
   },
 
-  componentWillReceiveProps() {
-    this.setState(
-      {
-        loading: true,
-        error: false,
-      },
-      this.fetchData
-    );
+  componentWillReceiveProps(nextProps) {
+    if (
+      nextProps.environment !== this.props.environment ||
+      nextProps.resolution !== this.props.resolution ||
+      nextProps.dateSince !== this.props.dateSince
+    ) {
+      this.setState(
+        {
+          environment: nextProps.environment,
+          loading: true,
+          error: false,
+        },
+        this.fetchData
+      );
+    }
   },
 
   getStatsEndpoint() {
@@ -55,12 +65,20 @@ const ProjectChart = createReactClass({
   },
 
   fetchData() {
+    const statsQuery = {
+      since: this.props.dateSince,
+      resolution: this.props.resolution,
+      stat: 'generated',
+    };
+
+    const releasesQuery = {};
+
+    if (this.state.environment) {
+      statsQuery.environment = this.state.environment.name;
+      releasesQuery.environment = this.state.environment.name;
+    }
     this.api.request(this.getStatsEndpoint(), {
-      query: {
-        since: this.props.dateSince,
-        resolution: this.props.resolution,
-        stat: 'generated',
-      },
+      query: statsQuery,
       success: data => {
         this.setState({
           stats: data,
@@ -77,6 +95,7 @@ const ProjectChart = createReactClass({
     });
 
     this.api.request(this.getProjectReleasesEndpoint(), {
+      query: releasesQuery,
       success: (data, _, jqXHR) => {
         this.setState({
           releaseList: data,

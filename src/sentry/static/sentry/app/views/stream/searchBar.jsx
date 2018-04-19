@@ -2,18 +2,18 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import ReactDOM from 'react-dom';
-import PureRenderMixin from 'react-addons-pure-render-mixin';
 import Reflux from 'reflux';
 import _ from 'lodash';
 import classNames from 'classnames';
 
-import StreamTagStore from '../../stores/streamTagStore';
+import TagStore from '../../stores/tagStore';
 import MemberListStore from '../../stores/memberListStore';
 
 import ApiMixin from '../../mixins/apiMixin';
 import {t} from '../../locale';
 
 import SearchDropdown from './searchDropdown';
+import OrganizationState from '../../mixins/organizationState';
 
 const SearchBar = createReactClass({
   displayName: 'SearchBar',
@@ -21,20 +21,21 @@ const SearchBar = createReactClass({
   propTypes: {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
-
     defaultQuery: PropTypes.string,
     query: PropTypes.string,
     defaultSearchItems: PropTypes.array.isRequired,
     disabled: PropTypes.bool,
     placeholder: PropTypes.string,
-
-    onQueryChange: PropTypes.func,
     onSearch: PropTypes.func,
+    // If true, excludes the environment tag from the autocompletion list
+    // This is because we don't want to treat environment as a tag in some places
+    // such as the stream view where it is a top level concept
+    excludeEnvironment: PropTypes.bool,
   },
 
   mixins: [
     ApiMixin,
-    PureRenderMixin,
+    OrganizationState,
     Reflux.listenTo(MemberListStore, 'onMemberListStoreChange'),
   ],
 
@@ -64,8 +65,7 @@ const SearchBar = createReactClass({
       defaultQuery: '',
       query: null,
       onSearch: function() {},
-      onQueryChange: function() {},
-
+      excludeEnvironment: false,
       defaultSearchItems: [
         {
           title: t('Tag'),
@@ -112,6 +112,8 @@ const SearchBar = createReactClass({
   },
 
   getInitialState() {
+    const hasEnvironmentsFeature = this.getFeatures().has('environments');
+
     return {
       query: this.props.query !== null ? this.props.query : this.props.defaultQuery,
 
@@ -124,6 +126,7 @@ const SearchBar = createReactClass({
 
       dropdownVisible: false,
       loading: false,
+      hasEnvironmentsFeature,
     };
   },
 
@@ -188,9 +191,17 @@ const SearchBar = createReactClass({
    * e.g. ['is:', 'assigned:', 'url:', 'release:']
    */
   getTagKeys: function(query) {
-    return StreamTagStore.getTagKeys()
+    const allKeys = TagStore.getTagKeys()
       .map(key => key + ':')
       .filter(key => key.indexOf(query) > -1);
+
+    // If the environment feature is active and excludeEnvironment = true
+    // then remove the environment key
+    if (this.state.hasEnvironmentsFeature && this.props.excludeEnvironment) {
+      return allKeys.filter(key => key !== 'environment:');
+    } else {
+      return allKeys;
+    }
   },
 
   /**
@@ -206,6 +217,7 @@ const SearchBar = createReactClass({
     });
 
     let {orgId, projectId} = this.props;
+
     this.api.request(`/projects/${orgId}/${projectId}/tags/${tag.key}/values/`, {
       data: {
         query,
@@ -311,8 +323,18 @@ const SearchBar = createReactClass({
         searchItems: filteredSearchItems,
       });
 
-      let tag = StreamTagStore.getTag(tagName);
+      let tag = TagStore.getTag(tagName);
+
       if (!tag) return undefined;
+
+      // Ignore the environment tag if the feature is active and excludeEnvironment = true
+      if (
+        this.state.hasEnvironmentsFeature &&
+        this.props.excludeEnvironment &&
+        tagName === 'environment'
+      ) {
+        return undefined;
+      }
 
       return void (tag.predefined ? this.getPredefinedTagValues : this.getTagValues)(
         tag,
