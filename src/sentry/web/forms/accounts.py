@@ -243,7 +243,7 @@ class RegistrationForm(forms.ModelForm):
         if commit:
             user.save()
             if self.cleaned_data.get('subscribe'):
-                newsletter.create_or_update_subscriptions(user, list_ids=newsletter.get_default_list_ids())
+                newsletter.create_or_update_subscription(user, list_id=newsletter.get_default_list_id())
         return user
 
 

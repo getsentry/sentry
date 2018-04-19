@@ -101,14 +101,14 @@ class UserSubscriptionsEndpoint(UserEndpoint):
         kwargs = {
             'subscribed': result['subscribed'],
             'verified': email.is_verified,
-            'list_ids': newsletter.get_default_list_ids(),
+            'list_id': newsletter.get_default_list_id(),
         }
         if not result['subscribed']:
             kwargs['unsubscribed_date'] = timezone.now()
         else:
             kwargs['subscribed_date'] = timezone.now()
 
-        newsletter.create_or_update_subscriptions(user, **kwargs)
+        newsletter.create_or_update_subscription(user, **kwargs)
 
         user.update(
             flags=F('flags').bitand(~User.flags.newsletter_consent_prompt),

@@ -641,7 +641,7 @@ def manage_subscriptions(request):
         return HttpResponse('bad request', status=400)
 
     kwargs = {
-        'list_ids': (list_id,),
+        'list_id': list_id,
         'subscribed': subscribed,
         'verified': email.is_verified,
     }
@@ -650,5 +650,5 @@ def manage_subscriptions(request):
     else:
         kwargs['subscribed_date'] = timezone.now()
 
-    newsletter.create_or_update_subscriptions(user, **kwargs)
+    newsletter.create_or_update_subscription(user, **kwargs)
     return HttpResponse()
