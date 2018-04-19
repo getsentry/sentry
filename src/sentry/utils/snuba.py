@@ -6,6 +6,7 @@ import json
 import requests
 import six
 import os
+import pytz
 
 from sentry.models import Group, GroupHash, Environment, Release, ReleaseProject
 from sentry.utils.dates import to_timestamp
@@ -37,6 +38,9 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
     `aggregations` a list of (aggregation_function, column, alias) tuples to be
     passed to the query.
     """
+    start = start.replace(tzinfo=pytz.utc) if not start.tzinfo else start
+    end = end.replace(tzinfo=pytz.utc) if not end.tzinfo else end
+
     groupby = groupby or []
     conditions = conditions or []
     aggregations = aggregations or [['count()', '', 'aggregate']]
@@ -106,6 +110,7 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
     aggregate_cols = [a[2] for a in aggregations]
     expected_cols = set(groupby + aggregate_cols)
     got_cols = set(c['name'] for c in response['meta'])
+
     assert expected_cols == got_cols
 
     for d in response['data']:

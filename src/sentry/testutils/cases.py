@@ -752,6 +752,8 @@ class SnubaTestCase(TestCase):
 
         self.snuba_insert(self.__wrap_event(event, data, grouphash.hash))
 
+        return event
+
     def snuba_insert(self, events):
         "Write a (wrapped) event (or events) to Snuba."
 

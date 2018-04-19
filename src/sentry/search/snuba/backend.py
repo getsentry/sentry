@@ -12,9 +12,7 @@ from django.utils import timezone
 from sentry.api.paginator import SequencePaginator
 from sentry.event_manager import ALLOWED_FUTURE_DELTA
 from sentry.models import Release, Group, GroupEnvironment, GroupHash
-from sentry.search.django.backend import (
-    DjangoSearchBackend, QuerySetBuilder, CallbackCondition, get_sql_column
-)
+from sentry.search.django import backend as ds
 from sentry.utils import snuba
 from sentry.utils.dates import to_timestamp
 
@@ -23,22 +21,30 @@ from sentry.utils.dates import to_timestamp
 priority_expr = 'toUInt32(log(times_seen) * 600) + toUInt32(last_seen)'
 
 
+datetime_format = '%Y-%m-%dT%H:%M:%S+00:00'
+
+
+# TODO: Would be nice if this was handled in the Snuba abstraction, but that
+# would require knowledge of which fields are datetimes
+def snuba_str_to_datetime(d):
+    if not isinstance(d, datetime):
+        d = datetime.strptime(d, datetime_format)
+
+    if not d.tzinfo:
+        d = d.replace(tzinfo=pytz.utc)
+
+    return d
+
+
 def calculate_priority_cursor(data):
     times_seen = sum(data['times_seen'])
-    last_seen = max(int(to_timestamp(d) * 1000) for d in data['last_seen'])
+    last_seen = max(int(to_timestamp(snuba_str_to_datetime(d)) * 1000) for d in data['last_seen'])
     return ((math.log(times_seen) * 600) + last_seen)
 
 
 def _datetime_cursor_calculator(field, fn):
-    datetime_format = '%Y-%m-%dT%H:%M:%S+00:00'
-
     def calculate(data):
-        datetimes = [
-            datetime.strptime(d, datetime_format).replace(tzinfo=pytz.utc)
-            if not isinstance(d, datetime) else d
-            for d in data[field]
-        ]
-
+        datetimes = [snuba_str_to_datetime(d) for d in data[field]]
         return fn(int(to_timestamp(d) * 1000) for d in datetimes)
 
     return calculate
@@ -94,6 +100,14 @@ class Condition(object):
         raise NotImplementedError
 
 
+class CallbackCondition(Condition):
+    def __init__(self, callback):
+        self.callback = callback
+
+    def apply(self, name, parameters):
+        return self.callback(parameters[name])
+
+
 class ScalarCondition(Condition):
     """\
     Adds a scalar filter (less than or greater than are supported) to a Snuba
@@ -102,7 +116,7 @@ class ScalarCondition(Condition):
     """
 
     def __init__(self, field, operator, default_inclusivity=True):
-        assert operator in ['lt', 'gt']
+        assert operator in ['<', '>']
         self.field = field
         self.operator = operator
         self.default_inclusivity = default_inclusivity
@@ -112,14 +126,21 @@ class ScalarCondition(Condition):
             '{}_inclusive'.format(name),
             self.default_inclusivity,
         )
+
+        arg = parameters[name]
+        if isinstance(arg, datetime):
+            if not arg.tzinfo:
+                arg = arg.replace(tzinfo=pytz.utc)
+            arg = int(to_timestamp(arg))
+
         return (
             self.field,
             self.operator + ('=' if inclusive else ''),
-            parameters[name]
+            arg
         )
 
 
-class SnubaSearchBackend(DjangoSearchBackend):
+class SnubaSearchBackend(ds.DjangoSearchBackend):
     def _query(self, project, retention_window_start, group_queryset, tags, environment,
                sort_by, limit, cursor, count_hits, paginator_options, **parameters):
 
@@ -139,19 +160,19 @@ class SnubaSearchBackend(DjangoSearchBackend):
 
         # TODO: It's possible `first_release` could be handled by Snuba.
         if environment is not None:
-            group_queryset = QuerySetBuilder({
-                'first_release': CallbackCondition(
+            group_queryset = ds.QuerySetBuilder({
+                'first_release': ds.CallbackCondition(
                     lambda queryset, version: queryset.extra(
                         where=[
                             '{} = {}'.format(
-                                get_sql_column(GroupEnvironment, 'first_release_id'),
-                                get_sql_column(Release, 'id'),
+                                ds.get_sql_column(GroupEnvironment, 'first_release_id'),
+                                ds.get_sql_column(Release, 'id'),
                             ),
                             '{} = %s'.format(
-                                get_sql_column(Release, 'organization'),
+                                ds.get_sql_column(Release, 'organization'),
                             ),
                             '{} = %s'.format(
-                                get_sql_column(Release, 'version'),
+                                ds.get_sql_column(Release, 'version'),
                             ),
                         ],
                         params=[project.organization_id, version],
@@ -162,11 +183,11 @@ class SnubaSearchBackend(DjangoSearchBackend):
                 group_queryset.extra(
                     where=[
                         '{} = {}'.format(
-                            get_sql_column(Group, 'id'),
-                            get_sql_column(GroupEnvironment, 'group_id'),
+                            ds.get_sql_column(Group, 'id'),
+                            ds.get_sql_column(GroupEnvironment, 'group_id'),
                         ),
                         '{} = %s'.format(
-                            get_sql_column(GroupEnvironment, 'environment_id'),
+                            ds.get_sql_column(GroupEnvironment, 'environment_id'),
                         ),
                     ],
                     params=[environment.id],
@@ -175,8 +196,8 @@ class SnubaSearchBackend(DjangoSearchBackend):
                 parameters,
             )
         else:
-            group_queryset = QuerySetBuilder({
-                'first_release': CallbackCondition(
+            group_queryset = ds.QuerySetBuilder({
+                'first_release': ds.CallbackCondition(
                     lambda queryset, version: queryset.filter(
                         first_release__organization_id=project.organization_id,
                         first_release__version=version,
@@ -244,7 +265,7 @@ def do_search(project_id, environment_id, tags, start, end,
     if environment_id is not None:
         filters['environment'] = [environment_id]
 
-    if candidates:
+    if candidates is not None:
         hashes = list(
             GroupHash.objects.filter(
                 group_id__in=candidates
@@ -254,20 +275,20 @@ def do_search(project_id, environment_id, tags, start, end,
         )
 
         if not hashes:
-            return []
+            return {}
 
         filters['primary_hash'] = hashes
 
     conditions = SnubaConditionBuilder({
-        'age_from': ScalarCondition('first_seen', 'gt'),
-        'age_to': ScalarCondition('first_seen', 'lt'),
-        'last_seen_from': ScalarCondition('last_seen', 'gt'),
-        'last_seen_to': ScalarCondition('last_seen', 'lt'),
+        'age_from': ScalarCondition('first_seen', '>'),
+        'age_to': ScalarCondition('first_seen', '<'),
+        'last_seen_from': ScalarCondition('last_seen', '>'),
+        'last_seen_to': ScalarCondition('last_seen', '<'),
         'times_seen': CallbackCondition(
-            lambda queryset, times_seen: queryset.filter(times_seen=times_seen),
+            lambda times_seen: ('times_seen', '=', times_seen),
         ),
-        'times_seen_lower': ScalarCondition('times_seen', 'gt'),
-        'times_seen_upper': ScalarCondition('times_seen', 'lt'),
+        'times_seen_lower': ScalarCondition('times_seen', '>'),
+        'times_seen_upper': ScalarCondition('times_seen', '<'),
     }).build(parameters)
 
     for tag, val in six.iteritems(tags):
