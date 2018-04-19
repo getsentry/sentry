@@ -279,7 +279,7 @@ def do_search(project_id, environment_id, tags, start, end,
 
         filters['primary_hash'] = hashes
 
-    conditions = SnubaConditionBuilder({
+    having = SnubaConditionBuilder({
         'age_from': ScalarCondition('first_seen', '>'),
         'age_to': ScalarCondition('first_seen', '<'),
         'last_seen_from': ScalarCondition('last_seen', '>'),
@@ -291,6 +291,7 @@ def do_search(project_id, environment_id, tags, start, end,
         'times_seen_upper': ScalarCondition('times_seen', '<'),
     }).build(parameters)
 
+    conditions = []
     for tag, val in six.iteritems(tags):
         col = 'tags[{}]'.format(tag)
         if val == ANY:
@@ -315,6 +316,7 @@ def do_search(project_id, environment_id, tags, start, end,
         end=end,
         groupby=['primary_hash'],
         conditions=conditions,
+        having=having,
         filter_keys=filters,
         aggregations=aggregations,
         orderby=sort,
