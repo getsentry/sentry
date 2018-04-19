@@ -83,12 +83,8 @@ class IssueDiff extends React.Component {
     if (!exc || !exc.data) return [];
 
     return exc.data.values
-      .map(
-        value =>
-          value.stacktrace
-            ? rawStacktraceContent(value.stacktrace, event.platform, value)
-            : ''
-      )
+      .filter(value => !!value.stacktrace)
+      .map(value => rawStacktraceContent(value.stacktrace, event.platform, value))
       .reduce((acc, value) => {
         return acc.concat(value);
       }, []);
