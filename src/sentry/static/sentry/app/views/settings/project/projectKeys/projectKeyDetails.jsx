@@ -33,6 +33,7 @@ import RangeSlider from '../../components/forms/controls/rangeSlider';
 import SentryTypes from '../../../../proptypes';
 import SettingsPageHeader from '../../components/settingsPageHeader';
 import StackedBarChart from '../../../../components/stackedBarChart';
+import TextCopyInput from '../../components/forms/textCopyInput';
 import TextBlock from '../../components/text/textBlock';
 import TextField from '../../components/forms/textField';
 
@@ -386,6 +387,25 @@ const KeySettings = createReactClass({
               showSecretKey
               showProjectId
             />
+          </PanelBody>
+        </Panel>
+
+        <Panel>
+          <PanelHeader>{t('CDN')}</PanelHeader>
+          <PanelBody>
+            <PanelAlert type="info" icon="icon-circle-exclamation" m={0} mb={0}>
+              {t('Include this script in your website to track javascript errors.')}
+            </PanelAlert>
+            <Field
+              label={t('Script:')}
+              help={t('Copy this into your website and you are good to go')}
+              inline={false}
+              flexibleControlStateSize
+            >
+              <TextCopyInput>
+                {"<script src='" + data.relay.url + "'></script>"}
+              </TextCopyInput>
+            </Field>
           </PanelBody>
         </Panel>
 

@@ -1,10 +1,7 @@
 from __future__ import absolute_import
 
-from django.conf import settings
-from six.moves.urllib.parse import urlparse
-
-from sentry import options
-from sentry.api.serializers import serialize
+from sentry.utils.http import absolute_uri
+from django.core.urlresolvers import reverse
 
 
 class Config(object):
@@ -27,18 +24,5 @@ class Config(object):
 
     def get_cdn_url(self):
         """Return the url to the js cdn file for a specific project key"""
-        key = self.project_key.public_key
-        url = settings.SENTRY_PUBLIC_ENDPOINT or settings.SENTRY_ENDPOINT
-
-        if url:
-            urlparts = urlparse(url)
-        else:
-            urlparts = urlparse(options.get('system.url-prefix'))
-
-        return '%s://%s@%s/%s.js' % (
-            urlparts.scheme, key, urlparts.netloc + urlparts.path, self.project.id,
-        )
-
-    def render_javascript_file(self):
-        """Returns the javascript file for the user to integrate on their website"""
-        return serialize(self.to_dict())
+        return absolute_uri(reverse('sentry-relay-cdn-loader',
+                                    args=[self.project_key.public_key]))
