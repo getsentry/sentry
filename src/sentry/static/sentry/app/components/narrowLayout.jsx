@@ -1,8 +1,6 @@
 import jQuery from 'jquery';
 import React from 'react';
 
-import Footer from '../components/footer';
-
 class NarrowLayout extends React.Component {
   componentWillMount() {
     jQuery(document.body).addClass('narrow');
@@ -14,7 +12,7 @@ class NarrowLayout extends React.Component {
 
   render() {
     return (
-      <div className="app">
+      <React.Fragment>
         <div className="pattern-bg" />
         <div className="container">
           <div className="box box-modal">
@@ -26,8 +24,7 @@ class NarrowLayout extends React.Component {
             <div className="box-content with-padding">{this.props.children}</div>
           </div>
         </div>
-        <Footer />
-      </div>
+      </React.Fragment>
     );
   }
 }
