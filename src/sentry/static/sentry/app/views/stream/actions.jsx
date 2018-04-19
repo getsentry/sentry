@@ -355,7 +355,7 @@ const StreamActions = createReactClass({
                 <MenuItem noAnchor={true}>
                   <ActionLink
                     className="action-delete"
-                    disabled={!anySelected || this.state.allInQuerySelected}
+                    disabled={!anySelected}
                     onAction={this.onDelete}
                     shouldConfirm={this.shouldConfirm('delete')}
                     message={confirm('delete', false)}
