@@ -22,6 +22,7 @@ import App from './views/app';
 import CreateProject from './views/onboarding/createProject';
 import GroupDetails from './views/groupDetails';
 import GroupEvents from './views/groupEvents';
+import GroupEventDetails from './views/groupEventDetails';
 import GroupMergedView from './views/groupMerged/groupMergedView';
 import GroupSimilarView from './views/groupSimilar/groupSimilarView';
 import GroupTagValues from './views/groupTagValues';
@@ -708,11 +709,7 @@ function routes() {
             component={errorHandler(GroupDetails)}
             ignoreScrollBehavior
           >
-            <IndexRoute
-              componentPromise={() =>
-                import(/*webpackChunkName: "GroupEventDetails" */ './views/groupEventDetails')}
-              component={errorHandler(LazyLoad)}
-            />
+            <IndexRoute component={errorHandler(GroupEventDetails)} />
 
             <Route
               path="activity/"
@@ -721,11 +718,7 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
 
-            <Route
-              path="events/:eventId/"
-              componentPromise={import(/*webpackChunkName: "GroupEventDetails"*/ './views/groupEventDetails')}
-              component={errorHandler(LazyLoad)}
-            />
+            <Route path="events/:eventId/" component={errorHandler(GroupEventDetails)} />
             <Route path="events/" component={errorHandler(GroupEvents)} />
             <Route path="tags/" component={errorHandler(GroupTags)} />
             <Route path="tags/:tagKey/" component={errorHandler(GroupTagValues)} />
