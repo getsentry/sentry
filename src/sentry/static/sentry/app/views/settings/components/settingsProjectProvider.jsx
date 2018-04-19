@@ -1,5 +1,5 @@
 import React from 'react';
-import SentryTypes from '../../proptypes';
+import SentryTypes from '../../../proptypes';
 
 /**
  * Simple Component that takes project from context and passes it as props to children
