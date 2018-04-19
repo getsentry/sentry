@@ -70,7 +70,7 @@ const Container = styled(Flex)`
 `;
 
 const SidebarWrapper = styled(Box)`
-  flex: 0 0 ${p => p.theme.settings.sidebarWidth};
+  width: ${p => p.theme.settings.sidebarWidth};
 `;
 
 const Content = styled(Box)`
@@ -122,7 +122,7 @@ class SettingsLayout extends React.Component {
             </Flex>
           </Container>
         </SettingsHeader>
-        <Container>
+        <Container flex="1">
           {typeof renderNavigation === 'function' && (
             <SidebarWrapper>{renderNavigation()}</SidebarWrapper>
           )}
