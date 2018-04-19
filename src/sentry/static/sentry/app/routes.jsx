@@ -20,9 +20,7 @@ import ApiNewToken from './views/apiNewToken';
 import ApiTokens from './views/apiTokens';
 import App from './views/app';
 import CreateProject from './views/onboarding/createProject';
-import GroupActivity from './views/groupActivity';
 import GroupDetails from './views/groupDetails';
-import GroupEventDetails from './views/groupEventDetails';
 import GroupEvents from './views/groupEvents';
 import GroupMergedView from './views/groupMerged/groupMergedView';
 import GroupSimilarView from './views/groupSimilar/groupSimilarView';
@@ -88,7 +86,6 @@ import ReleaseOverview from './views/releases/releaseOverview';
 import RouteNotFound from './views/routeNotFound';
 import SettingsProjectProvider from './views/settings/settingsProjectProvider';
 import SettingsWrapper from './views/settings/settingsWrapper';
-import SharedGroupDetails from './views/sharedGroupDetails';
 import Stream from './views/stream';
 import TeamCreate from './views/teamCreate';
 import TeamDetails from './views/teamDetails';
@@ -607,7 +604,12 @@ function routes() {
       </Route>
 
       <Redirect from="/share/group/:shareId/" to="/share/issue/:shareId/" />
-      <Route path="/share/issue/:shareId/" component={errorHandler(SharedGroupDetails)} />
+      <Route
+        path="/share/issue/:shareId/"
+        componentPromise={() =>
+          import(/*webpackChunkName:"SharedGroupDetails"*/ './views/sharedGroupDetails')}
+        component={errorHandler(LazyLoad)}
+      />
 
       <Route path="/organizations/new/" component={errorHandler(OrganizationCreate)} />
 
@@ -706,10 +708,24 @@ function routes() {
             component={errorHandler(GroupDetails)}
             ignoreScrollBehavior
           >
-            <IndexRoute component={errorHandler(GroupEventDetails)} />
+            <IndexRoute
+              componentPromise={() =>
+                import(/*webpackChunkName: "GroupEventDetails" */ './views/groupEventDetails')}
+              component={errorHandler(LazyLoad)}
+            />
 
-            <Route path="activity/" component={errorHandler(GroupActivity)} />
-            <Route path="events/:eventId/" component={errorHandler(GroupEventDetails)} />
+            <Route
+              path="activity/"
+              componentPromise={() =>
+                import(/*webpackChunkName: "GroupActivity"*/ './views/groupActivity')}
+              component={errorHandler(LazyLoad)}
+            />
+
+            <Route
+              path="events/:eventId/"
+              componentPromise={import(/*webpackChunkName: "GroupEventDetails"*/ './views/groupEventDetails')}
+              component={errorHandler(LazyLoad)}
+            />
             <Route path="events/" component={errorHandler(GroupEvents)} />
             <Route path="tags/" component={errorHandler(GroupTags)} />
             <Route path="tags/:tagKey/" component={errorHandler(GroupTagValues)} />
