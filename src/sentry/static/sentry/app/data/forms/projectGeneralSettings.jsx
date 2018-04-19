@@ -124,6 +124,9 @@ export const fields = {
     // `props` are the props given to FormField
     setValue: (val, props) =>
       (props.organization && props.organization[props.name]) || val,
+    confirm: {
+      false: t('Are you sure you want to disable server-side data scrubbing?'),
+    },
   },
   dataScrubberDefaults: {
     name: 'dataScrubberDefaults',
@@ -137,6 +140,9 @@ export const fields = {
     // `props` are the props given to FormField
     setValue: (val, props) =>
       (props.organization && props.organization[props.name]) || val,
+    confirm: {
+      false: t('Are you sure you want to disable using default scrubbers?'),
+    },
   },
   scrubIPAddresses: {
     name: 'scrubIPAddresses',
@@ -148,6 +154,9 @@ export const fields = {
       (props.organization && props.organization[props.name]) || val,
     label: t('Prevent Storing of IP Addresses'),
     help: t('Preventing IP addresses from being stored for new events'),
+    confirm: {
+      false: t('Are you sure you want to disable scrubbing IP addresses?'),
+    },
   },
   sensitiveFields: {
     name: 'sensitiveFields',
