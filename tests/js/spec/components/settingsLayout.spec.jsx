@@ -2,7 +2,7 @@ import React from 'react';
 import {shallow} from 'enzyme';
 
 import {Client} from 'app/api';
-import SettingsLayout from 'app/views/settings/settingsLayout';
+import SettingsLayout from 'app/views/settings/components/settingsLayout';
 
 describe('SettingsLayout', function() {
   beforeEach(function() {

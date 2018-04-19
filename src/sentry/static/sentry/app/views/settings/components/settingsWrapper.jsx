@@ -2,7 +2,7 @@ import $ from 'jquery';
 import React from 'react';
 import styled from 'react-emotion';
 
-import ScrollToTop from './components/scrollToTop';
+import ScrollToTop from './scrollToTop';
 
 const StyledSettingsWrapper = styled.div`
   font-family: 'Rubik', sans-serif;

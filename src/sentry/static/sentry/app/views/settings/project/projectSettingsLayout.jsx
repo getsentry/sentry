@@ -2,7 +2,7 @@ import React from 'react';
 
 import ProjectContext from '../../projects/projectContext';
 import ProjectSettingsNavigation from './projectSettingsNavigation';
-import SettingsLayout from '../settingsLayout';
+import SettingsLayout from '../components/settingsLayout';
 import SentryTypes from '../../../proptypes';
 
 class ProjectSettingsLayout extends React.Component {
