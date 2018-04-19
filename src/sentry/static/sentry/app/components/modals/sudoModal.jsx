@@ -22,6 +22,7 @@ class SudoModal extends React.Component {
      * expects a function that returns a Promise
      */
     retryRequest: PropTypes.func.isRequired,
+    // User is a superuser without an active su session
     superuser: PropTypes.bool,
     router: PropTypes.object,
     user: PropTypes.object,
@@ -91,12 +92,12 @@ class SudoModal extends React.Component {
   };
 
   render() {
-    let {closeModal, user, Header, Body} = this.props;
+    let {closeModal, superuser, user, Header, Body} = this.props;
 
     return (
       <React.Fragment>
         <Header closeButton onHide={closeModal}>
-          {t('Confirm Your Identity')}
+          {t('Confirm Password to Continue')}
         </Header>
 
         <Body>
@@ -113,7 +114,11 @@ class SudoModal extends React.Component {
           ) : (
             <React.Fragment>
               <TextBlock css={{marginBottom: space(1)}}>
-                {t('Help us keep your account safe by confirming your identity.')}
+                {superuser
+                  ? t(
+                      'You are attempting to access a resource that requires superuser access, please re-authenticate as a superuser.'
+                    )
+                  : t('Help us keep your account safe by confirming your identity.')}
               </TextBlock>
 
               {this.state.error && (
@@ -129,7 +134,7 @@ class SudoModal extends React.Component {
               <Form
                 apiMethod="PUT"
                 apiEndpoint="/auth/"
-                submitLabel={t('Continue')}
+                submitLabel={t('Confirm Password')}
                 onSubmit={this.handleSubmit}
                 onSubmitSuccess={this.handleSuccess}
                 onSubmitError={this.handleError}
