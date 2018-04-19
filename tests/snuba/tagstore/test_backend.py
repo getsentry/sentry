@@ -9,9 +9,7 @@ import requests
 import responses
 import six
 
-from sentry.utils import snuba
 from sentry.models import GroupHash, EventUser
-from sentry.testutils import TestCase
 from sentry.tagstore.exceptions import (
     GroupTagKeyNotFound,
     GroupTagValueNotFound,
@@ -19,6 +17,8 @@ from sentry.tagstore.exceptions import (
     TagValueNotFound,
 )
 from sentry.tagstore.snuba.backend import SnubaTagStorage
+from sentry.testutils import TestCase
+from sentry.utils import snuba
 
 
 class TagStorage(TestCase):
@@ -131,15 +131,19 @@ class TagStorage(TestCase):
             self.proj1group1.id,
             self.proj1env1.id,
         )
-        result.sort(key=lambda r: r['id'])
-        assert result[0]['key'] == 'baz'
-        assert result[1]['key'] == 'foo'
+        tags = [r['id'] for r in result]
+        assert set(tags) == set(['foo', 'baz', 'environment', 'release'])
 
+        result.sort(key=lambda r: r['id'])
+        assert result[0]['id'] == 'baz'
         assert result[0]['uniqueValues'] == 1
         assert result[0]['totalValues'] == 2
-
         assert result[0]['topValues'][0]['value'] == 'quux'
-        assert result[1]['topValues'][0]['value'] == 'bar'
+
+        assert result[3]['id'] == 'release'
+        assert result[3]['uniqueValues'] == 2
+        assert result[3]['totalValues'] == 2
+        assert result[3]['topValues'][0]['value'] == '100'
 
     def test_get_top_group_tag_values(self):
         resp = self.ts.get_top_group_tag_values(
