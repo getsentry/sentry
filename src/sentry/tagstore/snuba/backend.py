@@ -242,12 +242,14 @@ class SnubaTagStorage(TagStorage):
             'issue': [group_id],
         }
         aggregations = [
-            ['topK(10)', 'tags.value', 'top'],
             ['count()', '', 'count'],
-            ['uniq', 'tags.key', 'uniq'],
+            ['topK(10)', 'tags_value', 'top'],
+            ['uniq', 'tags_value', 'uniq'],
         ]
-        results = snuba.query(start, end, ['tags.key'], None, filters,
-                              aggregations, arrayjoin='tags')
+        conditions = [
+            ['tags_value', 'IS NOT NULL', None],
+        ]
+        results = snuba.query(start, end, ['tags_key'], conditions, filters, aggregations)
 
         return [{
             'id': key,
