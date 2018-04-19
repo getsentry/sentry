@@ -64,6 +64,61 @@ sort_strategies = {
 }
 
 
+class SnubaConditionBuilder(object):
+    """\
+    Constructions a Snuba conditions list from a ``parameters`` mapping.
+
+    ``Condition`` objects are registered by their parameter name and used to
+    construct the Snuba condition list if they are present in the ``parameters``
+    mapping.
+    """
+
+    def __init__(self, conditions):
+        self.conditions = conditions
+
+    def build(self, parameters):
+        result = []
+        for name, condition in self.conditions.items():
+            if name in parameters:
+                result.append(condition.apply(name, parameters))
+        return result
+
+
+class Condition(object):
+    """\
+    Adds a single condition to a Snuba conditions list. Used with
+    ``SnubaConditionBuilder``.
+    """
+
+    def apply(self, name, parameters):
+        raise NotImplementedError
+
+
+class ScalarCondition(Condition):
+    """\
+    Adds a scalar filter (less than or greater than are supported) to a Snuba
+    condition list. Whether or not the filter is inclusive is defined by the
+    '{parameter_name}_inclusive' parameter.
+    """
+
+    def __init__(self, field, operator, default_inclusivity=True):
+        assert operator in ['lt', 'gt']
+        self.field = field
+        self.operator = operator
+        self.default_inclusivity = default_inclusivity
+
+    def apply(self, name, parameters):
+        inclusive = parameters.get(
+            '{}_inclusive'.format(name),
+            self.default_inclusivity,
+        )
+        return (
+            self.field,
+            self.operator + ('=' if inclusive else ''),
+            parameters[name]
+        )
+
+
 class SnubaSearchBackend(DjangoSearchBackend):
     def _query(self, project, retention_window_start, group_queryset, tags, environment,
                sort_by, limit, cursor, count_hits, paginator_options, **parameters):
@@ -162,12 +217,12 @@ class SnubaSearchBackend(DjangoSearchBackend):
             **parameters
         )
 
-        gorup_to_score = {}
+        group_to_score = {}
         for group_id, data in group_data.items():
-            gorup_to_score[group_id] = calculate_cursor_for_group(data)
+            group_to_score[group_id] = calculate_cursor_for_group(data)
 
         paginator_results = SequencePaginator(
-            [(score, id) for (id, score) in gorup_to_score.items()],
+            [(score, id) for (id, score) in group_to_score.items()],
             reverse=True,
             **paginator_options
         ).get_result(limit, cursor, count_hits=count_hits)
@@ -189,13 +244,6 @@ def do_search(project_id, environment_id, tags, start, end,
     if environment_id is not None:
         filters['environment'] = [environment_id]
 
-    # TODO:
-    # * Snuba needs to filter on:
-    #     times_seen: count
-    #     date_from/to: window to search, handled by start/end
-    #     age_from/to: min timestamp
-    #     last_seen_from/to: max timestamp
-
     if candidates:
         hashes = list(
             GroupHash.objects.filter(
@@ -210,7 +258,18 @@ def do_search(project_id, environment_id, tags, start, end,
 
         filters['primary_hash'] = hashes
 
-    conditions = []
+    conditions = SnubaConditionBuilder({
+        'age_from': ScalarCondition('first_seen', 'gt'),
+        'age_to': ScalarCondition('first_seen', 'lt'),
+        'last_seen_from': ScalarCondition('last_seen', 'gt'),
+        'last_seen_to': ScalarCondition('last_seen', 'lt'),
+        'times_seen': CallbackCondition(
+            lambda queryset, times_seen: queryset.filter(times_seen=times_seen),
+        ),
+        'times_seen_lower': ScalarCondition('times_seen', 'gt'),
+        'times_seen_upper': ScalarCondition('times_seen', 'lt'),
+    }).build(parameters)
+
     for tag, val in six.iteritems(tags):
         col = 'tags[{}]'.format(tag)
         if val == ANY:
