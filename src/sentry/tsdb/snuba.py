@@ -4,6 +4,7 @@ import six
 
 from sentry.tsdb.base import BaseTSDB, TSDBModel
 from sentry.utils import snuba
+from sentry.utils.dates import to_datetime, to_timestamp
 
 
 class SnubaTSDB(BaseTSDB):
@@ -68,6 +69,14 @@ class SnubaTSDB(BaseTSDB):
             keys_map['environment'] = [environment_id]
 
         aggregations = [[aggregation, model_aggregate, 'aggregate']]
+
+        # For historical compatibility with bucket-counted TSDB implementations
+        # we need to round start and end times so they always line up with
+        # complete buckets.
+        rollup = rollup or 3600  # default to hour
+        start = to_datetime((to_timestamp(start) // rollup) * rollup)  # floor
+        end = to_datetime(((to_timestamp(end) + rollup - 1) // rollup) * rollup)  # ceil
+
         return snuba.query(start, end, groupby, None, keys_map,
                            aggregations, rollup)
 
