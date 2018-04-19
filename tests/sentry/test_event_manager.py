@@ -673,6 +673,31 @@ class EventManagerTest(TransactionTestCase):
         data = manager.normalize()
         assert len(data['transaction']) == MAX_CULPRIT_LENGTH
 
+    def test_transaction_as_culprit(self):
+        manager = EventManager(self.make_event(
+            transaction='foobar',
+        ))
+        data = manager.normalize()
+        assert data['transaction'] == 'foobar'
+        assert data['culprit'] == 'foobar'
+
+    def test_culprit_is_not_transaction(self):
+        manager = EventManager(self.make_event(
+            culprit='foobar',
+        ))
+        data = manager.normalize()
+        assert data['transaction'] is None
+        assert data['culprit'] == 'foobar'
+
+    def test_transaction_and_culprit(self):
+        manager = EventManager(self.make_event(
+            transaction='foobar',
+            culprit='baz',
+        ))
+        data = manager.normalize()
+        assert data['transaction'] == 'foobar'
+        assert data['culprit'] == 'baz'
+
     def test_long_message(self):
         manager = EventManager(
             self.make_event(
