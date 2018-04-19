@@ -21,11 +21,15 @@ class VSTSIntegration(Integration):
     name = 'VSTS'
     metadata = metadata
 
+    setup_dialog_config = {
+        'width': 600,
+        'height': 800,
+    }
+
     identity_oauth_scopes = frozenset([
-        # there are more and this is probably the wrong format. jsut putting it down here.
-        'vso.build_execute',
-        'vso.code_manage',
-        'vso.project_manage',
+        'vso.code_full',
+        'vso.identity_manage',
+        'vso.work_full',
     ])
 
     def get_pipeline_views(self):
