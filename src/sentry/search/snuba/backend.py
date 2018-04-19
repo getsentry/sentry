@@ -19,31 +19,6 @@ from sentry.utils import snuba
 from sentry.utils.dates import to_timestamp
 
 
-datetime_format = '%Y-%m-%dT%H:%M:%S+00:00'
-
-
-def snuba_to_datetime(d):
-    if isinstance(d, datetime):
-        return d
-
-    return datetime.strptime(d, datetime_format).replace(tzinfo=pytz.utc)
-
-
-convert_rules = [
-    ('first_seen', snuba_to_datetime),
-    ('last_seen', snuba_to_datetime)
-]
-
-
-def convert_snuba_result(obj):
-    for rule in convert_rules:
-        field_name, fn = rule
-        if field_name in obj:
-            obj[field_name] = fn(obj[field_name])
-
-    return obj
-
-
 # https://github.com/getsentry/sentry/blob/804c85100d0003cfdda91701911f21ed5f66f67c/src/sentry/event_manager.py#L241-L271
 priority_expr = 'toUInt32(log(times_seen) * 600) + toUInt32(last_seen)'
 
@@ -52,6 +27,21 @@ def calculate_priority_cursor(data):
     times_seen = sum(data['times_seen'])
     last_seen = max(int(to_timestamp(d) * 1000) for d in data['last_seen'])
     return ((math.log(times_seen) * 600) + last_seen)
+
+
+def _datetime_cursor_calculator(field, fn):
+    datetime_format = '%Y-%m-%dT%H:%M:%S+00:00'
+
+    def calculate(data):
+        datetimes = [
+            datetime.strptime(d, datetime_format).replace(tzinfo=pytz.utc)
+            if not isinstance(d, datetime) else d
+            for d in data[field]
+        ]
+
+        return fn(int(to_timestamp(d) * 1000) for d in datetimes)
+
+    return calculate
 
 
 sort_strategies = {
@@ -63,10 +53,10 @@ sort_strategies = {
         '-priority', calculate_priority_cursor,
     ),
     'date': (
-        '-last_seen', lambda data: max(int(to_timestamp(d) * 1000) for d in data['last_seen']),
+        '-last_seen', _datetime_cursor_calculator('last_seen', max),
     ),
     'new': (
-        '-first_seen', lambda data: min(int(to_timestamp(d) * 1000) for d in data['first_seen']),
+        '-first_seen', _datetime_cursor_calculator('first_seen', min),
     ),
     'freq': (
         '-times_seen', lambda data: sum(data['times_seen']),
@@ -229,7 +219,7 @@ def do_search(project_id, environment_id, tags, start, end,
             conditions.append((col, '=', val))
 
     aggregations = [
-        ['count', '', 'times_seen'],
+        ['count()', '', 'times_seen'],
         ['min', 'timestamp', 'first_seen'],
         ['max', 'timestamp', 'last_seen'],
         [priority_expr, '', 'priority']
@@ -250,10 +240,6 @@ def do_search(project_id, environment_id, tags, start, end,
         orderby=sort,
         limit=limit,
     )
-
-    # convert fields, such as stringified dates -> datetime objects
-    for obj in snuba_results.values():
-        convert_snuba_result(obj)
 
     # {hash -> group_id, ...}
     hash_to_group = dict(
