@@ -91,6 +91,7 @@ exports[`ProjectTeams renders 1`] = `
           team={
             Object {
               "id": "1",
+              "isMember": true,
               "name": "Team Name",
               "slug": "team-slug",
             }

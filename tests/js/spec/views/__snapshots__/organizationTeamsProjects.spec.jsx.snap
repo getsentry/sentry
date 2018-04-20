@@ -34,6 +34,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
             "teams": Array [
               Object {
                 "id": "1",
+                "isMember": true,
                 "name": "Team Name",
                 "slug": "team-slug",
               },
