@@ -25,10 +25,17 @@ class SnubaTSDBTest(TestCase):
         assert requests.post(snuba.SNUBA + '/tests/drop').status_code == 200
 
         self.db = SnubaTSDB()
-        self.now = datetime.utcnow().replace(microsecond=0, minute=0, tzinfo=pytz.UTC) - timedelta(hours=4)
+        self.now = datetime.utcnow().replace(
+            hour=0,
+            minute=0,
+            second=0,
+            microsecond=0,
+            tzinfo=pytz.UTC
+        )
 
         self.proj1 = self.create_project()
         self.proj1env1 = self.create_environment(project=self.proj1, name='test')
+        self.proj1env2 = self.create_environment(project=self.proj1, name='dev')
 
         self.proj1group1 = self.create_group(self.proj1)
         self.proj1group2 = self.create_group(self.proj1)
@@ -58,10 +65,11 @@ class SnubaTSDBTest(TestCase):
                     'foo': 'bar',
                     'baz': 'quux',
                     'environment': self.proj1env1.name,
-                    'sentry:release': r // 3600,
+                    'sentry:release': r // 3600,  # 1 per hour
                 },
                 'sentry.interfaces.User': {
-                    'id': "user{}".format(r),
+                    # change every 55 min so some hours have 1 user, some have 2
+                    'id': "user{}".format(r // 3300),
                     'email': "user{}@sentry.io".format(r)
                 }
             },
@@ -69,14 +77,15 @@ class SnubaTSDBTest(TestCase):
 
         assert requests.post(snuba.SNUBA + '/tests/insert', data=data).status_code == 200
 
-    def test_groups(self):
+    def test_range_groups(self):
         dts = [self.now + timedelta(hours=i) for i in range(4)]
         assert self.db.get_range(
             TSDBModel.group,
             [self.proj1group1.id],
-            dts[0], dts[-1]
+            dts[0], dts[-1],
+            rollup=3600
         ) == {
-            1: [
+            self.proj1group1.id: [
                 (timestamp(dts[0]), 3),
                 (timestamp(dts[1]), 3),
                 (timestamp(dts[2]), 3),
@@ -84,18 +93,20 @@ class SnubaTSDBTest(TestCase):
             ],
         }
 
+        # Multiple groups
         assert self.db.get_range(
             TSDBModel.group,
             [self.proj1group1.id, self.proj1group2.id],
-            dts[0], dts[-1]
+            dts[0], dts[-1],
+            rollup=3600
         ) == {
-            1: [
+            self.proj1group1.id: [
                 (timestamp(dts[0]), 3),
                 (timestamp(dts[1]), 3),
                 (timestamp(dts[2]), 3),
                 (timestamp(dts[3]), 3),
             ],
-            2: [
+            self.proj1group2.id: [
                 (timestamp(dts[0]), 3),
                 (timestamp(dts[1]), 3),
                 (timestamp(dts[2]), 3),
@@ -103,14 +114,158 @@ class SnubaTSDBTest(TestCase):
             ],
         }
 
-    def test_releases(self):
+    def test_range_releases(self):
         dts = [self.now + timedelta(hours=i) for i in range(4)]
         assert self.db.get_range(
             TSDBModel.release,
             [self.release.id],
-            dts[0], dts[-1]
+            dts[0], dts[-1],
+            rollup=3600
         ) == {
             self.release.id: [
                 (timestamp(dts[1]), 6),
             ]
+        }
+
+    def test_range_project(self):
+        dts = [self.now + timedelta(hours=i) for i in range(4)]
+        assert self.db.get_range(
+            TSDBModel.project,
+            [self.proj1.id],
+            dts[0], dts[-1],
+            rollup=3600
+        ) == {
+            self.proj1.id: [
+                (timestamp(dts[0]), 6),
+                (timestamp(dts[1]), 6),
+                (timestamp(dts[2]), 6),
+                (timestamp(dts[3]), 6),
+            ]
+        }
+
+        assert self.db.get_range(
+            TSDBModel.project,
+            [self.proj1.id],
+            dts[0], dts[-1],
+            rollup=3600,
+            environment_id=self.proj1env1.id
+        ) == {
+            self.proj1.id: [
+                (timestamp(dts[0]), 6),
+                (timestamp(dts[1]), 6),
+                (timestamp(dts[2]), 6),
+                (timestamp(dts[3]), 6),
+            ]
+        }
+
+        # No events submitted for env2
+        assert self.db.get_range(
+            TSDBModel.project,
+            [self.proj1.id],
+            dts[0], dts[-1],
+            rollup=3600,
+            environment_id=self.proj1env2.id
+        ) == {}
+
+    def test_range_rollups(self):
+        # Daily
+        daystart = self.now.replace(hour=0)  # day buckets start on day boundaries
+        dts = [daystart + timedelta(days=i) for i in range(2)]
+        assert self.db.get_range(
+            TSDBModel.project,
+            [self.proj1.id],
+            dts[0], dts[-1],
+            rollup=86400
+        ) == {
+            self.proj1.id: [
+                (timestamp(dts[0]), 24),
+            ]
+        }
+
+        # Minutely
+        dts = [self.now + timedelta(minutes=i) for i in range(120)]
+        expected = [(to_timestamp(d), 1) for i, d in enumerate(dts) if i % 10 == 0]
+        assert self.db.get_range(
+            TSDBModel.project,
+            [self.proj1.id],
+            dts[0], dts[-1],
+            rollup=60
+        ) == {
+            self.proj1.id: expected
+        }
+
+    def test_distinct_counts_series_users(self):
+        dts = [self.now + timedelta(hours=i) for i in range(4)]
+        assert self.db.get_distinct_counts_series(
+            TSDBModel.users_affected_by_group,
+            [self.proj1group1.id],
+            dts[0], dts[-1],
+            rollup=3600
+        ) == {
+            self.proj1group1.id: [
+                (timestamp(dts[0]), 1),
+                (timestamp(dts[1]), 1),
+                (timestamp(dts[2]), 1),
+                (timestamp(dts[3]), 2),
+            ],
+        }
+
+        dts = [self.now + timedelta(hours=i) for i in range(4)]
+        assert self.db.get_distinct_counts_series(
+            TSDBModel.users_affected_by_project,
+            [self.proj1.id],
+            dts[0], dts[-1],
+            rollup=3600
+        ) == {
+            self.proj1.id: [
+                (timestamp(dts[0]), 1),
+                (timestamp(dts[1]), 2),
+                (timestamp(dts[2]), 2),
+                (timestamp(dts[3]), 2),
+            ],
+        }
+
+    def get_distinct_counts_totals_users(self):
+        assert self.db.get_distinct_counts_totals(
+            TSDBModel.users_affected_by_group,
+            [self.proj1group1.id],
+            self.now,
+            self.now + timedelta(hours=4),
+            rollup=3600
+        ) == {
+            self.proj1group1.id: 2,  # 2 unique users overall
+        }
+
+        assert self.db.get_distinct_counts_totals(
+            TSDBModel.users_affected_by_group,
+            [self.proj1group1.id],
+            self.now,
+            self.now,
+            rollup=3600
+        ) == {
+            self.proj1group1.id: 1,  # Only 1 unique user in the first hour
+        }
+
+        assert self.db.get_distinct_counts_totals(
+            TSDBModel.users_affected_by_project,
+            [self.proj1.id],
+            self.now,
+            self.now + timedelta(hours=4),
+            rollup=3600
+        ) == {
+            self.proj1.id: 2,
+        }
+
+    def test_frequency_releases(self):
+        assert self.db.get_most_frequent(
+            TSDBModel.frequent_issues_by_project,
+            [self.proj1.id],
+            self.now,
+            self.now + timedelta(hours=4),
+            rollup=3600,
+        ) == {
+            self.proj1.id: [
+                (self.proj1group1.id, 2.0),
+                (self.proj1group2.id, 1.0),
+            ],
         }

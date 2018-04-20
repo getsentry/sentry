@@ -4,7 +4,7 @@ import six
 
 from sentry.tsdb.base import BaseTSDB, TSDBModel
 from sentry.utils import snuba
-from sentry.utils.dates import to_datetime, to_timestamp
+from sentry.utils.dates import to_datetime
 
 
 class SnubaTSDB(BaseTSDB):
@@ -27,7 +27,6 @@ class SnubaTSDB(BaseTSDB):
         TSDBModel.group: ('issue', None),
         TSDBModel.release: ('release', None),
         TSDBModel.users_affected_by_group: ('issue', 'user_id'),
-        TSDBModel.users_affected_by_project: ('project_id', 'user_id'),
         TSDBModel.users_affected_by_project: ('project_id', 'user_id'),
         TSDBModel.frequent_environments_by_group: ('issue', 'environment'),
         TSDBModel.frequent_releases_by_group: ('issue', 'release'),
@@ -71,11 +70,11 @@ class SnubaTSDB(BaseTSDB):
         aggregations = [[aggregation, model_aggregate, 'aggregate']]
 
         # For historical compatibility with bucket-counted TSDB implementations
-        # we need to round start and end times so they always line up with
-        # complete buckets.
-        rollup = rollup or 3600  # default to hour
-        start = to_datetime((to_timestamp(start) // rollup) * rollup)  # floor
-        end = to_datetime(((to_timestamp(end) + rollup - 1) // rollup) * rollup)  # ceil
+        # we grab the original bucketed series and add the rollup time to the
+        # timestamp of the last bucket to get the end time.
+        rollup, series = self.get_optimal_rollup_series(start, end, rollup)
+        start = to_datetime(series[0])
+        end = to_datetime(series[-1] + rollup)
 
         return snuba.query(start, end, groupby, None, keys_map,
                            aggregations, rollup)
@@ -155,7 +154,7 @@ class SnubaTSDB(BaseTSDB):
         return self.get_data(model, items, start, end, rollup, environment_id,
                              aggregation='count()')
 
-    def get_optimal_rollup(self, start):
+    def get_optimal_rollup(self, start, end=None):
         """
         Always return the smallest rollup as we can bucket on any granularity.
         """
