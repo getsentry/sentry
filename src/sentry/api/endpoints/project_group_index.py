@@ -1,4 +1,4 @@
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import
 
 from datetime import timedelta
 import functools
@@ -224,7 +224,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
     def _search(self, request, project, extra_query_kwargs=None):
         query_kwargs = self._build_query_params_from_request(request, project)
-
         if extra_query_kwargs is not None:
             assert 'environment' not in extra_query_kwargs
             query_kwargs.update(extra_query_kwargs)
@@ -241,7 +240,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
             result = CursorResult([], None, None, hits=0, max_hits=1000)
         else:
             result = search.query(**query_kwargs)
-
         return result, query_kwargs
 
     def _subscribe_and_assign_issue(self, acting_user, group, result):
@@ -894,10 +892,19 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                 )
             )
         else:
-            # missing any kind of filter
-            return Response(
-                {"detail": "You must specify a list of IDs for this operation"}, status=400
-            )
+            try:
+                # bulk mutations are limited to 1000 items
+                # TODO(dcramer): it'd be nice to support more than this, but its
+                # a bit too complicated right now
+                cursor_result, _ = self._search(request, project, {
+                    'limit': 1000,
+                    'paginator_options': {'max_limit': 1000},
+                })
+            except ValidationError as exc:
+                return Response({'detail': six.text_type(exc)}, status=400)
+
+            group_list = list(cursor_result)
+            group_ids = [g.id for g in group_list]
 
         if not group_list:
             return Response(status=204)
