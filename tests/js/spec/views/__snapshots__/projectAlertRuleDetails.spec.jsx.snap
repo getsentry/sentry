@@ -530,6 +530,10 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                             "staging",
                             "Staging",
                           ],
+                          Array [
+                            "test",
+                            "Test",
+                          ],
                         ]
                       }
                       className=""
@@ -590,6 +594,12 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                               value="staging"
                             >
                               Staging
+                            </option>
+                            <option
+                              key="test"
+                              value="test"
+                            >
+                              Test
                             </option>
                           </select>
                         </div>
@@ -1434,6 +1444,10 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                             "staging",
                             "Staging",
                           ],
+                          Array [
+                            "test",
+                            "Test",
+                          ],
                         ]
                       }
                       className=""
@@ -1494,6 +1508,12 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                               value="staging"
                             >
                               Staging
+                            </option>
+                            <option
+                              key="test"
+                              value="test"
+                            >
+                              Test
                             </option>
                           </select>
                         </div>
