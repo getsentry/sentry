@@ -358,8 +358,7 @@ class TagStorage(Service):
     def get_group_ids_for_search_filter(
             self, project_id, environment_id, tags, candidates=None, limit=1000):
         """
-        >>> get_group_ids_for_search_filter(1, 2, [('key1', 'value1'), ('key2', 'value2')]
-        )
+        >>> get_group_ids_for_search_filter(1, 2, [('key1', 'value1'), ('key2', 'value2')])
         """
         raise NotImplementedError
 

@@ -217,13 +217,13 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
         # want Snuba to do all the filtering/sorting it can and *then* apply
         # this queryset to the results from Snuba.
         #
-        # However, if this did filter down the number of groups siginicantly,
-        # then passing in candidates is, of course, valueable.
+        # However, if this did filter down the number of groups significantly,
+        # then passing in candidates is, of course, valuable.
         #
         # Should we decide which way to handle it based on the number of
         # group_ids, the number of hashes? Or should we just always start the
         # query with Snuba? Something else?
-        group_ids = list(group_queryset.values_list('id', flat=True))
+        candidate_group_ids = list(group_queryset.values_list('id', flat=True))
 
         sort_expression, calculate_cursor_for_group = sort_strategies[sort_by]
 
@@ -234,7 +234,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
             start=start,
             end=end,
             sort=sort_expression,
-            candidates=group_ids,
+            candidates=candidate_group_ids,
             **parameters
         )
 
@@ -330,7 +330,7 @@ def do_search(project_id, environment_id, tags, start, end,
             hash__in=snuba_results.keys()
         ).values_list(
             'hash', 'group_id'
-        ).distinct()
+        )
     )
 
     # {group_id -> {field1: [...all values from field1 for all hashes...],
