@@ -6,6 +6,7 @@ sentry.models.auditlogentry
 :license: BSD, see LICENSE for more details.
 """
 from __future__ import absolute_import, print_function
+
 import six
 
 from django.db import models
@@ -230,7 +231,8 @@ class AuditLogEntry(Model):
         elif self.event == AuditLogEntryEvent.PROJECT_ADD:
             return 'created project %s' % (self.data['slug'], )
         elif self.event == AuditLogEntryEvent.PROJECT_EDIT:
-            return 'edited project %s' % (self.data['slug'], )
+            return 'edited project settings ' + (' '.join([' in %s to %s' % (key, value)
+                                                           for (key, value) in six.iteritems(self.data)]))
         elif self.event == AuditLogEntryEvent.PROJECT_REMOVE:
             return 'removed project %s' % (self.data['slug'], )
         elif self.event == AuditLogEntryEvent.PROJECT_REQUEST_TRANSFER:

@@ -4,8 +4,7 @@ import mock
 import six
 
 from django.core.urlresolvers import reverse
-
-from sentry.models import Project, ProjectBookmark, ProjectStatus, UserOption, DeletedProject, ProjectRedirect
+from sentry.models import Project, ProjectBookmark, ProjectStatus, UserOption, DeletedProject, ProjectRedirect, AuditLogEntry, AuditLogEntryEvent
 from sentry.testutils import APITestCase
 
 
@@ -197,10 +196,16 @@ class ProjectUpdateTest(APITestCase):
         assert resp.status_code == 200, resp.content
         project = Project.objects.get(id=self.project.id)
         assert project.slug == 'foobar'
+
         assert ProjectRedirect.objects.filter(
             project=self.project,
             redirect_slug=self.project.slug,
         )
+
+        assert AuditLogEntry.objects.filter(
+            organization=project.organization,
+            event=AuditLogEntryEvent.PROJECT_EDIT,
+        ).exists()
 
     def test_invalid_slug(self):
         new_project = self.create_project()
@@ -233,6 +238,9 @@ class ProjectUpdateTest(APITestCase):
             'filters:blacklisted_ips': '127.0.0.1\n198.51.100.0',
             'filters:releases': '1.*\n2.1.*',
             'filters:error_messages': 'TypeError*\n*: integer division by modulo or zero',
+            'subjectTemplate': 'foobar',
+            'defaultEnvironment': 'production',
+            'resolveAge': None
         }
         with self.feature('projects:custom-inbound-filters'):
             resp = self.client.put(self.path, data={'options': options})
@@ -254,6 +262,21 @@ class ProjectUpdateTest(APITestCase):
         assert project.get_option('sentry:error_messages') == [
             'TypeError*', '*: integer division by modulo or zero'
         ]
+        assert project.get_option('subjectTemplate', 'foobar')
+        assert AuditLogEntry.objects.filter(
+            organization=project.organization,
+            event=AuditLogEntryEvent.PROJECT_EDIT,
+        ).exists()
+        assert project.get_option('defaultEnvironment', 'production')
+        assert AuditLogEntry.objects.filter(
+            organization=project.organization,
+            event=AuditLogEntryEvent.PROJECT_EDIT,
+        ).exists()
+        assert project.get_option('sentry:resolve_age', None)
+        assert AuditLogEntry.objects.filter(
+            organization=project.organization,
+            event=AuditLogEntryEvent.PROJECT_EDIT,
+        ).exists()
 
     def test_bookmarks(self):
         resp = self.client.put(self.path, data={

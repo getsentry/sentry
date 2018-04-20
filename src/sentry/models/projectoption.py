@@ -56,7 +56,10 @@ class ProjectOptionManager(BaseManager):
         self.reload_cache(project.id)
 
     def set_value(self, project, key, value):
-        self.create_or_update(
+        """
+        Returns whether the value was updated or created
+        """
+        inst, created = self.create_or_update(
             project=project,
             key=key,
             values={
@@ -64,6 +67,7 @@ class ProjectOptionManager(BaseManager):
             },
         )
         self.reload_cache(project.id)
+        return created or inst > 0
 
     def get_all_values(self, project):
         if isinstance(project, models.Model):
