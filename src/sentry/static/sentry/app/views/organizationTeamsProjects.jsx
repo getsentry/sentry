@@ -15,6 +15,7 @@ import SettingsPageHeader from './settings/components/settingsPageHeader';
 import {t, tct} from '../locale';
 import withProjects from '../utils/withProjects';
 import withTeams from '../utils/withTeams';
+import getProjectsByTeams from '../utils/getProjectsByTeams';
 
 class OrganizationTeamsProjectsView extends React.Component {
   static propTypes = {
@@ -126,26 +127,8 @@ class OrganizationTeamsProjectsView extends React.Component {
   };
 
   render() {
-    let {projects, teams} = this.props;
-    let projectsByTeam = {};
-    let teamlessProjects = [];
-    let usersTeams = new Set(teams.filter(team => team.isMember).map(team => team.slug));
-
-    projects.forEach(project => {
-      if (!project.teams.length && project.isMember) {
-        teamlessProjects.push(project);
-      } else {
-        project.teams.forEach(team => {
-          if (!usersTeams.has(team.slug)) {
-            return;
-          }
-          if (!projectsByTeam[team.slug]) {
-            projectsByTeam[team.slug] = [];
-          }
-          projectsByTeam[team.slug].push(project);
-        });
-      }
-    });
+    const {projects, teams} = this.props;
+    const {projectsByTeam, teamlessProjects} = getProjectsByTeams(teams, projects);
 
     return (
       <div className="row">
