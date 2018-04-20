@@ -71,21 +71,22 @@ class SnubaTSDBRequestsTest(TestCase):
                 aggs = body.get('aggregations', [])
                 meta = [{'name': col} for col in body['groupby'] + [a[2] for a in aggs]]
                 datum = {col['name']: 1 for col in meta}
+                datum['project_id'] = project_id
                 if 'time' in datum:
                     datum['time'] = '2018-03-09T01:00:00Z'
                 for agg in aggs:
                     if agg[0].startswith('topK'):
-                        datum[agg[2]] = [1]
+                        datum[agg[2]] = [99]
                 return (200, {}, json.dumps({'data': [datum], 'meta': meta}))
 
             rsps.add_callback(responses.POST, snuba.SNUBA + '/query', callback=snuba_response)
 
             results = self.db.get_most_frequent(TSDBModel.frequent_issues_by_project,
-                                                [project_id], dts[0], dts[-1])
+                                                [project_id], dts[0], dts[0])
             assert has_shape(results, {1: [(1, 1.0)]})
 
             results = self.db.get_most_frequent_series(TSDBModel.frequent_issues_by_project,
-                                                       [project_id], dts[0], dts[-1])
+                                                       [project_id], dts[0], dts[0])
             assert has_shape(results, {1: [(1, {1: 1.0})]})
 
             items = {
@@ -169,8 +170,13 @@ class SnubaTSDBRequestsTest(TestCase):
                 }))
 
             rsps.add_callback(responses.POST, snuba.SNUBA + '/query', callback=snuba_response)
-            results = self.db.get_range(TSDBModel.release, [release.id], dts[0], dts[-1])
-            assert results == {release.id: [(to_timestamp(now), 100)]}
+            results = self.db.get_range(
+                TSDBModel.release, [release.id], dts[0], dts[-1], rollup=3600)
+            assert results == {
+                release.id: [
+                    (int(to_timestamp(d)), 100 if d == now else 0)
+                    for d in dts]
+            }
 
     @responses.activate
     def test_environment_request(self):
@@ -193,8 +199,12 @@ class SnubaTSDBRequestsTest(TestCase):
 
             rsps.add_callback(responses.POST, snuba.SNUBA + '/query', callback=snuba_response)
             results = self.db.get_range(TSDBModel.project, [project.id],
-                                        dts[0], dts[-1], environment_id=env.id)
-            assert results == {project.id: [(to_timestamp(now), 100)]}
+                                        dts[0], dts[-1], environment_id=env.id, rollup=3600)
+            assert results == {
+                project.id: [
+                    (int(to_timestamp(d)), 100 if d == now else 0)
+                    for d in dts]
+            }
 
     def test_invalid_model(self):
         with pytest.raises(Exception) as ex:
