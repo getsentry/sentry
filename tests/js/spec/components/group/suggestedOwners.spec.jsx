@@ -128,7 +128,7 @@ describe('SuggestedOwners', function() {
       TestStubs.routerContext([{project, group}])
     );
     expect(wrapper.find('Tooltip Button')).toHaveLength(1);
-    expect(wrapper.find('Tooltip Button').prop('disabled')).toBe(false);
+    expect(wrapper.find('Tooltip').prop('disabled')).toBe(true);
 
     wrapper = mount(
       <SuggestedOwners
@@ -143,6 +143,7 @@ describe('SuggestedOwners', function() {
       TestStubs.routerContext([{project, group}])
     );
     expect(wrapper.find('Tooltip Button')).toHaveLength(1);
-    expect(wrapper.find('Tooltip Button').prop('disabled')).toBe(true);
+    // Button should be disabled, tooltip should be enabled
+    expect(wrapper.find('Tooltip').prop('disabled')).toBe(false);
   });
 });

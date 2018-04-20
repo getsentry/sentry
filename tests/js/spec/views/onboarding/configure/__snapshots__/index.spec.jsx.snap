@@ -237,7 +237,6 @@ exports[`Configure should render correctly render() should render platform docs 
                                           >
                                             <ExternalLink
                                               className="button button-default button-sm"
-                                              disabled={false}
                                               href="https://docs.getsentry.com/hosted/clients/csharp/"
                                               onClick={[Function]}
                                               rel="noreferrer noopener"
@@ -246,7 +245,6 @@ exports[`Configure should render correctly render() should render platform docs 
                                             >
                                               <a
                                                 className="button button-default button-sm"
-                                                disabled={false}
                                                 href="https://docs.getsentry.com/hosted/clients/csharp/"
                                                 onClick={[Function]}
                                                 rel="noreferrer noopener"

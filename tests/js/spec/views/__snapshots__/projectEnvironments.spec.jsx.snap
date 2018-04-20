@@ -481,7 +481,6 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                             >
                               <button
                                 className="css-10adnmx-EnvironmentButton css-d1dasp0 button button-default button-xs"
-                                disabled={false}
                                 onClick={[Function]}
                                 role="button"
                               >
@@ -581,7 +580,6 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                             >
                               <button
                                 className="css-10adnmx-EnvironmentButton css-d1dasp0 button button-default button-xs"
-                                disabled={false}
                                 onClick={[Function]}
                                 role="button"
                               >
@@ -616,7 +614,6 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                             >
                               <button
                                 className="css-10adnmx-EnvironmentButton css-d1dasp0 button button-default button-xs"
-                                disabled={false}
                                 onClick={[Function]}
                                 role="button"
                               >
@@ -729,7 +726,6 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                             >
                               <button
                                 className="css-10adnmx-EnvironmentButton css-d1dasp0 button button-default button-xs"
-                                disabled={false}
                                 onClick={[Function]}
                                 role="button"
                               >
@@ -1256,7 +1252,6 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                             >
                               <button
                                 className="css-10adnmx-EnvironmentButton css-d1dasp0 button button-default button-xs"
-                                disabled={false}
                                 onClick={[Function]}
                                 role="button"
                               >

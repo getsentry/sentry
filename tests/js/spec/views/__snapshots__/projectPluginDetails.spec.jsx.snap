@@ -183,7 +183,6 @@ exports[`ProjectPluginDetails renders 1`] = `
                           >
                             <button
                               className="button button-default"
-                              disabled={false}
                               onClick={[Function]}
                               role="button"
                               style={
@@ -216,7 +215,6 @@ exports[`ProjectPluginDetails renders 1`] = `
                           >
                             <button
                               className="button button-default"
-                              disabled={false}
                               onClick={[Function]}
                               role="button"
                             >

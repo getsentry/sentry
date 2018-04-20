@@ -62,7 +62,6 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                       >
                         <Link
                           className="button button-primary button-sm"
-                          disabled={false}
                           onClick={[Function]}
                           onlyActiveOnIndex={false}
                           role="button"
@@ -71,7 +70,6 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                         >
                           <a
                             className="button button-primary button-sm"
-                            disabled={false}
                             onClick={[Function]}
                             role="button"
                             style={Object {}}
@@ -92,11 +90,11 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                                     size="small"
                                   >
                                     <Base
-                                      className="css-11bwulm-Icon css-1vxxnb60"
+                                      className="css-11bwulm-Icon css-yr2ozh0"
                                       size="small"
                                     >
                                       <div
-                                        className="css-11bwulm-Icon css-1vxxnb60"
+                                        className="css-11bwulm-Icon css-yr2ozh0"
                                         is={null}
                                         size="small"
                                       >
@@ -105,18 +103,18 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                                           src="icon-circle-add"
                                         >
                                           <InlineSvg
-                                            className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
+                                            className="css-1ov3rcq-StyledInlineSvg css-yr2ozh1"
                                             size="12px"
                                             src="icon-circle-add"
                                           >
                                             <StyledSvg
-                                              className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
+                                              className="css-1ov3rcq-StyledInlineSvg css-yr2ozh1"
                                               height="12px"
                                               viewBox={Object {}}
                                               width="12px"
                                             >
                                               <svg
-                                                className="css-1vxxnb61 css-1rlza0i-StyledSvg css-adkcw30"
+                                                className="css-yr2ozh1 css-1rlza0i-StyledSvg css-adkcw30"
                                                 height="12px"
                                                 viewBox={Object {}}
                                                 width="12px"
@@ -503,7 +501,6 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                                 >
                                   <Link
                                     className="button button-default button-sm"
-                                    disabled={false}
                                     onClick={[Function]}
                                     onlyActiveOnIndex={false}
                                     role="button"
@@ -512,7 +509,6 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                                   >
                                     <a
                                       className="button button-default button-sm"
-                                      disabled={false}
                                       onClick={[Function]}
                                       role="button"
                                       style={Object {}}

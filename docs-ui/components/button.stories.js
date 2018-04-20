@@ -33,7 +33,19 @@ storiesOf('Buttons', module)
         </Item>
 
         <Item>
-          <Button to={''} disabled onClick={action('click disabled')}>
+          <Button to={'#href'} disabled onClick={action('click disabled')}>
+            Disabled Button
+          </Button>
+        </Item>
+
+        <Item>
+          <Button href="#href" disabled onClick={action('click disabled')}>
+            Disabled Button
+          </Button>
+        </Item>
+
+        <Item>
+          <Button external href="#href" disabled onClick={action('click disabled')}>
             Disabled Button
           </Button>
         </Item>

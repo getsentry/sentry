@@ -237,7 +237,6 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                     >
                                       <Link
                                         className="button button-default button-sm"
-                                        disabled={false}
                                         onClick={[Function]}
                                         onlyActiveOnIndex={false}
                                         role="button"
@@ -246,7 +245,6 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                       >
                                         <a
                                           className="button button-default button-sm"
-                                          disabled={false}
                                           onClick={[Function]}
                                           role="button"
                                           style={Object {}}
