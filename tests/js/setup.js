@@ -392,6 +392,7 @@ window.TestStubs = {
       return [
         {id: '1', name: 'production', isHidden: false},
         {id: '2', name: 'staging', isHidden: false},
+        {id: '3', name: 'test', isHidden: false},
       ];
     }
   },
