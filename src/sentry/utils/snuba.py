@@ -13,6 +13,10 @@ from sentry.utils.dates import to_timestamp
 SNUBA = os.environ.get('SNUBA', 'http://localhost:5000')
 
 
+class SnubaError(Exception):
+    pass
+
+
 def query(start, end, groupby, conditions=None, filter_keys=None,
           aggregations=None, rollup=None, arrayjoin=None, limit=None, orderby=None):
     """
@@ -62,7 +66,7 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
         project_ids = []
 
     if not project_ids:
-        raise Exception("No project_id filter, or none could be inferred from other filters.")
+        raise SnubaError("No project_id filter, or none could be inferred from other filters.")
 
     # If the grouping, aggregation, or any of the conditions reference `issue`
     # we need to fetch the issue definitions (issue -> fingerprint hashes)
@@ -87,9 +91,16 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
         'orderby': orderby,
     }) if v is not None}
 
-    response = requests.post(url, data=json.dumps(request))
-    # TODO handle error responses
-    response = json.loads(response.text)
+    try:
+        response = requests.post(url, data=json.dumps(request))
+        response.raise_for_status()
+    except requests.RequestException as re:
+        raise SnubaError(re)
+
+    try:
+        response = json.loads(response.text)
+    except ValueError:
+        raise SnubaError("Could not decode JSON response: {}".format(response.text))
 
     # Validate and scrub response, and translate snuba keys back to IDs
     aggregate_cols = [a[2] for a in aggregations]
