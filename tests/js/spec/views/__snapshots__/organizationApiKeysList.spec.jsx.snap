@@ -173,7 +173,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                                                     width="12px"
                                                   >
                                                     <svg
-                                                      className="e17811v33 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                      className="e17811v33 css-1jjmnki-StyledSvg-StyledInlineSvg css-adkcw30"
                                                       height="12px"
                                                       viewBox={Object {}}
                                                       width="12px"
@@ -417,12 +417,12 @@ exports[`OrganizationApiKeysList renders 1`] = `
                 >
                   <Base
                     align="center"
-                    className="css-193ecay-StyledPanelItem eo8n7lk0"
+                    className="css-193ecay-StyledPanelItem css-q9h14u0"
                     p={0}
                     py={1}
                   >
                     <div
-                      className="css-193ecay-StyledPanelItem eo8n7lk0"
+                      className="css-193ecay-StyledPanelItem css-q9h14u0"
                       is={null}
                     >
                       <Flex

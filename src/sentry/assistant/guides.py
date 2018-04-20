@@ -117,8 +117,10 @@ GUIDES = {
             {
                 'title': _('Users'),
                 'message': _(
-                    'Sending user data to Sentry will unlock a number of features, primarily the ability to drill down into the number of users affected by an issue. '
-                    'Learn how easy it is to <a href="https://docs.sentry.io/learn/context/#capturing-the-user" target="_blank">set this up </a>today.'),
+                    'Sending user data to Sentry will unlock a number of features, primarily the ability to drill '
+                    'down into the number of users affected by an issue. '
+                    'Learn how easy it is to '
+                    '<a href="https://docs.sentry.io/learn/context/#capturing-the-user" target="_blank">set this up </a>today.'),
                 'target': 'users',
             },
         ]
@@ -150,5 +152,54 @@ GUIDES = {
                 'target': 'member_role',
             },
         ]
-    }
+    },
+    # Ideally, this would only be sent if the organization has never
+    # customized alert rules (as per FeatureAdoption)
+    'alert-rules': {
+        'id': 5,
+        'cue': _('Tips for alert rules'),
+        'required_targets': ['alert_conditions'],
+        'steps': [
+            {
+                'title': _('Reducing alert noise'),
+                'message': _('Sentry, by default, alerts on every <i>new</i> issue via email. '
+                             'If that\'s too noisy, sending the new issue alerts to '
+                             'a service like Slack help reduce inbox noise.'),
+                'target': 'alert_conditions',
+            },
+            {
+                'title': _('Defining priority alerts'),
+                'message': _('Not alerts are equal. Create rules for frequently occuring errors or specific '
+                             'tags to escalate critical issues by alerting you via email or PagerDuty.'),
+                'target': 'alert_actions',
+            },
+            # When ownership is released
+            # {
+            #     'title': _('Ownership'),
+            #     'message': _(),
+            #     'target': None
+            # },
+            {
+                'title': _('Tweaking personal email settings'),
+                'message': _('If you\'d like to customize your <i>personal</i> alert settings, '
+                             'go to <a href="/account/settings/notifications/">Account Notifications</a>. '
+                             'There, you can choose which project\'s alert or workflow notifications you\'d like to receive.'),
+                'target': None,
+            },
+            {
+                'title': _('What are legacy integrations?'),
+                'message': _('You can see what integrations are legacy or not in '
+                             '<a href="/settings/${orgSlug}/${projectSlug}/plugins/">integration settings</a>. '
+                             'If you want an alert rule to trigger both legacy and global '
+                             'integrations, you need to add both as actions. '
+                             '<a href="https://help.sentry.io/hc/en-us/articles/360003063454">Learn more</a>.'),
+                'target': None,
+            },
+        ],
+    },
 }
+
+# Configure -> next steps???
+# turning on w/o config should take you to config page
+# legacy plugins after config, go to an issue?
+# send test event?

@@ -444,12 +444,12 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                   >
                     <Base
                       align="center"
-                      className="css-qcergp-StyledPanelItem eo8n7lk0"
+                      className="css-qcergp-StyledPanelItem css-q9h14u0"
                       justify="space-between"
                       p={2}
                     >
                       <div
-                        className="css-qcergp-StyledPanelItem eo8n7lk0"
+                        className="css-qcergp-StyledPanelItem css-q9h14u0"
                         is={null}
                       >
                         <Flex
@@ -573,12 +573,12 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                   >
                     <Base
                       align="center"
-                      className="css-qcergp-StyledPanelItem eo8n7lk0"
+                      className="css-qcergp-StyledPanelItem css-q9h14u0"
                       justify="space-between"
                       p={2}
                     >
                       <div
-                        className="css-qcergp-StyledPanelItem eo8n7lk0"
+                        className="css-qcergp-StyledPanelItem css-q9h14u0"
                         is={null}
                       >
                         <Flex
@@ -772,12 +772,12 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                   >
                     <Base
                       align="center"
-                      className="css-qcergp-StyledPanelItem eo8n7lk0"
+                      className="css-qcergp-StyledPanelItem css-q9h14u0"
                       justify="space-between"
                       p={2}
                     >
                       <div
-                        className="css-qcergp-StyledPanelItem eo8n7lk0"
+                        className="css-qcergp-StyledPanelItem css-q9h14u0"
                         is={null}
                       >
                         <Flex
@@ -803,7 +803,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                                   priority="success"
                                 >
                                   <span
-                                    className="css-giy4xh-TagTextStyled e6q9yfr0"
+                                    className="css-giy4xh-TagTextStyled css-3x95g0"
                                   >
                                     Default
                                   </span>
@@ -1344,12 +1344,12 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                   >
                     <Base
                       align="center"
-                      className="css-qcergp-StyledPanelItem eo8n7lk0"
+                      className="css-qcergp-StyledPanelItem css-q9h14u0"
                       justify="space-between"
                       p={2}
                     >
                       <div
-                        className="css-qcergp-StyledPanelItem eo8n7lk0"
+                        className="css-qcergp-StyledPanelItem css-q9h14u0"
                         is={null}
                       >
                         <Flex

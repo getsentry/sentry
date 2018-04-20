@@ -231,12 +231,12 @@ exports[`ProjectSavedSearches renders 1`] = `
                   >
                     <Base
                       align="center"
-                      className="css-gub3dk-StyledPanelItem eo8n7lk0"
+                      className="css-gub3dk-StyledPanelItem css-q9h14u0"
                       p={0}
                       py={2}
                     >
                       <div
-                        className="css-gub3dk-StyledPanelItem eo8n7lk0"
+                        className="css-gub3dk-StyledPanelItem css-q9h14u0"
                         is={null}
                       >
                         <Flex
@@ -516,12 +516,12 @@ exports[`ProjectSavedSearches renders 1`] = `
                   >
                     <Base
                       align="center"
-                      className="css-gub3dk-StyledPanelItem eo8n7lk0"
+                      className="css-gub3dk-StyledPanelItem css-q9h14u0"
                       p={0}
                       py={2}
                     >
                       <div
-                        className="css-gub3dk-StyledPanelItem eo8n7lk0"
+                        className="css-gub3dk-StyledPanelItem css-q9h14u0"
                         is={null}
                       >
                         <Flex
@@ -956,13 +956,13 @@ exports[`ProjectSavedSearches renders empty 1`] = `
                   className="ref-empty-state"
                 >
                   <div
-                    className="ref-empty-state css-n38n5f-EmptyStreamWrapper ernlsnc0"
+                    className="ref-empty-state css-n38n5f-EmptyStreamWrapper css-18u266o0"
                   >
                     <Icon
                       className="icon icon-exclamation"
                     >
                       <div
-                        className="icon icon-exclamation css-tjp7mx-Icon ernlsnc1"
+                        className="icon icon-exclamation css-tjp7mx-Icon css-18u266o1"
                       />
                     </Icon>
                     <p>

@@ -79,6 +79,9 @@ const GuideAnchor = createReactClass({
   },
 });
 
+export const ConditionalGuideAnchor = ({condition, target, type, children}) =>
+  condition ? React.createElement(GuideAnchor, {target, type}, children) : children;
+
 const recedeAnchor = keyframes`
   0% {
     transform: scale(3, 3);

@@ -22,6 +22,7 @@ import EnvironmentStore from 'app/stores/environmentStore';
 import ListLink from 'app/components/listLink';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import recreateRoute from 'app/utils/recreateRoute';
+import ConditionalGuideAnchor from 'app/components/assistant/guideAnchor';
 
 const TextColorLink = styled(Link)`
   color: ${p => p.theme.gray3};
@@ -50,6 +51,7 @@ const RuleRow = createReactClass({
     projectId: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
     onDelete: PropTypes.func.isRequired,
+    firstRule: PropTypes.bool,
   },
 
   mixins: [ApiMixin],
@@ -127,17 +129,23 @@ const RuleRow = createReactClass({
                   <h6>
                     When <strong>{data.actionMatch}</strong> of these conditions are met:
                   </h6>
-                  <table className="conditions-list table">
-                    <tbody>
-                      {data.conditions.map((condition, i) => {
-                        return (
-                          <tr key={i}>
-                            <td>{condition.name}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                  <ConditionalGuideAnchor
+                    condition={this.props.firstRule}
+                    target="alert_conditions"
+                    type="text"
+                  >
+                    <table className="conditions-list table">
+                      <tbody>
+                        {data.conditions.map((condition, i) => {
+                          return (
+                            <tr key={i}>
+                              <td>{condition.name}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </ConditionalGuideAnchor>
                 </Condition>
               )}
             </RuleDescriptionColumn>
@@ -151,17 +159,23 @@ const RuleRow = createReactClass({
                     </strong>{' '}
                     for an issue:
                   </h6>
-                  <table className="actions-list table">
-                    <tbody>
-                      {data.actions.map((action, i) => {
-                        return (
-                          <tr key={i}>
-                            <td>{action.name}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                  <ConditionalGuideAnchor
+                    condition={this.props.firstRule}
+                    target="alert_actions"
+                    type="text"
+                  >
+                    <table className="actions-list table">
+                      <tbody>
+                        {data.actions.map((action, i) => {
+                          return (
+                            <tr key={i}>
+                              <td>{action.name}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </ConditionalGuideAnchor>
                 </Condition>
               )}
             </RuleDescriptionColumn>
@@ -212,6 +226,7 @@ class ProjectAlertRules extends AsyncView {
               params={this.props.params}
               routes={this.props.routes}
               onDelete={this.handleDeleteRule.bind(this, rule)}
+              firstRule={this.state.ruleList.indexOf(rule) === 0}
             />
           );
         })}
