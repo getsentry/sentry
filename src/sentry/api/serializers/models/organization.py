@@ -125,6 +125,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             feature_list.append('code-owners')
         if features.has('organizations:unreleased-changes', obj, actor=user):
             feature_list.append('unreleased-changes')
+        if features.has('organizations:dashboard', obj, actor=user):
+            feature_list.append('dashboard')
 
         if getattr(obj.flags, 'allow_joinleave'):
             feature_list.append('open-membership')

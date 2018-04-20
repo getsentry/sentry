@@ -12,5 +12,6 @@ class ServiceHookSerializer(Serializer):
             'url': obj.url,
             'secret': obj.secret,
             'status': obj.get_status_display(),
+            'events': sorted(obj.events),
             'dateCreated': obj.date_added,
         }

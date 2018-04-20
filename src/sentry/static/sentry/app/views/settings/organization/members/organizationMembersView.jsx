@@ -8,6 +8,7 @@ import {addErrorMessage, addSuccessMessage} from '../../../../actionCreators/ind
 import {t, tct} from '../../../../locale';
 import AsyncView from '../../../asyncView';
 import Button from '../../../../components/buttons/button';
+import EmptyMessage from '../../components/emptyMessage';
 import ConfigStore from '../../../../stores/configStore';
 import GuideAnchor from '../../../../components/assistant/guideAnchor';
 import Input from '../../components/forms/controls/input';
@@ -210,13 +211,13 @@ class OrganizationMembersView extends AsyncView {
 
   handleChange = evt => {
     let searchQuery = evt.target.value;
-    this.setState({searchQuery}, this.getMembers);
+    this.getMembers(searchQuery);
+    this.setState({searchQuery});
   };
 
-  getMembers = debounce(() => {
+  getMembers = debounce(searchQuery => {
     let {params} = this.props;
     let {orgId} = params || {};
-    let {searchQuery} = this.state;
 
     this.api.request(`/organizations/${orgId}/members/?query=${searchQuery}`, {
       method: 'GET',
@@ -312,6 +313,9 @@ class OrganizationMembersView extends AsyncView {
                 />
               );
             })}
+            {members.length === 0 && (
+              <EmptyMessage>{t('No members found.')}</EmptyMessage>
+            )}
           </PanelBody>
         </Panel>
 

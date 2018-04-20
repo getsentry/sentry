@@ -111,13 +111,6 @@ const EventEntries = createReactClass({
     let hasContext =
       !utils.objectIsEmpty(event.user) || !utils.objectIsEmpty(event.contexts);
 
-    let hasContextSummary =
-      hasContext &&
-      (event.platform === 'cocoa' ||
-        event.platform === 'native' ||
-        event.platform === 'javascript' ||
-        event.platform === 'java');
-
     return (
       <div className="entries">
         {!utils.objectIsEmpty(event.errors) && (
@@ -150,7 +143,7 @@ const EventEntries = createReactClass({
               )}
             </div>
           )}
-        {hasContextSummary && <EventContextSummary group={group} event={event} />}
+        {hasContext && <EventContextSummary group={group} event={event} />}
         <EventTags group={group} event={event} orgId={orgId} projectId={project.slug} />
         {entries}
         {hasContext && <EventContexts group={group} event={event} />}

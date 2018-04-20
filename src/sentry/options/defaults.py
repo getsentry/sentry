@@ -16,7 +16,7 @@ from sentry.options import (
     FLAG_ALLOW_EMPTY,
     register,
 )
-from sentry.utils.types import Dict, String, Sequence
+from sentry.utils.types import Bool, Dict, String, Sequence
 
 # Cache
 # register('cache.backend', flags=FLAG_NOSTORE)
@@ -94,7 +94,7 @@ register('api.rate-limit.org-create', default=5, flags=FLAG_ALLOW_EMPTY | FLAG_P
 
 # Beacon
 
-register('beacon.anonymous', default=True, flags=FLAG_REQUIRED)
+register('beacon.anonymous', type=Bool, flags=FLAG_REQUIRED)
 
 # Filestore
 register('filestore.backend', default='filesystem', flags=FLAG_NOSTORE)

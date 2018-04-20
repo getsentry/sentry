@@ -242,13 +242,19 @@ const ProjectContext = createReactClass({
   },
 
   renderBody() {
-    if (this.state.loading) return <LoadingIndicator />;
-    else if (this.state.error) {
+    if (this.state.loading) {
+      return (
+        <div className="loading-full-layout">
+          <LoadingIndicator />
+        </div>
+      );
+    } else if (this.state.error) {
       switch (this.state.errorType) {
         case ERROR_TYPES.PROJECT_NOT_FOUND:
+          // TODO(chrissy): use scale for margin values
           return (
             <div className="container">
-              <div className="alert alert-block">
+              <div className="alert alert-block" style={{margin: '30px 0 10px'}}>
                 {t('The project you were looking for was not found.')}
               </div>
             </div>

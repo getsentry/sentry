@@ -102,8 +102,10 @@ const definitions = [
     key: 'beacon.anonymous',
     label: 'Usage Statistics',
     component: RadioBooleanField,
-    yesLabel: 'Send my contact information along with usage statistics',
-    noLabel: 'Please keep my usage information anonymous',
+    // yes and no are inverted here due to the nature of this configuration
+    noLabel: 'Send my contact information along with usage statistics',
+    yesLabel: 'Please keep my usage information anonymous',
+    yesFirst: false,
     help: tct(
       'If enabled, any stats reported to sentry.io will exclude identifying information (such as your administrative email address). By anonymizing your installation the Sentry team will be unable to contact you about security updates. For more information on what data is sent to Sentry, see the [link:documentation].',
       {

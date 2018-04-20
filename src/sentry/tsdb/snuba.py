@@ -17,35 +17,34 @@ class SnubaTSDB(BaseTSDB):
     will return empty results for unsupported models.
     """
 
+    # The ``model_columns`` are translations of TSDB models into the required
+    # columns for querying snuba. Keys are ``TSDBModel`` enumeration values,
+    # values are in the form ``(groupby_column, aggregateby_column or None)``.
+    # Only the models that are listed in this mapping are supported.
+    model_columns = {
+        TSDBModel.project: ('project_id', None),
+        TSDBModel.group: ('issue', None),
+        TSDBModel.release: ('release', None),
+        TSDBModel.users_affected_by_group: ('issue', 'user_id'),
+        TSDBModel.users_affected_by_project: ('project_id', 'user_id'),
+        TSDBModel.users_affected_by_project: ('project_id', 'user_id'),
+        TSDBModel.frequent_environments_by_group: ('issue', 'environment'),
+        TSDBModel.frequent_releases_by_group: ('issue', 'release'),
+        TSDBModel.frequent_issues_by_project: ('project_id', 'issue'),
+    }
+
     def __init__(self, **options):
         super(SnubaTSDB, self).__init__(**options)
 
-    def model_columns(self, model):
-        """
-        Translates TSDB models into the required columns for querying snuba.
-        Returns a tuple of (groupby_column, aggregateby_column)
-        """
-        return {
-            TSDBModel.project: ('project_id', None),
-            TSDBModel.group: ('issue', None),
-            TSDBModel.release: ('release', None),
-            TSDBModel.users_affected_by_group: ('issue', 'user_id'),
-            TSDBModel.users_affected_by_project: ('project_id', 'user_id'),
-            TSDBModel.users_affected_by_project: ('project_id', 'user_id'),
-            TSDBModel.frequent_environments_by_group: ('issue', 'environment'),
-            TSDBModel.frequent_releases_by_group: ('issue', 'release'),
-            TSDBModel.frequent_issues_by_project: ('project_id', 'issue'),
-        }.get(model, None)
-
     def get_data(self, model, keys, start, end, rollup=None, environment_id=None,
-                 aggregation='count', group_on_model=True, group_on_time=False):
+                 aggregation='count()', group_on_model=True, group_on_time=False):
         """
         Normalizes all the TSDB parameters and sends a query to snuba.
 
         `group_on_time`: whether to add a GROUP BY clause on the 'time' field.
         `group_on_model`: whether to add a GROUP BY clause on the primary model.
         """
-        model_columns = self.model_columns(model)
+        model_columns = self.model_columns.get(model)
 
         if model_columns is None:
             raise Exception("Unsupported TSDBModel: {}".format(model.name))
@@ -57,7 +56,7 @@ class SnubaTSDB(BaseTSDB):
             groupby.append(model_group)
         if group_on_time:
             groupby.append('time')
-        if aggregation == 'count' and model_aggregate is not None:
+        if aggregation == 'count()' and model_aggregate is not None:
             # Special case, because count has different semantics, we change:
             # `COUNT(model_aggregate)` to `COUNT() GROUP BY model_aggregate`
             groupby.append(model_aggregate)
@@ -74,7 +73,7 @@ class SnubaTSDB(BaseTSDB):
 
     def get_range(self, model, keys, start, end, rollup=None, environment_id=None):
         result = self.get_data(model, keys, start, end, rollup, environment_id,
-                               aggregation='count', group_on_time=True)
+                               aggregation='count()', group_on_time=True)
         # convert
         #    {group:{timestamp:count, ...}}
         # into
@@ -136,7 +135,7 @@ class SnubaTSDB(BaseTSDB):
     def get_frequency_series(self, model, items, start, end=None,
                              rollup=None, environment_id=None):
         result = self.get_data(model, items, start, end, rollup, environment_id,
-                               aggregation='count', group_on_time=True)
+                               aggregation='count()', group_on_time=True)
         # convert
         #    {group:{timestamp:{agg:count}}}
         # into
@@ -145,7 +144,7 @@ class SnubaTSDB(BaseTSDB):
 
     def get_frequency_totals(self, model, items, start, end=None, rollup=None, environment_id=None):
         return self.get_data(model, items, start, end, rollup, environment_id,
-                             aggregation='count')
+                             aggregation='count()')
 
     def get_optimal_rollup(self, start):
         """

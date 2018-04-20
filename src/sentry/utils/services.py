@@ -4,8 +4,9 @@ import functools
 import inspect
 import itertools
 import logging
-import operator
+import threading
 
+import six
 from django.utils.functional import empty, LazyObject
 
 from sentry.utils import warnings
@@ -85,6 +86,15 @@ class LazyServiceWrapper(LazyObject):
                 context[key] = getattr(base, key)
 
 
+def resolve_callable(value):
+    if callable(value):
+        return value
+    elif isinstance(value, six.string_types):
+        return import_string(value)
+    else:
+        raise TypeError('Expected callable or string')
+
+
 class ServiceDelegator(Service):
     """\
     This is backend that coordinates and delegates method execution to multiple
@@ -139,8 +149,11 @@ class ServiceDelegator(Service):
     undergoing testing may be included based on the result of a random number
     generator (essentially calling it in the background for a sample of calls.)
 
-    The selector function and callback function are both provided as paths to a
-    callable that will be imported at backend instantation.
+    The selector function and callback function can be provided as either:
+
+    - A dotted import path string (``path.to.callable``) that will be
+      imported at backend instantiation, or
+    - A reference to a callable object.
 
     Implementation notes:
 
@@ -177,6 +190,12 @@ class ServiceDelegator(Service):
         function.
         """
 
+    class ServiceState(threading.local):
+        def __init__(self):
+            self.backends = {}
+
+    state = ServiceState()
+
     def __init__(self, backend_base, backends, selector_func, callback_func=None):
         self.__backend_base = import_string(backend_base)
 
@@ -195,10 +214,10 @@ class ServiceDelegator(Service):
                 load_executor(options.get('executor', {})),
             )
 
-        self.__selector_func = import_string(selector_func)
+        self.__selector_func = resolve_callable(selector_func)
 
         if callback_func is not None:
-            self.__callback_func = import_string(callback_func)
+            self.__callback_func = resolve_callable(callback_func)
         else:
             self.__callback_func = None
 
@@ -228,6 +247,12 @@ class ServiceDelegator(Service):
             return base_value
 
         def execute(*args, **kwargs):
+            # If this thread already has an active backend for this base class,
+            # we can safely call that backend synchronously without delegating.
+            if self in self.state.backends:
+                backend = type(self).state.backends[self.__backend_base]
+                return getattr(backend, attribute_name)(*args, **kwargs)
+
             # Binding the call arguments to named arguments has two benefits:
             # 1. These values always be passed in the same form to the selector
             #    function and callback, regardless of how they were passed to
@@ -250,7 +275,23 @@ class ServiceDelegator(Service):
                     '{!r} is not a registered backend.'.format(
                         selected_backend_names[0]))
 
-            call_backend_method = operator.methodcaller(attribute_name, *args, **kwargs)
+            def call_backend_method(backend):
+                base = self.__backend_base
+                active_backends = type(self).state.backends
+
+                # Ensure that we haven't somehow accidentally entered a context
+                # where the backend we're calling has already been marked as
+                # active (or worse, some other backend is already active.)
+                assert base not in active_backends
+
+                # Mark the backend as active.
+                active_backends[base] = backend
+                try:
+                    return getattr(backend, attribute_name)(*args, **kwargs)
+                finally:
+                    # Unmark the backend as active.
+                    assert active_backends[base] is backend
+                    del active_backends[base]
 
             # Enqueue all of the secondary backend requests first since these
             # are non-blocking queue insertions. (Since the primary backend

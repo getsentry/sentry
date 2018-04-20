@@ -4,12 +4,12 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import Alert from '../../components/alert';
-import Footer from '../../components/footer';
-import SettingsBackButton from './components/settingsBackButton';
-import SettingsBreadcrumb from './components/settingsBreadcrumb';
-import SettingsHeader from './components/settingsHeader';
-import SettingsSearch from './components/settingsSearch';
+import Alert from '../../../components/alert';
+import Footer from '../../../components/footer';
+import SettingsBackButton from './settingsBackButton';
+import SettingsBreadcrumb from './settingsBreadcrumb';
+import SettingsHeader from './settingsHeader';
+import SettingsSearch from './settingsSearch';
 
 let StyledAlert = styled(Alert)`
   margin: 30px 0;
@@ -70,7 +70,7 @@ const Container = styled(Flex)`
 `;
 
 const SidebarWrapper = styled(Box)`
-  flex: 0 0 ${p => p.theme.settings.sidebarWidth};
+  width: ${p => p.theme.settings.sidebarWidth};
 `;
 
 const Content = styled(Box)`
@@ -122,7 +122,7 @@ class SettingsLayout extends React.Component {
             </Flex>
           </Container>
         </SettingsHeader>
-        <Container>
+        <Container flex="1">
           {typeof renderNavigation === 'function' && (
             <SidebarWrapper>{renderNavigation()}</SidebarWrapper>
           )}

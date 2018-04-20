@@ -1,7 +1,6 @@
 import {Box, Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
 
 import {t, tct} from '../../../../locale';
 import Button from '../../../../components/buttons/button';
@@ -11,15 +10,8 @@ import Link from '../../../../components/link';
 import LinkWithConfirmation from '../../../../components/linkWithConfirmation';
 import {Panel, PanelBody, PanelHeader, PanelItem} from '../../../../components/panels';
 import SettingsPageHeader from '../../components/settingsPageHeader';
+import TextBlock from '../../components/text/textBlock';
 import recreateRoute from '../../../../utils/recreateRoute';
-
-const PlusIcon = styled.span`
-  margin-right: 4px;
-`;
-
-const TextBlock = styled.p`
-  line-height: 1.8;
-`;
 
 class OrganizationApiKeysList extends React.Component {
   static propTypes = {
@@ -35,8 +27,15 @@ class OrganizationApiKeysList extends React.Component {
     let hasKeys = keys && keys.length;
 
     let action = (
-      <Button priority="link" busy={busy} disabled={busy} onClick={onAddApiKey}>
-        <PlusIcon className="icon-plus" /> {t('New API Key')}
+      <Button
+        priority="primary"
+        size="small"
+        icon="icon-circle-add"
+        busy={busy}
+        disabled={busy}
+        onClick={onAddApiKey}
+      >
+        {t('New API Key')}
       </Button>
     );
     return (
@@ -64,21 +63,19 @@ class OrganizationApiKeysList extends React.Component {
         </div>
 
         <Panel>
-          <PanelHeader disablePadding={true}>
-            <Flex align="center">
-              <Flex align="center" flex="1">
-                <Box px={2} flex="1">
-                  {t('Name')}
-                </Box>
-                <Box px={2} flex="2">
-                  {t('Key')}
-                </Box>
-              </Flex>
-
-              <Box px={2} w={100}>
-                {t('Actions')}
+          <PanelHeader disablePadding={true} align="center">
+            <Flex align="center" flex="1">
+              <Box px={2} flex="1">
+                {t('Name')}
+              </Box>
+              <Box px={2} flex="2">
+                {t('Key')}
               </Box>
             </Flex>
+
+            <Box px={2} w={100}>
+              {t('Actions')}
+            </Box>
           </PanelHeader>
 
           <PanelBody>

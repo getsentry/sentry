@@ -235,20 +235,21 @@ class OrganizationMember(Model):
 
     def get_audit_log_data(self):
         from sentry.models import Team
+        teams = list(Team.objects.filter(
+            id__in=OrganizationMemberTeam.objects.filter(
+                organizationmember=self,
+                is_active=True,
+            ).values_list('team', flat=True)
+        ).values('id', 'slug')
+        )
+
         return {
             'email':
             self.email,
             'user':
             self.user_id,
-            'teams':
-            list(
-                Team.objects.filter(
-                    id__in=OrganizationMemberTeam.objects.filter(
-                        organizationmember=self,
-                        is_active=True,
-                    ).values_list('team', flat=True)
-                ).values_list('id', flat=True)
-            ),
+            'teams': [t['id'] for t in teams],
+            'teams_slugs': [t['slug'] for t in teams],
             'has_global_access':
             self.has_global_access,
             'role':

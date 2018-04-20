@@ -1,0 +1,68 @@
+{
+  "extra": {"session:duration": 146842},
+  "exception": {
+    "values": [
+      {
+        "value": "Sentry Initialized",
+        "thread_id": 99,
+        "stacktrace": {
+          "frames": [
+            {
+              "colno": 39434,
+              "filename": "app:///sentry-cordova.bundle.min.js",
+              "function": "o",
+              "lineno": 2,
+              "platform": "javascript"
+            },
+            {
+              "colno": 46,
+              "filename": "app:///index.js",
+              "function": "?",
+              "lineno": 34,
+              "platform": "javascript"
+            }
+          ]
+        },
+        "type": "Error"
+      }
+    ]
+  },
+  "sdk": {
+    "name": "sentry-cordova",
+    "version": "0.9.1",
+    "integrations": ["sentry-cocoa"]
+  },
+  "contexts": {
+    "os": {
+      "build": "17E199",
+      "rooted": false,
+      "kernel_version":
+        "Darwin Kernel Version 17.5.0: Mon Mar  5 22:24:32 PST 2018; root:xnu-4570.51.1~1/RELEASE_X86_64",
+      "name": "iOS",
+      "version": "11.3"
+    },
+    "app": {
+      "app_id": "8209DD49-99B4-3BF8-8E43-64ECE3C8F95F",
+      "app_version": "1.0.0",
+      "app_identifier": "com.example.hello",
+      "app_start_time": "2018-04-18T07:40:15Z",
+      "device_app_hash": "f31afa9c2ad708a7d3b834a3ea9ac0966e3d1d7c",
+      "app_build": "1.0.0",
+      "build_type": "simulator",
+      "app_name": "HelloWorld"
+    },
+    "device": {
+      "simulator": true,
+      "model_id": "simulator",
+      "arch": "x86",
+      "free_memory": 284983296,
+      "family": "iOS",
+      "model": "iPhone10,5",
+      "memory_size": 17179869184,
+      "storage_size": 250030215168,
+      "boot_time": "2018-04-16T11:20:10Z",
+      "timezone": "GMT+2",
+      "usable_memory": 14541455360
+    }
+  }
+}
