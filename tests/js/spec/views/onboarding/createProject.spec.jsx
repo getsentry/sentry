@@ -3,6 +3,10 @@ import React from 'react';
 import {shallow, mount} from 'enzyme';
 
 import CreateProject from 'app/views/onboarding/createProject';
+import {openCreateTeamModal} from 'app/actionCreators/modal';
+import {mountWithTheme} from '../../../../helpers';
+
+jest.mock('app/actionCreators/modal');
 
 describe('CreateProject', function() {
   const baseProps = {
@@ -34,6 +38,30 @@ describe('CreateProject', function() {
     });
 
     expect(wrapper).toMatchSnapshot();
+  });
+
+  it('can create a new team if no access to teams', function() {
+    let props = {
+      ...baseProps,
+    };
+
+    let wrapper = mountWithTheme(<CreateProject {...props} />, {
+      context: {
+        organization: {
+          id: '1',
+          slug: 'testOrg',
+          teams: [{slug: 'test', id: '1', name: 'test', hasAccess: false}],
+        },
+        location: {query: {}},
+      },
+      childContextTypes: {
+        organization: PropTypes.object,
+        location: PropTypes.object,
+      },
+    });
+
+    wrapper.find('CreateTeamBody Button').simulate('click');
+    expect(openCreateTeamModal).toHaveBeenCalled();
   });
 
   it('should fill in project name if its empty when platform is chosen', function() {
