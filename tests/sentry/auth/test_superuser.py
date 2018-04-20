@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import six
 
 from datetime import timedelta
+from django.contrib.auth.models import AnonymousUser
 from django.core import signing
 from django.utils import timezone
 from mock import Mock
@@ -108,6 +109,10 @@ class SuperuserTestCase(TestCase):
         superuser = Superuser(request, allowed_ips=(), current_datetime=self.current_datetime)
         superuser.set_logged_in(user, current_datetime=self.current_datetime)
 
+        # request.user wasn't set
+        assert not superuser.is_active
+
+        request.user = user
         assert superuser.is_active
 
         data = request.session.get(SESSION_KEY)
@@ -148,3 +153,20 @@ class SuperuserTestCase(TestCase):
             path=COOKIE_PATH,
             domain=COOKIE_DOMAIN,
         )
+
+    def test_changed_user(self):
+        request = self.build_request()
+        superuser = Superuser(request, allowed_ips=())
+        assert superuser.is_active
+
+        # anonymous
+        request.user = AnonymousUser()
+        assert not superuser.is_active
+
+        # a non-superuser
+        request.user = self.create_user('baz@example.com')
+        assert not superuser.is_active
+
+        # a superuser
+        request.user.update(is_superuser=True)
+        assert not superuser.is_active

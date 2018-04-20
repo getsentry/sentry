@@ -66,6 +66,19 @@ class Superuser(object):
             )
         self._populate(current_datetime=current_datetime)
 
+    @property
+    def is_active(self):
+        # if we've been logged out
+        if not self.request.user.is_authenticated():
+            return False
+        # if superuser status was changed
+        if not self.request.user.is_superuser:
+            return False
+        # if the user has changed
+        if six.text_type(self.request.user.id) != self.uid:
+            return False
+        return self._is_active
+
     def is_privileged_request(self):
         allowed_ips = self.allowed_ips
         # if there's no IPs configured, we allow assume its the same as *
@@ -215,7 +228,7 @@ class Superuser(object):
         # do we have a valid superuser session?
         self.is_valid = True
         # is the session active? (it could be valid, but inactive)
-        self.is_active = self.is_privileged_request()
+        self._is_active = self.is_privileged_request()
         self.request.session[SESSION_KEY] = {
             'exp': self.expires.strftime('%s'),
             'idl': (current_datetime + IDLE_MAX_AGE).strftime('%s'),
@@ -228,7 +241,7 @@ class Superuser(object):
         self.uid = None
         self.expires = None
         self.token = None
-        self.is_active = False
+        self._is_active = False
         self.is_valid = False
         self.request.session.pop(SESSION_KEY, None)
 
