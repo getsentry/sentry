@@ -143,7 +143,7 @@ const App = createReactClass({
     if (Object.keys(newState).length > 0) this.setState(newState);
   },
 
-  @keydown('cmd+shift+p')
+  @keydown('meta+shift+p', 'meta+k')
   openCommandPalette(e) {
     openCommandPalette();
     e.preventDefault();
@@ -185,13 +185,13 @@ const App = createReactClass({
 
     return (
       <ThemeProvider theme={theme}>
-        <React.Fragment>
+        <div className="main-container" tabIndex="-1">
           <GlobalModal />
           <Alerts className="messages-container" />
           <Indicators className="indicators-container" />
           <ErrorBoundary>{this.renderBody()}</ErrorBoundary>
           {ConfigStore.get('features').has('assistant') && <AssistantHelper />}
-        </React.Fragment>
+        </div>
       </ThemeProvider>
     );
   },
