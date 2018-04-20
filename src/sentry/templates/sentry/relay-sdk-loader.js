@@ -1,44 +1,23 @@
+{% load sentry_helpers %}
 (function(_window, _document) {
-  let namespace = _window.SentryObject;
-  let sentry = _window[namespace] || {};
-  let queue = sentry.q || [];
+  var namespace = _window.SentryObject;
+  var sentry = _window[namespace] || {};
+  var queue = sentry.q || [];
 
   function drainQueue() {
-    let SDK = _window.Sentry;
+    var SDK = _window.Sentry;
 
     console.log('Draining queue...');
 
-    for (let i = 0; i < queue.length; i++) {
+    for (var i = 0; i < queue.length; i++) {
       console.log('Queued event captured');
       SDK.captureException(queue[i]);
     }
   }
 
-  function getConfig(callback) {
-    let req = new XMLHttpRequest();
-
-    req.addEventListener('load', function() {
-      if (req.readyState === 4) {
-        if (req.status === 200) {
-          try {
-            let config = JSON.parse(req.response);
-            callback(config);
-          } catch (e) {
-            console.error(e);
-          }
-        } else {
-          console.error(xhr.response);
-        }
-      }
-    });
-
-    req.open('GET', '{{ url|safe }}');
-    req.send();
-  }
-
   function attachSDK(url) {
-    let head = _document.getElementsByTagName('head')[0];
-    let script = _document.createElement('script');
+    var head = _document.getElementsByTagName('head')[0];
+    var script = _document.createElement('script');
     script.type = 'text/javascript';
     script.src = url;
     head.appendChild(script);
@@ -47,11 +26,7 @@
 
   function configSDK(config) {
     try {
-      let SDK = _window.Sentry;
-
-      // SDK.debug = config.debug;
-      // delete config.debug;
-
+      var SDK = _window.Sentry;
       SDK.init(config);
       console.log('@sentry/browser configured');
     } catch (o_O) {
@@ -61,16 +36,14 @@
     }
   }
 
-  getConfig(function(config) {
-    let script = attachSDK('https://pastebin.com/raw/ncDxxR1U');
-    console.log('Fetching @sentry/browser...');
-    script.addEventListener('load', function() {
-      console.log('@sentry/browser fetched');
-      configSDK(config);
-      if (queue.length) {
-        console.log(queue.length + ' exceptions captured and queued');
-        drainQueue();
-      }
-    });
+  var script = attachSDK('https://pastebin.com/raw/ncDxxR1U');
+  console.log('Fetching @sentry/browser...');
+  script.addEventListener('load', function() {
+    console.log('@sentry/browser fetched');
+    configSDK({{ config|to_json|safe }});
+    if (queue.length) {
+      console.log(queue.length + ' exceptions captured and queued');
+      drainQueue();
+    }
   });
 })(window, document);

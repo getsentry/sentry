@@ -12,7 +12,6 @@
   _script,
   _onerror,
   _onunhandledrejection,
-  _url,
   _namespace,
   _newScriptTag,
   _currentScriptTag,
@@ -56,8 +55,25 @@
   // it was probably(?) a legacy behavior that they left to not modify few years old snippet
   _newScriptTag = _document.createElement(_script);
   _currentScriptTag = _document.getElementsByTagName(_script)[0];
-  _newScriptTag.src = _url;
+
   _currentScriptTag.parentNode.insertBefore(_newScriptTag, _currentScriptTag);
+  let sentryScript = document.querySelector('script[data-public-key]');
+  if (!sentryScript) {
+    console.error('No script found with data-public-key attribute');
+    return;
+  }
+  let a = document.createElement('a');
+  a.href = sentryScript.getAttribute('src');
+  let publicKey = sentryScript.getAttribute('data-public-key');
+
+  _newScriptTag.src =
+    a.protocol +
+    '//' +
+    a.host +
+    (a.port ? ':' + a.port : '') +
+    '/cdn/' +
+    publicKey +
+    '/sdk-loader.js';
 })(
   // predefined references, that should never be changed
   window,
@@ -65,9 +81,6 @@
   'script',
   'onerror',
   'onunhandledrejection',
-
-  // URL to the loader script that will fetch and configure SDK
-  '{{ url|safe }}',
   // namespace that will be used to store the exceptions captured before SDK has been loaded
   'sentry'
 );

@@ -161,7 +161,6 @@ from .endpoints.user_social_identity_details import UserSocialIdentityDetailsEnd
 from .endpoints.user_subscriptions import UserSubscriptionsEndpoint
 from .endpoints.event_file_committers import EventFileCommittersEndpoint
 from .endpoints.setup_wizard import SetupWizard
-from .endpoints.relay_config import RelayConfig
 
 
 urlpatterns = patterns(
@@ -964,14 +963,6 @@ urlpatterns = patterns(
         r'^wizard/(?P<wizard_hash>[^\/]+)/$',
         SetupWizard.as_view(),
         name='sentry-api-0-project-wizard'
-    ),
-
-    # Relay
-
-    url(
-        r'^cdn/(?P<public_key>[^/]+)/config\.json$',
-        RelayConfig.as_view(),
-        name='sentry-relay-cdn-config'
     ),
 
     # Catch all

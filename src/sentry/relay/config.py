@@ -24,5 +24,4 @@ class Config(object):
 
     def get_cdn_url(self):
         """Return the url to the js cdn file for a specific project key"""
-        return absolute_uri(reverse('sentry-relay-cdn-loader',
-                                    args=[self.project_key.public_key]))
+        return absolute_uri(reverse('sentry-relay-cdn-loader'))

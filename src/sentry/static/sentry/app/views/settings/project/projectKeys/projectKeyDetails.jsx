@@ -403,7 +403,8 @@ const KeySettings = createReactClass({
               flexibleControlStateSize
             >
               <TextCopyInput>
-                {"<script src='" + data.relay.url + "'></script>"}
+                {`<script data-public-key='${data.public}' src='${data.relay
+                  .url}'></script>`}
               </TextCopyInput>
             </Field>
           </PanelBody>

@@ -143,7 +143,7 @@ urlpatterns += patterns(
     ),
 
     url(
-        r'^cdn/(?P<public_key>[^/]+)/loader\.js$',
+        r'^cdn/loader\.js$',
         RelayJavaScriptLoader.as_view(),
         name='sentry-relay-cdn-loader'
     ),
