@@ -76,10 +76,22 @@ class DummyNewsletter(Newsletter):
         }
 
     def update_subscription(self, user, list_id=None, create=False, **kwargs):
-        if list_id:
-            if create:
-                self._subscriptions[user].setdefault(list_id, NewsletterSubscription(user, list_id, subscribed=True))
-            self._subscriptions[user][list_id].update(**kwargs)
+        if not list_id:
+            list_id = self.get_default_list_id()
+
+        if create:
+            self._subscriptions[user].setdefault(list_id, NewsletterSubscription(user, list_id, subscribed=True))
+        self._subscriptions[user][list_id].update(**kwargs)
+
+        return self._subscriptions[user]
+
+    def update_subscriptions(self, user, list_ids=None, create=False, **kwargs):
+        if not list_ids:
+            list_ids = self.get_default_list_ids()
+
+        for list_id in list_ids:
+            self.update_subscription(user, list_id, create, **kwargs)
+
         return self._subscriptions[user]
 
     def optout_email(self, email, **kwargs):
