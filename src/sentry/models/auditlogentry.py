@@ -276,6 +276,8 @@ class AuditLogEntry(Model):
             return 'removed rule "%s"' % (self.data['label'], )
 
         elif self.event == AuditLogEntryEvent.SET_ONDEMAND:
+            if self.data['ondemand'] == -1:
+                return 'changed on-demand spend to unlimited'
             return 'changed on-demand max spend to $%d' % (self.data['ondemand'] / 100, )
         elif self.event == AuditLogEntryEvent.TRIAL_STARTED:
             return 'started trial'
