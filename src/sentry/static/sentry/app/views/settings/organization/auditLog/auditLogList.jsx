@@ -53,8 +53,8 @@ class AuditLogList extends React.Component {
     let hasEntries = entries && entries.length > 0;
 
     let options = [
-      {value: '', label: t('Any action')},
-      ...eventTypes.map(type => ({label: type, value: type})),
+      {value: '', label: t('Any action'), clearableVaue: false},
+      ...eventTypes.map(type => ({label: type, value: type, clearableValue: false})),
     ];
 
     let action = (
@@ -65,6 +65,7 @@ class AuditLogList extends React.Component {
           value={eventType}
           style={{width: 250}}
           options={options}
+          clearable={false}
         />
       </form>
     );
