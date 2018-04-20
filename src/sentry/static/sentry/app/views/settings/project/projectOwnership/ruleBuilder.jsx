@@ -207,8 +207,7 @@ const BuilderBar = styled.div`
 `;
 
 const BuilderSelect = styled(SelectField)`
-  padding: 0.5em;
-  margin-right: 5px;
+  margin-right: 10px;
   width: 80px;
   flex-shrink: 0;
 `;

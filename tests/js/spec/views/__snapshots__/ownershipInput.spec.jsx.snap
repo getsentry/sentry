@@ -89,7 +89,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
   >
     <BuilderBar>
       <div
-        className="css-1rsoebt-BuilderBar css-1b19asb5"
+        className="css-1rsoebt-BuilderBar css-spr3415"
       >
         <BuilderSelect
           clearable={false}
@@ -116,7 +116,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
           value="path"
         >
           <SelectField
-            className="css-1eslqkc-BuilderSelect css-1b19asb6"
+            className="css-1bclqmz-BuilderSelect css-spr3416"
             clearable={false}
             disabled={false}
             hideErrorMessage={false}
@@ -144,7 +144,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
             value="path"
           >
             <div
-              className="css-1eslqkc-BuilderSelect css-1b19asb6"
+              className="css-1bclqmz-BuilderSelect css-spr3416"
               style={
                 Object {
                   "width": 140,
@@ -359,7 +359,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
           value=""
         >
           <input
-            className="css-1t4syiu-Input-BuilderInput css-1b19asb7"
+            className="css-1t4syiu-Input-BuilderInput css-spr3417"
             onChange={[Function]}
             placeholder="src/example/*"
             value=""
@@ -369,17 +369,17 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
           src="icon-chevron-right"
         >
           <InlineSvg
-            className="css-a4tn6s-Divider css-1b19asb8"
+            className="css-a4tn6s-Divider css-spr3418"
             src="icon-chevron-right"
           >
             <StyledSvg
-              className="css-a4tn6s-Divider css-1b19asb8"
+              className="css-a4tn6s-Divider css-spr3418"
               height="1em"
               viewBox={Object {}}
               width="1em"
             >
               <svg
-                className="css-1b19asb8 css-5e2rei-StyledSvg css-adkcw30"
+                className="css-spr3418 css-5e2rei-StyledSvg css-adkcw30"
                 height="1em"
                 viewBox={Object {}}
                 width="1em"
@@ -623,7 +623,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
           size="zero"
         >
           <Button
-            className="css-3daogo-RuleAddButton css-1b19asb9"
+            className="css-3daogo-RuleAddButton css-spr3419"
             disabled={false}
             icon="icon-circle-add"
             onClick={[Function]}
@@ -631,7 +631,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
             size="zero"
           >
             <button
-              className="css-3daogo-RuleAddButton css-1b19asb9 button button-primary button-zero"
+              className="css-3daogo-RuleAddButton css-spr3419 button button-primary button-zero"
               disabled={false}
               onClick={[Function]}
               role="button"
