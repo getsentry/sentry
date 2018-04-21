@@ -134,8 +134,7 @@ const ProjectProcessingIssues = createReactClass({
     this.setState({
       expected: this.state.expected + 1,
     });
-    // Note: inconsistency with missing trailing slash, but matches route in backend
-    this.api.request(`/projects/${orgId}/${projectId}/processingissues/discard`, {
+    this.api.request(`/projects/${orgId}/${projectId}/processingissues/discard/`, {
       method: 'DELETE',
       success: (data, _, jqXHR) => {
         let expected = this.state.expected - 1;
@@ -190,12 +189,12 @@ const ProjectProcessingIssues = createReactClass({
 
   renderDebugTable() {
     let body;
-
     if (this.state.loading) body = this.renderLoading();
     else if (this.state.error) body = <LoadingError onRetry={this.fetchData} />;
     else if (
       this.state.processingIssues.hasIssues ||
-      this.state.processingIssues.resolveableIssues
+      this.state.processingIssues.resolveableIssues ||
+      this.state.processingIssues.issuesProcessing
     )
       body = this.renderResults();
     else body = this.renderEmpty();
@@ -322,6 +321,27 @@ const ProjectProcessingIssues = createReactClass({
         </div>
       );
     }
+    let processingRow = null;
+    if (this.state.processingIssues.issuesProcessing > 0) {
+      processingRow = (
+        <div className="list-group-item alert-info">
+          <div className="row row-flex row-center-vertically">
+            <div className="col-sm-12">
+              <span
+                className="icon icon-processing play"
+                style={{display: 'inline', marginRight: 12}}
+              />
+              {tn(
+                'Reprocessing %d event …',
+                'Reprocessing %d events …',
+                this.state.processingIssues.issuesProcessing
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div>
         {fixLinkBlock}
@@ -346,6 +366,7 @@ const ProjectProcessingIssues = createReactClass({
             </div>
           </div>
           <div className="list-group">
+            {processingRow}
             {this.state.processingIssues.issues.map((item, idx) => {
               return (
                 <div key={idx} className="list-group-item">
