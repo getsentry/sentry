@@ -19,7 +19,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import DetailedProjectSerializer
 from sentry.api.serializers.rest_framework import ListField, OriginField
 from sentry.models import (
-    AuditLogEntryEvent, Group, GroupStatus, Project, ProjectBookmark, ProjectRedirect, ProjectStatus,
+    AuditLogEntryEvent, Group, GroupStatus, Project, ProjectBookmark, ProjectStatus,
     ProjectTeam, UserOption, Team,
 )
 from sentry.tasks.deletion import delete_project
