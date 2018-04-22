@@ -44,8 +44,8 @@ def calculate_priority_cursor(data):
 
 def _datetime_cursor_calculator(field, fn):
     def calculate(data):
-        datetimes = [snuba_str_to_datetime(d) for d in data[field]]
-        return fn(int(to_timestamp(d) * 1000) for d in datetimes)
+        datetime = fn(snuba_str_to_datetime(d) for d in data[field])
+        return int(to_timestamp(datetime) * 1000)
 
     return calculate
 
@@ -154,9 +154,12 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
         # TODO: Presumably we want to search back to the project's full retention,
         #       which may be higher than 90 days in the future, but apparently
         #       `retention_window_start` can be None?
-        start = (parameters.get('date_from')
-                 or retention_window_start
-                 or (now - timedelta(days=90)))
+        start = max(
+            retention_window_start or 0,
+            parameters.get('date_from') or 0,
+            now - timedelta(days=90)
+        )
+        assert start < end
 
         # TODO: It's possible `first_release` could be handled by Snuba.
         if environment is not None:
