@@ -744,6 +744,7 @@ const Stream = createReactClass({
               hasReleases={projectFeatures.has('releases')}
               latestRelease={this.context.project.latestRelease}
               query={this.state.query}
+              queryCount={this.state.queryCount}
               onSelectStatsPeriod={this.onSelectStatsPeriod}
               onRealtimeChange={this.onRealtimeChange}
               realtimeActive={this.state.realtimeActive}
