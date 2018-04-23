@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import six
 
+import logging
 import math
 import pytz
 from collections import defaultdict
@@ -15,6 +16,9 @@ from sentry.models import Release, Group, GroupEnvironment, GroupHash
 from sentry.search.django import backend as ds
 from sentry.utils import snuba
 from sentry.utils.dates import to_timestamp
+
+
+logger = logging.getLogger('sentry.search.snuba')
 
 
 # https://github.com/getsentry/sentry/blob/804c85100d0003cfdda91701911f21ed5f66f67c/src/sentry/event_manager.py#L241-L271
@@ -129,8 +133,6 @@ class ScalarCondition(Condition):
 
         arg = parameters[name]
         if isinstance(arg, datetime):
-            if not arg.tzinfo:
-                arg = arg.replace(tzinfo=pytz.utc)
             arg = int(to_timestamp(arg))
 
         return (
@@ -155,9 +157,11 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
         #       which may be higher than 90 days in the future, but apparently
         #       `retention_window_start` can be None?
         start = max(
-            retention_window_start or 0,
-            parameters.get('date_from') or 0,
-            now - timedelta(days=90)
+            filter(None, [
+                retention_window_start,
+                parameters.get('date_from'),
+                now - timedelta(days=90)
+            ])
         )
         assert start < end
 
@@ -351,5 +355,13 @@ def do_search(project_id, environment_id, tags, start, end,
             dest = group_data[group_id]
             for k, v in obj.items():
                 dest[k].append(v)
+        else:
+            logger.warning(
+                'search.hash_not_found',
+                extra={
+                    'project_id': project_id,
+                    'hash': hash,
+                },
+            )
 
     return group_data

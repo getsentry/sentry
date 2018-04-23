@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import pytz
 import pytest
 from datetime import datetime, timedelta
 from django.conf import settings
@@ -23,7 +24,7 @@ class SnubaSearchTest(SnubaTestCase):
 
         self.environments = {}
 
-        base_datetime = datetime.utcnow() - timedelta(days=7)
+        base_datetime = (datetime.utcnow() - timedelta(days=7)).replace(tzinfo=pytz.utc)
         self.group1 = self.create_group(
             project=self.project,
             checksum='a' * 32,
