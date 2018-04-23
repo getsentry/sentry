@@ -300,9 +300,11 @@ def run_formatter(cmd, file_list, prompt_on_changes=True):
                 if fp.readline().strip().lower() != 'y':
                     echo(
                         '[sentry.lint] Aborted! Changes have been applied but not staged.', err=True)
-                    sys.exit(1)
-        status = subprocess.Popen(
-            ['git', 'update-index', '--add'] + file_list).wait()
+                    if not os.environ.get('SENTRY_SKIP_FORCE_PATCH'):
+                        sys.exit(1)
+                else:
+                    status = subprocess.Popen(
+                        ['git', 'update-index', '--add'] + file_list).wait()
         has_errors = status != 0
     return has_errors
 
