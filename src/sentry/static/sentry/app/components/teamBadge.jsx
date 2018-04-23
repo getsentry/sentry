@@ -30,7 +30,7 @@ class TeamBadge extends React.Component {
     return (
       <Flex align="center" className={className}>
         {!hideAvatar && <StyledAvatar team={team} size={avatarSize} />}
-        #{team.slug}
+        <span>#{team.slug}</span>
       </Flex>
     );
   }

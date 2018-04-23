@@ -12,7 +12,8 @@ describe('TeamBadge', function() {
       <TeamBadge team={TestStubs.Team()} />,
       TestStubs.routerContext()
     );
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper.find('StyledAvatar')).toHaveLength(1);
+    expect(wrapper.find('span').text()).toEqual('#team-slug');
   });
 
   it('can hide Avatar', function() {
