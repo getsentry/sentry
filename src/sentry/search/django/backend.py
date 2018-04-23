@@ -274,6 +274,12 @@ class DjangoSearchBackend(SearchBackend):
             retention_window_start = timezone.now() - timedelta(days=retention)
         else:
             retention_window_start = None
+        # TODO: This could be optimized when building querysets to identify
+        # criteria that are logically impossible (e.g. if the upper bound
+        # for last seen is before the retention window starts, no results
+        # exist.)
+        if retention_window_start:
+            group_queryset = group_queryset.filter(last_seen__gte=retention_window_start)
 
         # This is a punt because the SnubaSearchBackend (a subclass) shares so much that it
         # seemed better to handle all the shared initialization and then handoff to the
@@ -286,13 +292,6 @@ class DjangoSearchBackend(SearchBackend):
                sort_by, limit, cursor, count_hits, paginator_options, **parameters):
 
         from sentry.models import (Group, Environment, Event, GroupEnvironment, Release)
-
-        # TODO: This could be optimized when building querysets to identify
-        # criteria that are logically impossible (e.g. if the upper bound
-        # for last seen is before the retention window starts, no results
-        # exist.)
-        if retention_window_start:
-            group_queryset = group_queryset.filter(last_seen__gte=retention_window_start)
 
         if environment is not None:
             if 'environment' in tags:
