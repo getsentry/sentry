@@ -162,6 +162,7 @@ DEFAULT_EVENT_DATA = {
         ],
     },
     'tags': [],
+    'platform': 'python',
 }
 
 
@@ -457,11 +458,16 @@ class Fixtures(object):
             kwargs['group'] = self.group
         kwargs.setdefault('project', kwargs['group'].project)
         kwargs.setdefault('data', copy.deepcopy(DEFAULT_EVENT_DATA))
+        kwargs.setdefault('platform', kwargs['data'].get('platform', 'python'))
+        kwargs.setdefault('message', kwargs['data'].get('message', 'message'))
         if kwargs.get('tags'):
             tags = kwargs.pop('tags')
             if isinstance(tags, dict):
                 tags = list(tags.items())
             kwargs['data']['tags'] = tags
+        if kwargs.get('stacktrace'):
+            stacktrace = kwargs.pop('stacktrace')
+            kwargs['data']['sentry.interfaces.Stacktrace'] = stacktrace
 
         kwargs['data'].setdefault(
             'errors', [{

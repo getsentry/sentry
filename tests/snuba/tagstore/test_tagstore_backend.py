@@ -1,12 +1,10 @@
 from __future__ import absolute_import
 
-
 import calendar
 from datetime import datetime, timedelta
 import json
 import pytest
 import requests
-import responses
 import six
 
 from sentry.models import GroupHash, EventUser
@@ -79,51 +77,6 @@ class TagStorage(TestCase):
         }])
 
         assert requests.post(snuba.SNUBA + '/tests/insert', data=data).status_code == 200
-
-    @responses.activate
-    def test_get_group_ids_for_search_filter(self):
-        from sentry.search.base import ANY
-        tags = {
-            'foo': 'bar',
-            'baz': 'quux',
-        }
-
-        with responses.RequestsMock() as rsps:
-            def snuba_response(request):
-                body = json.loads(request.body)
-                assert body['project'] == [self.proj1.id]
-                assert body['groupby'] == ['issue']
-                assert body['issues']
-                assert ['tags[foo]', '=', 'bar'] in body['conditions']
-                assert ['tags[baz]', '=', 'quux'] in body['conditions']
-                return (200, {}, json.dumps({
-                    'meta': [{'name': 'issue'}, {'name': 'aggregate'}],
-                    'data': [{'issue': self.proj1group1.id, 'aggregate': 1}],
-                }))
-
-            rsps.add_callback(responses.POST, snuba.SNUBA + '/query', callback=snuba_response)
-            result = self.ts.get_group_ids_for_search_filter(self.proj1.id, self.proj1env1.id, tags)
-            assert result == [self.proj1group1.id]
-
-        tags = {
-            'foo': ANY,
-        }
-
-        with responses.RequestsMock() as rsps:
-            def snuba_response_2(request):
-                body = json.loads(request.body)
-                assert body['project'] == [self.proj1.id]
-                assert body['groupby'] == ['issue']
-                assert body['issues']
-                assert ['tags[foo]', 'IS NOT NULL', None] in body['conditions']
-                return (200, {}, json.dumps({
-                    'meta': [{'name': 'issue'}, {'name': 'aggregate'}],
-                    'data': [{'issue': self.proj1group2.id, 'aggregate': 1}],
-                }))
-
-            rsps.add_callback(responses.POST, snuba.SNUBA + '/query', callback=snuba_response_2)
-            result = self.ts.get_group_ids_for_search_filter(self.proj1.id, self.proj1env1.id, tags)
-            assert result == [self.proj1group2.id]
 
     def test_get_group_tag_keys_and_top_values(self):
         result = self.ts.get_group_tag_keys_and_top_values(

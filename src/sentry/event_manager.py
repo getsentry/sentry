@@ -47,6 +47,7 @@ from sentry.stacktraces import normalize_in_app
 
 HASH_RE = re.compile(r'^[0-9a-f]{32}$')
 DEFAULT_FINGERPRINT_VALUES = frozenset(['{{ default }}', '{{default}}'])
+ALLOWED_FUTURE_DELTA = timedelta(minutes=1)
 
 
 def count_limit(count):
@@ -221,7 +222,7 @@ def process_timestamp(value, current_datetime=None):
     if current_datetime is None:
         current_datetime = datetime.now()
 
-    if value > current_datetime + timedelta(minutes=1):
+    if value > current_datetime + ALLOWED_FUTURE_DELTA:
         raise InvalidTimestamp(EventError.FUTURE_TIMESTAMP)
 
     if value < current_datetime - timedelta(days=30):

@@ -40,3 +40,4 @@ Gemfile.lock
 coverage.xml
 junit.xml
 *.codestyle.xml
+.pytest_cache/

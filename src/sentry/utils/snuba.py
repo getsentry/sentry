@@ -18,7 +18,8 @@ class SnubaError(Exception):
 
 
 def query(start, end, groupby, conditions=None, filter_keys=None,
-          aggregations=None, rollup=None, arrayjoin=None, limit=None, orderby=None):
+          aggregations=None, rollup=None, arrayjoin=None, limit=None, orderby=None,
+          having=None):
     """
     Sends a query to snuba.
 
@@ -39,6 +40,7 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
     """
     groupby = groupby or []
     conditions = conditions or []
+    having = having or []
     aggregations = aggregations or [['count()', '', 'aggregate']]
     filter_keys = filter_keys or {}
 
@@ -81,6 +83,7 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
         'from_date': start.isoformat(),
         'to_date': end.isoformat(),
         'conditions': conditions,
+        'having': having,
         'groupby': groupby,
         'project': project_ids,
         'aggregations': aggregations,
@@ -106,6 +109,7 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
     aggregate_cols = [a[2] for a in aggregations]
     expected_cols = set(groupby + aggregate_cols)
     got_cols = set(c['name'] for c in response['meta'])
+
     assert expected_cols == got_cols
 
     for d in response['data']:
