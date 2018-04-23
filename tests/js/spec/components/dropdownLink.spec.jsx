@@ -202,7 +202,10 @@ describe('DropdownLink', function() {
     });
 
     it('Opens / closes on mouse enter and leave', function() {
+      // Nested menus have delay on open
       wrapper.find('.dropdown-menu a').simulate('mouseEnter');
+      jest.runAllTimers();
+      wrapper.update();
       expect(wrapper.find('.dropdown-menu')).toHaveLength(2);
 
       // Leaving Nested Menu
@@ -214,6 +217,7 @@ describe('DropdownLink', function() {
       wrapper.update();
 
       // Re-entering nested menu will cancel close
+      expect(wrapper.find('.dropdown-menu')).toHaveLength(2);
       wrapper.find('a.nested-menu').simulate('mouseEnter');
       jest.advanceTimersByTime(2);
       wrapper.update();
@@ -245,13 +249,19 @@ describe('DropdownLink', function() {
 
     it('closes when second level nested actor is clicked', function() {
       wrapper.find('a.nested-menu').simulate('mouseEnter');
+      jest.runAllTimers();
+      wrapper.update();
       wrapper.find('a.nested-menu-2 span').simulate('click');
       expect(wrapper.find('.dropdown-menu')).toHaveLength(0);
     });
 
     it('closes when third level nested actor is clicked', function() {
       wrapper.find('a.nested-menu').simulate('mouseEnter');
+      jest.runAllTimers();
+      wrapper.update();
       wrapper.find('a.nested-menu-2').simulate('mouseEnter');
+      jest.runAllTimers();
+      wrapper.update();
       wrapper.find('#nested-actor-3').simulate('click');
       expect(wrapper.find('.dropdown-menu')).toHaveLength(0);
     });

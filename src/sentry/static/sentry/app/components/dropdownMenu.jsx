@@ -223,7 +223,12 @@ class DropdownMenu extends React.Component {
 
         // Only handle mouse enter for nested dropdowns
         if (!isNestedDropdown) return;
-        this.handleOpen(...args);
+
+        if (this.mouseLeaveId) window.clearTimeout(this.mouseLeaveId);
+
+        this.mouseEnterId = window.setTimeout(() => {
+          this.handleOpen(...args);
+        }, MENU_CLOSE_DELAY);
       },
 
       onMouseLeave: (...args) => {
@@ -231,6 +236,7 @@ class DropdownMenu extends React.Component {
           onMouseLeave(...args);
         }
 
+        if (this.mouseEnterId) window.clearTimeout(this.mouseEnterId);
         this.handleMouseLeave(...args);
       },
       onClick: (...args) => {
