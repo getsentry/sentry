@@ -1,0 +1,20 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`TeamBadge renders with Avatar and team name 1`] = `
+<Flex
+  align="center"
+>
+  <StyledAvatar
+    size={24}
+    team={
+      Object {
+        "id": "1",
+        "name": "Team Name",
+        "slug": "team-slug",
+      }
+    }
+  />
+  #
+  team-slug
+</Flex>
+`;
