@@ -957,7 +957,7 @@ SENTRY_TAGSTORE_OPTIONS = (
 )
 
 # Search backend
-SENTRY_SEARCH = 'sentry.search.django.DjangoSearchBackend'
+SENTRY_SEARCH = os.environ.get('SENTRY_SEARCH', 'sentry.search.django.DjangoSearchBackend')
 SENTRY_SEARCH_OPTIONS = {}
 # SENTRY_SEARCH_OPTIONS = {
 #     'urls': ['http://localhost:9200/'],
