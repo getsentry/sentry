@@ -754,6 +754,7 @@ class V2TagStorage(TagStorage):
             group_id=group_id,
             _key__project_id=project_id,
             _key__key=key,
+            _value__project_id=project_id,
             last_seen__gte=cutoff,
         )
         qs = self._add_environment_filter(qs, environment_id)
@@ -766,6 +767,7 @@ class V2TagStorage(TagStorage):
                 group_id=group_id,
                 _key__project_id=project_id,
                 _key__key__in=('sentry:release', 'release'),
+                _value__project_id=project_id,
             ).order_by('first_seen')[0]
         except IndexError:
             return None
@@ -779,6 +781,7 @@ class V2TagStorage(TagStorage):
                 group_id=group_id,
                 _key__project_id=project_id,
                 _key__key__in=('sentry:release', 'release'),
+                _value__project_id=project_id,
             ).order_by('-last_seen')[0]
         except IndexError:
             return None
@@ -791,7 +794,10 @@ class V2TagStorage(TagStorage):
             _key__project_id__in=project_ids,
             _key__key='sentry:release',
             value__in=versions,
-        )
+        ).extra(where=[
+            # Force the join also through the shard
+            'tagstore_tagvalue.project_id = tagstore_tagkey.project_id',
+        ])
 
         qs = self._add_environment_filter(qs, environment_id)
 
@@ -804,7 +810,11 @@ class V2TagStorage(TagStorage):
             _key__environment_id=AGGREGATE_ENVIRONMENT_ID,
             _key__key='sentry:user',
             _value__value__in=[eu.tag_value for eu in event_users],
-        ).order_by('-last_seen').values_list('group_id', flat=True)[:limit])
+        ).extra(where=[
+            # Force the join also through the shard
+            'tagstore_grouptagvalue.project_id = tagstore_tagkey.project_id',
+            'tagstore_grouptagvalue.project_id = tagstore_tagvalue.project_id',
+        ]).order_by('-last_seen').values_list('group_id', flat=True)[:limit])
 
     def get_group_tag_values_for_users(self, event_users, limit=100):
         tag_filters = [
@@ -820,7 +830,12 @@ class V2TagStorage(TagStorage):
             _key__project_id__in=project_ids,
             _key__environment_id=AGGREGATE_ENVIRONMENT_ID,
             _key__key='sentry:user',
-        ).order_by('-last_seen')[:limit])
+            _value__project_id__in=project_ids,
+        ).extra(where=[
+            # Force the join also through the shard
+            'tagstore_grouptagvalue.project_id = tagstore_tagkey.project_id',
+            'tagstore_grouptagvalue.project_id = tagstore_tagvalue.project_id',
+        ]).order_by('-last_seen')[:limit])
 
     def get_group_ids_for_search_filter(
             self, project_id, environment_id, tags, candidates=None, limit=1000):
@@ -907,6 +922,7 @@ class V2TagStorage(TagStorage):
             project_id=project_id,
             _key__project_id=project_id,
             _key__key=key,
+            _value__project_id=project_id,
         )
 
         if isinstance(group_id, collections.Iterable):
