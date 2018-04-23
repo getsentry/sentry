@@ -20,22 +20,33 @@ import IgnoreActions from '../../components/actions/ignore';
 import ActionLink from '../../components/actions/actionLink';
 import Tooltip from '../../components/tooltip';
 
-const BULK_LIMIT_STR = '1,000';
+const BULK_LIMIT = 1000;
+const BULK_LIMIT_STR = BULK_LIMIT.toLocaleString();
 
-const getBulkConfirmMessage = action => {
+const getBulkConfirmMessage = (action, queryCount) => {
+  if (queryCount > BULK_LIMIT) {
+    return tct(
+      'Are you sure you want to [action] the first [bulkNumber] issues that match the search?',
+      {
+        action,
+        bulkNumber: BULK_LIMIT_STR,
+      }
+    );
+  }
+
   return tct(
-    'Are you sure you want to [action] the first [bulkNumber] issues that match the search?',
+    'Are you sure you want to [action] all [bulkNumber] issues that match the search?',
     {
       action,
-      bulkNumber: BULK_LIMIT_STR,
+      bulkNumber: queryCount,
     }
   );
 };
 
-const getConfirm = (numIssues, allInQuerySelected, query) => {
+const getConfirm = (numIssues, allInQuerySelected, query, queryCount) => {
   return function(action, canBeUndone, append = '') {
     let question = allInQuerySelected
-      ? getBulkConfirmMessage(`${action}${append}`)
+      ? getBulkConfirmMessage(`${action}${append}`, queryCount)
       : tn(
           `Are you sure you want to ${action} this %d issue${append}?`,
           `Are you sure you want to ${action} these %d issues${append}?`,
@@ -47,7 +58,11 @@ const getConfirm = (numIssues, allInQuerySelected, query) => {
         <p style={{marginBottom: '20px'}}>
           <strong>{question}</strong>
         </p>
-        <ExtraDescription all={allInQuerySelected} query={query} />
+        <ExtraDescription
+          all={allInQuerySelected}
+          query={query}
+          queryCount={queryCount}
+        />
         {!canBeUndone && <p>{t('This action cannot be undone.')}</p>}
       </div>
     );
@@ -69,7 +84,7 @@ const getLabel = (numIssues, allInQuerySelected) => {
   };
 };
 
-const ExtraDescription = ({all, query}) => {
+const ExtraDescription = ({all, query, queryCount}) => {
   if (!all) return null;
 
   if (query) {
@@ -83,12 +98,16 @@ const ExtraDescription = ({all, query}) => {
   return (
     <p className="error">
       <strong>
-        {tct(
-          'This will apply to the first [bulkNumber] issues matched in this project!',
-          {
-            bulkNumber: BULK_LIMIT_STR,
-          }
-        )}
+        {queryCount > BULK_LIMIT
+          ? tct(
+              'This will apply to the first [bulkNumber] issues matched in this project!',
+              {
+                bulkNumber: BULK_LIMIT_STR,
+              }
+            )
+          : tct('This will apply to all [bulkNumber] issues matched in this project!', {
+              bulkNumber: queryCount,
+            })}
       </strong>
     </p>
   );
@@ -97,6 +116,7 @@ const ExtraDescription = ({all, query}) => {
 ExtraDescription.propTypes = {
   all: PropTypes.bool,
   query: PropTypes.string,
+  queryCount: PropTypes.number,
 };
 
 const StreamActions = createReactClass({
@@ -112,6 +132,7 @@ const StreamActions = createReactClass({
     realtimeActive: PropTypes.bool.isRequired,
     statsPeriod: PropTypes.string.isRequired,
     query: PropTypes.string.isRequired,
+    queryCount: PropTypes.number,
     hasReleases: PropTypes.bool,
     latestRelease: PropTypes.object,
   },
@@ -261,24 +282,35 @@ const StreamActions = createReactClass({
 
   render() {
     // TODO(mitsuhiko): very unclear how to translate this
+    let {
+      allResultsVisible,
+      hasReleases,
+      latestRelease,
+      orgId,
+      projectId,
+      queryCount,
+      query,
+      realtimeActive,
+      statsPeriod,
+    } = this.props;
     let issues = this.state.selectedIds;
     let numIssues = issues.size;
-    let {allInQuerySelected, anySelected, multiSelected} = this.state;
-    let confirm = getConfirm(numIssues, allInQuerySelected, this.props.query);
+    let {allInQuerySelected, anySelected, multiSelected, pageSelected} = this.state;
+    let confirm = getConfirm(numIssues, allInQuerySelected, query, queryCount);
     let label = getLabel(numIssues, allInQuerySelected);
 
     return (
       <Sticky>
         <StyledFlex py={1}>
           <ActionsCheckbox pl={2}>
-            <Checkbox onChange={this.onSelectAll} checked={this.state.pageSelected} />
+            <Checkbox onChange={this.onSelectAll} checked={pageSelected} />
           </ActionsCheckbox>
           <ActionSet w={[8 / 12, 8 / 12, 6 / 12]} mx={1} flex="1">
             <ResolveActions
-              hasRelease={this.props.hasReleases}
-              latestRelease={this.props.latestRelease}
-              orgId={this.props.orgId}
-              projectId={this.props.projectId}
+              hasRelease={hasReleases}
+              latestRelease={latestRelease}
+              orgId={orgId}
+              projectId={projectId}
               onUpdate={this.onUpdate}
               shouldConfirm={this.shouldConfirm('resolve')}
               confirmMessage={confirm('resolve', true)}
@@ -355,12 +387,12 @@ const StreamActions = createReactClass({
                 <MenuItem noAnchor={true}>
                   <ActionLink
                     className="action-delete"
-                    disabled={!anySelected || this.state.allInQuerySelected}
+                    disabled={!anySelected || allInQuerySelected}
                     onAction={this.onDelete}
                     shouldConfirm={this.shouldConfirm('delete')}
                     message={confirm('delete', false)}
                     confirmLabel={label('delete')}
-                    selectAllActive={this.state.pageSelected}
+                    selectAllActive={pageSelected}
                   >
                     {t('Delete Issues')}
                   </ActionLink>
@@ -371,14 +403,14 @@ const StreamActions = createReactClass({
               <Tooltip
                 title={t(
                   '%s real-time updates',
-                  this.props.realtimeActive ? t('Pause') : t('Enable')
+                  realtimeActive ? t('Pause') : t('Enable')
                 )}
               >
                 <a
                   className="btn btn-default btn-sm hidden-xs realtime-control"
                   onClick={this.onRealtimeChange}
                 >
-                  {this.props.realtimeActive ? (
+                  {realtimeActive ? (
                     <span className="icon icon-pause" />
                   ) : (
                     <span className="icon icon-play" />
@@ -391,14 +423,14 @@ const StreamActions = createReactClass({
             <Flex>
               <StyledToolbarHeader>{t('Graph:')}</StyledToolbarHeader>
               <GraphToggle
-                active={this.props.statsPeriod === '24h'}
+                active={statsPeriod === '24h'}
                 onClick={this.selectStatsPeriod.bind(this, '24h')}
               >
                 {t('24h')}
               </GraphToggle>
 
               <GraphToggle
-                active={this.props.statsPeriod === '14d'}
+                active={statsPeriod === '14d'}
                 onClick={this.selectStatsPeriod.bind(this, '14d')}
               >
                 {t('14d')}
@@ -416,18 +448,22 @@ const StreamActions = createReactClass({
           </Box>
         </StyledFlex>
 
-        {!this.props.allResultsVisible &&
-          this.state.pageSelected && (
+        {!allResultsVisible &&
+          pageSelected && (
             <div className="row stream-select-all-notice">
               <div className="col-md-12">
-                {this.state.allInQuerySelected ? (
+                {allInQuerySelected ? (
                   <strong>
-                    {tct(
-                      'Selected up to the first [count] issues that match this search query.',
-                      {
-                        count: BULK_LIMIT_STR,
-                      }
-                    )}
+                    {queryCount >= BULK_LIMIT
+                      ? tct(
+                          'Selected up to the first [count] issues that match this search query.',
+                          {
+                            count: BULK_LIMIT_STR,
+                          }
+                        )
+                      : tct('Selected all [count] issues that match this search query.', {
+                          count: queryCount,
+                        })}
                   </strong>
                 ) : (
                   <span>
@@ -437,12 +473,16 @@ const StreamActions = createReactClass({
                       numIssues
                     )}
                     <a onClick={this.selectAll}>
-                      {tct(
-                        'Select the first [count] issues that match this search query.',
-                        {
-                          count: BULK_LIMIT_STR,
-                        }
-                      )}
+                      {queryCount >= BULK_LIMIT
+                        ? tct(
+                            'Select the first [count] issues that match this search query.',
+                            {
+                              count: BULK_LIMIT_STR,
+                            }
+                          )
+                        : tct('Select all [count] issues that match this search query.', {
+                            count: queryCount,
+                          })}
                     </a>
                   </span>
                 )}

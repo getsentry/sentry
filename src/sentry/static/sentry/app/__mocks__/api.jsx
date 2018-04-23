@@ -130,5 +130,8 @@ class Client {
 
 Client.prototype.handleRequestError = RealClient.Client.prototype.handleRequestError;
 Client.prototype.uniqueId = RealClient.Client.prototype.uniqueId;
+Client.prototype.bulkUpdate = RealClient.Client.prototype.bulkUpdate;
+Client.prototype._chain = RealClient.Client.prototype._chain;
+Client.prototype._wrapRequest = RealClient.Client.prototype._wrapRequest;
 
 export {Client};
