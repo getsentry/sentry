@@ -7,11 +7,12 @@ import pytz
 import requests
 import six
 
+from django.conf import settings
+
 from sentry.models import GroupHash, Release
 from sentry.tsdb.base import TSDBModel
 from sentry.tsdb.snuba import SnubaTSDB
 from sentry.testutils import TestCase
-from sentry.utils import snuba
 from sentry.utils.dates import to_timestamp
 
 
@@ -22,7 +23,7 @@ def timestamp(d):
 
 class SnubaTSDBTest(TestCase):
     def setUp(self):
-        assert requests.post(snuba.SNUBA + '/tests/drop').status_code == 200
+        assert requests.post(settings.SENTRY_SNUBA + '/tests/drop').status_code == 200
 
         self.db = SnubaTSDB()
         self.now = datetime.utcnow().replace(
@@ -75,7 +76,7 @@ class SnubaTSDBTest(TestCase):
             },
         } for r in range(0, 14400, 600)])  # Every 10 min for 4 hours
 
-        assert requests.post(snuba.SNUBA + '/tests/insert', data=data).status_code == 200
+        assert requests.post(settings.SENTRY_SNUBA + '/tests/insert', data=data).status_code == 200
 
     def test_range_groups(self):
         dts = [self.now + timedelta(hours=i) for i in range(4)]

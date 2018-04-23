@@ -7,6 +7,8 @@ import pytest
 import requests
 import six
 
+from django.conf import settings
+
 from sentry.models import GroupHash, EventUser
 from sentry.tagstore.exceptions import (
     GroupTagKeyNotFound,
@@ -16,12 +18,11 @@ from sentry.tagstore.exceptions import (
 )
 from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.testutils import TestCase
-from sentry.utils import snuba
 
 
 class TagStorage(TestCase):
     def setUp(self):
-        assert requests.post(snuba.SNUBA + '/tests/drop').status_code == 200
+        assert requests.post(settings.SENTRY_SNUBA + '/tests/drop').status_code == 200
 
         self.ts = SnubaTagStorage()
 
@@ -76,7 +77,7 @@ class TagStorage(TestCase):
             },
         }])
 
-        assert requests.post(snuba.SNUBA + '/tests/insert', data=data).status_code == 200
+        assert requests.post(settings.SENTRY_SNUBA + '/tests/insert', data=data).status_code == 200
 
     def test_get_group_tag_keys_and_top_values(self):
         result = self.ts.get_group_tag_keys_and_top_values(

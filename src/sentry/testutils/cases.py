@@ -55,7 +55,7 @@ from sentry.models import (
 )
 from sentry.plugins import plugins
 from sentry.rules import EventState
-from sentry.utils import json, snuba
+from sentry.utils import json
 from sentry.utils.auth import SSO_SESSION_KEY
 
 from .fixtures import Fixtures
@@ -694,7 +694,7 @@ class SnubaTestCase(TestCase):
     def setUp(self):
         super(SnubaTestCase, self).setUp()
 
-        assert requests.post(snuba.SNUBA + '/tests/drop').status_code == 200
+        assert requests.post(settings.SENTRY_SNUBA + '/tests/drop').status_code == 200
 
     def __wrap_event(self, event, data, primary_hash):
         # TODO: Abstract and combine this with the stream code in
@@ -765,6 +765,6 @@ class SnubaTestCase(TestCase):
             events = [events]
 
         assert requests.post(
-            snuba.SNUBA + '/tests/insert',
+            settings.SENTRY_SNUBA + '/tests/insert',
             data=json.dumps(events)
         ).status_code == 200
