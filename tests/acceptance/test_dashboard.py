@@ -68,3 +68,9 @@ class DashboardTest(AcceptanceTestCase):
         self.browser.wait_until_not('.loading-indicator')
         assert not self.browser.element_exists('.awaiting-events')
         self.browser.snapshot('org dash one issue')
+
+    def test_new_dashboard(self):
+        with self.feature('organizations:dashboard'):
+            self.browser.get(self.path)
+            self.browser.wait_until_not('.loading-indicator')
+            self.browser.snapshot('new dashboard')
