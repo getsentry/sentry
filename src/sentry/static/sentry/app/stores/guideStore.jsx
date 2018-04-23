@@ -20,6 +20,7 @@ const GuideStore = Reflux.createStore({
       currentOrg: null,
 
       forceShow: false,
+      prevGuide: null,
     };
     this.listenTo(GuideActions.fetchSucceeded, this.onFetchSucceeded);
     this.listenTo(GuideActions.closeGuideOrSupport, this.onCloseGuideOrSupport);
@@ -85,6 +86,25 @@ const GuideStore = Reflux.createStore({
     this.updateCurrentGuide();
   },
 
+  recordCue(id, cue) {
+    HookStore.get('analytics:event').forEach(cb =>
+      cb('assistant.guide_cued', {
+        guide: id,
+        cue,
+      })
+    );
+  },
+
+  updatePrevGuide(bestGuide) {
+    if (!this.state.prevGuide) {
+      this.recordCue(bestGuide.id, bestGuide.cue);
+      this.state.prevGuide = bestGuide;
+    } else if (this.state.prevGuide && this.state.prevGuide.id !== bestGuide.id) {
+      this.recordCue(bestGuide.id, bestGuide.cue);
+      this.state.prevGuide = bestGuide;
+    }
+  },
+
   updateCurrentGuide() {
     let availableTargets = [...this.state.anchors].map(a => a.props.target);
 
@@ -108,6 +128,8 @@ const GuideStore = Reflux.createStore({
         step => step.target && availableTargets.indexOf(step.target) >= 0
       );
     }
+
+    bestGuide ? this.updatePrevGuide(bestGuide) : null;
 
     this.state.currentGuide = bestGuide;
 
