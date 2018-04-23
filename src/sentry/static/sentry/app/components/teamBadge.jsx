@@ -12,6 +12,7 @@ class TeamBadge extends React.Component {
     team: SentryTypes.Team.isRequired,
     avatarSize: PropTypes.number,
     hideAvatar: PropTypes.bool,
+    className: PropTypes.string,
   };
 
   static defaultProps = {
@@ -24,10 +25,10 @@ class TeamBadge extends React.Component {
   }
 
   render() {
-    let {team, hideAvatar, avatarSize} = this.props;
+    let {className, team, hideAvatar, avatarSize} = this.props;
 
     return (
-      <Flex align="center">
+      <Flex align="center" className={className}>
         {!hideAvatar && <StyledAvatar team={team} size={avatarSize} />}
         #{team.slug}
       </Flex>
