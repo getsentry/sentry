@@ -6,6 +6,7 @@ from django.conf import settings
 from django.core.urlresolvers import reverse
 
 from sentry import newsletter
+from sentry.models import UserEmail
 from sentry.testutils import APITestCase
 
 
@@ -43,6 +44,14 @@ class UserSubscriptionsNewsletterTest(APITestCase):
             'listId': '123',
         })
         assert response.status_code == 400, response.content
+
+    def test_unverified_emails(self):
+        UserEmail.objects.get(email=self.user.email).update(is_verified=False)
+        response = self.client.put(self.url, data={
+            'listId': '123',
+            'subscribed': True,
+        })
+        assert response.status_code == 204, response.content
 
     def test_unsubscribe(self):
         response = self.client.put(self.url, data={

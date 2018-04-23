@@ -63,11 +63,6 @@ class UserSubscriptionsEndpoint(UserEndpoint):
         result = validator.object
         email = UserEmail.get_primary_email(user)
 
-        # Can't handle subscriptions without a verified email
-        if not email.is_verified:
-            return self.respond({'detail': 'Must have verified email to subscribe to newsletter.'},
-                                status=400)
-
         kwargs = {
             'list_id': result['listId'],
             'subscribed': result['subscribed'],
