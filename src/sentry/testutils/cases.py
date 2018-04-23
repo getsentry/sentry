@@ -23,7 +23,6 @@ import requests
 import six
 import types
 import logging
-import uuid
 
 from click.testing import CliRunner
 from contextlib import contextmanager
@@ -723,6 +722,8 @@ class SnubaTestCase(TestCase):
         world all test events would go through the full regular pipeline.
         """
 
+        from sentry.event_manager import get_hashes_from_fingerprint, md5_from_hash
+
         event = super(SnubaTestCase, self).create_event(*args, **kwargs)
 
         data = event.data.data
@@ -741,14 +742,17 @@ class SnubaTestCase(TestCase):
             group_id=event.group_id,
         )
 
-        try:
-            grouphash = GroupHash.objects.filter(group=event.group).order_by('hash')[0]
-        except IndexError:
-            grouphash = GroupHash.objects.create(
-                project=event.project,
-                group=event.group,
-                hash=uuid.uuid4().hex,
-            )
+        hashes = get_hashes_from_fingerprint(
+            event,
+            data.get('fingerprint', ['{{ default }}']),
+        )
+        primary_hash = md5_from_hash(hashes[0])
+
+        grouphash, _ = GroupHash.objects.get_or_create(
+            project=event.project,
+            group=event.group,
+            hash=primary_hash,
+        )
 
         self.snuba_insert(self.__wrap_event(event, data, grouphash.hash))
 

@@ -465,6 +465,9 @@ class Fixtures(object):
             if isinstance(tags, dict):
                 tags = list(tags.items())
             kwargs['data']['tags'] = tags
+        if kwargs.get('stacktrace'):
+            stacktrace = kwargs.pop('stacktrace')
+            kwargs['data']['sentry.interfaces.Stacktrace'] = stacktrace
 
         kwargs['data'].setdefault(
             'errors', [{

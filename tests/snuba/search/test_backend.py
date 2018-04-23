@@ -43,6 +43,11 @@ class SnubaSearchTest(SnubaTestCase):
             event_id='a' * 32,
             group=self.group1,
             datetime=base_datetime - timedelta(days=31),
+            message='group1',
+            stacktrace={
+                'frames': [{
+                    'module': 'group1'
+                }]},
             tags={
                 'server': 'example.com',
                 'environment': 'production',
@@ -52,6 +57,11 @@ class SnubaSearchTest(SnubaTestCase):
             event_id='c' * 32,
             group=self.group1,
             datetime=base_datetime,
+            message='group1',
+            stacktrace={
+                'frames': [{
+                    'module': 'group1'
+                }]},
             tags={
                 'server': 'example.com',
                 'environment': 'production',
@@ -76,6 +86,11 @@ class SnubaSearchTest(SnubaTestCase):
             event_id='b' * 32,
             group=self.group2,
             datetime=base_datetime - timedelta(days=30),
+            message='group2',
+            stacktrace={
+                'frames': [{
+                    'module': 'group2'
+                }]},
             tags={
                 'server': 'example.com',
                 'environment': 'staging',
@@ -170,6 +185,11 @@ class SnubaSearchTest(SnubaTestCase):
             self.create_event(
                 group=self.group2,
                 datetime=dt,
+                message='group2',
+                stacktrace={
+                    'frames': [{
+                        'module': 'group2'
+                    }]},
                 tags={'environment': 'production'}
             )
 
@@ -337,6 +357,11 @@ class SnubaSearchTest(SnubaTestCase):
             self.create_event(
                 group=self.group2,
                 datetime=dt,
+                message='group2',
+                stacktrace={
+                    'frames': [{
+                        'module': 'group2'
+                    }]},
                 tags={'environment': 'production'}
             )
 
@@ -424,6 +449,11 @@ class SnubaSearchTest(SnubaTestCase):
         self.create_event(
             group=self.group1,
             datetime=self.group1.first_seen + timedelta(days=1),
+            message='group1',
+            stacktrace={
+                'frames': [{
+                    'module': 'group1'
+                }]},
             tags={
                 'environment': 'development',
             }
@@ -516,6 +546,11 @@ class SnubaSearchTest(SnubaTestCase):
         self.create_event(
             group=self.group1,
             datetime=self.group1.last_seen + timedelta(days=1),
+            message='group1',
+            stacktrace={
+                'frames': [{
+                    'module': 'group1'
+                }]},
             tags={
                 'environment': 'development',
             }
