@@ -128,7 +128,7 @@ matrix:
         - redis-server
         - postgresql
     - python: 2.7
-      env: TEST_SUITE=snuba
+      env: TEST_SUITE=snuba SENTRY_TAGSTORE=sentry.tagstore.snuba.SnubaTagStorage
       services:
         - docker
         - memcached
@@ -140,7 +140,7 @@ matrix:
         - docker ps -a
   allow_failures:
     - python: 2.7
-      env: TEST_SUITE=snuba
+      env: TEST_SUITE=snuba SENTRY_TAGSTORE=sentry.tagstore.snuba.SnubaTagStorage
 notifications:
   webhooks:
     urls:
