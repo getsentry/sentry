@@ -44,7 +44,14 @@ def has_shape(data, shape, allow_empty=False):
         return True
 
 
-class SnubaTSDBTest(TestCase):
+class SnubaTSDBRequestsTest(TestCase):
+    """
+    Tests that the Snuba TSDB backend makes correctly formatted requests
+    to the Snuba service, and formats the results correctly.
+
+    Mocks the Snuba service request/response.
+    """
+
     def setUp(self):
         self.db = SnubaTSDB()
 
@@ -108,7 +115,7 @@ class SnubaTSDBTest(TestCase):
             assert has_shape(results, 1)
 
     @responses.activate
-    def test_groups(self):
+    def test_groups_request(self):
         now = parse_datetime('2018-03-09T01:00:00Z')
         dts = [now + timedelta(hours=i) for i in range(4)]
         project = self.create_project()
@@ -138,7 +145,7 @@ class SnubaTSDBTest(TestCase):
             assert results is not None
 
     @responses.activate
-    def test_releases(self):
+    def test_releases_request(self):
         now = parse_datetime('2018-03-09T01:00:00Z')
         project = self.create_project()
         release = Release.objects.create(
@@ -166,7 +173,7 @@ class SnubaTSDBTest(TestCase):
             assert results == {release.id: [(to_timestamp(now), 100)]}
 
     @responses.activate
-    def test_environment(self):
+    def test_environment_request(self):
         now = parse_datetime('2018-03-09T01:00:00Z')
         project = self.create_project()
         env = self.create_environment(project=project, name="prod")
