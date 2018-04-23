@@ -171,12 +171,6 @@ class SnubaTSDB(BaseTSDB):
         return self.get_data(model, items, start, end, rollup, environment_id,
                              aggregation='count()')
 
-    def get_optimal_rollup(self, start, end=None):
-        """
-        Always return the smallest rollup as we can bucket on any granularity.
-        """
-        return self.rollups.keys()[0]
-
     def flatten_keys(self, items):
         """
         Returns a normalized set of keys based on the various formats accepted
