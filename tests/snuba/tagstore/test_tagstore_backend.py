@@ -9,6 +9,8 @@ import requests
 import responses
 import six
 
+from django.conf import settings
+
 from sentry.models import GroupHash, EventUser
 from sentry.tagstore.exceptions import (
     GroupTagKeyNotFound,
@@ -18,12 +20,11 @@ from sentry.tagstore.exceptions import (
 )
 from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.testutils import TestCase
-from sentry.utils import snuba
 
 
 class TagStorage(TestCase):
     def setUp(self):
-        assert requests.post(snuba.SNUBA + '/tests/drop').status_code == 200
+        assert requests.post(settings.SENTRY_SNUBA + '/tests/drop').status_code == 200
 
         self.ts = SnubaTagStorage()
 
@@ -78,7 +79,7 @@ class TagStorage(TestCase):
             },
         }])
 
-        assert requests.post(snuba.SNUBA + '/tests/insert', data=data).status_code == 200
+        assert requests.post(settings.SENTRY_SNUBA + '/tests/insert', data=data).status_code == 200
 
     @responses.activate
     def test_get_group_ids_for_search_filter(self):
@@ -101,7 +102,10 @@ class TagStorage(TestCase):
                     'data': [{'issue': self.proj1group1.id, 'aggregate': 1}],
                 }))
 
-            rsps.add_callback(responses.POST, snuba.SNUBA + '/query', callback=snuba_response)
+            rsps.add_callback(
+                responses.POST,
+                settings.SENTRY_SNUBA + '/query',
+                callback=snuba_response)
             result = self.ts.get_group_ids_for_search_filter(self.proj1.id, self.proj1env1.id, tags)
             assert result == [self.proj1group1.id]
 
@@ -121,7 +125,10 @@ class TagStorage(TestCase):
                     'data': [{'issue': self.proj1group2.id, 'aggregate': 1}],
                 }))
 
-            rsps.add_callback(responses.POST, snuba.SNUBA + '/query', callback=snuba_response_2)
+            rsps.add_callback(
+                responses.POST,
+                settings.SENTRY_SNUBA + '/query',
+                callback=snuba_response_2)
             result = self.ts.get_group_ids_for_search_filter(self.proj1.id, self.proj1env1.id, tags)
             assert result == [self.proj1group2.id]
 

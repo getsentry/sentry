@@ -5,16 +5,17 @@ import requests
 import json
 import time
 
-from exam import before
+from django.conf import settings
 
 from sentry.testutils import TestCase
-from sentry.utils.snuba import query, SNUBA
+from sentry.utils import snuba
 
 
 class SnubaTest(TestCase):
-    @before
-    def setup(self):
-        r = requests.post(SNUBA + '/tests/drop')
+    def setUp(self):
+        super(SnubaTest, self).setup()
+
+        r = requests.post(settings.SENTRY_SNUBA + '/tests/drop')
         assert r.status_code == 200
 
     def test(self):
@@ -32,10 +33,10 @@ class SnubaTest(TestCase):
             }
         }]
 
-        r = requests.post(SNUBA + '/tests/insert', data=json.dumps(events))
+        r = requests.post(settings.SENTRY_SNUBA + '/tests/insert', data=json.dumps(events))
         assert r.status_code == 200
 
-        r = query(
+        r = snuba.query(
             start=now - timedelta(days=1),
             end=now + timedelta(days=1),
             groupby=['project_id'],
