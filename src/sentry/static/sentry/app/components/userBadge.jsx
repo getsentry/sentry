@@ -13,16 +13,21 @@ const UserBadge = ({
   orgId,
   avatarSize,
   useLink,
+  hideEmail,
   ...props
 }) => {
   return (
     <StyledUserBadge {...props}>
       <StyledAvatar user={user} size={avatarSize} />
       <StyledNameAndEmail>
-        <StyledName useLink={useLink} to={`/settings/${orgId}/members/${user.id}`}>
+        <StyledName
+          useLink={useLink}
+          hideEmail={hideEmail}
+          to={`/settings/${orgId}/members/${user.id}`}
+        >
           {displayName || user.name || user.email}
         </StyledName>
-        <StyledEmail>{displayEmail || user.email}</StyledEmail>
+        {!hideEmail && <StyledEmail>{displayEmail || user.email}</StyledEmail>}
       </StyledNameAndEmail>
     </StyledUserBadge>
   );
@@ -35,10 +40,12 @@ UserBadge.propTypes = {
   user: PropTypes.object,
   orgId: PropTypes.string,
   useLink: PropTypes.bool,
+  hideEmail: PropTypes.bool,
 };
 
 UserBadge.defaultProps = {
   useLink: true,
+  hideEmail: false,
 };
 
 const StyledUserBadge = styled('div')`
@@ -60,10 +67,11 @@ const StyledEmail = styled('div')`
 `;
 
 const StyledName = styled(
-  ({useLink, ...props}) => (useLink ? <Link {...props} /> : <span {...props} />)
+  ({useLink, hideEmail, to, ...props}) =>
+    useLink ? <Link to={to} {...props} /> : <span {...props} />
 )`
   font-weight: bold;
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => (!p.hideEmail ? space(0.5) : 0)};
   ${overflowEllipsis};
 `;
 
