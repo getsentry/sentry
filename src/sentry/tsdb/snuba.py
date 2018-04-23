@@ -76,8 +76,25 @@ class SnubaTSDB(BaseTSDB):
         start = to_datetime(series[0])
         end = to_datetime(series[-1] + rollup)
 
-        return snuba.query(start, end, groupby, None, keys_map,
-                           aggregations, rollup)
+        result = snuba.query(start, end, groupby, None, keys_map,
+                             aggregations, rollup)
+
+        if group_on_time:
+            keys_map['time'] = series
+        self.zerofill(result, groupby, keys_map)
+
+        return result
+
+    def zerofill(self, result, groups, group_keys):
+        if len(groups) > 0:
+            for k in group_keys[groups[0]]:
+                if k not in result:
+                    result[k] = 0 if len(groups) == 1 else {}
+
+            if len(groups) > 1:
+                subgroups = groups[1:]
+                for v in result.values():
+                    self.zerofill(v, subgroups, group_keys)
 
     def get_range(self, model, keys, start, end, rollup=None, environment_id=None):
         result = self.get_data(model, keys, start, end, rollup, environment_id,
@@ -117,8 +134,8 @@ class SnubaTSDB(BaseTSDB):
         #    {group:[top1, ...]}
         # into
         #    {group: [(top1, score), ...]}
-        for k in result:
-            item_scores = [(v, float(i + 1)) for i, v in enumerate(reversed(result[k]))]
+        for k, top in six.iteritems(result):
+            item_scores = [(v, float(i + 1)) for i, v in enumerate(reversed(top or []))]
             result[k] = list(reversed(item_scores))
 
         return result
@@ -134,7 +151,7 @@ class SnubaTSDB(BaseTSDB):
         #    {group: [(timestamp, {top1: score, ...}), ...]}
         for k in result:
             result[k] = sorted([
-                (timestamp, {v: float(i + 1) for i, v in enumerate(reversed(topk))})
+                (timestamp, {v: float(i + 1) for i, v in enumerate(reversed(topk or []))})
                 for (timestamp, topk) in result[k].items()
             ])
 

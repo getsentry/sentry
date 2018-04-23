@@ -123,7 +123,10 @@ class SnubaTSDBTest(TestCase):
             rollup=3600
         ) == {
             self.release.id: [
+                (timestamp(dts[0]), 0),
                 (timestamp(dts[1]), 6),
+                (timestamp(dts[2]), 0),
+                (timestamp(dts[3]), 0),
             ]
         }
 
@@ -165,7 +168,14 @@ class SnubaTSDBTest(TestCase):
             dts[0], dts[-1],
             rollup=3600,
             environment_id=self.proj1env2.id
-        ) == {}
+        ) == {
+            self.proj1.id: [
+                (timestamp(dts[0]), 0),
+                (timestamp(dts[1]), 0),
+                (timestamp(dts[2]), 0),
+                (timestamp(dts[3]), 0),
+            ]
+        }
 
     def test_range_rollups(self):
         # Daily
@@ -179,12 +189,14 @@ class SnubaTSDBTest(TestCase):
         ) == {
             self.proj1.id: [
                 (timestamp(dts[0]), 24),
+                (timestamp(dts[1]), 0)
             ]
         }
 
         # Minutely
         dts = [self.now + timedelta(minutes=i) for i in range(120)]
-        expected = [(to_timestamp(d), 1) for i, d in enumerate(dts) if i % 10 == 0]
+        # Expect every 10th minute to have a 1, else 0
+        expected = [(to_timestamp(d), int(i % 10 == 0)) for i, d in enumerate(dts)]
         assert self.db.get_range(
             TSDBModel.project,
             [self.proj1.id],
