@@ -5,12 +5,11 @@ from itertools import chain
 import json
 import requests
 import six
-import os
+
+from django.conf import settings
 
 from sentry.models import Group, GroupHash, Environment, Release, ReleaseProject
 from sentry.utils.dates import to_timestamp
-
-SNUBA = os.environ.get('SNUBA', 'http://localhost:5000')
 
 
 class SnubaError(Exception):
@@ -78,7 +77,7 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
     get_issues = 'issue' in all_cols
     issues = get_project_issues(project_ids, filter_keys.get('issue')) if get_issues else None
 
-    url = '{0}/query'.format(SNUBA)
+    url = '{0}/query'.format(settings.SENTRY_SNUBA)
     request = {k: v for k, v in six.iteritems({
         'from_date': start.isoformat(),
         'to_date': end.isoformat(),

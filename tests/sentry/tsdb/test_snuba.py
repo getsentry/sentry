@@ -6,7 +6,8 @@ import json
 import pytest
 import responses
 
-from sentry.utils import snuba
+from django.conf import settings
+
 from sentry.models import GroupHash, Release
 from sentry.testutils import TestCase
 from sentry.tsdb.base import TSDBModel
@@ -79,7 +80,10 @@ class SnubaTSDBRequestsTest(TestCase):
                         datum[agg[2]] = [99]
                 return (200, {}, json.dumps({'data': [datum], 'meta': meta}))
 
-            rsps.add_callback(responses.POST, snuba.SNUBA + '/query', callback=snuba_response)
+            rsps.add_callback(
+                responses.POST,
+                settings.SENTRY_SNUBA + '/query',
+                callback=snuba_response)
 
             results = self.db.get_most_frequent(TSDBModel.frequent_issues_by_project,
                                                 [project_id], dts[0], dts[0])
@@ -141,7 +145,10 @@ class SnubaTSDBRequestsTest(TestCase):
                     'meta': [{'name': 'time'}, {'name': 'issue'}, {'name': 'aggregate'}]
                 }))
 
-            rsps.add_callback(responses.POST, snuba.SNUBA + '/query', callback=snuba_response)
+            rsps.add_callback(
+                responses.POST,
+                settings.SENTRY_SNUBA + '/query',
+                callback=snuba_response)
             results = self.db.get_range(TSDBModel.group, [group.id], dts[0], dts[-1])
             assert results is not None
 
@@ -169,7 +176,10 @@ class SnubaTSDBRequestsTest(TestCase):
                     'meta': [{'name': 'release'}, {'name': 'time'}, {'name': 'aggregate'}]
                 }))
 
-            rsps.add_callback(responses.POST, snuba.SNUBA + '/query', callback=snuba_response)
+            rsps.add_callback(
+                responses.POST,
+                settings.SENTRY_SNUBA + '/query',
+                callback=snuba_response)
             results = self.db.get_range(
                 TSDBModel.release, [release.id], dts[0], dts[-1], rollup=3600)
             assert results == {
@@ -197,7 +207,10 @@ class SnubaTSDBRequestsTest(TestCase):
                     'meta': [{'name': 'project_id'}, {'name': 'time'}, {'name': 'aggregate'}]
                 }))
 
-            rsps.add_callback(responses.POST, snuba.SNUBA + '/query', callback=snuba_response)
+            rsps.add_callback(
+                responses.POST,
+                settings.SENTRY_SNUBA + '/query',
+                callback=snuba_response)
             results = self.db.get_range(TSDBModel.project, [project.id],
                                         dts[0], dts[-1], environment_id=env.id, rollup=3600)
             assert results == {
