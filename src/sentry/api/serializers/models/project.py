@@ -230,8 +230,17 @@ class ProjectWithTeamSerializer(ProjectSerializer):
         for pt in project_teams:
             teams_by_project_id[pt.project_id].append(teams[pt.team_id])
 
+        project_ids = [i.id for i in item_list]
+        platforms = ProjectPlatform.objects.filter(
+            project_id__in=project_ids,
+        ).values_list('project_id', 'platform')
+        platforms_by_project = defaultdict(list)
+        for project_id, platform in platforms:
+            platforms_by_project[project_id].append(platform)
+
         for item in item_list:
             attrs[item]['teams'] = teams_by_project_id[item.id]
+            attrs[item]['platforms'] = platforms_by_project[item.id]
         return attrs
 
     def serialize(self, obj, attrs, user):
@@ -247,28 +256,6 @@ class ProjectWithTeamSerializer(ProjectSerializer):
 
 
 class ProjectSummarySerializer(ProjectWithTeamSerializer):
-    def get_attrs(self, item_list, user):
-        attrs = super(ProjectSummarySerializer,
-                      self).get_attrs(item_list, user)
-
-        project_ids = [i.id for i in item_list]
-
-        platforms = ProjectPlatform.objects.filter(
-            project_id__in=project_ids,
-        ).values_list('project_id', 'platform')
-        platforms_by_project = defaultdict(list)
-        for project_id, platform in platforms:
-            platforms_by_project[project_id].append(platform)
-
-        for item in item_list:
-            attrs[item].update(
-                {
-                    'platforms': platforms_by_project[item.id],
-                }
-            )
-
-        return attrs
-
     def serialize(self, obj, attrs, user):
         context = {
             'team': attrs['teams'][0] if attrs['teams'] else None,
@@ -323,13 +310,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                       self).get_attrs(item_list, user)
 
         project_ids = [i.id for i in item_list]
-
-        platforms = ProjectPlatform.objects.filter(
-            project_id__in=project_ids,
-        ).values_list('project_id', 'platform')
-        platforms_by_project = defaultdict(list)
-        for project_id, platform in platforms:
-            platforms_by_project[project_id].append(platform)
 
         num_issues_projects = Project.objects.filter(
             id__in=project_ids
@@ -387,7 +367,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                     'latest_release': latest_releases.get(item.id),
                     'org': orgs[six.text_type(item.organization_id)],
                     'options': options_by_project[item.id],
-                    'platforms': platforms_by_project[item.id],
                     'processing_issues': processing_issues_by_project.get(item.id, 0),
                 }
             )
