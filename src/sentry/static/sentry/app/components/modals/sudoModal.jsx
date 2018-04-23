@@ -12,7 +12,7 @@ import Form from '../../views/settings/components/forms/form';
 import InputField from '../../views/settings/components/forms/inputField';
 import TextBlock from '../../views/settings/components/text/textBlock';
 import U2fContainer from '../u2fContainer';
-import space from '../../styles/space';
+import scale from '../../styles/scale';
 
 class SudoModal extends React.Component {
   static propTypes = {
@@ -113,7 +113,7 @@ class SudoModal extends React.Component {
             </div>
           ) : (
             <React.Fragment>
-              <TextBlock css={{marginBottom: space(1)}}>
+              <TextBlock css={{marginBottom: scale(1)}}>
                 {superuser
                   ? t(
                       'You are attempting to access a resource that requires superuser access, please re-authenticate as a superuser.'

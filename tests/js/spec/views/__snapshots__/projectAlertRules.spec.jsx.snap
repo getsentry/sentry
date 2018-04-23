@@ -303,21 +303,21 @@ exports[`projectAlertRules renders 1`] = `
                   >
                     <Component
                       align="center"
-                      className="css-18dfj8-StyledPanelHeader css-1t1cqk30"
+                      className="css-18dfj8-StyledPanelHeader css-6wapyi0"
                       justify="space-between"
                     >
                       <Flex
                         align="center"
-                        className="css-18dfj8-StyledPanelHeader css-1t1cqk30"
+                        className="css-18dfj8-StyledPanelHeader css-6wapyi0"
                         justify="space-between"
                       >
                         <Base
                           align="center"
-                          className="css-1t1cqk30 css-mmen68"
+                          className="css-6wapyi0 css-mmen68"
                           justify="space-between"
                         >
                           <div
-                            className="css-1t1cqk30 css-mmen68"
+                            className="css-6wapyi0 css-mmen68"
                             is={null}
                           >
                             <TextColorLink

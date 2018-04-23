@@ -10,7 +10,7 @@ import ErrorBoundary from '../errorBoundary';
 import LoadingError from '../loadingError';
 import LoadingIndicator from '../loadingIndicator';
 import Pagination from '../pagination';
-import space from '../../styles/space';
+import scale from '../../styles/scale';
 
 const ActivityFeed = createReactClass({
   displayName: 'ActivityFeed',
@@ -100,7 +100,7 @@ const ActivityFeed = createReactClass({
                 return (
                   <ErrorBoundary
                     mini
-                    css={{marginBottom: space(1), borderRadius: 0}}
+                    css={{marginBottom: scale(1), borderRadius: 0}}
                     key={item.id}
                   >
                     <ActivityItem orgId={orgId} item={item} />

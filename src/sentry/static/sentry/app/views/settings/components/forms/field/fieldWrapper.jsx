@@ -1,7 +1,6 @@
 import React from 'react';
 import styled, {css} from 'react-emotion';
 import {Flex} from 'grid-emotion';
-import space from '../../../../../styles/space';
 
 const inlineStyle = p =>
   p.inline
@@ -24,9 +23,10 @@ const getPadding = props => {
   if (typeof props.p !== 'undefined') {
     return `padding: ${props.p};`;
   }
-  return `padding: ${space(2)} ${props.hasControlState ? 0 : space(1)} ${space(
-    2
-  )} ${space(2)}`;
+  return `
+    padding: ${p => p.theme.scale(2)};
+    padding-right: ${props.hasControlState ? 0 : p.theme.scale(1)};
+  `;
 };
 
 /**

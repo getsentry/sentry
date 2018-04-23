@@ -14,7 +14,6 @@ import InlineSvg from '../../../../../components/inlineSvg';
 import PanelAlert from '../../../../../components/panels/panelAlert';
 import Spinner from '../spinner';
 import returnButton from '../returnButton';
-import space from '../../../../../styles/space';
 
 const FormFieldErrorReason = styled.div`
   color: ${p => p.theme.redDark};
@@ -403,8 +402,8 @@ const Actions = styled('div')`
 `;
 
 const CancelButton = styled(Button)`
-  margin-left: ${space(2)};
+  margin-left: ${p => p.theme.scale(2)};
 `;
 const SaveButton = styled(Button)`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.scale(1)};
 `;

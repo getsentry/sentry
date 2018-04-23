@@ -3,8 +3,6 @@ import createReactClass from 'create-react-class';
 import {Flex, Box} from 'grid-emotion';
 import styled from 'react-emotion';
 
-import space from '../../styles/space';
-
 import OrganizationState from '../../mixins/organizationState';
 
 import DropdownLink from '../../components/dropdownLink';
@@ -107,7 +105,7 @@ const StyledDropdown = styled.div`
     top: 1px;
     font-size: 12px !important;
     color: ${p => p.theme.gray1};
-    margin-left: ${space(0.5)};
+    margin-left: ${p => p.theme.scale(0.5)};
   }
   li[role='presentation'] a:hover {
     color: white;

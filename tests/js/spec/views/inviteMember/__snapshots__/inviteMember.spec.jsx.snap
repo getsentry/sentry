@@ -143,20 +143,20 @@ exports[`CreateProject render() should render roles when available and allowed, 
               <PanelHeader>
                 <StyledPanelHeader>
                   <Component
-                    className="css-kf498j-StyledPanelHeader css-1t1cqk30"
+                    className="css-kf498j-StyledPanelHeader css-6wapyi0"
                   >
                     <Flex
                       align="center"
-                      className="css-kf498j-StyledPanelHeader css-1t1cqk30"
+                      className="css-kf498j-StyledPanelHeader css-6wapyi0"
                       justify="space-between"
                     >
                       <Base
                         align="center"
-                        className="css-1t1cqk30 css-hj6snb"
+                        className="css-6wapyi0 css-hj6snb"
                         justify="space-between"
                       >
                         <div
-                          className="css-1t1cqk30 css-hj6snb"
+                          className="css-6wapyi0 css-hj6snb"
                           is={null}
                         >
                           Role
@@ -382,20 +382,20 @@ exports[`CreateProject render() should render roles when available and allowed, 
               <PanelHeader>
                 <StyledPanelHeader>
                   <Component
-                    className="css-kf498j-StyledPanelHeader css-1t1cqk30"
+                    className="css-kf498j-StyledPanelHeader css-6wapyi0"
                   >
                     <Flex
                       align="center"
-                      className="css-kf498j-StyledPanelHeader css-1t1cqk30"
+                      className="css-kf498j-StyledPanelHeader css-6wapyi0"
                       justify="space-between"
                     >
                       <Base
                         align="center"
-                        className="css-1t1cqk30 css-hj6snb"
+                        className="css-6wapyi0 css-hj6snb"
                         justify="space-between"
                       >
                         <div
-                          className="css-1t1cqk30 css-hj6snb"
+                          className="css-6wapyi0 css-hj6snb"
                           is={null}
                         >
                           Team

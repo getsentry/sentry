@@ -1,3 +1,5 @@
+import scale from '../styles/scale';
+
 const theme = {
   offWhite: '#FAF9FB',
   whiteDark: '#fbfbfc',
@@ -102,6 +104,8 @@ const theme = {
     lineHeightHeading: '1.15',
     lineHeightBody: '1.4',
   },
+
+  scale: scale,
 };
 
 // Aliases

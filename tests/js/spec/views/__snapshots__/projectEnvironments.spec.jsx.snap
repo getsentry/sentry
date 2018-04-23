@@ -167,20 +167,20 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
           <PanelHeader>
             <StyledPanelHeader>
               <Component
-                className="css-19pgfgl-StyledPanelHeader css-1t1cqk30"
+                className="css-19pgfgl-StyledPanelHeader css-6wapyi0"
               >
                 <Flex
                   align="center"
-                  className="css-19pgfgl-StyledPanelHeader css-1t1cqk30"
+                  className="css-19pgfgl-StyledPanelHeader css-6wapyi0"
                   justify="space-between"
                 >
                   <Base
                     align="center"
-                    className="css-1t1cqk30 css-14dugjz"
+                    className="css-6wapyi0 css-14dugjz"
                     justify="space-between"
                   >
                     <div
-                      className="css-1t1cqk30 css-14dugjz"
+                      className="css-6wapyi0 css-14dugjz"
                       is={null}
                     >
                       Active Environments
@@ -387,20 +387,20 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
           <PanelHeader>
             <StyledPanelHeader>
               <Component
-                className="css-19pgfgl-StyledPanelHeader css-1t1cqk30"
+                className="css-19pgfgl-StyledPanelHeader css-6wapyi0"
               >
                 <Flex
                   align="center"
-                  className="css-19pgfgl-StyledPanelHeader css-1t1cqk30"
+                  className="css-19pgfgl-StyledPanelHeader css-6wapyi0"
                   justify="space-between"
                 >
                   <Base
                     align="center"
-                    className="css-1t1cqk30 css-14dugjz"
+                    className="css-6wapyi0 css-14dugjz"
                     justify="space-between"
                   >
                     <div
-                      className="css-1t1cqk30 css-14dugjz"
+                      className="css-6wapyi0 css-14dugjz"
                       is={null}
                     >
                       Active Environments
@@ -934,20 +934,20 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
           <PanelHeader>
             <StyledPanelHeader>
               <Component
-                className="css-19pgfgl-StyledPanelHeader css-1t1cqk30"
+                className="css-19pgfgl-StyledPanelHeader css-6wapyi0"
               >
                 <Flex
                   align="center"
-                  className="css-19pgfgl-StyledPanelHeader css-1t1cqk30"
+                  className="css-19pgfgl-StyledPanelHeader css-6wapyi0"
                   justify="space-between"
                 >
                   <Base
                     align="center"
-                    className="css-1t1cqk30 css-14dugjz"
+                    className="css-6wapyi0 css-14dugjz"
                     justify="space-between"
                   >
                     <div
-                      className="css-1t1cqk30 css-14dugjz"
+                      className="css-6wapyi0 css-14dugjz"
                       is={null}
                     >
                       Hidden
@@ -1154,20 +1154,20 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
           <PanelHeader>
             <StyledPanelHeader>
               <Component
-                className="css-19pgfgl-StyledPanelHeader css-1t1cqk30"
+                className="css-19pgfgl-StyledPanelHeader css-6wapyi0"
               >
                 <Flex
                   align="center"
-                  className="css-19pgfgl-StyledPanelHeader css-1t1cqk30"
+                  className="css-19pgfgl-StyledPanelHeader css-6wapyi0"
                   justify="space-between"
                 >
                   <Base
                     align="center"
-                    className="css-1t1cqk30 css-14dugjz"
+                    className="css-6wapyi0 css-14dugjz"
                     justify="space-between"
                   >
                     <div
-                      className="css-1t1cqk30 css-14dugjz"
+                      className="css-6wapyi0 css-14dugjz"
                       is={null}
                     >
                       Hidden

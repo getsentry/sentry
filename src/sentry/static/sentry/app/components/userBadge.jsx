@@ -4,7 +4,6 @@ import styled from 'react-emotion';
 import Avatar from './avatar';
 import Link from './link';
 import overflowEllipsis from '../styles/overflowEllipsis';
-import space from '../styles/space';
 
 const UserBadge = ({
   displayName,
@@ -54,7 +53,7 @@ const StyledNameAndEmail = styled('div')`
 
 const StyledEmail = styled('div')`
   font-size: 0.875em;
-  margin-top: ${space(0.5)};
+  margin-top: ${p => p.theme.scale(0.5)};
   color: ${p => p.theme.gray2};
   ${overflowEllipsis};
 `;
@@ -63,14 +62,14 @@ const StyledName = styled(
   ({useLink, ...props}) => (useLink ? <Link {...props} /> : <span {...props} />)
 )`
   font-weight: bold;
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.scale(0.5)};
   ${overflowEllipsis};
 `;
 
 const StyledAvatar = styled(props => <Avatar {...props} />)`
-  min-width: ${space(3)};
-  min-height: ${space(3)};
-  margin-right: ${space(1)};
+  min-width: ${p => p.theme.scale(3)};
+  min-height: ${p => p.theme.scale(3)};
+  margin-right: ${p => p.theme.scale(1)};
 `;
 
 export default UserBadge;

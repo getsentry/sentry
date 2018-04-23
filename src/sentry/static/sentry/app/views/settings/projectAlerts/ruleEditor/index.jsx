@@ -20,7 +20,6 @@ import EnvironmentStore from '../../../../stores/environmentStore';
 import LoadingIndicator from '../../../../components/loadingIndicator';
 import RuleNodeList from './ruleNodeList';
 import recreateRoute from '../../../../utils/recreateRoute';
-import space from '../../../../styles/space';
 
 const FREQUENCY_CHOICES = [
   ['5', t('5 minutes')],
@@ -325,13 +324,13 @@ const RuleEditor = createReactClass({
 export default RuleEditor;
 
 const CancelButton = styled(Button)`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.scale(1)};
 `;
 
 const ActionBar = styled('div')`
   display: flex;
   justify-content: flex-end;
-  padding: ${space(2)};
+  padding: ${p => p.theme.scale(2)};
   border-top: 1px solid ${p => p.theme.borderLight};
   margin: 0 -20px -20px;
 `;

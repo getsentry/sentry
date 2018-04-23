@@ -18,7 +18,7 @@ import {Panel, PanelHeader} from '../../../components/panels';
 import InlineSvg from '../../../components/inlineSvg';
 import EmptyMessage from '../components/emptyMessage';
 import {t} from '../../../locale';
-import space from '../../../styles/space';
+import scale from '../../../styles/scale';
 import overflowEllipsis from '../../../styles/overflowEllipsis';
 
 const TeamMembers = createReactClass({
@@ -219,7 +219,7 @@ const TeamMembers = createReactClass({
         <InlineSvg
           src="icon-circle-subtract"
           size="1.25em"
-          style={{marginRight: space(1)}}
+          style={{marginRight: scale(1)}}
         />
         {t('Remove')}
       </Button>
@@ -260,7 +260,7 @@ const TeamMembers = createReactClass({
 const StyledMemberContainer = styled('div')`
   display: flex;
   justify-content: space-between;
-  padding: ${space(2)};
+  padding: ${p => p.theme.scale(2)};
   border-bottom: 1px solid ${p => p.theme.borderLight};
 `;
 
@@ -268,7 +268,7 @@ const StyledUserListElement = styled('div')`
   font-size: 0.875em;
   display: flex;
   align-items: center;
-  padding: ${space(0.5)};
+  padding: ${p => p.theme.scale(0.5)};
 `;
 
 const StyledNameOrEmail = styled('div')`
@@ -282,13 +282,13 @@ const StyledAvatar = styled(props => <Avatar {...props} />)`
   min-height: 1.75em;
   width: 1.5em;
   height: 1.5em;
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.scale(0.5)};
 `;
 
 const StyledMembersLabel = styled('div')`
   width: 250px;
   font-size: 0.875em;
-  padding: ${space(1)} 0;
+  padding: ${p => p.theme.scale(1)} 0;
   text-transform: uppercase;
 `;
 
