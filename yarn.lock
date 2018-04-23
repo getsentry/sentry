@@ -29,28 +29,29 @@
   version "3.0.9"
   resolved "https://registry.yarnpkg.com/@hypnosphi/fuse.js/-/fuse.js-3.0.9.tgz#ea99f6121b4a8f065b4c71f85595db2714498807"
 
-"@percy-io/react-percy-api-client@^0.2.0":
-  version "0.2.5"
-  resolved "https://registry.yarnpkg.com/@percy-io/react-percy-api-client/-/react-percy-api-client-0.2.5.tgz#c98974d8c1bc53e2ae38c1549b0ec967fdde628f"
+"@percy-io/percy-storybook@^1.3.3":
+  version "1.3.3"
+  resolved "https://registry.yarnpkg.com/@percy-io/percy-storybook/-/percy-storybook-1.3.3.tgz#f2972e072f03b60b128bef600c00a8cc71a5c829"
   dependencies:
+    "@percy-io/react-percy-api-client" "^0.3.0"
     babel-runtime "^6.26.0"
-    debug "^2.6.3"
-    es6-promise-pool "^2.4.4"
-    mime-types "^2.1.14"
-    percy-client "^2.1.0"
-    slugify "^1.1.0"
-
-"@percy-io/react-percy-storybook@^1.1.5":
-  version "1.1.5"
-  resolved "https://registry.yarnpkg.com/@percy-io/react-percy-storybook/-/react-percy-storybook-1.1.5.tgz#80e138afe01441aaafa8dfdd59ead8b0329b9ca7"
-  dependencies:
-    "@percy-io/react-percy-api-client" "^0.2.0"
     debug "^2.6.3"
     es6-error "^4.0.2"
     es6-promise-pool "^2.4.4"
     jsdom "^9.12.0"
     walk "^2.3.9"
     yargs "^7.0.2"
+
+"@percy-io/react-percy-api-client@^0.3.0":
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/@percy-io/react-percy-api-client/-/react-percy-api-client-0.3.0.tgz#e28141b4afc418508e866e51aed22fec96333c4b"
+  dependencies:
+    babel-runtime "^6.26.0"
+    debug "^2.6.3"
+    es6-promise-pool "^2.4.4"
+    mime-types "^2.1.14"
+    percy-client "^2.3.0"
+    slugify "^1.1.0"
 
 "@storybook/addon-actions@^3.2.17":
   version "3.2.17"
@@ -6682,9 +6683,9 @@ pbkdf2@^3.0.3:
     safe-buffer "^5.0.1"
     sha.js "^2.4.8"
 
-percy-client@^2.1.0:
-  version "2.5.0"
-  resolved "https://registry.yarnpkg.com/percy-client/-/percy-client-2.5.0.tgz#54f981a827013c7d7a9e9fdb289ec9671f0f8bea"
+percy-client@^2.3.0:
+  version "2.8.1"
+  resolved "https://registry.yarnpkg.com/percy-client/-/percy-client-2.8.1.tgz#938a59dac672a9adab6caa994edefde0dfa3130f"
   dependencies:
     base64-js "^1.1.2"
     bluebird "^3.5.1"
