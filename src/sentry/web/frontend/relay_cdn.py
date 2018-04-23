@@ -9,14 +9,6 @@ from sentry.web.helpers import render_to_response
 class RelayJavaScriptLoader(BaseView):
     auth_required = False
 
-    def get(self, request):
-        return render_to_response('sentry/relay-loader.js',
-                                  content_type="text/javascript")
-
-
-class RelaySdkLoader(BaseView):
-    auth_required = False
-
     def get(self, request, public_key):
         key = ProjectKey.objects.get(
             public_key=public_key
@@ -25,5 +17,5 @@ class RelaySdkLoader(BaseView):
         context = {
             'config': config.to_dict()
         }
-        return render_to_response('sentry/relay-sdk-loader.js', context,
+        return render_to_response('sentry/relay-loader.js', context,
                                   content_type="text/javascript")

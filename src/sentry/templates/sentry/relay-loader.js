@@ -1,3 +1,4 @@
+{% load sentry_helpers %}
 // We use so many arguments, to let minifier optimize naming as much as possible
 
 // url and namespace are placed last, so that users can change them when necessary
@@ -45,35 +46,49 @@
     if (_oldOnunhandledrejection) _oldOnunhandledrejection.apply(_window, arguments);
   };
 
-  // Create a `script` tag with provided `url` and attach it just before first already existing `script` tag
-  // This will fetch our SDK Loader and do all the magic
 
-  // https://www.html5rocks.com/en/tutorials/speed/script-loading/
-  // Scripts that are dynamically created and added to the document are async by default,
-  // they don’t block rendering and execute as soon as they download, meaning they could
-  // come out in the wrong order. Because of that we don't need async=1 as GA does.
-  // it was probably(?) a legacy behavior that they left to not modify few years old snippet
-  _newScriptTag = _document.createElement(_script);
-  _currentScriptTag = _document.getElementsByTagName(_script)[0];
+  function drainQueue() {
+    var SDK = _window.Sentry;
 
-  _currentScriptTag.parentNode.insertBefore(_newScriptTag, _currentScriptTag);
-  let sentryScript = document.querySelector('script[data-public-key]');
-  if (!sentryScript) {
-    console.error('No script found with data-public-key attribute');
-    return;
+    console.log('Draining queue...');
+
+    for (var i = 0; i < _window[_namespace].q.length; i++) {
+      console.log('Queued event captured');
+      SDK.captureException(_window[_namespace].q[i]);
+    }
   }
-  let a = document.createElement('a');
-  a.href = sentryScript.getAttribute('src');
-  let publicKey = sentryScript.getAttribute('data-public-key');
 
-  _newScriptTag.src =
-    a.protocol +
-    '//' +
-    a.host +
-    (a.port ? ':' + a.port : '') +
-    '/cdn/' +
-    publicKey +
-    '/sdk-loader.js';
+  function attachSDK(url) {
+    var head = _document.getElementsByTagName('head')[0];
+    var script = _document.createElement('script');
+    script.type = 'text/javascript';
+    script.src = url;
+    head.appendChild(script);
+    return script;
+  }
+
+  function configSDK(config) {
+    try {
+      var SDK = _window.Sentry;
+      SDK.init(config);
+      console.log('@sentry/browser configured');
+    } catch (o_O) {
+      console.error(
+        'Something went wrong, please call 911 and tell them that Sentry is broken'
+      );
+    }
+  }
+
+  var script = attachSDK('https://pastebin.com/raw/ncDxxR1U');
+  console.log('Fetching @sentry/browser...');
+  script.addEventListener('load', function() {
+    console.log('@sentry/browser fetched');
+    configSDK({{ config|to_json|safe }});
+    if (_window[_namespace].q.length) {
+      console.log(_window[_namespace].q.length + ' exceptions captured and queued');
+      drainQueue();
+    }
+  });
 })(
   // predefined references, that should never be changed
   window,
