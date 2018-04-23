@@ -40,4 +40,5 @@ export default TeamBadge;
 
 const StyledAvatar = styled(Avatar)`
   margin-right: ${space(1)};
+  flex-shrink: 0;
 `;
