@@ -96,10 +96,12 @@ const GuideStore = Reflux.createStore({
   },
 
   updatePrevGuide(bestGuide) {
-    if (!this.state.prevGuide) {
-      this.recordCue(bestGuide.id, bestGuide.cue);
-      this.state.prevGuide = bestGuide;
-    } else if (this.state.prevGuide && this.state.prevGuide.id !== bestGuide.id) {
+    if (!bestGuide) return;
+
+    if (
+      !this.state.prevGuide ||
+      (this.state.prevGuide && this.state.prevGuide.id !== bestGuide.id)
+    ) {
       this.recordCue(bestGuide.id, bestGuide.cue);
       this.state.prevGuide = bestGuide;
     }
@@ -128,8 +130,6 @@ const GuideStore = Reflux.createStore({
         step => step.target && availableTargets.indexOf(step.target) >= 0
       );
     }
-
-    bestGuide ? this.updatePrevGuide(bestGuide) : null;
 
     this.state.currentGuide = bestGuide;
 
