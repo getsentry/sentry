@@ -98,11 +98,11 @@ describe('GuideStore', function() {
     GuideStore.onRegisterAnchor(anchor1);
     GuideStore.onRegisterAnchor(anchor2);
     GuideStore.onFetchSucceeded(data);
-    expect(mockRecordCue).toHaveBeenCalledWith(data['issue']['id'], data['issue']['cue']);
+    expect(mockRecordCue).toHaveBeenCalledWith(data.issue.id, data.issue.cue);
     expect(mockRecordCue).toHaveBeenCalledTimes(1);
     GuideStore.onCloseGuideOrSupport();
-    expect(GuideStore.state.currentGuide).toEqual(data['other']);
-    expect(mockRecordCue).toHaveBeenCalledWith(data['other']['id'], data['other']['cue']);
+    expect(GuideStore.state.currentGuide).toEqual(data.other);
+    expect(mockRecordCue).toHaveBeenCalledWith(data.other.id, data.other.cue);
     expect(mockRecordCue).toHaveBeenCalledTimes(2);
   });
 });
