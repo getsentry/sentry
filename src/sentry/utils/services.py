@@ -249,7 +249,7 @@ class ServiceDelegator(Service):
         def execute(*args, **kwargs):
             # If this thread already has an active backend for this base class,
             # we can safely call that backend synchronously without delegating.
-            if self in self.state.backends:
+            if self.__backend_base in self.state.backends:
                 backend = type(self).state.backends[self.__backend_base]
                 return getattr(backend, attribute_name)(*args, **kwargs)
 
