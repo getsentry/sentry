@@ -6,7 +6,8 @@ import json
 import pytest
 import responses
 
-from sentry.utils import snuba
+from django.conf import settings
+
 from sentry.models import GroupHash, Release
 from sentry.testutils import TestCase
 from sentry.tsdb.base import TSDBModel
@@ -44,7 +45,14 @@ def has_shape(data, shape, allow_empty=False):
         return True
 
 
-class SnubaTSDBTest(TestCase):
+class SnubaTSDBRequestsTest(TestCase):
+    """
+    Tests that the Snuba TSDB backend makes correctly formatted requests
+    to the Snuba service, and formats the results correctly.
+
+    Mocks the Snuba service request/response.
+    """
+
     def setUp(self):
         self.db = SnubaTSDB()
 
@@ -64,21 +72,25 @@ class SnubaTSDBTest(TestCase):
                 aggs = body.get('aggregations', [])
                 meta = [{'name': col} for col in body['groupby'] + [a[2] for a in aggs]]
                 datum = {col['name']: 1 for col in meta}
+                datum['project_id'] = project_id
                 if 'time' in datum:
                     datum['time'] = '2018-03-09T01:00:00Z'
                 for agg in aggs:
                     if agg[0].startswith('topK'):
-                        datum[agg[2]] = [1]
+                        datum[agg[2]] = [99]
                 return (200, {}, json.dumps({'data': [datum], 'meta': meta}))
 
-            rsps.add_callback(responses.POST, snuba.SNUBA + '/query', callback=snuba_response)
+            rsps.add_callback(
+                responses.POST,
+                settings.SENTRY_SNUBA + '/query',
+                callback=snuba_response)
 
             results = self.db.get_most_frequent(TSDBModel.frequent_issues_by_project,
-                                                [project_id], dts[0], dts[-1])
+                                                [project_id], dts[0], dts[0])
             assert has_shape(results, {1: [(1, 1.0)]})
 
             results = self.db.get_most_frequent_series(TSDBModel.frequent_issues_by_project,
-                                                       [project_id], dts[0], dts[-1])
+                                                       [project_id], dts[0], dts[0])
             assert has_shape(results, {1: [(1, {1: 1.0})]})
 
             items = {
@@ -108,7 +120,7 @@ class SnubaTSDBTest(TestCase):
             assert has_shape(results, 1)
 
     @responses.activate
-    def test_groups(self):
+    def test_groups_request(self):
         now = parse_datetime('2018-03-09T01:00:00Z')
         dts = [now + timedelta(hours=i) for i in range(4)]
         project = self.create_project()
@@ -133,12 +145,15 @@ class SnubaTSDBTest(TestCase):
                     'meta': [{'name': 'time'}, {'name': 'issue'}, {'name': 'aggregate'}]
                 }))
 
-            rsps.add_callback(responses.POST, snuba.SNUBA + '/query', callback=snuba_response)
+            rsps.add_callback(
+                responses.POST,
+                settings.SENTRY_SNUBA + '/query',
+                callback=snuba_response)
             results = self.db.get_range(TSDBModel.group, [group.id], dts[0], dts[-1])
             assert results is not None
 
     @responses.activate
-    def test_releases(self):
+    def test_releases_request(self):
         now = parse_datetime('2018-03-09T01:00:00Z')
         project = self.create_project()
         release = Release.objects.create(
@@ -161,12 +176,20 @@ class SnubaTSDBTest(TestCase):
                     'meta': [{'name': 'release'}, {'name': 'time'}, {'name': 'aggregate'}]
                 }))
 
-            rsps.add_callback(responses.POST, snuba.SNUBA + '/query', callback=snuba_response)
-            results = self.db.get_range(TSDBModel.release, [release.id], dts[0], dts[-1])
-            assert results == {release.id: [(to_timestamp(now), 100)]}
+            rsps.add_callback(
+                responses.POST,
+                settings.SENTRY_SNUBA + '/query',
+                callback=snuba_response)
+            results = self.db.get_range(
+                TSDBModel.release, [release.id], dts[0], dts[-1], rollup=3600)
+            assert results == {
+                release.id: [
+                    (int(to_timestamp(d)), 100 if d == now else 0)
+                    for d in dts]
+            }
 
     @responses.activate
-    def test_environment(self):
+    def test_environment_request(self):
         now = parse_datetime('2018-03-09T01:00:00Z')
         project = self.create_project()
         env = self.create_environment(project=project, name="prod")
@@ -184,10 +207,17 @@ class SnubaTSDBTest(TestCase):
                     'meta': [{'name': 'project_id'}, {'name': 'time'}, {'name': 'aggregate'}]
                 }))
 
-            rsps.add_callback(responses.POST, snuba.SNUBA + '/query', callback=snuba_response)
+            rsps.add_callback(
+                responses.POST,
+                settings.SENTRY_SNUBA + '/query',
+                callback=snuba_response)
             results = self.db.get_range(TSDBModel.project, [project.id],
-                                        dts[0], dts[-1], environment_id=env.id)
-            assert results == {project.id: [(to_timestamp(now), 100)]}
+                                        dts[0], dts[-1], environment_id=env.id, rollup=3600)
+            assert results == {
+                project.id: [
+                    (int(to_timestamp(d)), 100 if d == now else 0)
+                    for d in dts]
+            }
 
     def test_invalid_model(self):
         with pytest.raises(Exception) as ex:

@@ -11,13 +11,15 @@ from __future__ import absolute_import
 __all__ = (
     'TestCase', 'TransactionTestCase', 'APITestCase', 'TwoFactorAPITestCase', 'AuthProviderTestCase', 'RuleTestCase',
     'PermissionTestCase', 'PluginTestCase', 'CliTestCase', 'AcceptanceTestCase',
-    'IntegrationTestCase', 'UserReportEnvironmentTestCase',
+    'IntegrationTestCase', 'UserReportEnvironmentTestCase', 'SnubaTestCase',
 )
 
 import base64
+import calendar
 import os
 import os.path
 import pytest
+import requests
 import six
 import types
 import logging
@@ -48,7 +50,8 @@ from sentry.auth.superuser import (
 )
 from sentry.constants import MODULE_ROOT
 from sentry.models import (
-    GroupMeta, ProjectOption, DeletedOrganization, Environment, GroupStatus, Organization, TotpInterface, UserReport
+    GroupEnvironment, GroupHash, GroupMeta, ProjectOption, DeletedOrganization,
+    Environment, GroupStatus, Organization, TotpInterface, UserReport,
 )
 from sentry.plugins import plugins
 from sentry.rules import EventState
@@ -685,3 +688,83 @@ class IntegrationTestCase(TestCase):
 
     def assertDialogSuccess(self, resp):
         assert 'window.opener.postMessage(' in resp.content
+
+
+class SnubaTestCase(TestCase):
+    def setUp(self):
+        super(SnubaTestCase, self).setUp()
+
+        assert requests.post(settings.SENTRY_SNUBA + '/tests/drop').status_code == 200
+
+    def __wrap_event(self, event, data, primary_hash):
+        # TODO: Abstract and combine this with the stream code in
+        #       getsentry once it is merged, so that we don't alter one
+        #       without updating the other.
+        return {
+            'group_id': event.group_id,
+            'event_id': event.event_id,
+            'project_id': event.project_id,
+            'message': event.message,
+            'platform': event.platform,
+            'datetime': event.datetime,
+            'data': data,
+            'primary_hash': primary_hash,
+        }
+
+    def create_event(self, *args, **kwargs):
+        """\
+        Takes the results from the existing `create_event` method and
+        inserts into the local test Snuba cluster so that tests can be
+        run against the same event data.
+
+        Note that we create a GroupHash as necessary because `create_event`
+        doesn't run them through the 'real' event pipeline. In a perfect
+        world all test events would go through the full regular pipeline.
+        """
+
+        from sentry.event_manager import get_hashes_from_fingerprint, md5_from_hash
+
+        event = super(SnubaTestCase, self).create_event(*args, **kwargs)
+
+        data = event.data.data
+        tags = dict(data.get('tags', []))
+
+        if not data.get('received'):
+            data['received'] = calendar.timegm(event.datetime.timetuple())
+
+        environment = Environment.get_or_create(
+            event.project,
+            tags['environment'],
+        )
+
+        GroupEnvironment.objects.get_or_create(
+            environment_id=environment.id,
+            group_id=event.group_id,
+        )
+
+        hashes = get_hashes_from_fingerprint(
+            event,
+            data.get('fingerprint', ['{{ default }}']),
+        )
+        primary_hash = md5_from_hash(hashes[0])
+
+        grouphash, _ = GroupHash.objects.get_or_create(
+            project=event.project,
+            group=event.group,
+            hash=primary_hash,
+        )
+
+        self.snuba_insert(self.__wrap_event(event, data, grouphash.hash))
+
+        return event
+
+    def snuba_insert(self, events):
+        "Write a (wrapped) event (or events) to Snuba."
+
+        if not isinstance(events, list):
+            events = [events]
+
+        assert requests.post(
+            settings.SENTRY_SNUBA + '/tests/insert',
+            data=json.dumps(events)
+        ).status_code == 200

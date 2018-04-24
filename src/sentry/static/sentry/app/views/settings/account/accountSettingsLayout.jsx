@@ -1,7 +1,7 @@
 import React from 'react';
 
 import AccountSettingsNavigation from './accountSettingsNavigation';
-import SettingsLayout from '../settingsLayout';
+import SettingsLayout from '../components/settingsLayout';
 
 class AccountSettingsLayout extends React.Component {
   render() {

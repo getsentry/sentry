@@ -12,7 +12,7 @@ import Link from '../../components/link';
 import LoadingIndicator from '../../components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from '../../components/panels';
 import SentryTypes from '../../proptypes';
-import SettingsLayout from './settingsLayout';
+import SettingsLayout from './components/settingsLayout';
 import TextOverflow from '../../components/textOverflow';
 import withLatestContext from '../../utils/withLatestContext';
 

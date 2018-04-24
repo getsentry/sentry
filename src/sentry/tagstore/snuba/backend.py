@@ -24,6 +24,7 @@ from sentry.tagstore.exceptions import (
 )
 from sentry.utils import snuba
 
+
 SEEN_COLUMN = 'timestamp'
 
 
@@ -390,27 +391,9 @@ class SnubaTagStorage(TagStorage):
         result = snuba.query(start, end, ['issue'], None, filters, aggregations)
         return defaultdict(int, result.items())
 
-    # Search
-    def get_group_ids_for_search_filter(self, project_id, environment_id, tags):
-        from sentry.search.base import ANY
-
-        start, end = self.get_time_range()
-
-        filters = {
-            'environment': [environment_id],
-            'project_id': [project_id],
-        }
-
-        conditions = []
-        for tag, val in six.iteritems(tags):
-            col = 'tags[{}]'.format(tag)
-            if val == ANY:
-                conditions.append((col, 'IS NOT NULL', None))
-            else:
-                conditions.append((col, '=', val))
-
-        issues = snuba.query(start, end, ['issue'], conditions, filters)
-        return issues.keys()
+    def get_group_ids_for_search_filter(
+            self, project_id, environment_id, tags, candidates=None, limit=1000):
+        raise NotImplementedError
 
     # Everything from here down is basically no-ops
     def create_tag_key(self, project_id, environment_id, key, **kwargs):
@@ -501,10 +484,10 @@ class SnubaTagStorage(TagStorage):
         pass
 
     def get_tag_value_qs(self, project_id, environment_id, key, query=None):
-        return None
+        raise NotImplementedError
 
     def get_group_tag_value_qs(self, project_id, group_id, environment_id, key, value=None):
-        return None
+        raise NotImplementedError
 
     def get_event_tag_qs(self, project_id, environment_id, key, value):
-        return None
+        raise NotImplementedError

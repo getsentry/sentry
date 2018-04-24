@@ -580,6 +580,7 @@ def show_emails(request):
                 # Update newsletter subscription and mark as unverified
                 newsletter.update_subscription(
                     user=user,
+                    create=True,
                     verified=False,
                 )
 
