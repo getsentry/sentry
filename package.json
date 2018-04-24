@@ -117,6 +117,7 @@
       "enzyme-to-json/serializer"
     ],
     "moduleNameMapper": {
+      "^app/(.*)": "<rootDir>/src/sentry/static/sentry/app/$1",
       "\\.(css|less|png)$": "<rootDir>/tests/js/helpers/importStyleMock.js",
       "\\.(svg)$": "<rootDir>/tests/js/helpers/svgMock.js",
       "jquery": "<rootDir>/src/sentry/static/sentry/__mocks__/jquery.jsx",
