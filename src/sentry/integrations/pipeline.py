@@ -57,18 +57,15 @@ class IntegrationPipeline(Pipeline):
         identity = data.get('user_identity')
 
         if identity:
-            try:
-                idp = IdentityProvider.objects.get(
-                    Q(external_id=data['external_id']) | Q(external_id=None),
-                    organization=self.organization,
-                    type=identity['type'],
-                )
-            except IdentityProvider.DoesNotExist:
-                idp = IdentityProvider.objects.create(
-                    external_id=data['external_id'],
-                    organization=self.organization,
-                    type=identity['type'],
-                )
+            idp, created = IdentityProvider.objects.filter(
+                Q(external_id=data['external_id']) | Q(external_id=None),
+            ).get_or_create(
+                organization=self.organization,
+                type=identity['type'],
+                defaults={
+                    'external_id': data['external_id'],
+                },
+            )
 
             # TODO(epurkhiser): Once external_id is backfilled we can get away with this
             # # Create identity provider for this integration if necessary
