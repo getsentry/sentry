@@ -15,7 +15,6 @@ import GuideStore from '../../stores/guideStore';
 import CueIcon from './cueIcon';
 import AssistantContainer from './assistantContainer';
 import CloseIcon from './closeIcon';
-import HookStore from '../../stores/hookStore';
 
 // AssistantHelper is responsible for rendering the cue message, guide drawer and support drawer.
 const AssistantHelper = createReactClass({
@@ -36,17 +35,6 @@ const AssistantHelper = createReactClass({
 
   componentDidMount() {
     fetchGuides();
-  },
-
-  componentDidUpdate(prevProps, prevState) {
-    if (this.state.currentGuide && !prevState.currentGuide) {
-      HookStore.get('analytics:event').forEach(cb =>
-        cb('assistant.guide_cued', {
-          guide: this.state.currentGuide.id,
-          cue: this.state.currentGuide.cue,
-        })
-      );
-    }
   },
 
   onGuideStateChange(data) {
