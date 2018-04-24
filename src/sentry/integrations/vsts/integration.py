@@ -59,21 +59,12 @@ class VSTSIntegration(Integration):
         data = state['identity']['data']
 
         scopes = sorted(self.identity_oauth_scopes)
-        team_data = self.get_team_info(data['access_token'])
 
         return {
-            'name': data['team_name'],
-            'external_id': state['team_id'],
+            'name': 'VSTS',
+            'external_id': 'vsts',
             'metadata': {
                 'access_token': data['access_token'],
                 'scopes': scopes,
-                'icon': team_data['icon'],
-                'domain_name': team_data['domain'],
-            },
-            'user_identity': {
-                'type': 'vsts',
-                'external_id': data['installer_user_id'],
-                'scopes': [],
-                'data': {},
             },
         }
