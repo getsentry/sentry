@@ -26,7 +26,7 @@ install-brew:
 	@hash brew 2> /dev/null && brew bundle || (echo '! Homebrew not found, skipping system dependencies.')
 
 install-python:
-	# must be executed serialially
+	# must be executed serially
 	$(MAKE) install-python-base
 	$(MAKE) install-python-develop
 
