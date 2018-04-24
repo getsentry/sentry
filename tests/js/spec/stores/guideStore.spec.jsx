@@ -24,6 +24,17 @@ describe('GuideStore', function() {
         ],
         seen: false,
       },
+      other: {
+        cue: 'Some other guide here',
+        id: 2,
+        page: 'random',
+        required_targets: ['target 1'],
+        steps: [
+          {message: 'Message 1', target: 'target 1', title: '1. Title 1'},
+          {message: 'Message 2', target: 'target 2', title: '2. Title 2'},
+        ],
+        seen: false,
+      },
     };
   });
 
@@ -64,6 +75,7 @@ describe('GuideStore', function() {
 
   it('should not show seen guides', function() {
     data.issue.seen = true;
+    data.other.seen = true;
     GuideStore.onRegisterAnchor(anchor1);
     GuideStore.onRegisterAnchor(anchor2);
     GuideStore.onFetchSucceeded(data);
@@ -77,5 +89,20 @@ describe('GuideStore', function() {
     GuideStore.state.forceShow = true;
     GuideStore.onFetchSucceeded(data);
     expect(GuideStore.state.currentGuide).not.toEqual(null);
+  });
+
+  it('should update', function() {
+    let mockRecordCue = jest.fn();
+    GuideStore.recordCue = mockRecordCue;
+
+    GuideStore.onRegisterAnchor(anchor1);
+    GuideStore.onRegisterAnchor(anchor2);
+    GuideStore.onFetchSucceeded(data);
+    expect(mockRecordCue).toHaveBeenCalledWith(data['issue']['id'], data['issue']['cue']);
+    expect(mockRecordCue).toHaveBeenCalledTimes(1);
+    GuideStore.onCloseGuideOrSupport();
+    expect(GuideStore.state.currentGuide).toEqual(data['other']);
+    expect(mockRecordCue).toHaveBeenCalledWith(data['other']['id'], data['other']['cue']);
+    expect(mockRecordCue).toHaveBeenCalledTimes(2);
   });
 });

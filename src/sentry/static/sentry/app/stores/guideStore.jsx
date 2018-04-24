@@ -130,7 +130,7 @@ const GuideStore = Reflux.createStore({
         step => step.target && availableTargets.indexOf(step.target) >= 0
       );
     }
-
+    this.updatePrevGuide(bestGuide);
     this.state.currentGuide = bestGuide;
 
     this.state.currentStep = this.state.forceShow ? 1 : 0;
