@@ -138,6 +138,45 @@ class UpdateProjectRuleTest(APITestCase):
         ]
         assert rule.data['conditions'] == conditions
 
+    def test_update_name(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+
+        rule = Rule.objects.create(project=project, label='foo')
+
+        url = reverse(
+            'sentry-api-0-project-rule-details',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+                'rule_id': rule.id,
+            }
+        )
+
+        response = self.client.put(
+            url,
+            data={'environment': None, 'actionMatch': 'all', 'frequency': 30, 'name': 'test',
+                  'conditions':
+                  [{
+                      'interval': '1h',
+                      'id': 'sentry.rules.conditions.event_frequency.EventFrequencyCondition',
+                      'value': 666,
+                      'name': 'An event is seen more than 30 times in 1m'}],
+                  'id': '28',
+                  'actions': [{
+                      'id': 'sentry.rules.actions.notify_event.NotifyEventAction',
+                      'name': 'Send a notification (for all legacy integrations)'}],
+                  'dateCreated': '2018-04-24T23:37:21.246Z'},
+            format='json'
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data['conditions'][0]['name'] == 'An event is seen more than 666 times in 1h'
+
+        rule = Rule.objects.get(id=rule.id)
+        assert rule.data['conditions'][0]['name'] == 'An event is seen more than 666 times in 1h'
+
     def test_with_environment(self):
         self.login_as(user=self.user)
 
