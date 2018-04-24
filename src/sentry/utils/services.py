@@ -288,6 +288,10 @@ class ServiceDelegator(Service):
                 active_backends[base] = backend
                 try:
                     return getattr(backend, attribute_name)(*args, **kwargs)
+                except Exception as error:
+                    logger.warning('Caught %s in executor while calling %r on %r: %s',
+                                   type(error).__name__, attribute_name, backend, error, exc_info=True)
+                    raise
                 finally:
                     # Unmark the backend as active.
                     assert active_backends[base] is backend
