@@ -24,6 +24,7 @@ default_manager.add('organizations:internal-catchall', OrganizationFeature)  # N
 default_manager.add('organizations:new-teams', OrganizationFeature)  # NOQA
 default_manager.add('organizations:code-owners', OrganizationFeature)  # NOQA
 default_manager.add('organizations:unreleased-changes', OrganizationFeature)  # NOQA
+default_manager.add('organizations:relay', OrganizationFeature)  # NOQA
 default_manager.add('projects:similarity-view', ProjectFeature)  # NOQA
 default_manager.add('organizations:environments', OrganizationFeature)  # NOQA
 default_manager.add('organizations:dashboard', OrganizationFeature)  # NOQA

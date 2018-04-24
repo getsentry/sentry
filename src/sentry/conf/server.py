@@ -758,6 +758,7 @@ SENTRY_FEATURES = {
     'organizations:code-owners': False,
     'organizations:unreleased-changes': False,
     'organizations:dashboard': False,
+    'organizations:relay': False,
     'projects:global-events': False,
     'projects:plugins': True,
     'projects:dsym': False,

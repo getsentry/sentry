@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from django.conf import settings
+
 from sentry.relay import Config
 from sentry.models import ProjectKey
 from sentry.web.frontend.base import BaseView
@@ -15,7 +17,8 @@ class RelayJavaScriptLoader(BaseView):
         )
         config = Config(key.project, key)
         context = {
-            'config': config.to_dict()
+            'config': config.to_dict(),
+            'debug': settings.DEBUG
         }
-        return render_to_response('sentry/relay-loader.js', context,
+        return render_to_response('sentry/relay-loader.js.tmpl', context,
                                   content_type="text/javascript")

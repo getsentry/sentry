@@ -292,6 +292,7 @@ const KeySettings = createReactClass({
     data: SentryTypes.ProjectKey.isRequired,
     onRemove: PropTypes.func.isRequired,
     rateLimitsEnabled: PropTypes.bool,
+    relayEnabled: PropTypes.bool,
   },
 
   mixins: [ApiMixin],
@@ -327,7 +328,14 @@ const KeySettings = createReactClass({
 
   render() {
     let {keyId, orgId, projectId} = this.props.params;
-    let {access, data, rateLimitsEnabled, organization, project} = this.props;
+    let {
+      access,
+      data,
+      rateLimitsEnabled,
+      relayEnabled,
+      organization,
+      project,
+    } = this.props;
     let apiEndpoint = `/projects/${orgId}/${projectId}/keys/${keyId}/`;
 
     return (
@@ -371,6 +379,26 @@ const KeySettings = createReactClass({
           hooksDisabled={this.state.hooksDisabled}
         />
 
+        {relayEnabled && (
+          <Panel>
+            <PanelHeader>{t('CDN')}</PanelHeader>
+            <PanelBody>
+              <PanelAlert type="info" icon="icon-circle-exclamation" m={0} mb={0}>
+                {t('Include this script in your website to track javascript errors.')}
+              </PanelAlert>
+              <Field
+                label={t('Script:')}
+                help={t('Copy this into your website and you are good to go')}
+                inline={false}
+                flexibleControlStateSize
+              >
+                <TextCopyInput>{`<script src='${data.relay
+                  .url}'></script>`}</TextCopyInput>
+              </Field>
+            </PanelBody>
+          </Panel>
+        )}
+
         <Panel>
           <PanelHeader>{t('Credentials')}</PanelHeader>
           <PanelBody>
@@ -387,26 +415,6 @@ const KeySettings = createReactClass({
               showSecretKey
               showProjectId
             />
-          </PanelBody>
-        </Panel>
-
-        <Panel>
-          <PanelHeader>{t('CDN')}</PanelHeader>
-          <PanelBody>
-            <PanelAlert type="info" icon="icon-circle-exclamation" m={0} mb={0}>
-              {t('Include this script in your website to track javascript errors.')}
-            </PanelAlert>
-            <Field
-              label={t('Script:')}
-              help={t('Copy this into your website and you are good to go')}
-              inline={false}
-              flexibleControlStateSize
-            >
-              <TextCopyInput>
-                {`<script data-public-key='${data.public}' src='${data.relay
-                  .url}'></script>`}
-              </TextCopyInput>
-            </Field>
           </PanelBody>
         </Panel>
 
@@ -468,6 +476,8 @@ export default class ProjectKeyDetails extends AsyncView {
     let access = getOrganizationState(organization).getAccess();
     let features = new Set(project.features);
     let hasRateLimitsEnabled = features.has('rate-limits');
+    let orgFeatures = new Set(organization.features);
+    let hasRelayEnabled = orgFeatures.has('relay');
 
     return (
       <div className="ref-key-details">
@@ -481,6 +491,7 @@ export default class ProjectKeyDetails extends AsyncView {
           access={access}
           params={params}
           rateLimitsEnabled={hasRateLimitsEnabled}
+          relayEnabled={hasRelayEnabled}
           data={data}
           onRemove={this.handleRemove}
         />
