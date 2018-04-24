@@ -384,7 +384,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                       >
                         <RuleNodes>
                           <div
-                            className="css-wlwbnk-RuleNodes css-11lm84v0"
+                            className="css-wlwbnk-RuleNodes css-e8p6eg0"
                           >
                             <RuleNode
                               data={
@@ -467,177 +467,44 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                           </div>
                         </RuleNodes>
                         <fieldset>
-                          <StyledSelect
+                          <SelectInput
+                            disabled={false}
+                            multiple={false}
                             onChange={[Function]}
-                            options={
-                              Array [
-                                Object {
-                                  "label": "An event is seen",
-                                  "value": "sentry.rules.conditions.1",
-                                },
-                              ]
-                            }
+                            placeholder="Select an option..."
+                            required={false}
+                            showSearch={true}
                             style={
                               Object {
                                 "width": "100%",
                               }
                             }
+                            value=""
                           >
-                            <Select
-                              arrowRenderer={[Function]}
-                              autosize={true}
-                              backspaceRemoves={true}
-                              backspaceToRemoveMessage="Press backspace to remove {label}"
-                              className="css-lrye9l-StyledSelect css-seafkz0"
-                              clearAllText="Clear all"
-                              clearRenderer={[Function]}
-                              clearValueText="Clear value"
-                              clearable={true}
-                              closeOnSelect={true}
-                              deleteRemoves={true}
-                              delimiter=","
+                            <select
                               disabled={false}
-                              escapeClearsValue={true}
-                              filterOptions={[Function]}
-                              ignoreAccents={true}
-                              ignoreCase={true}
-                              inputProps={Object {}}
-                              isLoading={false}
-                              joinValues={false}
-                              labelKey="label"
-                              matchPos="any"
-                              matchProp="any"
-                              menuBuffer={0}
-                              menuRenderer={[Function]}
-                              multi={false}
-                              noResultsText="No results found"
-                              onBlurResetsInput={true}
+                              multiple={false}
                               onChange={[Function]}
-                              onCloseResetsInput={true}
-                              onSelectResetsInput={true}
-                              openOnClick={true}
-                              optionComponent={[Function]}
-                              options={
-                                Array [
-                                  Object {
-                                    "label": "An event is seen",
-                                    "value": "sentry.rules.conditions.1",
-                                  },
-                                ]
-                              }
-                              pageSize={5}
-                              placeholder="Select..."
-                              removeSelected={true}
+                              placeholder="Select an option..."
                               required={false}
-                              rtl={false}
-                              scrollMenuIntoView={true}
-                              searchable={true}
-                              simpleValue={false}
                               style={
                                 Object {
                                   "width": "100%",
                                 }
                               }
-                              tabSelectsValue={true}
-                              trimFilter={true}
-                              valueComponent={[Function]}
-                              valueKey="value"
+                              value=""
                             >
-                              <div
-                                className="Select css-lrye9l-StyledSelect css-seafkz0 is-clearable is-searchable Select--single"
+                              <option
+                                key="blank"
+                              />
+                              <option
+                                key="sentry.rules.conditions.1"
+                                value="sentry.rules.conditions.1"
                               >
-                                <div
-                                  className="Select-control"
-                                  onKeyDown={[Function]}
-                                  onMouseDown={[Function]}
-                                  onTouchEnd={[Function]}
-                                  onTouchMove={[Function]}
-                                  onTouchStart={[Function]}
-                                  style={
-                                    Object {
-                                      "width": "100%",
-                                    }
-                                  }
-                                >
-                                  <span
-                                    className="Select-multi-value-wrapper"
-                                    id="react-select-10--value"
-                                  >
-                                    <div
-                                      className="Select-placeholder"
-                                    >
-                                      Select...
-                                    </div>
-                                    <AutosizeInput
-                                      aria-activedescendant="react-select-10--value"
-                                      aria-expanded="false"
-                                      aria-haspopup="false"
-                                      aria-owns=""
-                                      className="Select-input"
-                                      injectStyles={true}
-                                      minWidth="5"
-                                      onBlur={[Function]}
-                                      onChange={[Function]}
-                                      onFocus={[Function]}
-                                      required={false}
-                                      role="combobox"
-                                      value=""
-                                    >
-                                      <div
-                                        className="Select-input"
-                                        style={
-                                          Object {
-                                            "display": "inline-block",
-                                          }
-                                        }
-                                      >
-                                        <input
-                                          aria-activedescendant="react-select-10--value"
-                                          aria-expanded="false"
-                                          aria-haspopup="false"
-                                          aria-owns=""
-                                          onBlur={[Function]}
-                                          onChange={[Function]}
-                                          onFocus={[Function]}
-                                          required={false}
-                                          role="combobox"
-                                          style={
-                                            Object {
-                                              "boxSizing": "content-box",
-                                              "width": "5px",
-                                            }
-                                          }
-                                          value=""
-                                        />
-                                        <div
-                                          style={
-                                            Object {
-                                              "height": 0,
-                                              "left": 0,
-                                              "overflow": "scroll",
-                                              "position": "absolute",
-                                              "top": 0,
-                                              "visibility": "hidden",
-                                              "whiteSpace": "pre",
-                                            }
-                                          }
-                                        />
-                                      </div>
-                                    </AutosizeInput>
-                                  </span>
-                                  <span
-                                    className="Select-arrow-zone"
-                                    onMouseDown={[Function]}
-                                  >
-                                    <span
-                                      className="Select-arrow"
-                                      onMouseDown={[Function]}
-                                    />
-                                  </span>
-                                </div>
-                              </div>
-                            </Select>
-                          </StyledSelect>
+                                An event is seen
+                              </option>
+                            </select>
+                          </SelectInput>
                         </fieldset>
                       </div>
                     </RuleNodeList>
@@ -767,7 +634,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                       <div>
                         <RuleNodes>
                           <div
-                            className="css-wlwbnk-RuleNodes css-11lm84v0"
+                            className="css-wlwbnk-RuleNodes css-e8p6eg0"
                           >
                             <RuleNode
                               data={
@@ -850,177 +717,44 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                           </div>
                         </RuleNodes>
                         <fieldset>
-                          <StyledSelect
+                          <SelectInput
+                            disabled={false}
+                            multiple={false}
                             onChange={[Function]}
-                            options={
-                              Array [
-                                Object {
-                                  "label": "Send a notification for all services",
-                                  "value": "sentry.rules.actions.notify1",
-                                },
-                              ]
-                            }
+                            placeholder="Select an option..."
+                            required={false}
+                            showSearch={true}
                             style={
                               Object {
                                 "width": "100%",
                               }
                             }
+                            value=""
                           >
-                            <Select
-                              arrowRenderer={[Function]}
-                              autosize={true}
-                              backspaceRemoves={true}
-                              backspaceToRemoveMessage="Press backspace to remove {label}"
-                              className="css-lrye9l-StyledSelect css-seafkz0"
-                              clearAllText="Clear all"
-                              clearRenderer={[Function]}
-                              clearValueText="Clear value"
-                              clearable={true}
-                              closeOnSelect={true}
-                              deleteRemoves={true}
-                              delimiter=","
+                            <select
                               disabled={false}
-                              escapeClearsValue={true}
-                              filterOptions={[Function]}
-                              ignoreAccents={true}
-                              ignoreCase={true}
-                              inputProps={Object {}}
-                              isLoading={false}
-                              joinValues={false}
-                              labelKey="label"
-                              matchPos="any"
-                              matchProp="any"
-                              menuBuffer={0}
-                              menuRenderer={[Function]}
-                              multi={false}
-                              noResultsText="No results found"
-                              onBlurResetsInput={true}
+                              multiple={false}
                               onChange={[Function]}
-                              onCloseResetsInput={true}
-                              onSelectResetsInput={true}
-                              openOnClick={true}
-                              optionComponent={[Function]}
-                              options={
-                                Array [
-                                  Object {
-                                    "label": "Send a notification for all services",
-                                    "value": "sentry.rules.actions.notify1",
-                                  },
-                                ]
-                              }
-                              pageSize={5}
-                              placeholder="Select..."
-                              removeSelected={true}
+                              placeholder="Select an option..."
                               required={false}
-                              rtl={false}
-                              scrollMenuIntoView={true}
-                              searchable={true}
-                              simpleValue={false}
                               style={
                                 Object {
                                   "width": "100%",
                                 }
                               }
-                              tabSelectsValue={true}
-                              trimFilter={true}
-                              valueComponent={[Function]}
-                              valueKey="value"
+                              value=""
                             >
-                              <div
-                                className="Select css-lrye9l-StyledSelect css-seafkz0 is-clearable is-searchable Select--single"
+                              <option
+                                key="blank"
+                              />
+                              <option
+                                key="sentry.rules.actions.notify1"
+                                value="sentry.rules.actions.notify1"
                               >
-                                <div
-                                  className="Select-control"
-                                  onKeyDown={[Function]}
-                                  onMouseDown={[Function]}
-                                  onTouchEnd={[Function]}
-                                  onTouchMove={[Function]}
-                                  onTouchStart={[Function]}
-                                  style={
-                                    Object {
-                                      "width": "100%",
-                                    }
-                                  }
-                                >
-                                  <span
-                                    className="Select-multi-value-wrapper"
-                                    id="react-select-11--value"
-                                  >
-                                    <div
-                                      className="Select-placeholder"
-                                    >
-                                      Select...
-                                    </div>
-                                    <AutosizeInput
-                                      aria-activedescendant="react-select-11--value"
-                                      aria-expanded="false"
-                                      aria-haspopup="false"
-                                      aria-owns=""
-                                      className="Select-input"
-                                      injectStyles={true}
-                                      minWidth="5"
-                                      onBlur={[Function]}
-                                      onChange={[Function]}
-                                      onFocus={[Function]}
-                                      required={false}
-                                      role="combobox"
-                                      value=""
-                                    >
-                                      <div
-                                        className="Select-input"
-                                        style={
-                                          Object {
-                                            "display": "inline-block",
-                                          }
-                                        }
-                                      >
-                                        <input
-                                          aria-activedescendant="react-select-11--value"
-                                          aria-expanded="false"
-                                          aria-haspopup="false"
-                                          aria-owns=""
-                                          onBlur={[Function]}
-                                          onChange={[Function]}
-                                          onFocus={[Function]}
-                                          required={false}
-                                          role="combobox"
-                                          style={
-                                            Object {
-                                              "boxSizing": "content-box",
-                                              "width": "5px",
-                                            }
-                                          }
-                                          value=""
-                                        />
-                                        <div
-                                          style={
-                                            Object {
-                                              "height": 0,
-                                              "left": 0,
-                                              "overflow": "scroll",
-                                              "position": "absolute",
-                                              "top": 0,
-                                              "visibility": "hidden",
-                                              "whiteSpace": "pre",
-                                            }
-                                          }
-                                        />
-                                      </div>
-                                    </AutosizeInput>
-                                  </span>
-                                  <span
-                                    className="Select-arrow-zone"
-                                    onMouseDown={[Function]}
-                                  >
-                                    <span
-                                      className="Select-arrow"
-                                      onMouseDown={[Function]}
-                                    />
-                                  </span>
-                                </div>
-                              </div>
-                            </Select>
-                          </StyledSelect>
+                                Send a notification for all services
+                              </option>
+                            </select>
+                          </SelectInput>
                         </fieldset>
                       </div>
                     </RuleNodeList>
@@ -1643,181 +1377,48 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                       >
                         <RuleNodes>
                           <div
-                            className="css-wlwbnk-RuleNodes css-11lm84v0"
+                            className="css-wlwbnk-RuleNodes css-e8p6eg0"
                           />
                         </RuleNodes>
                         <fieldset>
-                          <StyledSelect
+                          <SelectInput
+                            disabled={false}
+                            multiple={false}
                             onChange={[Function]}
-                            options={
-                              Array [
-                                Object {
-                                  "label": "An event is seen",
-                                  "value": "sentry.rules.conditions.1",
-                                },
-                              ]
-                            }
+                            placeholder="Select an option..."
+                            required={false}
+                            showSearch={true}
                             style={
                               Object {
                                 "width": "100%",
                               }
                             }
+                            value=""
                           >
-                            <Select
-                              arrowRenderer={[Function]}
-                              autosize={true}
-                              backspaceRemoves={true}
-                              backspaceToRemoveMessage="Press backspace to remove {label}"
-                              className="css-lrye9l-StyledSelect css-seafkz0"
-                              clearAllText="Clear all"
-                              clearRenderer={[Function]}
-                              clearValueText="Clear value"
-                              clearable={true}
-                              closeOnSelect={true}
-                              deleteRemoves={true}
-                              delimiter=","
+                            <select
                               disabled={false}
-                              escapeClearsValue={true}
-                              filterOptions={[Function]}
-                              ignoreAccents={true}
-                              ignoreCase={true}
-                              inputProps={Object {}}
-                              isLoading={false}
-                              joinValues={false}
-                              labelKey="label"
-                              matchPos="any"
-                              matchProp="any"
-                              menuBuffer={0}
-                              menuRenderer={[Function]}
-                              multi={false}
-                              noResultsText="No results found"
-                              onBlurResetsInput={true}
+                              multiple={false}
                               onChange={[Function]}
-                              onCloseResetsInput={true}
-                              onSelectResetsInput={true}
-                              openOnClick={true}
-                              optionComponent={[Function]}
-                              options={
-                                Array [
-                                  Object {
-                                    "label": "An event is seen",
-                                    "value": "sentry.rules.conditions.1",
-                                  },
-                                ]
-                              }
-                              pageSize={5}
-                              placeholder="Select..."
-                              removeSelected={true}
+                              placeholder="Select an option..."
                               required={false}
-                              rtl={false}
-                              scrollMenuIntoView={true}
-                              searchable={true}
-                              simpleValue={false}
                               style={
                                 Object {
                                   "width": "100%",
                                 }
                               }
-                              tabSelectsValue={true}
-                              trimFilter={true}
-                              valueComponent={[Function]}
-                              valueKey="value"
+                              value=""
                             >
-                              <div
-                                className="Select css-lrye9l-StyledSelect css-seafkz0 is-clearable is-searchable Select--single"
+                              <option
+                                key="blank"
+                              />
+                              <option
+                                key="sentry.rules.conditions.1"
+                                value="sentry.rules.conditions.1"
                               >
-                                <div
-                                  className="Select-control"
-                                  onKeyDown={[Function]}
-                                  onMouseDown={[Function]}
-                                  onTouchEnd={[Function]}
-                                  onTouchMove={[Function]}
-                                  onTouchStart={[Function]}
-                                  style={
-                                    Object {
-                                      "width": "100%",
-                                    }
-                                  }
-                                >
-                                  <span
-                                    className="Select-multi-value-wrapper"
-                                    id="react-select-2--value"
-                                  >
-                                    <div
-                                      className="Select-placeholder"
-                                    >
-                                      Select...
-                                    </div>
-                                    <AutosizeInput
-                                      aria-activedescendant="react-select-2--value"
-                                      aria-expanded="false"
-                                      aria-haspopup="false"
-                                      aria-owns=""
-                                      className="Select-input"
-                                      injectStyles={true}
-                                      minWidth="5"
-                                      onBlur={[Function]}
-                                      onChange={[Function]}
-                                      onFocus={[Function]}
-                                      required={false}
-                                      role="combobox"
-                                      value=""
-                                    >
-                                      <div
-                                        className="Select-input"
-                                        style={
-                                          Object {
-                                            "display": "inline-block",
-                                          }
-                                        }
-                                      >
-                                        <input
-                                          aria-activedescendant="react-select-2--value"
-                                          aria-expanded="false"
-                                          aria-haspopup="false"
-                                          aria-owns=""
-                                          onBlur={[Function]}
-                                          onChange={[Function]}
-                                          onFocus={[Function]}
-                                          required={false}
-                                          role="combobox"
-                                          style={
-                                            Object {
-                                              "boxSizing": "content-box",
-                                              "width": "5px",
-                                            }
-                                          }
-                                          value=""
-                                        />
-                                        <div
-                                          style={
-                                            Object {
-                                              "height": 0,
-                                              "left": 0,
-                                              "overflow": "scroll",
-                                              "position": "absolute",
-                                              "top": 0,
-                                              "visibility": "hidden",
-                                              "whiteSpace": "pre",
-                                            }
-                                          }
-                                        />
-                                      </div>
-                                    </AutosizeInput>
-                                  </span>
-                                  <span
-                                    className="Select-arrow-zone"
-                                    onMouseDown={[Function]}
-                                  >
-                                    <span
-                                      className="Select-arrow"
-                                      onMouseDown={[Function]}
-                                    />
-                                  </span>
-                                </div>
-                              </div>
-                            </Select>
-                          </StyledSelect>
+                                An event is seen
+                              </option>
+                            </select>
+                          </SelectInput>
                         </fieldset>
                       </div>
                     </RuleNodeList>
@@ -1940,181 +1541,48 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                       <div>
                         <RuleNodes>
                           <div
-                            className="css-wlwbnk-RuleNodes css-11lm84v0"
+                            className="css-wlwbnk-RuleNodes css-e8p6eg0"
                           />
                         </RuleNodes>
                         <fieldset>
-                          <StyledSelect
+                          <SelectInput
+                            disabled={false}
+                            multiple={false}
                             onChange={[Function]}
-                            options={
-                              Array [
-                                Object {
-                                  "label": "Send a notification for all services",
-                                  "value": "sentry.rules.actions.notify1",
-                                },
-                              ]
-                            }
+                            placeholder="Select an option..."
+                            required={false}
+                            showSearch={true}
                             style={
                               Object {
                                 "width": "100%",
                               }
                             }
+                            value=""
                           >
-                            <Select
-                              arrowRenderer={[Function]}
-                              autosize={true}
-                              backspaceRemoves={true}
-                              backspaceToRemoveMessage="Press backspace to remove {label}"
-                              className="css-lrye9l-StyledSelect css-seafkz0"
-                              clearAllText="Clear all"
-                              clearRenderer={[Function]}
-                              clearValueText="Clear value"
-                              clearable={true}
-                              closeOnSelect={true}
-                              deleteRemoves={true}
-                              delimiter=","
+                            <select
                               disabled={false}
-                              escapeClearsValue={true}
-                              filterOptions={[Function]}
-                              ignoreAccents={true}
-                              ignoreCase={true}
-                              inputProps={Object {}}
-                              isLoading={false}
-                              joinValues={false}
-                              labelKey="label"
-                              matchPos="any"
-                              matchProp="any"
-                              menuBuffer={0}
-                              menuRenderer={[Function]}
-                              multi={false}
-                              noResultsText="No results found"
-                              onBlurResetsInput={true}
+                              multiple={false}
                               onChange={[Function]}
-                              onCloseResetsInput={true}
-                              onSelectResetsInput={true}
-                              openOnClick={true}
-                              optionComponent={[Function]}
-                              options={
-                                Array [
-                                  Object {
-                                    "label": "Send a notification for all services",
-                                    "value": "sentry.rules.actions.notify1",
-                                  },
-                                ]
-                              }
-                              pageSize={5}
-                              placeholder="Select..."
-                              removeSelected={true}
+                              placeholder="Select an option..."
                               required={false}
-                              rtl={false}
-                              scrollMenuIntoView={true}
-                              searchable={true}
-                              simpleValue={false}
                               style={
                                 Object {
                                   "width": "100%",
                                 }
                               }
-                              tabSelectsValue={true}
-                              trimFilter={true}
-                              valueComponent={[Function]}
-                              valueKey="value"
+                              value=""
                             >
-                              <div
-                                className="Select css-lrye9l-StyledSelect css-seafkz0 is-clearable is-searchable Select--single"
+                              <option
+                                key="blank"
+                              />
+                              <option
+                                key="sentry.rules.actions.notify1"
+                                value="sentry.rules.actions.notify1"
                               >
-                                <div
-                                  className="Select-control"
-                                  onKeyDown={[Function]}
-                                  onMouseDown={[Function]}
-                                  onTouchEnd={[Function]}
-                                  onTouchMove={[Function]}
-                                  onTouchStart={[Function]}
-                                  style={
-                                    Object {
-                                      "width": "100%",
-                                    }
-                                  }
-                                >
-                                  <span
-                                    className="Select-multi-value-wrapper"
-                                    id="react-select-3--value"
-                                  >
-                                    <div
-                                      className="Select-placeholder"
-                                    >
-                                      Select...
-                                    </div>
-                                    <AutosizeInput
-                                      aria-activedescendant="react-select-3--value"
-                                      aria-expanded="false"
-                                      aria-haspopup="false"
-                                      aria-owns=""
-                                      className="Select-input"
-                                      injectStyles={true}
-                                      minWidth="5"
-                                      onBlur={[Function]}
-                                      onChange={[Function]}
-                                      onFocus={[Function]}
-                                      required={false}
-                                      role="combobox"
-                                      value=""
-                                    >
-                                      <div
-                                        className="Select-input"
-                                        style={
-                                          Object {
-                                            "display": "inline-block",
-                                          }
-                                        }
-                                      >
-                                        <input
-                                          aria-activedescendant="react-select-3--value"
-                                          aria-expanded="false"
-                                          aria-haspopup="false"
-                                          aria-owns=""
-                                          onBlur={[Function]}
-                                          onChange={[Function]}
-                                          onFocus={[Function]}
-                                          required={false}
-                                          role="combobox"
-                                          style={
-                                            Object {
-                                              "boxSizing": "content-box",
-                                              "width": "5px",
-                                            }
-                                          }
-                                          value=""
-                                        />
-                                        <div
-                                          style={
-                                            Object {
-                                              "height": 0,
-                                              "left": 0,
-                                              "overflow": "scroll",
-                                              "position": "absolute",
-                                              "top": 0,
-                                              "visibility": "hidden",
-                                              "whiteSpace": "pre",
-                                            }
-                                          }
-                                        />
-                                      </div>
-                                    </AutosizeInput>
-                                  </span>
-                                  <span
-                                    className="Select-arrow-zone"
-                                    onMouseDown={[Function]}
-                                  >
-                                    <span
-                                      className="Select-arrow"
-                                      onMouseDown={[Function]}
-                                    />
-                                  </span>
-                                </div>
-                              </div>
-                            </Select>
-                          </StyledSelect>
+                                Send a notification for all services
+                              </option>
+                            </select>
+                          </SelectInput>
                         </fieldset>
                       </div>
                     </RuleNodeList>
