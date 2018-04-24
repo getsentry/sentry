@@ -6,7 +6,7 @@ export const route = '/settings/:orgId/:projectId/csp/';
 const formGroups = [
   {
     // Form "section"/"panel"
-    title: 'Settings',
+    title: 'CSP Settings',
     fields: [
       {
         name: 'sentry:csp_ignored_sources_defaults',

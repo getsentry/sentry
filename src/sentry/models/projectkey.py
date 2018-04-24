@@ -175,6 +175,18 @@ class ProjectKey(Model):
         )
 
     @property
+    def security_endpoint(self):
+        endpoint = settings.SENTRY_PUBLIC_ENDPOINT or settings.SENTRY_ENDPOINT
+        if not endpoint:
+            endpoint = options.get('system.url-prefix')
+
+        return '%s%s?sentry_key=%s' % (
+            endpoint,
+            reverse('sentry-api-security-report', args=[self.project_id]),
+            self.public_key,
+        )
+
+    @property
     def minidump_endpoint(self):
         endpoint = settings.SENTRY_PUBLIC_ENDPOINT or settings.SENTRY_ENDPOINT
         if not endpoint:

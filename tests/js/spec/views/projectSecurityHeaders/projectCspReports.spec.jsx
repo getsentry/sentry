@@ -1,12 +1,15 @@
 import React from 'react';
 
-import {mount} from 'enzyme';
-import ProjectCspReports from 'app/views/settings/project/projectCspReports';
+import {shallow} from 'enzyme';
+import ProjectCspReports from 'app/views/settings/projectSecurityHeaders/csp';
+
+import {mountWithTheme} from '../../../../helpers';
 
 describe('ProjectCspReports', function() {
   let org = TestStubs.Organization();
   let project = TestStubs.Project();
-  let url = `/projects/${org.slug}/${project.slug}/`;
+  let projectUrl = `/projects/${org.slug}/${project.slug}/`;
+  let routeUrl = `/projects/${org.slug}/${project.slug}/csp/`;
 
   beforeEach(function() {
     MockApiClient.clearMockResponses();
@@ -16,7 +19,7 @@ describe('ProjectCspReports', function() {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url,
+      url: projectUrl,
       method: 'GET',
       body: {
         options: {},
@@ -24,19 +27,38 @@ describe('ProjectCspReports', function() {
     });
   });
 
-  it('can enable default ignored sources', function() {
-    let wrapper = mount(
+  it('renders', function() {
+    let wrapper = shallow(
       <ProjectCspReports
         organization={org}
         project={project}
         setProjectNavSection={() => {}}
-        params={{orgId: org.slug, projectId: project.slug}}
+        {...TestStubs.routerProps({
+          params: {orgId: org.slug, projectId: project.slug},
+          location: TestStubs.location({pathname: routeUrl}),
+        })}
+      />,
+      TestStubs.routerContext()
+    );
+    expect(wrapper).toMatchSnapshot();
+  });
+
+  it('can enable default ignored sources', function() {
+    let wrapper = mountWithTheme(
+      <ProjectCspReports
+        organization={org}
+        project={project}
+        setProjectNavSection={() => {}}
+        {...TestStubs.routerProps({
+          params: {orgId: org.slug, projectId: project.slug},
+          location: TestStubs.location({pathname: routeUrl}),
+        })}
       />,
       TestStubs.routerContext()
     );
 
     let mock = MockApiClient.addMockResponse({
-      url,
+      url: projectUrl,
       method: 'PUT',
     });
 
@@ -46,7 +68,7 @@ describe('ProjectCspReports', function() {
     wrapper.find('Switch').simulate('click');
 
     expect(mock).toHaveBeenCalledWith(
-      url,
+      projectUrl,
       expect.objectContaining({
         method: 'PUT',
         data: {
@@ -59,18 +81,21 @@ describe('ProjectCspReports', function() {
   });
 
   it('can set additional ignored sources', function() {
-    let wrapper = mount(
+    let wrapper = mountWithTheme(
       <ProjectCspReports
         organization={org}
         project={project}
         setProjectNavSection={() => {}}
-        params={{orgId: org.slug, projectId: project.slug}}
+        {...TestStubs.routerProps({
+          params: {orgId: org.slug, projectId: project.slug},
+          location: TestStubs.location({pathname: routeUrl}),
+        })}
       />,
       TestStubs.routerContext()
     );
 
     let mock = MockApiClient.addMockResponse({
-      url,
+      url: projectUrl,
       method: 'PUT',
     });
 
@@ -88,7 +113,7 @@ test2`,
       .simulate('blur');
 
     expect(mock).toHaveBeenCalledWith(
-      url,
+      projectUrl,
       expect.objectContaining({
         method: 'PUT',
         data: {
