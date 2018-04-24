@@ -5,6 +5,7 @@ import Reflux from 'reflux';
 import {capitalize} from 'lodash';
 import styled from 'react-emotion';
 import {Flex, Box} from 'grid-emotion';
+import {Link} from 'react-router';
 
 import ApiMixin from '../../mixins/apiMixin';
 import DropdownLink from '../../components/dropdownLink';
@@ -48,7 +49,20 @@ const getConfirm = (numIssues, allInQuerySelected, query) => {
           <strong>{question}</strong>
         </p>
         <ExtraDescription all={allInQuerySelected} query={query} />
-        {!canBeUndone && <p>{t('This action cannot be undone.')}</p>}
+        {!canBeUndone && (
+          <p>
+            'This action cannot be undone. You may consider '
+            {
+              <Link
+                to={
+                  'https://help.sentry.io/hc/en-us/articles/360003443113-When-should-I-delete-events-'
+                }
+              >
+                'other alternatives'
+              </Link>
+            }.
+          </p>
+        )}
       </div>
     );
   };
