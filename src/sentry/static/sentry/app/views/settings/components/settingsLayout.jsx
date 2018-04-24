@@ -70,6 +70,7 @@ const Container = styled(Flex)`
 `;
 
 const SidebarWrapper = styled(Box)`
+  flex-shrink: 0;
   width: ${p => p.theme.settings.sidebarWidth};
 `;
 

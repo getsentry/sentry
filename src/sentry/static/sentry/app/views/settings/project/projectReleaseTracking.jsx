@@ -23,8 +23,8 @@ const noMargin = {margin: 0};
 const marginTop = {marginTop: 30};
 
 const PreWrap = styled.pre`
-  word-break: break-all;
-  white-space: pre-wrap;
+  word-break: break-all !important;
+  white-space: pre-wrap !important;
 `;
 
 class ProjectReleaseTracking extends AsyncView {
