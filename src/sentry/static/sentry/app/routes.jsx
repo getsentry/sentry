@@ -367,14 +367,30 @@ const projectSettingsRoutes = (
         import(/*webpackChunkName: "ProjectUserFeedbackSettings"*/ './views/settings/project/projectUserFeedback')}
       component={errorHandler(LazyLoad)}
     />
-    <Route
-      key="csp/"
-      path="csp/"
-      name="CSP Reports"
-      componentPromise={() =>
-        import(/*webpackChunkName: "ProjectCspReports"*/ './views/settings/project/projectCspReports')}
-      component={errorHandler(LazyLoad)}
-    />
+    <Redirect from="csp/" to="security-headers/" />
+    <Route key="security-headers/" path="security-headers/" name="Security Headers">
+      <IndexRoute
+        componentPromise={() =>
+          import(/*webpackChunkName: "ProjectSecurityHeaders"*/ './views/settings/projectSecurityHeaders')}
+        component={errorHandler(LazyLoad)}
+      />
+      <Route
+        path="csp/"
+        key="csp/"
+        name="Content Security Policy"
+        componentPromise={() =>
+          import(/*webpackChunkName: "ProjectCspReports"*/ './views/settings/projectSecurityHeaders/csp')}
+        component={errorHandler(LazyLoad)}
+      />
+      <Route
+        path="expect-ct/"
+        key="expect-ct/"
+        name="Certificate Transparency"
+        componentPromise={() =>
+          import(/*webpackChunkName: "ProjectExpectCtReports"*/ './views/settings/projectSecurityHeaders/expectCt')}
+        component={errorHandler(LazyLoad)}
+      />
+    </Route>
     <Route path="plugins/" name="Integrations" component={errorHandler(ProjectPlugins)} />
     <Route
       path="plugins/:pluginId/"
