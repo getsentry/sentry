@@ -76,6 +76,7 @@ class VSTSOAuth2CallbackView(OAuth2CallbackView):
             },
         )
         body = safe_urlread(req)
+        # import pdb; pdb.set_trace()
         if req.headers['Content-Type'].startswith('application/x-www-form-urlencoded'):
             return dict(parse_qsl(body))
         return json.loads(body)
