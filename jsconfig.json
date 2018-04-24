@@ -2,10 +2,11 @@
   "compilerOptions": {
     "target": "es2017",
     "allowSyntheticDefaultImports": false,
-    "baseUrl": "./",
+    "experimentalDecorators": true,
+    "baseUrl": "./src/sentry/static/sentry",
     "paths": {
       "app/*": ["src/sentry/static/sentry/app/*"]
     }
   },
-  "exclude": ["node_modules", "dist"]
+  "include": ["tests/js/**/*", "src/sentry/static/sentry/app/**/*"]
 }
