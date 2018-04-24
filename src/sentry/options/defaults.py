@@ -117,7 +117,12 @@ register('cloudflare.secret-key', default='')
 # Tagstore
 register('tagstore.multi-sampling', default=0.0)
 
+
 # Slack Integration
 register('slack.client-id', flags=FLAG_PRIORITIZE_DISK)
 register('slack.client-secret', flags=FLAG_PRIORITIZE_DISK)
 register('slack.verification-token', flags=FLAG_PRIORITIZE_DISK)
+
+# GitHubApps
+register('github.webhook-secret', default='')
+

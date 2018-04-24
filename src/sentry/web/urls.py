@@ -495,6 +495,7 @@ urlpatterns += patterns(
     url(r'^extensions/cloudflare/', include('sentry.integrations.cloudflare.urls')),
     url(r'^extensions/jira/', include('sentry.integrations.jira.urls')),
     url(r'^extensions/slack/', include('sentry.integrations.slack.urls')),
+    url(r'^extensions/github/', include('sentry.integrations.github.urls')),
 
     url(r'^plugins/', include('sentry.plugins.base.urls')),
 
