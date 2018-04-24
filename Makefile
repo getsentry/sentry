@@ -168,7 +168,7 @@ lint-python:
 
 lint-js:
 	@echo "--> Linting javascript"
-	bash -eo pipefail -c "bin/lint --js --parseable | tee eslint.checkstyle.xml"
+	bin/lint --js --parseable
 	@echo ""
 
 scan-python:
