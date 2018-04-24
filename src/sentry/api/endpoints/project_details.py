@@ -19,8 +19,8 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import DetailedProjectSerializer
 from sentry.api.serializers.rest_framework import ListField, OriginField
 from sentry.models import (
-    AuditLogEntryEvent, Group, GroupStatus, Project, ProjectBookmark, ProjectRedirect,
-    ProjectStatus, ProjectTeam, UserOption, Team,
+    AuditLogEntryEvent, Group, GroupStatus, Project, ProjectBookmark, ProjectStatus,
+    ProjectTeam, UserOption, Team,
 )
 from sentry.tasks.deletion import delete_project
 from sentry.utils.apidocs import scenario, attach_scenarios
@@ -220,6 +220,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             (request.auth and request.auth.has_scope('project:write'))
             or (request.access and request.access.has_scope('project:write'))
         )
+        changed_proj_settings = {}
 
         if has_project_write:
             serializer_cls = ProjectAdminSerializer
@@ -251,18 +252,19 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         changed = False
 
-        old_slug = None
         if result.get('slug'):
-            old_slug = project.slug
             project.slug = result['slug']
             changed = True
+            changed_proj_settings['new_slug'] = project.slug
 
         if result.get('name'):
             project.name = result['name']
             changed = True
+            changed_proj_settings['new_project'] = project.name
 
         old_team_id = None
         new_team = None
+
         if result.get('team'):
             if features.has('organizations:new-teams',
                             project.organization, actor=request.user):
@@ -308,9 +310,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     team_id=old_team_id,
                 ).update(team=new_team)
 
-            if old_slug:
-                ProjectRedirect.record(project, old_slug)
-
         if result.get('isBookmarked'):
             try:
                 with transaction.atomic():
@@ -333,15 +332,16 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             project.update_option(
                 'digests:mail:maximum_delay', result['digestsMaxDelay'])
         if result.get('subjectPrefix') is not None:
-            project.update_option('mail:subject_prefix',
-                                  result['subjectPrefix'])
+            project.update_option('mail:subject_prefix', result['subjectPrefix'])
         if result.get('subjectTemplate'):
-            project.update_option('mail:subject_template',
-                                  result['subjectTemplate'])
+            if project.update_option('mail:subject_template', result['subjectTemplate']):
+                changed_proj_settings['mail:subject_template'] = result['subjectTemplate']
         if result.get('defaultEnvironment') is not None:
-            project.update_option('sentry:default_environment', result['defaultEnvironment'])
+            if project.update_option('sentry:default_environment', result['defaultEnvironment']):
+                changed_proj_settings['sentry:default_environment'] = result['defaultEnvironment']
         if result.get('scrubIPAddresses') is not None:
-            project.update_option('sentry:scrub_ip_address', result['scrubIPAddresses'])
+            if project.update_option('sentry:scrub_ip_address', result['scrubIPAddresses']):
+                changed_proj_settings['sentry:scrub_ip_address'] = result['scrubIPAddresses']
         if result.get('securityToken') is not None:
             project.update_option('sentry:token', result['securityToken'])
         if result.get('securityTokenHeader') is not None:
@@ -349,19 +349,24 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get('verifySSL') is not None:
             project.update_option('sentry:verify_ssl', result['verifySSL'])
         if result.get('dataScrubber') is not None:
-            project.update_option('sentry:scrub_data', result['dataScrubber'])
+            if project.update_option('sentry:scrub_data', result['dataScrubber']):
+                changed_proj_settings['sentry:scrub_data'] = result['dataScrubber']
         if result.get('dataScrubberDefaults') is not None:
-            project.update_option('sentry:scrub_defaults', result['dataScrubberDefaults'])
+            if project.update_option('sentry:scrub_defaults', result['dataScrubberDefaults']):
+                changed_proj_settings['sentry:scrub_defaults'] = result['dataScrubberDefaults']
         if result.get('sensitiveFields') is not None:
-            project.update_option('sentry:sensitive_fields', result['sensitiveFields'])
+            if project.update_option('sentry:sensitive_fields', result['sensitiveFields']):
+                changed_proj_settings['sentry:sensitive_fields'] = result['sensitiveFields']
         if result.get('safeFields') is not None:
-            project.update_option('sentry:safe_fields', result['safeFields'])
+            if project.update_option('sentry:safe_fields', result['safeFields']):
+                changed_proj_settings['sentry:safe_fields'] = result['safeFields']
         # resolveAge can be None
         if 'resolveAge' in result:
-            project.update_option(
+            if project.update_option(
                 'sentry:resolve_age',
                 0 if result.get('resolveAge') is None else int(
-                    result['resolveAge']))
+                    result['resolveAge'])):
+                changed_proj_settings['sentry:resolve_age'] = result['resolveAge']
         if result.get('scrapeJavaScript') is not None:
             project.update_option('sentry:scrape_javascript', result['scrapeJavaScript'])
         if result.get('allowedDomains'):
@@ -485,7 +490,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 organization=project.organization,
                 target_object=project.id,
                 event=AuditLogEntryEvent.PROJECT_EDIT,
-                data=project.get_audit_log_data(),
+                data=changed_proj_settings
             )
 
         data = serialize(project, request.user, DetailedProjectSerializer())
