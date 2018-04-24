@@ -30,7 +30,7 @@ class OrganizationSerializer(Serializer):
         if attrs.get('avatar'):
             avatar = {
                 'avatarType': attrs['avatar'].get_avatar_type_display(),
-                'avatarUuid': attrs['avatar'].ident if attrs['avatar'].file else None
+                'avatarUuid': attrs['avatar'].ident if attrs['avatar'].file_id else None
             }
         else:
             avatar = {
