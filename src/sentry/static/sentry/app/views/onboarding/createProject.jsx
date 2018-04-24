@@ -158,6 +158,7 @@ const CreateProject = createReactClass({
                 </PanelAlert>
                 <CreateTeamBody>
                   <Button
+                    className="ref-create-team"
                     priority="primary"
                     onClick={() =>
                       openCreateTeamModal({
