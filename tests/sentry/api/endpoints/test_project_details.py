@@ -237,7 +237,6 @@ class ProjectUpdateTest(APITestCase):
             'filters:blacklisted_ips': '127.0.0.1\n198.51.100.0',
             'filters:releases': '1.*\n2.1.*',
             'filters:error_messages': 'TypeError*\n*: integer division by modulo or zero',
-
         }
         with self.feature('projects:custom-inbound-filters'):
             resp = self.client.put(self.path, data={'options': options})
