@@ -45,12 +45,18 @@ class SnubaTSDBTest(TestCase):
         GroupHash.objects.create(project=self.proj1, group=self.proj1group1, hash=hash1)
         GroupHash.objects.create(project=self.proj1, group=self.proj1group2, hash=hash2)
 
-        self.release = Release.objects.create(
+        self.release1 = Release.objects.create(
             organization_id=self.organization.id,
-            version=1,
+            version='1' * 10,
             date_added=self.now,
         )
-        self.release.add_project(self.proj1)
+        self.release1.add_project(self.proj1)
+        self.release2 = Release.objects.create(
+            organization_id=self.organization.id,
+            version='2' * 10,
+            date_added=self.now,
+        )
+        self.release2.add_project(self.proj1)
 
         data = json.dumps([{
             'event_id': (six.text_type(r) * 32)[:32],
@@ -65,7 +71,7 @@ class SnubaTSDBTest(TestCase):
                     'foo': 'bar',
                     'baz': 'quux',
                     'environment': self.proj1env1.name,
-                    'sentry:release': r // 3600,  # 1 per hour
+                    'sentry:release': six.text_type(r // 3600) * 10,  # 1 per hour
                 },
                 'sentry.interfaces.User': {
                     # change every 55 min so some hours have 1 user, some have 2
@@ -118,11 +124,11 @@ class SnubaTSDBTest(TestCase):
         dts = [self.now + timedelta(hours=i) for i in range(4)]
         assert self.db.get_range(
             TSDBModel.release,
-            [self.release.id],
+            [self.release1.id],
             dts[0], dts[-1],
             rollup=3600
         ) == {
-            self.release.id: [
+            self.release1.id: [
                 (timestamp(dts[0]), 0),
                 (timestamp(dts[1]), 6),
                 (timestamp(dts[2]), 0),
@@ -268,7 +274,7 @@ class SnubaTSDBTest(TestCase):
             self.proj1.id: 2,
         }
 
-    def test_frequency_releases(self):
+    def test_most_frequent(self):
         assert self.db.get_most_frequent(
             TSDBModel.frequent_issues_by_project,
             [self.proj1.id],
@@ -279,5 +285,58 @@ class SnubaTSDBTest(TestCase):
             self.proj1.id: [
                 (self.proj1group1.id, 2.0),
                 (self.proj1group2.id, 1.0),
+            ],
+        }
+
+    def test_frequency_series(self):
+        # Technically while we request both releases for group1
+        # and only release 1 on group2, that distinction is lost
+        # in the snuba query, and we return a frequency series for
+        # both releases * both groups
+        dts = [self.now + timedelta(hours=i) for i in range(4)]
+        assert self.db.get_frequency_series(
+            TSDBModel.frequent_releases_by_group,
+            {
+                self.proj1group1.id: (self.release1.id, self.release2.id, ),
+                self.proj1group2.id: (self.release1.id, )
+            },
+            dts[0], dts[-1],
+            rollup=3600,
+        ) == {
+            self.proj1group1.id: [
+                (timestamp(dts[0]), {
+                    self.release1.id: 0,
+                    self.release2.id: 0,
+                }),
+                (timestamp(dts[1]), {
+                    self.release1.id: 3,
+                    self.release2.id: 0,
+                }),
+                (timestamp(dts[2]), {
+                    self.release1.id: 0,
+                    self.release2.id: 3,
+                }),
+                (timestamp(dts[3]), {
+                    self.release1.id: 0,
+                    self.release2.id: 0,
+                }),
+            ],
+            self.proj1group2.id: [
+                (timestamp(dts[0]), {
+                    self.release1.id: 0,
+                    self.release2.id: 0,
+                }),
+                (timestamp(dts[1]), {
+                    self.release1.id: 3,
+                    self.release2.id: 0,
+                }),
+                (timestamp(dts[2]), {
+                    self.release1.id: 0,
+                    self.release2.id: 3,
+                }),
+                (timestamp(dts[3]), {
+                    self.release1.id: 0,
+                    self.release2.id: 0,
+                }),
             ],
         }
