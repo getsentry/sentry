@@ -25,7 +25,7 @@ from django.db import models, transaction, IntegrityError
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from symbolic import FatObject, SymbolicError, UnsupportedObjectFile, \
+from symbolic import FatObject, SymbolicError, ObjectErrorUnsupportedObject, \
     SymCache, SYMCACHE_LATEST_VERSION
 
 from sentry import options
@@ -382,7 +382,7 @@ def detect_dif_from_path(path):
     # macho style debug symbols
     try:
         fo = FatObject.from_path(path)
-    except UnsupportedObjectFile as e:
+    except ObjectErrorUnsupportedObject as e:
         raise BadDif("Unsupported debug information file: %s" % e)
     except SymbolicError as e:
         logger.warning('dsymfile.bad-fat-object', exc_info=True)
