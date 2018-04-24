@@ -1,3 +1,4 @@
+import {Flex} from 'grid-emotion';
 import {Link} from 'react-router';
 import React from 'react';
 import styled from 'react-emotion';
@@ -79,9 +80,7 @@ class OrganizationEmpty extends AsyncView {
 export {OrganizationEmpty};
 export default withOrganizations(OrganizationEmpty);
 
-const LinksWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
+const LinksWrapper = styled(props => <Flex justify="space-between" {...props} />)`
   margin-bottom: ${space(2)};
 `;
 
