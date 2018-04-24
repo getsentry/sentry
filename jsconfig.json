@@ -7,5 +7,5 @@
       "app/*": ["src/sentry/static/sentry/app/*"]
     }
   },
-  "exclude": ["dist"]
+  "exclude": ["node_modules", "dist"]
 }
