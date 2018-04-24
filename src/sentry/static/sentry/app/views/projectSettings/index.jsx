@@ -157,7 +157,9 @@ const ProjectSettings = createReactClass({
             >
               {t('Error Tracking')}
             </ListLink>
-            <ListLink to={`${pathPrefix}/csp/`}>{t('CSP Reports')}</ListLink>
+            <ListLink to={`${pathPrefix}/security-headers/`}>
+              {t('Security Headers')}
+            </ListLink>
             <ListLink to={`${pathPrefix}/user-feedback/`}>{t('User Feedback')}</ListLink>
             <ListLink to={`${pathPrefix}/filters/`}>{t('Inbound Filters')}</ListLink>
             <ListLink to={`${pathPrefix}/keys/`}>{t('Client Keys')} (DSN)</ListLink>

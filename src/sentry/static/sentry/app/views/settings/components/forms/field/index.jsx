@@ -154,14 +154,16 @@ class Field extends React.Component {
         hasControlState={!flexibleControlStateSize}
         style={style}
       >
-        <FieldDescription inline={inline} htmlFor={id}>
-          {label && (
-            <FieldLabel>
-              {label} {required && <FieldRequiredBadge />}
-            </FieldLabel>
-          )}
-          {help && <FieldHelp>{help}</FieldHelp>}
-        </FieldDescription>
+        {(label || help) && (
+          <FieldDescription inline={inline} htmlFor={id}>
+            {label && (
+              <FieldLabel>
+                {label} {required && <FieldRequiredBadge />}
+              </FieldLabel>
+            )}
+            {help && <FieldHelp>{help}</FieldHelp>}
+          </FieldDescription>
+        )}
 
         {Control}
       </FieldWrapper>
