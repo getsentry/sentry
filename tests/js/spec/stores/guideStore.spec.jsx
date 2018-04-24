@@ -91,7 +91,7 @@ describe('GuideStore', function() {
     expect(GuideStore.state.currentGuide).not.toEqual(null);
   });
 
-  it('should update', function() {
+  it('should record analytics events when guide is cued', function() {
     let mockRecordCue = jest.fn();
     GuideStore.recordCue = mockRecordCue;
 
@@ -101,8 +101,23 @@ describe('GuideStore', function() {
     expect(mockRecordCue).toHaveBeenCalledWith(data.issue.id, data.issue.cue);
     expect(mockRecordCue).toHaveBeenCalledTimes(1);
     GuideStore.onCloseGuideOrSupport();
+
+    // Should trigger a record when a new guide is cued
     expect(GuideStore.state.currentGuide).toEqual(data.other);
     expect(mockRecordCue).toHaveBeenCalledWith(data.other.id, data.other.cue);
     expect(mockRecordCue).toHaveBeenCalledTimes(2);
+  });
+
+  it('should not send multiple cue analytics events for same guide', function() {
+    let mockRecordCue = jest.fn();
+    GuideStore.recordCue = mockRecordCue;
+
+    GuideStore.onRegisterAnchor(anchor1);
+    GuideStore.onRegisterAnchor(anchor2);
+    GuideStore.onFetchSucceeded(data);
+    expect(mockRecordCue).toHaveBeenCalledWith(data.issue.id, data.issue.cue);
+    expect(mockRecordCue).toHaveBeenCalledTimes(1);
+    GuideStore.updateCurrentGuide();
+    expect(mockRecordCue).toHaveBeenCalledTimes(1);
   });
 });
