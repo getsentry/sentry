@@ -121,7 +121,6 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                             >
                                               <button
                                                 className="css-ngzubs-StyledButton css-1pig06q1 button button-default button-xs"
-                                                disabled={false}
                                                 onClick={[Function]}
                                                 role="button"
                                               >
@@ -461,7 +460,6 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                       >
                         <button
                           className="button button-default button-sm"
-                          disabled={false}
                           onClick={[Function]}
                           role="button"
                         >

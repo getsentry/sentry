@@ -146,7 +146,6 @@ exports[`ApiTokens renders with result 1`] = `
                       >
                         <Link
                           className="ref-create-token button button-primary button-sm"
-                          disabled={false}
                           onClick={[Function]}
                           onlyActiveOnIndex={false}
                           role="button"
@@ -155,7 +154,6 @@ exports[`ApiTokens renders with result 1`] = `
                         >
                           <a
                             className="ref-create-token button button-primary button-sm"
-                            disabled={false}
                             onClick={[Function]}
                             role="button"
                             style={Object {}}
@@ -468,7 +466,6 @@ exports[`ApiTokens renders with result 1`] = `
                                               >
                                                 <button
                                                   className="css-fla6ex-StyledButton css-hf2tyc6 button button-default button-sm"
-                                                  disabled={false}
                                                   onClick={[Function]}
                                                   role="button"
                                                 >
@@ -488,11 +485,11 @@ exports[`ApiTokens renders with result 1`] = `
                                                           size="small"
                                                         >
                                                           <Base
-                                                            className="css-11bwulm-Icon css-1vxxnb60"
+                                                            className="css-11bwulm-Icon css-yr2ozh0"
                                                             size="small"
                                                           >
                                                             <div
-                                                              className="css-11bwulm-Icon css-1vxxnb60"
+                                                              className="css-11bwulm-Icon css-yr2ozh0"
                                                               is={null}
                                                               size="small"
                                                             >
@@ -501,18 +498,18 @@ exports[`ApiTokens renders with result 1`] = `
                                                                 src="icon-circle-subtract"
                                                               >
                                                                 <InlineSvg
-                                                                  className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
+                                                                  className="css-1ov3rcq-StyledInlineSvg css-yr2ozh1"
                                                                   size="12px"
                                                                   src="icon-circle-subtract"
                                                                 >
                                                                   <StyledSvg
-                                                                    className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
+                                                                    className="css-1ov3rcq-StyledInlineSvg css-yr2ozh1"
                                                                     height="12px"
                                                                     viewBox={Object {}}
                                                                     width="12px"
                                                                   >
                                                                     <svg
-                                                                      className="css-1vxxnb61 css-1rlza0i-StyledSvg css-adkcw30"
+                                                                      className="css-yr2ozh1 css-1rlza0i-StyledSvg css-adkcw30"
                                                                       height="12px"
                                                                       viewBox={Object {}}
                                                                       width="12px"

@@ -51,15 +51,18 @@ class Button extends React.Component {
   };
 
   // Intercept onClick and propagate
-  handleClick = (...args) => {
+  handleClick = (e, ...args) => {
     let {disabled, busy, onClick} = this.props;
 
     // Don't allow clicks when disabled or busy
-    if (disabled || busy) return;
+    if (disabled || busy) {
+      e.preventDefault();
+      return;
+    }
 
     if (typeof onClick !== 'function') return;
 
-    onClick(...args);
+    onClick(e, ...args);
   };
 
   getUrl = () => {
@@ -129,7 +132,6 @@ class Button extends React.Component {
 
     // Props common to all elements
     let componentProps = {
-      disabled,
       ...buttonProps,
       onClick: this.handleClick,
       className: cx,

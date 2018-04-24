@@ -27,9 +27,9 @@ const Action = styled.div`
   margin-top: 0.75em;
 `;
 
-const EmptyMessage = ({icon, children, action, size}) => {
+const EmptyMessage = ({className, icon, children, action, size}) => {
   return (
-    <Wrapper size={size}>
+    <Wrapper size={size} className={className}>
       {icon && <StyledInlineSvg src={icon} />}
       <div className="ref-message">{children}</div>
       {action && <Action>{action}</Action>}

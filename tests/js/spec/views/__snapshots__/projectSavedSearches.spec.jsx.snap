@@ -354,7 +354,6 @@ exports[`ProjectSavedSearches renders 1`] = `
                                         >
                                           <button
                                             className="button button-default button-sm"
-                                            disabled={false}
                                             onClick={[Function]}
                                             role="button"
                                           >
@@ -611,7 +610,6 @@ exports[`ProjectSavedSearches renders 1`] = `
                                         >
                                           <button
                                             className="button button-default button-sm"
-                                            disabled={false}
                                             onClick={[Function]}
                                             role="button"
                                           >

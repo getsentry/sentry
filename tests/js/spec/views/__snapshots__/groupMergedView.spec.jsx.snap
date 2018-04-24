@@ -402,7 +402,6 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                         >
                           <button
                             className="button button-default button-sm button-disabled"
-                            disabled={true}
                             onClick={[Function]}
                             role="button"
                             style={
@@ -448,7 +447,6 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                         >
                           <button
                             className="toggle-collapse-all button button-default button-sm"
-                            disabled={false}
                             onClick={[Function]}
                             role="button"
                           >
@@ -1775,7 +1773,6 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                         >
                           <button
                             className="button button-default button-sm button-disabled"
-                            disabled={true}
                             onClick={[Function]}
                             role="button"
                             style={
@@ -1821,7 +1818,6 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                         >
                           <button
                             className="toggle-collapse-all button button-default button-sm"
-                            disabled={false}
                             onClick={[Function]}
                             role="button"
                           >

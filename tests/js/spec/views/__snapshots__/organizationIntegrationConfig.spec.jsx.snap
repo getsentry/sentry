@@ -145,7 +145,6 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                               >
                                 <button
                                   className="button button-default button-xs"
-                                  disabled={false}
                                   onClick={[Function]}
                                   role="button"
                                 >
@@ -285,7 +284,6 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                                 >
                                   <button
                                     className="button button-default button-sm"
-                                    disabled={false}
                                     onClick={[Function]}
                                     role="button"
                                   >

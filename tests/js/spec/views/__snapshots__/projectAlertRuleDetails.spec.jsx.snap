@@ -433,7 +433,6 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                       >
                                         <button
                                           className="button button-default button-sm"
-                                          disabled={false}
                                           onClick={[Function]}
                                           role="button"
                                           tabIndex="-1"
@@ -673,7 +672,6 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                       >
                                         <button
                                           className="button button-default button-sm"
-                                          disabled={false}
                                           onClick={[Function]}
                                           role="button"
                                           tabIndex="-1"
@@ -915,7 +913,6 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                           >
                             <Link
                               className="css-1yc33o1-CancelButton css-1qt54041 button button-default"
-                              disabled={false}
                               onClick={[Function]}
                               onlyActiveOnIndex={false}
                               role="button"
@@ -924,7 +921,6 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                             >
                               <a
                                 className="css-1yc33o1-CancelButton css-1qt54041 button button-default"
-                                disabled={false}
                                 onClick={[Function]}
                                 role="button"
                                 style={Object {}}
@@ -955,7 +951,6 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                         >
                           <button
                             className="button button-primary"
-                            disabled={false}
                             onClick={[Function]}
                             role="button"
                           >
@@ -1734,7 +1729,6 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                           >
                             <Link
                               className="css-1yc33o1-CancelButton css-1qt54041 button button-default"
-                              disabled={false}
                               onClick={[Function]}
                               onlyActiveOnIndex={false}
                               role="button"
@@ -1743,7 +1737,6 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                             >
                               <a
                                 className="css-1yc33o1-CancelButton css-1qt54041 button button-default"
-                                disabled={false}
                                 onClick={[Function]}
                                 role="button"
                                 style={Object {}}
@@ -1774,7 +1767,6 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                         >
                           <button
                             className="button button-primary"
-                            disabled={false}
                             onClick={[Function]}
                             role="button"
                           >

@@ -515,7 +515,6 @@ exports[`CreateProject render() should render roles when available and allowed, 
       >
         <button
           className="invite-member-submit button button-primary"
-          disabled={false}
           onClick={[Function]}
           role="button"
         >

@@ -395,7 +395,6 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
           >
             <button
               className="css-3daogo-RuleAddButton css-13f5eg09 button button-primary button-zero"
-              disabled={false}
               onClick={[Function]}
               role="button"
             >
@@ -415,11 +414,11 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                       size="zero"
                     >
                       <Base
-                        className="css-l3pkcx-Icon css-1vxxnb60"
+                        className="css-l3pkcx-Icon css-yr2ozh0"
                         size="zero"
                       >
                         <div
-                          className="css-l3pkcx-Icon css-1vxxnb60"
+                          className="css-l3pkcx-Icon css-yr2ozh0"
                           is={null}
                           size="zero"
                         >
@@ -428,18 +427,18 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                             src="icon-circle-add"
                           >
                             <InlineSvg
-                              className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
+                              className="css-1ov3rcq-StyledInlineSvg css-yr2ozh1"
                               size="16px"
                               src="icon-circle-add"
                             >
                               <StyledSvg
-                                className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
+                                className="css-1ov3rcq-StyledInlineSvg css-yr2ozh1"
                                 height="16px"
                                 viewBox={Object {}}
                                 width="16px"
                               >
                                 <svg
-                                  className="css-1vxxnb61 css-1rlza0i-StyledSvg css-adkcw30"
+                                  className="css-yr2ozh1 css-1rlza0i-StyledSvg css-adkcw30"
                                   height="16px"
                                   viewBox={Object {}}
                                   width="16px"
@@ -523,7 +522,6 @@ url:http://example.com/settings/* #product"
         >
           <button
             className="button button-primary button-sm"
-            disabled={false}
             onClick={[Function]}
             role="button"
           >
