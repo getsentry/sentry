@@ -5,7 +5,7 @@ import six
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import Project, ProjectBookmark, ProjectStatus, UserOption, DeletedProject, ProjectRedirect
+from sentry.models import Project, ProjectBookmark, ProjectStatus, UserOption, DeletedProject, ProjectRedirect, AuditLogEntry, AuditLogEntryEvent
 from sentry.testutils import APITestCase
 
 
@@ -201,6 +201,10 @@ class ProjectUpdateTest(APITestCase):
             project=self.project,
             redirect_slug=self.project.slug,
         )
+        assert AuditLogEntry.objects.filter(
+            organization=project.organization,
+            event=AuditLogEntryEvent.PROJECT_EDIT,
+        ).exists()
 
     def test_invalid_slug(self):
         new_project = self.create_project()
@@ -233,6 +237,7 @@ class ProjectUpdateTest(APITestCase):
             'filters:blacklisted_ips': '127.0.0.1\n198.51.100.0',
             'filters:releases': '1.*\n2.1.*',
             'filters:error_messages': 'TypeError*\n*: integer division by modulo or zero',
+
         }
         with self.feature('projects:custom-inbound-filters'):
             resp = self.client.put(self.path, data={'options': options})
