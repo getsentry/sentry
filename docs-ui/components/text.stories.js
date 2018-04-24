@@ -12,16 +12,17 @@ storiesOf('Text', module).add(
         <h1>Text styles</h1>
         <p>
           Not having to override margin, padding, and line-height on native text elements
-          is a feature in the app UI world, but when you need those styles to "just work"
-          it can be quite frustrating to find they're not supported.
+          is a feature in the app UI world — that's why things like reset.css,
+          normalize.css, etc exist. But in situations where you need those styles to "just
+          work" it can be quite frustrating to find out they're not supported.
         </p>
 
         <h2>Introducing the Text component</h2>
 
         <p>
-          The Text component unlocks styles on native text components on-demand in a way
-          that's simple, familiar, and easy to remember. Here are the components it
-          supports:
+          The Text component unlocks basic type styles on native text components on-demand
+          in a way that's simple, familiar, and easy to remember. Here are the components
+          it supports:
         </p>
 
         <h3>Headings</h3>
