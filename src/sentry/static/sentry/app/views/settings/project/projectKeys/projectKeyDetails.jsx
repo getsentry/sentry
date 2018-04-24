@@ -380,23 +380,37 @@ const KeySettings = createReactClass({
         />
 
         {relayEnabled && (
-          <Panel>
-            <PanelHeader>{t('CDN')}</PanelHeader>
-            <PanelBody>
-              <PanelAlert type="info" icon="icon-circle-exclamation" m={0} mb={0}>
-                {t('Include this script in your website to track javascript errors.')}
-              </PanelAlert>
-              <Field
-                label={t('Script:')}
-                help={t('Copy this into your website and you are good to go')}
-                inline={false}
-                flexibleControlStateSize
-              >
-                <TextCopyInput>{`<script src='${data.relay
-                  .url}'></script>`}</TextCopyInput>
-              </Field>
-            </PanelBody>
-          </Panel>
+          <Form
+            saveOnBlur
+            allowUndo
+            apiEndpoint={apiEndpoint}
+            apiMethod="PUT"
+            initialData={data}
+          >
+            <Panel>
+              <PanelHeader>{t('CDN')}</PanelHeader>
+              <PanelBody>
+                <TextField
+                  name="cdnSdkUrl"
+                  help={t(
+                    'Change this to the URL of the SDK of you choice. By default this is the latest SDK version. If you set an URL here you need to update it manually.'
+                  )}
+                  label={t('Url of SDK to be loaded')}
+                  placeholder={t('Leave empty to use default version')}
+                  required={false}
+                />
+
+                <Field
+                  help={t('Copy this into your website and you are good to go')}
+                  inline={false}
+                  flexibleControlStateSize
+                >
+                  <TextCopyInput>{`<script src='${data.relay
+                    .url}'></script>`}</TextCopyInput>
+                </Field>
+              </PanelBody>
+            </Panel>
+          </Form>
         )}
 
         <Panel>

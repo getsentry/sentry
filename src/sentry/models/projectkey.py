@@ -28,6 +28,9 @@ from sentry.db.models import (
 
 _uuid4_re = re.compile(r'^[a-f0-9]{32}$')
 
+# TODO(hazat)
+DEFAULT_SDK_URL = 'https://pastebin.com/raw/ncDxxR1U'
+
 
 # TODO(dcramer): pull in enum library
 class ProjectKeyStatus(object):
@@ -66,6 +69,8 @@ class ProjectKey(Model):
     rate_limit_window = BoundedPositiveIntegerField(null=True)
 
     objects = BaseManager(cache_fields=('public_key', 'secret_key', ))
+
+    cdn_sdk_url = models.URLField(null=True)
 
     # support legacy project keys in API
     scopes = (

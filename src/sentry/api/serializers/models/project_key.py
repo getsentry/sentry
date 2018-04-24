@@ -32,6 +32,7 @@ class ProjectKeySerializer(Serializer):
             'relay': {
                 'url': config.get_cdn_url(),
             },
+            'cdnSdkUrl': obj.cdn_sdk_url,
             'dateCreated': obj.date_added,
         }
         return d
