@@ -141,6 +141,7 @@ def pytest_configure(config):
             },
             'mail.backend': 'django.core.mail.backends.locmem.EmailBackend',
             'system.url-prefix': 'http://testserver',
+
             'slack.client-id': 'slack-client-id',
             'slack.client-secret': 'slack-client-secret',
             'slack.verification-token': 'slack-verification-token',
@@ -148,6 +149,10 @@ def pytest_configure(config):
             'github.app-name': 'sentry-test-app',
             'github.client-id': 'github-client-id',
             'github.client-secret': 'github-client-secret',
+
+            'vsts.client-id': 'vsts-client-id',
+            'vsts.client-secret': 'vsts-client-secret',
+            'vsts.verification-token': 'vsts-verification-token',
         }
     )
 
@@ -200,6 +205,11 @@ def register_extensions():
     integrations.register(ExampleIntegration)
     integrations.register(SlackIntegration)
     integrations.register(GitHubIntegration)
+
+    from sentry.integrations.vsts import VSTSIntegration
+    integrations.register(ExampleIntegration)
+    integrations.register(SlackIntegration)
+    integrations.register(VSTSIntegration)
 
     from sentry.plugins import bindings
     from sentry.plugins.providers.dummy import DummyRepositoryProvider
