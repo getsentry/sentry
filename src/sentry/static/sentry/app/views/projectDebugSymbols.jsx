@@ -111,10 +111,10 @@ const ProjectDebugSymbols = createReactClass({
       body = this.renderLoading();
     } else if (this.state.error) {
       body = <LoadingError onRetry={this.fetchData} />;
-      // } else if (this.state.debugSymbols.length > 0) {
+    } else if (this.state.debugSymbols.length > 0) {
+      body = this.renderResults();
     } else {
       body = this.renderEmpty();
-      body = this.renderResults();
     }
 
     return body;
