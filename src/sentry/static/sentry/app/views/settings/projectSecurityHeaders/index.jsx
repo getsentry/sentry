@@ -42,6 +42,10 @@ export default class ProjectSecurityHeaders extends AsyncView {
         name: 'Certificate Transparency (Expect-CT)',
         url: recreateRoute('expect-ct/', this.props),
       },
+      {
+        name: 'HTTP Public Key Pinning (HPKP)',
+        url: recreateRoute('hpkp/', this.props),
+      },
     ];
   }
 

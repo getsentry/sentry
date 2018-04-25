@@ -163,6 +163,30 @@ exports[`ProjectSecurityHeaders renders 1`] = `
             </Button>
           </Flex>
         </PanelItem>
+        <PanelItem
+          direction="column"
+          p={0}
+        >
+          <Flex
+            align="center"
+            flex="1"
+            p={2}
+          >
+            <Box
+              flex="1"
+            >
+              <HeaderName>
+                HTTP Public Key Pinning (HPKP)
+              </HeaderName>
+            </Box>
+            <Button
+              disabled={false}
+              priority="primary"
+            >
+              Instructions
+            </Button>
+          </Flex>
+        </PanelItem>
       </PanelBody>
     </Panel>
   </div>
