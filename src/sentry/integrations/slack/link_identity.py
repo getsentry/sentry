@@ -3,6 +3,7 @@ from __future__ import absolute_import, print_function
 from django.core.urlresolvers import reverse
 from django.http import Http404
 from django.views.decorators.cache import never_cache
+from django.db.models import Q
 
 from sentry import http
 from sentry.models import Integration, Identity, IdentityProvider, IdentityStatus, Organization
@@ -51,6 +52,7 @@ class SlackLinkIdentitiyView(BaseView):
 
         try:
             idp = IdentityProvider.objects.get(
+                Q(external_id=integration.external_id) | Q(external_id=None),
                 type='slack',
                 organization=organization,
             )
