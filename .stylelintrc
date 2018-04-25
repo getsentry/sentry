@@ -6,7 +6,7 @@
   ],
   "rules": {
     "declaration-colon-newline-after": null,
-    "block-no-empty": [true, { "severity": "warning" }],
+    "block-no-empty": null,
     "selector-type-no-unknown": [true, {
       "ignoreTypes": ["$dummyValue"],
     }],
