@@ -341,7 +341,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                                      result['subjectPrefix']):
                 changed_proj_settings['mail:subject_prefix'] = result['subjectPrefix']
         if result.get('subjectTemplate'):
-            project.update_option('mail:subject_template', result['subjectTemplate'])
+            project.update_option('mail:subject_template',
+                                  result['subjectTemplate'])
         if result.get('defaultEnvironment') is not None:
             project.update_option('sentry:default_environment', result['defaultEnvironment'])
         if result.get('scrubIPAddresses') is not None:
