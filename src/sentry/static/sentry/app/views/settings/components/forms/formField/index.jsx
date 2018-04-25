@@ -199,6 +199,9 @@ class FormField extends React.Component {
   }
 
   getModel() {
+    if (this.context.form === undefined) {
+      throw new Error('Make sure to wrap your fields into <Form/>');
+    }
     return this.context.form;
   }
 
