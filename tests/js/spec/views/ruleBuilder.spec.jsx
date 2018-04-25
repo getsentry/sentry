@@ -11,6 +11,7 @@ jest.mock('jquery');
 describe('RuleBuilder', function() {
   let sandbox;
 
+  let organization = TestStubs.Organization();
   let project;
   let handleAdd;
   let USER_1 = TestStubs.User({
@@ -37,64 +38,71 @@ describe('RuleBuilder', function() {
 
     handleAdd = jest.fn();
     project = TestStubs.Project();
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [USER_1, USER_2],
+    });
   });
 
   afterEach(function() {
     sandbox.restore();
   });
 
-  describe('render()', function() {
-    it('renders', function() {
-      let wrapper = mount(
-        <RuleBuilder project={project} onAddRule={handleAdd} />,
-        TestStubs.routerContext()
-      );
+  it('renders', async function() {
+    let wrapper = mount(
+      <RuleBuilder project={project} organization={organization} onAddRule={handleAdd} />,
+      TestStubs.routerContext()
+    );
 
-      let add = wrapper.find('RuleAddButton');
-      add.simulate('click');
-      expect(handleAdd).not.toHaveBeenCalled();
+    await tick();
+    wrapper.update();
 
-      let text = wrapper.find('BuilderInput');
-      text.simulate('change', {target: {value: 'some/path/*'}});
+    let add = wrapper.find('RuleAddButton');
+    add.simulate('click');
+    expect(handleAdd).not.toHaveBeenCalled();
 
-      add.simulate('click');
-      expect(handleAdd).not.toHaveBeenCalled();
+    let text = wrapper.find('BuilderInput');
+    text.simulate('change', {target: {value: 'some/path/*'}});
 
-      // Simulate select first element via down arrow / enter
-      wrapper.find('SelectOwners .Select-control').simulate('keyDown', {keyCode: 40});
-      wrapper.find('SelectOwners .Select-control').simulate('keyDown', {keyCode: 13});
+    add.simulate('click');
+    expect(handleAdd).not.toHaveBeenCalled();
 
-      add.simulate('click');
-      expect(handleAdd).toHaveBeenCalled();
+    // Simulate select first element via down arrow / enter
+    wrapper.find('SelectOwners .Select-control').simulate('keyDown', {keyCode: 40});
+    wrapper.find('SelectOwners .Select-control').simulate('keyDown', {keyCode: 13});
 
-      expect(wrapper.find(RuleBuilder)).toMatchSnapshot();
-    });
+    add.simulate('click');
+    expect(handleAdd).toHaveBeenCalled();
+
+    expect(wrapper.find(RuleBuilder)).toMatchSnapshot();
   });
 
-  describe('renders with suggestions', function() {
-    it('renders', function() {
-      let wrapper = mount(
-        <RuleBuilder
-          project={project}
-          onAddRule={handleAdd}
-          urls={['example.com/a', 'example.com/a/foo']}
-          paths={['a/bar', 'a/foo']}
-        />,
-        TestStubs.routerContext()
-      );
+  it('renders with suggestions', async function() {
+    let wrapper = mount(
+      <RuleBuilder
+        project={project}
+        organization={organization}
+        onAddRule={handleAdd}
+        urls={['example.com/a', 'example.com/a/foo']}
+        paths={['a/bar', 'a/foo']}
+      />,
+      TestStubs.routerContext()
+    );
 
-      // Simulate select first element via down arrow / enter
-      wrapper.find('SelectOwners .Select-control').simulate('keyDown', {keyCode: 40});
-      wrapper.find('SelectOwners .Select-control').simulate('keyDown', {keyCode: 13});
+    await tick();
+    wrapper.update();
 
-      let ruleCandidate = wrapper.find('RuleCandidate').first();
-      ruleCandidate.simulate('click');
+    // Simulate select first element via down arrow / enter
+    wrapper.find('SelectOwners .Select-control').simulate('keyDown', {keyCode: 40});
+    wrapper.find('SelectOwners .Select-control').simulate('keyDown', {keyCode: 13});
 
-      let add = wrapper.find('RuleAddButton');
-      expect(wrapper.find(RuleBuilder)).toMatchSnapshot();
+    let ruleCandidate = wrapper.find('RuleCandidate').first();
+    ruleCandidate.simulate('click');
 
-      add.simulate('click');
-      expect(handleAdd).toHaveBeenCalled();
-    });
+    expect(wrapper.find(RuleBuilder)).toMatchSnapshot();
+
+    wrapper.find('RuleAddButton').simulate('click');
+    expect(handleAdd).toHaveBeenCalled();
   });
 });
