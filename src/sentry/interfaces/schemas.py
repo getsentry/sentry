@@ -458,6 +458,40 @@ CSP_INTERFACE_SCHEMA = {
     'additionalProperties': False,  # Don't allow any other keys.
 }
 
+# RFC7469 Section 3
+HPKP_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'date-time': {'type': 'string', },  # TODO validate (RFC3339)
+        'hostname': {'type': 'string'},
+        'port': {'type': 'number'},
+        'effective-expiration-date': {'type': 'string', },  # TODO validate (RFC3339)
+        'include-subdomains': {'type': 'boolean'},
+        'noted-hostname': {'type': 'string'},
+        'served-certificate-chain': {
+            'type': 'array',
+            'items': {'type': 'string'}
+        },
+        'validated-certificate-chain': {
+            'type': 'array',
+            'items': {'type': 'string'}
+        },
+        'known-pins': {
+            'type': 'array',
+            'items': {'type': 'string'}  # TODO regex this string for 'pin-sha256="ABC123"' syntax
+        },
+    },
+    'required': ['hostname'],  # TODO fill in more required keys
+    'additionalProperties': False,  # Don't allow any other keys.
+}
+
+HPKP_INTERFACE_SCHEMA = {
+    'type': 'object',
+    'properties': {k.replace('-', '_'): v for k, v in six.iteritems(HPKP_SCHEMA['properties'])},
+    'required': ['hostname'],  # TODO fill in more required keys
+    'additionalProperties': False,  # Don't allow any other keys.
+}
+
 EXPECT_CT_SCHEMA = {
     'type': 'object',
     'properties': {
@@ -587,6 +621,7 @@ then be transformed into the requisite interface.
 """
 INPUT_SCHEMAS = {
     'sentry.interfaces.Csp': CSP_SCHEMA,
+    'hpkp': HPKP_SCHEMA,
     'expectct': EXPECT_CT_SCHEMA,
     'expectstaple': EXPECT_STAPLE_SCHEMA,
 }
@@ -614,6 +649,7 @@ INTERFACE_SCHEMAS = {
 
     # Security reports
     'sentry.interfaces.Csp': CSP_INTERFACE_SCHEMA,
+    'hpkp': HPKP_INTERFACE_SCHEMA,
     'expectct': EXPECT_CT_INTERFACE_SCHEMA,
     'expectstaple': EXPECT_STAPLE_INTERFACE_SCHEMA,
 
