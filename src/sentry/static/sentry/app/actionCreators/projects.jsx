@@ -1,4 +1,8 @@
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {
+  addLoadingMessage,
+  addErrorMessage,
+  addSuccessMessage,
+} from 'app/actionCreators/indicator';
 import {tct} from 'app/locale';
 import ProjectActions from 'app/actions/projectActions';
 
@@ -93,38 +97,96 @@ export function transferProject(api, orgId, project, email) {
 /**
  * Associate a team with a project
  */
-export function addTeamToProject(api, orgSlug, projectSlug, teamSlug) {
-  let endpoint = `/projects/${orgSlug}/${projectSlug}/teams/${teamSlug}/`;
+
+/**
+ *  Adds a team to a project
+ *
+ * @param {Client} api API Client
+ * @param {String} orgSlug Organization Slug
+ * @param {String} projectSlug Project Slug
+ * @param {String} teamSlug Team Slug
+ */
+export function addTeamToProject(api, orgSlug, projectSlug, team) {
+  let endpoint = `/projects/${orgSlug}/${projectSlug}/teams/${team.slug}/`;
+
+  addLoadingMessage();
+  ProjectActions.addTeam(team);
 
   return api
     .requestPromise(endpoint, {
       method: 'POST',
     })
     .then(
-      () => {
+      project => {
         addSuccessMessage(
           tct('[team] has been added to the [project] project', {
-            team: `#${teamSlug}`,
+            team: `#${team.slug}`,
             project: projectSlug,
-          }),
-          undefined,
-          {append: true}
+          })
         );
+        ProjectActions.addTeamSuccess(team, projectSlug);
+        ProjectActions.updateSuccess(project);
       },
       err => {
         addErrorMessage(
           tct('Unable to add [team] to the [project] project', {
-            team: `#${teamSlug}`,
+            team: `#${team.slug}`,
             project: projectSlug,
-          }),
-          undefined,
-          {append: true}
+          })
         );
+        ProjectActions.addTeamError();
         throw err;
       }
     );
 }
 
+/**
+ *  Removes a team from a project
+ *
+ * @param {Client} api API Client
+ * @param {String} orgSlug Organization Slug
+ * @param {String} projectSlug Project Slug
+ * @param {String} teamSlug Team Slug
+ */
+export function removeTeamFromProject(api, orgSlug, projectSlug, teamSlug) {
+  let endpoint = `/projects/${orgSlug}/${projectSlug}/teams/${teamSlug}/`;
+
+  addLoadingMessage();
+  ProjectActions.removeTeam(teamSlug);
+
+  return api
+    .requestPromise(endpoint, {
+      method: 'DELETE',
+    })
+    .then(
+      project => {
+        addSuccessMessage(
+          tct('[team] has been removed from the [project] project', {
+            team: `#${teamSlug}`,
+            project: projectSlug,
+          })
+        );
+        ProjectActions.removeTeamSuccess(teamSlug, projectSlug);
+        ProjectActions.updateSuccess(project);
+      },
+      err => {
+        addErrorMessage(
+          tct('Unable to remove [team] from the [project] project', {
+            team: `#${teamSlug}`,
+            project: projectSlug,
+          })
+        );
+        ProjectActions.removeTeamError(err);
+        throw err;
+      }
+    );
+}
+
+/**
+ * Change a project's slug
+ * @param {String} prev Previous slug
+ * @param {String} next New slug
+ */
 export function changeProjectSlug(prev, next) {
   ProjectActions.changeSlug(prev, next);
 }
