@@ -194,7 +194,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
               className="rule-detail"
             >
               <div
-                className="rule-detail css-wfa8ap-StyledPanel css-5bw71w0"
+                className="rule-detail css-1ctfmmx-StyledPanel css-tj715z0"
               >
                 <PanelHeader>
                   <StyledPanelHeader>
@@ -1183,7 +1183,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
               className="rule-detail"
             >
               <div
-                className="rule-detail css-wfa8ap-StyledPanel css-5bw71w0"
+                className="rule-detail css-1ctfmmx-StyledPanel css-tj715z0"
               >
                 <PanelHeader>
                   <StyledPanelHeader>

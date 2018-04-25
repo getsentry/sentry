@@ -31,7 +31,7 @@ exports[`CreateProject render() should render roles when available and allowed, 
     >
       <Wrapper>
         <div
-          className="css-foidy-Wrapper css-17jmgia0"
+          className="css-12kovf2-Wrapper css-vsmyps0"
         >
           <Flex
             align="center"
@@ -46,7 +46,7 @@ exports[`CreateProject render() should render roles when available and allowed, 
               >
                 <Title>
                   <div
-                    className="css-zmdcxu-Title css-17jmgia1"
+                    className="css-zmdcxu-Title css-vsmyps1"
                   >
                     Add Member to Organization
                   </div>
@@ -138,7 +138,7 @@ exports[`CreateProject render() should render roles when available and allowed, 
             className="new-invite-team"
           >
             <div
-              className="new-invite-team css-wfa8ap-StyledPanel css-5bw71w0"
+              className="new-invite-team css-1ctfmmx-StyledPanel css-tj715z0"
             >
               <PanelHeader>
                 <StyledPanelHeader>
@@ -377,7 +377,7 @@ exports[`CreateProject render() should render roles when available and allowed, 
             className="new-invite-team"
           >
             <div
-              className="new-invite-team css-wfa8ap-StyledPanel css-5bw71w0"
+              className="new-invite-team css-1ctfmmx-StyledPanel css-tj715z0"
             >
               <PanelHeader>
                 <StyledPanelHeader>

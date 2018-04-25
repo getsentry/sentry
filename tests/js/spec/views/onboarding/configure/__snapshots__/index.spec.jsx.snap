@@ -202,7 +202,7 @@ exports[`Configure should render correctly render() should render platform docs 
                         <Panel>
                           <StyledPanel>
                             <div
-                              className="css-wfa8ap-StyledPanel css-5bw71w0"
+                              className="css-1ctfmmx-StyledPanel css-tj715z0"
                             >
                               <PanelHeader
                                 hasButtons={true}
