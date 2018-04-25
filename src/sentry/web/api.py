@@ -689,6 +689,7 @@ class SecurityReportView(StoreView):
             'csp-report': 'sentry.interfaces.Csp',
             'expect-ct-report': 'expectct',
             'expect-staple-report': 'expectstaple',
+            'known-pins': 'hpkp',
         }
         if isinstance(body, dict):
             for k in report_type_for_key:
