@@ -2,7 +2,7 @@
 
 exports[`AlertLink renders 1`] = `
 <Component
-  className="css-shq2k6-AlertLink css-bigfse2"
+  className="css-19kzmmy-AlertLink css-dvd7d22"
   to="/settings/accounts/notifications"
 >
   This is an external link button
@@ -11,7 +11,7 @@ exports[`AlertLink renders 1`] = `
 
 exports[`AlertLink renders with icon 1`] = `
 <Component
-  className="css-shq2k6-AlertLink css-bigfse2"
+  className="css-19kzmmy-AlertLink css-dvd7d22"
   icon="icon-mail"
   to="/settings/accounts/notifications"
 >

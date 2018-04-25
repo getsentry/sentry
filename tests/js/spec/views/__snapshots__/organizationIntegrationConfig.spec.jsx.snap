@@ -383,27 +383,27 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
         to="/url/with/params/org-slug/"
       >
         <Component
-          className="css-shq2k6-AlertLink css-bigfse2"
+          className="css-19kzmmy-AlertLink css-dvd7d22"
           to="/url/with/params/org-slug/"
         >
           <Link
-            className="css-shq2k6-AlertLink css-bigfse2"
+            className="css-19kzmmy-AlertLink css-dvd7d22"
             to="/url/with/params/org-slug/"
           >
             <Link
-              className="css-shq2k6-AlertLink css-bigfse2"
+              className="css-19kzmmy-AlertLink css-dvd7d22"
               onlyActiveOnIndex={false}
               style={Object {}}
               to="/url/with/params/org-slug/"
             >
               <a
-                className="css-shq2k6-AlertLink css-bigfse2"
+                className="css-19kzmmy-AlertLink css-dvd7d22"
                 onClick={[Function]}
                 style={Object {}}
               >
                 <AlertLinkText>
                   <div
-                    className="css-19z7wog-AlertLinkText css-bigfse0"
+                    className="css-19z7wog-AlertLinkText css-dvd7d20"
                   >
                     <span
                       dangerouslySetInnerHTML={

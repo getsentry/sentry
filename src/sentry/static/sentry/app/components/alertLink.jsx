@@ -26,7 +26,7 @@ const AlertLink = styled(({children, icon, ...props}) => (
   background-color: ${t => t.theme.yellowLightest};
   color: ${t => t.theme.gray5};
   border: 1px dashed ${t => t.theme.borderDark};
-  padding: ${space(2)} ${space(3)};
+  padding: ${space(2)};
   margin-bottom: ${space(3)};
   border-radius: 0.25em;
   transition: 0.2s border-color;
