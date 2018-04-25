@@ -13,7 +13,8 @@ const Text = styled.div`
   table,
   dl,
   blockquote,
-  form {
+  form,
+  pre {
     margin-bottom: 20px;
 
     &:last-child {
