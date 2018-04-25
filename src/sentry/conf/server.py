@@ -623,6 +623,11 @@ LOGGING = {
             'filters': ['sentry:internal'],
             'class': 'raven.contrib.django.handlers.SentryHandler',
         },
+        'internal:optin': {
+            'level': 'WARNING',
+            'filters': ['sentry:internal'],
+            'class': 'raven.contrib.django.handlers.SentryHandler',
+        },
         'metrics': {
             'level': 'WARNING',
             'filters': ['important_django_request'],
@@ -668,6 +673,10 @@ LOGGING = {
         },
         'sentry.rules': {
             'handlers': ['console'],
+            'propagate': False,
+        },
+        'sentry.utils.services': {
+            'handlers': ['internal:optin'],
             'propagate': False,
         },
         'multiprocessing': {
