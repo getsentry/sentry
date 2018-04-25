@@ -48,7 +48,7 @@ class RuleBuilder extends React.Component {
 
   mentionableTeams() {
     let {project} = this.props;
-    let projectData = ProjectsStore.getAll().find(p => p.slug == project.slug);
+    let projectData = ProjectsStore.getBySlug(project.slug);
 
     if (!projectData) {
       return [];
