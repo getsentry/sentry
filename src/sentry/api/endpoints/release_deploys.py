@@ -12,7 +12,7 @@ from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.models import Deploy, Environment, Release
+from sentry.models import Deploy, Environment, Release, ReleaseProjectEnvironment
 
 
 class DeploySerializer(serializers.Serializer):
@@ -116,6 +116,10 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
             # should be unlikely to hit in the real world
             Release.objects.filter(id=release.id).update(
                 total_deploys=F('total_deploys') + 1,
+                last_deploy_id=deploy.id,
+            )
+
+            ReleaseProjectEnvironment.objects.filter(release=release, environment=env).update(
                 last_deploy_id=deploy.id,
             )
 
