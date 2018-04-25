@@ -147,12 +147,12 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
             Object {
               "fields": Array [
                 Object {
-                  "label": "Default Owner is everyone",
+                  "label": "All users with access to this project are owners",
                   "name": "fallthrough",
                   "type": "boolean",
                 },
               ],
-              "title": "Default Ownership",
+              "title": "If ownership cannot be determined for an issue...",
             },
           ]
         }
