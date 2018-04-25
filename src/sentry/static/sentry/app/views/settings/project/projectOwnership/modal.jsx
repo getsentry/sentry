@@ -44,13 +44,15 @@ class ProjectOwnershipModal extends AsyncComponent {
           .map(i => i.value)
           .slice(0, 5)
       : [];
+
     // pull frame data out of exception or the stacktrace
     let frames =
       idx(
         eventData.entries.find(({type}) => type == 'exception'),
         _ => _.data.values[0].stacktrace.frames
       ) ||
-      idx(eventData.entries.find(({type}) => type == 'stacktrace'), _ => _.data.frames);
+      idx(eventData.entries.find(({type}) => type == 'stacktrace'), _ => _.data.frames) ||
+      [];
 
     //filter frames by inApp unless there would be 0
     let inAppFrames = frames.filter(frame => frame.inApp);
