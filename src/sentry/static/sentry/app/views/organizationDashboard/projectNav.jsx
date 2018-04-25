@@ -96,6 +96,7 @@ const ProjectNav = createReactClass({
 const StyledNav = styled(Flex)`
   border-bottom: 1px solid ${p => p.theme.borderLight};
   box-shadow: ${p => p.theme.dropShadowLight};
+  background-color: white;
 `;
 
 const StyledDropdown = styled.div`
