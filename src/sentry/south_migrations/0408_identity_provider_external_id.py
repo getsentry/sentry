@@ -4,6 +4,8 @@ from south.db import db
 from south.v2 import DataMigration
 from django.db import models
 
+from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
+
 
 class Migration(DataMigration):
 
@@ -21,15 +23,21 @@ class Migration(DataMigration):
         db.start_transaction()
 
     def _forwards(self, orm):
-        db.execute('''
-            update sentry_identityprovider
-            set external_id=(select external_id
-                from sentry_organizationintegration as oi
-                join sentry_integration as i on i.id = oi.integration_id
-                where oi.organization_id = sentry_identityprovider.organization_id
-                limit 1)
-            where sentry_identityprovider.external_id IS NULL;
-        ''')
+        idps = orm.IdentityProvider.objects.filter(external_id=None)
+
+        for r in RangeQuerySetWrapperWithProgressBar(idps):
+            try:
+                # Limit to one integration. It *is possible* that multiple
+                # integrations could have been configured and only one identity
+                # provider would have been setup, but at the time of writing
+                # this, in getsentry, there are no cases like such.
+                integration = orm.Integration.objects.filter(organizations=r.organization_id)[:1][0]
+            except KeyError:
+                # Identity provider exists without an external_id. Nothing we
+                # can do to determine the external ID.
+                continue
+
+            orm.IdentityProvider.objects.filter(id=r.id).update(external_id=integration.external_id)
 
     def backwards(self, orm):
         "Write your backwards methods here."
