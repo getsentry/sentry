@@ -906,7 +906,7 @@ exports[`ProjectSavedSearches renders empty 1`] = `
                       className="icon icon-exclamation"
                     >
                       <div
-                        className="icon icon-exclamation css-1xqhcr3-Icon ernlsnc1"
+                        className="icon icon-exclamation css-1t79dmf-Icon ernlsnc1"
                       />
                     </Icon>
                     <p>

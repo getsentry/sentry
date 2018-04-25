@@ -159,7 +159,7 @@ const StyledInput = styled(Input)`
 const StyledSearchIcon = styled(InlineSvg)`
   left: 0.75em;
   position: absolute;
-  top: 53%; //this is an optics thing
+  top: 53%; /* this is an optics thing */
   transform: translateY(-50%);
   color: ${p => p.theme.gray1};
 `;
