@@ -1,5 +1,5 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 
 import {t, tct} from '../../../locale';
@@ -8,6 +8,8 @@ import ExternalLink from '../../../components/externalLink';
 import Form from '../components/forms/form';
 import JsonForm from '../components/forms/jsonForm';
 import {Panel, PanelBody, PanelHeader} from '../../../components/panels';
+import ReportUri, {getSecurityDsn} from './reportUri';
+import PreviewFeature from '../../../components/previewFeature';
 import SettingsPageHeader from '../components/settingsPageHeader';
 import TextBlock from '../components/text/textBlock';
 import formGroups from '../../../data/forms/cspReports';
@@ -16,11 +18,8 @@ const CodeBlock = styled.pre`
   word-break: break-all;
   white-space: pre-wrap;
 `;
-const TextBlockNoMargin = styled(TextBlock)`
-  margin-bottom: 0;
-`;
 
-class ProjectCspReports extends AsyncView {
+export default class ProjectCspReports extends AsyncView {
   static propTypes = {
     setProjectNavSection: PropTypes.func,
   };
@@ -39,10 +38,6 @@ class ProjectCspReports extends AsyncView {
   }
 
   getInstructions() {
-    let endpoint = this.state.keyList.length
-      ? this.state.keyList[0].dsn.csp
-      : 'https://sentry.example.com/api/csp-report/';
-
     return (
       'def middleware(request, response):\n' +
       "    response['Content-Security-Policy'] = \\\n" +
@@ -51,23 +46,19 @@ class ProjectCspReports extends AsyncView {
       "        \"style-src 'self' 'unsafe-inline' cdn.example.com; \" \\\n" +
       '        "img-src * data:; " \\\n' +
       '        "report-uri ' +
-      endpoint +
+      getSecurityDsn(this.state.keyList) +
       '"\n' +
       '    return response\n'
     );
   }
 
   getReportOnlyInstructions() {
-    let endpoint = this.state.keyList.length
-      ? this.state.keyList[0].dsn.csp
-      : 'https://sentry.example.com/api/csp-report/';
-
     return (
       'def middleware(request, response):\n' +
       "    response['Content-Security-Policy-Report-Only'] = \\\n" +
       '        "default-src \'self\'; " \\\n' +
       '        "report-uri ' +
-      endpoint +
+      getSecurityDsn(this.state.keyList) +
       '"\n' +
       '    return response\n'
     );
@@ -78,28 +69,11 @@ class ProjectCspReports extends AsyncView {
 
     return (
       <div>
-        <SettingsPageHeader title={t('CSP Reports')} />
+        <SettingsPageHeader title={t('Content Security Policy')} />
 
-        <div className="alert alert-block alert-info">
-          {t(`Psst! This feature is still a work-in-progress. Thanks for being an early
-          adopter!`)}
-        </div>
+        <PreviewFeature />
 
-        <TextBlock>
-          {tct(
-            `[link:Content Security Policy]
-          (CSP) is a security standard which helps prevent cross-site scripting (XSS),
-          clickjacking and other code injection attacks resulting from execution of
-          malicious content in the trusted web page context. It's enforced by browser
-          vendors, and Sentry supports capturing CSP violations using the standard
-          reporting hooks.`,
-            {
-              link: (
-                <ExternalLink href="https://en.wikipedia.org/wiki/Content_Security_Policy" />
-              ),
-            }
-          )}
-        </TextBlock>
+        <ReportUri keyList={this.state.keyList} params={this.props.params} />
 
         <Form
           saveOnBlur
@@ -111,9 +85,25 @@ class ProjectCspReports extends AsyncView {
         </Form>
 
         <Panel>
-          <PanelHeader>{t('Integration')}</PanelHeader>
+          <PanelHeader>{t('About')}</PanelHeader>
 
           <PanelBody disablePadding={false}>
+            <TextBlock>
+              {tct(
+                `[link:Content Security Policy]
+            (CSP) is a security standard which helps prevent cross-site scripting (XSS),
+            clickjacking and other code injection attacks resulting from execution of
+            malicious content in the trusted web page context. It's enforced by browser
+            vendors, and Sentry supports capturing CSP violations using the standard
+            reporting hooks.`,
+                {
+                  link: (
+                    <ExternalLink href="https://en.wikipedia.org/wiki/Content_Security_Policy" />
+                  ),
+                }
+              )}
+            </TextBlock>
+
             <TextBlock>
               {tct(
                 `To configure [csp:CSP] reports
@@ -125,20 +115,20 @@ class ProjectCspReports extends AsyncView {
               )}
             </TextBlock>
 
-            <TextBlockNoMargin>
+            <TextBlock noMargin>
               {t(
                 'For example, in Python you might achieve this via a simple web middleware'
               )}
-            </TextBlockNoMargin>
+            </TextBlock>
             <CodeBlock>{this.getInstructions()}</CodeBlock>
 
-            <TextBlockNoMargin>
+            <TextBlock noMargin>
               {t(`Alternatively you can setup CSP reports to simply send reports rather than
               actually enforcing the policy`)}
-            </TextBlockNoMargin>
+            </TextBlock>
             <CodeBlock>{this.getReportOnlyInstructions()}</CodeBlock>
 
-            <TextBlockNoMargin css={{marginTop: 30}}>
+            <TextBlock noMargin css={{marginTop: 30}}>
               {tct(
                 `We recommend setting this up to only run on a percentage of requests, as
               otherwise you may find that you've quickly exhausted your quota. For more
@@ -149,12 +139,10 @@ class ProjectCspReports extends AsyncView {
                   ),
                 }
               )}
-            </TextBlockNoMargin>
+            </TextBlock>
           </PanelBody>
         </Panel>
       </div>
     );
   }
 }
-
-export default ProjectCspReports;

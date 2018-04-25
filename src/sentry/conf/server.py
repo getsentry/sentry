@@ -266,7 +266,9 @@ STATIC_URL = '/_static/{version}/'
 
 # various middleware will use this to identify resources which should not access
 # cookies
-ANONYMOUS_STATIC_PREFIXES = ('/_static/', '/avatar/', '/organization-avatar/', '/team-avatar/')
+ANONYMOUS_STATIC_PREFIXES = (
+    '/_static/', '/avatar/', '/organization-avatar/', '/team-avatar/', '/project-avatar/',
+)
 
 STATICFILES_FINDERS = (
     "django.contrib.staticfiles.finders.FileSystemFinder",
@@ -621,6 +623,11 @@ LOGGING = {
             'filters': ['sentry:internal'],
             'class': 'raven.contrib.django.handlers.SentryHandler',
         },
+        'internal:optin': {
+            'level': 'WARNING',
+            'filters': ['sentry:internal'],
+            'class': 'raven.contrib.django.handlers.SentryHandler',
+        },
         'metrics': {
             'level': 'WARNING',
             'filters': ['important_django_request'],
@@ -666,6 +673,10 @@ LOGGING = {
         },
         'sentry.rules': {
             'handlers': ['console'],
+            'propagate': False,
+        },
+        'sentry.utils.services': {
+            'handlers': ['internal:optin'],
             'propagate': False,
         },
         'multiprocessing': {

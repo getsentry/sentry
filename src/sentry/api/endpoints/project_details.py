@@ -221,6 +221,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             or (request.access and request.access.has_scope('project:write'))
         )
 
+        changed_proj_settings = {}
+
         if has_project_write:
             serializer_cls = ProjectAdminSerializer
         else:
@@ -256,10 +258,12 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             old_slug = project.slug
             project.slug = result['slug']
             changed = True
+            changed_proj_settings['new_slug'] = project.slug
 
         if result.get('name'):
             project.name = result['name']
             changed = True
+            changed_proj_settings['new_project'] = project.name
 
         old_team_id = None
         new_team = None
@@ -485,7 +489,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 organization=project.organization,
                 target_object=project.id,
                 event=AuditLogEntryEvent.PROJECT_EDIT,
-                data=project.get_audit_log_data(),
+                data=changed_proj_settings
             )
 
         data = serialize(project, request.user, DetailedProjectSerializer())

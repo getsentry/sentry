@@ -108,7 +108,7 @@ export function createTeam(api, team, params, options) {
       data => {
         TeamActions.createTeamSuccess(data);
         addSuccessMessage(
-          tct('[team] has been add to the [organization] organization', {
+          tct('[team] has been added to the [organization] organization', {
             team: `#${data.slug}`,
             organization: params.orgId,
           })

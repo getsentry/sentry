@@ -15,7 +15,7 @@ class ProjectKeyCredentials extends React.Component {
 
     showDsn: PropTypes.bool,
     showDsnPublic: PropTypes.bool,
-    showCspEndpoint: PropTypes.bool,
+    showSecurityEndpoint: PropTypes.bool,
     showMinidump: PropTypes.bool,
     showPublicKey: PropTypes.bool,
     showSecretKey: PropTypes.bool,
@@ -25,7 +25,7 @@ class ProjectKeyCredentials extends React.Component {
   static defaultProps = {
     showDsn: true,
     showDsnPublic: true,
-    showCspEndpoint: true,
+    showSecurityEndpoint: true,
     showMinidump: true,
     showPublicKey: false,
     showSecretKey: false,
@@ -38,7 +38,7 @@ class ProjectKeyCredentials extends React.Component {
       data,
       showDsn,
       showDsnPublic,
-      showCspEndpoint,
+      showSecurityEndpoint,
       showMinidump,
       showPublicKey,
       showSecretKey,
@@ -61,23 +61,19 @@ class ProjectKeyCredentials extends React.Component {
           </Field>
         )}
 
-        {showCspEndpoint && (
+        {showSecurityEndpoint && (
           <Field
-            label={t('CSP Endpoint')}
-            help={tct(
-              'Use your CSP endpoint in the [directive] directive in your [header] header.',
-              {
-                directive: <code>report-uri</code>,
-                header: <code>Content-Security-Policy</code>,
-              }
+            label={t('Security Header Endpoint')}
+            help={t(
+              'Use your security header endpoint for features like CSP and Expect-CT reports.'
             )}
             inline={false}
             flexibleControlStateSize
           >
             <TextCopyInput>
               {getDynamicText({
-                value: data.dsn.csp,
-                fixed: data.dsn.csp.replace(
+                value: data.dsn.security,
+                fixed: data.dsn.security.replace(
                   new RegExp(`\/${projectId}$`),
                   '/<<projectId>>'
                 ),

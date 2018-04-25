@@ -39,6 +39,10 @@ def get_project_root():
     return os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir)
 
 
+def get_sentry_bin(name):
+    return os.path.join(get_project_root(), 'bin', name)
+
+
 def get_node_modules_bin(name):
     return os.path.join(
         get_project_root(), 'node_modules', '.bin', name)
@@ -121,7 +125,9 @@ def py_lint(file_list, parseable=False):
 
 def js_lint(file_list=None, parseable=False, format=False):
 
+    # We require eslint in path but we actually call an eslint wrapper
     eslint_path = get_node_modules_bin('eslint')
+    eslint_wrapper_path = get_sentry_bin('eslint-travis-wrapper')
 
     if not os.path.exists(eslint_path):
         from click import echo
@@ -132,7 +138,11 @@ def js_lint(file_list=None, parseable=False, format=False):
 
     has_errors = False
     if js_file_list:
-        cmd = [eslint_path, '--ext', '.js,.jsx']
+        if os.environ.get('CI'):
+            cmd = [eslint_wrapper_path, '--ext', '.js,.jsx']
+        else:
+            cmd = [eslint_path, '--ext', '.js,.jsx']
+
         if format:
             cmd.append('--fix')
         if parseable:
