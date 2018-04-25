@@ -390,6 +390,14 @@ const projectSettingsRoutes = (
           import(/*webpackChunkName: "ProjectExpectCtReports"*/ './views/settings/projectSecurityHeaders/expectCt')}
         component={errorHandler(LazyLoad)}
       />
+      <Route
+        path="hpkp/"
+        key="hpkp/"
+        name="HPKP"
+        componentPromise={() =>
+          import(/*webpackChunkName: "ProjectHpkpReports"*/ './views/settings/projectSecurityHeaders/hpkp')}
+        component={errorHandler(LazyLoad)}
+      />
     </Route>
     <Route path="plugins/" name="Integrations" component={errorHandler(ProjectPlugins)} />
     <Route

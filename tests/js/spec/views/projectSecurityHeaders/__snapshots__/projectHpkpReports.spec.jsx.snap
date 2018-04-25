@@ -1,0 +1,275 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ProjectHpkpReports renders 1`] = `
+<SideEffect(DocumentTitle)
+  title="Sentry"
+>
+  <RouteError
+    component={
+      ProjectHpkpReports {
+        "api": Client {},
+        "context": Object {
+          "location": Object {
+            "pathame": "/mock-pathname/",
+            "query": Object {},
+          },
+          "organization": Object {
+            "access": Array [
+              "org:read",
+              "org:write",
+              "org:admin",
+              "project:read",
+              "project:write",
+              "project:admin",
+              "team:read",
+              "team:write",
+              "team:admin",
+            ],
+            "features": Array [],
+            "id": "3",
+            "name": "Organization Name",
+            "onboardingTasks": Array [],
+            "projects": Array [],
+            "slug": "org-slug",
+            "status": Object {
+              "id": "active",
+              "name": "active",
+            },
+            "teams": Array [],
+          },
+          "project": Object {
+            "hasAccess": true,
+            "id": "2",
+            "isBookmarked": false,
+            "isMember": true,
+            "name": "Project Name",
+            "slug": "project-slug",
+            "teams": Array [],
+          },
+          "router": Object {
+            "createHref": [MockFunction],
+            "go": [MockFunction],
+            "goBack": [MockFunction],
+            "goForward": [MockFunction],
+            "isActive": [MockFunction],
+            "location": Object {
+              "query": Object {},
+            },
+            "push": [MockFunction],
+            "replace": [MockFunction],
+            "setRouteLeaveHook": [MockFunction],
+          },
+        },
+        "fetchData": [Function],
+        "props": Object {
+          "location": Object {
+            "pathame": "/mock-pathname/",
+            "pathname": "/projects/org-slug/project-slug/hpkp/",
+            "query": Object {},
+          },
+          "organization": Object {
+            "access": Array [
+              "org:read",
+              "org:write",
+              "org:admin",
+              "project:read",
+              "project:write",
+              "project:admin",
+              "team:read",
+              "team:write",
+              "team:admin",
+            ],
+            "features": Array [],
+            "id": "3",
+            "name": "Organization Name",
+            "onboardingTasks": Array [],
+            "projects": Array [],
+            "slug": "org-slug",
+            "status": Object {
+              "id": "active",
+              "name": "active",
+            },
+            "teams": Array [],
+          },
+          "params": Object {
+            "orgId": "org-slug",
+            "projectId": "project-slug",
+          },
+          "project": Object {
+            "hasAccess": true,
+            "id": "2",
+            "isBookmarked": false,
+            "isMember": true,
+            "name": "Project Name",
+            "slug": "project-slug",
+            "teams": Array [],
+          },
+          "routes": Array [],
+          "setProjectNavSection": [Function],
+          "stepBack": [Function],
+        },
+        "refs": Object {},
+        "remountComponent": [Function],
+        "render": [Function],
+        "state": Object {
+          "error": true,
+          "errors": Object {
+            "project": Object {
+              "responseJSON": null,
+              "responseText": "HTTP 404",
+              "status": 404,
+            },
+          },
+          "keyList": Array [],
+          "keyListPageLinks": undefined,
+          "loading": false,
+          "project": null,
+          "remainingRequests": 0,
+        },
+        "updater": Updater {
+          "_callbacks": Array [],
+          "_renderer": ReactShallowRenderer {
+            "_context": Object {
+              "location": Object {
+                "pathame": "/mock-pathname/",
+                "query": Object {},
+              },
+              "organization": Object {
+                "access": Array [
+                  "org:read",
+                  "org:write",
+                  "org:admin",
+                  "project:read",
+                  "project:write",
+                  "project:admin",
+                  "team:read",
+                  "team:write",
+                  "team:admin",
+                ],
+                "features": Array [],
+                "id": "3",
+                "name": "Organization Name",
+                "onboardingTasks": Array [],
+                "projects": Array [],
+                "slug": "org-slug",
+                "status": Object {
+                  "id": "active",
+                  "name": "active",
+                },
+                "teams": Array [],
+              },
+              "project": Object {
+                "hasAccess": true,
+                "id": "2",
+                "isBookmarked": false,
+                "isMember": true,
+                "name": "Project Name",
+                "slug": "project-slug",
+                "teams": Array [],
+              },
+              "router": Object {
+                "createHref": [MockFunction],
+                "go": [MockFunction],
+                "goBack": [MockFunction],
+                "goForward": [MockFunction],
+                "isActive": [MockFunction],
+                "location": Object {
+                  "query": Object {},
+                },
+                "push": [MockFunction],
+                "replace": [MockFunction],
+                "setRouteLeaveHook": [MockFunction],
+              },
+            },
+            "_element": <ProjectHpkpReports
+              location={
+                Object {
+                  "pathame": "/mock-pathname/",
+                  "pathname": "/projects/org-slug/project-slug/hpkp/",
+                  "query": Object {},
+                }
+              }
+              organization={
+                Object {
+                  "access": Array [
+                    "org:read",
+                    "org:write",
+                    "org:admin",
+                    "project:read",
+                    "project:write",
+                    "project:admin",
+                    "team:read",
+                    "team:write",
+                    "team:admin",
+                  ],
+                  "features": Array [],
+                  "id": "3",
+                  "name": "Organization Name",
+                  "onboardingTasks": Array [],
+                  "projects": Array [],
+                  "slug": "org-slug",
+                  "status": Object {
+                    "id": "active",
+                    "name": "active",
+                  },
+                  "teams": Array [],
+                }
+              }
+              params={
+                Object {
+                  "orgId": "org-slug",
+                  "projectId": "project-slug",
+                }
+              }
+              project={
+                Object {
+                  "hasAccess": true,
+                  "id": "2",
+                  "isBookmarked": false,
+                  "isMember": true,
+                  "name": "Project Name",
+                  "slug": "project-slug",
+                  "teams": Array [],
+                }
+              }
+              routes={Array []}
+              setProjectNavSection={[Function]}
+              stepBack={[Function]}
+            />,
+            "_forcedUpdate": false,
+            "_instance": [Circular],
+            "_newState": Object {
+              "error": true,
+              "errors": Object {
+                "project": Object {
+                  "responseJSON": null,
+                  "responseText": "HTTP 404",
+                  "status": 404,
+                },
+              },
+              "keyList": Array [],
+              "keyListPageLinks": undefined,
+              "loading": false,
+              "project": null,
+              "remainingRequests": 0,
+            },
+            "_rendered": <SideEffect(DocumentTitle)
+              title="Sentry"
+            >
+              <RouteError
+                component={[Circular]}
+                error={[Error: Unable to load all required endpoints]}
+                onRetry={[Function]}
+              />
+            </SideEffect(DocumentTitle)>,
+            "_rendering": false,
+            "_updater": [Circular],
+          },
+        },
+      }
+    }
+    error={[Error: Unable to load all required endpoints]}
+    onRetry={[Function]}
+  />
+</SideEffect(DocumentTitle)>
+`;
