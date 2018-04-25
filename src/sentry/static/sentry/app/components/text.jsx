@@ -38,23 +38,23 @@ const Text = styled.div`
   }
 
   h1 {
-    font-size: 32px;
+    font-size: 2em;
   }
 
   h2 {
-    font-size: 26px;
+    font-size: 1.75em;
   }
 
   h3 {
-    font-size: 22px;
+    font-size: 1.5em;
   }
 
   h4 {
-    font-size: 18px;
+    font-size: 1.25em;
   }
 
   h5 {
-    font-size: 16px;
+    font-size: 1em;
   }
 `;
 
