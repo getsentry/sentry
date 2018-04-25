@@ -14,7 +14,7 @@ const Text = styled.div`
   dl,
   blockquote,
   form {
-    margin-bottom: 1.25em;
+    margin-bottom: 20px;
 
     &:last-child {
       margin-bottom: 0;
