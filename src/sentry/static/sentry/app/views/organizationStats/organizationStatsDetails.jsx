@@ -11,6 +11,7 @@ import ProjectTable from './projectTable';
 import SettingsPageHeader from '../settings/components/settingsPageHeader';
 import StackedBarChart from '../../components/stackedBarChart';
 import TextBlock from '../settings/components/text/textBlock';
+import {ProjectTableLayout, ProjectTableDataElement} from './projectTableLayout';
 
 class OrganizationStats extends React.Component {
   static propTypes = {
@@ -103,7 +104,15 @@ class OrganizationStats extends React.Component {
         </div>
 
         <Panel>
-          <PanelHeader>{t('Events by Project')}</PanelHeader>
+          <PanelHeader>
+            <ProjectTableLayout>
+              <div>{t('Project')}</div>
+              <ProjectTableDataElement>{t('Accepted')}</ProjectTableDataElement>
+              <ProjectTableDataElement>{t('Rate Limited')}</ProjectTableDataElement>
+              <ProjectTableDataElement>{t('Filtered')}</ProjectTableDataElement>
+              <ProjectTableDataElement>{t('Total')}</ProjectTableDataElement>
+            </ProjectTableLayout>
+          </PanelHeader>
           <PanelBody>
             {statsLoading || projectsLoading ? (
               <LoadingIndicator />
