@@ -18,7 +18,7 @@ class JiraInstalledEndpoint(Endpoint):
 
     def post(self, request, *args, **kwargs):
         data = request.DATA
-
+        # TODO(jess): Handle updating existing integration
         try:
             with transaction.atomic():
                 Integration.objects.create(

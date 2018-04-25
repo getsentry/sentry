@@ -32,7 +32,15 @@ class JiraDescriptorEndpoint(Endpoint):
                     'uninstalled': '/extensions/jira/uninstalled/',
                 },
                 'apiVersion': 1,
-                'modules': {},
+                'modules': {
+                    'configurePage': {
+                        'url': '/extensions/jira/configure',
+                        'name': {
+                            'value': 'Configure Sentry Add-on'
+                        },
+                        'key': 'configure-sentry'
+                    },
+                },
                 'scopes': [
                     'read',
                     'write',
