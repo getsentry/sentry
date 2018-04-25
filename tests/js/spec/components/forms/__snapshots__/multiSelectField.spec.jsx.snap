@@ -7,14 +7,13 @@ exports[`MultiSelectField render() renders with form context 1`] = `
   <div
     className="controls"
   >
-    <StyledSelect
+    <Component
       arrowRenderer={[Function]}
       disabled={false}
       hideErrorMessage={false}
       id="id-fieldName"
       multi={true}
       name="fieldName"
-      onChange={[Function]}
       options={
         Array [
           Object {
@@ -34,7 +33,6 @@ exports[`MultiSelectField render() renders with form context 1`] = `
           "width": 200,
         }
       }
-      value={Array []}
     />
   </div>
 </div>
@@ -47,14 +45,13 @@ exports[`MultiSelectField render() renders without form context 1`] = `
   <div
     className="controls"
   >
-    <StyledSelect
+    <Component
       arrowRenderer={[Function]}
       disabled={false}
       hideErrorMessage={false}
       id="id-fieldName"
       multi={true}
       name="fieldName"
-      onChange={[Function]}
       options={
         Array [
           Object {
@@ -74,7 +71,6 @@ exports[`MultiSelectField render() renders without form context 1`] = `
           "width": 200,
         }
       }
-      value={Array []}
     />
   </div>
 </div>
