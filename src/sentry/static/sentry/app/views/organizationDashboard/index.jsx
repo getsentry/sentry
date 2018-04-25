@@ -37,7 +37,7 @@ class Dashboard extends React.Component {
         <div>
           {projectKeys.map((slug, index) => {
             return (
-              <TeamSection key={slug} renderBorder={index !== projectKeys.length - 1}>
+              <TeamSection key={slug} showBorder={index !== projectKeys.length - 1}>
                 <TeamTitleBar justify="space-between" align="center">
                   <TeamName>{`#${slug}`}</TeamName>
                   <TeamMembers teamId={slug} orgId={this.props.params.orgId} />
@@ -64,7 +64,7 @@ class Dashboard extends React.Component {
 }
 
 const TeamSection = styled.div`
-  border-bottom: ${p => (p.renderBorder ? '1px solid ' + p.theme.borderLight : 0)};
+  border-bottom: ${p => (p.showBorder ? '1px solid ' + p.theme.borderLight : 0)};
 `;
 
 const TeamTitleBar = styled(Flex)`
