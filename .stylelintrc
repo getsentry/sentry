@@ -1,11 +1,14 @@
 {
   "processors": ["stylelint-processor-styled-components"],
   "extends": [
-    "stylelint-config-standard",
+    "stylelint-config-recommended",
     "stylelint-config-styled-components"
   ],
-  "syntax": "scss",
   "rules": {
-    "declaration-colon-newline-after": ["off"]
+    "declaration-colon-newline-after": null,
+    "block-no-empty": [true, { "severity": "warning" }],
+    "selector-type-no-unknown": [true, {
+      "ignoreTypes": ["$dummyValue"],
+    }],
   }
 }
