@@ -11,6 +11,10 @@ import SettingsBreadcrumb from './settingsBreadcrumb';
 import SettingsHeader from './settingsHeader';
 import SettingsSearch from './settingsSearch';
 
+let StyledAlert = styled(Alert)`
+  margin: 20px 0;
+`;
+
 // TODO(billy): Temp #NEW-SETTINGS
 let NewSettingsWarning = ({location = {}}) => {
   // This translates current URLs back to "old" settings URLs
@@ -51,11 +55,11 @@ let NewSettingsWarning = ({location = {}}) => {
   };
   let LinkWithFallback = isRouter ? Link : 'a';
   return (
-    <Alert type="info" icon="icon-circle-exclamation">
+    <StyledAlert type="info" icon="icon-circle-exclamation">
       These settings are currently in beta. Please report any issues. You can temporarily
       visit the <LinkWithFallback {...linkProps}>old settings page</LinkWithFallback> if
       necessary.
-    </Alert>
+    </StyledAlert>
   );
 };
 
