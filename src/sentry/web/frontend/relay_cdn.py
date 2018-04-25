@@ -8,13 +8,14 @@ from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 
 # TODO(hazat)
-DEFAULT_SDK_URL = 'https://pastebin.com/raw/ncDxxR1U'
+DEFAULT_SDK_URL = 'https://s3.amazonaws.com/getsentry-cdn/@sentry/browser/0.5.2/bundle.min.js'
 
 
 class RelayJavaScriptLoader(BaseView):
     auth_required = False
 
     def get(self, request, public_key):
+        """Returns a js file that can be integrated into a website"""
         key = ProjectKey.objects.get(
             public_key=public_key
         )
@@ -30,5 +31,6 @@ class RelayJavaScriptLoader(BaseView):
             'sdkUrl': sdk_url,
             'debug': settings.DEBUG
         }
+
         return render_to_response('sentry/relay-loader.js.tmpl', context,
                                   content_type="text/javascript")
