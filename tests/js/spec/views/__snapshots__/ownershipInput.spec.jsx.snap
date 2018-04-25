@@ -89,7 +89,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
   >
     <BuilderBar>
       <div
-        className="css-1rsoebt-BuilderBar css-13f5eg05"
+        className="css-1rsoebt-BuilderBar css-edgvue5"
       >
         <BuilderSelect
           onChange={[Function]}
@@ -97,7 +97,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
           value="path"
         >
           <SelectInput
-            className="css-1eslqkc-BuilderSelect css-13f5eg06"
+            className="css-1eslqkc-BuilderSelect css-edgvue6"
             disabled={false}
             multiple={false}
             onChange={[Function]}
@@ -107,7 +107,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
             value="path"
           >
             <select
-              className="css-1eslqkc-BuilderSelect css-13f5eg06"
+              className="css-1eslqkc-BuilderSelect css-edgvue6"
               disabled={false}
               multiple={false}
               onChange={[Function]}
@@ -135,7 +135,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
           value=""
         >
           <input
-            className="css-1t4syiu-Input-BuilderInput css-13f5eg07"
+            className="css-1t4syiu-Input-BuilderInput css-edgvue7"
             onChange={[Function]}
             placeholder="src/example/*"
             value=""
@@ -145,17 +145,17 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
           src="icon-chevron-right"
         >
           <InlineSvg
-            className="css-a4tn6s-Divider css-13f5eg08"
+            className="css-a4tn6s-Divider css-edgvue8"
             src="icon-chevron-right"
           >
             <StyledSvg
-              className="css-a4tn6s-Divider css-13f5eg08"
+              className="css-a4tn6s-Divider css-edgvue8"
               height="1em"
               viewBox={Object {}}
               width="1em"
             >
               <svg
-                className="css-13f5eg08 css-5e2rei-StyledSvg css-adkcw30"
+                className="css-edgvue8 css-5e2rei-StyledSvg css-adkcw30"
                 height="1em"
                 viewBox={Object {}}
                 width="1em"
@@ -386,7 +386,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
           size="zero"
         >
           <Button
-            className="css-3daogo-RuleAddButton css-13f5eg09"
+            className="css-3daogo-RuleAddButton css-edgvue9"
             disabled={false}
             icon="icon-circle-add"
             onClick={[Function]}
@@ -394,7 +394,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
             size="zero"
           >
             <button
-              className="css-3daogo-RuleAddButton css-13f5eg09 button button-primary button-zero"
+              className="css-3daogo-RuleAddButton css-edgvue9 button button-primary button-zero"
               disabled={false}
               onClick={[Function]}
               role="button"
@@ -487,7 +487,7 @@ url:http://example.com/settings/* #product"
         autoCapitalize="off"
         autoComplete="off"
         autoCorrect="off"
-        className="css-e9agsp-StyledTextArea css-zed2xb2"
+        className="css-e9agsp-StyledTextArea css-1rksra02"
         onChange={[Function]}
         placeholder="#example usage
 path:src/example/pipeline/* person@sentry.io #infra
@@ -500,7 +500,7 @@ url:http://example.com/settings/* #product"
           autoCapitalize="off"
           autoComplete="off"
           autoCorrect="off"
-          className="css-e9agsp-StyledTextArea css-zed2xb2"
+          className="css-e9agsp-StyledTextArea css-1rksra02"
           onChange={[Function]}
           placeholder="#example usage
 path:src/example/pipeline/* person@sentry.io #infra
@@ -513,7 +513,7 @@ url:http://example.com/settings/* #product"
     </StyledTextArea>
     <SaveButton>
       <div
-        className="css-5zvod-SaveButton css-zed2xb1"
+        className="css-5zvod-SaveButton css-1rksra01"
       >
         <Button
           disabled={false}

@@ -275,7 +275,7 @@ const NoteInput = createReactClass({
 
   mentionableTeams() {
     let {group} = this.props;
-    return (ProjectsStore.getAll().find(p => p.slug == group.project.slug) || {
+    return (ProjectsStore.getBySlug(group.project.slug) || {
       teams: [],
     }).teams.map(team => ({
       id: buildTeamId(team.id),

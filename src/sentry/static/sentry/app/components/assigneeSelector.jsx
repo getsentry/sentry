@@ -120,7 +120,7 @@ const AssigneeSelector = createReactClass({
     let group = GroupStore.get(this.props.id);
 
     return AssigneeSelector.filterAssignees(
-      (ProjectsStore.getAll().find(p => p.slug == group.project.slug) || {
+      (ProjectsStore.getBySlug(group.project.slug) || {
         teams: [],
       }).teams.sort((a, b) => a.slug.localeCompare(b.slug)),
       this.state.filter
