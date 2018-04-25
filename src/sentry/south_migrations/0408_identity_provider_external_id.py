@@ -37,7 +37,7 @@ class Migration(DataMigration):
                 # can do to determine the external ID.
                 continue
 
-            orm.IdentityProvider.objects.filter(id=r.id).update(external_id=integration.external_id)
+            orm.IdentityProvider.objects.filter(id=r.id, external_id=None).update(external_id=integration.external_id)
 
     def backwards(self, orm):
         "Write your backwards methods here."
