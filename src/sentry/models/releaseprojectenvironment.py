@@ -17,6 +17,7 @@ class ReleaseProjectEnvironment(Model):
     new_issues_count = BoundedPositiveIntegerField(default=0)
     first_seen = models.DateTimeField(default=timezone.now)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
+    last_deploy_id = BoundedPositiveIntegerField(null=True, db_index=True)
 
     class Meta:
         app_label = 'sentry'
