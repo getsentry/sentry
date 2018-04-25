@@ -20,7 +20,6 @@ class OwnerInput extends React.Component {
     initialText: PropTypes.string,
     urls: PropTypes.arrayOf(PropTypes.string),
     paths: PropTypes.arrayOf(PropTypes.string),
-    onSave: PropTypes.func,
   };
 
   constructor(props) {
@@ -103,7 +102,7 @@ class OwnerInput extends React.Component {
 
   mentionableTeams() {
     let {project} = this.props;
-    return (ProjectsStore.getAll().find(p => p.slug == project.slug) || {
+    return (ProjectsStore.getBySlug(project.slug) || {
       teams: [],
     }).teams.map(team => ({
       id: team.id,

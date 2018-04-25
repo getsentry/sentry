@@ -27,7 +27,7 @@ describe('NoteInput', function() {
 
   it('renders', function() {
     let wrapper = shallow(
-      <NoteInput group={{}} memberList={[]} sessionUser={{}} />,
+      <NoteInput group={{project: {}}} memberList={[]} sessionUser={{}} />,
       TestStubs.routerContext()
     );
     expect(wrapper).toMatchSnapshot();
@@ -35,7 +35,7 @@ describe('NoteInput', function() {
 
   it('submits when meta + enter is pressed', function() {
     let wrapper = mount(
-      <NoteInput group={{id: 'groupId'}} memberList={[]} sessionUser={{}} />,
+      <NoteInput group={{project: {}, id: 'groupId'}} memberList={[]} sessionUser={{}} />,
       TestStubs.routerContext()
     );
 
@@ -47,7 +47,7 @@ describe('NoteInput', function() {
 
   it('submits when ctrl + enter is pressed', function() {
     let wrapper = mount(
-      <NoteInput group={{id: 'groupId'}} memberList={[]} sessionUser={{}} />,
+      <NoteInput group={{project: {}, id: 'groupId'}} memberList={[]} sessionUser={{}} />,
       TestStubs.routerContext()
     );
 
