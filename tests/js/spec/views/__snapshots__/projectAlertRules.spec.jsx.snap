@@ -498,7 +498,7 @@ exports[`projectAlertRules renders 1`] = `
                   flex={false}
                 >
                   <div
-                    className=""
+                    className="css-huk7j-textStyles"
                   >
                     <RuleDescriptionRow>
                       <div

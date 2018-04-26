@@ -73,7 +73,7 @@ exports[`ProjectCspReports renders 1`] = `
         disablePadding={false}
         flex={false}
       >
-        <TextBlock>
+        <p>
           <span
             key="4"
           >
@@ -100,8 +100,8 @@ exports[`ProjectCspReports renders 1`] = `
             reporting hooks.
             </span>
           </span>
-        </TextBlock>
-        <TextBlock>
+        </p>
+        <p>
           <span
             key="5"
           >
@@ -128,13 +128,11 @@ exports[`ProjectCspReports renders 1`] = `
               policy, as well specifying the authenticated Sentry endpoint.
             </span>
           </span>
-        </TextBlock>
-        <TextBlock
-          noMargin={true}
-        >
-          For example, in Python you might achieve this via a simple web middleware
-        </TextBlock>
-        <CodeBlock>
+        </p>
+        <p>
+          For example, in Python you might achieve this via a simple web middleware:
+        </p>
+        <pre>
           def middleware(request, response):
     response['Content-Security-Policy'] = \\
         "default-src *; " \\
@@ -144,25 +142,20 @@ exports[`ProjectCspReports renders 1`] = `
         "report-uri https://sentry.example.com/api/security-report/"
     return response
 
-        </CodeBlock>
-        <TextBlock
-          noMargin={true}
-        >
+        </pre>
+        <p>
           Alternatively you can setup CSP reports to simply send reports rather than
-              actually enforcing the policy
-        </TextBlock>
-        <CodeBlock>
+              actually enforcing the policy:
+        </p>
+        <pre>
           def middleware(request, response):
     response['Content-Security-Policy-Report-Only'] = \\
         "default-src 'self'; " \\
         "report-uri https://sentry.example.com/api/security-report/"
     return response
 
-        </CodeBlock>
-        <TextBlock
-          className="css-46b038"
-          noMargin={true}
-        >
+        </pre>
+        <p>
           <span
             key="5"
           >
@@ -189,7 +182,7 @@ exports[`ProjectCspReports renders 1`] = `
               .
             </span>
           </span>
-        </TextBlock>
+        </p>
       </PanelBody>
     </Panel>
   </div>

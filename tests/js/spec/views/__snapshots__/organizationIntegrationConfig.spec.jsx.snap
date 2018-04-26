@@ -186,7 +186,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
               flex={false}
             >
               <div
-                className=""
+                className="css-huk7j-textStyles"
               >
                 <PanelItem
                   key="1"

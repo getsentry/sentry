@@ -228,7 +228,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                   flex={false}
                 >
                   <div
-                    className="css-1pugmsu-padding"
+                    className="css-1ygg57v"
                   >
                     <h6>
                       Rule name
@@ -1217,7 +1217,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                   flex={false}
                 >
                   <div
-                    className="css-1pugmsu-padding"
+                    className="css-1ygg57v"
                   >
                     <h6>
                       Rule name

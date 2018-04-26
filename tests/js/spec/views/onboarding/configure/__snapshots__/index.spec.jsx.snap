@@ -284,7 +284,7 @@ exports[`Configure should render correctly render() should render platform docs 
                                 flex={false}
                               >
                                 <div
-                                  className="css-1pugmsu-padding"
+                                  className="css-1ygg57v"
                                 >
                                   <TextBlock>
                                     <Component
