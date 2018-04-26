@@ -49,6 +49,7 @@ from .endpoints.organization_auth_provider_send_reminders import OrganizationAut
 from .endpoints.organization_avatar import OrganizationAvatarEndpoint
 from .endpoints.organization_details import OrganizationDetailsEndpoint
 from .endpoints.organization_shortid import ShortIdLookupEndpoint
+from .endpoints.organization_eventid import EventIdLookupEndpoint
 from .endpoints.organization_slugs import SlugsUpdateEndpoint
 from .endpoints.organization_issues_new import OrganizationIssuesNewEndpoint
 from .endpoints.organization_member_details import OrganizationMemberDetailsEndpoint
@@ -313,6 +314,11 @@ urlpatterns = patterns(
         r'^organizations/(?P<organization_slug>[^\/]+)/shortids/(?P<short_id>[^\/]+)/$',
         ShortIdLookupEndpoint.as_view(),
         name='sentry-api-0-short-id-lookup'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/eventids/(?P<event_id>[^\/]+)/$',
+        EventIdLookupEndpoint.as_view(),
+        name='sentry-api-0-event-id-lookup'
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/slugs/$',
