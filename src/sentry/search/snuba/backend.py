@@ -292,6 +292,10 @@ def do_search(project_id, environment_id, tags, start, end,
 
         filters['primary_hash'] = hashes
 
+        # TODO: See TODO above about sending too many candidates to Snuba.
+        # https://github.com/getsentry/sentry/blob/63c50ec68ed4fb2314e20323198dd384487feba7/src/sentry/search/snuba/backend.py#L218
+        limit = len(hashes)
+
     having = SnubaConditionBuilder({
         'age_from': ScalarCondition('first_seen', '>'),
         'age_to': ScalarCondition('first_seen', '<'),
@@ -315,17 +319,18 @@ def do_search(project_id, environment_id, tags, start, end,
     required_aggregations = set([sort] + extra_aggregations)
     for h in having:
         alias = h[0]
-        if alias in aggregation_defs:
-            required_aggregations.add(alias)
+        required_aggregations.add(alias)
 
     aggregations = []
     for alias in required_aggregations:
         aggregations.append(aggregation_defs[alias] + [alias])
 
-    # {hash -> {times_seen -> int
-    #           first_seen -> date_str,
-    #           last_seen -> date_str,
-    #           priority -> int},
+    # {hash -> {<agg_alias> -> <agg_value>,
+    #           <agg_alias> -> <agg_value>,
+    #           ...},
+    #  ...}
+    # _OR_ if there's only one <agg_alias> in use
+    # {hash -> <agg_value>,
     #  ...}
     snuba_results = snuba.query(
         start=start,
@@ -362,6 +367,13 @@ def do_search(project_id, environment_id, tags, start, end,
                 group_data[group_id] = defaultdict(list)
 
             dest = group_data[group_id]
+
+            # NOTE: The Snuba utility code is trying to be helpful by collapsing
+            # results with only one aggregate down to the single value. It's a
+            # bit of a hack that we then immediately undo that work here, but
+            # many other callers get value out of that functionality. If we see
+            # this pattern again we should either add an option to opt-out of
+            # the 'help' here or remove it from the Snuba code altogether.
             if len(required_aggregations) == 1:
                 alias = list(required_aggregations)[0]
                 dest[alias].append(obj)
