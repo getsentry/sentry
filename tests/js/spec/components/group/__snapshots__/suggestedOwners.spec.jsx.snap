@@ -116,16 +116,21 @@ exports[`SuggestedOwners render() should show owners when enable 1`] = `
                     disabled={true}
                     title="Jane Doe (janedoe@example.com)"
                   >
-                    <span
+                    <StyledBaseAvatar
                       className="avatar tip"
                       style={Object {}}
                     >
-                      <img
-                        onError={[Function]}
-                        onLoad={[Function]}
-                        src="undefined/avatar/e1f3994f2632af3d1c8c2dcc168a10e6?d=blank&s=64"
-                      />
-                    </span>
+                      <span
+                        className="avatar tip css-15umz1j-StyledBaseAvatar css-1oevwoz0"
+                        style={Object {}}
+                      >
+                        <img
+                          onError={[Function]}
+                          onLoad={[Function]}
+                          src="undefined/avatar/e1f3994f2632af3d1c8c2dcc168a10e6?d=blank&s=64"
+                        />
+                      </span>
+                    </StyledBaseAvatar>
                   </Tooltip>
                 </BaseAvatar>
               </UserAvatar>

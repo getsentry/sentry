@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
 import qs from 'query-string';
+import styled from 'react-emotion';
 
 import ConfigStore from 'app/stores/configStore';
 import LetterAvatar from 'app/components/letterAvatar';
@@ -126,7 +127,7 @@ class BaseAvatar extends React.Component {
 
     return (
       <Tooltip title={tooltip} disabled={!hasTooltip}>
-        <span
+        <StyledBaseAvatar
           className={classNames('avatar', this.props.className)}
           style={{
             ...sizeStyle,
@@ -135,10 +136,14 @@ class BaseAvatar extends React.Component {
         >
           {this.state.showBackupAvatar && this.renderLetterAvatar()}
           {this.renderImg()}
-        </span>
+        </StyledBaseAvatar>
       </Tooltip>
     );
   }
 }
 
 export default BaseAvatar;
+
+const StyledBaseAvatar = styled('span')`
+  flex-shrink: 0;
+`;
