@@ -32,7 +32,7 @@ class Dashboard extends React.Component {
     const projectKeys = Object.keys(projectsByTeam);
 
     return (
-      <div>
+      <Flex flex="1" direction="column">
         <ProjectNav />
         <div>
           {projectKeys.map((slug, index) => {
@@ -58,7 +58,7 @@ class Dashboard extends React.Component {
             );
           })}
         </div>
-      </div>
+      </Flex>
     );
   }
 }
