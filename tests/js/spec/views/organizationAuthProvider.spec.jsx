@@ -30,7 +30,7 @@ describe('OrganizationAuthProvider', function() {
         onSendReminders={() => {}}
         provider={null}
       />,
-      routerContext()
+      routerContext
     );
 
     expect(wrapper).toMatchSnapshot();
@@ -43,7 +43,7 @@ describe('OrganizationAuthProvider', function() {
         onSendReminders={() => {}}
         provider={TestStubs.AuthProvider()}
       />,
-      routerContext()
+      routerContext
     );
 
     expect(wrapper).toMatchSnapshot();
@@ -59,7 +59,7 @@ describe('OrganizationAuthProvider', function() {
           pending_links_count: 4,
         }}
       />,
-      routerContext()
+      routerContext
     );
 
     expect(wrapper).toMatchSnapshot();
@@ -75,7 +75,7 @@ describe('OrganizationAuthProvider', function() {
           content: '<strong>Test</strong>',
         }}
       />,
-      routerContext()
+      routerContext
     );
 
     expect(wrapper.find('.box-content')).toMatchSnapshot();
@@ -92,7 +92,7 @@ describe('OrganizationAuthProvider', function() {
           default_role: 'admin',
         }}
       />,
-      routerContext()
+      routerContext
     );
 
     expect(
@@ -118,7 +118,7 @@ describe('OrganizationAuthProvider', function() {
         onDisableProvider={mock}
         provider={TestStubs.AuthProvider()}
       />,
-      routerContext()
+      routerContext
     );
 
     let disableButton = wrapper.find('.form-actions').find('Button');
