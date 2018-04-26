@@ -88,12 +88,13 @@ class ProjectOwnership extends AsyncView {
           <JsonForm
             forms={[
               {
-                title: 'Default Ownership',
+                title: t('If ownership cannot be determined for an issue...'),
                 fields: [
                   {
                     name: 'fallthrough',
                     type: 'boolean',
-                    label: 'Default Owner is everyone',
+                    label: t('All users with access to this project are owners'),
+                    help: t('Owners will receive notifications for issues they are responsible for.'),
                   },
                 ],
               },
