@@ -1,24 +1,22 @@
-/*eslint getsentry/jsx-needs-il8n:0*/
+import PropTypes from 'prop-types';
 import React from 'react';
 
-import AsyncView from './asyncView';
 import InternalStatChart from '../components/internalStatChart';
 
-export default class AdminBuffer extends AsyncView {
-  getDefaultState() {
-    return {
-      ...super.getDefaultState(),
-      resolution: '1h',
-    };
-  }
+export default class AdminBuffer extends React.Component {
+  static propTypes = {
+    resolution: PropTypes.string.isRequired,
+  };
 
-  getEndpoints() {
-    return [];
-  }
+  static defaultProps = {
+    resolution: '1h',
+  };
 
-  renderBody() {
+  render() {
     // TODO(dcramer): show buffer configuration when its moved into option store
+    const {resolution} = this.props;
     const since = new Date().getTime() / 1000 - 3600 * 24 * 7;
+
     return (
       <div>
         <h3>Buffers</h3>
@@ -45,7 +43,7 @@ export default class AdminBuffer extends AsyncView {
           </div>
           <InternalStatChart
             since={since}
-            resolution={this.state.resolution}
+            resolution={resolution}
             stat="jobs.finished.sentry.tasks.process_buffer.process_incr"
             label="Jobs"
           />
@@ -57,7 +55,7 @@ export default class AdminBuffer extends AsyncView {
           </div>
           <InternalStatChart
             since={since}
-            resolution={this.state.resolution}
+            resolution={resolution}
             stat="buffer.revoked"
             label="Jobs"
           />
