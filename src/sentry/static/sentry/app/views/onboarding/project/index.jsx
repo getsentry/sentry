@@ -56,6 +56,7 @@ class OnboardingProject extends React.Component {
         <div>
           <SelectField
             name="select-team"
+            clearable={false}
             value={team}
             style={{width: 180}}
             onChange={val => setTeam(val)}
