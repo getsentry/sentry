@@ -125,4 +125,5 @@ register('slack.verification-token', flags=FLAG_PRIORITIZE_DISK)
 
 # GitHubApps
 register('github.webhook-secret', default='')
-
+register('github.private-key', default='')
+register('github.app-id', default=0)
