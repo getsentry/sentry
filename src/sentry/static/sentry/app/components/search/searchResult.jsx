@@ -110,7 +110,9 @@ class SearchResult extends React.Component {
 export default withRouter(SearchResult);
 
 // This is for tests
-const SearchTitle = styled.span``;
+const SearchTitle = styled.span`
+  /* stylelint-disable-next-line no-empty-block */
+`;
 
 const SearchDetail = styled.div`
   font-size: 0.8em;
@@ -119,7 +121,9 @@ const SearchDetail = styled.div`
   opacity: 0.8;
 `;
 
-const Content = styled(props => <Flex direction="column" {...props} />)``;
+const Content = styled(props => <Flex direction="column" {...props} />)`
+  /* stylelint-disable-next-line no-empty-block */
+`;
 
 const ResultTypeIcon = styled(InlineSvg)`
   color: ${p => p.theme.gray1};

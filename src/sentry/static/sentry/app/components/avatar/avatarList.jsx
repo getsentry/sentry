@@ -49,7 +49,7 @@ const CollapsedUsers = styled(({size}) => <div />)`
   font-weight: 600;
   background-color: ${p => p.theme.borderLight};
   color: ${p => p.theme.gray2};
-  font-size: ${p => p.theme.fontSizeSmall}
+  font-size: ${p => p.theme.fontSizeSmall};
   width: ${p => p.size}px;
   height: ${p => p.size}px;
   border-radius: 50%;

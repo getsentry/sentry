@@ -115,7 +115,7 @@ const StyledDropdown = styled.div`
     background-color: ${p => p.theme.purpleDark};
   }
   li[disabled] {
-    color ${p => p.theme.gray1};
+    color: ${p => p.theme.gray1};
     padding: 3px 10px;
   }
 `;

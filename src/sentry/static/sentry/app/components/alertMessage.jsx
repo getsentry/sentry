@@ -27,6 +27,7 @@ const StyledCloseButton = styled.button`
   right: ${p => p.theme.grid}px;
   top: 7px;
 
+  /* stylelint-disable-next-line no-duplicate-selectors */
   ${StyledInlineSvg} {
     color: ${p => p.theme.gray4};
   }

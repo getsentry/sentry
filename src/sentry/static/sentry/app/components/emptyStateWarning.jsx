@@ -29,7 +29,7 @@ const EmptyStreamWrapper = styled.div`
 const Icon = styled.div`
   display: block;
   font-size: 54px;
-  color: ${p => p.theme.gray2}
+  color: ${p => p.theme.gray2};
   margin-bottom: 20px;
   opacity: 0.45;
 `;
