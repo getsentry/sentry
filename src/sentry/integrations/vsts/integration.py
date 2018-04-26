@@ -87,30 +87,33 @@ class VSTSIntegration(Integration):
         response_json = response.json()
         return response_json
 
-    def parse_instance(self, instance):
-        # TODO(LB): is there something that will clean user-input data?
-        return instance
+    def get_default_project(self, name, projects):
+        for project in projects:
+            if project['name'] == name:
+                return project
 
     def build_integration(self, state):
         data = state['identity']['data']
         access_token = data['access_token']
-        instance = self.parse_instance(state['identity']['instance'])
+        instance = state['identity']['instance']
+        default_project_name = state['identity']['default_project']
 
         scopes = sorted(self.identity_oauth_scopes)
-        self.get_projects(instance, access_token)
+        projects = self.get_projects(instance, access_token)['value']
+        default_project = self.get_default_project(default_project_name, projects)
         return {
-            'name': 'VSTS',
-            'external_id': 'vsts',
+            'name': default_project['name'],
+            'external_id': default_project['id'],
             'metadata': {
                 'access_token': access_token,
                 'scopes': scopes,
+                'domain_name': instance,
+                # icon doesn't appear to be possible
             },
-        }
-
-    def build_default_header(self, method):
-        return {
-            'Accept': 'application/json; api-version={}'.format(self.api_version),
-            'Content-Type': 'application/json-patch+json',
-            'X-HTTP-Method-Override': method,
-            'X-TFS-FedAuthRedirect': 'Suppress',
+            'user_identity': {
+                'type': 'vsts',
+                'external_id': instance,
+                'scopes': [],
+                'data': {},
+            }
         }

@@ -85,6 +85,10 @@ class ConfigView(PipelineView):
         <br />
         VS Team Services account ({account}.visualstudio.com) or TFS server ({server:port}).
         <br />
+        Default Project: <input type="text" name="default_project" placeholder="MyProject" required=True />
+        <br />
+        Enter the Visual Studio Team Services project name that you wish to use as a default for new work items
+        <br />
         <input type="submit" value="Submit" />
     </form>
     '''
@@ -92,5 +96,7 @@ class ConfigView(PipelineView):
     def dispatch(self, request, pipeline):
         if 'instance' in request.POST:
             pipeline.bind_state('instance', request.POST.get('instance'))
-            return pipeline.next_step()
+            if 'default_project' in request.POST:
+                pipeline.bind_state('default_project', request.POST.get('default_project'))
+                return pipeline.next_step()
         return HttpResponse(self.TEMPLATE)
