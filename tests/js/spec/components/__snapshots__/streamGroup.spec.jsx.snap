@@ -11,6 +11,7 @@ exports[`StreamGroup renders with anchors 1`] = `
     ml={2}
   >
     <GuideAnchor
+      show={true}
       target="issues"
       type="text"
     />
@@ -167,6 +168,7 @@ exports[`StreamGroup renders with anchors 1`] = `
     }
   >
     <GuideAnchor
+      show={true}
       target="events"
       type="text"
     />
@@ -185,6 +187,7 @@ exports[`StreamGroup renders with anchors 1`] = `
     }
   >
     <GuideAnchor
+      show={true}
       target="users"
       type="text"
     />

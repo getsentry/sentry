@@ -113,6 +113,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
               }
             />
             <GuideAnchor
+              show={true}
               target="resolve"
               type="text"
             >
@@ -553,6 +554,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
             }
           />
           <GuideAnchor
+            show={true}
             target="resolve"
             type="text"
           >

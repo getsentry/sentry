@@ -3,6 +3,22 @@ from __future__ import absolute_import
 from django.utils.translation import ugettext_lazy as _
 
 
+# Guide Schema
+# id (text, required): unique id
+# cue (text, optional):  The text used to prmopt the user to initiate the guide.
+#                        Leaving this blank
+# required_targets (list): An empty list will cause the guide to be shown regardless
+# steps (list): List of steps
+
+# Step Schema
+# title (text, required): Title text. Tone should be active.
+# message (text, optional): Message text. Should help illustrate how to do a task, not
+#                           just literally what the button does.
+# target (text, optional): step is tied to an anchor target. if the anchor doesn't exist,
+#                          the step will not be shown. if the anchor exists but is of type
+#                         "invisible", it will not be pinged but will be scrolled to.
+#                          otherwise the anchor will be pinged and scrolled to.
+
 GUIDES = {
     'issue': {
         'id': 1,
@@ -155,33 +171,33 @@ GUIDES = {
     },
     # Ideally, this would only be sent if the organization has never
     # customized alert rules (as per FeatureAdoption)
-    'alert-rules': {
+    'alert_rules': {
         'id': 5,
         'cue': _('Tips for alert rules'),
         'required_targets': ['alert_conditions'],
         'steps': [
             {
-                'title': _('Reducing alert noise'),
+                'title': _('Reduce inbox noise'),
                 'message': _('Sentry, by default, alerts on every <i>new</i> issue via email. '
                              'If that\'s too noisy, sending the new issue alerts to '
-                             'a service like Slack help reduce inbox noise.'),
+                             'a service like Slack help reduce inbox noise.<br><br> Enabling '
+                             '<a href="https://sentry.io/settings/account/notifications/#weeklyReports">'
+                             'weekly reports</a> can also help you stay on top of issues without '
+                             'getting overwhelmed.'),
                 'target': 'alert_conditions',
             },
             {
-                'title': _('Defining priority alerts'),
-                'message': _('Not alerts are equal. Create rules for frequently occuring errors or specific '
-                             'tags to escalate critical issues by alerting you via email or PagerDuty.'),
+                'title': _('Define priority alerts'),
+                'message': _('Not all alerts are created equal. Create rules for frequently occuring errors or specific '
+                             'tags to escalate critical issues by alerting you via email or PagerDuty.<br><br>'
+                             '<a href="https://blog.sentry.io/2017/10/12/proactive-alert-rules">Learn more</a> '
+                             'about wrangling alerts.'),
                 'target': 'alert_actions',
             },
-            # When ownership is released
-            # {
-            #     'title': _('Ownership'),
-            #     'message': _(),
-            #     'target': None
-            # },
             {
-                'title': _('Tweaking personal email settings'),
-                'message': _('If you\'d like to customize your <i>personal</i> alert settings, '
+                'title': _('Fine-tune your personal settings'),
+                'message': _('You can control alerts at the project <em>and</em> the user level. '
+                             'If you\'d like to customize your <i>personal</i> alert settings, '
                              'go to <a href="/account/settings/notifications/">Account Notifications</a>. '
                              'There, you can choose which project\'s alert or workflow notifications you\'d like to receive.'),
                 'target': None,

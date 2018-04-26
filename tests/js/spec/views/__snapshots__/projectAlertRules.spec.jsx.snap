@@ -376,13 +376,21 @@ exports[`projectAlertRules renders 1`] = `
                               to="1/"
                             >
                               <Link
+<<<<<<< HEAD
                                 className="css-1s5bpjc-TextColorLink e1abl5wd0"
+=======
+                                className="css-1763h46-TextColorLink css-1erhv4y0"
+>>>>>>> fixing adhiraj's comments
                                 onlyActiveOnIndex={false}
                                 style={Object {}}
                                 to="1/"
                               >
                                 <a
+<<<<<<< HEAD
                                   className="css-1s5bpjc-TextColorLink e1abl5wd0"
+=======
+                                  className="css-1763h46-TextColorLink css-1erhv4y0"
+>>>>>>> fixing adhiraj's comments
                                   onClick={[Function]}
                                   style={Object {}}
                                 >
@@ -627,6 +635,7 @@ exports[`projectAlertRules renders 1`] = `
                   >
                     <RuleDescriptionRow>
                       <div
+<<<<<<< HEAD
                         className="css-16pvk6d-RuleDescriptionRow e1abl5wd1"
                       >
                         <RuleDescriptionColumn>
@@ -636,6 +645,17 @@ exports[`projectAlertRules renders 1`] = `
                             <Condition>
                               <div
                                 className="css-1d9hhun-Condition e1abl5wd3"
+=======
+                        className="css-16pvk6d-RuleDescriptionRow css-1erhv4y1"
+                      >
+                        <RuleDescriptionColumn>
+                          <div
+                            className="css-ta36pl-RuleDescriptionColumn css-1erhv4y2"
+                          >
+                            <Condition>
+                              <div
+                                className="css-1d9hhun-Condition css-1erhv4y3"
+>>>>>>> fixing adhiraj's comments
                               >
                                 <h6>
                                   When 
@@ -643,7 +663,7 @@ exports[`projectAlertRules renders 1`] = `
                                    of these conditions are met:
                                 </h6>
                                 <GuideAnchor
-                                  condition={true}
+                                  show={true}
                                   target="alert_conditions"
                                   type="text"
                                 >
@@ -652,7 +672,11 @@ exports[`projectAlertRules renders 1`] = `
                                     type="text"
                                   >
                                     <div
+<<<<<<< HEAD
                                       className="css-9u5for-GuideAnchorContainer e130o4350"
+=======
+                                      className="css-9u5for-GuideAnchorContainer css-15ifxk40"
+>>>>>>> fixing adhiraj's comments
                                       type="text"
                                     >
                                       <table
@@ -673,11 +697,19 @@ exports[`projectAlertRules renders 1`] = `
                                         className="guide-anchor-ping alert_conditions"
                                       >
                                         <div
+<<<<<<< HEAD
                                           className="guide-anchor-ping alert_conditions css-1yndvnf-StyledGuideAnchor e130o4351"
                                         >
                                           <StyledGuideAnchorRipples>
                                             <div
                                               className="css-3zj3g7-StyledGuideAnchorRipples e130o4352"
+=======
+                                          className="guide-anchor-ping alert_conditions css-1yndvnf-StyledGuideAnchor css-15ifxk41"
+                                        >
+                                          <StyledGuideAnchorRipples>
+                                            <div
+                                              className="css-1t9mqkr-StyledGuideAnchorRipples css-15ifxk42"
+>>>>>>> fixing adhiraj's comments
                                             />
                                           </StyledGuideAnchorRipples>
                                         </div>
@@ -691,11 +723,19 @@ exports[`projectAlertRules renders 1`] = `
                         </RuleDescriptionColumn>
                         <RuleDescriptionColumn>
                           <div
+<<<<<<< HEAD
                             className="css-15obcn9-RuleDescriptionColumn e1abl5wd2"
                           >
                             <Condition>
                               <div
                                 className="css-1d9hhun-Condition e1abl5wd3"
+=======
+                            className="css-ta36pl-RuleDescriptionColumn css-1erhv4y2"
+                          >
+                            <Condition>
+                              <div
+                                className="css-1d9hhun-Condition css-1erhv4y3"
+>>>>>>> fixing adhiraj's comments
                               >
                                 <h6>
                                   Take these actions at most
@@ -714,7 +754,7 @@ exports[`projectAlertRules renders 1`] = `
                                   for an issue:
                                 </h6>
                                 <GuideAnchor
-                                  condition={true}
+                                  show={true}
                                   target="alert_actions"
                                   type="text"
                                 >
@@ -723,7 +763,11 @@ exports[`projectAlertRules renders 1`] = `
                                     type="text"
                                   >
                                     <div
+<<<<<<< HEAD
                                       className="css-9u5for-GuideAnchorContainer e130o4350"
+=======
+                                      className="css-9u5for-GuideAnchorContainer css-15ifxk40"
+>>>>>>> fixing adhiraj's comments
                                       type="text"
                                     >
                                       <table
@@ -744,11 +788,19 @@ exports[`projectAlertRules renders 1`] = `
                                         className="guide-anchor-ping alert_actions"
                                       >
                                         <div
+<<<<<<< HEAD
                                           className="guide-anchor-ping alert_actions css-1yndvnf-StyledGuideAnchor e130o4351"
                                         >
                                           <StyledGuideAnchorRipples>
                                             <div
                                               className="css-3zj3g7-StyledGuideAnchorRipples e130o4352"
+=======
+                                          className="guide-anchor-ping alert_actions css-1yndvnf-StyledGuideAnchor css-15ifxk41"
+                                        >
+                                          <StyledGuideAnchorRipples>
+                                            <div
+                                              className="css-1t9mqkr-StyledGuideAnchorRipples css-15ifxk42"
+>>>>>>> fixing adhiraj's comments
                                             />
                                           </StyledGuideAnchorRipples>
                                         </div>

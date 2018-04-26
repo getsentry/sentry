@@ -20,9 +20,16 @@ const GuideAnchor = createReactClass({
     target: PropTypes.string.isRequired,
     // The `invisible` anchor type can be used for guides not attached to specific elements.
     type: PropTypes.oneOf(['text', 'button', 'invisible']),
+    show: PropTypes.bool,
   },
 
   mixins: [Reflux.listenTo(GuideStore, 'onGuideStateChange')],
+
+  getDefaultProps() {
+    return {
+      show: true,
+    };
+  },
 
   getInitialState() {
     return {
@@ -31,10 +38,13 @@ const GuideAnchor = createReactClass({
   },
 
   componentDidMount() {
+    if (!this.props.show) return;
     registerAnchor(this);
   },
 
   componentDidUpdate(prevProps, prevState) {
+    if (!this.props.show) return;
+
     if (!prevState.active && this.state.active && this.props.type !== 'invisible') {
       let windowHeight = $(window).height();
       $('html,body').animate({
@@ -44,10 +54,14 @@ const GuideAnchor = createReactClass({
   },
 
   componentWillUnmount() {
+    if (!this.props.show) return;
+
     unregisterAnchor(this);
   },
 
   onGuideStateChange(data) {
+    if (!this.props.show) return;
+
     if (
       data.currentGuide &&
       data.currentStep > 0 &&
@@ -64,6 +78,7 @@ const GuideAnchor = createReactClass({
 
   render() {
     let {target, type} = this.props;
+    if (!this.props.show) return this.props.children;
 
     return (
       <GuideAnchorContainer innerRef={el => (this.anchorElement = el)} type={type}>
@@ -78,9 +93,6 @@ const GuideAnchor = createReactClass({
     );
   },
 });
-
-export const ConditionalGuideAnchor = ({condition, target, type, children}) =>
-  condition ? React.createElement(GuideAnchor, {target, type}, children) : children;
 
 const recedeAnchor = keyframes`
   0% {
