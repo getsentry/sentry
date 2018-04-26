@@ -169,6 +169,7 @@ exports[`ProjectSecurityHeaders renders 1`] = `
         </PanelItem>
         <PanelItem
           direction="column"
+          key="hpkp/"
           p={0}
         >
           <Flex
@@ -186,6 +187,7 @@ exports[`ProjectSecurityHeaders renders 1`] = `
             <Button
               disabled={false}
               priority="primary"
+              to="hpkp/"
             >
               Instructions
             </Button>
