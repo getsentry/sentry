@@ -9,6 +9,7 @@ import OldDashboard from 'app/views/organizationDashboard/oldDashboard';
 import ProjectNav from 'app/views/organizationDashboard/projectNav';
 import TeamMembers from 'app/views/organizationDashboard/teamMembers';
 import ProjectCard from 'app/views/organizationDashboard/projectCard';
+import EmptyState from 'app/views/organizationDashboard/emptyState';
 import getProjectsByTeams from 'app/utils/getProjectsByTeams';
 import withTeams from 'app/utils/withTeams';
 import withProjects from 'app/utils/withProjects';
@@ -27,37 +28,36 @@ class Dashboard extends React.Component {
   }
 
   render() {
-    const {projects, teams} = this.props;
+    const {projects, teams, params} = this.props;
     const {projectsByTeam} = getProjectsByTeams(teams, projects);
     const projectKeys = Object.keys(projectsByTeam);
 
     return (
       <Flex flex="1" direction="column">
         <ProjectNav />
-        <div>
-          {projectKeys.map((slug, index) => {
-            return (
-              <TeamSection key={slug} showBorder={index !== projectKeys.length - 1}>
-                <TeamTitleBar justify="space-between" align="center">
-                  <TeamName>{`#${slug}`}</TeamName>
-                  <TeamMembers teamId={slug} orgId={this.props.params.orgId} />
-                </TeamTitleBar>
-                <ProjectCards>
-                  {projectsByTeam[slug].map(project => {
-                    return (
-                      <ProjectCardWrapper
-                        key={project.id}
-                        width={['100%', '50%', '33%', '25%']}
-                      >
-                        <ProjectCard project={project} />
-                      </ProjectCardWrapper>
-                    );
-                  })}
-                </ProjectCards>
-              </TeamSection>
-            );
-          })}
-        </div>
+        {projectKeys.map((slug, index) => {
+          return (
+            <TeamSection key={slug} showBorder={index !== projectKeys.length - 1}>
+              <TeamTitleBar justify="space-between" align="center">
+                <TeamName>{`#${slug}`}</TeamName>
+                <TeamMembers teamId={slug} orgId={params.orgId} />
+              </TeamTitleBar>
+              <ProjectCards>
+                {projectsByTeam[slug].map(project => {
+                  return (
+                    <ProjectCardWrapper
+                      key={project.id}
+                      width={['100%', '50%', '33%', '25%']}
+                    >
+                      <ProjectCard project={project} />
+                    </ProjectCardWrapper>
+                  );
+                })}
+              </ProjectCards>
+            </TeamSection>
+          );
+        })}
+        {!projectKeys.length && <EmptyState orgId={params.orgId} />}
       </Flex>
     );
   }
@@ -101,4 +101,5 @@ const OrganizationDashboard = createReactClass({
   },
 });
 
+export {Dashboard};
 export default withTeams(withProjects(OrganizationDashboard));
