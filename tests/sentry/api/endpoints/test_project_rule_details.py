@@ -162,9 +162,8 @@ class UpdateProjectRuleTest(APITestCase):
                       'interval': '1h',
                       'id': 'sentry.rules.conditions.event_frequency.EventFrequencyCondition',
                       'value': 666,
-                      'name': 'An event is seen more than 30 times in 1m'
-                  }],
-                  'id': rule.id,
+                      'name': 'An event is seen more than 30 times in 1m'}],
+                  'id': '28',
                   'actions': [{
                       'id': 'sentry.rules.actions.notify_event.NotifyEventAction',
                       'name': 'Send a notification (for all legacy integrations)'}],
@@ -174,6 +173,9 @@ class UpdateProjectRuleTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data['conditions'][0]['name'] == 'An event is seen more than 666 times in 1h'
+
+        rule = Rule.objects.get(id=rule.id)
+        assert rule.data['conditions'][0]['name'] == 'An event is seen more than 666 times in 1h'
 
     def test_with_environment(self):
         self.login_as(user=self.user)

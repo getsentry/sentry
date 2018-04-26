@@ -47,7 +47,6 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
             project=project,
             id=rule_id,
         )
-
         serializer = RuleSerializer(
             {
                 'actionMatch': rule.data.get('action_match') or Rule.DEFAULT_ACTION_MATCH,
