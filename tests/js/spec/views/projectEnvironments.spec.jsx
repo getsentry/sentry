@@ -108,7 +108,7 @@ describe('ProjectEnvironments', function() {
       EnvironmentStore.loadInitialData([
         ...TestStubs.Environments(false),
         {
-          id: '3',
+          id: 'no-environment-id',
           name: '',
           displayName: '(No Environment)',
         },
