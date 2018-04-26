@@ -3,8 +3,6 @@ import React from 'react';
 import {shallow} from 'enzyme';
 import ProjectHpkpReports from 'app/views/settings/projectSecurityHeaders/hpkp';
 
-jest.mock('app/utils/recreateRoute');
-
 describe('ProjectHpkpReports', function() {
   let org = TestStubs.Organization();
   let project = TestStubs.Project();

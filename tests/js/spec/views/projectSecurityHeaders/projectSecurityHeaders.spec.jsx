@@ -3,8 +3,6 @@ import React from 'react';
 import {shallow} from 'enzyme';
 import ProjectSecurityHeaders from 'app/views/settings/projectSecurityHeaders';
 
-jest.mock('app/utils/recreateRoute');
-
 describe('ProjectSecurityHeaders', function() {
   let org = TestStubs.Organization();
   let project = TestStubs.Project();

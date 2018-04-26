@@ -5,7 +5,6 @@ import ProjectPlugins from 'app/views/projectPlugins';
 import PluginNavigation from 'app/views/projectSettings/pluginNavigation';
 
 jest.mock('app/api');
-jest.mock('app/utils/recreateRoute');
 
 describe('PluginNavigation Integration', function() {
   let org, project, plugins, wrapper;

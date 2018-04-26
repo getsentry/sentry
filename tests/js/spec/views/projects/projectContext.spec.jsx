@@ -5,6 +5,8 @@ import {Client} from 'app/api';
 import {ProjectContext} from 'app/views/projects/projectContext';
 import SentryTypes from 'app/proptypes';
 
+jest.unmock('app/utils/recreateRoute');
+
 describe('projectContext component', function() {
   const routes = [
     {path: '/', childRoutes: []},

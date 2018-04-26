@@ -9,7 +9,6 @@ import theme from 'app/utils/theme';
 import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
 
 jest.mock('app/utils/recreateRoute');
-
 recreateRoute.mockReturnValue('/org-slug/project-slug/settings/');
 
 function mountComponent(isHidden) {

@@ -8,7 +8,6 @@ import recreateRoute from 'app/utils/recreateRoute';
 import {mountWithTheme} from '../../../helpers';
 
 jest.mock('jquery');
-jest.mock('app/utils/recreateRoute');
 
 jest.mock('react-router', () => {
   return {

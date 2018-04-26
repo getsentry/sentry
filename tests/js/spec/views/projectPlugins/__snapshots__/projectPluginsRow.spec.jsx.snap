@@ -48,6 +48,7 @@ exports[`ProjectPluginRow renders 1`] = `
             className="css-9nrxy7"
             onlyActiveOnIndex={false}
             style={Object {}}
+            to="amazon-sqs"
           >
             Configure plugin
           </Link>
