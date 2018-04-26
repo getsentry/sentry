@@ -66,7 +66,7 @@ class GitHubIntegration(Integration):
 
         return resp
 
-    def get_installation_info(self, installation_id):
+    def get_installation_info(self, installation_id, access_token):
         session = http.build_session()
         resp = session.get(
             'https://api.github.com/app/installations/%s' % installation_id,
@@ -77,19 +77,37 @@ class GitHubIntegration(Integration):
             }
         )
         resp.raise_for_status()
-        resp = resp.json()
+        installation_resp = resp.json()
 
-        return resp
+        payload = {
+            'access_token': access_token,
+        }
+
+        resp = session.get(
+            'https://api.github.com/user/installations',
+            params=payload,
+            headers={'Accept': 'application/vnd.github.machine-man-preview+json'}
+        )
+        resp.raise_for_status()
+        user_installations_resp = resp.json()
+
+        # verify that user actually has access to the installation
+        for installation in user_installations_resp['installations']:
+            if installation['id'] == installation_resp['id']:
+                return installation_resp
+
+        return None
 
     def build_integration(self, state):
         data = state['identity']['data']
         user = self.get_user_info(data['access_token'])
-        installation = self.get_installation_info(state['installation_id'])
+        installation = self.get_installation_info(state['installation_id'], data['access_token'])
         return {
             'name': installation['account']['login'],
             'external_id': installation['id'],
             'metadata': {
-                'access_token': installation['access_tokens_url'],
+                'access_token': None,
+                'expires_at': None,
                 'icon': installation['account']['avatar_url'],
                 'domain_name': 'github.com/%s' % installation['account']['login'],
             },
