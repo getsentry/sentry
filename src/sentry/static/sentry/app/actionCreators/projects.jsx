@@ -104,7 +104,7 @@ export function transferProject(api, orgId, project, email) {
  * @param {Client} api API Client
  * @param {String} orgSlug Organization Slug
  * @param {String} projectSlug Project Slug
- * @param {String} teamSlug Team Slug
+ * @param {String} team Team data object
  */
 export function addTeamToProject(api, orgSlug, projectSlug, team) {
   let endpoint = `/projects/${orgSlug}/${projectSlug}/teams/${team.slug}/`;

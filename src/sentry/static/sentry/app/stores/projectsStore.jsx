@@ -83,22 +83,18 @@ const ProjectsStore = Reflux.createStore({
    * @param {String} teamSlug Team Slug
    */
   onDeleteTeam(teamSlug) {
-    this.onRemoveTeam(teamSlug);
+    // Look for team in all projects
+    let projectIds = this.getWithTeam(teamSlug).map(projectWithTeam => {
+      this.removeTeamFromProject(teamSlug, projectWithTeam);
+      return projectWithTeam.id;
+    });
+
+    this.trigger(new Set([projectIds]));
   },
 
   onRemoveTeam(teamSlug, projectSlug) {
     let project = this.getBySlug(projectSlug);
-
-    if (!project) {
-      // Look for team in all projects
-      let projectIds = this.getWithTeam(teamSlug).map(projectWithTeam => {
-        this.removeTeamFromProject(teamSlug, projectWithTeam);
-        return projectWithTeam.id;
-      });
-
-      this.trigger(new Set([projectIds]));
-      return;
-    }
+    if (!project) return;
 
     this.removeTeamFromProject(teamSlug, project);
     this.trigger(new Set([project.id]));
@@ -121,7 +117,7 @@ const ProjectsStore = Reflux.createStore({
     this.trigger(new Set([project.id]));
   },
 
-  // Note, does not trigger
+  // Internal method, does not trigger
   removeTeamFromProject(teamSlug, project) {
     let newTeams = project.teams.filter(({slug}) => slug !== teamSlug);
 
