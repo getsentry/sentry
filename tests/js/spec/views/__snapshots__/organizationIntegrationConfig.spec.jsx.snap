@@ -143,33 +143,62 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                                 onClick={[Function]}
                                 size="xsmall"
                               >
-                                <button
-                                  className="button button-default button-xs"
+                                <StyledSmartButton
+                                  className=""
                                   disabled={false}
                                   onClick={[Function]}
                                   role="button"
+                                  size="xsmall"
                                 >
-                                  <Flex
-                                    align="center"
-                                    className="button-label"
+                                  <Component
+                                    className="css-4fgn6d-StyledSmartButton-getColors e17811v30"
+                                    disabled={false}
+                                    onClick={[Function]}
+                                    role="button"
+                                    size="xsmall"
                                   >
-                                    <Base
-                                      align="center"
-                                      className="button-label css-5ipae5"
+                                    <button
+                                      className="css-4fgn6d-StyledSmartButton-getColors e17811v30"
+                                      disabled={false}
+                                      onClick={[Function]}
+                                      role="button"
+                                      size="xsmall"
                                     >
-                                      <div
-                                        className="button-label css-5ipae5"
-                                        is={null}
+                                      <ButtonLabel
+                                        size="xsmall"
                                       >
-                                        <span
-                                          className="icon icon-add"
-                                        />
-                                         
-                                        Add Workspace
-                                      </div>
-                                    </Base>
-                                  </Flex>
-                                </button>
+                                        <Component
+                                          className="css-9vplug-ButtonLabel e17811v31"
+                                          size="xsmall"
+                                        >
+                                          <Flex
+                                            align="center"
+                                            className="css-9vplug-ButtonLabel e17811v31"
+                                            size="xsmall"
+                                          >
+                                            <Base
+                                              align="center"
+                                              className="e17811v31 css-esdzbq-ButtonLabel"
+                                              size="xsmall"
+                                            >
+                                              <div
+                                                className="e17811v31 css-esdzbq-ButtonLabel"
+                                                is={null}
+                                                size="xsmall"
+                                              >
+                                                <span
+                                                  className="icon icon-add"
+                                                />
+                                                 
+                                                Add Workspace
+                                              </div>
+                                            </Base>
+                                          </Flex>
+                                        </Component>
+                                      </ButtonLabel>
+                                    </button>
+                                  </Component>
+                                </StyledSmartButton>
                               </Button>
                             </div>
                           </Base>
@@ -283,36 +312,65 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                                   onClick={[Function]}
                                   size="small"
                                 >
-                                  <button
-                                    className="button button-default button-sm"
+                                  <StyledSmartButton
+                                    className=""
                                     disabled={false}
                                     onClick={[Function]}
                                     role="button"
+                                    size="small"
                                   >
-                                    <Flex
-                                      align="center"
-                                      className="button-label"
+                                    <Component
+                                      className="css-4fgn6d-StyledSmartButton-getColors e17811v30"
+                                      disabled={false}
+                                      onClick={[Function]}
+                                      role="button"
+                                      size="small"
                                     >
-                                      <Base
-                                        align="center"
-                                        className="button-label css-5ipae5"
+                                      <button
+                                        className="css-4fgn6d-StyledSmartButton-getColors e17811v30"
+                                        disabled={false}
+                                        onClick={[Function]}
+                                        role="button"
+                                        size="small"
                                       >
-                                        <div
-                                          className="button-label css-5ipae5"
-                                          is={null}
+                                        <ButtonLabel
+                                          size="small"
                                         >
-                                          <span
-                                            className="icon icon-trash"
-                                            style={
-                                              Object {
-                                                "margin": 0,
-                                              }
-                                            }
-                                          />
-                                        </div>
-                                      </Base>
-                                    </Flex>
-                                  </button>
+                                          <Component
+                                            className="css-179w01k-ButtonLabel e17811v31"
+                                            size="small"
+                                          >
+                                            <Flex
+                                              align="center"
+                                              className="css-179w01k-ButtonLabel e17811v31"
+                                              size="small"
+                                            >
+                                              <Base
+                                                align="center"
+                                                className="e17811v31 css-8mahft-ButtonLabel"
+                                                size="small"
+                                              >
+                                                <div
+                                                  className="e17811v31 css-8mahft-ButtonLabel"
+                                                  is={null}
+                                                  size="small"
+                                                >
+                                                  <span
+                                                    className="icon icon-trash"
+                                                    style={
+                                                      Object {
+                                                        "margin": 0,
+                                                      }
+                                                    }
+                                                  />
+                                                </div>
+                                              </Base>
+                                            </Flex>
+                                          </Component>
+                                        </ButtonLabel>
+                                      </button>
+                                    </Component>
+                                  </StyledSmartButton>
                                 </Button>
                                 <Modal
                                   animation={false}

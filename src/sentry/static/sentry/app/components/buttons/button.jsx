@@ -156,7 +156,7 @@ const getColors = ({priority, disabled, theme}) => {
   `;
 };
 
-const StyledSmartButton = styled(props => {
+const StyledSmartButton = styled(({busy, external, ...props}) => {
   // Get component to use based on existance of `to` or `href` properties
   // Can be react-router `Link`, `a`, or `button`
   if (props.to) {
@@ -167,7 +167,7 @@ const StyledSmartButton = styled(props => {
     return <button {...props} />;
   }
 
-  let Component = props.external ? ExternalLink : 'a';
+  let Component = external ? ExternalLink : 'a';
   return <Component {...props} />;
 })`
   display: inline-block;

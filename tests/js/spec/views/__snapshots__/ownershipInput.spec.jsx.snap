@@ -630,72 +630,116 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
             priority="primary"
             size="zero"
           >
-            <button
-              className="css-3daogo-RuleAddButton e1hyuoc79 button button-primary button-zero"
+            <StyledSmartButton
+              className="css-3daogo-RuleAddButton e1hyuoc79"
               disabled={false}
               onClick={[Function]}
+              priority="primary"
               role="button"
+              size="zero"
             >
-              <Flex
-                align="center"
-                className="button-label"
+              <Component
+                className="e1hyuoc79 css-1j9x7af-StyledSmartButton-getColors-RuleAddButton e17811v30"
+                disabled={false}
+                onClick={[Function]}
+                priority="primary"
+                role="button"
+                size="zero"
               >
-                <Base
-                  align="center"
-                  className="button-label css-5ipae5"
+                <button
+                  className="e1hyuoc79 css-1j9x7af-StyledSmartButton-getColors-RuleAddButton e17811v30"
+                  disabled={false}
+                  onClick={[Function]}
+                  priority="primary"
+                  role="button"
+                  size="zero"
                 >
-                  <div
-                    className="button-label css-5ipae5"
-                    is={null}
+                  <ButtonLabel
+                    size="zero"
                   >
-                    <Icon
+                    <Component
+                      className="css-8ufe5w-ButtonLabel e17811v31"
                       size="zero"
                     >
-                      <Base
-                        className="css-l3pkcx-Icon e17811v30"
+                      <Flex
+                        align="center"
+                        className="css-8ufe5w-ButtonLabel e17811v31"
                         size="zero"
                       >
-                        <div
-                          className="css-l3pkcx-Icon e17811v30"
-                          is={null}
+                        <Base
+                          align="center"
+                          className="e17811v31 css-g08cim-ButtonLabel"
                           size="zero"
                         >
-                          <StyledInlineSvg
-                            size="16px"
-                            src="icon-circle-add"
+                          <div
+                            className="e17811v31 css-g08cim-ButtonLabel"
+                            is={null}
+                            size="zero"
                           >
-                            <InlineSvg
-                              className="css-1ov3rcq-StyledInlineSvg e17811v31"
-                              size="16px"
-                              src="icon-circle-add"
+                            <Icon
+                              hasChildren={false}
+                              size="zero"
                             >
-                              <StyledSvg
-                                className="css-1ov3rcq-StyledInlineSvg e17811v31"
-                                height="16px"
-                                viewBox={Object {}}
-                                width="16px"
+                              <Component
+                                className="css-1kk1aq-Icon e17811v32"
+                                hasChildren={false}
+                                size="zero"
                               >
-                                <svg
-                                  className="e17811v31 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
-                                  height="16px"
-                                  viewBox={Object {}}
-                                  width="16px"
+                                <Box
+                                  className="css-1kk1aq-Icon e17811v32"
+                                  size="zero"
                                 >
-                                  <use
-                                    href="#test"
-                                    xlinkHref="#test"
-                                  />
-                                </svg>
-                              </StyledSvg>
-                            </InlineSvg>
-                          </StyledInlineSvg>
-                        </div>
-                      </Base>
-                    </Icon>
-                  </div>
-                </Base>
-              </Flex>
-            </button>
+                                  <Base
+                                    className="e17811v32 css-1aoi37i-Icon"
+                                    size="zero"
+                                  >
+                                    <div
+                                      className="e17811v32 css-1aoi37i-Icon"
+                                      is={null}
+                                      size="zero"
+                                    >
+                                      <StyledInlineSvg
+                                        size="16px"
+                                        src="icon-circle-add"
+                                      >
+                                        <InlineSvg
+                                          className="css-1ov3rcq-StyledInlineSvg e17811v33"
+                                          size="16px"
+                                          src="icon-circle-add"
+                                        >
+                                          <StyledSvg
+                                            className="css-1ov3rcq-StyledInlineSvg e17811v33"
+                                            height="16px"
+                                            viewBox={Object {}}
+                                            width="16px"
+                                          >
+                                            <svg
+                                              className="e17811v33 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                              height="16px"
+                                              viewBox={Object {}}
+                                              width="16px"
+                                            >
+                                              <use
+                                                href="#test"
+                                                xlinkHref="#test"
+                                              />
+                                            </svg>
+                                          </StyledSvg>
+                                        </InlineSvg>
+                                      </StyledInlineSvg>
+                                    </div>
+                                  </Base>
+                                </Box>
+                              </Component>
+                            </Icon>
+                          </div>
+                        </Base>
+                      </Flex>
+                    </Component>
+                  </ButtonLabel>
+                </button>
+              </Component>
+            </StyledSmartButton>
           </Button>
         </RuleAddButton>
       </div>
@@ -758,29 +802,61 @@ url:http://example.com/settings/* #product"
           priority="primary"
           size="small"
         >
-          <button
-            className="button button-primary button-sm"
+          <StyledSmartButton
+            className=""
             disabled={false}
             onClick={[Function]}
+            priority="primary"
             role="button"
+            size="small"
           >
-            <Flex
-              align="center"
-              className="button-label"
+            <Component
+              className="css-77pgdm-StyledSmartButton-getColors e17811v30"
+              disabled={false}
+              onClick={[Function]}
+              priority="primary"
+              role="button"
+              size="small"
             >
-              <Base
-                align="center"
-                className="button-label css-5ipae5"
+              <button
+                className="css-77pgdm-StyledSmartButton-getColors e17811v30"
+                disabled={false}
+                onClick={[Function]}
+                priority="primary"
+                role="button"
+                size="small"
               >
-                <div
-                  className="button-label css-5ipae5"
-                  is={null}
+                <ButtonLabel
+                  size="small"
                 >
-                  Save Changes
-                </div>
-              </Base>
-            </Flex>
-          </button>
+                  <Component
+                    className="css-179w01k-ButtonLabel e17811v31"
+                    size="small"
+                  >
+                    <Flex
+                      align="center"
+                      className="css-179w01k-ButtonLabel e17811v31"
+                      size="small"
+                    >
+                      <Base
+                        align="center"
+                        className="e17811v31 css-8mahft-ButtonLabel"
+                        size="small"
+                      >
+                        <div
+                          className="e17811v31 css-8mahft-ButtonLabel"
+                          is={null}
+                          size="small"
+                        >
+                          Save Changes
+                        </div>
+                      </Base>
+                    </Flex>
+                  </Component>
+                </ButtonLabel>
+              </button>
+            </Component>
+          </StyledSmartButton>
         </Button>
       </div>
     </SaveButton>

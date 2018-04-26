@@ -164,7 +164,7 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
               }
             >
               <Component
-                className="css-1rg98na-StyledSmartButton css-a44t1u0"
+                className="css-6y5dh4-StyledSmartButton-getColors e17811v30"
                 disabled={false}
                 onClick={[Function]}
                 role="button"
@@ -175,7 +175,7 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
                 }
               >
                 <button
-                  className="css-1rg98na-StyledSmartButton css-a44t1u0"
+                  className="css-6y5dh4-StyledSmartButton-getColors e17811v30"
                   disabled={false}
                   onClick={[Function]}
                   role="button"
@@ -187,18 +187,18 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
                 >
                   <ButtonLabel>
                     <Component
-                      className="css-1lzmoq1-ButtonLabel css-a44t1u1"
+                      className="css-1lzmoq1-ButtonLabel e17811v31"
                     >
                       <Flex
                         align="center"
-                        className="css-1lzmoq1-ButtonLabel css-a44t1u1"
+                        className="css-1lzmoq1-ButtonLabel e17811v31"
                       >
                         <Base
                           align="center"
-                          className="css-a44t1u1 css-12e52in"
+                          className="e17811v31 css-1br8hoo-ButtonLabel"
                         >
                           <div
-                            className="css-a44t1u1 css-12e52in"
+                            className="e17811v31 css-1br8hoo-ButtonLabel"
                             is={null}
                           >
                             Cancel
@@ -227,7 +227,7 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
             >
               <Component
                 autoFocus={true}
-                className="css-ds78q9-StyledSmartButton css-a44t1u0"
+                className="css-58zvn3-StyledSmartButton-getColors e17811v30"
                 disabled={false}
                 onClick={[Function]}
                 priority="primary"
@@ -235,7 +235,7 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
               >
                 <button
                   autoFocus={true}
-                  className="css-ds78q9-StyledSmartButton css-a44t1u0"
+                  className="css-58zvn3-StyledSmartButton-getColors e17811v30"
                   disabled={false}
                   onClick={[Function]}
                   priority="primary"
@@ -243,18 +243,18 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
                 >
                   <ButtonLabel>
                     <Component
-                      className="css-1lzmoq1-ButtonLabel css-a44t1u1"
+                      className="css-1lzmoq1-ButtonLabel e17811v31"
                     >
                       <Flex
                         align="center"
-                        className="css-1lzmoq1-ButtonLabel css-a44t1u1"
+                        className="css-1lzmoq1-ButtonLabel e17811v31"
                       >
                         <Base
                           align="center"
-                          className="css-a44t1u1 css-12e52in"
+                          className="e17811v31 css-1br8hoo-ButtonLabel"
                         >
                           <div
-                            className="css-a44t1u1 css-12e52in"
+                            className="e17811v31 css-1br8hoo-ButtonLabel"
                             is={null}
                           >
                             Bulk resolve issues
@@ -470,7 +470,7 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
               }
             >
               <Component
-                className="css-1rg98na-StyledSmartButton css-a44t1u0"
+                className="css-6y5dh4-StyledSmartButton-getColors e17811v30"
                 disabled={false}
                 onClick={[Function]}
                 role="button"
@@ -481,7 +481,7 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
                 }
               >
                 <button
-                  className="css-1rg98na-StyledSmartButton css-a44t1u0"
+                  className="css-6y5dh4-StyledSmartButton-getColors e17811v30"
                   disabled={false}
                   onClick={[Function]}
                   role="button"
@@ -493,18 +493,18 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
                 >
                   <ButtonLabel>
                     <Component
-                      className="css-1lzmoq1-ButtonLabel css-a44t1u1"
+                      className="css-1lzmoq1-ButtonLabel e17811v31"
                     >
                       <Flex
                         align="center"
-                        className="css-1lzmoq1-ButtonLabel css-a44t1u1"
+                        className="css-1lzmoq1-ButtonLabel e17811v31"
                       >
                         <Base
                           align="center"
-                          className="css-a44t1u1 css-12e52in"
+                          className="e17811v31 css-1br8hoo-ButtonLabel"
                         >
                           <div
-                            className="css-a44t1u1 css-12e52in"
+                            className="e17811v31 css-1br8hoo-ButtonLabel"
                             is={null}
                           >
                             Cancel
@@ -533,7 +533,7 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
             >
               <Component
                 autoFocus={true}
-                className="css-ds78q9-StyledSmartButton css-a44t1u0"
+                className="css-58zvn3-StyledSmartButton-getColors e17811v30"
                 disabled={false}
                 onClick={[Function]}
                 priority="primary"
@@ -541,7 +541,7 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
               >
                 <button
                   autoFocus={true}
-                  className="css-ds78q9-StyledSmartButton css-a44t1u0"
+                  className="css-58zvn3-StyledSmartButton-getColors e17811v30"
                   disabled={false}
                   onClick={[Function]}
                   priority="primary"
@@ -549,18 +549,18 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
                 >
                   <ButtonLabel>
                     <Component
-                      className="css-1lzmoq1-ButtonLabel css-a44t1u1"
+                      className="css-1lzmoq1-ButtonLabel e17811v31"
                     >
                       <Flex
                         align="center"
-                        className="css-1lzmoq1-ButtonLabel css-a44t1u1"
+                        className="css-1lzmoq1-ButtonLabel e17811v31"
                       >
                         <Base
                           align="center"
-                          className="css-a44t1u1 css-12e52in"
+                          className="e17811v31 css-1br8hoo-ButtonLabel"
                         >
                           <div
-                            className="css-a44t1u1 css-12e52in"
+                            className="e17811v31 css-1br8hoo-ButtonLabel"
                             is={null}
                           >
                             Bulk resolve issues

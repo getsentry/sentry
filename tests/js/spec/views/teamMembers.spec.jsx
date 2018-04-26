@@ -46,13 +46,13 @@ describe('TeamMembers', function() {
 
       let wrapper = mount(
         <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
-        , routerContext
+        routerContext
       );
 
       expect(mock).not.toHaveBeenCalled();
 
       wrapper
-        .find('.button-default')
+        .find('Button')
         .at(1)
         .simulate('click');
 
