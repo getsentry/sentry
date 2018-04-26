@@ -1,26 +1,23 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import React, {Component} from 'react';
 import SentryTypes from '../../../proptypes';
 
 import GroupEventDataSection from '../eventDataSection';
-import CSPContent from './cspContent';
-import CSPHelp from './cspHelp';
+import KeyValueList from './keyValueList';
 import {t} from '../../../locale';
+import {objectToArray} from '../../../utils';
 
 function getView(view, data) {
   switch (view) {
     case 'report':
-      return <CSPContent data={data} />;
+      return <KeyValueList data={objectToArray(data)} isContextData={true} />;
     case 'raw':
       return <pre>{JSON.stringify({'csp-report': data}, null, 2)}</pre>;
-    case 'help':
-      return <CSPHelp data={data} />;
     default:
       throw new TypeError(`Invalid view: ${view}`);
   }
 }
-
-export default class CspInterface extends React.Component {
+export default class GenericInterface extends Component {
   static propTypes = {
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
@@ -31,9 +28,6 @@ export default class CspInterface extends React.Component {
   constructor(props) {
     super(props);
     let {data} = props;
-    // hide the report-uri since this is redundant and silly
-    data.original_policy = data.original_policy.replace(/(;\s+)?report-uri [^;]+/, '');
-
     this.state = {
       view: 'report',
       data,
@@ -48,7 +42,7 @@ export default class CspInterface extends React.Component {
 
   render() {
     let {view, data} = this.state;
-    let {group, event} = this.props;
+    let {group, event, type} = this.props;
 
     let title = (
       <div>
@@ -65,14 +59,8 @@ export default class CspInterface extends React.Component {
           >
             {t('Raw')}
           </a>
-          <a
-            className={(view === 'help' ? 'active' : '') + ' btn btn-default btn-sm'}
-            onClick={this.toggleView.bind(this, 'help')}
-          >
-            {t('Help')}
-          </a>
         </div>
-        <h3>{t('CSP Report')}</h3>
+        <h3>{t('Report')}</h3>
       </div>
     );
 
@@ -82,7 +70,7 @@ export default class CspInterface extends React.Component {
       <GroupEventDataSection
         group={group}
         event={event}
-        type="csp"
+        type={type}
         title={title}
         wrapTitle={false}
       >
