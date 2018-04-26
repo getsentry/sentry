@@ -91,6 +91,11 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
     )
 )
 
+RESERVED_PROJECT_SLUGS = frozenset((
+    'api-keys', 'audit-log', 'auth', 'members', 'projects',
+    'rate-limits', 'repos', 'settings', 'teams',
+))
+
 LOG_LEVELS = {
     logging.NOTSET: 'sample',
     logging.DEBUG: 'debug',

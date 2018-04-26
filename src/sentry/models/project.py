@@ -20,7 +20,7 @@ from django.utils.translation import ugettext_lazy as _
 from uuid import uuid1
 
 from sentry.app import locks
-from sentry.constants import ObjectStatus
+from sentry.constants import ObjectStatus, RESERVED_PROJECT_SLUGS
 from sentry.db.models import (
     BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 )
@@ -134,7 +134,11 @@ class Project(Model):
         if not self.slug:
             lock = locks.get('slug:project', duration=5)
             with TimedRetryPolicy(10)(lock.acquire):
-                slugify_instance(self, self.name, organization=self.organization)
+                slugify_instance(
+                    self,
+                    self.name,
+                    organization=self.organization,
+                    reserved=RESERVED_PROJECT_SLUGS)
             super(Project, self).save(*args, **kwargs)
         else:
             super(Project, self).save(*args, **kwargs)

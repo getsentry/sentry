@@ -19,6 +19,7 @@ from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import DetailedProjectSerializer
 from sentry.api.serializers.rest_framework import ListField, OriginField
+from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.models import (
     AuditLogEntryEvent, Group, GroupStatus, Project, ProjectBookmark, ProjectRedirect,
     ProjectStatus, ProjectTeam, UserOption, Team,
@@ -130,6 +131,10 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
 
     def validate_slug(self, attrs, source):
         slug = attrs[source]
+        if slug in RESERVED_PROJECT_SLUGS:
+            raise serializers.ValidationError(
+                'The slug "%s" is reserved and not allowed.' %
+                (slug, ))
         project = self.context['project']
         other = Project.objects.filter(
             slug=slug,
