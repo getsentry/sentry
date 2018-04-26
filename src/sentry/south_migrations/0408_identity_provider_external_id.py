@@ -32,7 +32,7 @@ class Migration(DataMigration):
                 # provider would have been setup, but at the time of writing
                 # this, in getsentry, there are no cases like such.
                 integration = orm.Integration.objects.filter(organizations=r.organization_id)[0]
-            except KeyError:
+            except IndexError:
                 # Identity provider exists without an external_id. Nothing we
                 # can do to determine the external ID.
                 continue
