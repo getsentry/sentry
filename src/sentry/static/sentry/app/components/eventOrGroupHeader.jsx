@@ -20,7 +20,14 @@ class EventOrGroupHeader extends React.Component {
     data: PropTypes.shape({
       id: PropTypes.string,
       level: PropTypes.string,
-      type: PropTypes.oneOf(['error', 'csp', 'default']).isRequired,
+      type: PropTypes.oneOf([
+        'error',
+        'csp',
+        'hpkp',
+        'expectct',
+        'expectstaple',
+        'default',
+      ]).isRequired,
       title: PropTypes.string,
       metadata: Metadata,
       groupID: PropTypes.string,
@@ -45,6 +52,10 @@ class EventOrGroupHeader extends React.Component {
         return metadata.value;
       case 'csp':
         return metadata.message;
+      case 'expectct':
+      case 'expectstaple':
+      case 'hpkp':
+        return '';
       default:
         return culprit || '';
     }

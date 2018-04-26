@@ -167,6 +167,10 @@ const GroupDetails = createReactClass({
         return group.metadata.type || group.metadata.value;
       case 'csp':
         return group.metadata.message;
+      case 'expectct':
+      case 'expectstaple':
+      case 'hpkp':
+        return group.metadata.message;
       case 'default':
         return group.metadata.title;
       default:
