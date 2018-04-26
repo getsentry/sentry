@@ -89,23 +89,7 @@ class VSTSIntegration(Integration):
 
     def parse_instance(self, instance):
         # TODO(LB): is there something that will clean user-input data?
-        if self.domain not in instance:
-            return instance + self.domain
         return instance
-
-    def get_teams(self, instance, access_token):
-        session = http.build_session()
-        url = 'https://{}/_apis/teams?api-version=4.1-preview.2'.format(instance)
-        response = session.get(
-            url,
-            headers={
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer {}'.format(access_token),
-            },
-        )
-        response.raise_for_status()
-        response_json = response.json()
-        return response_json
 
     def build_integration(self, state):
         data = state['identity']['data']
