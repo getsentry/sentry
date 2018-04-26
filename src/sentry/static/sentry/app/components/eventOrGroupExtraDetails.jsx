@@ -126,7 +126,7 @@ const EventOrGroupExtraDetails = createReactClass({
 });
 
 const GroupExtra = styled(Flex)`
-  color: ${p => p.theme.gray3}
+  color: ${p => p.theme.gray3};
   font-size: 12px;
   a {
     color: inherit;

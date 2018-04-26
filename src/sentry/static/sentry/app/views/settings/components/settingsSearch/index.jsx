@@ -49,7 +49,7 @@ const SearchInputWrapper = styled.div`
 `;
 
 const SearchInputIcon = styled(props => <InlineSvg src="icon-search" {...props} />)`
-  color: ${p => p.theme.gray2}
+  color: ${p => p.theme.gray2};
   position: absolute;
   left: 10px;
   top: 8px;

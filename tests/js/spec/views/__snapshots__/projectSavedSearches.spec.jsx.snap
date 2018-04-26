@@ -900,13 +900,13 @@ exports[`ProjectSavedSearches renders empty 1`] = `
                   className="ref-empty-state"
                 >
                   <div
-                    className="ref-empty-state css-n38n5f-EmptyStreamWrapper css-tkh7440"
+                    className="ref-empty-state css-n38n5f-EmptyStreamWrapper css-18u266o0"
                   >
                     <Icon
                       className="icon icon-exclamation"
                     >
                       <div
-                        className="icon icon-exclamation css-1xqhcr3-Icon css-tkh7441"
+                        className="icon icon-exclamation css-1t79dmf-Icon css-18u266o1"
                       />
                     </Icon>
                     <p>
