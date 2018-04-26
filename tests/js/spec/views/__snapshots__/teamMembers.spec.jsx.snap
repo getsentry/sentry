@@ -37,6 +37,7 @@ exports[`TeamMembers render() renders 1`] = `
   >
     <UserBadge
       avatarSize={36}
+      hideEmail={false}
       orgId="org-slug"
       useLink={true}
       user={
@@ -82,6 +83,7 @@ exports[`TeamMembers render() renders 1`] = `
   >
     <UserBadge
       avatarSize={36}
+      hideEmail={false}
       orgId="org-slug"
       useLink={true}
       user={
@@ -127,6 +129,7 @@ exports[`TeamMembers render() renders 1`] = `
   >
     <UserBadge
       avatarSize={36}
+      hideEmail={false}
       orgId="org-slug"
       useLink={true}
       user={
@@ -172,6 +175,7 @@ exports[`TeamMembers render() renders 1`] = `
   >
     <UserBadge
       avatarSize={36}
+      hideEmail={false}
       orgId="org-slug"
       useLink={true}
       user={
