@@ -188,10 +188,10 @@ exports[`ApiTokens renders with result 1`] = `
         </SettingsPageHeading>
         <TextBlock>
           <Component
-            className="css-ms59cf-TextBlock css-1gwew8k0"
+            className="css-1geyb25-TextBlock css-q7e89a0"
           >
             <div
-              className="css-ms59cf-TextBlock css-1gwew8k0"
+              className="css-1geyb25-TextBlock css-q7e89a0"
             >
               Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API.
             </div>
@@ -199,10 +199,10 @@ exports[`ApiTokens renders with result 1`] = `
         </TextBlock>
         <TextBlock>
           <Component
-            className="css-ms59cf-TextBlock css-1gwew8k0"
+            className="css-1geyb25-TextBlock css-q7e89a0"
           >
             <div
-              className="css-ms59cf-TextBlock css-1gwew8k0"
+              className="css-1geyb25-TextBlock css-q7e89a0"
             >
               <span
                 key="5"
@@ -233,10 +233,10 @@ exports[`ApiTokens renders with result 1`] = `
         </TextBlock>
         <TextBlock>
           <Component
-            className="css-ms59cf-TextBlock css-1gwew8k0"
+            className="css-1geyb25-TextBlock css-q7e89a0"
           >
             <div
-              className="css-ms59cf-TextBlock css-1gwew8k0"
+              className="css-1geyb25-TextBlock css-q7e89a0"
             >
               <small>
                 psst. Looking for the 

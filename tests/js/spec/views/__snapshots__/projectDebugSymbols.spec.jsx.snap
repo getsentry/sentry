@@ -43,10 +43,10 @@ exports[`ProjectDebugSymbols renders 1`] = `
     </SettingsPageHeading>
     <TextBlock>
       <Component
-        className="css-ms59cf-TextBlock css-1gwew8k0"
+        className="css-1geyb25-TextBlock css-q7e89a0"
       >
         <div
-          className="css-ms59cf-TextBlock css-1gwew8k0"
+          className="css-1geyb25-TextBlock css-q7e89a0"
         >
           
           Here you can find uploaded debug information (for instance debug
@@ -294,10 +294,10 @@ exports[`ProjectDebugSymbols renders 1`] = `
       </SettingsPageHeading>
       <TextBlock>
         <Component
-          className="css-ms59cf-TextBlock css-1gwew8k0"
+          className="css-1geyb25-TextBlock css-q7e89a0"
         >
           <div
-            className="css-ms59cf-TextBlock css-1gwew8k0"
+            className="css-1geyb25-TextBlock css-q7e89a0"
           >
             
           This list represents all Debug Information Files which are not assigned to an

@@ -59,10 +59,10 @@ exports[`CreateProject render() should render roles when available and allowed, 
     </SettingsPageHeading>
     <TextBlock>
       <Component
-        className="css-ms59cf-TextBlock css-1gwew8k0"
+        className="css-1geyb25-TextBlock css-q7e89a0"
       >
         <div
-          className="css-ms59cf-TextBlock css-1gwew8k0"
+          className="css-1geyb25-TextBlock css-q7e89a0"
         >
           Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one. Multiple emails delimited by commas.
         </div>
@@ -237,10 +237,10 @@ exports[`CreateProject render() should render roles when available and allowed, 
                                   className="css-gx0lhm"
                                 >
                                   <Component
-                                    className="css-b3mf8s-TextBlock css-1gwew8k0"
+                                    className="css-1ai2po6-TextBlock css-q7e89a0"
                                   >
                                     <div
-                                      className="css-b3mf8s-TextBlock css-1gwew8k0"
+                                      className="css-1ai2po6-TextBlock css-q7e89a0"
                                     >
                                       <div
                                         className="help-block"
@@ -320,10 +320,10 @@ exports[`CreateProject render() should render roles when available and allowed, 
                                   className="css-gx0lhm"
                                 >
                                   <Component
-                                    className="css-b3mf8s-TextBlock css-1gwew8k0"
+                                    className="css-1ai2po6-TextBlock css-q7e89a0"
                                   >
                                     <div
-                                      className="css-b3mf8s-TextBlock css-1gwew8k0"
+                                      className="css-1ai2po6-TextBlock css-q7e89a0"
                                     >
                                       <div
                                         className="help-block"
