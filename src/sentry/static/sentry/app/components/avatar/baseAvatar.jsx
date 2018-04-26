@@ -144,6 +144,8 @@ class BaseAvatar extends React.Component {
 
 export default BaseAvatar;
 
+// Note: Avatar will not always be a child of a flex layout, but this seems like a
+// sensible default.
 const StyledBaseAvatar = styled('span')`
   flex-shrink: 0;
 `;
