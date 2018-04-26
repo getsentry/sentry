@@ -94,6 +94,7 @@ class ProjectOwnership extends AsyncView {
                     name: 'fallthrough',
                     type: 'boolean',
                     label: t('All users with access to this project are owners'),
+                    help: t('Owners will receive notifications for issues they are responsible for.'),
                   },
                 ],
               },
