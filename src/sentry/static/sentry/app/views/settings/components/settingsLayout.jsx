@@ -76,6 +76,7 @@ const SidebarWrapper = styled(Box)`
 
 const Content = styled(Box)`
   flex: 1;
+  overflow: hidden; /* We need this so that Content area does not overflow outside of max width */
 `;
 
 const SettingsSubheader = styled.div`
