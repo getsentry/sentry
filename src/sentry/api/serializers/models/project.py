@@ -131,6 +131,14 @@ class ProjectSerializer(Serializer):
             stats = None
 
         avatars = {a.project_id: a for a in ProjectAvatar.objects.filter(project__in=item_list)}
+        project_ids = [i.id for i in item_list]
+        platforms = ProjectPlatform.objects.filter(
+            project_id__in=project_ids,
+        ).values_list('project_id', 'platform')
+        platforms_by_project = defaultdict(list)
+        for project_id, platform in platforms:
+            platforms_by_project[project_id].append(platform)
+
         result = self.get_access_by_project(item_list, user)
         for item in item_list:
             result[item].update({
@@ -141,6 +149,7 @@ class ProjectSerializer(Serializer):
                     default_subscribe,
                 )),
                 'avatar': avatars.get(item.id),
+                'platforms': platforms_by_project[item.id]
             })
             if stats:
                 result[item]['stats'] = stats[item.id]
@@ -260,6 +269,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             'dateCreated': obj.date_added,
             'firstEvent': obj.first_event,
             'platform': obj.platform,
+            'platforms': attrs['platforms'],
         }
         if 'stats' in attrs:
             context['stats'] = attrs['stats']
@@ -300,13 +310,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                       self).get_attrs(item_list, user)
 
         project_ids = [i.id for i in item_list]
-
-        platforms = ProjectPlatform.objects.filter(
-            project_id__in=project_ids,
-        ).values_list('project_id', 'platform')
-        platforms_by_project = defaultdict(list)
-        for project_id, platform in platforms:
-            platforms_by_project[project_id].append(platform)
 
         num_issues_projects = Project.objects.filter(
             id__in=project_ids
@@ -364,7 +367,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                     'latest_release': latest_releases.get(item.id),
                     'org': orgs[six.text_type(item.organization_id)],
                     'options': options_by_project[item.id],
-                    'platforms': platforms_by_project[item.id],
                     'processing_issues': processing_issues_by_project.get(item.id, 0),
                 }
             )
