@@ -11,22 +11,26 @@ class ProjectOwnershipTestCase(TestCase):
         assert ProjectOwnership.get_owners(self.project.id, {}) == (ProjectOwnership.Everyone, None)
 
     def test_get_owners_basic(self):
-        matcher = Matcher('path', '*.py')
+        rule_a = Rule(
+            Matcher('path', '*.py'), [
+                Owner('team', self.team.slug),
+            ])
+
+        rule_b = Rule(
+            Matcher('path', 'src/*'), [
+                Owner('user', self.user.email),
+            ])
 
         ProjectOwnership.objects.create(
             project_id=self.project.id,
-            schema=dump_schema([
-                Rule(matcher, [
-                    Owner('user', self.user.email),
-                    Owner('team', self.team.slug),
-                ]),
-            ]),
+            schema=dump_schema([rule_a, rule_b]),
             fallthrough=True,
         )
 
         # No data matches
         assert ProjectOwnership.get_owners(self.project.id, {}) == (ProjectOwnership.Everyone, None)
 
+        # Match only rule_a
         assert ProjectOwnership.get_owners(
             self.project.id, {
                 'sentry.interfaces.Stacktrace': {
@@ -35,7 +39,29 @@ class ProjectOwnershipTestCase(TestCase):
                     }]
                 }
             }
-        ) == ([Actor(self.user.id, User), Actor(self.team.id, Team)], matcher)
+        ) == ([Actor(self.team.id, Team)], [rule_a])
+
+        # Match only rule_b
+        assert ProjectOwnership.get_owners(
+            self.project.id, {
+                'sentry.interfaces.Stacktrace': {
+                    'frames': [{
+                        'filename': 'src/thing.txt',
+                    }]
+                }
+            }
+        ) == ([Actor(self.user.id, User)], [rule_b])
+
+        # Matches both rule_a and rule_b
+        assert ProjectOwnership.get_owners(
+            self.project.id, {
+                'sentry.interfaces.Stacktrace': {
+                    'frames': [{
+                        'filename': 'src/foo.py',
+                    }]
+                }
+            }
+        ) == ([Actor(self.user.id, User), Actor(self.team.id, Team)], [rule_a, rule_b])
 
         assert ProjectOwnership.get_owners(
             self.project.id, {

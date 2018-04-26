@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import ProjectOwnership, resolve_actor, UnknownActor
+from sentry.models import ProjectOwnership, resolve_actors
 
 from sentry.ownership.grammar import parse_rules, dump_schema, ParseError
 
@@ -31,9 +31,9 @@ class ProjectOwnershipSerializer(serializers.Serializer):
         bad_actors = []
         for rule in rules:
             for owner in rule.owners:
-                try:
-                    resolve_actor(owner, self.context['ownership'].project_id)
-                except UnknownActor:
+                # Check each one explicitly so we know which are missing
+                # TODO(mattrobenolt): Potentially refactor resolve_actors to handle this in bulk
+                if not resolve_actors([owner], self.context['ownership'].project_id):
                     if owner.type == 'user':
                         bad_actors.append(owner.identifier)
 
