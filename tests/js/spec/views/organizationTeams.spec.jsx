@@ -5,6 +5,9 @@ import {Client} from 'app/api';
 import OrganizationTeams from 'app/views/organizationTeams';
 import OrganizationTeamsView from 'app/views/settings/team/organizationTeamsView';
 import {openCreateTeamModal} from 'app/actionCreators/modal';
+import recreateRoute from 'app/utils/recreateRoute';
+
+recreateRoute.mockReturnValue('');
 
 jest.mock('app/actionCreators/modal', () => ({
   openCreateTeamModal: jest.fn(),

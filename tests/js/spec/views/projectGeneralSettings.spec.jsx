@@ -6,7 +6,6 @@ import ProjectContext from 'app/views/projects/projectContext';
 import ProjectsStore from 'app/stores/projectsStore';
 import {mountWithTheme} from '../../../helpers';
 
-jest.mock('app/utils/recreateRoute');
 jest.mock('jquery');
 
 describe('projectGeneralSettings', function() {

@@ -3,8 +3,6 @@ import React from 'react';
 import {shallow} from 'enzyme';
 import ProjectExpectCtReports from 'app/views/settings/projectSecurityHeaders/expectCt';
 
-jest.mock('app/utils/recreateRoute');
-
 describe('ProjectExpectCtReports', function() {
   let org = TestStubs.Organization();
   let project = TestStubs.Project();

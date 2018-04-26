@@ -1,5 +1,7 @@
 import recreateRoute from 'app/utils/recreateRoute';
 
+jest.unmock('app/utils/recreateRoute');
+
 const routes = [
   {path: '/', childRoutes: []},
   {newnew: true, path: '/settings/', name: 'Settings'},
