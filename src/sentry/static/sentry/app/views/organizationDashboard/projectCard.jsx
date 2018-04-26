@@ -10,6 +10,7 @@ import Link from '../../components/link';
 import {Client} from '../../api';
 
 import {update} from '../../actionCreators/projects';
+import overflowEllipsis from '../../styles/overflowEllipsis';
 
 class ProjectCard extends React.Component {
   static propTypes = {
@@ -50,9 +51,7 @@ class ProjectCard extends React.Component {
 }
 
 const StyledLink = styled(Link)`
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  ${overflowEllipsis};
 `;
 
 const StyledProjectCard = styled.div`
