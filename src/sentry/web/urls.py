@@ -258,7 +258,7 @@ urlpatterns += patterns(
         name='sentry-account-disconnect-identity'
     ),
     url(
-        r'^account/settings/identities/associate/(?P<organization_slug>[^\/]+)/(?P<provider_key>[^\/]+)/$',
+        r'^account/settings/identities/associate/(?P<organization_slug>[^\/]+)/(?P<provider_key>[^\/]+)/(?P<external_id>[^\/]+)/$',
         AccountIdentityAssociateView.as_view(),
         name='sentry-account-associate-identity'
     ),
