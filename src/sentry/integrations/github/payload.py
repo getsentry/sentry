@@ -30,10 +30,10 @@ class GitHubAppsEndpoint(Endpoint):
         return options.get('github.webhook-secret')
 
     def is_valid_signature(self, method, body, secret, signature):
-        if method == 'sha1':
-            mod = hashlib.sha1
-        else:
+        if method != 'sha1':
             raise NotImplementedError('signature method %s is not supported' % (method, ))
+
+        mod = hashlib.sha1
         expected = hmac.new(
             key=secret.encode('utf-8'),
             msg=body,
@@ -46,30 +46,22 @@ class GitHubAppsEndpoint(Endpoint):
         secret = self.get_secret()
 
         if secret is None:
-            logger.error(
-                'github.webhook.missing-secret',
-            )
+            logger.error('github.webhook.missing-secret',)
             return HttpResponse(status=401)
 
         body = six.binary_type(request.body)
         if not body:
-            logger.error(
-                'github.webhook.missing-body',
-            )
+            logger.error('github.webhook.missing-body',)
             return HttpResponse(status=400)
 
         try:
             method, signature = request.META['HTTP_X_HUB_SIGNATURE'].split('=', 1)
         except (KeyError, IndexError):
-            logger.error(
-                'github.webhook.missing-signature',
-            )
+            logger.error('github.webhook.missing-signature',)
             return HttpResponse(status=400)
 
         if not self.is_valid_signature(method, body, self.get_secret(), signature):
-            logger.error(
-                'github.webhook.invalid-signature',
-            )
+            logger.error('github.webhook.invalid-signature',)
             return HttpResponse(status=401)
 
         try:
