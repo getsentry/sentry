@@ -15,7 +15,7 @@ exports[`ProjectDebugSymbols renders 1`] = `
     >
       <Wrapper>
         <div
-          className="css-foidy-Wrapper css-17jmgia0"
+          className="css-12kovf2-Wrapper css-vsmyps0"
         >
           <Flex
             align="center"
@@ -30,7 +30,7 @@ exports[`ProjectDebugSymbols renders 1`] = `
               >
                 <Title>
                   <div
-                    className="css-zmdcxu-Title css-17jmgia1"
+                    className="css-zmdcxu-Title css-vsmyps1"
                   >
                     Debug Information Files
                   </div>
@@ -43,10 +43,10 @@ exports[`ProjectDebugSymbols renders 1`] = `
     </SettingsPageHeading>
     <TextBlock>
       <Component
-        className="css-ms59cf-TextBlock css-1gwew8k0"
+        className="css-1geyb25-TextBlock css-q7e89a0"
       >
         <div
-          className="css-ms59cf-TextBlock css-1gwew8k0"
+          className="css-1geyb25-TextBlock css-q7e89a0"
         >
           
           Here you can find uploaded debug information (for instance debug
@@ -74,7 +74,7 @@ exports[`ProjectDebugSymbols renders 1`] = `
         }
       >
         <div
-          className="css-wfa8ap-StyledPanel css-5bw71w0"
+          className="css-1ctfmmx-StyledPanel css-tj715z0"
           style={
             Object {
               "marginBottom": 40,
@@ -264,7 +264,7 @@ exports[`ProjectDebugSymbols renders 1`] = `
       >
         <Wrapper>
           <div
-            className="css-foidy-Wrapper css-17jmgia0"
+            className="css-12kovf2-Wrapper css-vsmyps0"
           >
             <Flex
               align="center"
@@ -279,7 +279,7 @@ exports[`ProjectDebugSymbols renders 1`] = `
                 >
                   <Title>
                     <div
-                      className="css-zmdcxu-Title css-17jmgia1"
+                      className="css-zmdcxu-Title css-vsmyps1"
                     >
                       Unreferenced Debug Information Files
                     </div>
@@ -292,10 +292,10 @@ exports[`ProjectDebugSymbols renders 1`] = `
       </SettingsPageHeading>
       <TextBlock>
         <Component
-          className="css-ms59cf-TextBlock css-1gwew8k0"
+          className="css-1geyb25-TextBlock css-q7e89a0"
         >
           <div
-            className="css-ms59cf-TextBlock css-1gwew8k0"
+            className="css-1geyb25-TextBlock css-q7e89a0"
           >
             
           This list represents all Debug Information Files which are not assigned to an

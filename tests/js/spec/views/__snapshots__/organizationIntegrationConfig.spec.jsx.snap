@@ -26,7 +26,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
       >
         <Wrapper>
           <div
-            className="css-foidy-Wrapper css-17jmgia0"
+            className="css-12kovf2-Wrapper css-vsmyps0"
           >
             <Flex
               align="center"
@@ -69,7 +69,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                   </Box>
                   <Title>
                     <div
-                      className="css-zmdcxu-Title css-17jmgia1"
+                      className="css-zmdcxu-Title css-vsmyps1"
                     >
                       GitHub
                     </div>
@@ -83,7 +83,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
       <Panel>
         <StyledPanel>
           <div
-            className="css-wfa8ap-StyledPanel css-5bw71w0"
+            className="css-1ctfmmx-StyledPanel css-tj715z0"
           >
             <PanelHeader
               disablePadding={true}
@@ -383,27 +383,27 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
         to="/url/with/params/org-slug/"
       >
         <Component
-          className="css-ryqtzi-AlertLink css-1k2xcw02"
+          className="css-19kzmmy-AlertLink css-dvd7d22"
           to="/url/with/params/org-slug/"
         >
           <Link
-            className="css-ryqtzi-AlertLink css-1k2xcw02"
+            className="css-19kzmmy-AlertLink css-dvd7d22"
             to="/url/with/params/org-slug/"
           >
             <Link
-              className="css-ryqtzi-AlertLink css-1k2xcw02"
+              className="css-19kzmmy-AlertLink css-dvd7d22"
               onlyActiveOnIndex={false}
               style={Object {}}
               to="/url/with/params/org-slug/"
             >
               <a
-                className="css-ryqtzi-AlertLink css-1k2xcw02"
+                className="css-19kzmmy-AlertLink css-dvd7d22"
                 onClick={[Function]}
                 style={Object {}}
               >
                 <AlertLinkText>
                   <div
-                    className="css-19z7wog-AlertLinkText css-1k2xcw00"
+                    className="css-19z7wog-AlertLinkText css-dvd7d20"
                   >
                     <span
                       dangerouslySetInnerHTML={

@@ -12,7 +12,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   <Panel>
     <StyledPanel>
       <div
-        className="css-wfa8ap-StyledPanel css-5bw71w0"
+        className="css-1ctfmmx-StyledPanel css-tj715z0"
       >
         <PanelHeader
           hasButtons={true}

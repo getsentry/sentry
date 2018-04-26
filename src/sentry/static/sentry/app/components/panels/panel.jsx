@@ -4,13 +4,14 @@ import styled from 'react-emotion';
 
 import PanelBody from './panelBody';
 import PanelHeader from './panelHeader';
+import space from '../../styles/space';
 
 const StyledPanel = styled.div`
   background: #fff;
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => p.theme.borderDark};
   box-shadow: ${p => p.theme.dropShadowLight};
-  margin-bottom: ${p => p.theme.grid * 4}px;
+  margin-bottom: ${space(3)};
   position: relative;
 `;
 

@@ -576,7 +576,7 @@ exports[`AuditLogView renders 1`] = `
             >
               <Wrapper>
                 <div
-                  className="css-foidy-Wrapper css-17jmgia0"
+                  className="css-12kovf2-Wrapper css-vsmyps0"
                 >
                   <Flex
                     align="center"
@@ -591,7 +591,7 @@ exports[`AuditLogView renders 1`] = `
                       >
                         <Title>
                           <div
-                            className="css-zmdcxu-Title css-17jmgia1"
+                            className="css-zmdcxu-Title css-vsmyps1"
                           >
                             Audit Log
                           </div>
@@ -801,7 +801,7 @@ exports[`AuditLogView renders 1`] = `
             <Panel>
               <StyledPanel>
                 <div
-                  className="css-wfa8ap-StyledPanel css-5bw71w0"
+                  className="css-1ctfmmx-StyledPanel css-tj715z0"
                 >
                   <PanelHeader
                     disablePadding={true}

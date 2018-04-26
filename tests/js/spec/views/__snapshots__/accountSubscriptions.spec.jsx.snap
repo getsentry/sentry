@@ -49,7 +49,7 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
         >
           <Wrapper>
             <div
-              className="css-foidy-Wrapper css-17jmgia0"
+              className="css-12kovf2-Wrapper css-vsmyps0"
             >
               <Flex
                 align="center"
@@ -64,7 +64,7 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                   >
                     <Title>
                       <div
-                        className="css-zmdcxu-Title css-17jmgia1"
+                        className="css-zmdcxu-Title css-vsmyps1"
                       >
                         Subscriptions
                       </div>
@@ -77,10 +77,10 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
         </SettingsPageHeading>
         <TextBlock>
           <Component
-            className="css-ms59cf-TextBlock css-1gwew8k0"
+            className="css-1geyb25-TextBlock css-q7e89a0"
           >
             <div
-              className="css-ms59cf-TextBlock css-1gwew8k0"
+              className="css-1geyb25-TextBlock css-q7e89a0"
             >
               Sentry is committed to respecting your inbox. Our goal is to provide useful content and resources that make fixing errors less painful. Enjoyable even.
             </div>
@@ -88,10 +88,10 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
         </TextBlock>
         <TextBlock>
           <Component
-            className="css-ms59cf-TextBlock css-1gwew8k0"
+            className="css-1geyb25-TextBlock css-q7e89a0"
           >
             <div
-              className="css-ms59cf-TextBlock css-1gwew8k0"
+              className="css-1geyb25-TextBlock css-q7e89a0"
             >
               As part of our compliance with the EU’s General Data Protection Regulation (GDPR), starting on 25 May 2018, we’ll only email you according to the marketing categories to which you’ve explicitly opted-in.
             </div>
@@ -100,7 +100,7 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
         <Panel>
           <StyledPanel>
             <div
-              className="css-wfa8ap-StyledPanel css-5bw71w0"
+              className="css-1ctfmmx-StyledPanel css-tj715z0"
             >
               <div>
                 <PanelHeader>
@@ -331,10 +331,10 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
         </Panel>
         <TextBlock>
           <Component
-            className="css-ms59cf-TextBlock css-1gwew8k0"
+            className="css-1geyb25-TextBlock css-q7e89a0"
           >
             <div
-              className="css-ms59cf-TextBlock css-1gwew8k0"
+              className="css-1geyb25-TextBlock css-q7e89a0"
             >
               We’re applying GDPR consent and privacy policies to all Sentry contacts, regardless of location. You’ll be able to manage your subscriptions here and from an Unsubscribe link in the footer of all marketing emails.
             </div>
@@ -342,10 +342,10 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
         </TextBlock>
         <TextBlock>
           <Component
-            className="css-ms59cf-TextBlock css-1gwew8k0"
+            className="css-1geyb25-TextBlock css-q7e89a0"
           >
             <div
-              className="css-ms59cf-TextBlock css-1gwew8k0"
+              className="css-1geyb25-TextBlock css-q7e89a0"
             >
               Please contact 
               <a

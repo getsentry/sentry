@@ -13,9 +13,9 @@ const space = size => {
     case 2:
       return '16px';
     case 3:
-      return '24px';
+      return '20px';
     case 4:
-      return '36px';
+      return '30px';
     default:
       return '8px';
   }

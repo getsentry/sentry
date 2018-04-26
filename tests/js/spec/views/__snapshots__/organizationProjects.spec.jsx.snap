@@ -32,7 +32,7 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
         >
           <Wrapper>
             <div
-              className="css-foidy-Wrapper css-17jmgia0"
+              className="css-12kovf2-Wrapper css-vsmyps0"
             >
               <Flex
                 align="center"
@@ -47,7 +47,7 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                   >
                     <Title>
                       <div
-                        className="css-zmdcxu-Title css-17jmgia1"
+                        className="css-zmdcxu-Title css-vsmyps1"
                       >
                         Projects
                       </div>
@@ -149,7 +149,7 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
         <Panel>
           <StyledPanel>
             <div
-              className="css-wfa8ap-StyledPanel css-5bw71w0"
+              className="css-1ctfmmx-StyledPanel css-tj715z0"
             >
               <PanelHeader
                 hasButtons={true}
