@@ -15,7 +15,7 @@ exports[`ProjectDebugSymbols renders 1`] = `
     >
       <Wrapper>
         <div
-          className="css-foidy-Wrapper e1kblvez0"
+          className="css-foidy-Wrapper css-17jmgia0"
         >
           <Flex
             align="center"
@@ -30,7 +30,7 @@ exports[`ProjectDebugSymbols renders 1`] = `
               >
                 <Title>
                   <div
-                    className="css-zmdcxu-Title e1kblvez1"
+                    className="css-zmdcxu-Title css-17jmgia1"
                   >
                     Debug Information Files
                   </div>
@@ -43,10 +43,10 @@ exports[`ProjectDebugSymbols renders 1`] = `
     </SettingsPageHeading>
     <TextBlock>
       <Component
-        className="css-ms59cf-TextBlock ec8ep340"
+        className="css-ms59cf-TextBlock css-1gwew8k0"
       >
         <div
-          className="css-ms59cf-TextBlock ec8ep340"
+          className="css-ms59cf-TextBlock css-1gwew8k0"
         >
           
           Here you can find uploaded debug information (for instance debug
@@ -74,7 +74,7 @@ exports[`ProjectDebugSymbols renders 1`] = `
         }
       >
         <div
-          className="css-wfa8ap-StyledPanel e1laxa7d0"
+          className="css-wfa8ap-StyledPanel css-5bw71w0"
           style={
             Object {
               "marginBottom": 40,
@@ -84,20 +84,20 @@ exports[`ProjectDebugSymbols renders 1`] = `
           <PanelHeader>
             <StyledPanelHeader>
               <Component
-                className="css-kf498j-StyledPanelHeader e1p8v8nv0"
+                className="css-kf498j-StyledPanelHeader css-1t1cqk30"
               >
                 <Flex
                   align="center"
-                  className="css-kf498j-StyledPanelHeader e1p8v8nv0"
+                  className="css-kf498j-StyledPanelHeader css-1t1cqk30"
                   justify="space-between"
                 >
                   <Base
                     align="center"
-                    className="e1p8v8nv0 css-hj6snb"
+                    className="css-1t1cqk30 css-hj6snb"
                     justify="space-between"
                   >
                     <div
-                      className="e1p8v8nv0 css-hj6snb"
+                      className="css-1t1cqk30 css-hj6snb"
                       is={null}
                     >
                       <div
@@ -135,12 +135,12 @@ exports[`ProjectDebugSymbols renders 1`] = `
                   p={2}
                 >
                   <Base
-                    className="css-1u7weda-StyledPanelItem eo8n7lk0"
+                    className="css-1u7weda-StyledPanelItem css-q9h14u0"
                     direction="column"
                     p={2}
                   >
                     <div
-                      className="css-1u7weda-StyledPanelItem eo8n7lk0"
+                      className="css-1u7weda-StyledPanelItem css-q9h14u0"
                       is={null}
                     >
                       <HoverablePanelItem
@@ -148,22 +148,22 @@ exports[`ProjectDebugSymbols renders 1`] = `
                         onClick={[Function]}
                       >
                         <PanelItem
-                          className="hoverable css-1mrkblk-HoverablePanelItem emphg7t2"
+                          className="hoverable css-1mrkblk-HoverablePanelItem css-15iqg1y2"
                           onClick={[Function]}
                           p={2}
                         >
                           <StyledPanelItem
-                            className="hoverable css-1mrkblk-HoverablePanelItem emphg7t2"
+                            className="hoverable css-1mrkblk-HoverablePanelItem css-15iqg1y2"
                             onClick={[Function]}
                             p={2}
                           >
                             <Base
-                              className="hoverable emphg7t2 css-bqgi4j-StyledPanelItem eo8n7lk0"
+                              className="hoverable css-15iqg1y2 css-bqgi4j-StyledPanelItem css-q9h14u0"
                               onClick={[Function]}
                               p={2}
                             >
                               <div
-                                className="hoverable emphg7t2 css-bqgi4j-StyledPanelItem eo8n7lk0"
+                                className="hoverable css-15iqg1y2 css-bqgi4j-StyledPanelItem css-q9h14u0"
                                 is={null}
                                 onClick={[Function]}
                               >
@@ -199,17 +199,17 @@ exports[`ProjectDebugSymbols renders 1`] = `
                                       >
                                         <Base
                                           align="center"
-                                          className="css-2qebs7-LastSeen emphg7t0"
+                                          className="css-2qebs7-LastSeen css-15iqg1y0"
                                         >
                                           <div
-                                            className="css-2qebs7-LastSeen emphg7t0"
+                                            className="css-2qebs7-LastSeen css-15iqg1y0"
                                             is={null}
                                           >
                                             <TimeIcon
                                               className="icon icon-clock"
                                             >
                                               <span
-                                                className="icon icon-clock css-3im64z-TimeIcon emphg7t1"
+                                                className="icon icon-clock css-3im64z-TimeIcon css-15iqg1y1"
                                               />
                                             </TimeIcon>
                                             <TimeSince
@@ -266,7 +266,7 @@ exports[`ProjectDebugSymbols renders 1`] = `
       >
         <Wrapper>
           <div
-            className="css-foidy-Wrapper e1kblvez0"
+            className="css-foidy-Wrapper css-17jmgia0"
           >
             <Flex
               align="center"
@@ -281,7 +281,7 @@ exports[`ProjectDebugSymbols renders 1`] = `
                 >
                   <Title>
                     <div
-                      className="css-zmdcxu-Title e1kblvez1"
+                      className="css-zmdcxu-Title css-17jmgia1"
                     >
                       Unreferenced Debug Information Files
                     </div>
@@ -294,10 +294,10 @@ exports[`ProjectDebugSymbols renders 1`] = `
       </SettingsPageHeading>
       <TextBlock>
         <Component
-          className="css-ms59cf-TextBlock ec8ep340"
+          className="css-ms59cf-TextBlock css-1gwew8k0"
         >
           <div
-            className="css-ms59cf-TextBlock ec8ep340"
+            className="css-ms59cf-TextBlock css-1gwew8k0"
           >
             
           This list represents all Debug Information Files which are not assigned to an

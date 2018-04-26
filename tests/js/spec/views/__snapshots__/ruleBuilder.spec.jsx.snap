@@ -25,7 +25,7 @@ exports[`RuleBuilder render() renders 1`] = `
 >
   <BuilderBar>
     <div
-      className="css-1rsoebt-BuilderBar e1hyuoc75"
+      className="css-1rsoebt-BuilderBar css-edgvue5"
     >
       <BuilderSelect
         onChange={[Function]}
@@ -33,7 +33,7 @@ exports[`RuleBuilder render() renders 1`] = `
         value="path"
       >
         <SelectInput
-          className="css-1eslqkc-BuilderSelect e1hyuoc76"
+          className="css-1eslqkc-BuilderSelect css-edgvue6"
           disabled={false}
           multiple={false}
           onChange={[Function]}
@@ -43,7 +43,7 @@ exports[`RuleBuilder render() renders 1`] = `
           value="path"
         >
           <select
-            className="css-1eslqkc-BuilderSelect e1hyuoc76"
+            className="css-1eslqkc-BuilderSelect css-edgvue6"
             disabled={false}
             multiple={false}
             onChange={[Function]}
@@ -71,7 +71,7 @@ exports[`RuleBuilder render() renders 1`] = `
         value=""
       >
         <input
-          className="css-1t4syiu-Input-BuilderInput e1hyuoc77"
+          className="css-1t4syiu-Input-BuilderInput css-edgvue7"
           onChange={[Function]}
           placeholder="src/example/*"
           value=""
@@ -81,17 +81,17 @@ exports[`RuleBuilder render() renders 1`] = `
         src="icon-chevron-right"
       >
         <InlineSvg
-          className="css-a4tn6s-Divider e1hyuoc78"
+          className="css-a4tn6s-Divider css-edgvue8"
           src="icon-chevron-right"
         >
           <StyledSvg
-            className="css-a4tn6s-Divider e1hyuoc78"
+            className="css-a4tn6s-Divider css-edgvue8"
             height="1em"
             viewBox={Object {}}
             width="1em"
           >
             <svg
-              className="e1hyuoc78 css-5e2rei-StyledSvg e2idor0"
+              className="css-edgvue8 css-5e2rei-StyledSvg css-adkcw30"
               height="1em"
               viewBox={Object {}}
               width="1em"
@@ -232,7 +232,7 @@ exports[`RuleBuilder render() renders 1`] = `
                     autosize={true}
                     backspaceRemoves={true}
                     backspaceToRemoveMessage="Press backspace to remove {label}"
-                    className="css-1yznv6y-MultiSelect e1d0yo690"
+                    className="css-1yznv6y-MultiSelect css-12eevnk0"
                     clearAllText="Clear all"
                     clearRenderer={[Function]}
                     clearValueText="Clear value"
@@ -307,7 +307,7 @@ exports[`RuleBuilder render() renders 1`] = `
                     valueKey="value"
                   >
                     <div
-                      className="Select css-1yznv6y-MultiSelect e1d0yo690 is-clearable is-searchable Select--multi"
+                      className="Select css-1yznv6y-MultiSelect css-12eevnk0 is-clearable is-searchable Select--multi"
                     >
                       <div
                         className="Select-control"
@@ -414,7 +414,7 @@ exports[`RuleBuilder render() renders 1`] = `
         size="zero"
       >
         <Button
-          className="css-3daogo-RuleAddButton e1hyuoc79"
+          className="css-3daogo-RuleAddButton css-edgvue9"
           disabled={false}
           icon="icon-circle-add"
           onClick={[Function]}
@@ -422,7 +422,7 @@ exports[`RuleBuilder render() renders 1`] = `
           size="zero"
         >
           <button
-            className="css-3daogo-RuleAddButton e1hyuoc79 button button-primary button-zero"
+            className="css-3daogo-RuleAddButton css-edgvue9 button button-primary button-zero"
             disabled={false}
             onClick={[Function]}
             role="button"
@@ -443,11 +443,11 @@ exports[`RuleBuilder render() renders 1`] = `
                     size="zero"
                   >
                     <Base
-                      className="css-l3pkcx-Icon e17811v30"
+                      className="css-l3pkcx-Icon css-1vxxnb60"
                       size="zero"
                     >
                       <div
-                        className="css-l3pkcx-Icon e17811v30"
+                        className="css-l3pkcx-Icon css-1vxxnb60"
                         is={null}
                         size="zero"
                       >
@@ -456,18 +456,18 @@ exports[`RuleBuilder render() renders 1`] = `
                           src="icon-circle-add"
                         >
                           <InlineSvg
-                            className="css-1ov3rcq-StyledInlineSvg e17811v31"
+                            className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
                             size="16px"
                             src="icon-circle-add"
                           >
                             <StyledSvg
-                              className="css-1ov3rcq-StyledInlineSvg e17811v31"
+                              className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
                               height="16px"
                               viewBox={Object {}}
                               width="16px"
                             >
                               <svg
-                                className="e17811v31 css-1rlza0i-StyledSvg e2idor0"
+                                className="css-1vxxnb61 css-1rlza0i-StyledSvg css-adkcw30"
                                 height="16px"
                                 viewBox={Object {}}
                                 width="16px"
@@ -523,31 +523,31 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
 >
   <Candidates>
     <div
-      className="css-1fyz2uk-Candidates e1hyuoc70"
+      className="css-1fyz2uk-Candidates css-edgvue0"
     >
       <RuleCandidate
         key="a/bar"
         onClick={[Function]}
       >
         <div
-          className="css-4hexhh-RuleCandidate e1hyuoc73"
+          className="css-4hexhh-RuleCandidate css-edgvue3"
           onClick={[Function]}
         >
           <AddIcon
             src="icon-circle-add"
           >
             <InlineSvg
-              className="css-1ivdji5-AddIcon e1hyuoc74"
+              className="css-1ivdji5-AddIcon css-edgvue4"
               src="icon-circle-add"
             >
               <StyledSvg
-                className="css-1ivdji5-AddIcon e1hyuoc74"
+                className="css-1ivdji5-AddIcon css-edgvue4"
                 height="1em"
                 viewBox={Object {}}
                 width="1em"
               >
                 <svg
-                  className="e1hyuoc74 css-eomeeu-StyledSvg e2idor0"
+                  className="css-edgvue4 css-eomeeu-StyledSvg css-adkcw30"
                   height="1em"
                   viewBox={Object {}}
                   width="1em"
@@ -562,14 +562,14 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
           </AddIcon>
           <StyledTextOverflow>
             <div
-              className="css-q3yspe-TextOverflow-StyledTextOverflow e1hyuoc72"
+              className="css-q3yspe-TextOverflow-StyledTextOverflow css-edgvue2"
             >
               a/bar
             </div>
           </StyledTextOverflow>
           <TypeHint>
             <div
-              className="css-6d8mj3-TypeHint e1hyuoc71"
+              className="css-6d8mj3-TypeHint css-edgvue1"
             >
               [PATH]
             </div>
@@ -581,24 +581,24 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
         onClick={[Function]}
       >
         <div
-          className="css-4hexhh-RuleCandidate e1hyuoc73"
+          className="css-4hexhh-RuleCandidate css-edgvue3"
           onClick={[Function]}
         >
           <AddIcon
             src="icon-circle-add"
           >
             <InlineSvg
-              className="css-1ivdji5-AddIcon e1hyuoc74"
+              className="css-1ivdji5-AddIcon css-edgvue4"
               src="icon-circle-add"
             >
               <StyledSvg
-                className="css-1ivdji5-AddIcon e1hyuoc74"
+                className="css-1ivdji5-AddIcon css-edgvue4"
                 height="1em"
                 viewBox={Object {}}
                 width="1em"
               >
                 <svg
-                  className="e1hyuoc74 css-eomeeu-StyledSvg e2idor0"
+                  className="css-edgvue4 css-eomeeu-StyledSvg css-adkcw30"
                   height="1em"
                   viewBox={Object {}}
                   width="1em"
@@ -613,14 +613,14 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
           </AddIcon>
           <StyledTextOverflow>
             <div
-              className="css-q3yspe-TextOverflow-StyledTextOverflow e1hyuoc72"
+              className="css-q3yspe-TextOverflow-StyledTextOverflow css-edgvue2"
             >
               a/foo
             </div>
           </StyledTextOverflow>
           <TypeHint>
             <div
-              className="css-6d8mj3-TypeHint e1hyuoc71"
+              className="css-6d8mj3-TypeHint css-edgvue1"
             >
               [PATH]
             </div>
@@ -632,24 +632,24 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
         onClick={[Function]}
       >
         <div
-          className="css-4hexhh-RuleCandidate e1hyuoc73"
+          className="css-4hexhh-RuleCandidate css-edgvue3"
           onClick={[Function]}
         >
           <AddIcon
             src="icon-circle-add"
           >
             <InlineSvg
-              className="css-1ivdji5-AddIcon e1hyuoc74"
+              className="css-1ivdji5-AddIcon css-edgvue4"
               src="icon-circle-add"
             >
               <StyledSvg
-                className="css-1ivdji5-AddIcon e1hyuoc74"
+                className="css-1ivdji5-AddIcon css-edgvue4"
                 height="1em"
                 viewBox={Object {}}
                 width="1em"
               >
                 <svg
-                  className="e1hyuoc74 css-eomeeu-StyledSvg e2idor0"
+                  className="css-edgvue4 css-eomeeu-StyledSvg css-adkcw30"
                   height="1em"
                   viewBox={Object {}}
                   width="1em"
@@ -664,14 +664,14 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
           </AddIcon>
           <StyledTextOverflow>
             <div
-              className="css-q3yspe-TextOverflow-StyledTextOverflow e1hyuoc72"
+              className="css-q3yspe-TextOverflow-StyledTextOverflow css-edgvue2"
             >
               example.com/a
             </div>
           </StyledTextOverflow>
           <TypeHint>
             <div
-              className="css-6d8mj3-TypeHint e1hyuoc71"
+              className="css-6d8mj3-TypeHint css-edgvue1"
             >
               [URL]
             </div>
@@ -683,24 +683,24 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
         onClick={[Function]}
       >
         <div
-          className="css-4hexhh-RuleCandidate e1hyuoc73"
+          className="css-4hexhh-RuleCandidate css-edgvue3"
           onClick={[Function]}
         >
           <AddIcon
             src="icon-circle-add"
           >
             <InlineSvg
-              className="css-1ivdji5-AddIcon e1hyuoc74"
+              className="css-1ivdji5-AddIcon css-edgvue4"
               src="icon-circle-add"
             >
               <StyledSvg
-                className="css-1ivdji5-AddIcon e1hyuoc74"
+                className="css-1ivdji5-AddIcon css-edgvue4"
                 height="1em"
                 viewBox={Object {}}
                 width="1em"
               >
                 <svg
-                  className="e1hyuoc74 css-eomeeu-StyledSvg e2idor0"
+                  className="css-edgvue4 css-eomeeu-StyledSvg css-adkcw30"
                   height="1em"
                   viewBox={Object {}}
                   width="1em"
@@ -715,14 +715,14 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
           </AddIcon>
           <StyledTextOverflow>
             <div
-              className="css-q3yspe-TextOverflow-StyledTextOverflow e1hyuoc72"
+              className="css-q3yspe-TextOverflow-StyledTextOverflow css-edgvue2"
             >
               example.com/a/foo
             </div>
           </StyledTextOverflow>
           <TypeHint>
             <div
-              className="css-6d8mj3-TypeHint e1hyuoc71"
+              className="css-6d8mj3-TypeHint css-edgvue1"
             >
               [URL]
             </div>
@@ -733,7 +733,7 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
   </Candidates>
   <BuilderBar>
     <div
-      className="css-1rsoebt-BuilderBar e1hyuoc75"
+      className="css-1rsoebt-BuilderBar css-edgvue5"
     >
       <BuilderSelect
         onChange={[Function]}
@@ -741,7 +741,7 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
         value="path"
       >
         <SelectInput
-          className="css-1eslqkc-BuilderSelect e1hyuoc76"
+          className="css-1eslqkc-BuilderSelect css-edgvue6"
           disabled={false}
           multiple={false}
           onChange={[Function]}
@@ -751,7 +751,7 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
           value="path"
         >
           <select
-            className="css-1eslqkc-BuilderSelect e1hyuoc76"
+            className="css-1eslqkc-BuilderSelect css-edgvue6"
             disabled={false}
             multiple={false}
             onChange={[Function]}
@@ -779,7 +779,7 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
         value="a/bar"
       >
         <input
-          className="css-1t4syiu-Input-BuilderInput e1hyuoc77"
+          className="css-1t4syiu-Input-BuilderInput css-edgvue7"
           onChange={[Function]}
           placeholder="src/example/*"
           value="a/bar"
@@ -789,17 +789,17 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
         src="icon-chevron-right"
       >
         <InlineSvg
-          className="css-a4tn6s-Divider e1hyuoc78"
+          className="css-a4tn6s-Divider css-edgvue8"
           src="icon-chevron-right"
         >
           <StyledSvg
-            className="css-a4tn6s-Divider e1hyuoc78"
+            className="css-a4tn6s-Divider css-edgvue8"
             height="1em"
             viewBox={Object {}}
             width="1em"
           >
             <svg
-              className="e1hyuoc78 css-5e2rei-StyledSvg e2idor0"
+              className="css-edgvue8 css-5e2rei-StyledSvg css-adkcw30"
               height="1em"
               viewBox={Object {}}
               width="1em"
@@ -979,7 +979,7 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
                     autosize={true}
                     backspaceRemoves={true}
                     backspaceToRemoveMessage="Press backspace to remove {label}"
-                    className="css-1yznv6y-MultiSelect e1d0yo690"
+                    className="css-1yznv6y-MultiSelect css-12eevnk0"
                     clearAllText="Clear all"
                     clearRenderer={[Function]}
                     clearValueText="Clear value"
@@ -1067,7 +1067,7 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
                     valueKey="value"
                   >
                     <div
-                      className="Select css-1yznv6y-MultiSelect e1d0yo690 has-value is-clearable is-searchable Select--multi"
+                      className="Select css-1yznv6y-MultiSelect css-12eevnk0 has-value is-clearable is-searchable Select--multi"
                     >
                       <div
                         className="Select-control"
@@ -1284,7 +1284,7 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
         size="zero"
       >
         <Button
-          className="css-3daogo-RuleAddButton e1hyuoc79"
+          className="css-3daogo-RuleAddButton css-edgvue9"
           disabled={false}
           icon="icon-circle-add"
           onClick={[Function]}
@@ -1292,7 +1292,7 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
           size="zero"
         >
           <button
-            className="css-3daogo-RuleAddButton e1hyuoc79 button button-primary button-zero"
+            className="css-3daogo-RuleAddButton css-edgvue9 button button-primary button-zero"
             disabled={false}
             onClick={[Function]}
             role="button"
@@ -1313,11 +1313,11 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
                     size="zero"
                   >
                     <Base
-                      className="css-l3pkcx-Icon e17811v30"
+                      className="css-l3pkcx-Icon css-1vxxnb60"
                       size="zero"
                     >
                       <div
-                        className="css-l3pkcx-Icon e17811v30"
+                        className="css-l3pkcx-Icon css-1vxxnb60"
                         is={null}
                         size="zero"
                       >
@@ -1326,18 +1326,18 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
                           src="icon-circle-add"
                         >
                           <InlineSvg
-                            className="css-1ov3rcq-StyledInlineSvg e17811v31"
+                            className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
                             size="16px"
                             src="icon-circle-add"
                           >
                             <StyledSvg
-                              className="css-1ov3rcq-StyledInlineSvg e17811v31"
+                              className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
                               height="16px"
                               viewBox={Object {}}
                               width="16px"
                             >
                               <svg
-                                className="e17811v31 css-1rlza0i-StyledSvg e2idor0"
+                                className="css-1vxxnb61 css-1rlza0i-StyledSvg css-adkcw30"
                                 height="16px"
                                 viewBox={Object {}}
                                 width="16px"
