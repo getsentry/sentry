@@ -1,0 +1,75 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ProjectCard renders 1`] = `
+<ProjectCard
+  params={
+    Object {
+      "orgId": "org-slug",
+    }
+  }
+  project={
+    Object {
+      "hasAccess": true,
+      "id": "2",
+      "isBookmarked": false,
+      "isMember": true,
+      "name": "Project Name",
+      "slug": "project-slug",
+      "teams": Array [],
+    }
+  }
+>
+  <StyledProjectCard>
+    <div
+      className="css-1u6ttyz-StyledProjectCard css-19wy04p0"
+    >
+      <Flex
+        align="center"
+        justify="space-between"
+        p={2}
+      >
+        <Base
+          align="center"
+          className="css-188rjiu"
+          justify="space-between"
+          p={2}
+        >
+          <div
+            className="css-188rjiu"
+            is={null}
+          >
+            <Link
+              to="/org-slug/project-slug/"
+            >
+              <Link
+                onlyActiveOnIndex={false}
+                style={Object {}}
+                to="/org-slug/project-slug/"
+              >
+                <a
+                  onClick={[Function]}
+                  style={Object {}}
+                >
+                  <strong>
+                    project-slug
+                  </strong>
+                </a>
+              </Link>
+            </Link>
+            <Star
+              active={false}
+              className="project-select-bookmark icon icon-star-solid"
+              onClick={[Function]}
+            >
+              <a
+                className="project-select-bookmark icon icon-star-solid css-x8d2hc-Star css-19wy04p1"
+                onClick={[Function]}
+              />
+            </Star>
+          </div>
+        </Base>
+      </Flex>
+    </div>
+  </StyledProjectCard>
+</ProjectCard>
+`;
