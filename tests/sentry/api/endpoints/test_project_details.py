@@ -5,6 +5,7 @@ import six
 
 from django.core.urlresolvers import reverse
 
+from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.models import Project, ProjectBookmark, ProjectStatus, UserOption, DeletedProject, ProjectRedirect, AuditLogEntry, AuditLogEntryEvent
 from sentry.testutils import APITestCase
 
@@ -215,6 +216,12 @@ class ProjectUpdateTest(APITestCase):
         assert resp.status_code == 400
         project = Project.objects.get(id=self.project.id)
         assert project.slug != new_project.slug
+
+    def test_reserved_slug(self):
+        resp = self.client.put(self.path, data={
+            'slug': list(RESERVED_PROJECT_SLUGS)[0],
+        })
+        assert resp.status_code == 400, resp.content
 
     def test_platform(self):
         resp = self.client.put(self.path, data={
