@@ -10,9 +10,10 @@ import SettingsBackButton from './settingsBackButton';
 import SettingsBreadcrumb from './settingsBreadcrumb';
 import SettingsHeader from './settingsHeader';
 import SettingsSearch from './settingsSearch';
+import space from '../../../styles/space';
 
 let StyledAlert = styled(Alert)`
-  margin: 20px 0;
+  margin: ${space(3)} 0;
 `;
 
 // TODO(billy): Temp #NEW-SETTINGS
