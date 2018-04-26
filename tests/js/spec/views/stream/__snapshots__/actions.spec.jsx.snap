@@ -213,6 +213,7 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
           </Button>
           <Button
             autoFocus={true}
+            data-test-id="confirm-modal"
             disabled={false}
             onClick={[Function]}
             priority="primary"
@@ -220,6 +221,7 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
             <StyledSmartButton
               autoFocus={true}
               className=""
+              data-test-id="confirm-modal"
               disabled={false}
               onClick={[Function]}
               priority="primary"
@@ -228,6 +230,7 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
               <Component
                 autoFocus={true}
                 className="css-58zvn3-StyledSmartButton-getColors e17811v30"
+                data-test-id="confirm-modal"
                 disabled={false}
                 onClick={[Function]}
                 priority="primary"
@@ -236,6 +239,7 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
                 <button
                   autoFocus={true}
                   className="css-58zvn3-StyledSmartButton-getColors e17811v30"
+                  data-test-id="confirm-modal"
                   disabled={false}
                   onClick={[Function]}
                   priority="primary"
@@ -519,6 +523,7 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
           </Button>
           <Button
             autoFocus={true}
+            data-test-id="confirm-modal"
             disabled={false}
             onClick={[Function]}
             priority="primary"
@@ -526,6 +531,7 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
             <StyledSmartButton
               autoFocus={true}
               className=""
+              data-test-id="confirm-modal"
               disabled={false}
               onClick={[Function]}
               priority="primary"
@@ -534,6 +540,7 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
               <Component
                 autoFocus={true}
                 className="css-58zvn3-StyledSmartButton-getColors e17811v30"
+                data-test-id="confirm-modal"
                 disabled={false}
                 onClick={[Function]}
                 priority="primary"
@@ -542,6 +549,7 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
                 <button
                   autoFocus={true}
                   className="css-58zvn3-StyledSmartButton-getColors e17811v30"
+                  data-test-id="confirm-modal"
                   disabled={false}
                   onClick={[Function]}
                   priority="primary"

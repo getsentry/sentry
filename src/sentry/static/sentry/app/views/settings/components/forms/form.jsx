@@ -152,6 +152,7 @@ export default class Form extends React.Component {
             <Observer>
               {() => (
                 <Button
+                  data-test-id="form-submit"
                   priority={submitPriority}
                   disabled={
                     this.model.isError ||
