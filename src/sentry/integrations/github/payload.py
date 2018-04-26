@@ -15,7 +15,7 @@ from sentry import options
 from sentry.utils import json
 from sentry.api.base import Endpoint
 
-logger = logging.getLogger('sentry.webhooks')
+logger = logging.getLogger('sentry.integrations.github')
 
 
 class GitHubAppsEndpoint(Endpoint):
