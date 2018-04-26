@@ -1,7 +1,13 @@
-import ReactSelect from 'react-select';
+import React from 'react';
+import ReactSelect, {Async} from 'react-select';
 import styled from 'react-emotion';
 
-const StyledSelect = styled(ReactSelect)`
+const StyledSelect = styled(({async, ...props}) => {
+  if (async) {
+    return <Async {...props} />;
+  }
+  return <ReactSelect {...props} />;
+})`
   font-size: 15px;
 
   .Select-control,

@@ -7,7 +7,7 @@ exports[`MultiSelectField render() renders with form context 1`] = `
   <div
     className="controls"
   >
-    <Component
+    <StyledSelect
       arrowRenderer={[Function]}
       disabled={false}
       hideErrorMessage={false}
@@ -45,7 +45,7 @@ exports[`MultiSelectField render() renders without form context 1`] = `
   <div
     className="controls"
   >
-    <Component
+    <StyledSelect
       arrowRenderer={[Function]}
       disabled={false}
       hideErrorMessage={false}

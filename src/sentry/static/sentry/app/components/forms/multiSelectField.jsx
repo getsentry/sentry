@@ -1,14 +1,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import AsyncSelect from 'react-select/lib/Async';
-import styled from 'react-emotion';
 
 import FormField from 'app/components/forms/formField';
 import StyledSelect from 'app/components/forms/select.styled';
 
 export default class MultiSelectField extends FormField {
   static propTypes = {
-    async: PropTypes.bool,
     options: PropTypes.array,
     onChange: PropTypes.func,
     value: PropTypes.any,
@@ -36,22 +33,15 @@ export default class MultiSelectField extends FormField {
 
   getField() {
     return (
-      <MultiSelect
+      <StyledSelect
         style={{width: 200, overflow: 'visible'}}
         value={this.state.values}
-        {...this.props}
         id={this.getId()}
-        onChange={this.handleChange}
         multi={true}
         arrowRenderer={this.renderArrow}
+        {...this.props}
+        onChange={this.handleChange}
       />
     );
   }
 }
-
-const MultiSelect = styled(({async, ...props}) => {
-  if (async) {
-    return <AsyncSelect {...props} />;
-  }
-  return <StyledSelect {...props} />;
-});
