@@ -21,7 +21,7 @@ exports[`ProjectCard renders 1`] = `
 >
   <StyledProjectCard>
     <div
-      className="css-1u6ttyz-StyledProjectCard css-19wy04p0"
+      className="css-1u6ttyz-StyledProjectCard css-1gptpi71"
     >
       <Flex
         align="center"
@@ -38,31 +38,38 @@ exports[`ProjectCard renders 1`] = `
             className="css-188rjiu"
             is={null}
           >
-            <Link
+            <StyledLink
               to="/org-slug/project-slug/"
             >
               <Link
-                onlyActiveOnIndex={false}
-                style={Object {}}
+                className="css-17j3w4-StyledLink css-1gptpi70"
                 to="/org-slug/project-slug/"
               >
-                <a
-                  onClick={[Function]}
+                <Link
+                  className="css-17j3w4-StyledLink css-1gptpi70"
+                  onlyActiveOnIndex={false}
                   style={Object {}}
+                  to="/org-slug/project-slug/"
                 >
-                  <strong>
-                    project-slug
-                  </strong>
-                </a>
+                  <a
+                    className="css-17j3w4-StyledLink css-1gptpi70"
+                    onClick={[Function]}
+                    style={Object {}}
+                  >
+                    <strong>
+                      project-slug
+                    </strong>
+                  </a>
+                </Link>
               </Link>
-            </Link>
+            </StyledLink>
             <Star
               active={false}
               className="project-select-bookmark icon icon-star-solid"
               onClick={[Function]}
             >
               <a
-                className="project-select-bookmark icon icon-star-solid css-x8d2hc-Star css-19wy04p1"
+                className="project-select-bookmark icon icon-star-solid css-x8d2hc-Star css-1gptpi72"
                 onClick={[Function]}
               />
             </Star>

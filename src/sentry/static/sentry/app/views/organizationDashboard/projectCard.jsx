@@ -35,9 +35,9 @@ class ProjectCard extends React.Component {
     return (
       <StyledProjectCard>
         <Flex justify="space-between" p={2} align="center">
-          <Link to={`/${params.orgId}/${project.slug}/`}>
+          <StyledLink to={`/${params.orgId}/${project.slug}/`}>
             <strong>{project.slug}</strong>
-          </Link>
+          </StyledLink>
           <Star
             active={project.isBookmarked}
             className="project-select-bookmark icon icon-star-solid"
@@ -48,6 +48,12 @@ class ProjectCard extends React.Component {
     );
   }
 }
+
+const StyledLink = styled(Link)`
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
 
 const StyledProjectCard = styled.div`
   background-color: white;
