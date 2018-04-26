@@ -27,6 +27,7 @@ import StacktraceInterface from './interfaces/stacktrace';
 import TemplateInterface from './interfaces/template';
 import CspInterface from './interfaces/csp';
 import BreadcrumbsInterface from './interfaces/breadcrumbs';
+import GenericInterface from './interfaces/generic';
 import ThreadsInterface from './interfaces/threads';
 import DebugMetaInterface from './interfaces/debugmeta';
 
@@ -37,6 +38,9 @@ export const INTERFACES = {
   stacktrace: StacktraceInterface,
   template: TemplateInterface,
   csp: CspInterface,
+  expectct: GenericInterface,
+  expectstaple: GenericInterface,
+  hpkp: GenericInterface,
   breadcrumbs: BreadcrumbsInterface,
   threads: ThreadsInterface,
   debugmeta: DebugMetaInterface,

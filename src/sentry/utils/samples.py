@@ -112,15 +112,15 @@ def load_data(platform, default=None, timestamp=None, sample_name=None):
         if not platform:
             continue
 
-        try:
-            sample_name = sample_name or INTEGRATION_ID_TO_PLATFORM_DATA[platform]['name']
-        except KeyError:
-            continue
-
         json_path = os.path.join(DATA_ROOT, 'samples', '%s.json' % (platform.encode('utf-8'), ))
-
         if not os.path.exists(json_path):
             continue
+
+        if not sample_name:
+            try:
+                sample_name = INTEGRATION_ID_TO_PLATFORM_DATA[platform]['name']
+            except KeyError:
+                pass
 
         with open(json_path) as fp:
             data = json.loads(fp.read())
@@ -129,11 +129,11 @@ def load_data(platform, default=None, timestamp=None, sample_name=None):
     if data is None:
         return
 
-    if platform == 'csp':
+    if platform in ('csp', 'hkpk', 'expectct', 'expectstaple'):
         return data
 
     data['platform'] = platform
-    data['message'] = 'This is an example %s exception' % (sample_name, )
+    data['message'] = 'This is an example %s exception' % (sample_name or platform, )
     data['sentry.interfaces.User'] = generate_user(
         ip_address='127.0.0.1',
         username='sentry',
