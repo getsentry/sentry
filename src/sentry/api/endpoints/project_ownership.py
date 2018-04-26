@@ -29,16 +29,15 @@ class ProjectOwnershipSerializer(serializers.Serializer):
         schema = dump_schema(rules)
 
         bad_actors = []
-        for rule in rules:
-            for owner in rule.owners:
-                # Check each one explicitly so we know which are missing
-                # TODO(mattrobenolt): Potentially refactor resolve_actors to handle this in bulk
-                if not resolve_actors([owner], self.context['ownership'].project_id):
-                    if owner.type == 'user':
-                        bad_actors.append(owner.identifier)
+        for owner in {o for rule in rules for o in rule.owners}:
+            # Check each one explicitly so we know which are missing
+            # TODO(mattrobenolt): Potentially refactor resolve_actors to handle this in bulk
+            if not resolve_actors([owner], self.context['ownership'].project_id):
+                if owner.type == 'user':
+                    bad_actors.append(owner.identifier)
 
-                    if owner.type == 'team':
-                        bad_actors.append(u'#{}'.format(owner.identifier))
+                if owner.type == 'team':
+                    bad_actors.append(u'#{}'.format(owner.identifier))
 
         if bad_actors:
             raise serializers.ValidationError(
