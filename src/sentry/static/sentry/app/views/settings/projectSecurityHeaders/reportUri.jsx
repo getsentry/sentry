@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 import {Link} from 'react-router';
 
 import {tct} from '../../../locale';
-import AsyncView from '../../asyncView';
 import Field from '../components/forms/field';
 import getDynamicText from '../../../utils/getDynamicText';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from '../../../components/panels';
@@ -19,7 +18,7 @@ export const getSecurityDsn = keyList => {
   });
 };
 
-export default class ReportUri extends AsyncView {
+export default class ReportUri extends React.Component {
   static propTypes = {
     keyList: PropTypes.array.isRequired,
   };
