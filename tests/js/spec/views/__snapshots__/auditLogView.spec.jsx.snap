@@ -903,7 +903,7 @@ exports[`AuditLogView renders 1`] = `
                     flex={false}
                   >
                     <div
-                      className=""
+                      className="css-huk7j-textStyles"
                     >
                       <PanelItem
                         align="center"

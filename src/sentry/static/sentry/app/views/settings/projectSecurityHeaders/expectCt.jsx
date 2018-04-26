@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
 
 import {t, tct} from '../../../locale';
 import AsyncView from '../../asyncView';
@@ -9,12 +8,6 @@ import {Panel, PanelBody, PanelHeader} from '../../../components/panels';
 import PreviewFeature from '../../../components/previewFeature';
 import ReportUri, {getSecurityDsn} from './reportUri';
 import SettingsPageHeader from '../components/settingsPageHeader';
-import TextBlock from '../components/text/textBlock';
-
-const CodeBlock = styled.pre`
-  word-break: break-all;
-  white-space: pre-wrap;
-`;
 
 export default class ProjectExpectCtReports extends AsyncView {
   static propTypes = {
@@ -47,7 +40,7 @@ export default class ProjectExpectCtReports extends AsyncView {
         <Panel>
           <PanelHeader>{'About'}</PanelHeader>
           <PanelBody disablePadding={false}>
-            <TextBlock>
+            <p>
               {tct(
                 `[link:Certificate Transparency]
       (CT) is a security standard which helps track and identify valid certificates, allowing identification of maliciously issued certificates`,
@@ -57,25 +50,25 @@ export default class ProjectExpectCtReports extends AsyncView {
                   ),
                 }
               )}
-            </TextBlock>
-            <TextBlock>
+            </p>
+            <p>
               {tct(
                 "To configure reports in Sentry, you'll need to configure the [header] a header from your server:",
                 {
                   header: <code>Expect-CT</code>,
                 }
               )}
-            </TextBlock>
+            </p>
 
-            <CodeBlock>{this.getInstructions()}</CodeBlock>
+            <pre>{this.getInstructions()}</pre>
 
-            <TextBlock noMargin>
+            <p>
               {tct('For more information, see [link:the article on MDN].', {
                 link: (
                   <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Expect-CT" />
                 ),
               })}
-            </TextBlock>
+            </p>
           </PanelBody>
         </Panel>
       </div>

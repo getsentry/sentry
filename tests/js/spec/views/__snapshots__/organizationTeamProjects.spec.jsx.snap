@@ -196,7 +196,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
           flex={false}
         >
           <div
-            className=""
+            className="css-huk7j-textStyles"
           >
             <StyledPanelItem
               key="2"
