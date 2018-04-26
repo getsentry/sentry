@@ -406,21 +406,21 @@ exports[`ProjectPluginDetails renders 1`] = `
                         wrap="wrap"
                       >
                         <Flex
-                          className=""
+                          className="css-huk7j-textStyles"
                           direction="column"
                           pt={2}
                           px={2}
                           wrap="wrap"
                         >
                           <Base
-                            className="css-1amiuv8"
+                            className="css-1thepd8"
                             direction="column"
                             pt={2}
                             px={2}
                             wrap="wrap"
                           >
                             <div
-                              className="css-1amiuv8"
+                              className="css-1thepd8"
                               is={null}
                             >
                               <div
