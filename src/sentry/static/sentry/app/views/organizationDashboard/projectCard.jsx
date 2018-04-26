@@ -10,6 +10,7 @@ import Link from '../../components/link';
 import {Client} from '../../api';
 
 import {update} from '../../actionCreators/projects';
+import overflowEllipsis from '../../styles/overflowEllipsis';
 
 class ProjectCard extends React.Component {
   static propTypes = {
@@ -35,9 +36,9 @@ class ProjectCard extends React.Component {
     return (
       <StyledProjectCard>
         <Flex justify="space-between" p={2} align="center">
-          <Link to={`/${params.orgId}/${project.slug}/`}>
+          <StyledLink to={`/${params.orgId}/${project.slug}/`}>
             <strong>{project.slug}</strong>
-          </Link>
+          </StyledLink>
           <Star
             active={project.isBookmarked}
             className="project-select-bookmark icon icon-star-solid"
@@ -48,6 +49,10 @@ class ProjectCard extends React.Component {
     );
   }
 }
+
+const StyledLink = styled(Link)`
+  ${overflowEllipsis};
+`;
 
 const StyledProjectCard = styled.div`
   background-color: white;
