@@ -1,10 +1,13 @@
 from __future__ import absolute_import
 import six
-from sentry import http
+from sentry import http, options
+from sentry.options.manager import FLAG_PRIORITIZE_DISK
 from sentry.integrations import Integration, IntegrationMetadata
 from sentry.utils.pipeline import NestedPipelineView, PipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.utils.http import absolute_uri
+
+options.register('github.app-name', flags=FLAG_PRIORITIZE_DISK)
 
 DESCRIPTION = """
     Install GitHub Apps
@@ -96,10 +99,13 @@ class GitHubIntegration(Integration):
 
 
 class GitHubInstallationRedirect(PipelineView):
+    def get_app_url(self):
+        name = options.get('github.app-name')
+        return 'https://github.com/apps/%s' % name
 
     def dispatch(self, request, pipeline):
         if 'installation_id' in request.GET:
             pipeline.bind_state('installation_id', request.GET['installation_id'])
             return pipeline.next_step()
 
-        return self.redirect('https://github.com/apps/testing-github')
+        return self.redirect(self.get_app_url())
