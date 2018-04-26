@@ -31,7 +31,7 @@ def execute_queries(relay, queries):
             # TODO(mitsuhiko): support for pending or failing queries
             result = {
                 'status': 'ok',
-                'result': execute(relay, query.get('data', None)),
+                'result': execute(relay, query.get('project_id'), query.get('data')),
             }
         query_results[query_id] = result
 

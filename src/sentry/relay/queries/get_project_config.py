@@ -7,12 +7,8 @@ from pytz import utc
 from sentry.models import Project, ProjectKey
 
 
-def execute(relay, query):
-    project_id = query.get('projectId', None)
-    public_key = query.get('publicKey', None)
+def execute(relay, project_id, query):
     if not project_id:
-        pass  # TODO(hazat): error handling
-    if not public_key:
         pass  # TODO(hazat): error handling
 
     project = Project.objects.select_related('organization').distinct().filter(
@@ -32,11 +28,11 @@ def execute(relay, query):
     return {
         'disabled': project.status > 0,
         'slug': project.slug,
-        'lastFetch': now,
-        'lastChange': now,
+        'last_fetch': now,
+        'last_change': now,
         'rev': uuid.uuid4().hex,
-        'publicKeys': public_keys,
+        'public_keys': public_keys,
         'config': {
-            'allowedDomains': project.get_option('sentry:origins', [])
+            'allowed_domains': project.get_option('sentry:origins', [])
         }
     }
