@@ -20,10 +20,10 @@ export function addMessage(msg, type, options = {}) {
   duration = typeof duration === 'undefined' ? DEFAULT_TOAST_DURATION : duration;
 
   let action = options.append ? 'append' : 'replace';
-  // XXX: This won't actually return the indicator since we are firing an action
-  // Behavior will be different than when calling IndicatorStore.add directly, but
-  // you can just add a new message and it will by default replace active indicator
-  return IndicatorActions[action](msg, type, {...options, duration});
+  // XXX: This differs from `IndicatorStore.add` since it won't return the indicator that is created
+  // because we are firing an action. You can just add a new message and it will, by default,
+  // replace active indicator
+  IndicatorActions[action](msg, type, {...options, duration});
 }
 
 function addMessageWithType(type) {
