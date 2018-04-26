@@ -202,7 +202,7 @@ exports[`Configure should render correctly render() should render platform docs 
                         <Panel>
                           <StyledPanel>
                             <div
-                              className="css-wfa8ap-StyledPanel css-5bw71w0"
+                              className="css-1ctfmmx-StyledPanel css-tj715z0"
                             >
                               <PanelHeader
                                 hasButtons={true}
@@ -288,10 +288,10 @@ exports[`Configure should render correctly render() should render platform docs 
                                 >
                                   <TextBlock>
                                     <Component
-                                      className="css-ms59cf-TextBlock css-1gwew8k0"
+                                      className="css-1geyb25-TextBlock css-q7e89a0"
                                     >
                                       <div
-                                        className="css-ms59cf-TextBlock css-1gwew8k0"
+                                        className="css-1geyb25-TextBlock css-q7e89a0"
                                       >
                                         <span
                                           key="8"

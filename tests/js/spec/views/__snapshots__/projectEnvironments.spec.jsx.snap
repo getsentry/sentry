@@ -76,7 +76,7 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
         }
       >
         <div
-          className="css-t5gfr9-Wrapper css-17jmgia0"
+          className="css-1pnrn3o-Wrapper css-vsmyps0"
         >
           <Flex
             align="center"
@@ -91,7 +91,7 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
               >
                 <Title>
                   <div
-                    className="css-zmdcxu-Title css-17jmgia1"
+                    className="css-zmdcxu-Title css-vsmyps1"
                   >
                     Manage Environments
                   </div>
@@ -162,7 +162,7 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
     <Panel>
       <StyledPanel>
         <div
-          className="css-17bqt4b-StyledPanel css-5bw71w0"
+          className="css-17lswg2-StyledPanel css-tj715z0"
         >
           <PanelHeader>
             <StyledPanelHeader>
@@ -296,7 +296,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
         }
       >
         <div
-          className="css-t5gfr9-Wrapper css-17jmgia0"
+          className="css-1pnrn3o-Wrapper css-vsmyps0"
         >
           <Flex
             align="center"
@@ -311,7 +311,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
               >
                 <Title>
                   <div
-                    className="css-zmdcxu-Title css-17jmgia1"
+                    className="css-zmdcxu-Title css-vsmyps1"
                   >
                     Manage Environments
                   </div>
@@ -382,7 +382,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
     <Panel>
       <StyledPanel>
         <div
-          className="css-17bqt4b-StyledPanel css-5bw71w0"
+          className="css-17lswg2-StyledPanel css-tj715z0"
         >
           <PanelHeader>
             <StyledPanelHeader>
@@ -978,7 +978,7 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
         }
       >
         <div
-          className="css-t5gfr9-Wrapper css-17jmgia0"
+          className="css-1pnrn3o-Wrapper css-vsmyps0"
         >
           <Flex
             align="center"
@@ -993,7 +993,7 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
               >
                 <Title>
                   <div
-                    className="css-zmdcxu-Title css-17jmgia1"
+                    className="css-zmdcxu-Title css-vsmyps1"
                   >
                     Manage Environments
                   </div>
@@ -1064,7 +1064,7 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
     <Panel>
       <StyledPanel>
         <div
-          className="css-17bqt4b-StyledPanel css-5bw71w0"
+          className="css-17lswg2-StyledPanel css-tj715z0"
         >
           <PanelHeader>
             <StyledPanelHeader>
@@ -1198,7 +1198,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
         }
       >
         <div
-          className="css-t5gfr9-Wrapper css-17jmgia0"
+          className="css-1pnrn3o-Wrapper css-vsmyps0"
         >
           <Flex
             align="center"
@@ -1213,7 +1213,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
               >
                 <Title>
                   <div
-                    className="css-zmdcxu-Title css-17jmgia1"
+                    className="css-zmdcxu-Title css-vsmyps1"
                   >
                     Manage Environments
                   </div>
@@ -1284,7 +1284,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
     <Panel>
       <StyledPanel>
         <div
-          className="css-17bqt4b-StyledPanel css-5bw71w0"
+          className="css-17lswg2-StyledPanel css-tj715z0"
         >
           <PanelHeader>
             <StyledPanelHeader>
