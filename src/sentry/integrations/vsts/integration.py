@@ -95,9 +95,9 @@ class VSTSIntegration(Integration):
         data = state['identity']['data']
         access_token = data['access_token']
         instance = self.parse_instance(state['identity']['instance'])
+
         scopes = sorted(self.identity_oauth_scopes)
         self.get_projects(instance, access_token)
-        self.get_teams(instance, access_token)
         return {
             'name': 'VSTS',
             'external_id': 'vsts',
