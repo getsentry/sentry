@@ -117,6 +117,7 @@ exports[`ProjectSecurityHeaders renders 1`] = `
       >
         <PanelItem
           direction="column"
+          key="csp/"
           p={0}
         >
           <Flex
@@ -134,6 +135,7 @@ exports[`ProjectSecurityHeaders renders 1`] = `
             <Button
               disabled={false}
               priority="primary"
+              to="csp/"
             >
               Instructions
             </Button>
@@ -141,6 +143,7 @@ exports[`ProjectSecurityHeaders renders 1`] = `
         </PanelItem>
         <PanelItem
           direction="column"
+          key="expect-ct/"
           p={0}
         >
           <Flex
@@ -158,6 +161,7 @@ exports[`ProjectSecurityHeaders renders 1`] = `
             <Button
               disabled={false}
               priority="primary"
+              to="expect-ct/"
             >
               Instructions
             </Button>

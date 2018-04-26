@@ -7,6 +7,7 @@ import SentryTypes from 'app/proptypes';
 import Enzyme from 'enzyme';
 import Adapter from 'enzyme-adapter-react-16';
 
+jest.mock('app/utils/recreateRoute');
 jest.mock('app/translations');
 jest.mock('app/api');
 jest.mock('scroll-to-element', () => {});
