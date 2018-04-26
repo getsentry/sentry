@@ -24,6 +24,10 @@ export default class ReportUri extends AsyncView {
     keyList: PropTypes.array.isRequired,
   };
 
+  getEndpoints() {
+    return [];
+  }
+
   render() {
     let {orgId, projectId} = this.props.params;
     return (

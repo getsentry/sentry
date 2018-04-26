@@ -12,6 +12,10 @@ export default class AdminBuffer extends AsyncView {
     };
   }
 
+  getEndpoints() {
+    return [];
+  }
+
   renderBody() {
     // TODO(dcramer): show buffer configuration when its moved into option store
     const since = new Date().getTime() / 1000 - 3600 * 24 * 7;
