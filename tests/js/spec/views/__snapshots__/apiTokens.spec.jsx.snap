@@ -325,7 +325,7 @@ exports[`ApiTokens renders with result 1`] = `
                 flex={false}
               >
                 <div
-                  className="css-ikrbmg-textStyles"
+                  className="css-ftvdwr-textStyles"
                 >
                   <ApiTokenRow
                     key="apitoken123"

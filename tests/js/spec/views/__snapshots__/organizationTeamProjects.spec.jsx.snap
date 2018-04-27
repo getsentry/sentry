@@ -196,7 +196,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
           flex={false}
         >
           <div
-            className="css-ikrbmg-textStyles"
+            className="css-ftvdwr-textStyles"
           >
             <StyledPanelItem
               key="2"

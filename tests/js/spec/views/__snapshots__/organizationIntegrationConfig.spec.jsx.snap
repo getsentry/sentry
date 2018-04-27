@@ -186,7 +186,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
               flex={false}
             >
               <div
-                className="css-ikrbmg-textStyles"
+                className="css-ftvdwr-textStyles"
               >
                 <PanelItem
                   key="1"

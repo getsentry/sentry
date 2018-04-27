@@ -184,7 +184,7 @@ exports[`ProjectSavedSearches renders 1`] = `
             flex={false}
           >
             <div
-              className="css-ikrbmg-textStyles"
+              className="css-ftvdwr-textStyles"
             >
               <SavedSearchRow
                 access={
@@ -893,7 +893,7 @@ exports[`ProjectSavedSearches renders empty 1`] = `
             flex={false}
           >
             <div
-              className="css-ikrbmg-textStyles"
+              className="css-ftvdwr-textStyles"
             >
               <EmptyStateWarning>
                 <EmptyStreamWrapper

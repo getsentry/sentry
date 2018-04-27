@@ -135,7 +135,7 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                   flex={false}
                 >
                   <div
-                    className="css-ikrbmg-textStyles"
+                    className="css-ftvdwr-textStyles"
                   >
                     <PanelItem
                       align="center"

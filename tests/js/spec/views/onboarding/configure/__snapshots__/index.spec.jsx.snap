@@ -284,7 +284,7 @@ exports[`Configure should render correctly render() should render platform docs 
                                 flex={false}
                               >
                                 <div
-                                  className="css-1xvrrzy"
+                                  className="css-fksnyc"
                                 >
                                   <TextBlock>
                                     <Component

@@ -1,8 +1,8 @@
-/* stylelint-disable no-descending-specificity */
 import {css} from 'react-emotion';
 
 const textStyles = props => {
   return css`
+    /* stylelint-disable no-descending-specificity */
     h1,
     h2,
     h3,
@@ -65,6 +65,7 @@ const textStyles = props => {
       word-break: break-all;
       white-space: pre-wrap;
     }
+    /* stylelint-enable */
   `;
 };
 
