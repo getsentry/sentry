@@ -2,10 +2,10 @@
 import DocumentTitle from 'react-document-title';
 import React from 'react';
 
-import Footer from '../components/footer';
-import Sidebar from '../components/sidebar';
-import HookStore from '../stores/hookStore';
-import ListLink from '../components/listLink';
+import Footer from 'app/components/footer';
+import Sidebar from 'app/components/sidebar';
+import HookStore from 'app/stores/hookStore';
+import ListLink from 'app/components/listLink';
 
 export default class extends React.Component {
   constructor(props) {

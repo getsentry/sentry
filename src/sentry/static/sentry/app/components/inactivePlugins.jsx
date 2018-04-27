@@ -3,10 +3,10 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {t} from '../locale';
-import {Panel, PanelBody, PanelHeader} from './panels';
-import PluginIcon from '../plugins/components/pluginIcon';
-import TextOverflow from './textOverflow';
+import {t} from 'app/locale';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import PluginIcon from 'app/plugins/components/pluginIcon';
+import TextOverflow from 'app/components/textOverflow';
 
 const IntegrationButton = styled.button`
   width: 175px;

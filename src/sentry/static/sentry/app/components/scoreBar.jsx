@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
-import '../../less/components/scoreBar.less';
+import 'app/../less/components/scoreBar.less';
 
 class ScoreBar extends React.Component {
   static propTypes = {

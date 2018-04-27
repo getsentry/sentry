@@ -1,11 +1,11 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {addSuccessMessage} from '../../actionCreators/indicator';
-import {t, tct} from '../../locale';
-import Form from '../../views/settings/components/forms/form';
-import SentryTypes from '../../proptypes';
-import TextField from '../../views/settings/components/forms/textField';
+import {addSuccessMessage} from 'app/actionCreators/indicator';
+import {t, tct} from 'app/locale';
+import Form from 'app/views/settings/components/forms/form';
+import SentryTypes from 'app/proptypes';
+import TextField from 'app/views/settings/components/forms/textField';
 
 export default class CreateTeamForm extends React.Component {
   static propTypes = {

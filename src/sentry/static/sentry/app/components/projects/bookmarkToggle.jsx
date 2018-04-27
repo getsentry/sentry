@@ -2,9 +2,9 @@ import React from 'react';
 import Reflux from 'reflux';
 import classNames from 'classnames';
 import createReactClass from 'create-react-class';
-import ApiMixin from '../../mixins/apiMixin';
-import {update as projectUpdate} from '../../actionCreators/projects';
-import LatestContextStore from '../../stores/latestContextStore';
+import ApiMixin from 'app/mixins/apiMixin';
+import {update as projectUpdate} from 'app/actionCreators/projects';
+import LatestContextStore from 'app/stores/latestContextStore';
 
 const BookmarkToggle = createReactClass({
   displayName: 'BookmarkToggle',

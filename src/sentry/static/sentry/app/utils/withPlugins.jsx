@@ -2,10 +2,10 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 
-import {fetchPlugins} from '../actionCreators/plugins';
-import PluginsStore from '../stores/pluginsStore';
-import ProjectState from '../mixins/projectState';
-import SentryTypes from '../proptypes';
+import {fetchPlugins} from 'app/actionCreators/plugins';
+import PluginsStore from 'app/stores/pluginsStore';
+import ProjectState from 'app/mixins/projectState';
+import SentryTypes from 'app/proptypes';
 
 /**
  * Higher order component that fetches list of plugins and

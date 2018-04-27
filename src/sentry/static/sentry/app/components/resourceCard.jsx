@@ -2,9 +2,9 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 
-import ConfigStore from '../stores/configStore';
-import ExternalLink from '../components/externalLink';
-import HookStore from '../stores/hookStore';
+import ConfigStore from 'app/stores/configStore';
+import ExternalLink from 'app/components/externalLink';
+import HookStore from 'app/stores/hookStore';
 
 const StyledTitle = styled('div')`
   color: #493e54;

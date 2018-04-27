@@ -2,16 +2,16 @@ import {Box, Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {t, tct} from '../../../../locale';
-import Button from '../../../../components/buttons/button';
-import EmptyMessage from '../../components/emptyMessage';
-import ExternalLink from '../../../../components/externalLink';
-import Link from '../../../../components/link';
-import LinkWithConfirmation from '../../../../components/linkWithConfirmation';
-import {Panel, PanelBody, PanelHeader, PanelItem} from '../../../../components/panels';
-import SettingsPageHeader from '../../components/settingsPageHeader';
-import TextBlock from '../../components/text/textBlock';
-import recreateRoute from '../../../../utils/recreateRoute';
+import {t, tct} from 'app/locale';
+import Button from 'app/components/buttons/button';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import ExternalLink from 'app/components/externalLink';
+import Link from 'app/components/link';
+import LinkWithConfirmation from 'app/components/linkWithConfirmation';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import recreateRoute from 'app/utils/recreateRoute';
 
 class OrganizationApiKeysList extends React.Component {
   static propTypes = {

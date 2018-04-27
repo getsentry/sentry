@@ -1,12 +1,12 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import Button from '../buttons/button';
-import {t} from '../../locale';
-import {recordFinish, nextStep} from '../../actionCreators/guides';
-import CueIcon from './cueIcon';
-import CloseIcon from './closeIcon';
-import AssistantContainer from './assistantContainer';
+import Button from 'app/components/buttons/button';
+import {t} from 'app/locale';
+import {recordFinish, nextStep} from 'app/actionCreators/guides';
+import CueIcon from 'app/components/assistant/cueIcon';
+import CloseIcon from 'app/components/assistant/closeIcon';
+import AssistantContainer from 'app/components/assistant/assistantContainer';
 
 // GuideDrawer is what slides up when the user clicks on a guide cue.
 export default class GuideDrawer extends React.Component {

@@ -3,10 +3,10 @@ import React from 'react';
 
 import createReactClass from 'create-react-class';
 
-import AsyncView from './asyncView';
-import ApiMixin from '../mixins/apiMixin';
-import IndicatorStore from '../stores/indicatorStore';
-import {t} from '../locale';
+import AsyncView from 'app/views/asyncView';
+import ApiMixin from 'app/mixins/apiMixin';
+import IndicatorStore from 'app/stores/indicatorStore';
+import {t} from 'app/locale';
 
 const AuthorizationRow = createReactClass({
   displayName: 'AuthorizationRow',

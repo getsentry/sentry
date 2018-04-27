@@ -1,10 +1,10 @@
 import React from 'react';
 
-import AsyncView from './asyncView';
-import ConfigStore from '../stores/configStore';
-import NarrowLayout from '../components/narrowLayout';
-import {ApiForm, BooleanField, TextField} from '../components/forms';
-import {t, tct} from '../locale';
+import AsyncView from 'app/views/asyncView';
+import ConfigStore from 'app/stores/configStore';
+import NarrowLayout from 'app/components/narrowLayout';
+import {ApiForm, BooleanField, TextField} from 'app/components/forms';
+import {t, tct} from 'app/locale';
 
 export default class OrganizationCreate extends AsyncView {
   onSubmitSuccess = data => {

@@ -5,14 +5,14 @@ import Reflux from 'reflux';
 import {browserHistory} from 'react-router';
 import DocumentTitle from 'react-document-title';
 
-import ApiMixin from '../mixins/apiMixin';
-import GroupHeader from './groupDetails/header';
-import GroupStore from '../stores/groupStore';
-import LoadingError from '../components/loadingError';
-import LoadingIndicator from '../components/loadingIndicator';
-import SentryTypes from '../proptypes';
-import {t} from '../locale';
-import withEnvironment from '../utils/withEnvironment';
+import ApiMixin from 'app/mixins/apiMixin';
+import GroupHeader from 'app/views/groupDetails/header';
+import GroupStore from 'app/stores/groupStore';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import SentryTypes from 'app/proptypes';
+import {t} from 'app/locale';
+import withEnvironment from 'app/utils/withEnvironment';
 
 let ERROR_TYPES = {
   GROUP_NOT_FOUND: 'GROUP_NOT_FOUND',

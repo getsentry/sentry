@@ -1,12 +1,12 @@
 import PropTypes from 'prop-types';
 import React, {Fragment, Component} from 'react';
 
-import {t} from '../../locale';
-import LoadingIndicator from '../../components/loadingIndicator';
-import {Panel, PanelItem} from '../../components/panels';
-import ProjectPluginRow from './projectPluginRow';
-import RouteError from '../routeError';
-import SentryTypes from '../../proptypes';
+import {t} from 'app/locale';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import {Panel, PanelItem} from 'app/components/panels';
+import ProjectPluginRow from 'app/views/projectPlugins/projectPluginRow';
+import RouteError from 'app/views/routeError';
+import SentryTypes from 'app/proptypes';
 
 class ProjectPlugins extends Component {
   static propTypes = {

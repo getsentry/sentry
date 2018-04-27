@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 
-import InlineSvg from '../../../components/inlineSvg';
+import InlineSvg from 'app/components/inlineSvg';
 
 const Wrapper = styled.div`
   display: flex;

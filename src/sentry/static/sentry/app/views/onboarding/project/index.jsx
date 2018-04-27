@@ -2,11 +2,11 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import classnames from 'classnames';
 
-import PlatformPicker from './platformpicker';
-import PlatformiconTile from './platformiconTile';
-import SelectField from '../../../components/forms/selectField';
-import {t} from '../../../locale';
-import HookStore from '../../../stores/hookStore';
+import PlatformPicker from 'app/views/onboarding/project/platformpicker';
+import PlatformiconTile from 'app/views/onboarding/project/platformiconTile';
+import SelectField from 'app/components/forms/selectField';
+import {t} from 'app/locale';
+import HookStore from 'app/stores/hookStore';
 
 class OnboardingProject extends React.Component {
   static propTypes = {

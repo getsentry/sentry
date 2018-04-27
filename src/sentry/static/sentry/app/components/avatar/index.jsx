@@ -1,9 +1,9 @@
 import React from 'react';
 
-import SentryTypes from '../../proptypes';
-import SlugAvatar from './slugAvatar';
-import TeamAvatar from './teamAvatar';
-import UserAvatar from './userAvatar';
+import SentryTypes from 'app/proptypes';
+import SlugAvatar from 'app/components/avatar/slugAvatar';
+import TeamAvatar from 'app/components/avatar/teamAvatar';
+import UserAvatar from 'app/components/avatar/userAvatar';
 
 class Avatar extends React.Component {
   static propTypes = {

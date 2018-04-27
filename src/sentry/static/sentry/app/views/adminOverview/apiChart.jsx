@@ -3,10 +3,10 @@ import React from 'react';
 
 import createReactClass from 'create-react-class';
 
-import ApiMixin from '../../mixins/apiMixin';
-import StackedBarChart from '../../components/stackedBarChart';
-import LoadingError from '../../components/loadingError';
-import LoadingIndicator from '../../components/loadingIndicator';
+import ApiMixin from 'app/mixins/apiMixin';
+import StackedBarChart from 'app/components/stackedBarChart';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
 
 export default createReactClass({
   displayName: 'apiChart',

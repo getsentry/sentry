@@ -2,9 +2,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import u2f from 'u2f-api';
 import Raven from 'raven-js';
-import ConfigStore from '../stores/configStore';
+import ConfigStore from 'app/stores/configStore';
 
-import {t, tct} from '../locale';
+import {t, tct} from 'app/locale';
 
 class U2fInterface extends React.Component {
   static propTypes = {

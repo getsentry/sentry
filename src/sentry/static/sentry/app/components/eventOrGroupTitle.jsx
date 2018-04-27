@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Metadata} from '../proptypes';
+import {Metadata} from 'app/proptypes';
 
 class EventOrGroupTitle extends React.Component {
   static propTypes = {

@@ -11,7 +11,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import DropdownMenu from './dropdownMenu';
+import DropdownMenu from 'app/components/dropdownMenu';
 
 // Checks if `fn` is a function and calls it with `args`
 const callIfFunction = (fn, ...args) => typeof fn === 'function' && fn(...args);

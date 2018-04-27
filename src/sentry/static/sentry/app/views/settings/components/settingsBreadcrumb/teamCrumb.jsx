@@ -3,11 +3,11 @@ import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import BreadcrumbDropdown from './breadcrumbDropdown';
-import MenuItem from './menuItem';
-import TextLink from '../../../../components/textLink';
-import recreateRoute from '../../../../utils/recreateRoute';
-import withTeams from '../../../../utils/withTeams';
+import BreadcrumbDropdown from 'app/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
+import MenuItem from 'app/views/settings/components/settingsBreadcrumb/menuItem';
+import TextLink from 'app/components/textLink';
+import recreateRoute from 'app/utils/recreateRoute';
+import withTeams from 'app/utils/withTeams';
 
 class TeamCrumb extends React.Component {
   static propTypes = {

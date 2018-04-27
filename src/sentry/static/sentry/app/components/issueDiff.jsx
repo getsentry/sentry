@@ -3,9 +3,9 @@ import PropTypes from 'prop-types';
 import createReactClass from 'create-react-class';
 import styled, {css} from 'react-emotion';
 
-import ApiMixin from '../mixins/apiMixin';
-import LoadingIndicator from './loadingIndicator';
-import rawStacktraceContent from './events/interfaces/rawStacktraceContent';
+import ApiMixin from 'app/mixins/apiMixin';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import rawStacktraceContent from 'app/components/events/interfaces/rawStacktraceContent';
 
 const getLoadingStyle = p =>
   (p.loading &&

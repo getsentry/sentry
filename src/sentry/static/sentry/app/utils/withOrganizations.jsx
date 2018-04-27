@@ -2,7 +2,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 
-import OrganizationsStore from '../stores/organizationsStore';
+import OrganizationsStore from 'app/stores/organizationsStore';
 
 const withOrganizations = WrappedComponent =>
   createReactClass({

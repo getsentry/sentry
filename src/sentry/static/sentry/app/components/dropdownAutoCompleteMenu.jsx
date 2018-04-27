@@ -4,9 +4,9 @@ import React from 'react';
 import _ from 'lodash';
 import styled from 'react-emotion';
 
-import AutoComplete from './autoComplete';
-import Input from '../views/settings/components/forms/controls/input';
-import space from '../styles/space';
+import AutoComplete from 'app/components/autoComplete';
+import Input from 'app/views/settings/components/forms/controls/input';
+import space from 'app/styles/space';
 
 class DropdownAutoCompleteMenu extends React.Component {
   static propTypes = {

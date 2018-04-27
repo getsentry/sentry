@@ -1,6 +1,6 @@
-import {DEFAULT_TOAST_DURATION} from '../constants';
-import {t} from '../locale';
-import IndicatorActions from '../actions/indicatorActions';
+import {DEFAULT_TOAST_DURATION} from 'app/constants';
+import {t} from 'app/locale';
+import IndicatorActions from 'app/actions/indicatorActions';
 
 // Removes a single indicator
 export function removeIndicator(indicator) {

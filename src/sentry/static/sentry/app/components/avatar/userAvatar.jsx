@@ -1,8 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import {userDisplayName} from '../../utils/formatters';
-import BaseAvatar from './baseAvatar';
+import {userDisplayName} from 'app/utils/formatters';
+import BaseAvatar from 'app/components/avatar/baseAvatar';
 
 class UserAvatar extends React.Component {
   static propTypes = {

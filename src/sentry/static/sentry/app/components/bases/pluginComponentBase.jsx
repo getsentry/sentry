@@ -1,10 +1,10 @@
 import React from 'react';
 import _ from 'lodash';
 
-import {Client} from '../../api';
-import {FormState, GenericField} from '../../components/forms';
-import IndicatorStore from '../../stores/indicatorStore';
-import {t} from '../../locale';
+import {Client} from 'app/api';
+import {FormState, GenericField} from 'app/components/forms';
+import IndicatorStore from 'app/stores/indicatorStore';
+import {t} from 'app/locale';
 
 const callbackWithArgs = function(callback, ...args) {
   if (_.isFunction(callback)) {

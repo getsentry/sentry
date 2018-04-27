@@ -1,11 +1,11 @@
 import Reflux from 'reflux';
-import {toTitleCase} from '../utils';
+import {toTitleCase} from 'app/utils';
 
-import ProjectActions from '../actions/projectActions';
-import EnvironmentActions from '../actions/environmentActions';
+import ProjectActions from 'app/actions/projectActions';
+import EnvironmentActions from 'app/actions/environmentActions';
 
-import {setActiveEnvironment} from '../actionCreators/environments';
-import {ALL_ENVIRONMENTS_KEY} from '../constants';
+import {setActiveEnvironment} from 'app/actionCreators/environments';
+import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
 
 const PRODUCTION_ENV_NAMES = new Set([
   'production',

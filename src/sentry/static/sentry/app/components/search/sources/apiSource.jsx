@@ -4,9 +4,9 @@ import PropTypes from 'prop-types';
 import Raven from 'raven-js';
 import React from 'react';
 
-import {Client} from '../../../api';
-import {createFuzzySearch} from '../../../utils/createFuzzySearch';
-import withLatestContext from '../../../utils/withLatestContext';
+import {Client} from 'app/api';
+import {createFuzzySearch} from 'app/utils/createFuzzySearch';
+import withLatestContext from 'app/utils/withLatestContext';
 
 class ApiSource extends React.Component {
   static propTypes = {

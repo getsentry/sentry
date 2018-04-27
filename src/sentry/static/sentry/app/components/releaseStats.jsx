@@ -3,9 +3,9 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
-import Avatar from './avatar';
-import Tooltip from '../components/tooltip';
-import {t} from '../locale';
+import Avatar from 'app/components/avatar';
+import Tooltip from 'app/components/tooltip';
+import {t} from 'app/locale';
 
 const ReleaseStats = createReactClass({
   displayName: 'ReleaseStats',

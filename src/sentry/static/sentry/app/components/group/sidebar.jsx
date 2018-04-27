@@ -4,16 +4,16 @@ import _ from 'lodash';
 
 import createReactClass from 'create-react-class';
 
-import ApiMixin from '../../mixins/apiMixin';
-import SuggestedOwners from './suggestedOwners';
-import GroupParticipants from './participants';
-import GroupReleaseStats from './releaseStats';
-import GroupState from '../../mixins/groupState';
-import HookStore from '../../stores/hookStore';
-import IndicatorStore from '../../stores/indicatorStore';
-import TagDistributionMeter from './tagDistributionMeter';
-import LoadingError from '../../components/loadingError';
-import {t, tct} from '../../locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import SuggestedOwners from 'app/components/group/suggestedOwners';
+import GroupParticipants from 'app/components/group/participants';
+import GroupReleaseStats from 'app/components/group/releaseStats';
+import GroupState from 'app/mixins/groupState';
+import HookStore from 'app/stores/hookStore';
+import IndicatorStore from 'app/stores/indicatorStore';
+import TagDistributionMeter from 'app/components/group/tagDistributionMeter';
+import LoadingError from 'app/components/loadingError';
+import {t, tct} from 'app/locale';
 
 const GroupSidebar = createReactClass({
   displayName: 'GroupSidebar',

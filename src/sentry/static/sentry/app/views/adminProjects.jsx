@@ -3,8 +3,8 @@
 import React from 'react';
 import moment from 'moment';
 
-import ResultGrid from '../components/resultGrid';
-import {t} from '../locale';
+import ResultGrid from 'app/components/resultGrid';
+import {t} from 'app/locale';
 
 export const prettyDate = function(x) {
   return moment(x).format('ll');

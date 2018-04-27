@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'react-emotion';
-import space from '../../../../styles/space';
+import space from 'app/styles/space';
 
 const TextBlock = styled(({noMargin, ...props}) => <div {...props} />)`
   line-height: 1.5;

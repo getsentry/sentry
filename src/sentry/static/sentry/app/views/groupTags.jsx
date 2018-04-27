@@ -3,17 +3,17 @@ import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 import {Box, Flex} from 'grid-emotion';
 
-import SentryTypes from '../proptypes';
-import ApiMixin from '../mixins/apiMixin';
-import Count from '../components/count';
-import GroupState from '../mixins/groupState';
-import LoadingError from '../components/loadingError';
-import LoadingIndicator from '../components/loadingIndicator';
-import {percent, deviceNameMapper} from '../utils';
-import {t, tct} from '../locale';
-import withEnvironmentInQueryString from '../utils/withEnvironmentInQueryString';
-import {Panel, PanelBody, PanelHeader} from '../components/panels';
-import Alert from '../components/alert';
+import SentryTypes from 'app/proptypes';
+import ApiMixin from 'app/mixins/apiMixin';
+import Count from 'app/components/count';
+import GroupState from 'app/mixins/groupState';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import {percent, deviceNameMapper} from 'app/utils';
+import {t, tct} from 'app/locale';
+import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import Alert from 'app/components/alert';
 
 const GroupTags = createReactClass({
   displayName: 'GroupTags',

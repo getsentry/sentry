@@ -3,8 +3,8 @@ import PropTypes from 'prop-types';
 
 import createReactClass from 'create-react-class';
 
-import OrganizationState from '../../mixins/organizationState';
-import LazyLoad from '../../components/lazyLoad';
+import OrganizationState from 'app/mixins/organizationState';
+import LazyLoad from 'app/components/lazyLoad';
 
 const OrganizationRateLimits = createReactClass({
   displayName: 'OrganizationRateLimits',

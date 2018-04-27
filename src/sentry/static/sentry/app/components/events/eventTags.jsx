@@ -3,15 +3,15 @@ import React from 'react';
 import {Link} from 'react-router';
 import _ from 'lodash';
 
-import SentryTypes from '../../proptypes';
+import SentryTypes from 'app/proptypes';
 
-import EventDataSection from './eventDataSection';
-import {isUrl, deviceNameMapper} from '../../utils';
-import {t} from '../../locale';
-import Pills from '../pills';
-import Pill from '../pill';
-import VersionHoverCard from '../versionHoverCard';
-import InlineSvg from '../inlineSvg';
+import EventDataSection from 'app/components/events/eventDataSection';
+import {isUrl, deviceNameMapper} from 'app/utils';
+import {t} from 'app/locale';
+import Pills from 'app/components/pills';
+import Pill from 'app/components/pill';
+import VersionHoverCard from 'app/components/versionHoverCard';
+import InlineSvg from 'app/components/inlineSvg';
 
 class EventTags extends React.Component {
   static propTypes = {

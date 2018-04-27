@@ -2,13 +2,13 @@ import React from 'react';
 
 import createReactClass from 'create-react-class';
 
-import OrganizationHomeSidebar from './homeSidebar';
-import OrganizationState from '../../mixins/organizationState';
-import ProjectSelector from '../projectHeader/projectSelector';
-import Tooltip from '../../components/tooltip';
-import {t} from '../../locale';
+import OrganizationHomeSidebar from 'app/components/organizations/homeSidebar';
+import OrganizationState from 'app/mixins/organizationState';
+import ProjectSelector from 'app/components/projectHeader/projectSelector';
+import Tooltip from 'app/components/tooltip';
+import {t} from 'app/locale';
 
-import Button from '../../components/buttons/button';
+import Button from 'app/components/buttons/button';
 
 const HomeContainer = createReactClass({
   displayName: 'HomeContainer',

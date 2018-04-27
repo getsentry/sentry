@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {MENU_CLOSE_DELAY} from '../constants';
+import {MENU_CLOSE_DELAY} from 'app/constants';
 
 class DropdownMenu extends React.Component {
   static propTypes = {

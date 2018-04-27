@@ -3,13 +3,13 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {t} from '../../locale';
-import AsyncComponent from '../../components/asyncComponent';
-import Link from '../../components/link';
-import Button from '../../components/buttons/button';
-import {Panel, PanelBody, PanelHeader, PanelItem} from '../../components/panels';
-import PluginIcon from '../../plugins/components/pluginIcon';
-import theme from '../../utils/theme';
+import {t} from 'app/locale';
+import AsyncComponent from 'app/components/asyncComponent';
+import Link from 'app/components/link';
+import Button from 'app/components/buttons/button';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import PluginIcon from 'app/plugins/components/pluginIcon';
+import theme from 'app/utils/theme';
 
 const ProviderName = styled.div`
   font-size: 16px;

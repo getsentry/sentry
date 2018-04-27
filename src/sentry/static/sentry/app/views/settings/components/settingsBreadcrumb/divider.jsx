@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import InlineSvg from '../../../../components/inlineSvg';
+import InlineSvg from 'app/components/inlineSvg';
 
 const StyledDivider = styled.span`
   display: inline-block;

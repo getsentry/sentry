@@ -4,13 +4,13 @@ import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import _ from 'lodash';
 
-import {t} from '../../locale';
-import GroupingStore from '../../stores/groupingStore';
-import {openDiffModal} from '../../actionCreators/modal';
-import Button from '../../components/buttons/button';
-import LinkWithConfirmation from '../../components/linkWithConfirmation';
-import Toolbar from '../../components/toolbar';
-import SpreadLayout from '../../components/spreadLayout';
+import {t} from 'app/locale';
+import GroupingStore from 'app/stores/groupingStore';
+import {openDiffModal} from 'app/actionCreators/modal';
+import Button from 'app/components/buttons/button';
+import LinkWithConfirmation from 'app/components/linkWithConfirmation';
+import Toolbar from 'app/components/toolbar';
+import SpreadLayout from 'app/components/spreadLayout';
 
 const MergedToolbar = createReactClass({
   displayName: 'MergedToolbar',

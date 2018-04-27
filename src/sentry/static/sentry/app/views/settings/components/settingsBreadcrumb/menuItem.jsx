@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from 'react-emotion';
 
-import TextOverflow from '../../../../components/textOverflow';
+import TextOverflow from 'app/components/textOverflow';
 
 class MenuItem extends React.Component {
   render() {

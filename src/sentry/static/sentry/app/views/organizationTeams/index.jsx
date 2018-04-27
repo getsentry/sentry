@@ -3,14 +3,14 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 
-import {loadStats} from '../../actionCreators/projects';
-import {sortArray} from '../../utils';
-import ApiMixin from '../../mixins/apiMixin';
-import LoadingIndicator from '../../components/loadingIndicator';
-import OrganizationState from '../../mixins/organizationState';
-import ProjectsStore from '../../stores/projectsStore';
-import TeamStore from '../../stores/teamStore';
-import getSettingsComponent from '../../utils/getSettingsComponent';
+import {loadStats} from 'app/actionCreators/projects';
+import {sortArray} from 'app/utils';
+import ApiMixin from 'app/mixins/apiMixin';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import OrganizationState from 'app/mixins/organizationState';
+import ProjectsStore from 'app/stores/projectsStore';
+import TeamStore from 'app/stores/teamStore';
+import getSettingsComponent from 'app/utils/getSettingsComponent';
 
 const OrganizationTeams = createReactClass({
   displayName: 'OrganizationTeams',

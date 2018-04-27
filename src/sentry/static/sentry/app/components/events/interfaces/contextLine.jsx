@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {defined} from '../../../utils';
+import {defined} from 'app/utils';
 
 const ContextLine = function(props) {
   let {line, isActive} = props;

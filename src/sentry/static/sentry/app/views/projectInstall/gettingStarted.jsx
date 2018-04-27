@@ -1,9 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import ProjectContext from '../projects/projectContext';
-import ProjectDocsContext from './docsContext';
-import ProjectSelector from '../../components/projectHeader/projectSelector';
+import ProjectContext from 'app/views/projects/projectContext';
+import ProjectDocsContext from 'app/views/projectInstall/docsContext';
+import ProjectSelector from 'app/components/projectHeader/projectSelector';
 
 class GettingStartedBody extends React.Component {
   static contextTypes = {
