@@ -194,25 +194,25 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
               className="rule-detail"
             >
               <div
-                className="rule-detail css-1ctfmmx-StyledPanel e1laxa7d0"
+                className="rule-detail css-17lswg2-StyledPanel e1laxa7d0"
               >
                 <PanelHeader>
                   <StyledPanelHeader>
                     <Component
-                      className="css-tvaic5-StyledPanelHeader-getPadding e1p8v8nv0"
+                      className="css-18jrszy-StyledPanelHeader-getPadding e1p8v8nv0"
                     >
                       <Flex
                         align="center"
-                        className="css-tvaic5-StyledPanelHeader-getPadding e1p8v8nv0"
+                        className="css-18jrszy-StyledPanelHeader-getPadding e1p8v8nv0"
                         justify="space-between"
                       >
                         <Base
                           align="center"
-                          className="e1p8v8nv0 css-ghitdz-StyledPanelHeader-getPadding"
+                          className="e1p8v8nv0 css-16zagq0-StyledPanelHeader-getPadding"
                           justify="space-between"
                         >
                           <div
-                            className="e1p8v8nv0 css-ghitdz-StyledPanelHeader-getPadding"
+                            className="e1p8v8nv0 css-16zagq0-StyledPanelHeader-getPadding"
                             is={null}
                           >
                             Edit Alert Rule
@@ -406,7 +406,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                             >
                               <RuleNodeRow>
                                 <div
-                                  className="css-1poe0fr-RuleNodeRow e1qnqozx0"
+                                  className="css-5muuhy-RuleNodeRow e1qnqozx0"
                                 >
                                   <RuleNodeForm>
                                     <div
@@ -431,33 +431,66 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                         tabIndex="-1"
                                         type="button"
                                       >
-                                        <button
-                                          className="button button-default button-sm"
+                                        <StyledSmartButton
+                                          className=""
                                           disabled={false}
                                           onClick={[Function]}
                                           role="button"
+                                          size="small"
                                           tabIndex="-1"
                                           type="button"
                                         >
-                                          <Flex
-                                            align="center"
-                                            className="button-label"
+                                          <Component
+                                            className="css-4fgn6d-StyledSmartButton-getColors e17811v30"
+                                            disabled={false}
+                                            onClick={[Function]}
+                                            role="button"
+                                            size="small"
+                                            tabIndex="-1"
+                                            type="button"
                                           >
-                                            <Base
-                                              align="center"
-                                              className="button-label css-5ipae5"
+                                            <button
+                                              className="css-4fgn6d-StyledSmartButton-getColors e17811v30"
+                                              disabled={false}
+                                              onClick={[Function]}
+                                              role="button"
+                                              size="small"
+                                              tabIndex="-1"
+                                              type="button"
                                             >
-                                              <div
-                                                className="button-label css-5ipae5"
-                                                is={null}
+                                              <ButtonLabel
+                                                size="small"
                                               >
-                                                <span
-                                                  className="icon icon-trash"
-                                                />
-                                              </div>
-                                            </Base>
-                                          </Flex>
-                                        </button>
+                                                <Component
+                                                  className="css-179w01k-ButtonLabel e17811v31"
+                                                  size="small"
+                                                >
+                                                  <Flex
+                                                    align="center"
+                                                    className="css-179w01k-ButtonLabel e17811v31"
+                                                    size="small"
+                                                  >
+                                                    <Base
+                                                      align="center"
+                                                      className="e17811v31 css-8mahft-ButtonLabel"
+                                                      size="small"
+                                                    >
+                                                      <div
+                                                        className="e17811v31 css-8mahft-ButtonLabel"
+                                                        is={null}
+                                                        size="small"
+                                                      >
+                                                        <span
+                                                          className="icon icon-trash"
+                                                        />
+                                                      </div>
+                                                    </Base>
+                                                  </Flex>
+                                                </Component>
+                                              </ButtonLabel>
+                                            </button>
+                                          </Component>
+                                        </StyledSmartButton>
                                       </Button>
                                     </div>
                                   </RuleNodeControls>
@@ -646,7 +679,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                             >
                               <RuleNodeRow>
                                 <div
-                                  className="css-1poe0fr-RuleNodeRow e1qnqozx0"
+                                  className="css-5muuhy-RuleNodeRow e1qnqozx0"
                                 >
                                   <RuleNodeForm>
                                     <div
@@ -671,33 +704,66 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                         tabIndex="-1"
                                         type="button"
                                       >
-                                        <button
-                                          className="button button-default button-sm"
+                                        <StyledSmartButton
+                                          className=""
                                           disabled={false}
                                           onClick={[Function]}
                                           role="button"
+                                          size="small"
                                           tabIndex="-1"
                                           type="button"
                                         >
-                                          <Flex
-                                            align="center"
-                                            className="button-label"
+                                          <Component
+                                            className="css-4fgn6d-StyledSmartButton-getColors e17811v30"
+                                            disabled={false}
+                                            onClick={[Function]}
+                                            role="button"
+                                            size="small"
+                                            tabIndex="-1"
+                                            type="button"
                                           >
-                                            <Base
-                                              align="center"
-                                              className="button-label css-5ipae5"
+                                            <button
+                                              className="css-4fgn6d-StyledSmartButton-getColors e17811v30"
+                                              disabled={false}
+                                              onClick={[Function]}
+                                              role="button"
+                                              size="small"
+                                              tabIndex="-1"
+                                              type="button"
                                             >
-                                              <div
-                                                className="button-label css-5ipae5"
-                                                is={null}
+                                              <ButtonLabel
+                                                size="small"
                                               >
-                                                <span
-                                                  className="icon icon-trash"
-                                                />
-                                              </div>
-                                            </Base>
-                                          </Flex>
-                                        </button>
+                                                <Component
+                                                  className="css-179w01k-ButtonLabel e17811v31"
+                                                  size="small"
+                                                >
+                                                  <Flex
+                                                    align="center"
+                                                    className="css-179w01k-ButtonLabel e17811v31"
+                                                    size="small"
+                                                  >
+                                                    <Base
+                                                      align="center"
+                                                      className="e17811v31 css-8mahft-ButtonLabel"
+                                                      size="small"
+                                                    >
+                                                      <div
+                                                        className="e17811v31 css-8mahft-ButtonLabel"
+                                                        is={null}
+                                                        size="small"
+                                                      >
+                                                        <span
+                                                          className="icon icon-trash"
+                                                        />
+                                                      </div>
+                                                    </Base>
+                                                  </Flex>
+                                                </Component>
+                                              </ButtonLabel>
+                                            </button>
+                                          </Component>
+                                        </StyledSmartButton>
                                       </Button>
                                     </div>
                                   </RuleNodeControls>
@@ -903,7 +969,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                     </AlertRuleRow>
                     <ActionBar>
                       <div
-                        className="css-wq91e7-ActionBar elb7f1e2"
+                        className="css-bcc03y-ActionBar elb7f1e2"
                       >
                         <CancelButton
                           to="/settings/org-slug/project-slug/alerts/rules/"
@@ -913,69 +979,114 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                             disabled={false}
                             to="/settings/org-slug/project-slug/alerts/rules/"
                           >
-                            <Link
-                              className="css-1yc33o1-CancelButton elb7f1e1 button button-default"
+                            <StyledSmartButton
+                              className="css-1yc33o1-CancelButton elb7f1e1"
                               disabled={false}
                               onClick={[Function]}
-                              onlyActiveOnIndex={false}
                               role="button"
-                              style={Object {}}
                               to="/settings/org-slug/project-slug/alerts/rules/"
                             >
-                              <a
-                                className="css-1yc33o1-CancelButton elb7f1e1 button button-default"
+                              <Component
+                                className="elb7f1e1 css-xa8eh2-StyledSmartButton-getColors-CancelButton e17811v30"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"
-                                style={Object {}}
+                                to="/settings/org-slug/project-slug/alerts/rules/"
                               >
-                                <Flex
-                                  align="center"
-                                  className="button-label"
+                                <Link
+                                  className="elb7f1e1 css-xa8eh2-StyledSmartButton-getColors-CancelButton e17811v30"
+                                  disabled={false}
+                                  onClick={[Function]}
+                                  onlyActiveOnIndex={false}
+                                  role="button"
+                                  style={Object {}}
+                                  to="/settings/org-slug/project-slug/alerts/rules/"
                                 >
-                                  <Base
-                                    align="center"
-                                    className="button-label css-5ipae5"
+                                  <a
+                                    className="elb7f1e1 css-xa8eh2-StyledSmartButton-getColors-CancelButton e17811v30"
+                                    disabled={false}
+                                    onClick={[Function]}
+                                    role="button"
+                                    style={Object {}}
                                   >
-                                    <div
-                                      className="button-label css-5ipae5"
-                                      is={null}
-                                    >
-                                      Cancel
-                                    </div>
-                                  </Base>
-                                </Flex>
-                              </a>
-                            </Link>
+                                    <ButtonLabel>
+                                      <Component
+                                        className="css-1lzmoq1-ButtonLabel e17811v31"
+                                      >
+                                        <Flex
+                                          align="center"
+                                          className="css-1lzmoq1-ButtonLabel e17811v31"
+                                        >
+                                          <Base
+                                            align="center"
+                                            className="e17811v31 css-1br8hoo-ButtonLabel"
+                                          >
+                                            <div
+                                              className="e17811v31 css-1br8hoo-ButtonLabel"
+                                              is={null}
+                                            >
+                                              Cancel
+                                            </div>
+                                          </Base>
+                                        </Flex>
+                                      </Component>
+                                    </ButtonLabel>
+                                  </a>
+                                </Link>
+                              </Component>
+                            </StyledSmartButton>
                           </Button>
                         </CancelButton>
                         <Button
                           disabled={false}
                           priority="primary"
                         >
-                          <button
-                            className="button button-primary"
+                          <StyledSmartButton
+                            className=""
                             disabled={false}
                             onClick={[Function]}
+                            priority="primary"
                             role="button"
                           >
-                            <Flex
-                              align="center"
-                              className="button-label"
+                            <Component
+                              className="css-58zvn3-StyledSmartButton-getColors e17811v30"
+                              disabled={false}
+                              onClick={[Function]}
+                              priority="primary"
+                              role="button"
                             >
-                              <Base
-                                align="center"
-                                className="button-label css-5ipae5"
+                              <button
+                                className="css-58zvn3-StyledSmartButton-getColors e17811v30"
+                                disabled={false}
+                                onClick={[Function]}
+                                priority="primary"
+                                role="button"
                               >
-                                <div
-                                  className="button-label css-5ipae5"
-                                  is={null}
-                                >
-                                  Save Rule
-                                </div>
-                              </Base>
-                            </Flex>
-                          </button>
+                                <ButtonLabel>
+                                  <Component
+                                    className="css-1lzmoq1-ButtonLabel e17811v31"
+                                  >
+                                    <Flex
+                                      align="center"
+                                      className="css-1lzmoq1-ButtonLabel e17811v31"
+                                    >
+                                      <Base
+                                        align="center"
+                                        className="e17811v31 css-1br8hoo-ButtonLabel"
+                                      >
+                                        <div
+                                          className="e17811v31 css-1br8hoo-ButtonLabel"
+                                          is={null}
+                                        >
+                                          Save Rule
+                                        </div>
+                                      </Base>
+                                    </Flex>
+                                  </Component>
+                                </ButtonLabel>
+                              </button>
+                            </Component>
+                          </StyledSmartButton>
                         </Button>
                       </div>
                     </ActionBar>
@@ -1183,25 +1294,25 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
               className="rule-detail"
             >
               <div
-                className="rule-detail css-1ctfmmx-StyledPanel e1laxa7d0"
+                className="rule-detail css-17lswg2-StyledPanel e1laxa7d0"
               >
                 <PanelHeader>
                   <StyledPanelHeader>
                     <Component
-                      className="css-tvaic5-StyledPanelHeader-getPadding e1p8v8nv0"
+                      className="css-18jrszy-StyledPanelHeader-getPadding e1p8v8nv0"
                     >
                       <Flex
                         align="center"
-                        className="css-tvaic5-StyledPanelHeader-getPadding e1p8v8nv0"
+                        className="css-18jrszy-StyledPanelHeader-getPadding e1p8v8nv0"
                         justify="space-between"
                       >
                         <Base
                           align="center"
-                          className="e1p8v8nv0 css-ghitdz-StyledPanelHeader-getPadding"
+                          className="e1p8v8nv0 css-16zagq0-StyledPanelHeader-getPadding"
                           justify="space-between"
                         >
                           <div
-                            className="e1p8v8nv0 css-ghitdz-StyledPanelHeader-getPadding"
+                            className="e1p8v8nv0 css-16zagq0-StyledPanelHeader-getPadding"
                             is={null}
                           >
                             New Alert Rule
@@ -1722,7 +1833,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                     </AlertRuleRow>
                     <ActionBar>
                       <div
-                        className="css-wq91e7-ActionBar elb7f1e2"
+                        className="css-bcc03y-ActionBar elb7f1e2"
                       >
                         <CancelButton
                           to="/settings/org-slug/project-slug/alerts/rules/"
@@ -1732,69 +1843,114 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                             disabled={false}
                             to="/settings/org-slug/project-slug/alerts/rules/"
                           >
-                            <Link
-                              className="css-1yc33o1-CancelButton elb7f1e1 button button-default"
+                            <StyledSmartButton
+                              className="css-1yc33o1-CancelButton elb7f1e1"
                               disabled={false}
                               onClick={[Function]}
-                              onlyActiveOnIndex={false}
                               role="button"
-                              style={Object {}}
                               to="/settings/org-slug/project-slug/alerts/rules/"
                             >
-                              <a
-                                className="css-1yc33o1-CancelButton elb7f1e1 button button-default"
+                              <Component
+                                className="elb7f1e1 css-xa8eh2-StyledSmartButton-getColors-CancelButton e17811v30"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"
-                                style={Object {}}
+                                to="/settings/org-slug/project-slug/alerts/rules/"
                               >
-                                <Flex
-                                  align="center"
-                                  className="button-label"
+                                <Link
+                                  className="elb7f1e1 css-xa8eh2-StyledSmartButton-getColors-CancelButton e17811v30"
+                                  disabled={false}
+                                  onClick={[Function]}
+                                  onlyActiveOnIndex={false}
+                                  role="button"
+                                  style={Object {}}
+                                  to="/settings/org-slug/project-slug/alerts/rules/"
                                 >
-                                  <Base
-                                    align="center"
-                                    className="button-label css-5ipae5"
+                                  <a
+                                    className="elb7f1e1 css-xa8eh2-StyledSmartButton-getColors-CancelButton e17811v30"
+                                    disabled={false}
+                                    onClick={[Function]}
+                                    role="button"
+                                    style={Object {}}
                                   >
-                                    <div
-                                      className="button-label css-5ipae5"
-                                      is={null}
-                                    >
-                                      Cancel
-                                    </div>
-                                  </Base>
-                                </Flex>
-                              </a>
-                            </Link>
+                                    <ButtonLabel>
+                                      <Component
+                                        className="css-1lzmoq1-ButtonLabel e17811v31"
+                                      >
+                                        <Flex
+                                          align="center"
+                                          className="css-1lzmoq1-ButtonLabel e17811v31"
+                                        >
+                                          <Base
+                                            align="center"
+                                            className="e17811v31 css-1br8hoo-ButtonLabel"
+                                          >
+                                            <div
+                                              className="e17811v31 css-1br8hoo-ButtonLabel"
+                                              is={null}
+                                            >
+                                              Cancel
+                                            </div>
+                                          </Base>
+                                        </Flex>
+                                      </Component>
+                                    </ButtonLabel>
+                                  </a>
+                                </Link>
+                              </Component>
+                            </StyledSmartButton>
                           </Button>
                         </CancelButton>
                         <Button
                           disabled={false}
                           priority="primary"
                         >
-                          <button
-                            className="button button-primary"
+                          <StyledSmartButton
+                            className=""
                             disabled={false}
                             onClick={[Function]}
+                            priority="primary"
                             role="button"
                           >
-                            <Flex
-                              align="center"
-                              className="button-label"
+                            <Component
+                              className="css-58zvn3-StyledSmartButton-getColors e17811v30"
+                              disabled={false}
+                              onClick={[Function]}
+                              priority="primary"
+                              role="button"
                             >
-                              <Base
-                                align="center"
-                                className="button-label css-5ipae5"
+                              <button
+                                className="css-58zvn3-StyledSmartButton-getColors e17811v30"
+                                disabled={false}
+                                onClick={[Function]}
+                                priority="primary"
+                                role="button"
                               >
-                                <div
-                                  className="button-label css-5ipae5"
-                                  is={null}
-                                >
-                                  Save Rule
-                                </div>
-                              </Base>
-                            </Flex>
-                          </button>
+                                <ButtonLabel>
+                                  <Component
+                                    className="css-1lzmoq1-ButtonLabel e17811v31"
+                                  >
+                                    <Flex
+                                      align="center"
+                                      className="css-1lzmoq1-ButtonLabel e17811v31"
+                                    >
+                                      <Base
+                                        align="center"
+                                        className="e17811v31 css-1br8hoo-ButtonLabel"
+                                      >
+                                        <div
+                                          className="e17811v31 css-1br8hoo-ButtonLabel"
+                                          is={null}
+                                        >
+                                          Save Rule
+                                        </div>
+                                      </Base>
+                                    </Flex>
+                                  </Component>
+                                </ButtonLabel>
+                              </button>
+                            </Component>
+                          </StyledSmartButton>
                         </Button>
                       </div>
                     </ActionBar>
