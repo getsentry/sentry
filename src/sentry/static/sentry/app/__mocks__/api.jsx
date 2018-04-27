@@ -79,18 +79,10 @@ class Client {
     let [response, mock] = Client.findMockResponse(url, options) || [];
 
     if (!response) {
-      // eslint-disable-next-line no-console
-      console.error(
-        'No mocked response found for request.',
-        url,
-        options.method || 'GET'
+      // Endpoints need to be mocked
+      throw new Error(
+        `No mocked response found for request:\n\t${options.method || 'GET'} ${url}`
       );
-      let resp = {
-        status: 404,
-        responseText: 'HTTP 404',
-        responseJSON: null,
-      };
-      respond(Client.mockAsync, options.error, resp);
     } else {
       // has mocked response
 
