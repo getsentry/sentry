@@ -342,7 +342,7 @@ exports[`Configure should render correctly render() should render platform docs 
                                     }
                                   >
                                     <div
-                                      className="css-1k2bws-DocumentationWrapper css-1igogt70"
+                                      className="css-1y7l4t-DocumentationWrapper css-fxe4wz0"
                                       dangerouslySetInnerHTML={
                                         Object {
                                           "__html": undefined,
