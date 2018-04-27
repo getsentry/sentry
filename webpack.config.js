@@ -202,6 +202,7 @@ var appConfig = {
   ],
   resolve: {
     alias: {
+      app: path.join(__dirname, 'src', 'sentry', 'static', 'sentry', 'app'),
       'sentry-locale': path.join(__dirname, 'src', 'sentry', 'locale'),
       'integration-docs-platforms': IS_TEST
         ? path.join(__dirname, 'tests/fixtures/integration-docs/_platforms.json')
