@@ -380,7 +380,7 @@ class StoreView(APIView):
                 project=project,
                 sender=type(self),
             )
-            raise APIForbidden('Event dropped due to filter')
+            raise APIForbidden('Event dropped due to filter: %s' % (filter_reason,))
 
         # TODO: improve this API (e.g. make RateLimit act on __ne__)
         rate_limit = safe_execute(
