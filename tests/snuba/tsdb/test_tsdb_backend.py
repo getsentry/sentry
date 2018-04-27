@@ -325,19 +325,15 @@ class SnubaTSDBTest(TestCase):
             self.proj1group2.id: [
                 (timestamp(dts[0]), {
                     self.release1.id: 0,
-                    self.release2.id: 0,
                 }),
                 (timestamp(dts[1]), {
                     self.release1.id: 3,
-                    self.release2.id: 0,
                 }),
                 (timestamp(dts[2]), {
                     self.release1.id: 0,
-                    self.release2.id: 3,
                 }),
                 (timestamp(dts[3]), {
                     self.release1.id: 0,
-                    self.release2.id: 0,
                 }),
             ],
         }
