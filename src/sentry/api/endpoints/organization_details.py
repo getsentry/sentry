@@ -293,7 +293,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         if serializer.is_valid():
             organization, changed_data = serializer.save()
 
-            if was_pending_deletion and organization.status == OrganizationStatus.VISIBLE:
+            if was_pending_deletion:
                 self.create_audit_entry(
                     request=request,
                     organization=organization,
