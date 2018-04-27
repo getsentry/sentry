@@ -65,8 +65,8 @@ describe('RuleBuilder', function() {
       expect(handleAdd).not.toHaveBeenCalled();
 
       // Simulate select first element via down arrow / enter
-      wrapper.find('.Select-control').simulate('keyDown', {keyCode: 40});
-      wrapper.find('.Select-control').simulate('keyDown', {keyCode: 13});
+      wrapper.find('SelectOwners .Select-control').simulate('keyDown', {keyCode: 40});
+      wrapper.find('SelectOwners .Select-control').simulate('keyDown', {keyCode: 13});
 
       add.simulate('click');
       expect(handleAdd).toHaveBeenCalled();
@@ -90,8 +90,8 @@ describe('RuleBuilder', function() {
       );
 
       // Simulate select first element via down arrow / enter
-      wrapper.find('.Select-control').simulate('keyDown', {keyCode: 40});
-      wrapper.find('.Select-control').simulate('keyDown', {keyCode: 13});
+      wrapper.find('SelectOwners .Select-control').simulate('keyDown', {keyCode: 40});
+      wrapper.find('SelectOwners .Select-control').simulate('keyDown', {keyCode: 13});
 
       let ruleCandidate = wrapper.find('RuleCandidate').first();
       ruleCandidate.simulate('click');
