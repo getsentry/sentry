@@ -52,7 +52,7 @@ exports[`SelectField render() renders with form context 1`] = `
           autosize={true}
           backspaceRemoves={true}
           backspaceToRemoveMessage="Press backspace to remove {label}"
-          className="css-lrye9l-StyledSelect css-seafkz0"
+          className="css-lrye9l-StyledSelect e1m8gyzz0"
           clearAllText="Clear all"
           clearRenderer={[Function]}
           clearValueText="Clear value"
@@ -109,7 +109,7 @@ exports[`SelectField render() renders with form context 1`] = `
           valueKey="value"
         >
           <div
-            className="Select css-lrye9l-StyledSelect css-seafkz0 has-value is-clearable is-searchable Select--single"
+            className="Select css-lrye9l-StyledSelect e1m8gyzz0 has-value is-clearable is-searchable Select--single"
           >
             <div
               className="Select-control"
@@ -296,7 +296,7 @@ exports[`SelectField render() renders without form context 1`] = `
           autosize={true}
           backspaceRemoves={true}
           backspaceToRemoveMessage="Press backspace to remove {label}"
-          className="css-lrye9l-StyledSelect css-seafkz0"
+          className="css-lrye9l-StyledSelect e1m8gyzz0"
           clearAllText="Clear all"
           clearRenderer={[Function]}
           clearValueText="Clear value"
@@ -353,7 +353,7 @@ exports[`SelectField render() renders without form context 1`] = `
           valueKey="value"
         >
           <div
-            className="Select css-lrye9l-StyledSelect css-seafkz0 has-value is-clearable is-searchable Select--single"
+            className="Select css-lrye9l-StyledSelect e1m8gyzz0 has-value is-clearable is-searchable Select--single"
           >
             <div
               className="Select-control"

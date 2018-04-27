@@ -5,7 +5,6 @@ import {mount, shallow} from 'enzyme';
 import TeamSettings from 'app/views/settings/team/teamSettings.old';
 import TeamStore from 'app/stores/teamStore';
 import NewTeamSettings from 'app/views/settings/team/teamSettings';
-import {mountWithTheme} from '../../../helpers';
 
 const childContextTypes = {
   organization: PropTypes.object,
@@ -76,7 +75,7 @@ describe('NewTeamSettings', function() {
     let mountOptions = TestStubs.routerContext();
     let {router} = mountOptions.context;
 
-    let wrapper = mountWithTheme(
+    let wrapper = mount(
       <NewTeamSettings
         routes={[]}
         router={router}

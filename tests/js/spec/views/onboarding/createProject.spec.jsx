@@ -4,7 +4,6 @@ import {shallow, mount} from 'enzyme';
 
 import CreateProject from 'app/views/onboarding/createProject';
 import {openCreateTeamModal} from 'app/actionCreators/modal';
-import {mountWithTheme} from '../../../../helpers';
 
 jest.mock('app/actionCreators/modal');
 
@@ -45,20 +44,18 @@ describe('CreateProject', function() {
       ...baseProps,
     };
 
-    let wrapper = mountWithTheme(<CreateProject {...props} />, {
-      context: {
-        organization: {
-          id: '1',
-          slug: 'testOrg',
-          teams: [{slug: 'test', id: '1', name: 'test', hasAccess: false}],
+    let wrapper = mount(
+      <CreateProject {...props} />,
+      TestStubs.routerContext([
+        {
+          organization: {
+            id: '1',
+            slug: 'testOrg',
+            teams: [{slug: 'test', id: '1', name: 'test', hasAccess: false}],
+          },
         },
-        location: {query: {}},
-      },
-      childContextTypes: {
-        organization: PropTypes.object,
-        location: PropTypes.object,
-      },
-    });
+      ])
+    );
 
     wrapper.find('CreateTeamBody Button').simulate('click');
     expect(openCreateTeamModal).toHaveBeenCalled();

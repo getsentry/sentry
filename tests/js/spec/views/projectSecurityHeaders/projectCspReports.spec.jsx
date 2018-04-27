@@ -1,9 +1,7 @@
 import React from 'react';
 
-import {shallow} from 'enzyme';
+import {mount, shallow} from 'enzyme';
 import ProjectCspReports from 'app/views/settings/projectSecurityHeaders/csp';
-
-import {mountWithTheme} from '../../../../helpers';
 
 describe('ProjectCspReports', function() {
   let org = TestStubs.Organization();
@@ -44,7 +42,7 @@ describe('ProjectCspReports', function() {
   });
 
   it('can enable default ignored sources', function() {
-    let wrapper = mountWithTheme(
+    let wrapper = mount(
       <ProjectCspReports
         organization={org}
         project={project}
@@ -81,7 +79,7 @@ describe('ProjectCspReports', function() {
   });
 
   it('can set additional ignored sources', function() {
-    let wrapper = mountWithTheme(
+    let wrapper = mount(
       <ProjectCspReports
         organization={org}
         project={project}

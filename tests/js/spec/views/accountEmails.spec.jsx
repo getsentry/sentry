@@ -1,10 +1,8 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+import {mount, shallow} from 'enzyme';
 
 import {Client} from 'app/api';
 import AccountEmails from 'app/views/settings/account/accountEmails';
-
-import {mountWithTheme} from '../../../helpers';
 
 jest.mock('scroll-to-element', () => {});
 
@@ -32,7 +30,7 @@ describe('AccountEmails', function() {
       statusCode: 200,
     });
 
-    let wrapper = mountWithTheme(<AccountEmails />, TestStubs.routerContext());
+    let wrapper = mount(<AccountEmails />, TestStubs.routerContext());
 
     expect(mock).not.toHaveBeenCalled();
 
@@ -60,7 +58,7 @@ describe('AccountEmails', function() {
       statusCode: 200,
     });
 
-    let wrapper = mountWithTheme(<AccountEmails />, TestStubs.routerContext());
+    let wrapper = mount(<AccountEmails />, TestStubs.routerContext());
 
     expect(mock).not.toHaveBeenCalled();
 
@@ -88,7 +86,7 @@ describe('AccountEmails', function() {
       statusCode: 200,
     });
 
-    let wrapper = mountWithTheme(<AccountEmails />, TestStubs.routerContext());
+    let wrapper = mount(<AccountEmails />, TestStubs.routerContext());
 
     expect(mock).not.toHaveBeenCalled();
 
@@ -111,7 +109,7 @@ describe('AccountEmails', function() {
       method: 'POST',
       statusCode: 200,
     });
-    let wrapper = mountWithTheme(<AccountEmails />, TestStubs.routerContext());
+    let wrapper = mount(<AccountEmails />, TestStubs.routerContext());
 
     expect(mock).not.toHaveBeenCalled();
 

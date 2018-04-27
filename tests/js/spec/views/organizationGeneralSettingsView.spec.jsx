@@ -1,11 +1,9 @@
 import {browserHistory} from 'react-router';
+import {mount} from 'enzyme';
 import React from 'react';
 
-import {mount} from 'enzyme';
 import OrganizationGeneralSettingsView from 'app/views/settings/organization/general/organizationGeneralSettingsView';
 import recreateRoute from 'app/utils/recreateRoute';
-
-import {mountWithTheme} from '../../../helpers';
 
 jest.mock('jquery');
 
@@ -72,7 +70,7 @@ describe('OrganizationGeneralSettingsView', function() {
   });
 
   it('changes org slug and redirects to new slug', async function() {
-    let wrapper = mountWithTheme(
+    let wrapper = mount(
       <OrganizationGeneralSettingsView params={{orgId: org.slug}} />,
       TestStubs.routerContext()
     );

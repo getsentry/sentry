@@ -12,7 +12,7 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
     loading={false}
   >
     <div
-      className="css-no1ym5-IssueDiffWrapper css-18w0het0"
+      className="css-no1ym5-IssueDiffWrapper e1mqtsvu0"
     >
       <SplitDiff
         base="SyntaxError: Unexpected token else

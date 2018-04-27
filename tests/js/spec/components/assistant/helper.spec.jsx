@@ -1,6 +1,3 @@
-import {ThemeProvider} from 'emotion-theming';
-import theme from 'app/utils/theme';
-
 import React from 'react';
 import {shallow, mount} from 'enzyme';
 import AssistantHelper from 'app/components/assistant/helper';
@@ -18,11 +15,7 @@ describe('Helper', function() {
   });
 
   it('renders support drawer', async function() {
-    let wrapper = mount(
-      <ThemeProvider theme={theme}>
-        <AssistantHelper />
-      </ThemeProvider>
-    );
+    let wrapper = mount(<AssistantHelper />, TestStubs.routerContext());
     wrapper
       .find('.assistant-cue')
       .first()
