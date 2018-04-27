@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import six
 import logging
+from itertools import chain
 from uuid import uuid4
 
 from datetime import timedelta
@@ -242,7 +243,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         result = serializer.object
 
         if not has_project_write:
-            for key in six.iterkeys(ProjectAdminSerializer.base_fields):
+            # options isn't part of the serializer, but should not be editable by members
+            for key in chain(six.iterkeys(ProjectAdminSerializer.base_fields), ['options']):
                 if request.DATA.get(key) and not result.get(key):
                     return Response(
                         {
