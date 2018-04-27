@@ -29,6 +29,24 @@ class ContextsTest(TestCase):
             }
         }
 
+    def test_os_normalization(self):
+        ctx = Contexts.to_python({
+            'os': {
+                'name': 'Microsoft Windows 6.1.7601 S'
+            },
+        })
+        assert sorted(ctx.iter_tags()) == [
+            ('os', 'Windows 6.1.7601'),
+            ('os.name', 'Windows')
+        ]
+        assert ctx.to_json() == {
+            'os': {
+                'type': 'os',
+                'name': 'Windows',
+                'version': '6.1.7601'
+            }
+        }
+
     def test_runtime(self):
         ctx = Contexts.to_python(
             {
