@@ -2,12 +2,14 @@ from __future__ import absolute_import
 
 import six
 
+from django.db.models import Count
+
 from sentry import roles
 from sentry.app import quotas
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.auth import access
 from sentry.models import (
-    ApiKey, Organization, OrganizationAccessRequest, OrganizationAvatar, OrganizationOnboardingTask,
+    ApiKey, Organization, OrganizationAccessRequest, OrganizationAvatar, OrganizationMember, OrganizationOnboardingTask,
     OrganizationOption, OrganizationStatus, Project, ProjectStatus, Team, TeamStatus
 )
 
@@ -20,10 +22,17 @@ class OrganizationSerializer(Serializer):
             for a in OrganizationAvatar.objects.filter(organization__in=item_list)
         }
         data = {}
+
+        members = dict(OrganizationMember.objects.filter(organization_id__in=item_list).values_list('organization_id').annotate(Count('id')))
+        projects = dict(Project.objects.filter(organization_id__in=item_list).values_list('organization_id').annotate(Count('id')))
+
         for item in item_list:
             data[item] = {
                 'avatar': avatars.get(item.id),
+                'member_count': members.get(item.id, 0),
+                'project_count': projects.get(item.id, 0),
             }
+
         return data
 
     def serialize(self, obj, attrs, user):
@@ -50,6 +59,8 @@ class OrganizationSerializer(Serializer):
             'name': obj.name or obj.slug,
             'dateCreated': obj.date_added,
             'isEarlyAdopter': bool(obj.flags.early_adopter),
+            'projectCount': attrs.get('project_count'),
+            'memberCount': attrs.get('member_count'),
             'avatar': avatar,
         }
 
