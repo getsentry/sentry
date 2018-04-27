@@ -1,4 +1,4 @@
-# Pipelines Utitlity
+# Pipelines Utility
 
 The `sentry.pipeline` module provides functionality for executing a series of
 views that maintain arbitrary state across each request and moves the user
@@ -6,10 +6,10 @@ through the "pipeline".
 
 Some key points to understanding pipelines:
 
- * A pipeline executes a set of views (that recieve the `pipeline` instance),
+ * A pipeline executes a set of views (that receive the `pipeline` instance),
    moving through them by having the view itself call `pipeline.next_step`.
 
- * Each executed view may maintaine state within the pipeline using the
+ * Each executed view may maintain state within the pipeline using the
    `pipeline.bind_state` method. This state is associated to the users
    session.
 
@@ -21,7 +21,7 @@ Some key points to understanding pipelines:
    object that is associated to a particular provider key.
 
  * Pipeline are usually constructed and executed by either two view endpoints.
-   One to call the pipleines `initialize` method, and the next which is
+   One to call the pipelines `initialize` method, and the next which is
    called to move through the pipeline
 
  * Pipelines are bound to a specific organization and user when they are being
@@ -39,16 +39,16 @@ A single pipeline may have multiple types of providers for the pipeline which
 define different flows on a per provider basis, but all complete a similar type
 of pipeline process.
 
-A good exaple of a pipleine with multiple types of providers is the
+A good example of a pipeline with multiple types of providers is the
 `sentry.identity.pipeline` module, which makes use of a Pipeline to associate
 user identities. Sentry has various identity types (github, slack, google) each
 which may use a slightly different process to do identity lookup on the
-exeternal service, however the end of the process (and what is done in the
+external service, however the end of the process (and what is done in the
 final `finish_pipeline` call) all result in an Identity object being created.
 
 ### Provider Manager
 
-The piepline is not directly given a provider, but instead it is given a key
+The pipeline is not directly given a provider, but instead it is given a key
 that is used to lookup the provider within the provided `provider_manager`
 instance.
 
@@ -72,14 +72,14 @@ The model is configured by the `provider_model_cls` pipeline class attribute.
 
 Pipeline views are objects that implement the `PipelineView` interface and are
 used as part of the list of views that a pipeline executes. The pipeline views
-recieve the executing request object when they are the step being executed,
+receive the executing request object when they are the step being executed,
 along with the `piepeline` instance itself.
 
 It's the job of the pipeline view to transition the pipeline to the next step
 in the pipeline and bind any data that may need to be used later in the
 pipeline or must be available when once the pipeline completes.
 
-An example pipleine view might be a form that asks the user for some input.
+An example pipeline view might be a form that asks the user for some input.
 
 ```python
 class GetUserInput(PipelineView):
@@ -113,7 +113,7 @@ Executing a pipeline
 Executing a pipeline is done through either one or two views.
 
 With one view it will both initialize the pipeline, and traverse through the
-piepline. The downside of this approach is that the organization, provider key,
+pipeline. The downside of this approach is that the organization, provider key,
 and potentially other information must be known at request time of each step,
 which may not always be possible (think strict oAuth redirect URL that cannot
 be parameterized)
@@ -138,7 +138,7 @@ def handle_request(self, request, organization, provider_key):
 ```
 
 Using a second view would remove the `is_valid` check from the initialization
-view, and then the second view would lookup the pipeline usng it's
+view, and then the second view would lookup the pipeline using it's
 `get_for_request` method. Which would look something like:
 
 ```python
@@ -160,7 +160,7 @@ state.
 
 ## Nested Pipeline Views
 
-Nested Pipleines is a pipeline concept and utility class to support composition
+Nested Pipelines is a pipeline concept and utility class to support composition
 of pipelines together. For example, if you want to include an entire other
 pipeline as steps within another pipeline, you can do this using the
 `NestedPipelineView`.
@@ -168,13 +168,13 @@ pipeline as steps within another pipeline, you can do this using the
  * The `NestedPipelineView` is itself a `PipelineView` and should be used
    directly in the list of pipeline views returned by a provider.
 
- * When a nested pipleine completes, it very importantly does *not* call the
+ * When a nested pipeline completes, it very importantly does *not* call the
    `finish_pipeline` method on the pipeline itself, instead the state is
    bound into the parent pipeline.
 
  * Nested pipelines use the "single view"
 
-An exmaple of a nested pipeline looks like:
+An example of a nested pipeline looks like:
 
 ```python
 def get_pipeline_views(self):
