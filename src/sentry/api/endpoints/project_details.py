@@ -339,8 +339,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             project.update_option(
                 'digests:mail:maximum_delay', result['digestsMaxDelay'])
         if result.get('subjectPrefix') is not None:
-            project.update_option('mail:subject_prefix',
-                                  result['subjectPrefix'])
+            if project.update_option('mail:subject_prefix',
+                                     result['subjectPrefix']):
+                changed_proj_settings['mail:subject_prefix'] = result['subjectPrefix']
         if result.get('subjectTemplate'):
             project.update_option('mail:subject_template',
                                   result['subjectTemplate'])
@@ -364,10 +365,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             project.update_option('sentry:safe_fields', result['safeFields'])
         # resolveAge can be None
         if 'resolveAge' in result:
-            project.update_option(
+            if project.update_option(
                 'sentry:resolve_age',
                 0 if result.get('resolveAge') is None else int(
-                    result['resolveAge']))
+                    result['resolveAge'])):
+                changed_proj_settings['sentry:resolve_age'] = result['resolveAge']
         if result.get('scrapeJavaScript') is not None:
             project.update_option('sentry:scrape_javascript', result['scrapeJavaScript'])
         if result.get('allowedDomains'):
