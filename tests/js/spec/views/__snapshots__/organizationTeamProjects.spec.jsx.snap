@@ -110,17 +110,17 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                           size="xsmall"
                                         >
                                           <Component
-                                            className="css-ngzubs-StyledButton css-1pig06q1"
+                                            className="css-1jpufvo-StyledButton css-1txqzk1"
                                             isOpen={false}
                                             size="xsmall"
                                           >
                                             <Button
-                                              className="css-ngzubs-StyledButton css-1pig06q1"
+                                              className="css-1jpufvo-StyledButton css-1txqzk1"
                                               disabled={false}
                                               size="xsmall"
                                             >
                                               <button
-                                                className="css-ngzubs-StyledButton css-1pig06q1 button button-default button-xs"
+                                                className="css-1jpufvo-StyledButton css-1txqzk1 button button-default button-xs"
                                                 disabled={false}
                                                 onClick={[Function]}
                                                 role="button"
@@ -140,20 +140,20 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                       Add Project
                                                       <StyledChevronDown>
                                                         <Component
-                                                          className="css-17v3tc-StyledChevronDown css-1pig06q0"
+                                                          className="css-17v3tc-StyledChevronDown css-1txqzk0"
                                                         >
                                                           <InlineSvg
-                                                            className="css-17v3tc-StyledChevronDown css-1pig06q0"
+                                                            className="css-17v3tc-StyledChevronDown css-1txqzk0"
                                                             src="icon-chevron-down"
                                                           >
                                                             <StyledSvg
-                                                              className="css-17v3tc-StyledChevronDown css-1pig06q0"
+                                                              className="css-17v3tc-StyledChevronDown css-1txqzk0"
                                                               height="1em"
                                                               viewBox={Object {}}
                                                               width="1em"
                                                             >
                                                               <svg
-                                                                className="css-1pig06q0 css-1vk3ljv-StyledSvg css-adkcw30"
+                                                                className="css-1txqzk0 css-1vk3ljv-StyledSvg css-adkcw30"
                                                                 height="1em"
                                                                 viewBox={Object {}}
                                                                 width="1em"
