@@ -110,6 +110,7 @@ exports[`ProjectSelector render() can filter projects by project name 1`] = `
         topLevelClasses="project-dropdown"
       >
         <DropdownMenu
+          alwaysRenderMenu={false}
           isOpen={true}
           keepMenuOpen={false}
           onClose={[Function]}
@@ -136,6 +137,7 @@ exports[`ProjectSelector render() can filter projects by project name 1`] = `
             <ul
               className="dropdown-menu"
               onClick={[Function]}
+              onMouseEnter={[Function]}
               onMouseLeave={[Function]}
             >
               <li
@@ -301,6 +303,7 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
         topLevelClasses="project-dropdown"
       >
         <DropdownMenu
+          alwaysRenderMenu={false}
           isOpen={true}
           keepMenuOpen={false}
           onClose={[Function]}
@@ -327,6 +330,7 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
             <ul
               className="dropdown-menu"
               onClick={[Function]}
+              onMouseEnter={[Function]}
               onMouseLeave={[Function]}
             >
               <li
@@ -707,6 +711,7 @@ exports[`ProjectSelector render() shows empty filter message when filtering has 
         topLevelClasses="project-dropdown is-empty"
       >
         <DropdownMenu
+          alwaysRenderMenu={false}
           isOpen={true}
           keepMenuOpen={false}
           onClose={[Function]}
@@ -733,6 +738,7 @@ exports[`ProjectSelector render() shows empty filter message when filtering has 
             <ul
               className="dropdown-menu"
               onClick={[Function]}
+              onMouseEnter={[Function]}
               onMouseLeave={[Function]}
             >
               <li

@@ -357,6 +357,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
         title=""
       >
         <DropdownMenu
+          alwaysRenderMenu={true}
           keepMenuOpen={false}
         >
           <span
@@ -380,6 +381,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
             <ul
               className="dropdown-menu"
               onClick={[Function]}
+              onMouseEnter={[Function]}
               onMouseLeave={[Function]}
             >
               <MenuItem
@@ -406,6 +408,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                   title="For…"
                 >
                   <DropdownMenu
+                    alwaysRenderMenu={true}
                     isNestedDropdown={true}
                     keepMenuOpen={false}
                   >
@@ -429,6 +432,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                       <ul
                         className="dropdown-menu"
                         onClick={[Function]}
+                        onMouseEnter={[Function]}
                         onMouseLeave={[Function]}
                       >
                         <MenuItem
@@ -944,6 +948,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                   title="Until this occurs again…"
                 >
                   <DropdownMenu
+                    alwaysRenderMenu={true}
                     isNestedDropdown={true}
                     keepMenuOpen={false}
                   >
@@ -967,6 +972,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                       <ul
                         className="dropdown-menu"
                         onClick={[Function]}
+                        onMouseEnter={[Function]}
                         onMouseLeave={[Function]}
                       >
                         <li
@@ -982,6 +988,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                             title="10 times"
                           >
                             <DropdownMenu
+                              alwaysRenderMenu={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -1005,6 +1012,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                 <ul
                                   className="dropdown-menu"
                                   onClick={[Function]}
+                                  onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
                                 >
                                   <MenuItem
@@ -1376,6 +1384,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                             title="100 times"
                           >
                             <DropdownMenu
+                              alwaysRenderMenu={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -1399,6 +1408,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                 <ul
                                   className="dropdown-menu"
                                   onClick={[Function]}
+                                  onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
                                 >
                                   <MenuItem
@@ -1770,6 +1780,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                             title="1,000 times"
                           >
                             <DropdownMenu
+                              alwaysRenderMenu={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -1793,6 +1804,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                 <ul
                                   className="dropdown-menu"
                                   onClick={[Function]}
+                                  onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
                                 >
                                   <MenuItem
@@ -2164,6 +2176,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                             title="10,000 times"
                           >
                             <DropdownMenu
+                              alwaysRenderMenu={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -2187,6 +2200,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                 <ul
                                   className="dropdown-menu"
                                   onClick={[Function]}
+                                  onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
                                 >
                                   <MenuItem
@@ -2558,6 +2572,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                             title="100,000 times"
                           >
                             <DropdownMenu
+                              alwaysRenderMenu={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -2581,6 +2596,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                 <ul
                                   className="dropdown-menu"
                                   onClick={[Function]}
+                                  onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
                                 >
                                   <MenuItem
@@ -2982,6 +2998,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                   title="Until this affects an additional…"
                 >
                   <DropdownMenu
+                    alwaysRenderMenu={true}
                     isNestedDropdown={true}
                     keepMenuOpen={false}
                   >
@@ -3005,6 +3022,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                       <ul
                         className="dropdown-menu"
                         onClick={[Function]}
+                        onMouseEnter={[Function]}
                         onMouseLeave={[Function]}
                       >
                         <li
@@ -3020,6 +3038,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                             title="10 users"
                           >
                             <DropdownMenu
+                              alwaysRenderMenu={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -3043,6 +3062,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                 <ul
                                   className="dropdown-menu"
                                   onClick={[Function]}
+                                  onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
                                 >
                                   <MenuItem
@@ -3414,6 +3434,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                             title="100 users"
                           >
                             <DropdownMenu
+                              alwaysRenderMenu={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -3437,6 +3458,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                 <ul
                                   className="dropdown-menu"
                                   onClick={[Function]}
+                                  onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
                                 >
                                   <MenuItem
@@ -3808,6 +3830,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                             title="1,000 users"
                           >
                             <DropdownMenu
+                              alwaysRenderMenu={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -3831,6 +3854,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                 <ul
                                   className="dropdown-menu"
                                   onClick={[Function]}
+                                  onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
                                 >
                                   <MenuItem
@@ -4202,6 +4226,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                             title="10,000 users"
                           >
                             <DropdownMenu
+                              alwaysRenderMenu={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -4225,6 +4250,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                 <ul
                                   className="dropdown-menu"
                                   onClick={[Function]}
+                                  onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
                                 >
                                   <MenuItem
@@ -4596,6 +4622,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                             title="100,000 users"
                           >
                             <DropdownMenu
+                              alwaysRenderMenu={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -4619,6 +4646,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                 <ul
                                   className="dropdown-menu"
                                   onClick={[Function]}
+                                  onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
                                 >
                                   <MenuItem
@@ -5310,6 +5338,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
         title=""
       >
         <DropdownMenu
+          alwaysRenderMenu={true}
           keepMenuOpen={false}
         >
           <span
@@ -5333,6 +5362,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
             <ul
               className="dropdown-menu"
               onClick={[Function]}
+              onMouseEnter={[Function]}
               onMouseLeave={[Function]}
             >
               <MenuItem
@@ -5359,6 +5389,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                   title="For…"
                 >
                   <DropdownMenu
+                    alwaysRenderMenu={true}
                     isNestedDropdown={true}
                     keepMenuOpen={false}
                   >
@@ -5382,6 +5413,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                       <ul
                         className="dropdown-menu"
                         onClick={[Function]}
+                        onMouseEnter={[Function]}
                         onMouseLeave={[Function]}
                       >
                         <MenuItem
@@ -5592,6 +5624,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                   title="Until this occurs again…"
                 >
                   <DropdownMenu
+                    alwaysRenderMenu={true}
                     isNestedDropdown={true}
                     keepMenuOpen={false}
                   >
@@ -5615,6 +5648,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                       <ul
                         className="dropdown-menu"
                         onClick={[Function]}
+                        onMouseEnter={[Function]}
                         onMouseLeave={[Function]}
                       >
                         <li
@@ -5630,6 +5664,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                             title="10 times"
                           >
                             <DropdownMenu
+                              alwaysRenderMenu={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -5653,6 +5688,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                 <ul
                                   className="dropdown-menu"
                                   onClick={[Function]}
+                                  onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
                                 >
                                   <MenuItem
@@ -5780,6 +5816,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                             title="100 times"
                           >
                             <DropdownMenu
+                              alwaysRenderMenu={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -5803,6 +5840,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                 <ul
                                   className="dropdown-menu"
                                   onClick={[Function]}
+                                  onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
                                 >
                                   <MenuItem
@@ -5930,6 +5968,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                             title="1,000 times"
                           >
                             <DropdownMenu
+                              alwaysRenderMenu={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -5953,6 +5992,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                 <ul
                                   className="dropdown-menu"
                                   onClick={[Function]}
+                                  onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
                                 >
                                   <MenuItem
@@ -6080,6 +6120,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                             title="10,000 times"
                           >
                             <DropdownMenu
+                              alwaysRenderMenu={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -6103,6 +6144,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                 <ul
                                   className="dropdown-menu"
                                   onClick={[Function]}
+                                  onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
                                 >
                                   <MenuItem
@@ -6230,6 +6272,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                             title="100,000 times"
                           >
                             <DropdownMenu
+                              alwaysRenderMenu={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -6253,6 +6296,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                 <ul
                                   className="dropdown-menu"
                                   onClick={[Function]}
+                                  onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
                                 >
                                   <MenuItem
@@ -6410,6 +6454,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                   title="Until this affects an additional…"
                 >
                   <DropdownMenu
+                    alwaysRenderMenu={true}
                     isNestedDropdown={true}
                     keepMenuOpen={false}
                   >
@@ -6433,6 +6478,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                       <ul
                         className="dropdown-menu"
                         onClick={[Function]}
+                        onMouseEnter={[Function]}
                         onMouseLeave={[Function]}
                       >
                         <li
@@ -6448,6 +6494,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                             title="10 users"
                           >
                             <DropdownMenu
+                              alwaysRenderMenu={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -6471,6 +6518,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                 <ul
                                   className="dropdown-menu"
                                   onClick={[Function]}
+                                  onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
                                 >
                                   <MenuItem
@@ -6598,6 +6646,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                             title="100 users"
                           >
                             <DropdownMenu
+                              alwaysRenderMenu={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -6621,6 +6670,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                 <ul
                                   className="dropdown-menu"
                                   onClick={[Function]}
+                                  onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
                                 >
                                   <MenuItem
@@ -6748,6 +6798,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                             title="1,000 users"
                           >
                             <DropdownMenu
+                              alwaysRenderMenu={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -6771,6 +6822,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                 <ul
                                   className="dropdown-menu"
                                   onClick={[Function]}
+                                  onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
                                 >
                                   <MenuItem
@@ -6898,6 +6950,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                             title="10,000 users"
                           >
                             <DropdownMenu
+                              alwaysRenderMenu={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -6921,6 +6974,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                 <ul
                                   className="dropdown-menu"
                                   onClick={[Function]}
+                                  onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
                                 >
                                   <MenuItem
@@ -7048,6 +7102,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                             title="100,000 users"
                           >
                             <DropdownMenu
+                              alwaysRenderMenu={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -7071,6 +7126,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                 <ul
                                   className="dropdown-menu"
                                   onClick={[Function]}
+                                  onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
                                 >
                                   <MenuItem
