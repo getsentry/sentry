@@ -186,7 +186,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
               flex={false}
             >
               <div
-                className="css-ftvdwr-textStyles"
+                className="css-fa2ytw-textStyles"
               >
                 <PanelItem
                   key="1"

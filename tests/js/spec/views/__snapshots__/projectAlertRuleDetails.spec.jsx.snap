@@ -228,7 +228,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                   flex={false}
                 >
                   <div
-                    className="css-fksnyc"
+                    className="css-shtage"
                   >
                     <h6>
                       Rule name
@@ -1227,7 +1227,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                   flex={false}
                 >
                   <div
-                    className="css-fksnyc"
+                    className="css-shtage"
                   >
                     <h6>
                       Rule name
