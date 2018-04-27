@@ -290,10 +290,6 @@ class SnubaTSDBTest(TestCase):
         }
 
     def test_frequency_series(self):
-        # Technically while we request both releases for group1
-        # and only release 1 on group2, that distinction is lost
-        # in the snuba query, and we return a frequency series for
-        # both releases * both groups
         dts = [self.now + timedelta(hours=i) for i in range(4)]
         assert self.db.get_frequency_series(
             TSDBModel.frequent_releases_by_group,
