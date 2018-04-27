@@ -4,26 +4,25 @@ import PropTypes from 'prop-types';
 import FormField from './formField';
 import StyledSelect from './select.styled';
 
-export default class MultiSelectField extends FormField {
+export default class SelectField extends FormField {
   static propTypes = {
+    ...FormField.propTypes,
     options: PropTypes.array.isRequired,
     onChange: PropTypes.func,
-    value: PropTypes.any,
+    clearable: PropTypes.bool,
   };
 
-  constructor(props) {
-    super(props);
-    this.state = {
-      value: [],
-    };
-  }
+  static defaultProps = {
+    ...FormField.defaultProps,
+    clearable: true,
+  };
 
   getClassName() {
     return '';
   }
 
-  onChange = (opts = []) => {
-    const value = opts.map(opt => opt.value);
+  onChange = opt => {
+    const value = opt ? opt.value : null;
     this.setValue(value);
   };
 
@@ -32,15 +31,19 @@ export default class MultiSelectField extends FormField {
   };
 
   getField() {
+    const {options, placeholder, disabled, required} = this.props;
+
     return (
       <StyledSelect
         id={this.getId()}
-        onChange={this.onChange}
+        options={options}
+        placeholder={placeholder}
+        disabled={disabled}
+        required={required}
         value={this.state.value}
-        multi={true}
         arrowRenderer={this.renderArrow}
-        style={{width: 200, overflow: 'visible'}}
-        {...this.props}
+        onChange={this.onChange.bind(this)}
+        clearable={this.props.clearable}
       />
     );
   }
