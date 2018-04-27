@@ -25,7 +25,7 @@ exports[`RuleBuilder render() renders 1`] = `
 >
   <BuilderBar>
     <div
-      className="css-1rsoebt-BuilderBar css-spr3415"
+      className="css-1rsoebt-BuilderBar e1hyuoc75"
     >
       <BuilderSelect
         clearable={false}
@@ -52,7 +52,7 @@ exports[`RuleBuilder render() renders 1`] = `
         value="path"
       >
         <SelectField
-          className="css-1bclqmz-BuilderSelect css-spr3416"
+          className="css-1bclqmz-BuilderSelect e1hyuoc76"
           clearable={false}
           disabled={false}
           hideErrorMessage={false}
@@ -80,7 +80,7 @@ exports[`RuleBuilder render() renders 1`] = `
           value="path"
         >
           <div
-            className="css-1bclqmz-BuilderSelect css-spr3416"
+            className="css-1bclqmz-BuilderSelect e1hyuoc76"
             style={
               Object {
                 "width": 140,
@@ -116,7 +116,7 @@ exports[`RuleBuilder render() renders 1`] = `
                   autosize={true}
                   backspaceRemoves={true}
                   backspaceToRemoveMessage="Press backspace to remove {label}"
-                  className="css-16280ey-StyledSelect css-seafkz0"
+                  className="css-16280ey-StyledSelect e1m8gyzz0"
                   clearAllText="Clear all"
                   clearRenderer={[Function]}
                   clearValueText="Clear value"
@@ -173,7 +173,7 @@ exports[`RuleBuilder render() renders 1`] = `
                   valueKey="value"
                 >
                   <div
-                    className="Select css-16280ey-StyledSelect css-seafkz0 has-value is-searchable Select--single"
+                    className="Select css-16280ey-StyledSelect e1m8gyzz0 has-value is-searchable Select--single"
                   >
                     <div
                       className="Select-control"
@@ -295,7 +295,7 @@ exports[`RuleBuilder render() renders 1`] = `
         value=""
       >
         <input
-          className="css-1t4syiu-Input-BuilderInput css-spr3417"
+          className="css-17gm6uc-Input-inputStyles-BuilderInput e1hyuoc77"
           onChange={[Function]}
           placeholder="src/example/*"
           value=""
@@ -305,17 +305,17 @@ exports[`RuleBuilder render() renders 1`] = `
         src="icon-chevron-right"
       >
         <InlineSvg
-          className="css-a4tn6s-Divider css-spr3418"
+          className="css-a4tn6s-Divider e1hyuoc78"
           src="icon-chevron-right"
         >
           <StyledSvg
-            className="css-a4tn6s-Divider css-spr3418"
+            className="css-a4tn6s-Divider e1hyuoc78"
             height="1em"
             viewBox={Object {}}
             width="1em"
           >
             <svg
-              className="css-spr3418 css-5e2rei-StyledSvg css-adkcw30"
+              className="e1hyuoc78 css-1uv43pt-StyledSvg-Divider e2idor0"
               height="1em"
               viewBox={Object {}}
               width="1em"
@@ -467,7 +467,7 @@ exports[`RuleBuilder render() renders 1`] = `
                         autosize={true}
                         backspaceRemoves={true}
                         backspaceToRemoveMessage="Press backspace to remove {label}"
-                        className="css-16280ey-StyledSelect css-seafkz0"
+                        className="css-16280ey-StyledSelect e1m8gyzz0"
                         clearAllText="Clear all"
                         clearRenderer={[Function]}
                         clearValueText="Clear value"
@@ -542,7 +542,7 @@ exports[`RuleBuilder render() renders 1`] = `
                         valueKey="value"
                       >
                         <div
-                          className="Select css-16280ey-StyledSelect css-seafkz0 is-clearable is-searchable Select--multi"
+                          className="Select css-16280ey-StyledSelect e1m8gyzz0 is-clearable is-searchable Select--multi"
                         >
                           <div
                             className="Select-control"
@@ -651,7 +651,7 @@ exports[`RuleBuilder render() renders 1`] = `
         size="zero"
       >
         <Button
-          className="css-3daogo-RuleAddButton css-spr3419"
+          className="css-3daogo-RuleAddButton e1hyuoc79"
           disabled={false}
           icon="icon-circle-add"
           onClick={[Function]}
@@ -659,7 +659,7 @@ exports[`RuleBuilder render() renders 1`] = `
           size="zero"
         >
           <button
-            className="css-3daogo-RuleAddButton css-spr3419 button button-primary button-zero"
+            className="css-3daogo-RuleAddButton e1hyuoc79 button button-primary button-zero"
             disabled={false}
             onClick={[Function]}
             role="button"
@@ -680,11 +680,11 @@ exports[`RuleBuilder render() renders 1`] = `
                     size="zero"
                   >
                     <Base
-                      className="css-l3pkcx-Icon css-1vxxnb60"
+                      className="css-l3pkcx-Icon e17811v30"
                       size="zero"
                     >
                       <div
-                        className="css-l3pkcx-Icon css-1vxxnb60"
+                        className="css-l3pkcx-Icon e17811v30"
                         is={null}
                         size="zero"
                       >
@@ -693,18 +693,18 @@ exports[`RuleBuilder render() renders 1`] = `
                           src="icon-circle-add"
                         >
                           <InlineSvg
-                            className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
+                            className="css-1ov3rcq-StyledInlineSvg e17811v31"
                             size="16px"
                             src="icon-circle-add"
                           >
                             <StyledSvg
-                              className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
+                              className="css-1ov3rcq-StyledInlineSvg e17811v31"
                               height="16px"
                               viewBox={Object {}}
                               width="16px"
                             >
                               <svg
-                                className="css-1vxxnb61 css-1rlza0i-StyledSvg css-adkcw30"
+                                className="e17811v31 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
                                 height="16px"
                                 viewBox={Object {}}
                                 width="16px"
@@ -760,31 +760,31 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
 >
   <Candidates>
     <div
-      className="css-1fyz2uk-Candidates css-spr3410"
+      className="css-1fyz2uk-Candidates e1hyuoc70"
     >
       <RuleCandidate
         key="a/bar"
         onClick={[Function]}
       >
         <div
-          className="css-4hexhh-RuleCandidate css-spr3413"
+          className="css-4hexhh-RuleCandidate e1hyuoc73"
           onClick={[Function]}
         >
           <AddIcon
             src="icon-circle-add"
           >
             <InlineSvg
-              className="css-1ivdji5-AddIcon css-spr3414"
+              className="css-1ivdji5-AddIcon e1hyuoc74"
               src="icon-circle-add"
             >
               <StyledSvg
-                className="css-1ivdji5-AddIcon css-spr3414"
+                className="css-1ivdji5-AddIcon e1hyuoc74"
                 height="1em"
                 viewBox={Object {}}
                 width="1em"
               >
                 <svg
-                  className="css-spr3414 css-eomeeu-StyledSvg css-adkcw30"
+                  className="e1hyuoc74 css-1i6gwke-StyledSvg-AddIcon e2idor0"
                   height="1em"
                   viewBox={Object {}}
                   width="1em"
@@ -799,14 +799,14 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
           </AddIcon>
           <StyledTextOverflow>
             <div
-              className="css-q3yspe-TextOverflow-StyledTextOverflow css-spr3412"
+              className="css-q3yspe-TextOverflow-StyledTextOverflow e1hyuoc72"
             >
               a/bar
             </div>
           </StyledTextOverflow>
           <TypeHint>
             <div
-              className="css-6d8mj3-TypeHint css-spr3411"
+              className="css-6d8mj3-TypeHint e1hyuoc71"
             >
               [PATH]
             </div>
@@ -818,24 +818,24 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
         onClick={[Function]}
       >
         <div
-          className="css-4hexhh-RuleCandidate css-spr3413"
+          className="css-4hexhh-RuleCandidate e1hyuoc73"
           onClick={[Function]}
         >
           <AddIcon
             src="icon-circle-add"
           >
             <InlineSvg
-              className="css-1ivdji5-AddIcon css-spr3414"
+              className="css-1ivdji5-AddIcon e1hyuoc74"
               src="icon-circle-add"
             >
               <StyledSvg
-                className="css-1ivdji5-AddIcon css-spr3414"
+                className="css-1ivdji5-AddIcon e1hyuoc74"
                 height="1em"
                 viewBox={Object {}}
                 width="1em"
               >
                 <svg
-                  className="css-spr3414 css-eomeeu-StyledSvg css-adkcw30"
+                  className="e1hyuoc74 css-1i6gwke-StyledSvg-AddIcon e2idor0"
                   height="1em"
                   viewBox={Object {}}
                   width="1em"
@@ -850,14 +850,14 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
           </AddIcon>
           <StyledTextOverflow>
             <div
-              className="css-q3yspe-TextOverflow-StyledTextOverflow css-spr3412"
+              className="css-q3yspe-TextOverflow-StyledTextOverflow e1hyuoc72"
             >
               a/foo
             </div>
           </StyledTextOverflow>
           <TypeHint>
             <div
-              className="css-6d8mj3-TypeHint css-spr3411"
+              className="css-6d8mj3-TypeHint e1hyuoc71"
             >
               [PATH]
             </div>
@@ -869,24 +869,24 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
         onClick={[Function]}
       >
         <div
-          className="css-4hexhh-RuleCandidate css-spr3413"
+          className="css-4hexhh-RuleCandidate e1hyuoc73"
           onClick={[Function]}
         >
           <AddIcon
             src="icon-circle-add"
           >
             <InlineSvg
-              className="css-1ivdji5-AddIcon css-spr3414"
+              className="css-1ivdji5-AddIcon e1hyuoc74"
               src="icon-circle-add"
             >
               <StyledSvg
-                className="css-1ivdji5-AddIcon css-spr3414"
+                className="css-1ivdji5-AddIcon e1hyuoc74"
                 height="1em"
                 viewBox={Object {}}
                 width="1em"
               >
                 <svg
-                  className="css-spr3414 css-eomeeu-StyledSvg css-adkcw30"
+                  className="e1hyuoc74 css-1i6gwke-StyledSvg-AddIcon e2idor0"
                   height="1em"
                   viewBox={Object {}}
                   width="1em"
@@ -901,14 +901,14 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
           </AddIcon>
           <StyledTextOverflow>
             <div
-              className="css-q3yspe-TextOverflow-StyledTextOverflow css-spr3412"
+              className="css-q3yspe-TextOverflow-StyledTextOverflow e1hyuoc72"
             >
               example.com/a
             </div>
           </StyledTextOverflow>
           <TypeHint>
             <div
-              className="css-6d8mj3-TypeHint css-spr3411"
+              className="css-6d8mj3-TypeHint e1hyuoc71"
             >
               [URL]
             </div>
@@ -920,24 +920,24 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
         onClick={[Function]}
       >
         <div
-          className="css-4hexhh-RuleCandidate css-spr3413"
+          className="css-4hexhh-RuleCandidate e1hyuoc73"
           onClick={[Function]}
         >
           <AddIcon
             src="icon-circle-add"
           >
             <InlineSvg
-              className="css-1ivdji5-AddIcon css-spr3414"
+              className="css-1ivdji5-AddIcon e1hyuoc74"
               src="icon-circle-add"
             >
               <StyledSvg
-                className="css-1ivdji5-AddIcon css-spr3414"
+                className="css-1ivdji5-AddIcon e1hyuoc74"
                 height="1em"
                 viewBox={Object {}}
                 width="1em"
               >
                 <svg
-                  className="css-spr3414 css-eomeeu-StyledSvg css-adkcw30"
+                  className="e1hyuoc74 css-1i6gwke-StyledSvg-AddIcon e2idor0"
                   height="1em"
                   viewBox={Object {}}
                   width="1em"
@@ -952,14 +952,14 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
           </AddIcon>
           <StyledTextOverflow>
             <div
-              className="css-q3yspe-TextOverflow-StyledTextOverflow css-spr3412"
+              className="css-q3yspe-TextOverflow-StyledTextOverflow e1hyuoc72"
             >
               example.com/a/foo
             </div>
           </StyledTextOverflow>
           <TypeHint>
             <div
-              className="css-6d8mj3-TypeHint css-spr3411"
+              className="css-6d8mj3-TypeHint e1hyuoc71"
             >
               [URL]
             </div>
@@ -970,7 +970,7 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
   </Candidates>
   <BuilderBar>
     <div
-      className="css-1rsoebt-BuilderBar css-spr3415"
+      className="css-1rsoebt-BuilderBar e1hyuoc75"
     >
       <BuilderSelect
         clearable={false}
@@ -997,7 +997,7 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
         value="path"
       >
         <SelectField
-          className="css-1bclqmz-BuilderSelect css-spr3416"
+          className="css-1bclqmz-BuilderSelect e1hyuoc76"
           clearable={false}
           disabled={false}
           hideErrorMessage={false}
@@ -1025,7 +1025,7 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
           value="path"
         >
           <div
-            className="css-1bclqmz-BuilderSelect css-spr3416"
+            className="css-1bclqmz-BuilderSelect e1hyuoc76"
             style={
               Object {
                 "width": 140,
@@ -1061,7 +1061,7 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
                   autosize={true}
                   backspaceRemoves={true}
                   backspaceToRemoveMessage="Press backspace to remove {label}"
-                  className="css-16280ey-StyledSelect css-seafkz0"
+                  className="css-16280ey-StyledSelect e1m8gyzz0"
                   clearAllText="Clear all"
                   clearRenderer={[Function]}
                   clearValueText="Clear value"
@@ -1118,7 +1118,7 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
                   valueKey="value"
                 >
                   <div
-                    className="Select css-16280ey-StyledSelect css-seafkz0 has-value is-searchable Select--single"
+                    className="Select css-16280ey-StyledSelect e1m8gyzz0 has-value is-searchable Select--single"
                   >
                     <div
                       className="Select-control"
@@ -1240,7 +1240,7 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
         value="a/bar"
       >
         <input
-          className="css-1t4syiu-Input-BuilderInput css-spr3417"
+          className="css-17gm6uc-Input-inputStyles-BuilderInput e1hyuoc77"
           onChange={[Function]}
           placeholder="src/example/*"
           value="a/bar"
@@ -1250,17 +1250,17 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
         src="icon-chevron-right"
       >
         <InlineSvg
-          className="css-a4tn6s-Divider css-spr3418"
+          className="css-a4tn6s-Divider e1hyuoc78"
           src="icon-chevron-right"
         >
           <StyledSvg
-            className="css-a4tn6s-Divider css-spr3418"
+            className="css-a4tn6s-Divider e1hyuoc78"
             height="1em"
             viewBox={Object {}}
             width="1em"
           >
             <svg
-              className="css-spr3418 css-5e2rei-StyledSvg css-adkcw30"
+              className="e1hyuoc78 css-1uv43pt-StyledSvg-Divider e2idor0"
               height="1em"
               viewBox={Object {}}
               width="1em"
@@ -1451,7 +1451,7 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
                         autosize={true}
                         backspaceRemoves={true}
                         backspaceToRemoveMessage="Press backspace to remove {label}"
-                        className="css-16280ey-StyledSelect css-seafkz0"
+                        className="css-16280ey-StyledSelect e1m8gyzz0"
                         clearAllText="Clear all"
                         clearRenderer={[Function]}
                         clearValueText="Clear value"
@@ -1539,7 +1539,7 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
                         valueKey="value"
                       >
                         <div
-                          className="Select css-16280ey-StyledSelect css-seafkz0 has-value is-clearable is-searchable Select--multi"
+                          className="Select css-16280ey-StyledSelect e1m8gyzz0 has-value is-clearable is-searchable Select--multi"
                         >
                           <div
                             className="Select-control"
@@ -1758,7 +1758,7 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
         size="zero"
       >
         <Button
-          className="css-3daogo-RuleAddButton css-spr3419"
+          className="css-3daogo-RuleAddButton e1hyuoc79"
           disabled={false}
           icon="icon-circle-add"
           onClick={[Function]}
@@ -1766,7 +1766,7 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
           size="zero"
         >
           <button
-            className="css-3daogo-RuleAddButton css-spr3419 button button-primary button-zero"
+            className="css-3daogo-RuleAddButton e1hyuoc79 button button-primary button-zero"
             disabled={false}
             onClick={[Function]}
             role="button"
@@ -1787,11 +1787,11 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
                     size="zero"
                   >
                     <Base
-                      className="css-l3pkcx-Icon css-1vxxnb60"
+                      className="css-l3pkcx-Icon e17811v30"
                       size="zero"
                     >
                       <div
-                        className="css-l3pkcx-Icon css-1vxxnb60"
+                        className="css-l3pkcx-Icon e17811v30"
                         is={null}
                         size="zero"
                       >
@@ -1800,18 +1800,18 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
                           src="icon-circle-add"
                         >
                           <InlineSvg
-                            className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
+                            className="css-1ov3rcq-StyledInlineSvg e17811v31"
                             size="16px"
                             src="icon-circle-add"
                           >
                             <StyledSvg
-                              className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
+                              className="css-1ov3rcq-StyledInlineSvg e17811v31"
                               height="16px"
                               viewBox={Object {}}
                               width="16px"
                             >
                               <svg
-                                className="css-1vxxnb61 css-1rlza0i-StyledSvg css-adkcw30"
+                                className="e17811v31 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
                                 height="16px"
                                 viewBox={Object {}}
                                 width="16px"
