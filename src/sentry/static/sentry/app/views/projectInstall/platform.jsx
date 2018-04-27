@@ -198,4 +198,8 @@ const DocumentationWrapper = styled('div')`
   p {
     line-height: 1.5;
   }
+  pre {
+    word-break: break-all;
+    white-space: pre-wrap;
+  }
 `;
