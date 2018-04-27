@@ -79,6 +79,31 @@ class OrganizationsListTest(APITestCase):
         assert response.status_code == 200
         assert len(response.data) == 0
 
+    def test_project_count(self):
+        user = self.create_user(is_superuser=True)
+        org = self.create_organization(owner=user)
+        self.login_as(user=user)
+        self.create_project(name="a", organization=org)
+        self.create_project(name="b", organization=org)
+        self.create_project(name="c", organization=org)
+        response = self.client.get('{}'.format(self.path))
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]['projectCount'] == 3
+
+    def test_member_count(self):
+        user = self.create_user(is_superuser=True)
+        org = self.create_organization(owner=user)
+        self.login_as(user=user)
+        self.create_member(organization=org, user=self.create_user(email="1@a.com"), role="member")
+        self.create_member(organization=org, user=self.create_user(email="2@a.com"), role="member")
+        self.create_member(organization=org, user=self.create_user(email="3@a.com"), role="member")
+        self.create_member(organization=org, user=self.create_user(email="4@a.com"), role="member")
+        response = self.client.get('{}'.format(self.path))
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]['memberCount'] == 5
+
 
 class OrganizationsCreateTest(APITestCase):
     path = '/api/0/organizations/'
