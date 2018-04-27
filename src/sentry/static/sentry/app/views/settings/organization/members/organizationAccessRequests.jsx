@@ -2,10 +2,10 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {Flex, Box} from 'grid-emotion';
 
-import {t, tct} from '../../../../locale';
-import Button from '../../../../components/buttons/button';
-import {Panel, PanelBody, PanelHeader, PanelItem} from '../../../../components/panels';
-import SentryTypes from '../../../../proptypes';
+import {t, tct} from 'app/locale';
+import Button from 'app/components/buttons/button';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import SentryTypes from 'app/proptypes';
 
 class OrganizationAccessRequests extends React.Component {
   static propTypes = {

@@ -1,11 +1,11 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {t, tct} from '../../../../locale';
-import ApiForm from '../../../../components/forms/apiForm';
-import BooleanField from '../../../../components/forms/booleanField';
-import Button from '../../../../components/buttons/button';
-import Select2Field from '../../../../components/forms/select2Field';
+import {t, tct} from 'app/locale';
+import ApiForm from 'app/components/forms/apiForm';
+import BooleanField from 'app/components/forms/booleanField';
+import Button from 'app/components/buttons/button';
+import Select2Field from 'app/components/forms/select2Field';
 
 const ROLES = [
   ['member', 'Member'],

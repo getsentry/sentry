@@ -2,24 +2,24 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
-import ApiMixin from '../../../mixins/apiMixin';
-import UserBadge from '../../../components/userBadge';
-import Avatar from '../../../components/avatar';
-import Button from '../../../components/buttons/button';
-import Link from '../../../components/link';
-import DropdownAutoComplete from '../../../components/dropdownAutoComplete';
-import DropdownButton from '../../../components/dropdownButton';
-import IndicatorStore from '../../../stores/indicatorStore';
-import {joinTeam, leaveTeam} from '../../../actionCreators/teams';
-import LoadingError from '../../../components/loadingError';
-import LoadingIndicator from '../../../components/loadingIndicator';
-import OrganizationState from '../../../mixins/organizationState';
-import {Panel, PanelHeader} from '../../../components/panels';
-import InlineSvg from '../../../components/inlineSvg';
-import EmptyMessage from '../components/emptyMessage';
-import {t} from '../../../locale';
-import space from '../../../styles/space';
-import overflowEllipsis from '../../../styles/overflowEllipsis';
+import ApiMixin from 'app/mixins/apiMixin';
+import UserBadge from 'app/components/userBadge';
+import Avatar from 'app/components/avatar';
+import Button from 'app/components/buttons/button';
+import Link from 'app/components/link';
+import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
+import DropdownButton from 'app/components/dropdownButton';
+import IndicatorStore from 'app/stores/indicatorStore';
+import {joinTeam, leaveTeam} from 'app/actionCreators/teams';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import OrganizationState from 'app/mixins/organizationState';
+import {Panel, PanelHeader} from 'app/components/panels';
+import InlineSvg from 'app/components/inlineSvg';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 const TeamMembers = createReactClass({
   displayName: 'TeamMembers',

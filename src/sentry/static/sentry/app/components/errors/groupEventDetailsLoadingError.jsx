@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {t} from '../../locale';
-import DetailedError from './detailedError';
+import {t} from 'app/locale';
+import DetailedError from 'app/components/errors/detailedError';
 
 const GroupEventDetailsLoadingError = ({onRetry}) => {
   const reasons = [

@@ -3,33 +3,33 @@ import React from 'react';
 
 import createReactClass from 'create-react-class';
 
-import {logException} from '../../utils/logging';
-import EventCause from './eventCause';
-import EventContexts from './contexts';
-import EventContextSummary from './contextSummary';
-import EventDataSection from './eventDataSection';
-import EventErrors from './errors';
-import EventExtraData from './extraData';
-import EventPackageData from './packageData';
-import EventTags from './eventTags';
-import EventSdk from './sdk';
-import EventDevice from './device';
-import EventUserReport from './userReport';
-import SentryTypes from '../../proptypes';
-import GroupState from '../../mixins/groupState';
-import utils from '../../utils';
-import {t} from '../../locale';
+import {logException} from 'app/utils/logging';
+import EventCause from 'app/components/events/eventCause';
+import EventContexts from 'app/components/events/contexts';
+import EventContextSummary from 'app/components/events/contextSummary';
+import EventDataSection from 'app/components/events/eventDataSection';
+import EventErrors from 'app/components/events/errors';
+import EventExtraData from 'app/components/events/extraData';
+import EventPackageData from 'app/components/events/packageData';
+import EventTags from 'app/components/events/eventTags';
+import EventSdk from 'app/components/events/sdk';
+import EventDevice from 'app/components/events/device';
+import EventUserReport from 'app/components/events/userReport';
+import SentryTypes from 'app/proptypes';
+import GroupState from 'app/mixins/groupState';
+import utils from 'app/utils';
+import {t} from 'app/locale';
 
-import ExceptionInterface from './interfaces/exception';
-import MessageInterface from './interfaces/message';
-import RequestInterface from './interfaces/request';
-import StacktraceInterface from './interfaces/stacktrace';
-import TemplateInterface from './interfaces/template';
-import CspInterface from './interfaces/csp';
-import BreadcrumbsInterface from './interfaces/breadcrumbs';
-import GenericInterface from './interfaces/generic';
-import ThreadsInterface from './interfaces/threads';
-import DebugMetaInterface from './interfaces/debugmeta';
+import ExceptionInterface from 'app/components/events/interfaces/exception';
+import MessageInterface from 'app/components/events/interfaces/message';
+import RequestInterface from 'app/components/events/interfaces/request';
+import StacktraceInterface from 'app/components/events/interfaces/stacktrace';
+import TemplateInterface from 'app/components/events/interfaces/template';
+import CspInterface from 'app/components/events/interfaces/csp';
+import BreadcrumbsInterface from 'app/components/events/interfaces/breadcrumbs';
+import GenericInterface from 'app/components/events/interfaces/generic';
+import ThreadsInterface from 'app/components/events/interfaces/threads';
+import DebugMetaInterface from 'app/components/events/interfaces/debugmeta';
 
 export const INTERFACES = {
   exception: ExceptionInterface,

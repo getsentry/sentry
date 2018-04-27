@@ -2,15 +2,15 @@ import {Box} from 'grid-emotion';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {t} from '../../../locale';
-import AsyncView from '../../asyncView';
-import DateTime from '../../../components/dateTime';
-import {Panel, PanelBody, PanelHeader, PanelItem} from '../../../components/panels';
-import SettingsPageHeader from '../components/settingsPageHeader';
-import Switch from '../../../components/switch';
-import IndicatorStore from '../../../stores/indicatorStore';
-import TextBlock from '../components/text/textBlock';
-import EmptyMessage from '../components/emptyMessage';
+import {t} from 'app/locale';
+import AsyncView from 'app/views/asyncView';
+import DateTime from 'app/components/dateTime';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import Switch from 'app/components/switch';
+import IndicatorStore from 'app/stores/indicatorStore';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 const ENDPOINT = '/users/me/subscriptions/';
 

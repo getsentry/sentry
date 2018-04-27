@@ -2,10 +2,10 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import Alert from '../components/alert';
-import AlertActions from '../actions/alertActions';
-import InlineSvg from '../components/inlineSvg';
-import {t} from '../locale';
+import Alert from 'app/components/alert';
+import AlertActions from 'app/actions/alertActions';
+import InlineSvg from 'app/components/inlineSvg';
+import {t} from 'app/locale';
 
 const StyledAlert = styled(Alert)`
   padding: ${p => p.theme.grid}px ${p => p.theme.grid * 2}px;

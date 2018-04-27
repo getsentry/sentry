@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
-import '../../less/components/flowLayout.less';
+import 'app/../less/components/flowLayout.less';
 
 // Simple horizontal layout with vertical centering
 // Takes up remaining space of a flexbox container (i.e. "flex: 1")

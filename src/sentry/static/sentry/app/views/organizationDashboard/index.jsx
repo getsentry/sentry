@@ -4,14 +4,14 @@ import createReactClass from 'create-react-class';
 import {Flex, Box} from 'grid-emotion';
 import styled from 'react-emotion';
 
-import OrganizationState from '../../mixins/organizationState';
-import OldDashboard from './oldDashboard';
-import ProjectNav from './projectNav';
-import TeamMembers from './teamMembers';
-import ProjectCard from './projectCard';
-import getProjectsByTeams from '../../utils/getProjectsByTeams';
-import withTeams from '../../utils/withTeams';
-import withProjects from '../../utils/withProjects';
+import OrganizationState from 'app/mixins/organizationState';
+import OldDashboard from 'app/views/organizationDashboard/oldDashboard';
+import ProjectNav from 'app/views/organizationDashboard/projectNav';
+import TeamMembers from 'app/views/organizationDashboard/teamMembers';
+import ProjectCard from 'app/views/organizationDashboard/projectCard';
+import getProjectsByTeams from 'app/utils/getProjectsByTeams';
+import withTeams from 'app/utils/withTeams';
+import withProjects from 'app/utils/withProjects';
 
 class Dashboard extends React.Component {
   static propTypes = {

@@ -5,9 +5,9 @@ import Reflux from 'reflux';
 import {browserHistory} from 'react-router';
 import qs from 'query-string';
 
-import EnvironmentStore from '../stores/environmentStore';
-import LatestContextStore from '../stores/latestContextStore';
-import {ALL_ENVIRONMENTS_KEY} from '../constants';
+import EnvironmentStore from 'app/stores/environmentStore';
+import LatestContextStore from 'app/stores/latestContextStore';
+import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
 
 const withEnvironmentInQueryString = WrappedComponent =>
   createReactClass({

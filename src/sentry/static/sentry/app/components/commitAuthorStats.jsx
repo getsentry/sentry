@@ -3,15 +3,15 @@ import React from 'react';
 import {Flex} from 'grid-emotion';
 import createReactClass from 'create-react-class';
 
-import LoadingIndicator from '../components/loadingIndicator';
-import LoadingError from '../components/loadingError';
-import Avatar from '../components/avatar';
-import Tooltip from '../components/tooltip';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import LoadingError from 'app/components/loadingError';
+import Avatar from 'app/components/avatar';
+import Tooltip from 'app/components/tooltip';
 
-import ApiMixin from '../mixins/apiMixin';
+import ApiMixin from 'app/mixins/apiMixin';
 
-import {t} from '../locale';
-import {Panel, PanelItem, PanelBody} from './panels';
+import {t} from 'app/locale';
+import {Panel, PanelItem, PanelBody} from 'app/components/panels';
 
 class CommitBar extends React.Component {
   static propTypes = {

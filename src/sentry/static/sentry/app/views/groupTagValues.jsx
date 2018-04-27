@@ -3,16 +3,16 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 import jQuery from 'jquery';
-import SentryTypes from '../proptypes';
-import ApiMixin from '../mixins/apiMixin';
-import Avatar from '../components/avatar';
-import LoadingError from '../components/loadingError';
-import LoadingIndicator from '../components/loadingIndicator';
-import Pagination from '../components/pagination';
-import TimeSince from '../components/timeSince';
-import {isUrl, percent, deviceNameMapper} from '../utils';
-import {t} from '../locale';
-import withEnvironment from '../utils/withEnvironment';
+import SentryTypes from 'app/proptypes';
+import ApiMixin from 'app/mixins/apiMixin';
+import Avatar from 'app/components/avatar';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import Pagination from 'app/components/pagination';
+import TimeSince from 'app/components/timeSince';
+import {isUrl, percent, deviceNameMapper} from 'app/utils';
+import {t} from 'app/locale';
+import withEnvironment from 'app/utils/withEnvironment';
 
 const GroupTagValues = createReactClass({
   displayName: 'GroupTagValues',

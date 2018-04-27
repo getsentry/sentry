@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'react-emotion';
-import InlineSvg from '../../components/inlineSvg';
+import InlineSvg from 'app/components/inlineSvg';
 
 const QuestionMarkIcon = styled(({hasGuide, ...props}) => (
   <InlineSvg

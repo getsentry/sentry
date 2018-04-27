@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import CrumbTable from './crumbTable';
-import SummaryLine from './summaryLine';
+import CrumbTable from 'app/components/events/interfaces/breadcrumbs/crumbTable';
+import SummaryLine from 'app/components/events/interfaces/breadcrumbs/summaryLine';
 
 class HttpRenderer extends React.Component {
   static propTypes = {

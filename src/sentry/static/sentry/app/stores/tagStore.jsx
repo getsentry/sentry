@@ -1,8 +1,8 @@
 import Reflux from 'reflux';
 import _ from 'lodash';
 
-import TagActions from '../actions/tagActions';
-import MemberListStore from './memberListStore';
+import TagActions from 'app/actions/tagActions';
+import MemberListStore from 'app/stores/memberListStore';
 
 const getUsername = ({isManaged, username, email}) => {
   return !isManaged && username ? username : email;

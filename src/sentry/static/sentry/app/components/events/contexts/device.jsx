@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import ContextBlock from './contextBlock';
-import {defined, formatBytes} from '../../../utils';
+import ContextBlock from 'app/components/events/contexts/contextBlock';
+import {defined, formatBytes} from 'app/utils';
 
 class DeviceContextType extends React.Component {
   static propTypes = {

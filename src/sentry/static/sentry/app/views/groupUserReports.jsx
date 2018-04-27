@@ -4,16 +4,16 @@ import {Link} from 'react-router';
 import {omit, isEqual} from 'lodash';
 import qs from 'query-string';
 
-import SentryTypes from '../proptypes';
-import ApiMixin from '../mixins/apiMixin';
-import GroupState from '../mixins/groupState';
-import EventUserReport from '../components/events/userReport';
-import LoadingError from '../components/loadingError';
-import LoadingIndicator from '../components/loadingIndicator';
-import {t, tct} from '../locale';
-import withEnvironmentInQueryString from '../utils/withEnvironmentInQueryString';
-import EmptyStateWarning from '../components/emptyStateWarning';
-import {Panel} from '../components/panels';
+import SentryTypes from 'app/proptypes';
+import ApiMixin from 'app/mixins/apiMixin';
+import GroupState from 'app/mixins/groupState';
+import EventUserReport from 'app/components/events/userReport';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import {t, tct} from 'app/locale';
+import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
+import {Panel} from 'app/components/panels';
 
 const GroupUserReports = createReactClass({
   displayName: 'GroupUserReports',

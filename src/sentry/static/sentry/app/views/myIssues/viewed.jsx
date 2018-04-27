@@ -1,7 +1,7 @@
 import React from 'react';
 
-import OrganizationIssueList from '../../components/organizationIssueList';
-import {t} from '../../locale';
+import OrganizationIssueList from 'app/components/organizationIssueList';
+import {t} from 'app/locale';
 
 class Viewed extends React.Component {
   getEndpoint = () => {

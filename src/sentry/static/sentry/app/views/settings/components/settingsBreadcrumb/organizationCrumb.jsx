@@ -3,13 +3,13 @@ import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import BreadcrumbDropdown from './breadcrumbDropdown';
-import LetterAvatar from '../../../../components/letterAvatar';
-import MenuItem from './menuItem';
-import SentryTypes from '../../../../proptypes';
-import TextLink from '../../../../components/textLink';
-import recreateRoute from '../../../../utils/recreateRoute';
-import withLatestContext from '../../../../utils/withLatestContext';
+import BreadcrumbDropdown from 'app/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
+import LetterAvatar from 'app/components/letterAvatar';
+import MenuItem from 'app/views/settings/components/settingsBreadcrumb/menuItem';
+import SentryTypes from 'app/proptypes';
+import TextLink from 'app/components/textLink';
+import recreateRoute from 'app/utils/recreateRoute';
+import withLatestContext from 'app/utils/withLatestContext';
 
 class OrganizationCrumb extends React.Component {
   static propTypes = {

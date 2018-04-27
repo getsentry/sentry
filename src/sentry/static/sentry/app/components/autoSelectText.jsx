@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import {selectText} from '../utils/selectText';
+import {selectText} from 'app/utils/selectText';
 
 class AutoSelectText extends React.Component {
   static propTypes = {

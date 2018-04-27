@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {t} from '../../locale';
+import {t} from 'app/locale';
 
 class TeamStatsBar extends React.Component {
   render() {

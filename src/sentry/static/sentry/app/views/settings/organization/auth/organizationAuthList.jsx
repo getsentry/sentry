@@ -1,15 +1,15 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {CSRF_COOKIE_NAME} from '../../../../constants';
-import {t, tct} from '../../../../locale';
-import EmptyMessage from '../../components/emptyMessage';
-import ExternalLink from '../../../../components/externalLink';
-import {Panel, PanelAlert, PanelBody, PanelHeader} from '../../../../components/panels';
-import ProviderItem from './providerItem';
-import SentryTypes from '../../../../proptypes';
-import SettingsPageHeader from '../../components/settingsPageHeader';
-import getCookie from '../../../../utils/getCookie';
+import {CSRF_COOKIE_NAME} from 'app/constants';
+import {t, tct} from 'app/locale';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import ExternalLink from 'app/components/externalLink';
+import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
+import ProviderItem from 'app/views/settings/organization/auth/providerItem';
+import SentryTypes from 'app/proptypes';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import getCookie from 'app/utils/getCookie';
 
 class OrganizationAuthList extends React.Component {
   static contextTypes = {

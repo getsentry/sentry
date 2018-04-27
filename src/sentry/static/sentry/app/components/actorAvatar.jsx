@@ -1,10 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import Avatar from './avatar';
-import MemberListStore from '../stores/memberListStore';
-import TeamStore from '../stores/teamStore';
-import {Actor} from '../proptypes';
+import Avatar from 'app/components/avatar';
+import MemberListStore from 'app/stores/memberListStore';
+import TeamStore from 'app/stores/teamStore';
+import {Actor} from 'app/proptypes';
 
 class ActorAvatar extends React.Component {
   static propTypes = {

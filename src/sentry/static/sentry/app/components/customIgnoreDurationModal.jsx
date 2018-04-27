@@ -3,7 +3,7 @@ import React from 'react';
 import Modal from 'react-bootstrap/lib/Modal';
 import {sprintf} from 'sprintf-js';
 
-import {t} from '../locale';
+import {t} from 'app/locale';
 
 export default class CustomIgnoreDurationModal extends React.Component {
   static propTypes = {

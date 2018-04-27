@@ -4,14 +4,14 @@ import createReactClass from 'create-react-class';
 import ReactDOMServer from 'react-dom/server';
 import moment from 'moment';
 
-import Avatar from '../avatar';
-import ActorAvatar from '../actorAvatar';
-import Tooltip from '../tooltip';
-import ApiMixin from '../../mixins/apiMixin';
-import GroupState from '../../mixins/groupState';
-import {assignToUser, assignToActor} from '../../actionCreators/group';
-import {t} from '../../locale';
-import {openCreateOwnershipRule} from '../../actionCreators/modal';
+import Avatar from 'app/components/avatar';
+import ActorAvatar from 'app/components/actorAvatar';
+import Tooltip from 'app/components/tooltip';
+import ApiMixin from 'app/mixins/apiMixin';
+import GroupState from 'app/mixins/groupState';
+import {assignToUser, assignToActor} from 'app/actionCreators/group';
+import {t} from 'app/locale';
+import {openCreateOwnershipRule} from 'app/actionCreators/modal';
 
 const SuggestedOwners = createReactClass({
   displayName: 'SuggestedOwners',

@@ -4,9 +4,9 @@ import React from 'react';
 import classNames from 'classnames';
 import qs from 'query-string';
 
-import ConfigStore from '../../stores/configStore';
-import LetterAvatar from '../letterAvatar';
-import Tooltip from '../tooltip';
+import ConfigStore from 'app/stores/configStore';
+import LetterAvatar from 'app/components/letterAvatar';
+import Tooltip from 'app/components/tooltip';
 
 const DEFAULT_GRAVATAR_SIZE = 64;
 const ALLOWED_SIZES = [20, 32, 36, 48, 52, 64, 80, 96, 120];

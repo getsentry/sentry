@@ -2,9 +2,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
 
-import {t} from '../../locale';
-import InlineSvg from '../../components/inlineSvg';
-import Button from '../../components/buttons/button';
+import {t} from 'app/locale';
+import InlineSvg from 'app/components/inlineSvg';
+import Button from 'app/components/buttons/button';
 
 class DetailedError extends React.Component {
   static propTypes = {

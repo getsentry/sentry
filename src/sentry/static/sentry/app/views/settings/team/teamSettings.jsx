@@ -2,19 +2,19 @@ import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {Panel, PanelHeader} from '../../../components/panels';
-import {addErrorMessage, addSuccessMessage} from '../../../actionCreators/indicator';
-import {removeTeam} from '../../../actionCreators/teams';
-import {t, tct} from '../../../locale';
-import AsyncView from '../../asyncView';
-import Button from '../../../components/buttons/button';
-import Confirm from '../../../components/confirm';
-import Field from '../components/forms/field';
-import Form from '../components/forms/form';
-import JsonForm from '../components/forms/jsonForm';
-import SentryTypes from '../../../proptypes';
-import TeamModel from './model';
-import teamSettingsFields from '../../../data/forms/teamSettingsFields';
+import {Panel, PanelHeader} from 'app/components/panels';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {removeTeam} from 'app/actionCreators/teams';
+import {t, tct} from 'app/locale';
+import AsyncView from 'app/views/asyncView';
+import Button from 'app/components/buttons/button';
+import Confirm from 'app/components/confirm';
+import Field from 'app/views/settings/components/forms/field';
+import Form from 'app/views/settings/components/forms/form';
+import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import SentryTypes from 'app/proptypes';
+import TeamModel from 'app/views/settings/team/model';
+import teamSettingsFields from 'app/data/forms/teamSettingsFields';
 
 export default class TeamSettings extends AsyncView {
   static propTypes = {

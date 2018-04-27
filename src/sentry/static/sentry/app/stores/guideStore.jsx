@@ -1,8 +1,8 @@
 import Reflux from 'reflux';
 import $ from 'jquery';
-import GuideActions from '../actions/guideActions';
-import HookStore from './hookStore';
-import OrganizationsActions from '../actions/organizationsActions';
+import GuideActions from 'app/actions/guideActions';
+import HookStore from 'app/stores/hookStore';
+import OrganizationsActions from 'app/actions/organizationsActions';
 
 const GuideStore = Reflux.createStore({
   init() {

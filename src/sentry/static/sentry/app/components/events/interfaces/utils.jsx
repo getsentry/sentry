@@ -1,5 +1,5 @@
 import {isString} from 'lodash';
-import {defined} from '../../../utils';
+import {defined} from 'app/utils';
 
 export function escapeQuotes(v) {
   return v.replace(/"/g, '\\"');

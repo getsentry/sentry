@@ -3,10 +3,10 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import classNames from 'classnames';
-import {t, tct} from '../../locale';
+import {t, tct} from 'app/locale';
 
-import OrganizationState from '../../mixins/organizationState';
-import Confirmation from './confirmation';
+import OrganizationState from 'app/mixins/organizationState';
+import Confirmation from 'app/components/onboardingWizard/confirmation';
 
 const TodoItem = createReactClass({
   displayName: 'TodoItem',

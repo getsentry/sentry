@@ -2,8 +2,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
 
-import IssueDiff from '../../components/issueDiff';
-import '../../../less/components/modals/diffModal.less';
+import IssueDiff from 'app/components/issueDiff';
+import 'app/../less/components/modals/diffModal.less';
 
 class DiffModal extends React.Component {
   static propTypes = {

@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import Alert from '../alert';
+import Alert from 'app/components/alert';
 
 // Margin bottom should probably be a different prop
 const StyledPanelAlert = styled(Alert)`

@@ -3,7 +3,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import getDynamicText from '../utils/getDynamicText';
+import getDynamicText from 'app/utils/getDynamicText';
 
 // XXX: Most likely you can just use getDynamicText instead
 const DynamicWrapper = ({fixed, value, ...otherProps}) => {

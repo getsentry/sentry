@@ -1,20 +1,20 @@
 import {browserHistory} from 'react-router';
 import React from 'react';
 
-import {resendMemberInvite, updateMember} from '../../../../actionCreators/members';
-import {t} from '../../../../locale';
-import AsyncView from '../../../asyncView';
-import Button from '../../../../components/buttons/button';
-import ConfigStore from '../../../../stores/configStore';
-import DateTime from '../../../../components/dateTime';
-import IndicatorStore from '../../../../stores/indicatorStore';
-import NotFound from '../../../../components/errors/notFound';
-import {Panel, PanelBody, PanelHeader, PanelItem} from '../../../../components/panels';
-import RoleSelect from '../../../inviteMember/roleSelect';
-import SentryTypes from '../../../../proptypes';
-import SettingsPageHeader from '../../components/settingsPageHeader';
-import TeamSelect from '../../../inviteMember/teamSelect';
-import recreateRoute from '../../../../utils/recreateRoute';
+import {resendMemberInvite, updateMember} from 'app/actionCreators/members';
+import {t} from 'app/locale';
+import AsyncView from 'app/views/asyncView';
+import Button from 'app/components/buttons/button';
+import ConfigStore from 'app/stores/configStore';
+import DateTime from 'app/components/dateTime';
+import IndicatorStore from 'app/stores/indicatorStore';
+import NotFound from 'app/components/errors/notFound';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import RoleSelect from 'app/views/inviteMember/roleSelect';
+import SentryTypes from 'app/proptypes';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TeamSelect from 'app/views/inviteMember/teamSelect';
+import recreateRoute from 'app/utils/recreateRoute';
 
 class OrganizationMemberDetail extends AsyncView {
   static contextTypes = {

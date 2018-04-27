@@ -1,14 +1,14 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
-import {getShortVersion} from '../../utils';
-import {t} from '../../locale';
-import CustomResolutionModal from '../customResolutionModal';
-import MenuItem from '../menuItem';
-import DropdownLink from '../dropdownLink';
-import ActionLink from './actionLink';
-import Tooltip from '../tooltip';
-import GuideAnchor from '../assistant/guideAnchor';
+import {getShortVersion} from 'app/utils';
+import {t} from 'app/locale';
+import CustomResolutionModal from 'app/components/customResolutionModal';
+import MenuItem from 'app/components/menuItem';
+import DropdownLink from 'app/components/dropdownLink';
+import ActionLink from 'app/components/actions/actionLink';
+import Tooltip from 'app/components/tooltip';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 
 export default class ResolveActions extends React.Component {
   static propTypes = {

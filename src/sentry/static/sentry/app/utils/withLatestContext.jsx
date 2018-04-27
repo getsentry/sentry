@@ -3,9 +3,9 @@ import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import PropTypes from 'prop-types';
 
-import SentryTypes from '../proptypes';
-import LatestContextStore from '../stores/latestContextStore';
-import withOrganizations from './withOrganizations';
+import SentryTypes from 'app/proptypes';
+import LatestContextStore from 'app/stores/latestContextStore';
+import withOrganizations from 'app/utils/withOrganizations';
 
 // HoC that returns most usable organization + project
 // This means your org if you only have 1 org, or

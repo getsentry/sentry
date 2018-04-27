@@ -2,8 +2,8 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 
-import ProjectsStore from '../stores/projectsStore';
-import SentryTypes from '../proptypes';
+import ProjectsStore from 'app/stores/projectsStore';
+import SentryTypes from 'app/proptypes';
 
 /**
  * Higher order component that uses ProjectsStore and provides a list of projects

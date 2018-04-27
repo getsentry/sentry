@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
 
-import LoadingIndicator from '../../components/loadingIndicator';
+import LoadingIndicator from 'app/components/loadingIndicator';
 
 class SearchDropdown extends React.PureComponent {
   static propTypes = {

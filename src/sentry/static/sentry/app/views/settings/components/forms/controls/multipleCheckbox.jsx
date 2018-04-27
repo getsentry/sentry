@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {defined} from '../../../../../utils';
+import {defined} from 'app/utils';
 
 const MultipleCheckboxWrapper = styled.div`
   display: flex;

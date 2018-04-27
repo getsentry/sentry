@@ -2,7 +2,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 
-import LatestContextStore from '../stores/latestContextStore';
+import LatestContextStore from 'app/stores/latestContextStore';
 
 // Passes the active environment to the wrapped component if the organizations:environments
 // feature is active, otherwiss passes null (i.e. the value that means "All environments")

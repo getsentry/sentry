@@ -2,10 +2,10 @@ import Modal from 'react-bootstrap/lib/Modal';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {FormState} from '../../../../components/forms';
-import {parseRepo} from '../../../../utils';
-import {t, tct} from '../../../../locale';
-import PluginComponentBase from '../../../../components/bases/pluginComponentBase';
+import {FormState} from 'app/components/forms';
+import {parseRepo} from 'app/utils';
+import {t, tct} from 'app/locale';
+import PluginComponentBase from 'app/components/bases/pluginComponentBase';
 
 const UNKNOWN_ERROR = {
   error_type: 'unknown',

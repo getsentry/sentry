@@ -4,18 +4,18 @@ import createReactClass from 'create-react-class';
 import {browserHistory, Link} from 'react-router';
 import qs from 'query-string';
 import {omit, isEqual} from 'lodash';
-import SentryTypes from '../proptypes';
-import ApiMixin from '../mixins/apiMixin';
-import GroupStore from '../stores/groupStore';
-import LoadingError from '../components/loadingError';
-import LoadingIndicator from '../components/loadingIndicator';
-import Pagination from '../components/pagination';
-import CompactIssue from '../components/compactIssue';
-import EventUserReport from '../components/events/userReport';
-import {Panel, PanelBody} from '../components/panels';
-import EmptyStateWarning from '../components/emptyStateWarning';
-import {t, tct} from '../locale';
-import withEnvironmentInQueryString from '../utils/withEnvironmentInQueryString';
+import SentryTypes from 'app/proptypes';
+import ApiMixin from 'app/mixins/apiMixin';
+import GroupStore from 'app/stores/groupStore';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import Pagination from 'app/components/pagination';
+import CompactIssue from 'app/components/compactIssue';
+import EventUserReport from 'app/components/events/userReport';
+import {Panel, PanelBody} from 'app/components/panels';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
+import {t, tct} from 'app/locale';
+import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
 
 const ProjectUserReports = createReactClass({
   displayName: 'ProjectUserReports',

@@ -4,11 +4,11 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import Avatar from '../avatar';
-import InlineSvg from '../inlineSvg';
-import SentryTypes from '../../proptypes';
-import UserBadge from '../userBadge';
-import highlightFuseMatches from '../../utils/highlightFuseMatches';
+import Avatar from 'app/components/avatar';
+import InlineSvg from 'app/components/inlineSvg';
+import SentryTypes from 'app/proptypes';
+import UserBadge from 'app/components/userBadge';
+import highlightFuseMatches from 'app/utils/highlightFuseMatches';
 
 class SearchResult extends React.Component {
   static propTypes = {

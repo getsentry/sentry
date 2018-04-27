@@ -1,10 +1,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import SavedSearchSelector from './savedSearchSelector';
-import SearchBar from './searchBar';
-import SortOptions from './sortOptions';
-import {t} from '../../locale';
+import SavedSearchSelector from 'app/views/stream/savedSearchSelector';
+import SearchBar from 'app/views/stream/searchBar';
+import SortOptions from 'app/views/stream/sortOptions';
+import {t} from 'app/locale';
 
 class StreamFilters extends React.Component {
   static propTypes = {

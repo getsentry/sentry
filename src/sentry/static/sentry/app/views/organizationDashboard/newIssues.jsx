@@ -1,9 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {Panel, PanelBody, PanelItem} from '../../components/panels';
-import IssueList from '../../components/issueList';
-import {t} from '../../locale';
+import {Panel, PanelBody, PanelItem} from 'app/components/panels';
+import IssueList from 'app/components/issueList';
+import {t} from 'app/locale';
 
 export default class NewIssues extends React.Component {
   static propTypes = {

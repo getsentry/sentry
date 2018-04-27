@@ -3,20 +3,20 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import $ from 'jquery';
 
-import ApiMixin from '../../mixins/apiMixin';
-import OrganizationState from '../../mixins/organizationState';
-import {load as loadIncidents} from '../../actionCreators/incidents';
+import ApiMixin from 'app/mixins/apiMixin';
+import OrganizationState from 'app/mixins/organizationState';
+import {load as loadIncidents} from 'app/actionCreators/incidents';
 
-import Broadcasts from './broadcasts';
-import Incidents from './incidents';
-import UserNav from './userNav';
-import OrganizationSelector from './organizationSelector';
-import SidebarPanel from '../sidebarPanel';
-import TodoList from '../onboardingWizard/todos';
-import IssueList from '../issueList';
-import ConfigStore from '../../stores/configStore';
+import Broadcasts from 'app/components/sidebar/broadcasts';
+import Incidents from 'app/components/sidebar/incidents';
+import UserNav from 'app/components/sidebar/userNav';
+import OrganizationSelector from 'app/components/sidebar/organizationSelector';
+import SidebarPanel from 'app/components/sidebarPanel';
+import TodoList from 'app/components/onboardingWizard/todos';
+import IssueList from 'app/components/issueList';
+import ConfigStore from 'app/stores/configStore';
 
-import {t} from '../../locale';
+import {t} from 'app/locale';
 
 class OnboardingStatus extends React.Component {
   static propTypes = {

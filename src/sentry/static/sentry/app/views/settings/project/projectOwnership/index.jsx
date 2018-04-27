@@ -1,15 +1,15 @@
 import React from 'react';
 import styled from 'react-emotion';
 
-import {t} from '../../../../locale';
-import AsyncView from '../../../asyncView';
+import {t} from 'app/locale';
+import AsyncView from 'app/views/asyncView';
 
-import {Panel, PanelBody, PanelHeader} from '../../../../components/panels';
-import SentryTypes from '../../../../proptypes';
-import SettingsPageHeader from '../../components/settingsPageHeader';
-import Form from '../../components/forms/form';
-import JsonForm from '../../components/forms/jsonForm';
-import OwnerInput from './ownerInput';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import SentryTypes from 'app/proptypes';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import Form from 'app/views/settings/components/forms/form';
+import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import OwnerInput from 'app/views/settings/project/projectOwnership/ownerInput';
 
 const CodeBlock = styled.pre`
   word-break: break-all;
@@ -94,7 +94,9 @@ class ProjectOwnership extends AsyncView {
                     name: 'fallthrough',
                     type: 'boolean',
                     label: t('All users with access to this project are owners'),
-                    help: t('Owners will receive notifications for issues they are responsible for.'),
+                    help: t(
+                      'Owners will receive notifications for issues they are responsible for.'
+                    ),
                   },
                 ],
               },

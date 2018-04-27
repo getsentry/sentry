@@ -1,10 +1,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import Avatar from '../../components/avatar';
-import SentryTypes from '../../proptypes';
-import {t} from '../../locale';
-import {objectIsEmpty, deviceNameMapper} from '../../utils';
+import Avatar from 'app/components/avatar';
+import SentryTypes from 'app/proptypes';
+import {t} from 'app/locale';
+import {objectIsEmpty, deviceNameMapper} from 'app/utils';
 
 const generateClassName = function(name) {
   return name

@@ -3,12 +3,12 @@ import React from 'react';
 
 import createReactClass from 'create-react-class';
 
-import {t} from '../../../locale';
-import ApiMixin from '../../../mixins/apiMixin';
-import Avatar from '../../../components/avatar';
-import LoadingError from '../../../components/loadingError';
-import LoadingIndicator from '../../../components/loadingIndicator';
-import OrganizationState from '../../../mixins/organizationState';
+import {t} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import Avatar from 'app/components/avatar';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import OrganizationState from 'app/mixins/organizationState';
 
 const TeamMembers = createReactClass({
   displayName: 'TeamMembers',

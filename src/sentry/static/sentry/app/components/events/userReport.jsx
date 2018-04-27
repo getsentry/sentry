@@ -1,9 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import Avatar from '../../components/avatar';
-import TimeSince from '../../components/timeSince';
-import utils from '../../utils';
-import Link from '../link';
+import Avatar from 'app/components/avatar';
+import TimeSince from 'app/components/timeSince';
+import utils from 'app/utils';
+import Link from 'app/components/link';
 
 class EventUserReport extends React.Component {
   static propTypes = {

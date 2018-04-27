@@ -2,9 +2,9 @@ import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import LazyLoad from '../../../../components/lazyLoad';
-import AsyncView from '../../../asyncView';
-import SentryTypes from '../../../../proptypes';
+import LazyLoad from 'app/components/lazyLoad';
+import AsyncView from 'app/views/asyncView';
+import SentryTypes from 'app/proptypes';
 
 const EVENT_TYPES = [
   'member.invite',

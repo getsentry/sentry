@@ -4,18 +4,18 @@ import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import {get as getPath} from 'lodash';
 
-import ApiMixin from '../../mixins/apiMixin';
-import DropdownLink from '../dropdownLink';
-import {setActiveEnvironment} from '../../actionCreators/environments';
-import EnvironmentStore from '../../stores/environmentStore';
-import LatestContextStore from '../../stores/latestContextStore';
-import LoadingIndicator from '../loadingIndicator';
-import LoadingError from '../loadingError';
-import GroupState from '../../mixins/groupState';
-import GroupReleaseChart from './releaseChart';
-import MenuItem from '../menuItem';
-import SeenInfo from './seenInfo';
-import {t} from '../../locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import DropdownLink from 'app/components/dropdownLink';
+import {setActiveEnvironment} from 'app/actionCreators/environments';
+import EnvironmentStore from 'app/stores/environmentStore';
+import LatestContextStore from 'app/stores/latestContextStore';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import LoadingError from 'app/components/loadingError';
+import GroupState from 'app/mixins/groupState';
+import GroupReleaseChart from 'app/components/group/releaseChart';
+import MenuItem from 'app/components/menuItem';
+import SeenInfo from 'app/components/group/seenInfo';
+import {t} from 'app/locale';
 
 const GroupReleaseStats = createReactClass({
   displayName: 'GroupReleaseStats',

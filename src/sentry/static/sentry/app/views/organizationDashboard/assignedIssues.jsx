@@ -2,9 +2,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
 
-import {Panel, PanelBody, PanelItem} from '../../components/panels';
-import IssueList from '../../components/issueList';
-import {t} from '../../locale';
+import {Panel, PanelBody, PanelItem} from 'app/components/panels';
+import IssueList from 'app/components/issueList';
+import {t} from 'app/locale';
 
 export default class AssignedIssues extends React.Component {
   static propTypes = {

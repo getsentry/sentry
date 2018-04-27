@@ -1,7 +1,7 @@
 import React from 'react';
 
-import ProjectContext from './projects/projectContext';
-import ProjectDetailsLayout from './projectDetailsLayout';
+import ProjectContext from 'app/views/projects/projectContext';
+import ProjectDetailsLayout from 'app/views/projectDetailsLayout';
 
 class ProjectDetails extends React.Component {
   render() {

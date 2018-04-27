@@ -1,10 +1,10 @@
 import React from 'react';
 
-import {t} from '../../../../locale';
-import IndicatorStore from '../../../../stores/indicatorStore';
-import OrganizationAuthList from './organizationAuthList';
-import AsyncView from '../../../asyncView';
-import SentryTypes from '../../../../proptypes';
+import {t} from 'app/locale';
+import IndicatorStore from 'app/stores/indicatorStore';
+import OrganizationAuthList from 'app/views/settings/organization/auth/organizationAuthList';
+import AsyncView from 'app/views/asyncView';
+import SentryTypes from 'app/proptypes';
 
 class OrganizationAuthView extends AsyncView {
   static contextTypes = {

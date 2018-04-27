@@ -4,13 +4,13 @@ import createReactClass from 'create-react-class';
 import DocumentTitle from 'react-document-title';
 import {Link} from 'react-router';
 
-import ApiMixin from '../mixins/apiMixin';
-import AutoSelectText from '../components/autoSelectText';
-import DateTime from '../components/dateTime';
-import IndicatorStore from '../stores/indicatorStore';
-import LoadingError from '../components/loadingError';
-import LoadingIndicator from '../components/loadingIndicator';
-import {t, tct} from '../locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import AutoSelectText from 'app/components/autoSelectText';
+import DateTime from 'app/components/dateTime';
+import IndicatorStore from 'app/stores/indicatorStore';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import {t, tct} from 'app/locale';
 
 const ApiTokenRow = createReactClass({
   displayName: 'ApiTokenRow',

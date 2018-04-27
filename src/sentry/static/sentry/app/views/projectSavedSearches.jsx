@@ -4,19 +4,19 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
-import SentryTypes from '../proptypes';
-import {t} from '../locale';
+import SentryTypes from 'app/proptypes';
+import {t} from 'app/locale';
 
-import ApiMixin from '../mixins/apiMixin';
+import ApiMixin from 'app/mixins/apiMixin';
 
-import Button from '../components/buttons/button';
-import Confirm from '../components/confirm';
-import IndicatorStore from '../stores/indicatorStore';
-import LoadingError from '../components/loadingError';
-import LoadingIndicator from '../components/loadingIndicator';
-import {Panel, PanelBody, PanelHeader, PanelItem} from '../components/panels';
-import SettingsPageHeader from './settings/components/settingsPageHeader';
-import EmptyStateWarning from '../components/emptyStateWarning';
+import Button from 'app/components/buttons/button';
+import Confirm from 'app/components/confirm';
+import IndicatorStore from 'app/stores/indicatorStore';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
 
 const InputColumn = props => <Flex flex="1" justify="center" {...props} />;
 

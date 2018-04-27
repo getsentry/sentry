@@ -3,7 +3,7 @@ import React from 'react';
 import moment from 'moment-timezone';
 import _ from 'lodash';
 
-import ConfigStore from '../stores/configStore';
+import ConfigStore from 'app/stores/configStore';
 
 class DateTime extends React.Component {
   static propTypes = {

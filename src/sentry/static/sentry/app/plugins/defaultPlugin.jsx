@@ -1,4 +1,4 @@
-import BasePlugin from './basePlugin';
+import BasePlugin from 'app/plugins/basePlugin';
 
 class DefaultPlugin extends BasePlugin {}
 

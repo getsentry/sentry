@@ -4,13 +4,13 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled, {css} from 'react-emotion';
 
-import {t} from '../../locale';
-import DynamicWrapper from '../../components/dynamicWrapper';
-import ExternalLink from '../../components/externalLink';
-import PluginIcon from '../../plugins/components/pluginIcon';
-import SentryTypes from '../../proptypes';
-import Switch from '../../components/switch';
-import recreateRoute from '../../utils/recreateRoute';
+import {t} from 'app/locale';
+import DynamicWrapper from 'app/components/dynamicWrapper';
+import ExternalLink from 'app/components/externalLink';
+import PluginIcon from 'app/plugins/components/pluginIcon';
+import SentryTypes from 'app/proptypes';
+import Switch from 'app/components/switch';
+import recreateRoute from 'app/utils/recreateRoute';
 
 const grayText = css`
   color: #979ba0;

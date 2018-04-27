@@ -4,14 +4,14 @@ import React from 'react';
 import _ from 'lodash';
 import createReactClass from 'create-react-class';
 
-import {t} from '../locale';
-import ApiMixin from '../mixins/apiMixin';
-import Button from './buttons/button';
-import IndicatorStore from '../stores/indicatorStore';
-import LoadingIndicator from '../components/loadingIndicator';
-import {Panel, PanelBody, PanelHeader} from './panels';
-import PluginIcon from '../plugins/components/pluginIcon';
-import plugins from '../plugins';
+import {t} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import Button from 'app/components/buttons/button';
+import IndicatorStore from 'app/stores/indicatorStore';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import PluginIcon from 'app/plugins/components/pluginIcon';
+import plugins from 'app/plugins';
 
 const PluginConfig = createReactClass({
   displayName: 'PluginConfig',

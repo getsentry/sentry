@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import Pills from '../../pills';
-import Pill from '../../pill';
+import Pills from 'app/components/pills';
+import Pill from 'app/components/pill';
 
 class ExceptionMechanism extends React.Component {
   static propTypes = {

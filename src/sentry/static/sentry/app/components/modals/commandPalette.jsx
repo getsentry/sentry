@@ -2,10 +2,10 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled, {css} from 'react-emotion';
 
-import {t} from '../../locale';
-import Search from '../search';
-import SearchResult from '../search/searchResult';
-import SearchResultWrapper from '../search/searchResultWrapper';
+import {t} from 'app/locale';
+import Search from 'app/components/search';
+import SearchResult from 'app/components/search/searchResult';
+import SearchResultWrapper from 'app/components/search/searchResultWrapper';
 
 const dropdownStyle = css`
   width: 100%;

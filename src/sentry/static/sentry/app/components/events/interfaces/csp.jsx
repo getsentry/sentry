@@ -1,11 +1,11 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import SentryTypes from '../../../proptypes';
+import SentryTypes from 'app/proptypes';
 
-import GroupEventDataSection from '../eventDataSection';
-import CSPContent from './cspContent';
-import CSPHelp from './cspHelp';
-import {t} from '../../../locale';
+import GroupEventDataSection from 'app/components/events/eventDataSection';
+import CSPContent from 'app/components/events/interfaces/cspContent';
+import CSPHelp from 'app/components/events/interfaces/cspHelp';
+import {t} from 'app/locale';
 
 function getView(view, data) {
   switch (view) {

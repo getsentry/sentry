@@ -2,10 +2,10 @@ import {flatten} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {loadSearchMap} from '../../../actionCreators/formSearch';
-import ApiSource from './apiSource';
-import FormSource from './formSource';
-import RouteSource from './routeSource';
+import {loadSearchMap} from 'app/actionCreators/formSearch';
+import ApiSource from 'app/components/search/sources/apiSource';
+import FormSource from 'app/components/search/sources/formSource';
+import RouteSource from 'app/components/search/sources/routeSource';
 
 class SearchSources extends React.Component {
   static propTypes = {

@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import BarChart from '../barChart';
+import BarChart from 'app/components/barChart';
 
 const StyledBarChart = styled(BarChart)`
   height: 24px;

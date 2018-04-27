@@ -3,8 +3,8 @@
 import React from 'react';
 import {Link} from 'react-router';
 
-import ResultGrid from '../components/resultGrid';
-import {t} from '../locale';
+import ResultGrid from 'app/components/resultGrid';
+import {t} from 'app/locale';
 
 class AdminOrganizations extends React.Component {
   getRow = row => {

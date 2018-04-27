@@ -1,8 +1,8 @@
 import React from 'react';
 
-import {defined} from '../../utils';
+import {defined} from 'app/utils';
 
-import InputField from './inputField';
+import InputField from 'app/components/forms/inputField';
 
 export default class BooleanField extends InputField {
   coerceValue(props) {

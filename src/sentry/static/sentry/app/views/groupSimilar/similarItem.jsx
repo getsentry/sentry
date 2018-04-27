@@ -4,18 +4,18 @@ import Reflux from 'reflux';
 import classNames from 'classnames';
 import createReactClass from 'create-react-class';
 
-import {openDiffModal} from '../../actionCreators/modal';
-import Checkbox from '../../components/checkbox';
-import Count from '../../components/count';
-import EventOrGroupExtraDetails from '../../components/eventOrGroupExtraDetails';
-import EventOrGroupHeader from '../../components/eventOrGroupHeader';
-import FlowLayout from '../../components/flowLayout';
-import GroupingActions from '../../actions/groupingActions';
-import GroupingStore from '../../stores/groupingStore';
-import Hovercard from '../../components/hovercard';
-import ScoreBar from '../../components/scoreBar';
-import SimilarScoreCard from '../../components/similarScoreCard';
-import SpreadLayout from '../../components/spreadLayout';
+import {openDiffModal} from 'app/actionCreators/modal';
+import Checkbox from 'app/components/checkbox';
+import Count from 'app/components/count';
+import EventOrGroupExtraDetails from 'app/components/eventOrGroupExtraDetails';
+import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
+import FlowLayout from 'app/components/flowLayout';
+import GroupingActions from 'app/actions/groupingActions';
+import GroupingStore from 'app/stores/groupingStore';
+import Hovercard from 'app/components/hovercard';
+import ScoreBar from 'app/components/scoreBar';
+import SimilarScoreCard from 'app/components/similarScoreCard';
+import SpreadLayout from 'app/components/spreadLayout';
 
 const similarInterfaces = ['exception', 'message'];
 

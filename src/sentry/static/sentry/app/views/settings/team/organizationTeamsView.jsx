@@ -1,15 +1,15 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {getOrganizationState} from '../../../mixins/organizationState';
-import {openCreateTeamModal} from '../../../actionCreators/modal';
-import {t} from '../../../locale';
-import AllTeamsList from './allTeamsList';
-import Button from '../../../components/buttons/button';
-import {Panel, PanelBody, PanelHeader} from '../../../components/panels';
-import SentryTypes from '../../../proptypes';
-import SettingsPageHeader from '../components/settingsPageHeader';
-import recreateRoute from '../../../utils/recreateRoute';
+import {getOrganizationState} from 'app/mixins/organizationState';
+import {openCreateTeamModal} from 'app/actionCreators/modal';
+import {t} from 'app/locale';
+import AllTeamsList from 'app/views/settings/team/allTeamsList';
+import Button from 'app/components/buttons/button';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import SentryTypes from 'app/proptypes';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import recreateRoute from 'app/utils/recreateRoute';
 
 class OrganizationTeamsView extends React.Component {
   static propTypes = {

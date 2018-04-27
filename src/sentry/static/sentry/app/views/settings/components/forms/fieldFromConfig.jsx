@@ -1,15 +1,15 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import BooleanField from './booleanField';
-import RangeField from './rangeField';
+import BooleanField from 'app/views/settings/components/forms/booleanField';
+import RangeField from 'app/views/settings/components/forms/rangeField';
 // import Select2FieldAutocomplete from './select2FieldAutocomplete';
-import Select2Field from './select2Field';
+import Select2Field from 'app/views/settings/components/forms/select2Field';
 // import Select2TextField from './select2TextField';
-import TextField from './textField';
-import TextareaField from './textareaField';
-import RadioField from './radioField';
-import InputField from './inputField';
+import TextField from 'app/views/settings/components/forms/textField';
+import TextareaField from 'app/views/settings/components/forms/textareaField';
+import RadioField from 'app/views/settings/components/forms/radioField';
+import InputField from 'app/views/settings/components/forms/inputField';
 
 export default class FieldFromConfig extends React.Component {
   static propTypes = {

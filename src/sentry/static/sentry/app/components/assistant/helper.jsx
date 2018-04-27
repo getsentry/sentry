@@ -2,19 +2,19 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
-import {t} from '../../locale';
+import {t} from 'app/locale';
 import {
   closeGuideOrSupport,
   fetchGuides,
   nextStep,
   recordDismiss,
-} from '../../actionCreators/guides';
-import SupportDrawer from './supportDrawer';
-import GuideDrawer from './guideDrawer';
-import GuideStore from '../../stores/guideStore';
-import CueIcon from './cueIcon';
-import AssistantContainer from './assistantContainer';
-import CloseIcon from './closeIcon';
+} from 'app/actionCreators/guides';
+import SupportDrawer from 'app/components/assistant/supportDrawer';
+import GuideDrawer from 'app/components/assistant/guideDrawer';
+import GuideStore from 'app/stores/guideStore';
+import CueIcon from 'app/components/assistant/cueIcon';
+import AssistantContainer from 'app/components/assistant/assistantContainer';
+import CloseIcon from 'app/components/assistant/closeIcon';
 
 // AssistantHelper is responsible for rendering the cue message, guide drawer and support drawer.
 const AssistantHelper = createReactClass({

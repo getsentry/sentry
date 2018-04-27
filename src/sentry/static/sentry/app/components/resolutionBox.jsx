@@ -1,9 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import Avatar from './avatar';
-import Version from './version';
-import {t, tct} from '../locale';
+import Avatar from 'app/components/avatar';
+import Version from 'app/components/version';
+import {t, tct} from 'app/locale';
 
 export default class ResolutionBox extends React.Component {
   static propTypes = {

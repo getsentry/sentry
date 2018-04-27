@@ -1,8 +1,8 @@
 import _ from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
-import KeyValueList from './interfaces/keyValueList';
-import {t} from '../../locale';
+import KeyValueList from 'app/components/events/interfaces/keyValueList';
+import {t} from 'app/locale';
 
 const keyMapping = {
   image_uuid: 'Debug ID',

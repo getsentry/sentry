@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import StackedBarChart from '../components/stackedBarChart';
+import StackedBarChart from 'app/components/stackedBarChart';
 
 class BarChart extends React.Component {
   static propTypes = {

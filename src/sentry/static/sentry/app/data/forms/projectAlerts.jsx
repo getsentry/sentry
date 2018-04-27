@@ -1,4 +1,4 @@
-import {t, tn} from '../../locale';
+import {t, tn} from 'app/locale';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/:projectId/alerts/';

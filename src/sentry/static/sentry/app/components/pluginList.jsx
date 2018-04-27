@@ -1,10 +1,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {enablePlugin, disablePlugin} from '../actionCreators/plugins';
-import InactivePlugins from './inactivePlugins';
-import PluginConfig from './pluginConfig';
-import {t} from '../locale';
+import {enablePlugin, disablePlugin} from 'app/actionCreators/plugins';
+import InactivePlugins from 'app/components/inactivePlugins';
+import PluginConfig from 'app/components/pluginConfig';
+import {t} from 'app/locale';
 
 export default class PluginList extends React.Component {
   static propTypes = {

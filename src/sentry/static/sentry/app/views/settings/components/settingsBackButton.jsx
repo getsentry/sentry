@@ -1,12 +1,12 @@
 import {Link} from 'react-router';
 import React from 'react';
 import styled from 'react-emotion';
-import {t} from '../../../locale';
+import {t} from 'app/locale';
 
-import InlineSvg from '../../../components/inlineSvg';
-import SentryTypes from '../../../proptypes';
-import replaceRouterParams from '../../../utils/replaceRouterParams';
-import withLatestContext from '../../../utils/withLatestContext';
+import InlineSvg from 'app/components/inlineSvg';
+import SentryTypes from 'app/proptypes';
+import replaceRouterParams from 'app/utils/replaceRouterParams';
+import withLatestContext from 'app/utils/withLatestContext';
 
 const BackButtonWrapper = styled(Link)`
   display: flex;

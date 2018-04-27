@@ -1,18 +1,18 @@
 import React from 'react';
 
-import {t} from '../../../locale';
-import AlertLink from '../../../components/alertLink';
-import AsyncView from '../../asyncView';
-import Button from '../../../components/buttons/button';
-import Form from '../components/forms/form';
-import JsonForm from '../components/forms/jsonForm';
-import ListLink from '../../../components/listLink';
-import {PanelAlert} from '../../../components/panels';
-import PluginList from '../../../components/pluginList';
-import SentryTypes from '../../../proptypes';
-import SettingsPageHeader from '../components/settingsPageHeader';
-import {fields} from '../../../data/forms/projectAlerts';
-import recreateRoute from '../../../utils/recreateRoute';
+import {t} from 'app/locale';
+import AlertLink from 'app/components/alertLink';
+import AsyncView from 'app/views/asyncView';
+import Button from 'app/components/buttons/button';
+import Form from 'app/views/settings/components/forms/form';
+import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import ListLink from 'app/components/listLink';
+import {PanelAlert} from 'app/components/panels';
+import PluginList from 'app/components/pluginList';
+import SentryTypes from 'app/proptypes';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import {fields} from 'app/data/forms/projectAlerts';
+import recreateRoute from 'app/utils/recreateRoute';
 
 export default class ProjectAlertSettings extends AsyncView {
   static propTypes = {

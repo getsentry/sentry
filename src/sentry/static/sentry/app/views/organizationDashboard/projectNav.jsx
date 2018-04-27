@@ -3,15 +3,15 @@ import createReactClass from 'create-react-class';
 import {Flex, Box} from 'grid-emotion';
 import styled from 'react-emotion';
 
-import space from '../../styles/space';
+import space from 'app/styles/space';
 
-import OrganizationState from '../../mixins/organizationState';
+import OrganizationState from 'app/mixins/organizationState';
 
-import DropdownLink from '../../components/dropdownLink';
-import MenuItem from '../../components/menuItem';
-import {t} from '../../locale';
-import Button from '../../components/buttons/button';
-import Tooltip from '../../components/tooltip';
+import DropdownLink from 'app/components/dropdownLink';
+import MenuItem from 'app/components/menuItem';
+import {t} from 'app/locale';
+import Button from 'app/components/buttons/button';
+import Tooltip from 'app/components/tooltip';
 
 const ProjectNav = createReactClass({
   mixins: [OrganizationState],

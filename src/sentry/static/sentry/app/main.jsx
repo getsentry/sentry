@@ -1,6 +1,6 @@
 import React from 'react';
 import {Router, browserHistory} from 'react-router';
-import routes from './routes';
+import routes from 'app/routes';
 
 export default class Main extends React.Component {
   render() {

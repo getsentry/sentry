@@ -2,11 +2,11 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 
-import SentryTypes from '../proptypes';
-import EnvironmentStore from '../stores/environmentStore';
-import ProjectHeader from '../components/projectHeader';
-import ProjectState from '../mixins/projectState';
-import withEnvironment from '../utils/withEnvironment';
+import SentryTypes from 'app/proptypes';
+import EnvironmentStore from 'app/stores/environmentStore';
+import ProjectHeader from 'app/components/projectHeader';
+import ProjectState from 'app/mixins/projectState';
+import withEnvironment from 'app/utils/withEnvironment';
 
 const ProjectDetailsLayout = createReactClass({
   displayName: 'ProjectDetailsLayout',

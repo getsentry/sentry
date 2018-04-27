@@ -8,23 +8,23 @@ import {
   addLoadingMessage,
   addSuccessMessage,
   removeIndicator,
-} from '../../../actionCreators/indicator';
-import {addTeamToProject} from '../../../actionCreators/projects';
-import {getOrganizationState} from '../../../mixins/organizationState';
-import {openCreateTeamModal} from '../../../actionCreators/modal';
-import {t, tct} from '../../../locale';
-import ApiMixin from '../../../mixins/apiMixin';
-import AsyncView from '../../asyncView';
-import Button from '../../../components/buttons/button';
-import Confirm from '../../../components/confirm';
-import DropdownAutoComplete from '../../../components/dropdownAutoComplete';
-import DropdownButton from '../../../components/dropdownButton';
-import EmptyMessage from '../components/emptyMessage';
-import InlineSvg from '../../../components/inlineSvg';
-import Link from '../../../components/link';
-import {Panel, PanelBody, PanelHeader, PanelItem} from '../../../components/panels';
-import SettingsPageHeader from '../components/settingsPageHeader';
-import space from '../../../styles/space';
+} from 'app/actionCreators/indicator';
+import {addTeamToProject} from 'app/actionCreators/projects';
+import {getOrganizationState} from 'app/mixins/organizationState';
+import {openCreateTeamModal} from 'app/actionCreators/modal';
+import {t, tct} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import AsyncView from 'app/views/asyncView';
+import Button from 'app/components/buttons/button';
+import Confirm from 'app/components/confirm';
+import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
+import DropdownButton from 'app/components/dropdownButton';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import InlineSvg from 'app/components/inlineSvg';
+import Link from 'app/components/link';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import space from 'app/styles/space';
 
 const TeamRow = createReactClass({
   displayName: 'TeamRow',

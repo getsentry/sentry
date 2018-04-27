@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {addErrorMessage} from '../actionCreators/indicator';
-import {t} from '../locale';
+import {addErrorMessage} from 'app/actionCreators/indicator';
+import {t} from 'app/locale';
 
 class AvatarCropper extends React.Component {
   static propTypes = {

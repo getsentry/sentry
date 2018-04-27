@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import Modal from 'react-bootstrap/lib/Modal';
-import {Select2Field} from './forms';
-import {t} from '../locale';
+import {Select2Field} from 'app/components/forms';
+import {t} from 'app/locale';
 
 export default class CustomIgnoreCountModal extends React.Component {
   static propTypes = {

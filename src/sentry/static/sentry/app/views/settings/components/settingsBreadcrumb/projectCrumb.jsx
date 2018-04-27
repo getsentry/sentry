@@ -3,15 +3,15 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import BreadcrumbDropdown from './breadcrumbDropdown';
-import LoadingIndicator from '../../../../components/loadingIndicator';
-import MenuItem from './menuItem';
-import SentryTypes from '../../../../proptypes';
-import TextLink from '../../../../components/textLink';
-import recreateRoute from '../../../../utils/recreateRoute';
-import replaceRouterParams from '../../../../utils/replaceRouterParams';
-import withLatestContext from '../../../../utils/withLatestContext';
-import withProjects from '../../../../utils/withProjects';
+import BreadcrumbDropdown from 'app/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import MenuItem from 'app/views/settings/components/settingsBreadcrumb/menuItem';
+import SentryTypes from 'app/proptypes';
+import TextLink from 'app/components/textLink';
+import recreateRoute from 'app/utils/recreateRoute';
+import replaceRouterParams from 'app/utils/replaceRouterParams';
+import withLatestContext from 'app/utils/withLatestContext';
+import withProjects from 'app/utils/withProjects';
 
 const HEIGHT = '24px';
 const ProjectName = styled.div`

@@ -1,14 +1,11 @@
 import {observable, computed, action} from 'mobx';
 import _ from 'lodash';
 
-import {Client} from '../../../../api';
-import {
-  addErrorMessage,
-  saveOnBlurUndoMessage,
-} from '../../../../actionCreators/indicator';
-import {defined} from '../../../../utils';
-import {t} from '../../../../locale';
-import FormState from '../../../../components/forms/state';
+import {Client} from 'app/api';
+import {addErrorMessage, saveOnBlurUndoMessage} from 'app/actionCreators/indicator';
+import {defined} from 'app/utils';
+import {t} from 'app/locale';
+import FormState from 'app/components/forms/state';
 
 class FormModel {
   /**

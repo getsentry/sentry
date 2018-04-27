@@ -1,17 +1,17 @@
 import {browserHistory} from 'react-router';
 import React from 'react';
 
-import {API_SCOPES} from '../../../../constants';
-import {addErrorMessage, addSuccessMessage} from '../../../../actionCreators/indicator';
-import {t} from '../../../../locale';
-import ApiForm from '../../../../components/forms/apiForm';
-import MultipleCheckboxField from '../../../../components/forms/multipleCheckboxField';
-import AsyncView from '../../../asyncView';
-import SentryTypes from '../../../../proptypes';
-import SplitLayout from '../../../../components/splitLayout';
-import TextField from '../../../../components/forms/textField';
-import TextareaField from '../../../../components/forms/textareaField';
-import recreateRoute from '../../../../utils/recreateRoute';
+import {API_SCOPES} from 'app/constants';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {t} from 'app/locale';
+import ApiForm from 'app/components/forms/apiForm';
+import MultipleCheckboxField from 'app/components/forms/multipleCheckboxField';
+import AsyncView from 'app/views/asyncView';
+import SentryTypes from 'app/proptypes';
+import SplitLayout from 'app/components/splitLayout';
+import TextField from 'app/components/forms/textField';
+import TextareaField from 'app/components/forms/textareaField';
+import recreateRoute from 'app/utils/recreateRoute';
 
 const API_CHOICES = API_SCOPES.map(s => [s, s]);
 

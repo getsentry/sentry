@@ -1,6 +1,6 @@
 import moment from 'moment-timezone';
 import Reflux from 'reflux';
-import {setLocale} from '../locale';
+import {setLocale} from 'app/locale';
 
 const ConfigStore = Reflux.createStore({
   init() {

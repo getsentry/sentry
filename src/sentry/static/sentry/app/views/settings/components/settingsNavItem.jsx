@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import Badge from '../../../components/badge';
+import Badge from 'app/components/badge';
 
 const StyledNavItem = styled(Link)`
   display: block;

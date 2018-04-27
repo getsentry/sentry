@@ -1,7 +1,7 @@
 import Reflux from 'reflux';
 import _ from 'lodash';
 
-import ProjectActions from '../actions/projectActions';
+import ProjectActions from 'app/actions/projectActions';
 
 const ProjectsStore = Reflux.createStore({
   init() {

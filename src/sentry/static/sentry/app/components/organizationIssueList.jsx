@@ -2,10 +2,10 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
 
-import GroupStore from '../stores/groupStore';
-import IssueList from './issueList';
-import OrganizationHomeContainer from './organizations/homeContainer';
-import {t} from '../locale';
+import GroupStore from 'app/stores/groupStore';
+import IssueList from 'app/components/issueList';
+import OrganizationHomeContainer from 'app/components/organizations/homeContainer';
+import {t} from 'app/locale';
 
 class OrganizationIssueList extends React.Component {
   static propTypes = {

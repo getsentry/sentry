@@ -7,10 +7,10 @@ import styled from 'react-emotion';
 import {ThemeProvider} from 'emotion-theming';
 import {cx} from 'emotion';
 
-import ToastIndicator from '../components/alerts/toastIndicator';
-import IndicatorStore from '../stores/indicatorStore';
-import theme from '../utils/theme';
-import {removeIndicator} from '../actionCreators/indicator';
+import ToastIndicator from 'app/components/alerts/toastIndicator';
+import IndicatorStore from 'app/stores/indicatorStore';
+import theme from 'app/utils/theme';
+import {removeIndicator} from 'app/actionCreators/indicator';
 
 const Toasts = styled.div`
   position: fixed;

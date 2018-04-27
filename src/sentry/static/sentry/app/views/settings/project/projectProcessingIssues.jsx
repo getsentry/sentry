@@ -1,20 +1,20 @@
 import React from 'react';
 import createReactClass from 'create-react-class';
 
-import {addLoadingMessage, removeIndicator} from '../../../actionCreators/indicator';
-import {t, tn} from '../../../locale';
-import formGroups from '../../../data/forms/processingIssues';
-import ApiMixin from '../../../mixins/apiMixin';
-import Form from '../components/forms/form';
-import JsonForm from '../components/forms/jsonForm';
-import LoadingError from '../../../components/loadingError';
-import LoadingIndicator from '../../../components/loadingIndicator';
-import OrganizationState from '../../../mixins/organizationState';
-import SettingsPageHeader from '../components/settingsPageHeader';
-import TextBlock from '../components/text/textBlock';
-import TimeSince from '../../../components/timeSince';
-import EmptyStateWarning from '../../../components/emptyStateWarning';
-import {Panel} from '../../../components/panels';
+import {addLoadingMessage, removeIndicator} from 'app/actionCreators/indicator';
+import {t, tn} from 'app/locale';
+import formGroups from 'app/data/forms/processingIssues';
+import ApiMixin from 'app/mixins/apiMixin';
+import Form from 'app/views/settings/components/forms/form';
+import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import OrganizationState from 'app/mixins/organizationState';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import TimeSince from 'app/components/timeSince';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
+import {Panel} from 'app/components/panels';
 
 const MESSAGES = {
   native_no_crashed_thread: t('No crashed thread found in crash report'),

@@ -4,17 +4,17 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 
-import {fetchTeamDetails} from '../actionCreators/teams';
-import {t} from '../locale';
-import ApiMixin from '../mixins/apiMixin';
-import DropdownLink from '../components/dropdownLink';
-import ListLink from '../components/listLink';
-import LoadingError from '../components/loadingError';
-import LoadingIndicator from '../components/loadingIndicator';
-import MenuItem from '../components/menuItem';
-import OrganizationState from '../mixins/organizationState';
-import TeamStore from '../stores/teamStore';
-import recreateRoute from '../utils/recreateRoute';
+import {fetchTeamDetails} from 'app/actionCreators/teams';
+import {t} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import DropdownLink from 'app/components/dropdownLink';
+import ListLink from 'app/components/listLink';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import MenuItem from 'app/components/menuItem';
+import OrganizationState from 'app/mixins/organizationState';
+import TeamStore from 'app/stores/teamStore';
+import recreateRoute from 'app/utils/recreateRoute';
 
 const TeamDetails = createReactClass({
   displayName: 'TeamDetails',

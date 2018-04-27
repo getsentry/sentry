@@ -2,15 +2,15 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import Crumb from './crumb';
-import Divider from './divider';
-import InlineSvg from '../../../../components/inlineSvg';
-import OrganizationCrumb from './organizationCrumb';
-import ProjectCrumb from './projectCrumb';
-import SentryTypes from '../../../../proptypes';
-import TeamCrumb from './teamCrumb';
-import TextLink from '../../../../components/textLink';
-import recreateRoute from '../../../../utils/recreateRoute';
+import Crumb from 'app/views/settings/components/settingsBreadcrumb/crumb';
+import Divider from 'app/views/settings/components/settingsBreadcrumb/divider';
+import InlineSvg from 'app/components/inlineSvg';
+import OrganizationCrumb from 'app/views/settings/components/settingsBreadcrumb/organizationCrumb';
+import ProjectCrumb from 'app/views/settings/components/settingsBreadcrumb/projectCrumb';
+import SentryTypes from 'app/proptypes';
+import TeamCrumb from 'app/views/settings/components/settingsBreadcrumb/teamCrumb';
+import TextLink from 'app/components/textLink';
+import recreateRoute from 'app/utils/recreateRoute';
 
 const MENUS = {
   Organization: OrganizationCrumb,

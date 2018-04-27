@@ -4,8 +4,8 @@ import React from 'react';
 import styled from 'react-emotion';
 import idx from 'idx';
 
-import {defined} from '../../utils';
-import InlineSvg from '../inlineSvg';
+import {defined} from 'app/utils';
+import InlineSvg from 'app/components/inlineSvg';
 
 const StyledInlineSvg = styled(InlineSvg)`
   display: block;

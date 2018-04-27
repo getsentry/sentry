@@ -4,12 +4,12 @@ import React from 'react';
 
 import createReactClass from 'create-react-class';
 
-import {addErrorMessage} from '../../../../actionCreators/indicator';
-import ApiMixin from '../../../../mixins/apiMixin';
-import Form from '../../components/forms/form';
-import JsonForm from '../../components/forms/jsonForm';
-import organizationSettingsFields from '../../../../data/forms/organizationGeneralSettings';
-import OrganizationState from '../../../../mixins/organizationState';
+import {addErrorMessage} from 'app/actionCreators/indicator';
+import ApiMixin from 'app/mixins/apiMixin';
+import Form from 'app/views/settings/components/forms/form';
+import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import organizationSettingsFields from 'app/data/forms/organizationGeneralSettings';
+import OrganizationState from 'app/mixins/organizationState';
 
 const NewOrganizationSettingsForm = createReactClass({
   displayName: 'NewOrganizationSettingsForm',

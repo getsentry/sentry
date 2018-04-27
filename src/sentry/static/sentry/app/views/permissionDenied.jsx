@@ -4,9 +4,9 @@ import PropTypes from 'prop-types';
 import Raven from 'raven-js';
 import React from 'react';
 
-import {t, tct} from '../locale';
-import ExternalLink from '../components/externalLink';
-import LoadingError from '../components/loadingError';
+import {t, tct} from 'app/locale';
+import ExternalLink from 'app/components/externalLink';
+import LoadingError from 'app/components/loadingError';
 
 const ERROR_NAME = 'Permission Denied';
 

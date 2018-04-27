@@ -1,4 +1,4 @@
-import {extractMultilineFields} from '../../utils';
+import {extractMultilineFields} from 'app/utils';
 
 const forms = [
   {

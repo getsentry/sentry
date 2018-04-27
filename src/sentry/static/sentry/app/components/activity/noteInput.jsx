@@ -7,16 +7,16 @@ import classNames from 'classnames';
 import {MentionsInput, Mention} from 'react-mentions';
 import _ from 'lodash';
 
-import ApiMixin from '../../mixins/apiMixin';
-import OrganizationState from '../../mixins/organizationState';
+import ApiMixin from 'app/mixins/apiMixin';
+import OrganizationState from 'app/mixins/organizationState';
 
-import GroupStore from '../../stores/groupStore';
-import ProjectsStore from '../../stores/projectsStore';
-import IndicatorStore from '../../stores/indicatorStore';
-import {logException} from '../../utils/logging';
-import localStorage from '../../utils/localStorage';
-import {t} from '../../locale';
-import mentionsStyle from '../../../styles/mentions-styles';
+import GroupStore from 'app/stores/groupStore';
+import ProjectsStore from 'app/stores/projectsStore';
+import IndicatorStore from 'app/stores/indicatorStore';
+import {logException} from 'app/utils/logging';
+import localStorage from 'app/utils/localStorage';
+import {t} from 'app/locale';
+import mentionsStyle from 'app/../styles/mentions-styles';
 
 const localStorageKey = 'noteinput:latest';
 

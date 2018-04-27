@@ -3,9 +3,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import FieldControlState from './fieldControlState';
-import InlineSvg from '../../../../../components/inlineSvg';
-import Tooltip from '../../../../../components/tooltip';
+import FieldControlState from 'app/views/settings/components/forms/field/fieldControlState';
+import InlineSvg from 'app/components/inlineSvg';
+import Tooltip from 'app/components/tooltip';
 
 // This wraps Control + ControlError message
 // * can NOT be a flex box here because of `position: absolute` on "control error message"

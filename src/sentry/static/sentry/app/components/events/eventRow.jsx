@@ -1,9 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
-import EventStore from '../../stores/eventStore';
-import Avatar from '../avatar';
-import TimeSince from '../timeSince';
+import EventStore from 'app/stores/eventStore';
+import Avatar from 'app/components/avatar';
+import TimeSince from 'app/components/timeSince';
 
 class EventRow extends React.Component {
   static propTypes = {

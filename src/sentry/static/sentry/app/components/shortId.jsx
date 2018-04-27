@@ -2,9 +2,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
-import ProjectState from '../mixins/projectState';
+import ProjectState from 'app/mixins/projectState';
 
-import AutoSelectText from './autoSelectText';
+import AutoSelectText from 'app/components/autoSelectText';
 
 const ShortId = createReactClass({
   displayName: 'ShortId',

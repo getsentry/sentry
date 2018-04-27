@@ -3,17 +3,17 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {PanelItem} from '../../../../components/panels';
-import {t, tct} from '../../../../locale';
-import Avatar from '../../../../components/avatar';
-import Button from '../../../../components/buttons/button';
-import Confirm from '../../../../components/confirm';
-import InlineSvg from '../../../../components/inlineSvg';
-import Link from '../../../../components/link';
-import LoadingIndicator from '../../../../components/loadingIndicator';
-import SentryTypes from '../../../../proptypes';
-import Tooltip from '../../../../components/tooltip';
-import recreateRoute from '../../../../utils/recreateRoute';
+import {PanelItem} from 'app/components/panels';
+import {t, tct} from 'app/locale';
+import Avatar from 'app/components/avatar';
+import Button from 'app/components/buttons/button';
+import Confirm from 'app/components/confirm';
+import InlineSvg from 'app/components/inlineSvg';
+import Link from 'app/components/link';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import SentryTypes from 'app/proptypes';
+import Tooltip from 'app/components/tooltip';
+import recreateRoute from 'app/utils/recreateRoute';
 
 const UserName = styled(Link)`
   font-size: 16px;

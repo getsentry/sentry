@@ -2,9 +2,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
 
-import {defined} from '../../../utils';
-import ErrorBoundary from '../../errorBoundary';
-import KeyValueList from '../interfaces/keyValueList';
+import {defined} from 'app/utils';
+import ErrorBoundary from 'app/components/errorBoundary';
+import KeyValueList from 'app/components/events/interfaces/keyValueList';
 
 class ContextBlock extends React.Component {
   static propTypes = {

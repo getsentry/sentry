@@ -3,7 +3,7 @@ import React from 'react';
 import classNames from 'classnames';
 import {diffChars, diffWords, diffLines} from 'diff';
 
-import '../../less/components/splitDiff.less';
+import 'app/../less/components/splitDiff.less';
 
 const diffFnMap = {
   chars: diffChars,

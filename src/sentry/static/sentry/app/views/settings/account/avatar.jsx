@@ -3,16 +3,16 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
-import {addErrorMessage, addSuccessMessage} from '../../../actionCreators/indicator';
-import {t} from '../../../locale';
-import ApiMixin from '../../../mixins/apiMixin';
-import Avatar from '../../../components/avatar';
-import AvatarCropper from '../../../components/avatarCropper';
-import LoadingError from '../../../components/loadingError';
-import LoadingIndicator from '../../../components/loadingIndicator';
-import {Panel, PanelBody, PanelHeader} from '../../../components/panels';
-import RadioGroup from '../components/forms/controls/radioGroup';
-import SentryTypes from '../../../proptypes';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {t} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import Avatar from 'app/components/avatar';
+import AvatarCropper from 'app/components/avatarCropper';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
+import SentryTypes from 'app/proptypes';
 
 const AccountAvatar = createReactClass({
   displayName: 'AccountAvatar',

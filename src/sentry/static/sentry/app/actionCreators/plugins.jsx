@@ -1,7 +1,7 @@
-import {t} from '../locale';
-import PluginActions from '../actions/pluginActions';
-import IndicatorStore from '../stores/indicatorStore';
-import {Client} from '../api';
+import {t} from 'app/locale';
+import PluginActions from 'app/actions/pluginActions';
+import IndicatorStore from 'app/stores/indicatorStore';
+import {Client} from 'app/api';
 
 const activeFetch = {};
 // PluginsStore always exists, so api client should be independent of component lifecycle

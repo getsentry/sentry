@@ -2,8 +2,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import classnames from 'classnames';
 
-import {flattenedPlatforms} from '../utils';
-import PlatformiconTile from './platformiconTile';
+import {flattenedPlatforms} from 'app/views/onboarding/utils';
+import PlatformiconTile from 'app/views/onboarding/project/platformiconTile';
 
 class PlatformCard extends React.Component {
   static propTypes = {

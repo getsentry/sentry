@@ -3,9 +3,9 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 
-import Avatar from './avatar';
-import space from '../styles/space';
-import SentryTypes from '../proptypes';
+import Avatar from 'app/components/avatar';
+import space from 'app/styles/space';
+import SentryTypes from 'app/proptypes';
 
 class TeamBadge extends React.Component {
   static propTypes = {

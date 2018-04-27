@@ -1,10 +1,10 @@
 import _ from 'lodash';
 import Reflux from 'reflux';
 
-import GroupActions from '../actions/groupActions';
-import IndicatorStore from './indicatorStore';
-import PendingChangeQueue from '../utils/pendingChangeQueue';
-import {t} from '../locale';
+import GroupActions from 'app/actions/groupActions';
+import IndicatorStore from 'app/stores/indicatorStore';
+import PendingChangeQueue from 'app/utils/pendingChangeQueue';
+import {t} from 'app/locale';
 
 function showAlert(msg, type) {
   IndicatorStore.add(msg, type, {

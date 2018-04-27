@@ -1,4 +1,4 @@
-import EnvironmentActions from '../actions/environmentActions';
+import EnvironmentActions from 'app/actions/environmentActions';
 
 export function setActiveEnvironment(environment) {
   EnvironmentActions.setActive(environment);

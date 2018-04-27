@@ -2,8 +2,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
 
-import FormState from './state';
-import {t} from '../../locale';
+import FormState from 'app/components/forms/state';
+import {t} from 'app/locale';
 
 export default class Form extends React.Component {
   static propTypes = {

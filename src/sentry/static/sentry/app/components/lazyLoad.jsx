@@ -2,10 +2,10 @@ import PropTypes from 'prop-types';
 import Raven from 'raven-js';
 import React from 'react';
 
-import {t} from '../locale';
-import LoadingError from './loadingError';
-import LoadingIndicator from '../components/loadingIndicator';
-import retryableImport from '../utils/retryableImport';
+import {t} from 'app/locale';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import retryableImport from 'app/utils/retryableImport';
 
 class LazyLoad extends React.Component {
   static propTypes = {

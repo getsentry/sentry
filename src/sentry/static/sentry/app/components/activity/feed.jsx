@@ -2,15 +2,15 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 
-import {logException} from '../../utils/logging';
-import {t} from '../../locale';
-import ActivityItem from './item';
-import ApiMixin from '../../mixins/apiMixin';
-import ErrorBoundary from '../errorBoundary';
-import LoadingError from '../loadingError';
-import LoadingIndicator from '../loadingIndicator';
-import Pagination from '../pagination';
-import space from '../../styles/space';
+import {logException} from 'app/utils/logging';
+import {t} from 'app/locale';
+import ActivityItem from 'app/components/activity/item';
+import ApiMixin from 'app/mixins/apiMixin';
+import ErrorBoundary from 'app/components/errorBoundary';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import Pagination from 'app/components/pagination';
+import space from 'app/styles/space';
 
 const ActivityFeed = createReactClass({
   displayName: 'ActivityFeed',

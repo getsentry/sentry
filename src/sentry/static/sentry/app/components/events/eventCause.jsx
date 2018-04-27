@@ -2,12 +2,12 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 
-import ApiMixin from '../../mixins/apiMixin';
-import GroupState from '../../mixins/groupState';
-import CommitRow from '../commitRow';
-import {t} from '../../locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import GroupState from 'app/mixins/groupState';
+import CommitRow from 'app/components/commitRow';
+import {t} from 'app/locale';
 
-import {Panel} from '../panels';
+import {Panel} from 'app/components/panels';
 
 export default createReactClass({
   displayName: 'EventCause',

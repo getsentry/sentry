@@ -3,11 +3,11 @@ import React from 'react';
 import classnames from 'classnames';
 import _ from 'lodash';
 
-import ListLink from '../../../components/listLink';
-import {flattenedPlatforms, categoryList} from '../utils';
-import PlatformCard from './platformCard';
-import {t} from '../../../locale';
-import HookStore from '../../../stores/hookStore';
+import ListLink from 'app/components/listLink';
+import {flattenedPlatforms, categoryList} from 'app/views/onboarding/utils';
+import PlatformCard from 'app/views/onboarding/project/platformCard';
+import {t} from 'app/locale';
+import HookStore from 'app/stores/hookStore';
 
 const allCategories = categoryList.concat({id: 'all', name: t('All')});
 

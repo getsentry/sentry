@@ -3,12 +3,12 @@ import createReactClass from 'create-react-class';
 import moment from 'moment';
 import _ from 'lodash';
 
-import ConfigStore from '../../stores/configStore';
-import Avatar from '../../components/avatar';
-import GroupState from '../../mixins/groupState';
-import {userDisplayName} from '../../utils/formatters';
-import Tooltip from '../../components/tooltip';
-import {t} from '../../locale';
+import ConfigStore from 'app/stores/configStore';
+import Avatar from 'app/components/avatar';
+import GroupState from 'app/mixins/groupState';
+import {userDisplayName} from 'app/utils/formatters';
+import Tooltip from 'app/components/tooltip';
+import {t} from 'app/locale';
 
 const GroupSeenBy = createReactClass({
   displayName: 'GroupSeenBy',

@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import ContextBlock from '../components/events/contexts/contextBlock';
+import ContextBlock from 'app/components/events/contexts/contextBlock';
 
 class BaseContext extends React.Component {
   render() {

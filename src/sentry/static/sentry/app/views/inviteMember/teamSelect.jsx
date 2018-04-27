@@ -2,9 +2,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {t} from '../../locale';
-import Checkbox from '../../components/checkbox';
-import {Panel, PanelBody, PanelHeader, PanelItem} from '../../components/panels';
+import {t} from 'app/locale';
+import Checkbox from 'app/components/checkbox';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 
 const TeamItem = styled.div`
   width: 25%;

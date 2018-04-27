@@ -4,11 +4,11 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import styled from 'react-emotion';
 
-import {inputStyles} from '../../../../styles/input';
-import {selectText} from '../../../../utils/selectText';
-import Button from '../../../../components/buttons/button';
-import Clipboard from '../../../../components/clipboard';
-import InlineSvg from '../../../../components/inlineSvg';
+import {inputStyles} from 'app/styles/input';
+import {selectText} from 'app/utils/selectText';
+import Button from 'app/components/buttons/button';
+import Clipboard from 'app/components/clipboard';
+import InlineSvg from 'app/components/inlineSvg';
 
 const StyledInput = styled(props => {
   return <input {...props} />;

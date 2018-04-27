@@ -4,18 +4,18 @@ import {Flex} from 'grid-emotion';
 
 import createReactClass from 'create-react-class';
 
-import ApiMixin from '../mixins/apiMixin';
-import OrganizationState from '../mixins/organizationState';
-import Tooltip from '../components/tooltip';
-import FileSize from '../components/fileSize';
-import LoadingError from '../components/loadingError';
-import LoadingIndicator from '../components/loadingIndicator';
-import IndicatorStore from '../stores/indicatorStore';
-import Pagination from '../components/pagination';
-import LinkWithConfirmation from '../components/linkWithConfirmation';
-import {t} from '../locale';
-import {Panel, PanelHeader, PanelBody, PanelItem} from '../components/panels';
-import EmptyStateWarning from '../components/emptyStateWarning';
+import ApiMixin from 'app/mixins/apiMixin';
+import OrganizationState from 'app/mixins/organizationState';
+import Tooltip from 'app/components/tooltip';
+import FileSize from 'app/components/fileSize';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import IndicatorStore from 'app/stores/indicatorStore';
+import Pagination from 'app/components/pagination';
+import LinkWithConfirmation from 'app/components/linkWithConfirmation';
+import {t} from 'app/locale';
+import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
 
 const ReleaseArtifacts = createReactClass({
   displayName: 'ReleaseArtifacts',

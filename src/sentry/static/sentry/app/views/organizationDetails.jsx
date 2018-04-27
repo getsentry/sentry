@@ -1,14 +1,14 @@
 import React, {Component} from 'react';
 import PropTypes from 'prop-types';
 
-import AlertActions from '../actions/alertActions';
-import Button from '../components/buttons/button';
-import {Client} from '../api';
-import OrganizationContext from './organizationContext';
-import NarrowLayout from '../components/narrowLayout';
-import Footer from '../components/footer';
-import Sidebar from '../components/sidebar';
-import {t, tct} from '../locale';
+import AlertActions from 'app/actions/alertActions';
+import Button from 'app/components/buttons/button';
+import {Client} from 'app/api';
+import OrganizationContext from 'app/views/organizationContext';
+import NarrowLayout from 'app/components/narrowLayout';
+import Footer from 'app/components/footer';
+import Sidebar from 'app/components/sidebar';
+import {t, tct} from 'app/locale';
 
 class DeletionInProgress extends Component {
   static propTypes = {

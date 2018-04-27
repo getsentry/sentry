@@ -3,11 +3,11 @@ import React from 'react';
 import classNames from 'classnames';
 import {Link} from 'react-router';
 
-import Hovercard from './hovercard';
-import Count from './count';
-import EventOrGroupTitle from './eventOrGroupTitle';
-import TimeSince from './timeSince';
-import {t} from '../locale';
+import Hovercard from 'app/components/hovercard';
+import Count from 'app/components/count';
+import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
+import TimeSince from 'app/components/timeSince';
+import {t} from 'app/locale';
 
 export default class IssueLink extends React.Component {
   static propTypes = {

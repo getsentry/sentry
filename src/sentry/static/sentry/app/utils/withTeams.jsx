@@ -2,8 +2,8 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 
-import TeamStore from '../stores/teamStore';
-import SentryTypes from '../proptypes';
+import TeamStore from 'app/stores/teamStore';
+import SentryTypes from 'app/proptypes';
 
 /**
  * Higher order component that uses TeamStore and provides a list of teams

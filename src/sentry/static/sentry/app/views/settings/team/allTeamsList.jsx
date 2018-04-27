@@ -2,12 +2,12 @@ import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {openCreateTeamModal} from '../../../actionCreators/modal';
-import {tct} from '../../../locale';
-import AllTeamsRow from './allTeamsRow';
-import EmptyMessage from '../components/emptyMessage';
-import SentryTypes from '../../../proptypes';
-import TextBlock from '../components/text/textBlock';
+import {openCreateTeamModal} from 'app/actionCreators/modal';
+import {tct} from 'app/locale';
+import AllTeamsRow from 'app/views/settings/team/allTeamsRow';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import SentryTypes from 'app/proptypes';
+import TextBlock from 'app/views/settings/components/text/textBlock';
 
 class AllTeamsList extends React.Component {
   static propTypes = {

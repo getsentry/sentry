@@ -4,10 +4,10 @@ import createReactClass from 'create-react-class';
 import $ from 'jquery';
 import {browserHistory} from 'react-router';
 
-import ApiMixin from '../mixins/apiMixin';
-import DropdownLink from './dropdownLink';
-import MenuItem from './menuItem';
-import Pagination from './pagination';
+import ApiMixin from 'app/mixins/apiMixin';
+import DropdownLink from 'app/components/dropdownLink';
+import MenuItem from 'app/components/menuItem';
+import Pagination from 'app/components/pagination';
 
 class Filter extends React.Component {
   static propTypes = {

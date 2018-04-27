@@ -2,17 +2,19 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 
-import {t, tct} from '../../../locale';
-import AsyncView from '../../asyncView';
-import ExternalLink from '../../../components/externalLink';
-import Form from '../components/forms/form';
-import JsonForm from '../components/forms/jsonForm';
-import {Panel, PanelBody, PanelHeader} from '../../../components/panels';
-import ReportUri, {getSecurityDsn} from './reportUri';
-import PreviewFeature from '../../../components/previewFeature';
-import SettingsPageHeader from '../components/settingsPageHeader';
-import TextBlock from '../components/text/textBlock';
-import formGroups from '../../../data/forms/cspReports';
+import {t, tct} from 'app/locale';
+import AsyncView from 'app/views/asyncView';
+import ExternalLink from 'app/components/externalLink';
+import Form from 'app/views/settings/components/forms/form';
+import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import ReportUri, {
+  getSecurityDsn,
+} from 'app/views/settings/projectSecurityHeaders/reportUri';
+import PreviewFeature from 'app/components/previewFeature';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import formGroups from 'app/data/forms/cspReports';
 
 const CodeBlock = styled.pre`
   word-break: break-all;

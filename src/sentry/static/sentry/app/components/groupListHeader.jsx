@@ -1,7 +1,7 @@
 import React from 'react';
 import {Flex, Box} from 'grid-emotion';
-import {t} from '../locale';
-import {PanelHeader} from './panels';
+import {t} from 'app/locale';
+import {PanelHeader} from 'app/components/panels';
 
 class GroupListHeader extends React.Component {
   render() {

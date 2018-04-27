@@ -3,16 +3,16 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {t} from '../../../locale';
-import AlertLink from '../../../components/alertLink';
-import AsyncView from '../../asyncView';
-import Form from '../components/forms/form';
-import InlineSvg from '../../../components/inlineSvg';
-import JsonForm from '../components/forms/jsonForm';
-import Link from '../../../components/link';
-import {PanelFooter} from '../../../components/panels';
-import SettingsPageHeader from '../components/settingsPageHeader';
-import accountNotificationFields from '../../../data/forms/accountNotificationSettings';
+import {t} from 'app/locale';
+import AlertLink from 'app/components/alertLink';
+import AsyncView from 'app/views/asyncView';
+import Form from 'app/views/settings/components/forms/form';
+import InlineSvg from 'app/components/inlineSvg';
+import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import Link from 'app/components/link';
+import {PanelFooter} from 'app/components/panels';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import accountNotificationFields from 'app/data/forms/accountNotificationSettings';
 
 const FINE_TUNE_FOOTERS = {
   Alerts: {

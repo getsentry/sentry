@@ -4,7 +4,7 @@ import jQuery from 'jquery';
 import classnames from 'classnames';
 import {css} from 'react-emotion';
 
-import InputField from './inputField';
+import InputField from 'app/views/settings/components/forms/inputField';
 
 const formControlSmall = css`
   width: 50%;

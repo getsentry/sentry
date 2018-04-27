@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {t} from '../../../../../locale';
+import {t} from 'app/locale';
 
 class RangeSlider extends React.Component {
   static propTypes = {

@@ -2,11 +2,11 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import DocumentTitle from 'react-document-title';
 
-import AsyncView from '../views/asyncView';
-import {t} from '../locale';
-import ConfigStore from '../stores/configStore';
-import {ApiForm} from '../components/forms';
-import {getOptionField, getForm} from '../options';
+import AsyncView from 'app/views/asyncView';
+import {t} from 'app/locale';
+import ConfigStore from 'app/stores/configStore';
+import {ApiForm} from 'app/components/forms';
+import {getOptionField, getForm} from 'app/options';
 
 export default class InstallWizard extends AsyncView {
   static propTypes = {

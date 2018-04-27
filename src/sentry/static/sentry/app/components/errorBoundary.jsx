@@ -4,9 +4,9 @@ import Raven from 'raven-js';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {t} from '../locale';
-import Alert from './alert';
-import DetailedError from './errors/detailedError';
+import {t} from 'app/locale';
+import Alert from 'app/components/alert';
+import DetailedError from 'app/components/errors/detailedError';
 
 let exclamation = ['Raspberries', 'Snap', 'Frig', 'Welp', 'Uhhhh', 'Hmmm'];
 

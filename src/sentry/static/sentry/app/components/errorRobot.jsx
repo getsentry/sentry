@@ -3,8 +3,8 @@ import PropTypes from 'prop-types';
 import {Link, browserHistory} from 'react-router';
 import createReactClass from 'create-react-class';
 
-import ApiMixin from '../mixins/apiMixin';
-import {t} from '../locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import {t} from 'app/locale';
 
 const ErrorRobot = createReactClass({
   displayName: 'ErrorRobot',

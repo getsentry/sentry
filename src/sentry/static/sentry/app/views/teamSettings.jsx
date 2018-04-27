@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import LazyLoad from '../components/lazyLoad';
-import getSettingsComponent from '../utils/getSettingsComponent';
+import LazyLoad from 'app/components/lazyLoad';
+import getSettingsComponent from 'app/utils/getSettingsComponent';
 
 class TeamSettings extends React.Component {
   static propTypes = {

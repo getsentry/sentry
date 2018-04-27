@@ -4,11 +4,11 @@ import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 import classNames from 'classnames';
 
-import ApiMixin from '../../mixins/apiMixin';
-import OrganizationState from '../../mixins/organizationState';
+import ApiMixin from 'app/mixins/apiMixin';
+import OrganizationState from 'app/mixins/organizationState';
 
-import {defined} from '../../utils';
-import {t} from '../../locale';
+import {defined} from 'app/utils';
+import {t} from 'app/locale';
 
 const OrganizationStatOverview = createReactClass({
   displayName: 'OrganizationStatOverview',

@@ -1,5 +1,5 @@
 // Export route to make these forms searchable by label/help
-import {t} from '../../locale';
+import {t} from 'app/locale';
 
 export const route = '/settings/:orgId/:projectId/processing-issues/';
 

@@ -3,16 +3,16 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {t, tct} from '../../../../locale';
-import Button from '../../../../components/buttons/button';
-import Confirm from '../../../../components/confirm';
-import DropdownLink from '../../../../components/dropdownLink';
-import MenuItem from '../../../../components/menuItem';
-import SpreadLayout from '../../../../components/spreadLayout';
-import {Panel, PanelBody, PanelHeader} from '../../../../components/panels';
-import SettingsPageHeader from '../../components/settingsPageHeader';
-import TextBlock from '../../components/text/textBlock';
-import AddRepositoryLink from './addRepositoryLink';
+import {t, tct} from 'app/locale';
+import Button from 'app/components/buttons/button';
+import Confirm from 'app/components/confirm';
+import DropdownLink from 'app/components/dropdownLink';
+import MenuItem from 'app/components/menuItem';
+import SpreadLayout from 'app/components/spreadLayout';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import AddRepositoryLink from 'app/views/settings/organization/repositories/addRepositoryLink';
 
 const RepoRow = styled(SpreadLayout)`
   border-bottom: 1px solid ${p => p.theme.borderLight};

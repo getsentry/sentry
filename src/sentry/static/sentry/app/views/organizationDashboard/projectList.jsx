@@ -3,11 +3,11 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 
-import OrganizationState from '../../mixins/organizationState';
+import OrganizationState from 'app/mixins/organizationState';
 
-import ProjectSparkline from './projectSparkline';
-import {sortArray} from '../../utils';
-import {t, tct} from '../../locale';
+import ProjectSparkline from 'app/views/organizationDashboard/projectSparkline';
+import {sortArray} from 'app/utils';
+import {t, tct} from 'app/locale';
 
 const ProjectList = createReactClass({
   displayName: 'ProjectList',

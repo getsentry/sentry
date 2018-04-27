@@ -2,9 +2,9 @@ import styled from 'react-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import Link from './link';
-import InlineSvg from './inlineSvg';
-import space from '../styles/space';
+import Link from 'app/components/link';
+import InlineSvg from 'app/components/inlineSvg';
+import space from 'app/styles/space';
 
 const AlertLinkText = styled('div')`
   flex-grow: 1;

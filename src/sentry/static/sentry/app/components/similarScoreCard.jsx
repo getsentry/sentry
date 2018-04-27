@@ -2,10 +2,10 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
 
-import {t} from '../locale';
-import SpreadLayout from './spreadLayout';
+import {t} from 'app/locale';
+import SpreadLayout from 'app/components/spreadLayout';
 
-import '../../less/components/similarScoreCard.less';
+import 'app/../less/components/similarScoreCard.less';
 
 const scoreComponents = {
   'exception:message:character-shingles': t('Exception Message'),

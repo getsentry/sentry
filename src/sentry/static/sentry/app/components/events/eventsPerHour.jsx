@@ -4,12 +4,12 @@ import createReactClass from 'create-react-class';
 
 import {Link} from 'react-router';
 
-import ApiMixin from '../../mixins/apiMixin';
-import StackedBarChart from '../../components/stackedBarChart';
-import LoadingError from '../../components/loadingError';
-import OrganizationState from '../../mixins/organizationState';
+import ApiMixin from 'app/mixins/apiMixin';
+import StackedBarChart from 'app/components/stackedBarChart';
+import LoadingError from 'app/components/loadingError';
+import OrganizationState from 'app/mixins/organizationState';
 
-import {t} from '../../locale';
+import {t} from 'app/locale';
 
 const EventsPerHour = createReactClass({
   displayName: 'EventsPerHour',

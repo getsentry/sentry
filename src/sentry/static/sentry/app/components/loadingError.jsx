@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {t} from '../locale';
+import {t} from 'app/locale';
 
 class LoadingError extends React.Component {
   static propTypes = {

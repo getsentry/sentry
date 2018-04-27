@@ -1,10 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import MultiSelectField from '../../../../components/forms/multiSelectField';
-import ActorAvatar from '../../../../components/actorAvatar';
+import MultiSelectField from 'app/components/forms/multiSelectField';
+import ActorAvatar from 'app/components/actorAvatar';
 
-import {t} from '../../../../locale';
+import {t} from 'app/locale';
 
 class ValueComponent extends React.Component {
   static propTypes = {

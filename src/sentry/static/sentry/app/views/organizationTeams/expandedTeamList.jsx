@@ -4,16 +4,16 @@ import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 import LazyLoad from 'react-lazy-load';
 
-import ApiMixin from '../../mixins/apiMixin';
-import {update as projectUpdate} from '../../actionCreators/projects';
-import {leaveTeam} from '../../actionCreators/teams';
-import IndicatorStore from '../../stores/indicatorStore';
-import BarChart from '../../components/barChart';
-import ProjectLabel from '../../components/projectLabel';
-import SentryTypes from '../../proptypes';
-import TooltipMixin from '../../mixins/tooltip';
-import {sortArray} from '../../utils';
-import {t, tct} from '../../locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import {update as projectUpdate} from 'app/actionCreators/projects';
+import {leaveTeam} from 'app/actionCreators/teams';
+import IndicatorStore from 'app/stores/indicatorStore';
+import BarChart from 'app/components/barChart';
+import ProjectLabel from 'app/components/projectLabel';
+import SentryTypes from 'app/proptypes';
+import TooltipMixin from 'app/mixins/tooltip';
+import {sortArray} from 'app/utils';
+import {t, tct} from 'app/locale';
 
 const ExpandedTeamList = createReactClass({
   displayName: 'ExpandedTeamList',

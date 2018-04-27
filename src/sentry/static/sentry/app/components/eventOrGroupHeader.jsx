@@ -4,10 +4,10 @@ import styled, {css} from 'react-emotion';
 import classNames from 'classnames';
 import {capitalize} from 'lodash';
 
-import ProjectLink from '../components/projectLink';
-import {Metadata} from '../proptypes';
-import EventOrGroupTitle from './eventOrGroupTitle';
-import Tooltip from '../components/tooltip';
+import ProjectLink from 'app/components/projectLink';
+import {Metadata} from 'app/proptypes';
+import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
+import Tooltip from 'app/components/tooltip';
 
 /**
  * Displays an event or group/issue title (i.e. in Stream)

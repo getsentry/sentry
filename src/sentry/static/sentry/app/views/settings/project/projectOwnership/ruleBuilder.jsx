@@ -2,18 +2,18 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 import {Flex} from 'grid-emotion';
-import memberListStore from '../../../../stores/memberListStore';
-import ProjectsStore from '../../../../stores/projectsStore';
-import Button from '../../../../components/buttons/button';
-import SelectField from '../../../../components/forms/selectField';
-import TextOverflow from '../../../../components/textOverflow';
-import InlineSvg from '../../../../components/inlineSvg';
-import Input from '../../../../views/settings/components/forms/controls/input';
-import SentryTypes from '../../../../proptypes';
-import {buildUserId, buildTeamId} from '../../../../utils';
-import {addErrorMessage} from '../../../../actionCreators/indicator';
-import SelectOwners from './selectOwners';
-import {t} from '../../../../locale';
+import memberListStore from 'app/stores/memberListStore';
+import ProjectsStore from 'app/stores/projectsStore';
+import Button from 'app/components/buttons/button';
+import SelectField from 'app/components/forms/selectField';
+import TextOverflow from 'app/components/textOverflow';
+import InlineSvg from 'app/components/inlineSvg';
+import Input from 'app/views/settings/components/forms/controls/input';
+import SentryTypes from 'app/proptypes';
+import {buildUserId, buildTeamId} from 'app/utils';
+import {addErrorMessage} from 'app/actionCreators/indicator';
+import SelectOwners from 'app/views/settings/project/projectOwnership/selectOwners';
+import {t} from 'app/locale';
 
 const initialState = {
   text: '',

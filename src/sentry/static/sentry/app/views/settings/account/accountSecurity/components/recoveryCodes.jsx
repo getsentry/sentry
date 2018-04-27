@@ -3,12 +3,12 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled, {css} from 'react-emotion';
 
-import {t} from '../../../../../locale';
-import Button from '../../../../../components/buttons/button';
-import Confirm from '../../../../../components/confirm';
-import EmptyMessage from '../../../components/emptyMessage';
-import InlineSvg from '../../../../../components/inlineSvg';
-import {Panel, PanelBody, PanelHeader, PanelItem} from '../../../../../components/panels';
+import {t} from 'app/locale';
+import Button from 'app/components/buttons/button';
+import Confirm from 'app/components/confirm';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import InlineSvg from 'app/components/inlineSvg';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 
 const Code = styled(props => <PanelItem p={2} {...props} />)`
   font-family: ${p => p.theme.text.familyMono};

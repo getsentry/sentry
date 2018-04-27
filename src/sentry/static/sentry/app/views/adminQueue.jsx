@@ -1,9 +1,9 @@
 /*eslint getsentry/jsx-needs-il8n:0*/
 import React from 'react';
 
-import AsyncView from './asyncView';
-import InternalStatChart from '../components/internalStatChart';
-import {Select2Field} from '../components/forms';
+import AsyncView from 'app/views/asyncView';
+import InternalStatChart from 'app/components/internalStatChart';
+import {Select2Field} from 'app/components/forms';
 
 export default class AdminQueue extends AsyncView {
   getDefaultState() {

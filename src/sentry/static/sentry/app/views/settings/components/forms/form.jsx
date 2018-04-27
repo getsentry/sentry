@@ -2,9 +2,9 @@ import {Observer} from 'mobx-react';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {t} from '../../../../locale';
-import Button from '../../../../components/buttons/button';
-import FormModel from './model';
+import {t} from 'app/locale';
+import Button from 'app/components/buttons/button';
+import FormModel from 'app/views/settings/components/forms/model';
 
 export default class Form extends React.Component {
   static propTypes = {

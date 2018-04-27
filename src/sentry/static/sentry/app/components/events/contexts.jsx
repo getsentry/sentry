@@ -1,17 +1,17 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {objectIsEmpty, toTitleCase, defined} from '../../utils';
-import GroupEventDataSection from './eventDataSection';
-import plugins from '../../plugins';
+import {objectIsEmpty, toTitleCase, defined} from 'app/utils';
+import GroupEventDataSection from 'app/components/events/eventDataSection';
+import plugins from 'app/plugins';
 
 const CONTEXT_TYPES = {
-  default: require('./contexts/default').default,
-  app: require('./contexts/app').default,
-  device: require('./contexts/device').default,
-  os: require('./contexts/os').default,
-  runtime: require('./contexts/runtime').default,
-  user: require('./contexts/user').default,
+  default: require('app/components/events/contexts/default').default,
+  app: require('app/components/events/contexts/app').default,
+  device: require('app/components/events/contexts/device').default,
+  os: require('app/components/events/contexts/os').default,
+  runtime: require('app/components/events/contexts/runtime').default,
+  user: require('app/components/events/contexts/user').default,
 };
 
 function getContextComponent(type) {

@@ -1,7 +1,7 @@
 import React from 'react';
 import styled, {css} from 'react-emotion';
 import {Flex} from 'grid-emotion';
-import space from '../../../../../styles/space';
+import space from 'app/styles/space';
 
 const inlineStyle = p =>
   p.inline

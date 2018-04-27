@@ -2,17 +2,17 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {t} from '../../../locale';
-import AsyncView from '../../asyncView';
-import Form from '../components/forms/form';
-import JsonForm from '../components/forms/jsonForm';
-import {Panel, PanelBody, PanelHeader} from '../../../components/panels';
-import ProjectsStore from '../../../stores/projectsStore';
-import Select2Field from '../components/forms/select2Field';
-import SettingsPageHeader from '../components/settingsPageHeader';
-import TextBlock from '../components/text/textBlock';
-import {fields} from '../../../data/forms/accountNotificationSettings';
-import withOrganizations from '../../../utils/withOrganizations';
+import {t} from 'app/locale';
+import AsyncView from 'app/views/asyncView';
+import Form from 'app/views/settings/components/forms/form';
+import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import ProjectsStore from 'app/stores/projectsStore';
+import Select2Field from 'app/views/settings/components/forms/select2Field';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import {fields} from 'app/data/forms/accountNotificationSettings';
+import withOrganizations from 'app/utils/withOrganizations';
 
 const ACCOUNT_NOTIFICATION_FIELDS = {
   alerts: {

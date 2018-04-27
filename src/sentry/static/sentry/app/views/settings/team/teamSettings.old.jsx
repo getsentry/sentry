@@ -1,9 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import AsyncView from '../../asyncView';
-import {ApiForm, TextField} from '../../../components/forms';
-import {t} from '../../../locale';
+import AsyncView from 'app/views/asyncView';
+import {ApiForm, TextField} from 'app/components/forms';
+import {t} from 'app/locale';
 
 export default class TeamSettings extends AsyncView {
   static propTypes = {

@@ -1,11 +1,11 @@
 import React from 'react';
 import {Flex} from 'grid-emotion';
-import ResourceCard from '../../components/resourceCard';
-import SentryTypes from '../../proptypes';
-import ErrorRobot from '../../components/errorRobot';
-import {Panel} from '../../components/panels';
-import {t} from '../../locale';
-import HookStore from '../../stores/hookStore';
+import ResourceCard from 'app/components/resourceCard';
+import SentryTypes from 'app/proptypes';
+import ErrorRobot from 'app/components/errorRobot';
+import {Panel} from 'app/components/panels';
+import {t} from 'app/locale';
+import HookStore from 'app/stores/hookStore';
 
 export default class Resources extends React.Component {
   static propTypes = {

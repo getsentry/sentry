@@ -3,14 +3,14 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {t} from '../../../../locale';
-import Avatar from '../../../../components/avatar';
-import DateTime from '../../../../components/dateTime';
-import EmptyMessage from '../../components/emptyMessage';
-import Pagination from '../../../../components/pagination';
-import {Panel, PanelBody, PanelHeader, PanelItem} from '../../../../components/panels';
-import SelectField from '../../../../components/forms/selectField';
-import SettingsPageHeader from '../../components/settingsPageHeader';
+import {t} from 'app/locale';
+import Avatar from 'app/components/avatar';
+import DateTime from 'app/components/dateTime';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import Pagination from 'app/components/pagination';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import SelectField from 'app/components/forms/selectField';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 
 const UserInfo = styled(Box)`
   display: flex;

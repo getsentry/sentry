@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {formatBytes} from '../utils';
+import {formatBytes} from 'app/utils';
 
 class FileSize extends React.Component {
   static propTypes = {

@@ -1,6 +1,6 @@
 import React from 'react';
 
-import ModalActions from '../actions/modalActions';
+import ModalActions from 'app/actions/modalActions';
 
 /**
  * Show a modal

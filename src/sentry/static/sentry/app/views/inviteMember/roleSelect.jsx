@@ -2,10 +2,10 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {t} from '../../locale';
-import {Panel, PanelBody, PanelHeader, PanelItem} from '../../components/panels';
-import Radio from '../../components/radio';
-import TextBlock from '../settings/components/text/textBlock';
+import {t} from 'app/locale';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import Radio from 'app/components/radio';
+import TextBlock from 'app/views/settings/components/text/textBlock';
 
 const Label = styled.label`
   ${p => (p.disabled ? 'cursor: default' : '')};

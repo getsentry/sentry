@@ -4,13 +4,13 @@ import createReactClass from 'create-react-class';
 import Modal from 'react-bootstrap/lib/Modal';
 import {Link} from 'react-router';
 
-import {t} from '../../locale';
-import ApiMixin from '../../mixins/apiMixin';
-import IndicatorStore from '../../stores/indicatorStore';
-import DropdownLink from '../../components/dropdownLink';
-import QueryCount from '../../components/queryCount';
-import MenuItem from '../../components/menuItem';
-import {BooleanField, FormState, TextField} from '../../components/forms';
+import {t} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import IndicatorStore from 'app/stores/indicatorStore';
+import DropdownLink from 'app/components/dropdownLink';
+import QueryCount from 'app/components/queryCount';
+import MenuItem from 'app/components/menuItem';
+import {BooleanField, FormState, TextField} from 'app/components/forms';
 
 const SaveSearchButton = createReactClass({
   displayName: 'SaveSearchButton',

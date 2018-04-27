@@ -4,15 +4,15 @@ import createReactClass from 'create-react-class';
 import _ from 'lodash';
 import classNames from 'classnames';
 
-import ClippedBox from '../../clippedBox';
-import Tooltip from '../../tooltip';
-import StrictClick from '../../strictClick';
-import Truncate from '../../truncate';
-import {t} from '../../../locale';
-import {defined, objectIsEmpty, isUrl} from '../../../utils';
+import ClippedBox from 'app/components/clippedBox';
+import Tooltip from 'app/components/tooltip';
+import StrictClick from 'app/components/strictClick';
+import Truncate from 'app/components/truncate';
+import {t} from 'app/locale';
+import {defined, objectIsEmpty, isUrl} from 'app/utils';
 
-import ContextLine from './contextLine';
-import FrameVariables from './frameVariables';
+import ContextLine from 'app/components/events/interfaces/contextLine';
+import FrameVariables from 'app/components/events/interfaces/frameVariables';
 
 export function trimPackage(pkg) {
   let pieces = pkg.split(/^[a-z]:\\/i.test(pkg) ? '\\' : '/');

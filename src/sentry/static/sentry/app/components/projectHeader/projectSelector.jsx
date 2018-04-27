@@ -4,15 +4,15 @@ import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
 import classNames from 'classnames';
 
-import ApiMixin from '../../mixins/apiMixin';
+import ApiMixin from 'app/mixins/apiMixin';
 
-import ProjectLabel from '../../components/projectLabel';
-import DropdownLink from '../dropdownLink';
-import MenuItem from '../menuItem';
-import Link from '../link';
+import ProjectLabel from 'app/components/projectLabel';
+import DropdownLink from 'app/components/dropdownLink';
+import MenuItem from 'app/components/menuItem';
+import Link from 'app/components/link';
 
-import {sortArray} from '../../utils';
-import {t} from '../../locale';
+import {sortArray} from 'app/utils';
+import {t} from 'app/locale';
 
 const ProjectSelector = createReactClass({
   displayName: 'ProjectSelector',

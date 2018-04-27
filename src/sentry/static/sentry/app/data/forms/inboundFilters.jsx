@@ -1,6 +1,6 @@
 import React from 'react';
-import {t, tct} from '../../locale';
-import ExternalLink from '../../components/externalLink';
+import {t, tct} from 'app/locale';
+import ExternalLink from 'app/components/externalLink';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/:projectId/filters/';

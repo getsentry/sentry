@@ -1,5 +1,5 @@
 import React from 'react';
-import InputField from './inputField';
+import InputField from 'app/components/forms/inputField';
 
 export default class TextareaField extends InputField {
   getField() {

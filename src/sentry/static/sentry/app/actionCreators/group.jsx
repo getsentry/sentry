@@ -1,6 +1,6 @@
-import {Client} from '../api';
-import GroupActions from '../actions/groupActions';
-import {buildUserId, buildTeamId} from '../utils';
+import {Client} from 'app/api';
+import GroupActions from 'app/actions/groupActions';
+import {buildUserId, buildTeamId} from 'app/utils';
 
 export function assignToUser(params) {
   const api = new Client();

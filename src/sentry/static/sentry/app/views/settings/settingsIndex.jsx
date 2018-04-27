@@ -3,18 +3,18 @@ import DocumentTitle from 'react-document-title';
 import React from 'react';
 import styled, {css} from 'react-emotion';
 
-import {t} from '../../locale';
-import Avatar from '../../components/avatar';
-import ConfigStore from '../../stores/configStore';
-import ExternalLink from '../../components/externalLink';
-import InlineSvg from '../../components/inlineSvg';
-import Link from '../../components/link';
-import LoadingIndicator from '../../components/loadingIndicator';
-import {Panel, PanelBody, PanelHeader} from '../../components/panels';
-import SentryTypes from '../../proptypes';
-import SettingsLayout from './components/settingsLayout';
-import TextOverflow from '../../components/textOverflow';
-import withLatestContext from '../../utils/withLatestContext';
+import {t} from 'app/locale';
+import Avatar from 'app/components/avatar';
+import ConfigStore from 'app/stores/configStore';
+import ExternalLink from 'app/components/externalLink';
+import InlineSvg from 'app/components/inlineSvg';
+import Link from 'app/components/link';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import SentryTypes from 'app/proptypes';
+import SettingsLayout from 'app/views/settings/components/settingsLayout';
+import TextOverflow from 'app/components/textOverflow';
+import withLatestContext from 'app/utils/withLatestContext';
 
 const LINKS = {
   DOCUMENTATION: 'https://docs.sentry.io/',

@@ -1,12 +1,12 @@
 import _ from 'lodash';
 
 // import/export sub-utils
-import parseLinkHeader from './utils/parseLinkHeader';
-import deviceNameMapper from './utils/deviceNameMapper';
-import Collection from './utils/collection';
-import PendingChangeQueue from './utils/pendingChangeQueue';
-import CursorPoller from './utils/cursorPoller';
-import StreamManager from './utils/streamManager';
+import parseLinkHeader from 'app/utils/parseLinkHeader';
+import deviceNameMapper from 'app/utils/deviceNameMapper';
+import Collection from 'app/utils/collection';
+import PendingChangeQueue from 'app/utils/pendingChangeQueue';
+import CursorPoller from 'app/utils/cursorPoller';
+import StreamManager from 'app/utils/streamManager';
 
 /*eslint no-use-before-define:0*/
 

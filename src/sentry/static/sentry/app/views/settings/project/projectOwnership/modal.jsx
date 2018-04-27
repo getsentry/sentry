@@ -3,11 +3,11 @@ import PropTypes from 'prop-types';
 import {uniq} from 'lodash';
 import idx from 'idx';
 
-import {t} from '../../../../locale';
-import AsyncComponent from '../../../../components/asyncComponent';
+import {t} from 'app/locale';
+import AsyncComponent from 'app/components/asyncComponent';
 
-import SentryTypes from '../../../../proptypes';
-import OwnerInput from './ownerInput';
+import SentryTypes from 'app/proptypes';
+import OwnerInput from 'app/views/settings/project/projectOwnership/ownerInput';
 
 class ProjectOwnershipModal extends AsyncComponent {
   static propTypes = {

@@ -2,9 +2,9 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {cx} from 'emotion';
 import styled from 'react-emotion';
-import TextBlock from '../views/settings/components/text/textBlock';
-import InlineSvg from './inlineSvg';
-import space from '../styles/space';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import InlineSvg from 'app/components/inlineSvg';
+import space from 'app/styles/space';
 
 const StyledInlineSvg = styled(InlineSvg)`
   margin-right: 12px;

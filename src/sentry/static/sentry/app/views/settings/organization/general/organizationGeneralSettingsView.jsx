@@ -3,22 +3,22 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 
-import {Panel, PanelHeader} from '../../../../components/panels';
-import {addLoadingMessage} from '../../../../actionCreators/indicator';
+import {Panel, PanelHeader} from 'app/components/panels';
+import {addLoadingMessage} from 'app/actionCreators/indicator';
 import {
   changeOrganizationSlug,
   removeAndRedirectToRemainingOrganization,
   updateOrganization,
-} from '../../../../actionCreators/organizations';
-import {t, tct} from '../../../../locale';
-import ApiMixin from '../../../../mixins/apiMixin';
-import Field from '../../components/forms/field';
-import LinkWithConfirmation from '../../../../components/linkWithConfirmation';
-import LoadingError from '../../../../components/loadingError';
-import LoadingIndicator from '../../../../components/loadingIndicator';
-import SettingsPageHeader from '../../components/settingsPageHeader';
-import TextBlock from '../../components/text/textBlock';
-import recreateRoute from '../../../../utils/recreateRoute';
+} from 'app/actionCreators/organizations';
+import {t, tct} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import Field from 'app/views/settings/components/forms/field';
+import LinkWithConfirmation from 'app/components/linkWithConfirmation';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import recreateRoute from 'app/utils/recreateRoute';
 
 const OrganizationGeneralSettingsView = createReactClass({
   displayName: 'OrganizationGeneralSettingsView',

@@ -1,18 +1,18 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {defined} from '../../utils';
+import {defined} from 'app/utils';
 
-import BooleanField from './booleanField';
-import EmailField from './emailField';
-import NumberField from './numberField';
-import PasswordField from './passwordField';
-import RangeField from './rangeField';
-import Select2FieldAutocomplete from './select2FieldAutocomplete';
-import Select2Field from './select2Field';
-import Select2TextField from './select2TextField';
-import TextField from './textField';
-import TextareaField from './textareaField';
+import BooleanField from 'app/components/forms/booleanField';
+import EmailField from 'app/components/forms/emailField';
+import NumberField from 'app/components/forms/numberField';
+import PasswordField from 'app/components/forms/passwordField';
+import RangeField from 'app/components/forms/rangeField';
+import Select2FieldAutocomplete from 'app/components/forms/select2FieldAutocomplete';
+import Select2Field from 'app/components/forms/select2Field';
+import Select2TextField from 'app/components/forms/select2TextField';
+import TextField from 'app/components/forms/textField';
+import TextareaField from 'app/components/forms/textareaField';
 
 export default class GenericField extends React.Component {
   static propTypes = {

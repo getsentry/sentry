@@ -1,8 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import FormField from './formField';
-import StyledSelect from './select.styled';
+import FormField from 'app/components/forms/formField';
+import StyledSelect from 'app/components/forms/select.styled';
 
 export default class MultiSelectField extends FormField {
   static propTypes = {

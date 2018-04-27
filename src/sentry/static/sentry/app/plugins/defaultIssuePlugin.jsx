@@ -1,7 +1,7 @@
 import React from 'react';
 
-import BasePlugin from './basePlugin';
-import IssueActions from './components/issueActions';
+import BasePlugin from 'app/plugins/basePlugin';
+import IssueActions from 'app/plugins/components/issueActions';
 
 export class DefaultIssuePlugin extends BasePlugin {
   renderGroupActions(props) {

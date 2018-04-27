@@ -1,10 +1,10 @@
 import PropTypes from 'prop-types';
 
-import {Client} from '../../api';
-import IndicatorStore from '../../stores/indicatorStore';
-import Form from './form';
-import FormState from './state';
-import {t} from '../../locale';
+import {Client} from 'app/api';
+import IndicatorStore from 'app/stores/indicatorStore';
+import Form from 'app/components/forms/form';
+import FormState from 'app/components/forms/state';
+import {t} from 'app/locale';
 
 export default class ApiForm extends Form {
   static propTypes = {
