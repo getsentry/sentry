@@ -4,7 +4,6 @@ import {browserHistory} from 'react-router';
 
 import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
 import LatestContextStore from 'app/stores/latestContextStore';
-import EnvironmentStore from 'app/stores/environmentStore';
 
 class BasicComponent extends React.Component {
   render() {
@@ -20,10 +19,6 @@ describe('withEnvironmentInQueryString', function() {
     LatestContextStore.onSetActiveOrganization({
       features: ['environments'],
     });
-  });
-
-  afterEach(function() {
-    LatestContextStore.reset();
   });
 
   describe('updates environment', function() {
@@ -93,23 +88,6 @@ describe('withEnvironmentInQueryString', function() {
       expect(browserHistory.replace).toHaveBeenCalledWith(
         'http://lol/?environment=staging'
       );
-    });
-  });
-
-  describe('navigation', async function() {
-    it('updates active environment on querystring change', async function() {
-      EnvironmentStore.loadInitialData(TestStubs.Environments());
-
-      const wrapper = shallow(
-        <WrappedComponent location={{pathname: 'http://lol/', search: '', query: {}}} />,
-        TestStubs.routerContext()
-      );
-      expect(LatestContextStore.getInitialState().environment).toBeNull();
-      wrapper
-        .instance()
-        .componentWillReceiveProps({location: {search: '?environment=staging'}});
-      await tick();
-      expect(LatestContextStore.getInitialState().environment.name).toBe('staging');
     });
   });
 });
