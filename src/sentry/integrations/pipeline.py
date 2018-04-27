@@ -8,7 +8,7 @@ from django.db.models import Q
 
 from sentry.api.serializers import serialize
 from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration
-from sentry.utils.pipeline import Pipeline
+from sentry.pipeline import Pipeline
 from sentry.utils import json
 
 from . import default_manager
