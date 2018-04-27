@@ -2,13 +2,13 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 
-import AlertActions from '../actions/alertActions';
-import ApiMixin from '../mixins/apiMixin';
-import AvatarCropper from '../components/avatarCropper';
-import AvatarRadio from '../components/avatarRadio';
-import LoadingError from '../components/loadingError';
-import LoadingIndicator from '../components/loadingIndicator';
-import {t} from '../locale';
+import AlertActions from 'app/actions/alertActions';
+import ApiMixin from 'app/mixins/apiMixin';
+import AvatarCropper from 'app/components/avatarCropper';
+import AvatarRadio from 'app/components/avatarRadio';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import {t} from 'app/locale';
 
 const AvatarSettings = createReactClass({
   displayName: 'AvatarSettings',

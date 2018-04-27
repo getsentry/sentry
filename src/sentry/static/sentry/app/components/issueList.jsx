@@ -3,13 +3,13 @@ import React from 'react';
 
 import createReactClass from 'create-react-class';
 
-import {Panel, PanelBody} from './panels';
-import ApiMixin from '../mixins/apiMixin';
-import CompactIssue from './compactIssue';
-import LoadingError from './loadingError';
-import LoadingIndicator from './loadingIndicator';
-import Pagination from './pagination';
-import {t} from '../locale';
+import {Panel, PanelBody} from 'app/components/panels';
+import ApiMixin from 'app/mixins/apiMixin';
+import CompactIssue from 'app/components/compactIssue';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import Pagination from 'app/components/pagination';
+import {t} from 'app/locale';
 
 const IssueList = createReactClass({
   displayName: 'IssueList',

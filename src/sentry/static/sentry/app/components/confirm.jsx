@@ -2,8 +2,8 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Modal from 'react-bootstrap/lib/Modal';
 
-import Button from './buttons/button';
-import {t} from '../locale';
+import Button from 'app/components/buttons/button';
+import {t} from 'app/locale';
 
 class Confirm extends React.PureComponent {
   static propTypes = {

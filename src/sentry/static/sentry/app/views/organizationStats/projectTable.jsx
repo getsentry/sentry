@@ -3,9 +3,12 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {ProjectTableLayout, ProjectTableDataElement} from './projectTableLayout';
-import Count from '../../components/count';
-import space from '../../styles/space';
+import {
+  ProjectTableLayout,
+  ProjectTableDataElement,
+} from 'app/views/organizationStats/projectTableLayout';
+import Count from 'app/components/count';
+import space from 'app/styles/space';
 
 const ProjectTable = ({projectMap, projectTotals, orgTotal, organization}) => {
   const getPercent = (item, total) => {

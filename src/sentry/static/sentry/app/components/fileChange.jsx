@@ -1,10 +1,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import Avatar from './avatar';
-import IconFileGeneric from '../icons/icon-file-generic';
-import Tooltip from './tooltip';
-import ApiMixin from '../mixins/apiMixin';
+import Avatar from 'app/components/avatar';
+import IconFileGeneric from 'app/icons/icon-file-generic';
+import Tooltip from 'app/components/tooltip';
+import ApiMixin from 'app/mixins/apiMixin';
 
 const FileChange = createReactClass({
   displayName: 'FileChange',

@@ -1,13 +1,13 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import SentryTypes from '../../proptypes';
-import {t} from '../../locale';
-import ExpandedTeamList from './expandedTeamList';
-import AllTeamsList from './allTeamsList';
-import ListLink from '../../components/listLink';
-import OrganizationStatOverview from '../organizationTeams/organizationStatOverview';
-import recreateRoute from '../../utils/recreateRoute';
+import SentryTypes from 'app/proptypes';
+import {t} from 'app/locale';
+import ExpandedTeamList from 'app/views/organizationTeams/expandedTeamList';
+import AllTeamsList from 'app/views/organizationTeams/allTeamsList';
+import ListLink from 'app/components/listLink';
+import OrganizationStatOverview from 'app/views/organizationTeams/organizationStatOverview';
+import recreateRoute from 'app/utils/recreateRoute';
 
 class OrganizationTeamsView extends React.Component {
   static propTypes = {

@@ -2,9 +2,9 @@ import React from 'react';
 import Raven from 'raven-js';
 import DocumentTitle from 'react-document-title';
 
-import Footer from '../components/footer';
-import Sidebar from '../components/sidebar';
-import NotFound from '../components/errors/notFound';
+import Footer from 'app/components/footer';
+import Sidebar from 'app/components/sidebar';
+import NotFound from 'app/components/errors/notFound';
 
 class RouteNotFound extends React.Component {
   componentDidMount() {

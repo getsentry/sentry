@@ -1,4 +1,4 @@
-import {Client} from '../api';
+import {Client} from 'app/api';
 
 let ApiMixin = {
   componentWillMount() {

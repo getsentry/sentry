@@ -3,8 +3,8 @@ import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 import {Flex} from 'grid-emotion';
 
-import SentryTypes from '../../proptypes';
-import Avatar from '../../components/avatar';
+import SentryTypes from 'app/proptypes';
+import Avatar from 'app/components/avatar';
 
 export default class AvatarList extends React.Component {
   static propTypes = {

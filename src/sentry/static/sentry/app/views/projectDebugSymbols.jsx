@@ -4,18 +4,18 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
-import {Panel, PanelBody, PanelHeader, PanelItem} from '../components/panels';
-import {t} from '../locale';
-import ApiMixin from '../mixins/apiMixin';
-import DateTime from '../components/dateTime';
-import EmptyStateWarning from '../components/emptyStateWarning';
-import FileSize from '../components/fileSize';
-import LoadingError from '../components/loadingError';
-import LoadingIndicator from '../components/loadingIndicator';
-import OrganizationState from '../mixins/organizationState';
-import SettingsPageHeader from './settings/components/settingsPageHeader';
-import TextBlock from './settings/components/text/textBlock';
-import TimeSince from '../components/timeSince';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import {t} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import DateTime from 'app/components/dateTime';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
+import FileSize from 'app/components/fileSize';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import OrganizationState from 'app/mixins/organizationState';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import TimeSince from 'app/components/timeSince';
 
 const marginBottomStyle = {marginBottom: 40};
 

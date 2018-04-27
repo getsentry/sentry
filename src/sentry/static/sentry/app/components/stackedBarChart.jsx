@@ -4,9 +4,9 @@ import PropTypes from 'prop-types';
 import moment from 'moment-timezone';
 import _ from 'lodash';
 
-import Tooltip from '../components/tooltip';
-import Count from './count';
-import ConfigStore from '../stores/configStore';
+import Tooltip from 'app/components/tooltip';
+import Count from 'app/components/count';
+import ConfigStore from 'app/stores/configStore';
 
 const StackedBarChart = createReactClass({
   displayName: 'StackedBarChart',

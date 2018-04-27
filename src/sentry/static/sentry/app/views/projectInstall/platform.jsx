@@ -3,16 +3,16 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
-import {Panel, PanelBody, PanelHeader} from '../../components/panels';
-import {t, tct} from '../../locale';
-import ApiMixin from '../../mixins/apiMixin';
-import Button from '../../components/buttons/button';
-import LanguageNav from './languageNav';
-import Link from '../../components/link';
-import LoadingError from '../../components/loadingError';
-import LoadingIndicator from '../../components/loadingIndicator';
-import NotFound from '../../components/errors/notFound';
-import TextBlock from '../settings/components/text/textBlock';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {t, tct} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import Button from 'app/components/buttons/button';
+import LanguageNav from 'app/views/projectInstall/languageNav';
+import Link from 'app/components/link';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import NotFound from 'app/components/errors/notFound';
+import TextBlock from 'app/views/settings/components/text/textBlock';
 
 const ProjectInstallPlatform = createReactClass({
   displayName: 'ProjectInstallPlatform',

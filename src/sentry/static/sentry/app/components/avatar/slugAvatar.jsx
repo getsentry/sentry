@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {explodeSlug} from '../../utils';
-import BaseAvatar from './baseAvatar';
+import {explodeSlug} from 'app/utils';
+import BaseAvatar from 'app/components/avatar/baseAvatar';
 
 class SlugAvatar extends React.Component {
   static propTypes = {

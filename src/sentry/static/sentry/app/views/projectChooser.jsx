@@ -5,16 +5,16 @@ import $ from 'jquery';
 import {Box} from 'grid-emotion';
 import styled from 'react-emotion';
 
-import {t} from '../locale';
-import Link from '../components/link';
-import OrganizationState from '../mixins/organizationState';
-import {sortProjects} from '../utils';
-import theme from '../utils/theme';
-import TodoList from '../components/onboardingWizard/todos';
-import {Panel, PanelBody, PanelHeader, PanelItem} from '../components/panels';
-import SettingsPageHeader from './settings/components/settingsPageHeader';
-import ProjectLabel from '../components/projectLabel';
-import SentryTypes from '../proptypes';
+import {t} from 'app/locale';
+import Link from 'app/components/link';
+import OrganizationState from 'app/mixins/organizationState';
+import {sortProjects} from 'app/utils';
+import theme from 'app/utils/theme';
+import TodoList from 'app/components/onboardingWizard/todos';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import ProjectLabel from 'app/components/projectLabel';
+import SentryTypes from 'app/proptypes';
 
 const ProjectChooser = createReactClass({
   displayName: 'ProjectChooser',

@@ -5,17 +5,17 @@ import {Box, Flex} from 'grid-emotion';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {addErrorMessage} from '../../../../actionCreators/indicator';
-import {t} from '../../../../locale';
-import AsyncView from '../../../asyncView';
-import Button from '../../../../components/buttons/button';
-import CircleIndicator from '../../../../components/circleIndicator';
-import EmptyMessage from '../../components/emptyMessage';
-import {Panel, PanelBody, PanelHeader, PanelItem} from '../../../../components/panels';
-import SettingsPageHeader from '../../components/settingsPageHeader';
-import TextBlock from '../../components/text/textBlock';
-import RemoveConfirm from './components/removeConfirm';
-import PasswordForm from '../passwordForm';
+import {addErrorMessage} from 'app/actionCreators/indicator';
+import {t} from 'app/locale';
+import AsyncView from 'app/views/asyncView';
+import Button from 'app/components/buttons/button';
+import CircleIndicator from 'app/components/circleIndicator';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import RemoveConfirm from 'app/views/settings/account/accountSecurity/components/removeConfirm';
+import PasswordForm from 'app/views/settings/account/passwordForm';
 
 const ENDPOINT = '/users/me/authenticators/';
 

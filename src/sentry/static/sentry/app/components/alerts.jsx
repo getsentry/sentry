@@ -3,10 +3,10 @@ import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import {ThemeProvider} from 'emotion-theming';
 
-import AlertStore from '../stores/alertStore';
-import AlertMessage from './alertMessage';
+import AlertStore from 'app/stores/alertStore';
+import AlertMessage from 'app/components/alertMessage';
 
-import theme from '../utils/theme';
+import theme from 'app/utils/theme';
 
 const Alerts = createReactClass({
   displayName: 'Alerts',

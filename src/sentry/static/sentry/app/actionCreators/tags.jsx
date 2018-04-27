@@ -1,8 +1,8 @@
-import {Client} from '../api';
-import {t} from '../locale';
-import TagStore from '../stores/tagStore';
-import TagActions from '../actions/tagActions';
-import AlertActions from '../actions/alertActions';
+import {Client} from 'app/api';
+import {t} from 'app/locale';
+import TagStore from 'app/stores/tagStore';
+import TagActions from 'app/actions/tagActions';
+import AlertActions from 'app/actions/alertActions';
 
 const api = new Client();
 

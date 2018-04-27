@@ -3,9 +3,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import scrollToElement from 'scroll-to-element';
 
-import {defined} from '../../../../utils';
-import FieldFromConfig from './fieldFromConfig';
-import {Panel, PanelBody, PanelHeader} from '../../../../components/panels';
+import {defined} from 'app/utils';
+import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 
 class JsonForm extends React.Component {
   static propTypes = {

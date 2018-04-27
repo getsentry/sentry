@@ -5,11 +5,11 @@ import jQuery from 'jquery';
 import Modal from 'react-bootstrap/lib/Modal';
 import underscore from 'lodash';
 
-import TimeSince from './timeSince';
-import Version from './version';
+import TimeSince from 'app/components/timeSince';
+import Version from 'app/components/version';
 
-import {Select2FieldAutocomplete} from './forms';
-import {t} from '../locale';
+import {Select2FieldAutocomplete} from 'app/components/forms';
+import {t} from 'app/locale';
 
 export default class CustomResolutionModal extends React.Component {
   static propTypes = {

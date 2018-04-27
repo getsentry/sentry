@@ -5,10 +5,10 @@ import React from 'react';
 import classNames from 'classnames';
 import styled from 'react-emotion';
 
-import ExternalLink from '../externalLink';
-import InlineSvg from '../inlineSvg';
+import ExternalLink from 'app/components/externalLink';
+import InlineSvg from 'app/components/inlineSvg';
 
-import '../../../less/components/button.less';
+import 'app/../less/components/button.less';
 
 const Icon = styled(Box)`
   margin-right: ${p => (p.size === 'small' ? '6px' : '8px')};

@@ -3,21 +3,21 @@ import React from 'react';
 import {debounce} from 'lodash';
 import idx from 'idx';
 
-import {Panel, PanelBody, PanelHeader} from '../../../../components/panels';
-import {addErrorMessage, addSuccessMessage} from '../../../../actionCreators/indicator';
-import {t, tct} from '../../../../locale';
-import AsyncView from '../../../asyncView';
-import Button from '../../../../components/buttons/button';
-import EmptyMessage from '../../components/emptyMessage';
-import ConfigStore from '../../../../stores/configStore';
-import GuideAnchor from '../../../../components/assistant/guideAnchor';
-import Input from '../../components/forms/controls/input';
-import OrganizationAccessRequests from './organizationAccessRequests';
-import OrganizationMemberRow from './organizationMemberRow';
-import Pagination from '../../../../components/pagination';
-import SentryTypes from '../../../../proptypes';
-import SettingsPageHeader from '../../components/settingsPageHeader';
-import recreateRoute from '../../../../utils/recreateRoute';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {t, tct} from 'app/locale';
+import AsyncView from 'app/views/asyncView';
+import Button from 'app/components/buttons/button';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import ConfigStore from 'app/stores/configStore';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
+import Input from 'app/views/settings/components/forms/controls/input';
+import OrganizationAccessRequests from 'app/views/settings/organization/members/organizationAccessRequests';
+import OrganizationMemberRow from 'app/views/settings/organization/members/organizationMemberRow';
+import Pagination from 'app/components/pagination';
+import SentryTypes from 'app/proptypes';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import recreateRoute from 'app/utils/recreateRoute';
 
 class OrganizationMembersView extends AsyncView {
   static propTypes = {

@@ -4,13 +4,13 @@ import styled from 'react-emotion';
 import {withRouter} from 'react-router';
 import {Flex} from 'grid-emotion';
 
-import SentryTypes from '../../proptypes';
-import Link from '../../components/link';
+import SentryTypes from 'app/proptypes';
+import Link from 'app/components/link';
 
-import {Client} from '../../api';
+import {Client} from 'app/api';
 
-import {update} from '../../actionCreators/projects';
-import overflowEllipsis from '../../styles/overflowEllipsis';
+import {update} from 'app/actionCreators/projects';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 class ProjectCard extends React.Component {
   static propTypes = {

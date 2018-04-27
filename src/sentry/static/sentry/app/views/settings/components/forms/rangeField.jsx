@@ -1,7 +1,7 @@
 import React from 'react';
 
-import InputField from './inputField';
-import RangeSlider from './controls/rangeSlider';
+import InputField from 'app/views/settings/components/forms/inputField';
+import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
 
 export default class RangeField extends React.Component {
   onChange = (onChange, onBlur, value, e) => {

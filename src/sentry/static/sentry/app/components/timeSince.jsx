@@ -3,8 +3,8 @@ import React from 'react';
 import moment from 'moment-timezone';
 import _ from 'lodash';
 
-import ConfigStore from '../stores/configStore';
-import {t} from '../locale';
+import ConfigStore from 'app/stores/configStore';
+import {t} from 'app/locale';
 
 class TimeSince extends React.PureComponent {
   static propTypes = {

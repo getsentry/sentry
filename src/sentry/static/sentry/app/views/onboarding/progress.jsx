@@ -2,8 +2,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import classNames from 'classnames';
-import {onboardingSteps, stepDescriptions} from './utils';
-import ConfigStore from '../../stores/configStore';
+import {onboardingSteps, stepDescriptions} from 'app/views/onboarding/utils';
+import ConfigStore from 'app/stores/configStore';
 
 const ProgressNodes = createReactClass({
   displayName: 'ProgressNodes',

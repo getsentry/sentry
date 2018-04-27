@@ -2,20 +2,20 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
 
-import SentryTypes from '../../proptypes';
-import ProjectLink from '../../components/projectLink';
-import ProjectSelector from './projectSelector';
-import BookmarkToggle from '../projects/bookmarkToggle';
-import DropdownLink from '../dropdownLink';
-import MenuItem from '../menuItem';
-import Button from '../buttons/button';
+import SentryTypes from 'app/proptypes';
+import ProjectLink from 'app/components/projectLink';
+import ProjectSelector from 'app/components/projectHeader/projectSelector';
+import BookmarkToggle from 'app/components/projects/bookmarkToggle';
+import DropdownLink from 'app/components/dropdownLink';
+import MenuItem from 'app/components/menuItem';
+import Button from 'app/components/buttons/button';
 
-import {t} from '../../locale';
+import {t} from 'app/locale';
 
 import {
   setActiveEnvironment,
   clearActiveEnvironment,
-} from '../../actionCreators/environments';
+} from 'app/actionCreators/environments';
 
 class ProjectHeader extends React.Component {
   static propTypes = {

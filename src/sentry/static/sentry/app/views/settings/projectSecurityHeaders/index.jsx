@@ -3,15 +3,15 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {t, tct} from '../../../locale';
-import AsyncView from '../../asyncView';
-import Button from '../../../components/buttons/button';
-import {Panel, PanelBody, PanelHeader, PanelItem} from '../../../components/panels';
-import recreateRoute from '../../../utils/recreateRoute';
-import ReportUri from './reportUri';
-import PreviewFeature from '../../../components/previewFeature';
-import SettingsPageHeader from '../components/settingsPageHeader';
-import TextBlock from '../components/text/textBlock';
+import {t, tct} from 'app/locale';
+import AsyncView from 'app/views/asyncView';
+import Button from 'app/components/buttons/button';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import recreateRoute from 'app/utils/recreateRoute';
+import ReportUri from 'app/views/settings/projectSecurityHeaders/reportUri';
+import PreviewFeature from 'app/components/previewFeature';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TextBlock from 'app/views/settings/components/text/textBlock';
 
 const HeaderName = styled.span`
   font-size: 1.2em;

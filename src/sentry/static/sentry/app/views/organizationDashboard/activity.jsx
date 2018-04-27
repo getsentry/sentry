@@ -1,8 +1,8 @@
 import React from 'react';
 import {Link} from 'react-router';
 
-import ActivityFeed from '../../components/activity/feed';
-import {t} from '../../locale';
+import ActivityFeed from 'app/components/activity/feed';
+import {t} from 'app/locale';
 
 export default class Activity extends React.Component {
   getEndpoint = () => {

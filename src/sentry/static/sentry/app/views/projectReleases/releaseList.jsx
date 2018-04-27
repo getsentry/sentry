@@ -2,12 +2,12 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {Box} from 'grid-emotion';
 
-import {PanelItem} from '../../components/panels';
-import ReleaseStats from '../../components/releaseStats';
-import Count from '../../components/count';
-import TimeSince from '../../components/timeSince';
-import Version from '../../components/version';
-import LatestDeployOrReleaseTime from '../../components/latestDeployOrReleaseTime';
+import {PanelItem} from 'app/components/panels';
+import ReleaseStats from 'app/components/releaseStats';
+import Count from 'app/components/count';
+import TimeSince from 'app/components/timeSince';
+import Version from 'app/components/version';
+import LatestDeployOrReleaseTime from 'app/components/latestDeployOrReleaseTime';
 
 class ReleaseList extends React.Component {
   static propTypes = {

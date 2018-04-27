@@ -1,6 +1,6 @@
 import styled from 'react-emotion';
 
-import {inputStyles} from '../../../../../styles/input';
+import {inputStyles} from 'app/styles/input';
 
 const Input = styled.input`
   ${inputStyles};

@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import Select2Field from './select2Field';
+import Select2Field from 'app/components/forms/select2Field';
 
 class Select2FieldAutocomplete extends Select2Field {
   getField() {

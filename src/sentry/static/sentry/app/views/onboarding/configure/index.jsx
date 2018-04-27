@@ -3,12 +3,12 @@ import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
 import Raven from 'raven-js';
 
-import Waiting from './waiting';
-import ApiMixin from '../../../mixins/apiMixin';
-import ProjectContext from '../../projects/projectContext';
-import ProjectDocsContext from '../../projectInstall/docsContext';
-import ProjectInstallPlatform from '../../projectInstall/platform';
-import HookStore from '../../../stores/hookStore';
+import Waiting from 'app/views/onboarding/configure/waiting';
+import ApiMixin from 'app/mixins/apiMixin';
+import ProjectContext from 'app/views/projects/projectContext';
+import ProjectDocsContext from 'app/views/projectInstall/docsContext';
+import ProjectInstallPlatform from 'app/views/projectInstall/platform';
+import HookStore from 'app/stores/hookStore';
 
 const Configure = createReactClass({
   displayName: 'Configure',

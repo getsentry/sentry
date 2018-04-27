@@ -2,15 +2,15 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {t} from '../../../locale';
-import AsyncView from '../../asyncView';
-import Button from '../../../components/buttons/button';
-import Form from '../components/forms/form';
-import JsonForm from '../components/forms/jsonForm';
-import {Panel, PanelBody, PanelHeader} from '../../../components/panels';
-import SettingsPageHeader from '../components/settingsPageHeader';
-import TextBlock from '../components/text/textBlock';
-import formGroups from '../../../data/forms/userFeedback';
+import {t} from 'app/locale';
+import AsyncView from 'app/views/asyncView';
+import Button from 'app/components/buttons/button';
+import Form from 'app/views/settings/components/forms/form';
+import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import formGroups from 'app/data/forms/userFeedback';
 
 const CodeBlock = styled.pre`
   word-break: break-all;

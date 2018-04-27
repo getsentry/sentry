@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 import {Flex, Box} from 'grid-emotion';
-import space from '../../../styles/space';
+import space from 'app/styles/space';
 
 class SettingsPageHeading extends React.Component {
   static propTypes = {

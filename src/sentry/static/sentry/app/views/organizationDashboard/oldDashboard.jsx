@@ -2,23 +2,23 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 
-import ApiMixin from '../../mixins/apiMixin';
-import {loadStats} from '../../actionCreators/projects';
+import ApiMixin from 'app/mixins/apiMixin';
+import {loadStats} from 'app/actionCreators/projects';
 
-import GroupStore from '../../stores/groupStore';
-import ProjectsStore from '../../stores/projectsStore';
-import TeamStore from '../../stores/teamStore';
+import GroupStore from 'app/stores/groupStore';
+import ProjectsStore from 'app/stores/projectsStore';
+import TeamStore from 'app/stores/teamStore';
 
-import EventsPerHour from '../../components/events/eventsPerHour';
-import OrganizationHomeContainer from '../../components/organizations/homeContainer';
-import OrganizationState from '../../mixins/organizationState';
-import UnreleasedChanges from './unreleasedChanges';
-import Resources from './resources';
-import Activity from './activity';
-import ProjectList from './projectList';
-import ProjectListOld from './projectListOld';
-import NewIssues from './newIssues';
-import AssignedIssues from './assignedIssues';
+import EventsPerHour from 'app/components/events/eventsPerHour';
+import OrganizationHomeContainer from 'app/components/organizations/homeContainer';
+import OrganizationState from 'app/mixins/organizationState';
+import UnreleasedChanges from 'app/views/organizationDashboard/unreleasedChanges';
+import Resources from 'app/views/organizationDashboard/resources';
+import Activity from 'app/views/organizationDashboard/activity';
+import ProjectList from 'app/views/organizationDashboard/projectList';
+import ProjectListOld from 'app/views/organizationDashboard/projectListOld';
+import NewIssues from 'app/views/organizationDashboard/newIssues';
+import AssignedIssues from 'app/views/organizationDashboard/assignedIssues';
 
 const OrganizationDashboard = createReactClass({
   displayName: 'OrganizationDashboard',

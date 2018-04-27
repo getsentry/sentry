@@ -3,10 +3,10 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 
-import ApiMixin from '../../mixins/apiMixin';
-import IndicatorStore from '../../stores/indicatorStore';
-import {joinTeam, leaveTeam} from '../../actionCreators/teams';
-import {t} from '../../locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import IndicatorStore from 'app/stores/indicatorStore';
+import {joinTeam, leaveTeam} from 'app/actionCreators/teams';
+import {t} from 'app/locale';
 
 // TODO(dcramer): this isnt great UX
 

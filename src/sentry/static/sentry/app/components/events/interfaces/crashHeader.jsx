@@ -1,10 +1,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import SentryTypes from '../../../proptypes';
-import Tooltip from '../../tooltip';
-import {t} from '../../../locale';
-import GuideAnchor from '../../../components/assistant/guideAnchor';
+import SentryTypes from 'app/proptypes';
+import Tooltip from 'app/components/tooltip';
+import {t} from 'app/locale';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 
 const CrashHeader = createReactClass({
   displayName: 'CrashHeader',

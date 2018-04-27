@@ -1,12 +1,12 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {Form, FormState} from '../../components/forms';
-import GroupActions from '../../actions/groupActions';
-import LoadingError from '../../components/loadingError';
-import LoadingIndicator from '../../components/loadingIndicator';
-import PluginComponentBase from '../../components/bases/pluginComponentBase';
-import {t} from '../../locale';
+import {Form, FormState} from 'app/components/forms';
+import GroupActions from 'app/actions/groupActions';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import PluginComponentBase from 'app/components/bases/pluginComponentBase';
+import {t} from 'app/locale';
 
 class IssueActions extends PluginComponentBase {
   constructor(props) {

@@ -1,6 +1,6 @@
 import React from 'react';
-import InputField from './inputField';
-import Textarea from './controls/textarea';
+import InputField from 'app/views/settings/components/forms/inputField';
+import Textarea from 'app/views/settings/components/forms/controls/textarea';
 
 export default class TextareaField extends InputField {
   render() {

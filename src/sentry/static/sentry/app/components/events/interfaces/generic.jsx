@@ -1,11 +1,11 @@
 import PropTypes from 'prop-types';
 import React, {Component} from 'react';
-import SentryTypes from '../../../proptypes';
+import SentryTypes from 'app/proptypes';
 
-import GroupEventDataSection from '../eventDataSection';
-import KeyValueList from './keyValueList';
-import {t} from '../../../locale';
-import {objectToArray} from '../../../utils';
+import GroupEventDataSection from 'app/components/events/eventDataSection';
+import KeyValueList from 'app/components/events/interfaces/keyValueList';
+import {t} from 'app/locale';
+import {objectToArray} from 'app/utils';
 
 function getView(view, data) {
   switch (view) {

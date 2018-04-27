@@ -2,8 +2,8 @@ import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import SettingsNavigationGroup from '../components/settingsNavigationGroup';
-import SentryTypes from '../../../proptypes';
+import SettingsNavigationGroup from 'app/views/settings/components/settingsNavigationGroup';
+import SentryTypes from 'app/proptypes';
 
 class SettingsNavigation extends React.Component {
   static propTypes = {

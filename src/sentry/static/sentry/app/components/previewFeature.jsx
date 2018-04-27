@@ -1,5 +1,5 @@
 import React, {Component} from 'react';
-import {t} from '../locale';
+import {t} from 'app/locale';
 
 export default class PreviewFeature extends Component {
   render() {

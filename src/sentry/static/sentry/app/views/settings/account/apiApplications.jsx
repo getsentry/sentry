@@ -9,15 +9,15 @@ import {
   addLoadingMessage,
   addSuccessMessage,
   removeIndicator,
-} from '../../../actionCreators/indicator';
-import {t} from '../../../locale';
-import ApiMixin from '../../../mixins/apiMixin';
-import AsyncView from '../../asyncView';
-import Button from '../../../components/buttons/button';
-import EmptyMessage from '../components/emptyMessage';
-import IndicatorStore from '../../../stores/indicatorStore';
-import {Panel, PanelBody, PanelHeader, PanelItem} from '../../../components/panels';
-import SettingsPageHeader from '../components/settingsPageHeader';
+} from 'app/actionCreators/indicator';
+import {t} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import AsyncView from 'app/views/asyncView';
+import Button from 'app/components/buttons/button';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import IndicatorStore from 'app/stores/indicatorStore';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 
 const ROUTE_PREFIX = '/settings/account/api/';
 

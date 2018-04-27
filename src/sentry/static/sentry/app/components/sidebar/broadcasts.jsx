@@ -3,12 +3,12 @@ import React from 'react';
 
 import createReactClass from 'create-react-class';
 
-import ApiMixin from '../../mixins/apiMixin';
-import LoadingIndicator from '../loadingIndicator';
-import {t} from '../../locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import {t} from 'app/locale';
 
-import SidebarPanel from '../sidebarPanel';
-import SidebarPanelItem from '../sidebarPanelItem';
+import SidebarPanel from 'app/components/sidebarPanel';
+import SidebarPanelItem from 'app/components/sidebarPanelItem';
 
 const MARK_SEEN_DELAY = 1000;
 const POLLER_DELAY = 60000;

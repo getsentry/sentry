@@ -1,9 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import DateTime from './dateTime';
-import Duration from './duration';
-import {t} from '../locale';
+import DateTime from 'app/components/dateTime';
+import Duration from 'app/components/duration';
+import {t} from 'app/locale';
 
 export default class MutedBox extends React.PureComponent {
   static propTypes = {

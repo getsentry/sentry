@@ -1,10 +1,10 @@
 /*eslint getsentry/jsx-needs-il8n:0*/
 import React from 'react';
 
-import ApiChart from './apiChart';
-import AsyncView from '../asyncView';
-import EventChart from './eventChart';
-import {t} from '../../locale';
+import ApiChart from 'app/views/adminOverview/apiChart';
+import AsyncView from 'app/views/asyncView';
+import EventChart from 'app/views/adminOverview/eventChart';
+import {t} from 'app/locale';
 
 export default class AdminOverview extends AsyncView {
   getTitle() {

@@ -2,12 +2,12 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
-import ApiMixin from '../../mixins/apiMixin';
-import SentryTypes from '../../proptypes';
-import Tooltip from '../tooltip';
-import {escape, percent, deviceNameMapper} from '../../utils';
-import {t} from '../../locale';
-import withEnvironment from '../../utils/withEnvironment';
+import ApiMixin from 'app/mixins/apiMixin';
+import SentryTypes from 'app/proptypes';
+import Tooltip from 'app/components/tooltip';
+import {escape, percent, deviceNameMapper} from 'app/utils';
+import {t} from 'app/locale';
+import withEnvironment from 'app/utils/withEnvironment';
 
 const TagDistributionMeter = createReactClass({
   displayName: 'TagDistributionMeter',

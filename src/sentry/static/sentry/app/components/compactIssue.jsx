@@ -4,16 +4,16 @@ import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import {Flex, Box} from 'grid-emotion';
 
-import ApiMixin from '../mixins/apiMixin';
-import IndicatorStore from '../stores/indicatorStore';
-import DropdownLink from './dropdownLink';
-import SnoozeAction from './issues/snoozeAction';
-import GroupChart from './stream/groupChart';
-import GroupStore from '../stores/groupStore';
-import Link from './link';
-import ProjectLink from './projectLink';
-import {t} from '../locale';
-import {PanelItem} from './panels';
+import ApiMixin from 'app/mixins/apiMixin';
+import IndicatorStore from 'app/stores/indicatorStore';
+import DropdownLink from 'app/components/dropdownLink';
+import SnoozeAction from 'app/components/issues/snoozeAction';
+import GroupChart from 'app/components/stream/groupChart';
+import GroupStore from 'app/stores/groupStore';
+import Link from 'app/components/link';
+import ProjectLink from 'app/components/projectLink';
+import {t} from 'app/locale';
+import {PanelItem} from 'app/components/panels';
 
 class CompactIssueHeader extends React.Component {
   static propTypes = {

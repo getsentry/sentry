@@ -5,18 +5,18 @@ import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
-import {Panel} from '../../components/panels';
-import {getPlatformName} from './utils';
-import {openCreateTeamModal} from '../../actionCreators/modal';
-import {t} from '../../locale';
-import ApiMixin from '../../mixins/apiMixin';
-import Button from '../../components/buttons/button';
-import OnboardingProject from '../onboarding/project';
-import OrganizationState from '../../mixins/organizationState';
-import PanelAlert from '../../components/panels/panelAlert';
-import ProjectActions from '../../actions/projectActions';
-import TeamActions from '../../actions/teamActions';
-import space from '../../styles/space';
+import {Panel} from 'app/components/panels';
+import {getPlatformName} from 'app/views/onboarding/utils';
+import {openCreateTeamModal} from 'app/actionCreators/modal';
+import {t} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import Button from 'app/components/buttons/button';
+import OnboardingProject from 'app/views/onboarding/project';
+import OrganizationState from 'app/mixins/organizationState';
+import PanelAlert from 'app/components/panels/panelAlert';
+import ProjectActions from 'app/actions/projectActions';
+import TeamActions from 'app/actions/teamActions';
+import space from 'app/styles/space';
 
 const CreateProject = createReactClass({
   displayName: 'CreateProject',

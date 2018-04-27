@@ -4,19 +4,19 @@ import React from 'react';
 import idx from 'idx';
 import {debounce} from 'lodash';
 
-import {getOrganizationState} from '../../../../mixins/organizationState';
-import {sortProjects} from '../../../../utils';
-import {t} from '../../../../locale';
-import Button from '../../../../components/buttons/button';
-import EmptyMessage from '../../components/emptyMessage';
-import Input from '../../components/forms/controls/input';
-import AsyncView from '../../../asyncView';
-import Pagination from '../../../../components/pagination';
-import {Panel, PanelBody, PanelHeader, PanelItem} from '../../../../components/panels';
-import ProjectListItem from '../../../settings/components/settingsProjectItem';
-import ProjectStatsGraph from './projectStatsGraph';
-import SentryTypes from '../../../../proptypes';
-import SettingsPageHeader from '../../components/settingsPageHeader';
+import {getOrganizationState} from 'app/mixins/organizationState';
+import {sortProjects} from 'app/utils';
+import {t} from 'app/locale';
+import Button from 'app/components/buttons/button';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import Input from 'app/views/settings/components/forms/controls/input';
+import AsyncView from 'app/views/asyncView';
+import Pagination from 'app/components/pagination';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import ProjectListItem from 'app/views/settings/components/settingsProjectItem';
+import ProjectStatsGraph from 'app/views/settings/organization/projects/projectStatsGraph';
+import SentryTypes from 'app/proptypes';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 
 export default class OrganizationProjectsView extends AsyncView {
   static contextTypes = {
