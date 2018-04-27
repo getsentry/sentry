@@ -1,3 +1,4 @@
+/* stylelint-disable no-descending-specificity */
 import {css} from 'react-emotion';
 
 const textStyles = props => {
@@ -15,7 +16,8 @@ const textStyles = props => {
     dl,
     blockquote,
     form,
-    pre {
+    pre,
+    .auto-select-text {
       margin-bottom: 20px;
 
       &:last-child {
@@ -57,6 +59,11 @@ const textStyles = props => {
 
     h5 {
       font-size: 1em;
+    }
+
+    pre {
+      word-break: break-all;
+      white-space: pre-wrap;
     }
   `;
 };

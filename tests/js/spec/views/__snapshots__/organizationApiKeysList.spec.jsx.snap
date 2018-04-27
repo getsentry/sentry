@@ -349,7 +349,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
             flex={false}
           >
             <div
-              className="css-huk7j-textStyles"
+              className="css-ikrbmg-textStyles"
             >
               <PanelItem
                 align="center"
