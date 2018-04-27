@@ -10,8 +10,14 @@
 (function(
   _window,
   _document,
+  _onerror,
+  _onunhandledrejection,
+  _namespace,
+  _newScriptTag,
+  _currentScriptTag,
+  _oldOnerror,
+  _oldOnunhandledrejection
 ) {
-  var _namespace = "__sentry_errors";
   // Store namespace reference inside a global variable, so user can change it
   // in a function call, and we still know how to access it
   _window.SentryObject = _namespace;
@@ -26,15 +32,15 @@
 
   // Store reference to the old `onerror` handler and override it with our own function
   // that will just push exceptions to the queue and call through old handler if we found one
-  _oldOnerror = _window['onerror'];
-  _window['onerror'] = function(message, source, lineno, colno, exception) {
+  _oldOnerror = _window[_onerror];
+  _window[_onerror] = function(message, source, lineno, colno, exception) {
     _window[_namespace](exception);
     if (_oldOnerror) _oldOnerror.apply(_window, arguments);
   };
 
   // Do the same store/queue/call operations for `onunhandledrejection` event
-  _oldOnunhandledrejection = _window['onunhandledrejection'];
-  _window['onunhandledrejection'] = function(exception) {
+  _oldOnunhandledrejection = _window[_onunhandledrejection];
+  _window[_onunhandledrejection] = function(exception) {
     _window[_namespace](exception.reason);
     if (_oldOnunhandledrejection) _oldOnunhandledrejection.apply(_window, arguments);
   };
@@ -88,6 +94,11 @@
     }
   });
 })(
+  // predefined references, that should never be changed
   window,
-  document
+  document,
+  'onerror',
+  'onunhandledrejection',
+  // namespace that will be used to store the exceptions captured before SDK has been loaded
+  'sentry'
 );
