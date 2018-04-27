@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from rest_framework import serializers
 from rest_framework.response import Response
 from django.utils import timezone
@@ -28,15 +30,15 @@ class ProjectOwnershipSerializer(serializers.Serializer):
 
         schema = dump_schema(rules)
 
+        owners = {o for rule in rules for o in rule.owners}
+        actors = resolve_actors(owners, self.context['ownership'].project_id)
+
         bad_actors = []
-        for owner in {o for rule in rules for o in rule.owners}:
-            # Check each one explicitly so we know which are missing
-            # TODO(mattrobenolt): Potentially refactor resolve_actors to handle this in bulk
-            if not resolve_actors([owner], self.context['ownership'].project_id):
+        for owner, actor in six.iteritems(actors):
+            if actor is None:
                 if owner.type == 'user':
                     bad_actors.append(owner.identifier)
-
-                if owner.type == 'team':
+                elif owner.type == 'team':
                     bad_actors.append(u'#{}'.format(owner.identifier))
 
         if bad_actors:

@@ -2,20 +2,14 @@ from __future__ import absolute_import, print_function
 
 import six
 
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from rest_framework import serializers
 
 from sentry.models import User, Team
 from sentry.utils.auth import find_users
 
 
-class Actor(object):
-    def __init__(self, id, type):
-        self.id = id
-        self.type = type
-
-    __slots__ = ['id', 'type']
-
+class Actor(namedtuple('Actor', 'id type')):
     def get_actor_id(self):
         return '%s:%d' % (self.type.__name__.lower(), self.id)
 
@@ -78,20 +72,6 @@ class Actor(object):
             key: resolved_actors[value.type][value.id]
             for key, value in actor_dict.items()
         }
-
-    def __eq__(self, other):
-        if type(other) != type(self):
-            return False
-        return (self.id, self.type) == (other.id, other.type)
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-    def __hash__(self):
-        return hash((self.id, self.type))
-
-    def __repr__(self):
-        return '<Actor id=%s, type=%s>' % (six.text_type(self.id), six.text_type(self.type))
 
 
 class ActorField(serializers.WritableField):

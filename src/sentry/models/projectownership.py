@@ -60,17 +60,17 @@ class ProjectOwnership(Model):
         if not rules:
             return cls.Everyone if ownership.fallthrough else [], None
 
-        owners = set()
-        for rule in rules:
-            for o in rule.owners:
-                owners.add(o)
+        owners = {o for rule in rules for o in rule.owners}
 
-        return resolve_actors(owners, project_id), rules
+        return filter(None, resolve_actors(owners, project_id).values()), rules
 
 
 def resolve_actors(owners, project_id):
-    """ Convert a list of Owner objects into a list of Actors """
+    """ Convert a list of Owner objects into a dictionary
+    of {Owner: Actor} pairs. Actors not identified are returned
+    as None. """
     from sentry.api.fields.actor import Actor
+    from sentry.ownership.grammar import Owner
     from sentry.models import User, Team
 
     if not owners:
@@ -78,33 +78,38 @@ def resolve_actors(owners, project_id):
 
     users, teams = [], []
 
+    owners_to_actors = {o: None for o in owners}
+
     for owner in owners:
         if owner.type == 'user':
             users.append(owner)
-        if owner.type == 'team':
+        elif owner.type == 'team':
             teams.append(owner)
 
     actors = []
     if users:
         actors.extend([
-            Actor(u, User)
-            for u in User.objects.filter(
+            ('user', email, Actor(u_id, User))
+            for u_id, email in User.objects.filter(
                 reduce(
                     operator.or_,
                     [Q(email__iexact=o.identifier) for o in users]
                 ),
                 is_active=True,
                 sentry_orgmember_set__organizationmemberteam__team__projectteam__project_id=project_id,
-            ).values_list('id', flat=True)
+            ).values_list('id', 'email')
         ])
 
     if teams:
         actors.extend([
-            Actor(t, Team)
-            for t in Team.objects.filter(
+            ('team', slug, Actor(t_id, Team))
+            for t_id, slug in Team.objects.filter(
                 slug__in=[o.identifier for o in teams],
                 projectteam__project_id=project_id,
-            ).values_list('id', flat=True)
+            ).values_list('id', 'slug')
         ])
 
-    return actors
+    for type, identifier, actor in actors:
+        owners_to_actors[Owner(type, identifier)] = actor
+
+    return owners_to_actors
