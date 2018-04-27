@@ -11,6 +11,11 @@ describe('ProjectHpkpReports', function() {
   beforeEach(function() {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/`,
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/keys/`,
       method: 'GET',
       body: [],
