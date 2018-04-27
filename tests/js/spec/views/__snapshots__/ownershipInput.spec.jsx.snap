@@ -89,7 +89,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
   >
     <BuilderBar>
       <div
-        className="css-1rsoebt-BuilderBar css-spr3415"
+        className="css-1rsoebt-BuilderBar e1hyuoc75"
       >
         <BuilderSelect
           clearable={false}
@@ -116,7 +116,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
           value="path"
         >
           <SelectField
-            className="css-1bclqmz-BuilderSelect css-spr3416"
+            className="css-1bclqmz-BuilderSelect e1hyuoc76"
             clearable={false}
             disabled={false}
             hideErrorMessage={false}
@@ -144,7 +144,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
             value="path"
           >
             <div
-              className="css-1bclqmz-BuilderSelect css-spr3416"
+              className="css-1bclqmz-BuilderSelect e1hyuoc76"
               style={
                 Object {
                   "width": 140,
@@ -180,7 +180,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                     autosize={true}
                     backspaceRemoves={true}
                     backspaceToRemoveMessage="Press backspace to remove {label}"
-                    className="css-16280ey-StyledSelect css-seafkz0"
+                    className="css-16280ey-StyledSelect e1m8gyzz0"
                     clearAllText="Clear all"
                     clearRenderer={[Function]}
                     clearValueText="Clear value"
@@ -237,7 +237,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                     valueKey="value"
                   >
                     <div
-                      className="Select css-16280ey-StyledSelect css-seafkz0 has-value is-searchable Select--single"
+                      className="Select css-16280ey-StyledSelect e1m8gyzz0 has-value is-searchable Select--single"
                     >
                       <div
                         className="Select-control"
@@ -359,7 +359,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
           value=""
         >
           <input
-            className="css-1t4syiu-Input-BuilderInput css-spr3417"
+            className="css-17gm6uc-Input-inputStyles-BuilderInput e1hyuoc77"
             onChange={[Function]}
             placeholder="src/example/*"
             value=""
@@ -369,17 +369,17 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
           src="icon-chevron-right"
         >
           <InlineSvg
-            className="css-a4tn6s-Divider css-spr3418"
+            className="css-a4tn6s-Divider e1hyuoc78"
             src="icon-chevron-right"
           >
             <StyledSvg
-              className="css-a4tn6s-Divider css-spr3418"
+              className="css-a4tn6s-Divider e1hyuoc78"
               height="1em"
               viewBox={Object {}}
               width="1em"
             >
               <svg
-                className="css-spr3418 css-5e2rei-StyledSvg css-adkcw30"
+                className="e1hyuoc78 css-1uv43pt-StyledSvg-Divider e2idor0"
                 height="1em"
                 viewBox={Object {}}
                 width="1em"
@@ -462,7 +462,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                           autosize={true}
                           backspaceRemoves={true}
                           backspaceToRemoveMessage="Press backspace to remove {label}"
-                          className="css-16280ey-StyledSelect css-seafkz0"
+                          className="css-16280ey-StyledSelect e1m8gyzz0"
                           clearAllText="Clear all"
                           clearRenderer={[Function]}
                           clearValueText="Clear value"
@@ -514,7 +514,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                           valueKey="value"
                         >
                           <div
-                            className="Select css-16280ey-StyledSelect css-seafkz0 is-clearable is-searchable Select--multi"
+                            className="Select css-16280ey-StyledSelect e1m8gyzz0 is-clearable is-searchable Select--multi"
                           >
                             <div
                               className="Select-control"
@@ -623,7 +623,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
           size="zero"
         >
           <Button
-            className="css-3daogo-RuleAddButton css-spr3419"
+            className="css-3daogo-RuleAddButton e1hyuoc79"
             disabled={false}
             icon="icon-circle-add"
             onClick={[Function]}
@@ -631,7 +631,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
             size="zero"
           >
             <button
-              className="css-3daogo-RuleAddButton css-spr3419 button button-primary button-zero"
+              className="css-3daogo-RuleAddButton e1hyuoc79 button button-primary button-zero"
               disabled={false}
               onClick={[Function]}
               role="button"
@@ -652,11 +652,11 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                       size="zero"
                     >
                       <Base
-                        className="css-l3pkcx-Icon css-1vxxnb60"
+                        className="css-l3pkcx-Icon e17811v30"
                         size="zero"
                       >
                         <div
-                          className="css-l3pkcx-Icon css-1vxxnb60"
+                          className="css-l3pkcx-Icon e17811v30"
                           is={null}
                           size="zero"
                         >
@@ -665,18 +665,18 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                             src="icon-circle-add"
                           >
                             <InlineSvg
-                              className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
+                              className="css-1ov3rcq-StyledInlineSvg e17811v31"
                               size="16px"
                               src="icon-circle-add"
                             >
                               <StyledSvg
-                                className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
+                                className="css-1ov3rcq-StyledInlineSvg e17811v31"
                                 height="16px"
                                 viewBox={Object {}}
                                 width="16px"
                               >
                                 <svg
-                                  className="css-1vxxnb61 css-1rlza0i-StyledSvg css-adkcw30"
+                                  className="e17811v31 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
                                   height="16px"
                                   viewBox={Object {}}
                                   width="16px"
@@ -724,7 +724,7 @@ url:http://example.com/settings/* #product"
         autoCapitalize="off"
         autoComplete="off"
         autoCorrect="off"
-        className="css-e9agsp-StyledTextArea css-1rksra02"
+        className="css-19bz115-StyledTextArea-inputStyles en3n9di2"
         onChange={[Function]}
         placeholder="#example usage
 path:src/example/pipeline/* person@sentry.io #infra
@@ -737,7 +737,7 @@ url:http://example.com/settings/* #product"
           autoCapitalize="off"
           autoComplete="off"
           autoCorrect="off"
-          className="css-e9agsp-StyledTextArea css-1rksra02"
+          className="css-19bz115-StyledTextArea-inputStyles en3n9di2"
           onChange={[Function]}
           placeholder="#example usage
 path:src/example/pipeline/* person@sentry.io #infra
@@ -750,7 +750,7 @@ url:http://example.com/settings/* #product"
     </StyledTextArea>
     <SaveButton>
       <div
-        className="css-5zvod-SaveButton css-1rksra01"
+        className="css-5zvod-SaveButton en3n9di1"
       >
         <Button
           disabled={false}

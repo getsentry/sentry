@@ -1,8 +1,6 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import {ThemeProvider} from 'emotion-theming';
-import theme from 'app/utils/theme';
 import {Client} from 'app/api';
 import OwnerInput from 'app/views/settings/project/projectOwnership/ownerInput';
 
@@ -26,14 +24,12 @@ describe('ProjectTeamsSettings', function() {
   describe('render()', function() {
     it('renders', function() {
       let wrapper = mount(
-        <ThemeProvider theme={theme}>
-          <OwnerInput
-            params={{orgId: org.slug, projectId: project.slug}}
-            organization={org}
-            initialText="url:src @dummy@example.com"
-            project={project}
-          />
-        </ThemeProvider>,
+        <OwnerInput
+          params={{orgId: org.slug, projectId: project.slug}}
+          organization={org}
+          initialText="url:src @dummy@example.com"
+          project={project}
+        />,
         TestStubs.routerContext()
       );
 

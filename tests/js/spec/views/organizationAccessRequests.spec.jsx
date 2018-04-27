@@ -1,8 +1,7 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+import {mount, shallow} from 'enzyme';
 
 import OrganizationAccessRequests from 'app/views/settings/organization/members/organizationAccessRequests';
-import {mountWithTheme} from '../../../helpers';
 
 describe('OrganizationAccessRequests', function() {
   beforeEach(function() {});
@@ -48,7 +47,7 @@ describe('OrganizationAccessRequests', function() {
 
   it('can approve', function() {
     let mock = jest.fn();
-    let wrapper = mountWithTheme(
+    let wrapper = mount(
       <OrganizationAccessRequests
         params={{apiKey: 1, orgId: 'org-slug'}}
         accessRequestBusy={new Map()}
@@ -70,7 +69,8 @@ describe('OrganizationAccessRequests', function() {
         ]}
         onApprove={mock}
         onDeny={() => {}}
-      />
+      />,
+      TestStubs.routerContext()
     );
 
     wrapper
@@ -82,7 +82,7 @@ describe('OrganizationAccessRequests', function() {
 
   it('can deny', function() {
     let mock = jest.fn();
-    let wrapper = mountWithTheme(
+    let wrapper = mount(
       <OrganizationAccessRequests
         params={{apiKey: 1, orgId: 'org-slug'}}
         accessRequestBusy={new Map()}
@@ -104,7 +104,8 @@ describe('OrganizationAccessRequests', function() {
         ]}
         onApprove={() => {}}
         onDeny={mock}
-      />
+      />,
+      TestStubs.routerContext()
     );
 
     wrapper

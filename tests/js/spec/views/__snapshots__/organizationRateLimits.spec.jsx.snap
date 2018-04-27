@@ -5,10 +5,10 @@ exports[`Organization Rate Limits renders with maxRate and maxRateInterval set 1
   className="css-gx0lhm"
 >
   <Component
-    className="css-1ai2po6-TextBlock css-q7e89a0"
+    className="css-1ai2po6-TextBlock ec8ep340"
   >
     <div
-      className="css-1ai2po6-TextBlock css-q7e89a0"
+      className="css-1ai2po6-TextBlock ec8ep340"
     >
       <span
         key="8"

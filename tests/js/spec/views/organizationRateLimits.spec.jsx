@@ -1,8 +1,8 @@
+import {mount} from 'enzyme';
 import React from 'react';
 
 import {Client} from 'app/api';
 import OrganizationRateLimits from 'app/views/settings/organization/rateLimit/rateLimitView';
-import {mountWithTheme} from '../../../helpers';
 
 const ENDPOINT = '/organizations/org-slug/';
 
@@ -24,7 +24,7 @@ describe('Organization Rate Limits', function() {
   });
 
   it('renders with initialData', function() {
-    let wrapper = mountWithTheme(creator(), TestStubs.routerContext());
+    let wrapper = mount(creator(), TestStubs.routerContext());
 
     expect(
       wrapper
@@ -48,7 +48,7 @@ describe('Organization Rate Limits', function() {
         maxRateInterval: 60,
       },
     };
-    let wrapper = mountWithTheme(creator({organization: org}), TestStubs.routerContext());
+    let wrapper = mount(creator({organization: org}), TestStubs.routerContext());
 
     expect(wrapper.find('RangeSlider')).toHaveLength(1);
 
@@ -62,7 +62,7 @@ describe('Organization Rate Limits', function() {
       statusCode: 200,
     });
 
-    let wrapper = mountWithTheme(creator(), TestStubs.routerContext());
+    let wrapper = mount(creator(), TestStubs.routerContext());
 
     expect(mock).not.toHaveBeenCalled();
 
@@ -92,7 +92,7 @@ describe('Organization Rate Limits', function() {
       statusCode: 200,
     });
 
-    let wrapper = mountWithTheme(creator(), TestStubs.routerContext());
+    let wrapper = mount(creator(), TestStubs.routerContext());
 
     expect(mock).not.toHaveBeenCalled();
 

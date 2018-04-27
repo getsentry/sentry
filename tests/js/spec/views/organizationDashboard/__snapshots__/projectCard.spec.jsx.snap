@@ -21,7 +21,7 @@ exports[`ProjectCard renders 1`] = `
 >
   <StyledProjectCard>
     <div
-      className="css-1u6ttyz-StyledProjectCard css-ayif0l1"
+      className="css-18be1td-StyledProjectCard efesc7i1"
     >
       <Flex
         align="center"
@@ -42,17 +42,17 @@ exports[`ProjectCard renders 1`] = `
               to="/org-slug/project-slug/"
             >
               <Link
-                className="css-kor5al-StyledLink css-ayif0l0"
+                className="css-kor5al-StyledLink efesc7i0"
                 to="/org-slug/project-slug/"
               >
                 <Link
-                  className="css-kor5al-StyledLink css-ayif0l0"
+                  className="css-kor5al-StyledLink efesc7i0"
                   onlyActiveOnIndex={false}
                   style={Object {}}
                   to="/org-slug/project-slug/"
                 >
                   <a
-                    className="css-kor5al-StyledLink css-ayif0l0"
+                    className="css-kor5al-StyledLink efesc7i0"
                     onClick={[Function]}
                     style={Object {}}
                   >
@@ -69,7 +69,7 @@ exports[`ProjectCard renders 1`] = `
               onClick={[Function]}
             >
               <a
-                className="project-select-bookmark icon icon-star-solid css-x8d2hc-Star css-ayif0l2"
+                className="project-select-bookmark icon icon-star-solid css-syj8e8-Star efesc7i2"
                 onClick={[Function]}
               />
             </Star>
