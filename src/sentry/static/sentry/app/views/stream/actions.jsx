@@ -59,19 +59,21 @@ const getConfirm = (numIssues, allInQuerySelected, query, queryCount) => {
         <p style={{marginBottom: '20px'}}>
           <strong>{question}</strong>
         </p>
-        <ExtraDescription all={allInQuerySelected} query={query} />
+        <ExtraDescription
+          all={allInQuerySelected}
+          query={query}
+          queryCount={queryCount}
+        />
         {!canBeUndone && (
           <p>
-            'This action cannot be undone. You may consider '
-            {
-              <Link
-                to={
-                  'https://help.sentry.io/hc/en-us/articles/360003443113-When-should-I-delete-events-'
-                }
-              >
-                'other alternatives'
-              </Link>
-            }.
+            {tct(
+              'Bulk deletion is only recommended for junk data. To clear your stream, consider resolving or ignoring. [link:When should I delete events?]',
+              {
+                link: (
+                  <Link to="https://help.sentry.io/hc/en-us/articles/360003443113-When-should-I-delete-events-" />
+                ),
+              }
+            )}
           </p>
         )}
       </div>
