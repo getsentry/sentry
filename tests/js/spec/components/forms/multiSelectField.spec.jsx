@@ -32,7 +32,8 @@ describe('MultiSelectField', function() {
           },
         }
       );
-      expect(wrapper).toMatchSnapshot();
+
+      expect(wrapper.find('MultiSelectControl').prop('value')).toEqual(['a', 'b']);
     });
   });
 });
