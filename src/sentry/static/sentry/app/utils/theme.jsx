@@ -88,8 +88,9 @@ const theme = {
 
   grid: 8,
   fontSizeSmall: '12px',
-  fontSizeMedium: '16px',
-  fontSizeLarge: '18px',
+  fontSizeMedium: '14px',
+  fontSizeLarge: '16px',
+  fontSizeExtraLarge: '18px',
 
   settings: {
     containerWidth: '1140px',

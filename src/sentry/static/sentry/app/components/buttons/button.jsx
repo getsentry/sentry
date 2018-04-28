@@ -108,15 +108,15 @@ class Button extends React.Component {
 
 export default Button;
 
-const getFontSize = ({size}) => {
+const getFontSize = ({size, theme}) => {
   switch (size) {
     case 'xsmall':
     case 'small':
-      return '12px';
+      return theme.fontSizeSmall;
     case 'large':
-      return '16px';
+      return theme.fontSizeLarge;
     default:
-      return '14px';
+      return theme.fontSizeMedium;
   }
 };
 
