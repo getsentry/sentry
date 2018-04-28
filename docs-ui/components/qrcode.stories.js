@@ -3,7 +3,7 @@ import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 // import {action} from '@storybook/addon-actions';
 
-import Qrcode from 'sentry-ui/qrcode';
+import Qrcode from 'app/components/qrcode';
 
 storiesOf('Qrcode', module).add(
   'default',

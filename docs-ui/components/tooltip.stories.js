@@ -3,8 +3,8 @@ import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 import {text, boolean} from '@storybook/addon-knobs';
 
-import Tooltip from 'sentry-ui/tooltip';
-import Button from 'sentry-ui/buttons/button';
+import Tooltip from 'app/components/tooltip';
+import Button from 'app/components/buttons/button';
 
 storiesOf('Tooltip', module).add(
   'default',

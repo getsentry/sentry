@@ -3,7 +3,7 @@ import {storiesOf} from '@storybook/react';
 import {action} from '@storybook/addon-actions';
 import {withInfo} from '@storybook/addon-info';
 
-import LinkWithConfirmation from 'sentry-ui/linkWithConfirmation';
+import LinkWithConfirmation from 'app/components/linkWithConfirmation';
 
 storiesOf('Links/LinkWithConfirmation', module).add(
   'default',
