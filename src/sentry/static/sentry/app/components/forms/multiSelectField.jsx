@@ -1,8 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
+import {defined} from 'app/utils';
 import FormField from 'app/components/forms/formField';
-import StyledSelect from 'app/components/forms/select.styled';
+import MultiSelectControl from 'app/components/forms/multiSelectControl';
 
 export default class MultiSelectField extends FormField {
   static propTypes = {
@@ -11,11 +12,17 @@ export default class MultiSelectField extends FormField {
     value: PropTypes.any,
   };
 
-  constructor(props) {
-    super(props);
-    this.state = {
-      value: [],
-    };
+  // Overriding this for now so that we can set default value to `[]`
+  getValue(props, context) {
+    let form = (context || this.context || {}).form;
+    props = props || this.props;
+    if (defined(props.value)) {
+      return props.value;
+    }
+    if (form && form.data.hasOwnProperty(props.name)) {
+      return defined(form.data[props.name]) ? form.data[props.name] : [];
+    }
+    return defined(props.defaultValue) ? props.defaultValue : [];
   }
 
   getClassName() {
@@ -27,20 +34,13 @@ export default class MultiSelectField extends FormField {
     this.setValue(value);
   };
 
-  renderArrow = () => {
-    return <span className="icon-arrow-down" />;
-  };
-
   getField() {
     return (
-      <StyledSelect
-        style={{width: 200, overflow: 'visible'}}
-        value={this.state.values}
+      <MultiSelectControl
         id={this.getId()}
-        multi={true}
-        arrowRenderer={this.renderArrow}
+        value={this.state.value}
         {...this.props}
-        onChange={this.handleChange}
+        onChange={this.onChange}
       />
     );
   }

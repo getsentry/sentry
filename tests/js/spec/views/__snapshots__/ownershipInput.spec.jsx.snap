@@ -154,8 +154,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
               <div
                 className="controls"
               >
-                <StyledSelect
-                  arrowRenderer={[Function]}
+                <SelectControl
                   clearable={false}
                   disabled={false}
                   id="id-select-type"
@@ -175,9 +174,8 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                   required={false}
                   value="path"
                 >
-                  <Component
+                  <StyledSelect
                     arrowRenderer={[Function]}
-                    className="css-16280ey-StyledSelect e1m8gyzz0"
                     clearable={false}
                     disabled={false}
                     id="id-select-type"
@@ -197,41 +195,13 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                     required={false}
                     value="path"
                   >
-                    <Select
+                    <Component
                       arrowRenderer={[Function]}
-                      autosize={true}
-                      backspaceRemoves={true}
-                      backspaceToRemoveMessage="Press backspace to remove {label}"
-                      className="css-16280ey-StyledSelect e1m8gyzz0"
-                      clearAllText="Clear all"
-                      clearRenderer={[Function]}
-                      clearValueText="Clear value"
+                      className="css-16280ey-StyledSelect eho28m20"
                       clearable={false}
-                      closeOnSelect={true}
-                      deleteRemoves={true}
-                      delimiter=","
                       disabled={false}
-                      escapeClearsValue={true}
-                      filterOptions={[Function]}
                       id="id-select-type"
-                      ignoreAccents={true}
-                      ignoreCase={true}
-                      inputProps={Object {}}
-                      isLoading={false}
-                      joinValues={false}
-                      labelKey="label"
-                      matchPos="any"
-                      matchProp="any"
-                      menuBuffer={0}
-                      menuRenderer={[Function]}
-                      multi={false}
-                      noResultsText="No results found"
-                      onBlurResetsInput={true}
                       onChange={[Function]}
-                      onCloseResetsInput={true}
-                      onSelectResetsInput={true}
-                      openOnClick={true}
-                      optionComponent={[Function]}
                       options={
                         Array [
                           Object {
@@ -244,133 +214,184 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                           },
                         ]
                       }
-                      pageSize={5}
-                      placeholder="Select..."
-                      removeSelected={true}
                       required={false}
-                      rtl={false}
-                      scrollMenuIntoView={true}
-                      searchable={true}
-                      simpleValue={false}
-                      tabSelectsValue={true}
-                      trimFilter={true}
                       value="path"
-                      valueComponent={[Function]}
-                      valueKey="value"
                     >
-                      <div
-                        className="Select css-16280ey-StyledSelect e1m8gyzz0 has-value is-searchable Select--single"
+                      <Select
+                        arrowRenderer={[Function]}
+                        autosize={true}
+                        backspaceRemoves={true}
+                        backspaceToRemoveMessage="Press backspace to remove {label}"
+                        className="css-16280ey-StyledSelect eho28m20"
+                        clearAllText="Clear all"
+                        clearRenderer={[Function]}
+                        clearValueText="Clear value"
+                        clearable={false}
+                        closeOnSelect={true}
+                        deleteRemoves={true}
+                        delimiter=","
+                        disabled={false}
+                        escapeClearsValue={true}
+                        filterOptions={[Function]}
+                        id="id-select-type"
+                        ignoreAccents={true}
+                        ignoreCase={true}
+                        inputProps={Object {}}
+                        isLoading={false}
+                        joinValues={false}
+                        labelKey="label"
+                        matchPos="any"
+                        matchProp="any"
+                        menuBuffer={0}
+                        menuRenderer={[Function]}
+                        multi={false}
+                        noResultsText="No results found"
+                        onBlurResetsInput={true}
+                        onChange={[Function]}
+                        onCloseResetsInput={true}
+                        onSelectResetsInput={true}
+                        openOnClick={true}
+                        optionComponent={[Function]}
+                        options={
+                          Array [
+                            Object {
+                              "label": "Path",
+                              "value": "path",
+                            },
+                            Object {
+                              "label": "URL",
+                              "value": "url",
+                            },
+                          ]
+                        }
+                        pageSize={5}
+                        placeholder="Select..."
+                        removeSelected={true}
+                        required={false}
+                        rtl={false}
+                        scrollMenuIntoView={true}
+                        searchable={true}
+                        simpleValue={false}
+                        tabSelectsValue={true}
+                        trimFilter={true}
+                        value="path"
+                        valueComponent={[Function]}
+                        valueKey="value"
                       >
                         <div
-                          className="Select-control"
-                          onKeyDown={[Function]}
-                          onMouseDown={[Function]}
-                          onTouchEnd={[Function]}
-                          onTouchMove={[Function]}
-                          onTouchStart={[Function]}
+                          className="Select css-16280ey-StyledSelect eho28m20 has-value is-searchable Select--single"
                         >
-                          <span
-                            className="Select-multi-value-wrapper"
-                            id="react-select-2--value"
-                          >
-                            <Value
-                              disabled={false}
-                              id="react-select-2--value-item"
-                              instancePrefix="react-select-2-"
-                              onClick={null}
-                              placeholder="Select..."
-                              value={
-                                Object {
-                                  "label": "Path",
-                                  "value": "path",
-                                }
-                              }
-                            >
-                              <div
-                                className="Select-value"
-                              >
-                                <span
-                                  aria-selected="true"
-                                  className="Select-value-label"
-                                  id="react-select-2--value-item"
-                                  role="option"
-                                >
-                                  Path
-                                </span>
-                              </div>
-                            </Value>
-                            <AutosizeInput
-                              aria-activedescendant="react-select-2--value"
-                              aria-expanded="false"
-                              aria-haspopup="false"
-                              aria-owns=""
-                              className="Select-input"
-                              id="id-select-type"
-                              injectStyles={true}
-                              minWidth="5"
-                              onBlur={[Function]}
-                              onChange={[Function]}
-                              onFocus={[Function]}
-                              required={false}
-                              role="combobox"
-                              value=""
-                            >
-                              <div
-                                className="Select-input"
-                                style={
-                                  Object {
-                                    "display": "inline-block",
-                                  }
-                                }
-                              >
-                                <input
-                                  aria-activedescendant="react-select-2--value"
-                                  aria-expanded="false"
-                                  aria-haspopup="false"
-                                  aria-owns=""
-                                  id="id-select-type"
-                                  onBlur={[Function]}
-                                  onChange={[Function]}
-                                  onFocus={[Function]}
-                                  required={false}
-                                  role="combobox"
-                                  style={
-                                    Object {
-                                      "boxSizing": "content-box",
-                                      "width": "5px",
-                                    }
-                                  }
-                                  value=""
-                                />
-                                <div
-                                  style={
-                                    Object {
-                                      "height": 0,
-                                      "left": 0,
-                                      "overflow": "scroll",
-                                      "position": "absolute",
-                                      "top": 0,
-                                      "visibility": "hidden",
-                                      "whiteSpace": "pre",
-                                    }
-                                  }
-                                />
-                              </div>
-                            </AutosizeInput>
-                          </span>
-                          <span
-                            className="Select-arrow-zone"
+                          <div
+                            className="Select-control"
+                            onKeyDown={[Function]}
                             onMouseDown={[Function]}
+                            onTouchEnd={[Function]}
+                            onTouchMove={[Function]}
+                            onTouchStart={[Function]}
                           >
                             <span
-                              className="icon-arrow-down"
-                            />
-                          </span>
+                              className="Select-multi-value-wrapper"
+                              id="react-select-2--value"
+                            >
+                              <Value
+                                disabled={false}
+                                id="react-select-2--value-item"
+                                instancePrefix="react-select-2-"
+                                onClick={null}
+                                placeholder="Select..."
+                                value={
+                                  Object {
+                                    "label": "Path",
+                                    "value": "path",
+                                  }
+                                }
+                              >
+                                <div
+                                  className="Select-value"
+                                >
+                                  <span
+                                    aria-selected="true"
+                                    className="Select-value-label"
+                                    id="react-select-2--value-item"
+                                    role="option"
+                                  >
+                                    Path
+                                  </span>
+                                </div>
+                              </Value>
+                              <AutosizeInput
+                                aria-activedescendant="react-select-2--value"
+                                aria-expanded="false"
+                                aria-haspopup="false"
+                                aria-owns=""
+                                className="Select-input"
+                                id="id-select-type"
+                                injectStyles={true}
+                                minWidth="5"
+                                onBlur={[Function]}
+                                onChange={[Function]}
+                                onFocus={[Function]}
+                                required={false}
+                                role="combobox"
+                                value=""
+                              >
+                                <div
+                                  className="Select-input"
+                                  style={
+                                    Object {
+                                      "display": "inline-block",
+                                    }
+                                  }
+                                >
+                                  <input
+                                    aria-activedescendant="react-select-2--value"
+                                    aria-expanded="false"
+                                    aria-haspopup="false"
+                                    aria-owns=""
+                                    id="id-select-type"
+                                    onBlur={[Function]}
+                                    onChange={[Function]}
+                                    onFocus={[Function]}
+                                    required={false}
+                                    role="combobox"
+                                    style={
+                                      Object {
+                                        "boxSizing": "content-box",
+                                        "width": "5px",
+                                      }
+                                    }
+                                    value=""
+                                  />
+                                  <div
+                                    style={
+                                      Object {
+                                        "height": 0,
+                                        "left": 0,
+                                        "overflow": "scroll",
+                                        "position": "absolute",
+                                        "top": 0,
+                                        "visibility": "hidden",
+                                        "whiteSpace": "pre",
+                                      }
+                                    }
+                                  />
+                                </div>
+                              </AutosizeInput>
+                            </span>
+                            <span
+                              className="Select-arrow-zone"
+                              onMouseDown={[Function]}
+                            >
+                              <span
+                                className="icon-arrow-down"
+                              />
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    </Select>
-                  </Component>
-                </StyledSelect>
+                      </Select>
+                    </Component>
+                  </StyledSelect>
+                </SelectControl>
               </div>
             </div>
           </SelectField>
@@ -435,223 +456,217 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                 options={Array []}
                 value={Array []}
               >
-                <MultiSelectField
-                  disabled={false}
-                  hideErrorMessage={false}
-                  multi={true}
+                <MultiSelectControl
                   onChange={[Function]}
                   options={Array []}
                   placeholder="Add Owners"
-                  required={false}
                   style={
                     Object {
+                      "overflow": "visible",
                       "width": 200,
                     }
                   }
                   value={Array []}
                   valueComponent={[Function]}
                 >
-                  <div
-                    className=""
+                  <SelectControl
+                    multi={true}
+                    onChange={[Function]}
+                    options={Array []}
+                    placeholder="Add Owners"
                     style={
                       Object {
+                        "overflow": "visible",
                         "width": 200,
                       }
                     }
+                    value={Array []}
+                    valueComponent={[Function]}
                   >
-                    <div
-                      className="controls"
+                    <StyledSelect
+                      arrowRenderer={[Function]}
+                      multi={true}
+                      onChange={[Function]}
+                      options={Array []}
+                      placeholder="Add Owners"
+                      style={
+                        Object {
+                          "overflow": "visible",
+                          "width": 200,
+                        }
+                      }
+                      value={Array []}
+                      valueComponent={[Function]}
                     >
-                      <StyledSelect
+                      <Component
                         arrowRenderer={[Function]}
-                        disabled={false}
-                        hideErrorMessage={false}
-                        id="id-undefined"
+                        className="css-16280ey-StyledSelect eho28m20"
                         multi={true}
+                        onChange={[Function]}
                         options={Array []}
                         placeholder="Add Owners"
-                        required={false}
                         style={
                           Object {
+                            "overflow": "visible",
                             "width": 200,
                           }
                         }
                         value={Array []}
                         valueComponent={[Function]}
                       >
-                        <Component
+                        <Select
                           arrowRenderer={[Function]}
-                          className="css-16280ey-StyledSelect e1m8gyzz0"
+                          autosize={true}
+                          backspaceRemoves={true}
+                          backspaceToRemoveMessage="Press backspace to remove {label}"
+                          className="css-16280ey-StyledSelect eho28m20"
+                          clearAllText="Clear all"
+                          clearRenderer={[Function]}
+                          clearValueText="Clear value"
+                          clearable={true}
+                          closeOnSelect={true}
+                          deleteRemoves={true}
+                          delimiter=","
                           disabled={false}
-                          hideErrorMessage={false}
-                          id="id-undefined"
+                          escapeClearsValue={true}
+                          filterOptions={[Function]}
+                          ignoreAccents={true}
+                          ignoreCase={true}
+                          inputProps={Object {}}
+                          isLoading={false}
+                          joinValues={false}
+                          labelKey="label"
+                          matchPos="any"
+                          matchProp="any"
+                          menuBuffer={0}
+                          menuRenderer={[Function]}
                           multi={true}
+                          noResultsText="No results found"
+                          onBlurResetsInput={true}
+                          onChange={[Function]}
+                          onCloseResetsInput={true}
+                          onSelectResetsInput={true}
+                          openOnClick={true}
+                          optionComponent={[Function]}
                           options={Array []}
+                          pageSize={5}
                           placeholder="Add Owners"
+                          removeSelected={true}
                           required={false}
+                          rtl={false}
+                          scrollMenuIntoView={true}
+                          searchable={true}
+                          simpleValue={false}
                           style={
                             Object {
+                              "overflow": "visible",
                               "width": 200,
                             }
                           }
+                          tabSelectsValue={true}
+                          trimFilter={true}
                           value={Array []}
                           valueComponent={[Function]}
+                          valueKey="value"
                         >
-                          <Select
-                            arrowRenderer={[Function]}
-                            autosize={true}
-                            backspaceRemoves={true}
-                            backspaceToRemoveMessage="Press backspace to remove {label}"
-                            className="css-16280ey-StyledSelect e1m8gyzz0"
-                            clearAllText="Clear all"
-                            clearRenderer={[Function]}
-                            clearValueText="Clear value"
-                            clearable={true}
-                            closeOnSelect={true}
-                            deleteRemoves={true}
-                            delimiter=","
-                            disabled={false}
-                            escapeClearsValue={true}
-                            filterOptions={[Function]}
-                            hideErrorMessage={false}
-                            id="id-undefined"
-                            ignoreAccents={true}
-                            ignoreCase={true}
-                            inputProps={Object {}}
-                            isLoading={false}
-                            joinValues={false}
-                            labelKey="label"
-                            matchPos="any"
-                            matchProp="any"
-                            menuBuffer={0}
-                            menuRenderer={[Function]}
-                            multi={true}
-                            noResultsText="No results found"
-                            onBlurResetsInput={true}
-                            onCloseResetsInput={true}
-                            onSelectResetsInput={true}
-                            openOnClick={true}
-                            optionComponent={[Function]}
-                            options={Array []}
-                            pageSize={5}
-                            placeholder="Add Owners"
-                            removeSelected={true}
-                            required={false}
-                            rtl={false}
-                            scrollMenuIntoView={true}
-                            searchable={true}
-                            simpleValue={false}
-                            style={
-                              Object {
-                                "width": 200,
-                              }
-                            }
-                            tabSelectsValue={true}
-                            trimFilter={true}
-                            value={Array []}
-                            valueComponent={[Function]}
-                            valueKey="value"
+                          <div
+                            className="Select css-16280ey-StyledSelect eho28m20 is-clearable is-searchable Select--multi"
                           >
                             <div
-                              className="Select css-16280ey-StyledSelect e1m8gyzz0 is-clearable is-searchable Select--multi"
-                            >
-                              <div
-                                className="Select-control"
-                                onKeyDown={[Function]}
-                                onMouseDown={[Function]}
-                                onTouchEnd={[Function]}
-                                onTouchMove={[Function]}
-                                onTouchStart={[Function]}
-                                style={
-                                  Object {
-                                    "width": 200,
-                                  }
+                              className="Select-control"
+                              onKeyDown={[Function]}
+                              onMouseDown={[Function]}
+                              onTouchEnd={[Function]}
+                              onTouchMove={[Function]}
+                              onTouchStart={[Function]}
+                              style={
+                                Object {
+                                  "overflow": "visible",
+                                  "width": 200,
                                 }
+                              }
+                            >
+                              <span
+                                className="Select-multi-value-wrapper"
+                                id="react-select-3--value"
                               >
-                                <span
-                                  className="Select-multi-value-wrapper"
-                                  id="react-select-3--value"
+                                <div
+                                  className="Select-placeholder"
+                                >
+                                  Add Owners
+                                </div>
+                                <AutosizeInput
+                                  aria-activedescendant="react-select-3--value"
+                                  aria-expanded="false"
+                                  aria-haspopup="false"
+                                  aria-owns=""
+                                  className="Select-input"
+                                  injectStyles={true}
+                                  minWidth="5"
+                                  onBlur={[Function]}
+                                  onChange={[Function]}
+                                  onFocus={[Function]}
+                                  required={false}
+                                  role="combobox"
+                                  value=""
                                 >
                                   <div
-                                    className="Select-placeholder"
-                                  >
-                                    Add Owners
-                                  </div>
-                                  <AutosizeInput
-                                    aria-activedescendant="react-select-3--value"
-                                    aria-expanded="false"
-                                    aria-haspopup="false"
-                                    aria-owns=""
                                     className="Select-input"
-                                    id="id-undefined"
-                                    injectStyles={true}
-                                    minWidth="5"
-                                    onBlur={[Function]}
-                                    onChange={[Function]}
-                                    onFocus={[Function]}
-                                    required={false}
-                                    role="combobox"
-                                    value=""
+                                    style={
+                                      Object {
+                                        "display": "inline-block",
+                                      }
+                                    }
                                   >
-                                    <div
-                                      className="Select-input"
+                                    <input
+                                      aria-activedescendant="react-select-3--value"
+                                      aria-expanded="false"
+                                      aria-haspopup="false"
+                                      aria-owns=""
+                                      onBlur={[Function]}
+                                      onChange={[Function]}
+                                      onFocus={[Function]}
+                                      required={false}
+                                      role="combobox"
                                       style={
                                         Object {
-                                          "display": "inline-block",
+                                          "boxSizing": "content-box",
+                                          "width": "5px",
                                         }
                                       }
-                                    >
-                                      <input
-                                        aria-activedescendant="react-select-3--value"
-                                        aria-expanded="false"
-                                        aria-haspopup="false"
-                                        aria-owns=""
-                                        id="id-undefined"
-                                        onBlur={[Function]}
-                                        onChange={[Function]}
-                                        onFocus={[Function]}
-                                        required={false}
-                                        role="combobox"
-                                        style={
-                                          Object {
-                                            "boxSizing": "content-box",
-                                            "width": "5px",
-                                          }
+                                      value=""
+                                    />
+                                    <div
+                                      style={
+                                        Object {
+                                          "height": 0,
+                                          "left": 0,
+                                          "overflow": "scroll",
+                                          "position": "absolute",
+                                          "top": 0,
+                                          "visibility": "hidden",
+                                          "whiteSpace": "pre",
                                         }
-                                        value=""
-                                      />
-                                      <div
-                                        style={
-                                          Object {
-                                            "height": 0,
-                                            "left": 0,
-                                            "overflow": "scroll",
-                                            "position": "absolute",
-                                            "top": 0,
-                                            "visibility": "hidden",
-                                            "whiteSpace": "pre",
-                                          }
-                                        }
-                                      />
-                                    </div>
-                                  </AutosizeInput>
-                                </span>
+                                      }
+                                    />
+                                  </div>
+                                </AutosizeInput>
+                              </span>
+                              <span
+                                className="Select-arrow-zone"
+                                onMouseDown={[Function]}
+                              >
                                 <span
-                                  className="Select-arrow-zone"
-                                  onMouseDown={[Function]}
-                                >
-                                  <span
-                                    className="icon-arrow-down"
-                                  />
-                                </span>
-                              </div>
+                                  className="icon-arrow-down"
+                                />
+                              </span>
                             </div>
-                          </Select>
-                        </Component>
-                      </StyledSelect>
-                    </div>
-                  </div>
-                </MultiSelectField>
+                          </div>
+                        </Select>
+                      </Component>
+                    </StyledSelect>
+                  </SelectControl>
+                </MultiSelectControl>
               </SelectOwners>
             </div>
           </Base>
