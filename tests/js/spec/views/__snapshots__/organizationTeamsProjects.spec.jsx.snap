@@ -236,7 +236,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                       size="small"
                                       to="/settings/org-slug/project-slug-2/"
                                     >
-                                      <StyledSmartButton
+                                      <StyledButton
                                         className=""
                                         disabled={false}
                                         onClick={[Function]}
@@ -245,7 +245,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                         to="/settings/org-slug/project-slug-2/"
                                       >
                                         <Component
-                                          className="css-4fgn6d-StyledSmartButton-getColors e17811v30"
+                                          className="css-eo44up-StyledButton-getColors e17811v30"
                                           disabled={false}
                                           onClick={[Function]}
                                           role="button"
@@ -253,7 +253,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                           to="/settings/org-slug/project-slug-2/"
                                         >
                                           <Link
-                                            className="css-4fgn6d-StyledSmartButton-getColors e17811v30"
+                                            className="css-eo44up-StyledButton-getColors e17811v30"
                                             disabled={false}
                                             onClick={[Function]}
                                             onlyActiveOnIndex={false}
@@ -263,7 +263,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                             to="/settings/org-slug/project-slug-2/"
                                           >
                                             <a
-                                              className="css-4fgn6d-StyledSmartButton-getColors e17811v30"
+                                              className="css-eo44up-StyledButton-getColors e17811v30"
                                               disabled={false}
                                               onClick={[Function]}
                                               role="button"
@@ -301,7 +301,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                             </a>
                                           </Link>
                                         </Component>
-                                      </StyledSmartButton>
+                                      </StyledButton>
                                     </Button>
                                   </div>
                                 </Base>

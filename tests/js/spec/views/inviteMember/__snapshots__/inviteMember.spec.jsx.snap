@@ -513,7 +513,7 @@ exports[`CreateProject render() should render roles when available and allowed, 
         onClick={[Function]}
         priority="primary"
       >
-        <StyledSmartButton
+        <StyledButton
           busy={false}
           className="invite-member-submit"
           disabled={false}
@@ -523,14 +523,14 @@ exports[`CreateProject render() should render roles when available and allowed, 
         >
           <Component
             busy={false}
-            className="invite-member-submit css-58zvn3-StyledSmartButton-getColors e17811v30"
+            className="invite-member-submit css-696hml-StyledButton-getColors e17811v30"
             disabled={false}
             onClick={[Function]}
             priority="primary"
             role="button"
           >
             <button
-              className="invite-member-submit css-58zvn3-StyledSmartButton-getColors e17811v30"
+              className="invite-member-submit css-696hml-StyledButton-getColors e17811v30"
               disabled={false}
               onClick={[Function]}
               priority="primary"
@@ -560,7 +560,7 @@ exports[`CreateProject render() should render roles when available and allowed, 
               </ButtonLabel>
             </button>
           </Component>
-        </StyledSmartButton>
+        </StyledButton>
       </Button>
     </div>
   </div>

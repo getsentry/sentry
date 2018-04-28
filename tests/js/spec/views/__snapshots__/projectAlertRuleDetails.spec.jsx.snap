@@ -431,7 +431,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                         tabIndex="-1"
                                         type="button"
                                       >
-                                        <StyledSmartButton
+                                        <StyledButton
                                           className=""
                                           disabled={false}
                                           onClick={[Function]}
@@ -441,7 +441,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                           type="button"
                                         >
                                           <Component
-                                            className="css-4fgn6d-StyledSmartButton-getColors e17811v30"
+                                            className="css-eo44up-StyledButton-getColors e17811v30"
                                             disabled={false}
                                             onClick={[Function]}
                                             role="button"
@@ -450,7 +450,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                             type="button"
                                           >
                                             <button
-                                              className="css-4fgn6d-StyledSmartButton-getColors e17811v30"
+                                              className="css-eo44up-StyledButton-getColors e17811v30"
                                               disabled={false}
                                               onClick={[Function]}
                                               role="button"
@@ -490,7 +490,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                               </ButtonLabel>
                                             </button>
                                           </Component>
-                                        </StyledSmartButton>
+                                        </StyledButton>
                                       </Button>
                                     </div>
                                   </RuleNodeControls>
@@ -704,7 +704,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                         tabIndex="-1"
                                         type="button"
                                       >
-                                        <StyledSmartButton
+                                        <StyledButton
                                           className=""
                                           disabled={false}
                                           onClick={[Function]}
@@ -714,7 +714,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                           type="button"
                                         >
                                           <Component
-                                            className="css-4fgn6d-StyledSmartButton-getColors e17811v30"
+                                            className="css-eo44up-StyledButton-getColors e17811v30"
                                             disabled={false}
                                             onClick={[Function]}
                                             role="button"
@@ -723,7 +723,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                             type="button"
                                           >
                                             <button
-                                              className="css-4fgn6d-StyledSmartButton-getColors e17811v30"
+                                              className="css-eo44up-StyledButton-getColors e17811v30"
                                               disabled={false}
                                               onClick={[Function]}
                                               role="button"
@@ -763,7 +763,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                               </ButtonLabel>
                                             </button>
                                           </Component>
-                                        </StyledSmartButton>
+                                        </StyledButton>
                                       </Button>
                                     </div>
                                   </RuleNodeControls>
@@ -979,7 +979,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                             disabled={false}
                             to="/settings/org-slug/project-slug/alerts/rules/"
                           >
-                            <StyledSmartButton
+                            <StyledButton
                               className="css-1yc33o1-CancelButton elb7f1e1"
                               disabled={false}
                               onClick={[Function]}
@@ -987,14 +987,14 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                               to="/settings/org-slug/project-slug/alerts/rules/"
                             >
                               <Component
-                                className="elb7f1e1 css-xa8eh2-StyledSmartButton-getColors-CancelButton e17811v30"
+                                className="elb7f1e1 css-ilcuu5-StyledButton-getColors-CancelButton e17811v30"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"
                                 to="/settings/org-slug/project-slug/alerts/rules/"
                               >
                                 <Link
-                                  className="elb7f1e1 css-xa8eh2-StyledSmartButton-getColors-CancelButton e17811v30"
+                                  className="elb7f1e1 css-ilcuu5-StyledButton-getColors-CancelButton e17811v30"
                                   disabled={false}
                                   onClick={[Function]}
                                   onlyActiveOnIndex={false}
@@ -1003,7 +1003,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                   to="/settings/org-slug/project-slug/alerts/rules/"
                                 >
                                   <a
-                                    className="elb7f1e1 css-xa8eh2-StyledSmartButton-getColors-CancelButton e17811v30"
+                                    className="elb7f1e1 css-ilcuu5-StyledButton-getColors-CancelButton e17811v30"
                                     disabled={false}
                                     onClick={[Function]}
                                     role="button"
@@ -1034,14 +1034,14 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                   </a>
                                 </Link>
                               </Component>
-                            </StyledSmartButton>
+                            </StyledButton>
                           </Button>
                         </CancelButton>
                         <Button
                           disabled={false}
                           priority="primary"
                         >
-                          <StyledSmartButton
+                          <StyledButton
                             className=""
                             disabled={false}
                             onClick={[Function]}
@@ -1049,14 +1049,14 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                             role="button"
                           >
                             <Component
-                              className="css-58zvn3-StyledSmartButton-getColors e17811v30"
+                              className="css-696hml-StyledButton-getColors e17811v30"
                               disabled={false}
                               onClick={[Function]}
                               priority="primary"
                               role="button"
                             >
                               <button
-                                className="css-58zvn3-StyledSmartButton-getColors e17811v30"
+                                className="css-696hml-StyledButton-getColors e17811v30"
                                 disabled={false}
                                 onClick={[Function]}
                                 priority="primary"
@@ -1086,7 +1086,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                 </ButtonLabel>
                               </button>
                             </Component>
-                          </StyledSmartButton>
+                          </StyledButton>
                         </Button>
                       </div>
                     </ActionBar>
@@ -1843,7 +1843,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                             disabled={false}
                             to="/settings/org-slug/project-slug/alerts/rules/"
                           >
-                            <StyledSmartButton
+                            <StyledButton
                               className="css-1yc33o1-CancelButton elb7f1e1"
                               disabled={false}
                               onClick={[Function]}
@@ -1851,14 +1851,14 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                               to="/settings/org-slug/project-slug/alerts/rules/"
                             >
                               <Component
-                                className="elb7f1e1 css-xa8eh2-StyledSmartButton-getColors-CancelButton e17811v30"
+                                className="elb7f1e1 css-ilcuu5-StyledButton-getColors-CancelButton e17811v30"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"
                                 to="/settings/org-slug/project-slug/alerts/rules/"
                               >
                                 <Link
-                                  className="elb7f1e1 css-xa8eh2-StyledSmartButton-getColors-CancelButton e17811v30"
+                                  className="elb7f1e1 css-ilcuu5-StyledButton-getColors-CancelButton e17811v30"
                                   disabled={false}
                                   onClick={[Function]}
                                   onlyActiveOnIndex={false}
@@ -1867,7 +1867,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                   to="/settings/org-slug/project-slug/alerts/rules/"
                                 >
                                   <a
-                                    className="elb7f1e1 css-xa8eh2-StyledSmartButton-getColors-CancelButton e17811v30"
+                                    className="elb7f1e1 css-ilcuu5-StyledButton-getColors-CancelButton e17811v30"
                                     disabled={false}
                                     onClick={[Function]}
                                     role="button"
@@ -1898,14 +1898,14 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                   </a>
                                 </Link>
                               </Component>
-                            </StyledSmartButton>
+                            </StyledButton>
                           </Button>
                         </CancelButton>
                         <Button
                           disabled={false}
                           priority="primary"
                         >
-                          <StyledSmartButton
+                          <StyledButton
                             className=""
                             disabled={false}
                             onClick={[Function]}
@@ -1913,14 +1913,14 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                             role="button"
                           >
                             <Component
-                              className="css-58zvn3-StyledSmartButton-getColors e17811v30"
+                              className="css-696hml-StyledButton-getColors e17811v30"
                               disabled={false}
                               onClick={[Function]}
                               priority="primary"
                               role="button"
                             >
                               <button
-                                className="css-58zvn3-StyledSmartButton-getColors e17811v30"
+                                className="css-696hml-StyledButton-getColors e17811v30"
                                 disabled={false}
                                 onClick={[Function]}
                                 priority="primary"
@@ -1950,7 +1950,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                 </ButtonLabel>
                               </button>
                             </Component>
-                          </StyledSmartButton>
+                          </StyledButton>
                         </Button>
                       </div>
                     </ActionBar>

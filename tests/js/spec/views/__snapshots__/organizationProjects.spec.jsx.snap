@@ -60,7 +60,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                         size="small"
                         to="/organizations/org-slug/projects/new/"
                       >
-                        <StyledSmartButton
+                        <StyledButton
                           className=""
                           disabled={false}
                           onClick={[Function]}
@@ -70,7 +70,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                           to="/organizations/org-slug/projects/new/"
                         >
                           <Component
-                            className="css-77pgdm-StyledSmartButton-getColors e17811v30"
+                            className="css-1w119g9-StyledButton-getColors e17811v30"
                             disabled={false}
                             onClick={[Function]}
                             priority="primary"
@@ -79,7 +79,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                             to="/organizations/org-slug/projects/new/"
                           >
                             <Link
-                              className="css-77pgdm-StyledSmartButton-getColors e17811v30"
+                              className="css-1w119g9-StyledButton-getColors e17811v30"
                               disabled={false}
                               onClick={[Function]}
                               onlyActiveOnIndex={false}
@@ -90,7 +90,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                               to="/organizations/org-slug/projects/new/"
                             >
                               <a
-                                className="css-77pgdm-StyledSmartButton-getColors e17811v30"
+                                className="css-1w119g9-StyledButton-getColors e17811v30"
                                 disabled={false}
                                 onClick={[Function]}
                                 priority="primary"
@@ -185,7 +185,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                               </a>
                             </Link>
                           </Component>
-                        </StyledSmartButton>
+                        </StyledButton>
                       </Button>
                     </div>
                   </div>
@@ -549,7 +549,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                   size="small"
                                   to="/org-slug/project-slug/"
                                 >
-                                  <StyledSmartButton
+                                  <StyledButton
                                     className=""
                                     disabled={false}
                                     onClick={[Function]}
@@ -558,7 +558,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                     to="/org-slug/project-slug/"
                                   >
                                     <Component
-                                      className="css-4fgn6d-StyledSmartButton-getColors e17811v30"
+                                      className="css-eo44up-StyledButton-getColors e17811v30"
                                       disabled={false}
                                       onClick={[Function]}
                                       role="button"
@@ -566,7 +566,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                       to="/org-slug/project-slug/"
                                     >
                                       <Link
-                                        className="css-4fgn6d-StyledSmartButton-getColors e17811v30"
+                                        className="css-eo44up-StyledButton-getColors e17811v30"
                                         disabled={false}
                                         onClick={[Function]}
                                         onlyActiveOnIndex={false}
@@ -576,7 +576,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                         to="/org-slug/project-slug/"
                                       >
                                         <a
-                                          className="css-4fgn6d-StyledSmartButton-getColors e17811v30"
+                                          className="css-eo44up-StyledButton-getColors e17811v30"
                                           disabled={false}
                                           onClick={[Function]}
                                           role="button"
@@ -614,7 +614,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                         </a>
                                       </Link>
                                     </Component>
-                                  </StyledSmartButton>
+                                  </StyledButton>
                                 </Button>
                               </div>
                             </Base>

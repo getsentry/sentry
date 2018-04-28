@@ -479,7 +479,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                               onClick={[Function]}
                               size="xsmall"
                             >
-                              <StyledSmartButton
+                              <StyledButton
                                 className="css-10adnmx-EnvironmentButton ezuela50"
                                 disabled={false}
                                 onClick={[Function]}
@@ -487,14 +487,14 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                                 size="xsmall"
                               >
                                 <Component
-                                  className="ezuela50 css-vb0mkd-StyledSmartButton-getColors-EnvironmentButton e17811v30"
+                                  className="ezuela50 css-zf1958-StyledButton-getColors-EnvironmentButton e17811v30"
                                   disabled={false}
                                   onClick={[Function]}
                                   role="button"
                                   size="xsmall"
                                 >
                                   <button
-                                    className="ezuela50 css-vb0mkd-StyledSmartButton-getColors-EnvironmentButton e17811v30"
+                                    className="ezuela50 css-zf1958-StyledButton-getColors-EnvironmentButton e17811v30"
                                     disabled={false}
                                     onClick={[Function]}
                                     role="button"
@@ -530,7 +530,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                                     </ButtonLabel>
                                   </button>
                                 </Component>
-                              </StyledSmartButton>
+                              </StyledButton>
                             </Button>
                           </EnvironmentButton>
                         </div>
@@ -608,7 +608,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                               onClick={[Function]}
                               size="xsmall"
                             >
-                              <StyledSmartButton
+                              <StyledButton
                                 className="css-10adnmx-EnvironmentButton ezuela50"
                                 disabled={false}
                                 onClick={[Function]}
@@ -616,14 +616,14 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                                 size="xsmall"
                               >
                                 <Component
-                                  className="ezuela50 css-vb0mkd-StyledSmartButton-getColors-EnvironmentButton e17811v30"
+                                  className="ezuela50 css-zf1958-StyledButton-getColors-EnvironmentButton e17811v30"
                                   disabled={false}
                                   onClick={[Function]}
                                   role="button"
                                   size="xsmall"
                                 >
                                   <button
-                                    className="ezuela50 css-vb0mkd-StyledSmartButton-getColors-EnvironmentButton e17811v30"
+                                    className="ezuela50 css-zf1958-StyledButton-getColors-EnvironmentButton e17811v30"
                                     disabled={false}
                                     onClick={[Function]}
                                     role="button"
@@ -659,7 +659,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                                     </ButtonLabel>
                                   </button>
                                 </Component>
-                              </StyledSmartButton>
+                              </StyledButton>
                             </Button>
                           </EnvironmentButton>
                           <EnvironmentButton
@@ -672,7 +672,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                               onClick={[Function]}
                               size="xsmall"
                             >
-                              <StyledSmartButton
+                              <StyledButton
                                 className="css-10adnmx-EnvironmentButton ezuela50"
                                 disabled={false}
                                 onClick={[Function]}
@@ -680,14 +680,14 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                                 size="xsmall"
                               >
                                 <Component
-                                  className="ezuela50 css-vb0mkd-StyledSmartButton-getColors-EnvironmentButton e17811v30"
+                                  className="ezuela50 css-zf1958-StyledButton-getColors-EnvironmentButton e17811v30"
                                   disabled={false}
                                   onClick={[Function]}
                                   role="button"
                                   size="xsmall"
                                 >
                                   <button
-                                    className="ezuela50 css-vb0mkd-StyledSmartButton-getColors-EnvironmentButton e17811v30"
+                                    className="ezuela50 css-zf1958-StyledButton-getColors-EnvironmentButton e17811v30"
                                     disabled={false}
                                     onClick={[Function]}
                                     role="button"
@@ -723,7 +723,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                                     </ButtonLabel>
                                   </button>
                                 </Component>
-                              </StyledSmartButton>
+                              </StyledButton>
                             </Button>
                           </EnvironmentButton>
                         </div>
@@ -814,7 +814,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                               onClick={[Function]}
                               size="xsmall"
                             >
-                              <StyledSmartButton
+                              <StyledButton
                                 className="css-10adnmx-EnvironmentButton ezuela50"
                                 disabled={false}
                                 onClick={[Function]}
@@ -822,14 +822,14 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                                 size="xsmall"
                               >
                                 <Component
-                                  className="ezuela50 css-vb0mkd-StyledSmartButton-getColors-EnvironmentButton e17811v30"
+                                  className="ezuela50 css-zf1958-StyledButton-getColors-EnvironmentButton e17811v30"
                                   disabled={false}
                                   onClick={[Function]}
                                   role="button"
                                   size="xsmall"
                                 >
                                   <button
-                                    className="ezuela50 css-vb0mkd-StyledSmartButton-getColors-EnvironmentButton e17811v30"
+                                    className="ezuela50 css-zf1958-StyledButton-getColors-EnvironmentButton e17811v30"
                                     disabled={false}
                                     onClick={[Function]}
                                     role="button"
@@ -865,7 +865,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                                     </ButtonLabel>
                                   </button>
                                 </Component>
-                              </StyledSmartButton>
+                              </StyledButton>
                             </Button>
                           </EnvironmentButton>
                         </div>
@@ -1370,7 +1370,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                               onClick={[Function]}
                               size="xsmall"
                             >
-                              <StyledSmartButton
+                              <StyledButton
                                 className="css-10adnmx-EnvironmentButton ezuela50"
                                 disabled={false}
                                 onClick={[Function]}
@@ -1378,14 +1378,14 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                                 size="xsmall"
                               >
                                 <Component
-                                  className="ezuela50 css-vb0mkd-StyledSmartButton-getColors-EnvironmentButton e17811v30"
+                                  className="ezuela50 css-zf1958-StyledButton-getColors-EnvironmentButton e17811v30"
                                   disabled={false}
                                   onClick={[Function]}
                                   role="button"
                                   size="xsmall"
                                 >
                                   <button
-                                    className="ezuela50 css-vb0mkd-StyledSmartButton-getColors-EnvironmentButton e17811v30"
+                                    className="ezuela50 css-zf1958-StyledButton-getColors-EnvironmentButton e17811v30"
                                     disabled={false}
                                     onClick={[Function]}
                                     role="button"
@@ -1421,7 +1421,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                                     </ButtonLabel>
                                   </button>
                                 </Component>
-                              </StyledSmartButton>
+                              </StyledButton>
                             </Button>
                           </EnvironmentButton>
                         </div>

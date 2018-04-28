@@ -630,7 +630,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
             priority="primary"
             size="zero"
           >
-            <StyledSmartButton
+            <StyledButton
               className="css-3daogo-RuleAddButton e1hyuoc79"
               disabled={false}
               onClick={[Function]}
@@ -639,7 +639,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
               size="zero"
             >
               <Component
-                className="e1hyuoc79 css-1j9x7af-StyledSmartButton-getColors-RuleAddButton e17811v30"
+                className="e1hyuoc79 css-z5i4yj-StyledButton-getColors-RuleAddButton e17811v30"
                 disabled={false}
                 onClick={[Function]}
                 priority="primary"
@@ -647,7 +647,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                 size="zero"
               >
                 <button
-                  className="e1hyuoc79 css-1j9x7af-StyledSmartButton-getColors-RuleAddButton e17811v30"
+                  className="e1hyuoc79 css-z5i4yj-StyledButton-getColors-RuleAddButton e17811v30"
                   disabled={false}
                   onClick={[Function]}
                   priority="primary"
@@ -739,7 +739,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                   </ButtonLabel>
                 </button>
               </Component>
-            </StyledSmartButton>
+            </StyledButton>
           </Button>
         </RuleAddButton>
       </div>
@@ -802,7 +802,7 @@ url:http://example.com/settings/* #product"
           priority="primary"
           size="small"
         >
-          <StyledSmartButton
+          <StyledButton
             className=""
             disabled={false}
             onClick={[Function]}
@@ -811,7 +811,7 @@ url:http://example.com/settings/* #product"
             size="small"
           >
             <Component
-              className="css-77pgdm-StyledSmartButton-getColors e17811v30"
+              className="css-1w119g9-StyledButton-getColors e17811v30"
               disabled={false}
               onClick={[Function]}
               priority="primary"
@@ -819,7 +819,7 @@ url:http://example.com/settings/* #product"
               size="small"
             >
               <button
-                className="css-77pgdm-StyledSmartButton-getColors e17811v30"
+                className="css-1w119g9-StyledButton-getColors e17811v30"
                 disabled={false}
                 onClick={[Function]}
                 priority="primary"
@@ -856,7 +856,7 @@ url:http://example.com/settings/* #product"
                 </ButtonLabel>
               </button>
             </Component>
-          </StyledSmartButton>
+          </StyledButton>
         </Button>
       </div>
     </SaveButton>

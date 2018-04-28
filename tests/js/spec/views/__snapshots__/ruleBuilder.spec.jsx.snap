@@ -658,7 +658,7 @@ exports[`RuleBuilder render() renders 1`] = `
           priority="primary"
           size="zero"
         >
-          <StyledSmartButton
+          <StyledButton
             className="css-3daogo-RuleAddButton e1hyuoc79"
             disabled={false}
             onClick={[Function]}
@@ -667,7 +667,7 @@ exports[`RuleBuilder render() renders 1`] = `
             size="zero"
           >
             <Component
-              className="e1hyuoc79 css-1j9x7af-StyledSmartButton-getColors-RuleAddButton e17811v30"
+              className="e1hyuoc79 css-z5i4yj-StyledButton-getColors-RuleAddButton e17811v30"
               disabled={false}
               onClick={[Function]}
               priority="primary"
@@ -675,7 +675,7 @@ exports[`RuleBuilder render() renders 1`] = `
               size="zero"
             >
               <button
-                className="e1hyuoc79 css-1j9x7af-StyledSmartButton-getColors-RuleAddButton e17811v30"
+                className="e1hyuoc79 css-z5i4yj-StyledButton-getColors-RuleAddButton e17811v30"
                 disabled={false}
                 onClick={[Function]}
                 priority="primary"
@@ -767,7 +767,7 @@ exports[`RuleBuilder render() renders 1`] = `
                 </ButtonLabel>
               </button>
             </Component>
-          </StyledSmartButton>
+          </StyledButton>
         </Button>
       </RuleAddButton>
     </div>
@@ -1809,7 +1809,7 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
           priority="primary"
           size="zero"
         >
-          <StyledSmartButton
+          <StyledButton
             className="css-3daogo-RuleAddButton e1hyuoc79"
             disabled={false}
             onClick={[Function]}
@@ -1818,7 +1818,7 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
             size="zero"
           >
             <Component
-              className="e1hyuoc79 css-1j9x7af-StyledSmartButton-getColors-RuleAddButton e17811v30"
+              className="e1hyuoc79 css-z5i4yj-StyledButton-getColors-RuleAddButton e17811v30"
               disabled={false}
               onClick={[Function]}
               priority="primary"
@@ -1826,7 +1826,7 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
               size="zero"
             >
               <button
-                className="e1hyuoc79 css-1j9x7af-StyledSmartButton-getColors-RuleAddButton e17811v30"
+                className="e1hyuoc79 css-z5i4yj-StyledButton-getColors-RuleAddButton e17811v30"
                 disabled={false}
                 onClick={[Function]}
                 priority="primary"
@@ -1918,7 +1918,7 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
                 </ButtonLabel>
               </button>
             </Component>
-          </StyledSmartButton>
+          </StyledButton>
         </Button>
       </RuleAddButton>
     </div>

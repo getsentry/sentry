@@ -352,7 +352,7 @@ exports[`ProjectSavedSearches renders 1`] = `
                                           onClick={[Function]}
                                           size="small"
                                         >
-                                          <StyledSmartButton
+                                          <StyledButton
                                             className=""
                                             disabled={false}
                                             onClick={[Function]}
@@ -360,14 +360,14 @@ exports[`ProjectSavedSearches renders 1`] = `
                                             size="small"
                                           >
                                             <Component
-                                              className="css-4fgn6d-StyledSmartButton-getColors e17811v30"
+                                              className="css-eo44up-StyledButton-getColors e17811v30"
                                               disabled={false}
                                               onClick={[Function]}
                                               role="button"
                                               size="small"
                                             >
                                               <button
-                                                className="css-4fgn6d-StyledSmartButton-getColors e17811v30"
+                                                className="css-eo44up-StyledButton-getColors e17811v30"
                                                 disabled={false}
                                                 onClick={[Function]}
                                                 role="button"
@@ -405,7 +405,7 @@ exports[`ProjectSavedSearches renders 1`] = `
                                                 </ButtonLabel>
                                               </button>
                                             </Component>
-                                          </StyledSmartButton>
+                                          </StyledButton>
                                         </Button>
                                         <Modal
                                           animation={false}
@@ -638,7 +638,7 @@ exports[`ProjectSavedSearches renders 1`] = `
                                           onClick={[Function]}
                                           size="small"
                                         >
-                                          <StyledSmartButton
+                                          <StyledButton
                                             className=""
                                             disabled={false}
                                             onClick={[Function]}
@@ -646,14 +646,14 @@ exports[`ProjectSavedSearches renders 1`] = `
                                             size="small"
                                           >
                                             <Component
-                                              className="css-4fgn6d-StyledSmartButton-getColors e17811v30"
+                                              className="css-eo44up-StyledButton-getColors e17811v30"
                                               disabled={false}
                                               onClick={[Function]}
                                               role="button"
                                               size="small"
                                             >
                                               <button
-                                                className="css-4fgn6d-StyledSmartButton-getColors e17811v30"
+                                                className="css-eo44up-StyledButton-getColors e17811v30"
                                                 disabled={false}
                                                 onClick={[Function]}
                                                 role="button"
@@ -691,7 +691,7 @@ exports[`ProjectSavedSearches renders 1`] = `
                                                 </ButtonLabel>
                                               </button>
                                             </Component>
-                                          </StyledSmartButton>
+                                          </StyledButton>
                                         </Button>
                                         <Modal
                                           animation={false}

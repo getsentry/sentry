@@ -181,7 +181,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                               }
                             }
                           >
-                            <StyledSmartButton
+                            <StyledButton
                               className=""
                               disabled={false}
                               onClick={[Function]}
@@ -193,7 +193,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                               }
                             >
                               <Component
-                                className="css-6y5dh4-StyledSmartButton-getColors e17811v30"
+                                className="css-jn82li-StyledButton-getColors e17811v30"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"
@@ -204,7 +204,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                 }
                               >
                                 <button
-                                  className="css-6y5dh4-StyledSmartButton-getColors e17811v30"
+                                  className="css-jn82li-StyledButton-getColors e17811v30"
                                   disabled={false}
                                   onClick={[Function]}
                                   role="button"
@@ -238,26 +238,26 @@ exports[`ProjectPluginDetails renders 1`] = `
                                   </ButtonLabel>
                                 </button>
                               </Component>
-                            </StyledSmartButton>
+                            </StyledButton>
                           </Button>
                           <Button
                             disabled={false}
                             onClick={[Function]}
                           >
-                            <StyledSmartButton
+                            <StyledButton
                               className=""
                               disabled={false}
                               onClick={[Function]}
                               role="button"
                             >
                               <Component
-                                className="css-6y5dh4-StyledSmartButton-getColors e17811v30"
+                                className="css-jn82li-StyledButton-getColors e17811v30"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"
                               >
                                 <button
-                                  className="css-6y5dh4-StyledSmartButton-getColors e17811v30"
+                                  className="css-jn82li-StyledButton-getColors e17811v30"
                                   disabled={false}
                                   onClick={[Function]}
                                   role="button"
@@ -286,7 +286,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                   </ButtonLabel>
                                 </button>
                               </Component>
-                            </StyledSmartButton>
+                            </StyledButton>
                           </Button>
                         </div>
                       </div>

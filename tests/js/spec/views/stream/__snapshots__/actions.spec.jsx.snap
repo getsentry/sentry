@@ -152,7 +152,7 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
               }
             }
           >
-            <StyledSmartButton
+            <StyledButton
               className=""
               disabled={false}
               onClick={[Function]}
@@ -164,7 +164,7 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
               }
             >
               <Component
-                className="css-6y5dh4-StyledSmartButton-getColors e17811v30"
+                className="css-jn82li-StyledButton-getColors e17811v30"
                 disabled={false}
                 onClick={[Function]}
                 role="button"
@@ -175,7 +175,7 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
                 }
               >
                 <button
-                  className="css-6y5dh4-StyledSmartButton-getColors e17811v30"
+                  className="css-jn82li-StyledButton-getColors e17811v30"
                   disabled={false}
                   onClick={[Function]}
                   role="button"
@@ -209,7 +209,7 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
                   </ButtonLabel>
                 </button>
               </Component>
-            </StyledSmartButton>
+            </StyledButton>
           </Button>
           <Button
             autoFocus={true}
@@ -218,7 +218,7 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
             onClick={[Function]}
             priority="primary"
           >
-            <StyledSmartButton
+            <StyledButton
               autoFocus={true}
               className=""
               data-test-id="confirm-modal"
@@ -229,7 +229,7 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
             >
               <Component
                 autoFocus={true}
-                className="css-58zvn3-StyledSmartButton-getColors e17811v30"
+                className="css-696hml-StyledButton-getColors e17811v30"
                 data-test-id="confirm-modal"
                 disabled={false}
                 onClick={[Function]}
@@ -238,7 +238,7 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
               >
                 <button
                   autoFocus={true}
-                  className="css-58zvn3-StyledSmartButton-getColors e17811v30"
+                  className="css-696hml-StyledButton-getColors e17811v30"
                   data-test-id="confirm-modal"
                   disabled={false}
                   onClick={[Function]}
@@ -269,7 +269,7 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
                   </ButtonLabel>
                 </button>
               </Component>
-            </StyledSmartButton>
+            </StyledButton>
           </Button>
         </div>
       </div>
@@ -462,7 +462,7 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
               }
             }
           >
-            <StyledSmartButton
+            <StyledButton
               className=""
               disabled={false}
               onClick={[Function]}
@@ -474,7 +474,7 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
               }
             >
               <Component
-                className="css-6y5dh4-StyledSmartButton-getColors e17811v30"
+                className="css-jn82li-StyledButton-getColors e17811v30"
                 disabled={false}
                 onClick={[Function]}
                 role="button"
@@ -485,7 +485,7 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
                 }
               >
                 <button
-                  className="css-6y5dh4-StyledSmartButton-getColors e17811v30"
+                  className="css-jn82li-StyledButton-getColors e17811v30"
                   disabled={false}
                   onClick={[Function]}
                   role="button"
@@ -519,7 +519,7 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
                   </ButtonLabel>
                 </button>
               </Component>
-            </StyledSmartButton>
+            </StyledButton>
           </Button>
           <Button
             autoFocus={true}
@@ -528,7 +528,7 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
             onClick={[Function]}
             priority="primary"
           >
-            <StyledSmartButton
+            <StyledButton
               autoFocus={true}
               className=""
               data-test-id="confirm-modal"
@@ -539,7 +539,7 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
             >
               <Component
                 autoFocus={true}
-                className="css-58zvn3-StyledSmartButton-getColors e17811v30"
+                className="css-696hml-StyledButton-getColors e17811v30"
                 data-test-id="confirm-modal"
                 disabled={false}
                 onClick={[Function]}
@@ -548,7 +548,7 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
               >
                 <button
                   autoFocus={true}
-                  className="css-58zvn3-StyledSmartButton-getColors e17811v30"
+                  className="css-696hml-StyledButton-getColors e17811v30"
                   data-test-id="confirm-modal"
                   disabled={false}
                   onClick={[Function]}
@@ -579,7 +579,7 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
                   </ButtonLabel>
                 </button>
               </Component>
-            </StyledSmartButton>
+            </StyledButton>
           </Button>
         </div>
       </div>

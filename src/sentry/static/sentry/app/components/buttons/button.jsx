@@ -84,7 +84,7 @@ class Button extends React.Component {
     // control to screen readers. Note: you must still handle tabindex manually.
 
     return (
-      <StyledSmartButton
+      <StyledButton
         to={this.getUrl(to)}
         href={this.getUrl(href)}
         size={size}
@@ -101,7 +101,7 @@ class Button extends React.Component {
           )}
           {children}
         </ButtonLabel>
-      </StyledSmartButton>
+      </StyledButton>
     );
   }
 }
@@ -143,20 +143,20 @@ const getColors = ({priority, disabled, theme}) => {
 
   return css`
     color: ${color};
-    background: ${background};
-    border: ${border ? `1px solid ${border}` : 'none'};
+    background-color: ${background};
+    border: 1px solid ${border || 'transparent'};
 
     &:hover,
     &:focus,
     &:active {
       ${colorActive ? 'color: ${colorActive};' : ''};
       background: ${backgroundActive};
-      border: ${borderActive ? `1px solid ${borderActive}` : 'none'};
+      border: 1px solid ${borderActive || border || 'transparent'};
     }
   `;
 };
 
-const StyledSmartButton = styled(({busy, external, ...props}) => {
+const StyledButton = styled(({busy, external, borderless, ...props}) => {
   // Get component to use based on existance of `to` or `href` properties
   // Can be react-router `Link`, `a`, or `button`
   if (props.to) {
@@ -167,12 +167,15 @@ const StyledSmartButton = styled(({busy, external, ...props}) => {
     return <button {...props} />;
   }
 
-  let Component = external ? ExternalLink : 'a';
-  return <Component {...props} />;
+  if (external) {
+    return <ExternalLink {...props} />;
+  }
+
+  return <a {...props} />;
 })`
   display: inline-block;
   line-height: 1;
-  border-radius: ${p => p.theme.borderRadius}3px;
+  border-radius: ${p => p.theme.borderRadius};
   padding: 0;
   text-transform: none;
 
@@ -190,7 +193,7 @@ const StyledSmartButton = styled(({busy, external, ...props}) => {
     outline: none;
   }
 
-  ${p => p.borderless && 'border: none'};
+  ${p => p.borderless && 'border-color: transparent'};
 `;
 
 /**

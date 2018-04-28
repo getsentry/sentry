@@ -244,7 +244,7 @@ exports[`Configure should render correctly render() should render platform docs 
                                             href="https://docs.getsentry.com/hosted/clients/csharp/"
                                             size="small"
                                           >
-                                            <StyledSmartButton
+                                            <StyledButton
                                               className=""
                                               disabled={false}
                                               external={true}
@@ -254,7 +254,7 @@ exports[`Configure should render correctly render() should render platform docs 
                                               size="small"
                                             >
                                               <Component
-                                                className="css-4fgn6d-StyledSmartButton-getColors e17811v30"
+                                                className="css-eo44up-StyledButton-getColors e17811v30"
                                                 disabled={false}
                                                 external={true}
                                                 href="https://docs.getsentry.com/hosted/clients/csharp/"
@@ -263,7 +263,7 @@ exports[`Configure should render correctly render() should render platform docs 
                                                 size="small"
                                               >
                                                 <ExternalLink
-                                                  className="css-4fgn6d-StyledSmartButton-getColors e17811v30"
+                                                  className="css-eo44up-StyledButton-getColors e17811v30"
                                                   disabled={false}
                                                   href="https://docs.getsentry.com/hosted/clients/csharp/"
                                                   onClick={[Function]}
@@ -273,7 +273,7 @@ exports[`Configure should render correctly render() should render platform docs 
                                                   target="_blank"
                                                 >
                                                   <a
-                                                    className="css-4fgn6d-StyledSmartButton-getColors e17811v30"
+                                                    className="css-eo44up-StyledButton-getColors e17811v30"
                                                     disabled={false}
                                                     href="https://docs.getsentry.com/hosted/clients/csharp/"
                                                     onClick={[Function]}
@@ -313,7 +313,7 @@ exports[`Configure should render correctly render() should render platform docs 
                                                   </a>
                                                 </ExternalLink>
                                               </Component>
-                                            </StyledSmartButton>
+                                            </StyledButton>
                                           </Button>
                                         </div>
                                       </Base>

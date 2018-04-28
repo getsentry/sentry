@@ -400,7 +400,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                             }
                           }
                         >
-                          <StyledSmartButton
+                          <StyledButton
                             className=""
                             disabled={true}
                             href={null}
@@ -415,7 +415,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                             to={null}
                           >
                             <Component
-                              className="css-6hbd8e-StyledSmartButton-getColors e17811v30"
+                              className="css-zsdbzh-StyledButton-getColors e17811v30"
                               disabled={true}
                               href={null}
                               onClick={[Function]}
@@ -429,7 +429,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                               to={null}
                             >
                               <button
-                                className="css-6hbd8e-StyledSmartButton-getColors e17811v30"
+                                className="css-zsdbzh-StyledButton-getColors e17811v30"
                                 disabled={true}
                                 href={null}
                                 onClick={[Function]}
@@ -472,7 +472,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                                 </ButtonLabel>
                               </button>
                             </Component>
-                          </StyledSmartButton>
+                          </StyledButton>
                         </Button>
                       </div>
                     </div>
@@ -491,7 +491,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                           onClick={[Function]}
                           size="small"
                         >
-                          <StyledSmartButton
+                          <StyledButton
                             className="toggle-collapse-all"
                             disabled={false}
                             onClick={[Function]}
@@ -499,14 +499,14 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                             size="small"
                           >
                             <Component
-                              className="toggle-collapse-all css-4fgn6d-StyledSmartButton-getColors e17811v30"
+                              className="toggle-collapse-all css-eo44up-StyledButton-getColors e17811v30"
                               disabled={false}
                               onClick={[Function]}
                               role="button"
                               size="small"
                             >
                               <button
-                                className="toggle-collapse-all css-4fgn6d-StyledSmartButton-getColors e17811v30"
+                                className="toggle-collapse-all css-eo44up-StyledButton-getColors e17811v30"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"
@@ -542,7 +542,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                                 </ButtonLabel>
                               </button>
                             </Component>
-                          </StyledSmartButton>
+                          </StyledButton>
                         </Button>
                       </div>
                     </div>
@@ -1859,7 +1859,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                             }
                           }
                         >
-                          <StyledSmartButton
+                          <StyledButton
                             className=""
                             disabled={true}
                             href={null}
@@ -1874,7 +1874,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                             to={null}
                           >
                             <Component
-                              className="css-6hbd8e-StyledSmartButton-getColors e17811v30"
+                              className="css-zsdbzh-StyledButton-getColors e17811v30"
                               disabled={true}
                               href={null}
                               onClick={[Function]}
@@ -1888,7 +1888,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                               to={null}
                             >
                               <button
-                                className="css-6hbd8e-StyledSmartButton-getColors e17811v30"
+                                className="css-zsdbzh-StyledButton-getColors e17811v30"
                                 disabled={true}
                                 href={null}
                                 onClick={[Function]}
@@ -1931,7 +1931,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                                 </ButtonLabel>
                               </button>
                             </Component>
-                          </StyledSmartButton>
+                          </StyledButton>
                         </Button>
                       </div>
                     </div>
@@ -1950,7 +1950,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                           onClick={[Function]}
                           size="small"
                         >
-                          <StyledSmartButton
+                          <StyledButton
                             className="toggle-collapse-all"
                             disabled={false}
                             onClick={[Function]}
@@ -1958,14 +1958,14 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                             size="small"
                           >
                             <Component
-                              className="toggle-collapse-all css-4fgn6d-StyledSmartButton-getColors e17811v30"
+                              className="toggle-collapse-all css-eo44up-StyledButton-getColors e17811v30"
                               disabled={false}
                               onClick={[Function]}
                               role="button"
                               size="small"
                             >
                               <button
-                                className="toggle-collapse-all css-4fgn6d-StyledSmartButton-getColors e17811v30"
+                                className="toggle-collapse-all css-eo44up-StyledButton-getColors e17811v30"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"
@@ -2001,7 +2001,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                                 </ButtonLabel>
                               </button>
                             </Component>
-                          </StyledSmartButton>
+                          </StyledButton>
                         </Button>
                       </div>
                     </div>

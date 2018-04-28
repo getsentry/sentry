@@ -111,7 +111,7 @@ exports[`projectAlertRules renders 1`] = `
                       size="small"
                       to="new/"
                     >
-                      <StyledSmartButton
+                      <StyledButton
                         className=""
                         disabled={false}
                         onClick={[Function]}
@@ -121,7 +121,7 @@ exports[`projectAlertRules renders 1`] = `
                         to="new/"
                       >
                         <Component
-                          className="css-77pgdm-StyledSmartButton-getColors e17811v30"
+                          className="css-1w119g9-StyledButton-getColors e17811v30"
                           disabled={false}
                           onClick={[Function]}
                           priority="primary"
@@ -130,7 +130,7 @@ exports[`projectAlertRules renders 1`] = `
                           to="new/"
                         >
                           <Link
-                            className="css-77pgdm-StyledSmartButton-getColors e17811v30"
+                            className="css-1w119g9-StyledButton-getColors e17811v30"
                             disabled={false}
                             onClick={[Function]}
                             onlyActiveOnIndex={false}
@@ -141,7 +141,7 @@ exports[`projectAlertRules renders 1`] = `
                             to="new/"
                           >
                             <a
-                              className="css-77pgdm-StyledSmartButton-getColors e17811v30"
+                              className="css-1w119g9-StyledButton-getColors e17811v30"
                               disabled={false}
                               onClick={[Function]}
                               priority="primary"
@@ -236,7 +236,7 @@ exports[`projectAlertRules renders 1`] = `
                             </a>
                           </Link>
                         </Component>
-                      </StyledSmartButton>
+                      </StyledButton>
                     </Button>
                   </div>
                 </div>
@@ -399,7 +399,7 @@ exports[`projectAlertRules renders 1`] = `
                                 }
                                 to="1/"
                               >
-                                <StyledSmartButton
+                                <StyledButton
                                   className=""
                                   disabled={false}
                                   onClick={[Function]}
@@ -413,7 +413,7 @@ exports[`projectAlertRules renders 1`] = `
                                   to="1/"
                                 >
                                   <Component
-                                    className="css-4fgn6d-StyledSmartButton-getColors e17811v30"
+                                    className="css-eo44up-StyledButton-getColors e17811v30"
                                     disabled={false}
                                     onClick={[Function]}
                                     role="button"
@@ -426,7 +426,7 @@ exports[`projectAlertRules renders 1`] = `
                                     to="1/"
                                   >
                                     <Link
-                                      className="css-4fgn6d-StyledSmartButton-getColors e17811v30"
+                                      className="css-eo44up-StyledButton-getColors e17811v30"
                                       disabled={false}
                                       onClick={[Function]}
                                       onlyActiveOnIndex={false}
@@ -440,7 +440,7 @@ exports[`projectAlertRules renders 1`] = `
                                       to="1/"
                                     >
                                       <a
-                                        className="css-4fgn6d-StyledSmartButton-getColors e17811v30"
+                                        className="css-eo44up-StyledButton-getColors e17811v30"
                                         disabled={false}
                                         onClick={[Function]}
                                         role="button"
@@ -482,7 +482,7 @@ exports[`projectAlertRules renders 1`] = `
                                       </a>
                                     </Link>
                                   </Component>
-                                </StyledSmartButton>
+                                </StyledButton>
                               </Button>
                               <Confirm
                                 cancelText="Cancel"
@@ -496,7 +496,7 @@ exports[`projectAlertRules renders 1`] = `
                                   onClick={[Function]}
                                   size="small"
                                 >
-                                  <StyledSmartButton
+                                  <StyledButton
                                     className=""
                                     disabled={false}
                                     onClick={[Function]}
@@ -504,14 +504,14 @@ exports[`projectAlertRules renders 1`] = `
                                     size="small"
                                   >
                                     <Component
-                                      className="css-4fgn6d-StyledSmartButton-getColors e17811v30"
+                                      className="css-eo44up-StyledButton-getColors e17811v30"
                                       disabled={false}
                                       onClick={[Function]}
                                       role="button"
                                       size="small"
                                     >
                                       <button
-                                        className="css-4fgn6d-StyledSmartButton-getColors e17811v30"
+                                        className="css-eo44up-StyledButton-getColors e17811v30"
                                         disabled={false}
                                         onClick={[Function]}
                                         role="button"
@@ -549,7 +549,7 @@ exports[`projectAlertRules renders 1`] = `
                                         </ButtonLabel>
                                       </button>
                                     </Component>
-                                  </StyledSmartButton>
+                                  </StyledButton>
                                 </Button>
                                 <Modal
                                   animation={false}

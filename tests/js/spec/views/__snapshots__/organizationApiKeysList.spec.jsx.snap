@@ -87,7 +87,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                     priority="primary"
                     size="small"
                   >
-                    <StyledSmartButton
+                    <StyledButton
                       className=""
                       disabled={false}
                       onClick={[Function]}
@@ -96,7 +96,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                       size="small"
                     >
                       <Component
-                        className="css-77pgdm-StyledSmartButton-getColors e17811v30"
+                        className="css-1w119g9-StyledButton-getColors e17811v30"
                         disabled={false}
                         onClick={[Function]}
                         priority="primary"
@@ -104,7 +104,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                         size="small"
                       >
                         <button
-                          className="css-77pgdm-StyledSmartButton-getColors e17811v30"
+                          className="css-1w119g9-StyledButton-getColors e17811v30"
                           disabled={false}
                           onClick={[Function]}
                           priority="primary"
@@ -197,7 +197,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                           </ButtonLabel>
                         </button>
                       </Component>
-                    </StyledSmartButton>
+                    </StyledButton>
                   </Button>
                 </div>
               </div>

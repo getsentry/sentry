@@ -102,7 +102,7 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
             </p>
             <p>
               <button
-                class="css-58zvn3-StyledSmartButton-getColors e17811v30"
+                class="css-696hml-StyledButton-getColors e17811v30"
                 priority="primary"
                 role="button"
               >

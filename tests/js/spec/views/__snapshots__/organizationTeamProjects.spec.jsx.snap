@@ -119,7 +119,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                               disabled={false}
                                               size="xsmall"
                                             >
-                                              <StyledSmartButton
+                                              <StyledButton
                                                 className="css-1qvr7qx-StyledButton e1yghndz1"
                                                 disabled={false}
                                                 onClick={[Function]}
@@ -127,14 +127,14 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                 size="xsmall"
                                               >
                                                 <Component
-                                                  className="e1yghndz1 css-spesvt-StyledSmartButton-getColors-StyledButton e17811v30"
+                                                  className="e1yghndz1 css-ssrt7v-StyledButton-getColors-StyledButton e17811v30"
                                                   disabled={false}
                                                   onClick={[Function]}
                                                   role="button"
                                                   size="xsmall"
                                                 >
                                                   <button
-                                                    className="e1yghndz1 css-spesvt-StyledSmartButton-getColors-StyledButton e17811v30"
+                                                    className="e1yghndz1 css-ssrt7v-StyledButton-getColors-StyledButton e17811v30"
                                                     disabled={false}
                                                     onClick={[Function]}
                                                     role="button"
@@ -199,7 +199,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                     </ButtonLabel>
                                                   </button>
                                                 </Component>
-                                              </StyledSmartButton>
+                                              </StyledButton>
                                             </Button>
                                           </Component>
                                         </StyledButton>
@@ -488,7 +488,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                         onClick={[Function]}
                         size="small"
                       >
-                        <StyledSmartButton
+                        <StyledButton
                           className=""
                           disabled={false}
                           onClick={[Function]}
@@ -496,14 +496,14 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                           size="small"
                         >
                           <Component
-                            className="css-4fgn6d-StyledSmartButton-getColors e17811v30"
+                            className="css-eo44up-StyledButton-getColors e17811v30"
                             disabled={false}
                             onClick={[Function]}
                             role="button"
                             size="small"
                           >
                             <button
-                              className="css-4fgn6d-StyledSmartButton-getColors e17811v30"
+                              className="css-eo44up-StyledButton-getColors e17811v30"
                               disabled={false}
                               onClick={[Function]}
                               role="button"
@@ -569,7 +569,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                               </ButtonLabel>
                             </button>
                           </Component>
-                        </StyledSmartButton>
+                        </StyledButton>
                       </Button>
                     </div>
                   </Base>
