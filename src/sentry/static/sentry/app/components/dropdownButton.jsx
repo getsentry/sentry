@@ -13,6 +13,7 @@ const DropdownButton = ({isOpen, children, ...props}) => {
   );
 };
 
+DropdownButton.displayName = 'DropdownButton';
 DropdownButton.propTypes = {
   isOpen: PropTypes.bool,
 };
@@ -24,17 +25,15 @@ const StyledChevronDown = styled(props => (
 `;
 
 const StyledButton = styled(({isOpen, ...props}) => <Button {...props} />)`
-  &.button {
-    border-bottom-right-radius: ${p => (p.isOpen ? 0 : p.theme.borderRadius)};
-    border-bottom-left-radius: ${p => (p.isOpen ? 0 : p.theme.borderRadius)};
-    position: relative;
-    z-index: 2;
-    box-shadow: ${p => (p.isOpen ? 'none' : p.theme.dropShadowLight)};
+  border-bottom-right-radius: ${p => (p.isOpen ? 0 : p.theme.borderRadius)};
+  border-bottom-left-radius: ${p => (p.isOpen ? 0 : p.theme.borderRadius)};
+  position: relative;
+  z-index: 2;
+  box-shadow: ${p => (p.isOpen ? 'none' : p.theme.dropShadowLight)};
 
-    &,
-    &:hover {
-      border-bottom-color: ${p => (p.isOpen ? 'transparent' : p.theme.borderDark)};
-    }
+  &,
+  &:hover {
+    border-bottom-color: ${p => (p.isOpen ? 'transparent' : p.theme.borderDark)};
   }
 `;
 
