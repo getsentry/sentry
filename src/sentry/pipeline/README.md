@@ -20,7 +20,7 @@ Some key points to understanding pipelines:
    subclasses) via the `get_pipeline_views` method of the Pipeline Provider
    object that is associated to a particular provider key.
 
- * Pipeline are usually constructed and executed by either two view endpoints.
+ * Pipelines are usually constructed and executed by either two view endpoints.
    One to call the pipelines `initialize` method, and the next which is
    called to move through the pipeline
 
@@ -77,7 +77,7 @@ along with the `piepeline` instance itself.
 
 It's the job of the pipeline view to transition the pipeline to the next step
 in the pipeline and bind any data that may need to be used later in the
-pipeline or must be available when once the pipeline completes.
+pipeline or must be available when the pipeline completes.
 
 An example pipeline view might be a form that asks the user for some input.
 
@@ -130,11 +130,11 @@ def handle_request(self, request, organization, provider_key):
 
     # Since we are handling initialization in the same view as moving through
     # the pipeline, we have to check if we already have a valid pipeline, to
-    # avoid
+    # avoid re-initialization.
     if not pipeline.is_valid():
         pipeline.initialize()
 
-    return pipleine.current_step()
+    return pipeline.current_step()
 ```
 
 Using a second view would remove the `is_valid` check from the initialization
@@ -146,11 +146,11 @@ def handle_request(self, request):
     pipeline = MyPipeline.get_for_request(request)
 
     # If the pipeline isn't correctly initialized error out
-    if pipleine is None or not pipleine.is_valid():
+    if pipeline is None or not pipeline.is_valid():
         return HttpResponse(code=400)
 
     # Pipeline is already initialized
-    return pipleine.current_step()
+    return pipeline.current_step()
 ```
 
 The advantage of a view specifically for traversing through the view is that if
