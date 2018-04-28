@@ -102,6 +102,7 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
             </p>
             <p>
               <button
+                aria-label="Restore Organization"
                 class="css-696hml-StyledButton-getColors e17811v30"
                 priority="primary"
                 role="button"

@@ -182,7 +182,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                             }
                           >
                             <StyledButton
-                              className=""
+                              aria-label="Enable Plugin"
                               disabled={false}
                               onClick={[Function]}
                               role="button"
@@ -193,6 +193,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                               }
                             >
                               <Component
+                                aria-label="Enable Plugin"
                                 className="css-jn82li-StyledButton-getColors e17811v30"
                                 disabled={false}
                                 onClick={[Function]}
@@ -204,6 +205,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                 }
                               >
                                 <button
+                                  aria-label="Enable Plugin"
                                   className="css-jn82li-StyledButton-getColors e17811v30"
                                   disabled={false}
                                   onClick={[Function]}
@@ -245,18 +247,20 @@ exports[`ProjectPluginDetails renders 1`] = `
                             onClick={[Function]}
                           >
                             <StyledButton
-                              className=""
+                              aria-label="Reset Configuration"
                               disabled={false}
                               onClick={[Function]}
                               role="button"
                             >
                               <Component
+                                aria-label="Reset Configuration"
                                 className="css-jn82li-StyledButton-getColors e17811v30"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"
                               >
                                 <button
+                                  aria-label="Reset Configuration"
                                   className="css-jn82li-StyledButton-getColors e17811v30"
                                   disabled={false}
                                   onClick={[Function]}

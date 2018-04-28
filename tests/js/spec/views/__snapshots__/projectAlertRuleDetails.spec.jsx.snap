@@ -432,7 +432,6 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                         type="button"
                                       >
                                         <StyledButton
-                                          className=""
                                           disabled={false}
                                           onClick={[Function]}
                                           role="button"
@@ -705,7 +704,6 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                         type="button"
                                       >
                                         <StyledButton
-                                          className=""
                                           disabled={false}
                                           onClick={[Function]}
                                           role="button"
@@ -980,6 +978,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                             to="/settings/org-slug/project-slug/alerts/rules/"
                           >
                             <StyledButton
+                              aria-label="Cancel"
                               className="css-1yc33o1-CancelButton elb7f1e1"
                               disabled={false}
                               onClick={[Function]}
@@ -987,6 +986,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                               to="/settings/org-slug/project-slug/alerts/rules/"
                             >
                               <Component
+                                aria-label="Cancel"
                                 className="elb7f1e1 css-ilcuu5-StyledButton-getColors-CancelButton e17811v30"
                                 disabled={false}
                                 onClick={[Function]}
@@ -994,6 +994,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                 to="/settings/org-slug/project-slug/alerts/rules/"
                               >
                                 <Link
+                                  aria-label="Cancel"
                                   className="elb7f1e1 css-ilcuu5-StyledButton-getColors-CancelButton e17811v30"
                                   disabled={false}
                                   onClick={[Function]}
@@ -1003,6 +1004,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                   to="/settings/org-slug/project-slug/alerts/rules/"
                                 >
                                   <a
+                                    aria-label="Cancel"
                                     className="elb7f1e1 css-ilcuu5-StyledButton-getColors-CancelButton e17811v30"
                                     disabled={false}
                                     onClick={[Function]}
@@ -1042,13 +1044,14 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                           priority="primary"
                         >
                           <StyledButton
-                            className=""
+                            aria-label="Save Rule"
                             disabled={false}
                             onClick={[Function]}
                             priority="primary"
                             role="button"
                           >
                             <Component
+                              aria-label="Save Rule"
                               className="css-696hml-StyledButton-getColors e17811v30"
                               disabled={false}
                               onClick={[Function]}
@@ -1056,6 +1059,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                               role="button"
                             >
                               <button
+                                aria-label="Save Rule"
                                 className="css-696hml-StyledButton-getColors e17811v30"
                                 disabled={false}
                                 onClick={[Function]}
@@ -1844,6 +1848,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                             to="/settings/org-slug/project-slug/alerts/rules/"
                           >
                             <StyledButton
+                              aria-label="Cancel"
                               className="css-1yc33o1-CancelButton elb7f1e1"
                               disabled={false}
                               onClick={[Function]}
@@ -1851,6 +1856,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                               to="/settings/org-slug/project-slug/alerts/rules/"
                             >
                               <Component
+                                aria-label="Cancel"
                                 className="elb7f1e1 css-ilcuu5-StyledButton-getColors-CancelButton e17811v30"
                                 disabled={false}
                                 onClick={[Function]}
@@ -1858,6 +1864,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                 to="/settings/org-slug/project-slug/alerts/rules/"
                               >
                                 <Link
+                                  aria-label="Cancel"
                                   className="elb7f1e1 css-ilcuu5-StyledButton-getColors-CancelButton e17811v30"
                                   disabled={false}
                                   onClick={[Function]}
@@ -1867,6 +1874,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                   to="/settings/org-slug/project-slug/alerts/rules/"
                                 >
                                   <a
+                                    aria-label="Cancel"
                                     className="elb7f1e1 css-ilcuu5-StyledButton-getColors-CancelButton e17811v30"
                                     disabled={false}
                                     onClick={[Function]}
@@ -1906,13 +1914,14 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                           priority="primary"
                         >
                           <StyledButton
-                            className=""
+                            aria-label="Save Rule"
                             disabled={false}
                             onClick={[Function]}
                             priority="primary"
                             role="button"
                           >
                             <Component
+                              aria-label="Save Rule"
                               className="css-696hml-StyledButton-getColors e17811v30"
                               disabled={false}
                               onClick={[Function]}
@@ -1920,6 +1929,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                               role="button"
                             >
                               <button
+                                aria-label="Save Rule"
                                 className="css-696hml-StyledButton-getColors e17811v30"
                                 disabled={false}
                                 onClick={[Function]}

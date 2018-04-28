@@ -2,7 +2,7 @@
 
 exports[`Button renders 1`] = `
 <StyledButton
-  className=""
+  aria-label="Button"
   disabled={false}
   onClick={[Function]}
   priority="primary"
@@ -19,7 +19,7 @@ exports[`Button renders 1`] = `
 
 exports[`Button renders disabled normal link 1`] = `
 <StyledButton
-  className=""
+  aria-label="Normal Link"
   disabled={false}
   href="/some/relative/url"
   onClick={[Function]}
@@ -33,7 +33,7 @@ exports[`Button renders disabled normal link 1`] = `
 
 exports[`Button renders normal link 1`] = `
 <StyledButton
-  className=""
+  aria-label="Normal Link"
   disabled={false}
   href="/some/relative/url"
   onClick={[Function]}
@@ -47,7 +47,7 @@ exports[`Button renders normal link 1`] = `
 
 exports[`Button renders react-router link 1`] = `
 <StyledButton
-  className=""
+  aria-label="Router Link"
   disabled={false}
   onClick={[Function]}
   role="button"

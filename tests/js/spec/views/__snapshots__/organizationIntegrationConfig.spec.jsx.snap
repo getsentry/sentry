@@ -144,7 +144,6 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                                 size="xsmall"
                               >
                                 <StyledButton
-                                  className=""
                                   disabled={false}
                                   onClick={[Function]}
                                   role="button"
@@ -313,7 +312,6 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                                   size="small"
                                 >
                                   <StyledButton
-                                    className=""
                                     disabled={false}
                                     onClick={[Function]}
                                     role="button"

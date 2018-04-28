@@ -353,7 +353,6 @@ exports[`ProjectSavedSearches renders 1`] = `
                                           size="small"
                                         >
                                           <StyledButton
-                                            className=""
                                             disabled={false}
                                             onClick={[Function]}
                                             role="button"
@@ -639,7 +638,6 @@ exports[`ProjectSavedSearches renders 1`] = `
                                           size="small"
                                         >
                                           <StyledButton
-                                            className=""
                                             disabled={false}
                                             onClick={[Function]}
                                             role="button"

@@ -245,7 +245,7 @@ exports[`Configure should render correctly render() should render platform docs 
                                             size="small"
                                           >
                                             <StyledButton
-                                              className=""
+                                              aria-label="Full Documentation"
                                               disabled={false}
                                               external={true}
                                               href="https://docs.getsentry.com/hosted/clients/csharp/"
@@ -254,6 +254,7 @@ exports[`Configure should render correctly render() should render platform docs 
                                               size="small"
                                             >
                                               <Component
+                                                aria-label="Full Documentation"
                                                 className="css-eo44up-StyledButton-getColors e17811v30"
                                                 disabled={false}
                                                 external={true}
@@ -263,6 +264,7 @@ exports[`Configure should render correctly render() should render platform docs 
                                                 size="small"
                                               >
                                                 <ExternalLink
+                                                  aria-label="Full Documentation"
                                                   className="css-eo44up-StyledButton-getColors e17811v30"
                                                   disabled={false}
                                                   href="https://docs.getsentry.com/hosted/clients/csharp/"
@@ -273,6 +275,7 @@ exports[`Configure should render correctly render() should render platform docs 
                                                   target="_blank"
                                                 >
                                                   <a
+                                                    aria-label="Full Documentation"
                                                     className="css-eo44up-StyledButton-getColors e17811v30"
                                                     disabled={false}
                                                     href="https://docs.getsentry.com/hosted/clients/csharp/"

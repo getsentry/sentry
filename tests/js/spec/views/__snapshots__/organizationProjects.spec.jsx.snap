@@ -61,7 +61,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                         to="/organizations/org-slug/projects/new/"
                       >
                         <StyledButton
-                          className=""
+                          aria-label="Create Project"
                           disabled={false}
                           onClick={[Function]}
                           priority="primary"
@@ -70,6 +70,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                           to="/organizations/org-slug/projects/new/"
                         >
                           <Component
+                            aria-label="Create Project"
                             className="css-1w119g9-StyledButton-getColors e17811v30"
                             disabled={false}
                             onClick={[Function]}
@@ -79,6 +80,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                             to="/organizations/org-slug/projects/new/"
                           >
                             <Link
+                              aria-label="Create Project"
                               className="css-1w119g9-StyledButton-getColors e17811v30"
                               disabled={false}
                               onClick={[Function]}
@@ -90,6 +92,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                               to="/organizations/org-slug/projects/new/"
                             >
                               <a
+                                aria-label="Create Project"
                                 className="css-1w119g9-StyledButton-getColors e17811v30"
                                 disabled={false}
                                 onClick={[Function]}
@@ -550,7 +553,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                   to="/org-slug/project-slug/"
                                 >
                                   <StyledButton
-                                    className=""
+                                    aria-label="View Issues"
                                     disabled={false}
                                     onClick={[Function]}
                                     role="button"
@@ -558,6 +561,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                     to="/org-slug/project-slug/"
                                   >
                                     <Component
+                                      aria-label="View Issues"
                                       className="css-eo44up-StyledButton-getColors e17811v30"
                                       disabled={false}
                                       onClick={[Function]}
@@ -566,6 +570,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                       to="/org-slug/project-slug/"
                                     >
                                       <Link
+                                        aria-label="View Issues"
                                         className="css-eo44up-StyledButton-getColors e17811v30"
                                         disabled={false}
                                         onClick={[Function]}
@@ -576,6 +581,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                         to="/org-slug/project-slug/"
                                       >
                                         <a
+                                          aria-label="View Issues"
                                           className="css-eo44up-StyledButton-getColors e17811v30"
                                           disabled={false}
                                           onClick={[Function]}

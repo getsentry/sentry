@@ -401,7 +401,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                           }
                         >
                           <StyledButton
-                            className=""
+                            aria-label="Compare"
                             disabled={true}
                             href={null}
                             onClick={[Function]}
@@ -415,6 +415,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                             to={null}
                           >
                             <Component
+                              aria-label="Compare"
                               className="css-zsdbzh-StyledButton-getColors e17811v30"
                               disabled={true}
                               href={null}
@@ -429,6 +430,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                               to={null}
                             >
                               <button
+                                aria-label="Compare"
                                 className="css-zsdbzh-StyledButton-getColors e17811v30"
                                 disabled={true}
                                 href={null}
@@ -492,6 +494,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                           size="small"
                         >
                           <StyledButton
+                            aria-label="Collapse All"
                             className="toggle-collapse-all"
                             disabled={false}
                             onClick={[Function]}
@@ -499,6 +502,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                             size="small"
                           >
                             <Component
+                              aria-label="Collapse All"
                               className="toggle-collapse-all css-eo44up-StyledButton-getColors e17811v30"
                               disabled={false}
                               onClick={[Function]}
@@ -506,6 +510,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                               size="small"
                             >
                               <button
+                                aria-label="Collapse All"
                                 className="toggle-collapse-all css-eo44up-StyledButton-getColors e17811v30"
                                 disabled={false}
                                 onClick={[Function]}
@@ -1860,7 +1865,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                           }
                         >
                           <StyledButton
-                            className=""
+                            aria-label="Compare"
                             disabled={true}
                             href={null}
                             onClick={[Function]}
@@ -1874,6 +1879,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                             to={null}
                           >
                             <Component
+                              aria-label="Compare"
                               className="css-zsdbzh-StyledButton-getColors e17811v30"
                               disabled={true}
                               href={null}
@@ -1888,6 +1894,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                               to={null}
                             >
                               <button
+                                aria-label="Compare"
                                 className="css-zsdbzh-StyledButton-getColors e17811v30"
                                 disabled={true}
                                 href={null}
@@ -1951,6 +1958,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                           size="small"
                         >
                           <StyledButton
+                            aria-label="Collapse All"
                             className="toggle-collapse-all"
                             disabled={false}
                             onClick={[Function]}
@@ -1958,6 +1966,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                             size="small"
                           >
                             <Component
+                              aria-label="Collapse All"
                               className="toggle-collapse-all css-eo44up-StyledButton-getColors e17811v30"
                               disabled={false}
                               onClick={[Function]}
@@ -1965,6 +1974,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                               size="small"
                             >
                               <button
+                                aria-label="Collapse All"
                                 className="toggle-collapse-all css-eo44up-StyledButton-getColors e17811v30"
                                 disabled={false}
                                 onClick={[Function]}

@@ -237,7 +237,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                       to="/settings/org-slug/project-slug-2/"
                                     >
                                       <StyledButton
-                                        className=""
+                                        aria-label="Manage Project"
                                         disabled={false}
                                         onClick={[Function]}
                                         role="button"
@@ -245,6 +245,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                         to="/settings/org-slug/project-slug-2/"
                                       >
                                         <Component
+                                          aria-label="Manage Project"
                                           className="css-eo44up-StyledButton-getColors e17811v30"
                                           disabled={false}
                                           onClick={[Function]}
@@ -253,6 +254,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                           to="/settings/org-slug/project-slug-2/"
                                         >
                                           <Link
+                                            aria-label="Manage Project"
                                             className="css-eo44up-StyledButton-getColors e17811v30"
                                             disabled={false}
                                             onClick={[Function]}
@@ -263,6 +265,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                             to="/settings/org-slug/project-slug-2/"
                                           >
                                             <a
+                                              aria-label="Manage Project"
                                               className="css-eo44up-StyledButton-getColors e17811v30"
                                               disabled={false}
                                               onClick={[Function]}

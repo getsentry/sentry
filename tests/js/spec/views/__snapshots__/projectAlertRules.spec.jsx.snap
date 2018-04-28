@@ -112,7 +112,7 @@ exports[`projectAlertRules renders 1`] = `
                       to="new/"
                     >
                       <StyledButton
-                        className=""
+                        aria-label="New Alert Rule"
                         disabled={false}
                         onClick={[Function]}
                         priority="primary"
@@ -121,6 +121,7 @@ exports[`projectAlertRules renders 1`] = `
                         to="new/"
                       >
                         <Component
+                          aria-label="New Alert Rule"
                           className="css-1w119g9-StyledButton-getColors e17811v30"
                           disabled={false}
                           onClick={[Function]}
@@ -130,6 +131,7 @@ exports[`projectAlertRules renders 1`] = `
                           to="new/"
                         >
                           <Link
+                            aria-label="New Alert Rule"
                             className="css-1w119g9-StyledButton-getColors e17811v30"
                             disabled={false}
                             onClick={[Function]}
@@ -141,6 +143,7 @@ exports[`projectAlertRules renders 1`] = `
                             to="new/"
                           >
                             <a
+                              aria-label="New Alert Rule"
                               className="css-1w119g9-StyledButton-getColors e17811v30"
                               disabled={false}
                               onClick={[Function]}
@@ -400,7 +403,7 @@ exports[`projectAlertRules renders 1`] = `
                                 to="1/"
                               >
                                 <StyledButton
-                                  className=""
+                                  aria-label="Edit Rule"
                                   disabled={false}
                                   onClick={[Function]}
                                   role="button"
@@ -413,6 +416,7 @@ exports[`projectAlertRules renders 1`] = `
                                   to="1/"
                                 >
                                   <Component
+                                    aria-label="Edit Rule"
                                     className="css-eo44up-StyledButton-getColors e17811v30"
                                     disabled={false}
                                     onClick={[Function]}
@@ -426,6 +430,7 @@ exports[`projectAlertRules renders 1`] = `
                                     to="1/"
                                   >
                                     <Link
+                                      aria-label="Edit Rule"
                                       className="css-eo44up-StyledButton-getColors e17811v30"
                                       disabled={false}
                                       onClick={[Function]}
@@ -440,6 +445,7 @@ exports[`projectAlertRules renders 1`] = `
                                       to="1/"
                                     >
                                       <a
+                                        aria-label="Edit Rule"
                                         className="css-eo44up-StyledButton-getColors e17811v30"
                                         disabled={false}
                                         onClick={[Function]}
@@ -497,7 +503,6 @@ exports[`projectAlertRules renders 1`] = `
                                   size="small"
                                 >
                                   <StyledButton
-                                    className=""
                                     disabled={false}
                                     onClick={[Function]}
                                     role="button"

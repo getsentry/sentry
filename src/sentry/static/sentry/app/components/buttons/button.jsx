@@ -2,11 +2,11 @@ import {Flex, Box} from 'grid-emotion';
 import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import classNames from 'classnames';
 import styled, {css} from 'react-emotion';
 
 import ExternalLink from 'app/components/externalLink';
 import InlineSvg from 'app/components/inlineSvg';
+import Tooltip from 'app/components/tooltip';
 
 class Button extends React.Component {
   static propTypes = {
@@ -22,6 +22,9 @@ class Button extends React.Component {
      * Use this prop if button should use a normal (non-react-router) link
      */
     href: PropTypes.string,
+    /**
+     * Path to an icon svg that will be displayed to left of button label
+     */
     icon: PropTypes.string,
     /**
      * Tooltip text
@@ -31,7 +34,16 @@ class Button extends React.Component {
      * Is an external link? (Will open in new tab)
      */
     external: PropTypes.bool,
+    /**
+     * Button with a border
+     */
     borderless: PropTypes.bool,
+    /**
+     * Label for screen-readers (`aria-label`).
+     * `children` will be used by default (only if it is a string), but this property takes priority.
+     */
+    label: PropTypes.string,
+
     onClick: PropTypes.func,
   };
 
@@ -59,13 +71,13 @@ class Button extends React.Component {
 
   render() {
     let {
-      className,
       size,
       to,
       href,
       title,
       icon,
       children,
+      label,
 
       // destructure from `buttonProps`
       // not necessary, but just in case someone re-orders props
@@ -74,23 +86,20 @@ class Button extends React.Component {
       ...buttonProps
     } = this.props;
 
-    let cxs = classNames(className, {
-      tip: !!title,
-    });
+    // For `aria-label`
+    let screenReaderLabel = label || typeof children === 'string' ? children : undefined;
 
-    // Buttons come in 3 flavors: Link, anchor, and regular buttons. Let's
-    // use props to determine which to serve up, so we don't have to think
-    // about it. As a bonus, let's ensure all buttons appear as a button
-    // control to screen readers. Note: you must still handle tabindex manually.
-
-    return (
+    // Buttons come in 4 flavors: <Link>, <ExternalLink>, <a>, and <button>.
+    // Let's use props to determine which to serve up, so we don't have to think about it.
+    // *Note* you must still handle tabindex manually.
+    let button = (
       <StyledButton
+        aria-label={screenReaderLabel}
         to={this.getUrl(to)}
         href={this.getUrl(href)}
         size={size}
         {...buttonProps}
         onClick={this.handleClick}
-        className={classNames(cxs)}
         role="button"
       >
         <ButtonLabel size={size}>
@@ -103,6 +112,13 @@ class Button extends React.Component {
         </ButtonLabel>
       </StyledButton>
     );
+
+    // Doing this instead of using `Tooltip`'s `disabled` prop so that we can minimize snapshot nesting
+    if (title) {
+      return <Tooltip title={title}>{button}</Tooltip>;
+    }
+
+    return button;
   }
 }
 

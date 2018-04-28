@@ -514,6 +514,7 @@ exports[`CreateProject render() should render roles when available and allowed, 
         priority="primary"
       >
         <StyledButton
+          aria-label="Add Member"
           busy={false}
           className="invite-member-submit"
           disabled={false}
@@ -522,6 +523,7 @@ exports[`CreateProject render() should render roles when available and allowed, 
           role="button"
         >
           <Component
+            aria-label="Add Member"
             busy={false}
             className="invite-member-submit css-696hml-StyledButton-getColors e17811v30"
             disabled={false}
@@ -530,6 +532,7 @@ exports[`CreateProject render() should render roles when available and allowed, 
             role="button"
           >
             <button
+              aria-label="Add Member"
               className="invite-member-submit css-696hml-StyledButton-getColors e17811v30"
               disabled={false}
               onClick={[Function]}

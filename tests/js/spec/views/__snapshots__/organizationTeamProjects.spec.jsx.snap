@@ -110,31 +110,31 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                           size="xsmall"
                                         >
                                           <Component
-                                            className="css-1qvr7qx-StyledButton e1yghndz1"
+                                            className="css-o27a2e-StyledButton e1yghndz1"
                                             isOpen={false}
                                             size="xsmall"
                                           >
                                             <Button
-                                              className="css-1qvr7qx-StyledButton e1yghndz1"
+                                              className="css-o27a2e-StyledButton e1yghndz1"
                                               disabled={false}
                                               size="xsmall"
                                             >
                                               <StyledButton
-                                                className="css-1qvr7qx-StyledButton e1yghndz1"
+                                                className="css-o27a2e-StyledButton e1yghndz1"
                                                 disabled={false}
                                                 onClick={[Function]}
                                                 role="button"
                                                 size="xsmall"
                                               >
                                                 <Component
-                                                  className="e1yghndz1 css-ssrt7v-StyledButton-getColors-StyledButton e17811v30"
+                                                  className="e1yghndz1 css-1lfd11z-StyledButton-getColors-StyledButton e17811v30"
                                                   disabled={false}
                                                   onClick={[Function]}
                                                   role="button"
                                                   size="xsmall"
                                                 >
                                                   <button
-                                                    className="e1yghndz1 css-ssrt7v-StyledButton-getColors-StyledButton e17811v30"
+                                                    className="e1yghndz1 css-1lfd11z-StyledButton-getColors-StyledButton e17811v30"
                                                     disabled={false}
                                                     onClick={[Function]}
                                                     role="button"
@@ -489,7 +489,6 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                         size="small"
                       >
                         <StyledButton
-                          className=""
                           disabled={false}
                           onClick={[Function]}
                           role="button"
