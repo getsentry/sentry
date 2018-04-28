@@ -7,6 +7,6 @@ import TextLink from 'sentry-ui/textLink';
 storiesOf('Links/TextLink', module).add(
   'default',
   withInfo(
-    'A react-router `Link` but styled to be more like normal text (i.e. not blue)'
+    'A react-router <Link> but styled to be more like normal text (i.e. not blue)'
   )(() => <TextLink to="https://www.sentry.io">Sentry</TextLink>)
 );
