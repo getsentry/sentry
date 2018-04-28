@@ -5,7 +5,7 @@ __all__ = ['Integration', 'IntegrationMetadata']
 import logging
 from collections import namedtuple
 
-from sentry.utils.pipeline import PipelineProvider
+from sentry.pipeline import PipelineProvider
 
 
 IntegrationMetadata = namedtuple('IntegrationMetadata', [

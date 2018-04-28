@@ -8,7 +8,7 @@ from django.http import HttpResponseRedirect
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.utils.pipeline import Pipeline
+from sentry.pipeline import Pipeline
 from sentry.models import Identity, IdentityStatus, IdentityProvider
 
 from . import default_manager

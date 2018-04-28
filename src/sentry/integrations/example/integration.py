@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from django.http import HttpResponse
 from sentry.integrations import Integration, IntegrationMetadata
-from sentry.utils.pipeline import PipelineView
+from sentry.pipeline import PipelineView
 
 
 class ExampleSetupView(PipelineView):

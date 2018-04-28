@@ -9,7 +9,7 @@ from time import time
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
-from sentry.utils.pipeline import PipelineView
+from sentry.pipeline import PipelineView
 
 from .base import Provider
 
