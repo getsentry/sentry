@@ -3,9 +3,11 @@ import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
+import {debounce} from 'lodash';
 
 import {navigateTo} from 'app/actionCreators/navigation';
 import {t} from 'app/locale';
+import analytics from 'app/utils/analytics';
 import AutoComplete from 'app/components/autoComplete';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import SearchResult from 'app/components/search/searchResult';
@@ -68,6 +70,8 @@ class Search extends React.Component {
     navigateTo(nextPath, router);
   };
 
+  saveQueryMetrics = debounce(query => analytics('omnisearch.query', {query}), 200);
+
   renderItem = ({resultObj, index, highlightedIndex, getItemProps}) => {
     // resultObj is a fuse.js result object with {item, matches, score}
     let {renderItem} = this.props;
@@ -125,6 +129,8 @@ class Search extends React.Component {
         }) => {
           let searchQuery = inputValue.toLowerCase();
           let isValidSearch = inputValue.length >= minSearch;
+
+          this.saveQueryMetrics(searchQuery);
 
           return (
             <SearchWrapper>
