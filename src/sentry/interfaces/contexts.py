@@ -139,6 +139,7 @@ class OsContextType(ContextType):
     indexed_fields = {
         '': u'{name} {version}',
         'name': u'{name}',
+        'raw_description': u'{raw_description}',
         'rooted': u'{rooted}',
     }
     # build, rooted

@@ -32,16 +32,18 @@ class ContextsTest(TestCase):
     def test_os_normalization(self):
         ctx = Contexts.to_python({
             'os': {
-                'name': 'Microsoft Windows 6.1.7601 S'
+                'raw_description': 'Microsoft Windows 6.1.7601 S'
             },
         })
         assert sorted(ctx.iter_tags()) == [
             ('os', 'Windows 6.1.7601'),
-            ('os.name', 'Windows')
+            ('os.name', 'Windows'),
+            ('os.raw_description', 'Microsoft Windows 6.1.7601 S')
         ]
         assert ctx.to_json() == {
             'os': {
                 'type': 'os',
+                'raw_description': 'Microsoft Windows 6.1.7601 S',
                 'name': 'Windows',
                 'version': '6.1.7601'
             }
