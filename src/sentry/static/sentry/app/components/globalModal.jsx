@@ -38,6 +38,12 @@ class GlobalModal extends React.Component {
       options.onClose();
     }
 
+    // Focus this to get hotkeys to keep working
+    let containerEl = document.querySelector('.main-container');
+    if (containerEl) {
+      containerEl.focus();
+    }
+
     // Action creator
     closeModal();
   };
