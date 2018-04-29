@@ -127,6 +127,8 @@ theme.alert.error.background = theme.red;
 theme.alert.warn = theme.alert.warning;
 
 theme.button = {
+  borderRadius: '3px',
+
   default: {
     color: '#2f2936',
     colorActive: '#161319',

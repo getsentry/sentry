@@ -122,7 +122,7 @@ exports[`projectAlertRules renders 1`] = `
                       >
                         <Component
                           aria-label="New Alert Rule"
-                          className="css-1w119g9-StyledButton-getColors e17811v30"
+                          className="css-1ri5bky-StyledButton-getColors e17811v30"
                           disabled={false}
                           onClick={[Function]}
                           priority="primary"
@@ -132,7 +132,7 @@ exports[`projectAlertRules renders 1`] = `
                         >
                           <Link
                             aria-label="New Alert Rule"
-                            className="css-1w119g9-StyledButton-getColors e17811v30"
+                            className="css-1ri5bky-StyledButton-getColors e17811v30"
                             disabled={false}
                             onClick={[Function]}
                             onlyActiveOnIndex={false}
@@ -144,7 +144,7 @@ exports[`projectAlertRules renders 1`] = `
                           >
                             <a
                               aria-label="New Alert Rule"
-                              className="css-1w119g9-StyledButton-getColors e17811v30"
+                              className="css-1ri5bky-StyledButton-getColors e17811v30"
                               disabled={false}
                               onClick={[Function]}
                               priority="primary"
@@ -417,7 +417,7 @@ exports[`projectAlertRules renders 1`] = `
                                 >
                                   <Component
                                     aria-label="Edit Rule"
-                                    className="css-eo44up-StyledButton-getColors e17811v30"
+                                    className="css-dvpz5-StyledButton-getColors e17811v30"
                                     disabled={false}
                                     onClick={[Function]}
                                     role="button"
@@ -431,7 +431,7 @@ exports[`projectAlertRules renders 1`] = `
                                   >
                                     <Link
                                       aria-label="Edit Rule"
-                                      className="css-eo44up-StyledButton-getColors e17811v30"
+                                      className="css-dvpz5-StyledButton-getColors e17811v30"
                                       disabled={false}
                                       onClick={[Function]}
                                       onlyActiveOnIndex={false}
@@ -446,7 +446,7 @@ exports[`projectAlertRules renders 1`] = `
                                     >
                                       <a
                                         aria-label="Edit Rule"
-                                        className="css-eo44up-StyledButton-getColors e17811v30"
+                                        className="css-dvpz5-StyledButton-getColors e17811v30"
                                         disabled={false}
                                         onClick={[Function]}
                                         role="button"
@@ -509,14 +509,14 @@ exports[`projectAlertRules renders 1`] = `
                                     size="small"
                                   >
                                     <Component
-                                      className="css-eo44up-StyledButton-getColors e17811v30"
+                                      className="css-dvpz5-StyledButton-getColors e17811v30"
                                       disabled={false}
                                       onClick={[Function]}
                                       role="button"
                                       size="small"
                                     >
                                       <button
-                                        className="css-eo44up-StyledButton-getColors e17811v30"
+                                        className="css-dvpz5-StyledButton-getColors e17811v30"
                                         disabled={false}
                                         onClick={[Function]}
                                         role="button"

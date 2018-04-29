@@ -416,7 +416,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                           >
                             <Component
                               aria-label="Compare"
-                              className="css-zsdbzh-StyledButton-getColors e17811v30"
+                              className="css-1hb4mqw-StyledButton-getColors e17811v30"
                               disabled={true}
                               href={null}
                               onClick={[Function]}
@@ -431,7 +431,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                             >
                               <button
                                 aria-label="Compare"
-                                className="css-zsdbzh-StyledButton-getColors e17811v30"
+                                className="css-1hb4mqw-StyledButton-getColors e17811v30"
                                 disabled={true}
                                 href={null}
                                 onClick={[Function]}
@@ -503,7 +503,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                           >
                             <Component
                               aria-label="Collapse All"
-                              className="toggle-collapse-all css-eo44up-StyledButton-getColors e17811v30"
+                              className="toggle-collapse-all css-dvpz5-StyledButton-getColors e17811v30"
                               disabled={false}
                               onClick={[Function]}
                               role="button"
@@ -511,7 +511,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                             >
                               <button
                                 aria-label="Collapse All"
-                                className="toggle-collapse-all css-eo44up-StyledButton-getColors e17811v30"
+                                className="toggle-collapse-all css-dvpz5-StyledButton-getColors e17811v30"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"
@@ -1880,7 +1880,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                           >
                             <Component
                               aria-label="Compare"
-                              className="css-zsdbzh-StyledButton-getColors e17811v30"
+                              className="css-1hb4mqw-StyledButton-getColors e17811v30"
                               disabled={true}
                               href={null}
                               onClick={[Function]}
@@ -1895,7 +1895,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                             >
                               <button
                                 aria-label="Compare"
-                                className="css-zsdbzh-StyledButton-getColors e17811v30"
+                                className="css-1hb4mqw-StyledButton-getColors e17811v30"
                                 disabled={true}
                                 href={null}
                                 onClick={[Function]}
@@ -1967,7 +1967,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                           >
                             <Component
                               aria-label="Collapse All"
-                              className="toggle-collapse-all css-eo44up-StyledButton-getColors e17811v30"
+                              className="toggle-collapse-all css-dvpz5-StyledButton-getColors e17811v30"
                               disabled={false}
                               onClick={[Function]}
                               role="button"
@@ -1975,7 +1975,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                             >
                               <button
                                 aria-label="Collapse All"
-                                className="toggle-collapse-all css-eo44up-StyledButton-getColors e17811v30"
+                                className="toggle-collapse-all css-dvpz5-StyledButton-getColors e17811v30"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"

@@ -165,7 +165,7 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
             >
               <Component
                 aria-label="Cancel"
-                className="css-jn82li-StyledButton-getColors e17811v30"
+                className="css-133e1g3-StyledButton-getColors e17811v30"
                 disabled={false}
                 onClick={[Function]}
                 role="button"
@@ -177,7 +177,7 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
               >
                 <button
                   aria-label="Cancel"
-                  className="css-jn82li-StyledButton-getColors e17811v30"
+                  className="css-133e1g3-StyledButton-getColors e17811v30"
                   disabled={false}
                   onClick={[Function]}
                   role="button"
@@ -232,7 +232,7 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
               <Component
                 aria-label="Bulk resolve issues"
                 autoFocus={true}
-                className="css-696hml-StyledButton-getColors e17811v30"
+                className="css-1a9yqga-StyledButton-getColors e17811v30"
                 data-test-id="confirm-modal"
                 disabled={false}
                 onClick={[Function]}
@@ -242,7 +242,7 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
                 <button
                   aria-label="Bulk resolve issues"
                   autoFocus={true}
-                  className="css-696hml-StyledButton-getColors e17811v30"
+                  className="css-1a9yqga-StyledButton-getColors e17811v30"
                   data-test-id="confirm-modal"
                   disabled={false}
                   onClick={[Function]}
@@ -479,7 +479,7 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
             >
               <Component
                 aria-label="Cancel"
-                className="css-jn82li-StyledButton-getColors e17811v30"
+                className="css-133e1g3-StyledButton-getColors e17811v30"
                 disabled={false}
                 onClick={[Function]}
                 role="button"
@@ -491,7 +491,7 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
               >
                 <button
                   aria-label="Cancel"
-                  className="css-jn82li-StyledButton-getColors e17811v30"
+                  className="css-133e1g3-StyledButton-getColors e17811v30"
                   disabled={false}
                   onClick={[Function]}
                   role="button"
@@ -546,7 +546,7 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
               <Component
                 aria-label="Bulk resolve issues"
                 autoFocus={true}
-                className="css-696hml-StyledButton-getColors e17811v30"
+                className="css-1a9yqga-StyledButton-getColors e17811v30"
                 data-test-id="confirm-modal"
                 disabled={false}
                 onClick={[Function]}
@@ -556,7 +556,7 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
                 <button
                   aria-label="Bulk resolve issues"
                   autoFocus={true}
-                  className="css-696hml-StyledButton-getColors e17811v30"
+                  className="css-1a9yqga-StyledButton-getColors e17811v30"
                   data-test-id="confirm-modal"
                   disabled={false}
                   onClick={[Function]}

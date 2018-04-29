@@ -191,7 +191,7 @@ const StyledButton = styled(({busy, external, borderless, ...props}) => {
 })`
   display: inline-block;
   line-height: 1;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.button.borderRadius};
   padding: 0;
   text-transform: none;
 

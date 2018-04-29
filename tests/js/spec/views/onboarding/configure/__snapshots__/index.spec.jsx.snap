@@ -255,7 +255,7 @@ exports[`Configure should render correctly render() should render platform docs 
                                             >
                                               <Component
                                                 aria-label="Full Documentation"
-                                                className="css-eo44up-StyledButton-getColors e17811v30"
+                                                className="css-dvpz5-StyledButton-getColors e17811v30"
                                                 disabled={false}
                                                 external={true}
                                                 href="https://docs.getsentry.com/hosted/clients/csharp/"
@@ -265,7 +265,7 @@ exports[`Configure should render correctly render() should render platform docs 
                                               >
                                                 <ExternalLink
                                                   aria-label="Full Documentation"
-                                                  className="css-eo44up-StyledButton-getColors e17811v30"
+                                                  className="css-dvpz5-StyledButton-getColors e17811v30"
                                                   disabled={false}
                                                   href="https://docs.getsentry.com/hosted/clients/csharp/"
                                                   onClick={[Function]}
@@ -276,7 +276,7 @@ exports[`Configure should render correctly render() should render platform docs 
                                                 >
                                                   <a
                                                     aria-label="Full Documentation"
-                                                    className="css-eo44up-StyledButton-getColors e17811v30"
+                                                    className="css-dvpz5-StyledButton-getColors e17811v30"
                                                     disabled={false}
                                                     href="https://docs.getsentry.com/hosted/clients/csharp/"
                                                     onClick={[Function]}
