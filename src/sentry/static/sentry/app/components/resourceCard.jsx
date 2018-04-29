@@ -2,9 +2,9 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 
+import analytics from 'app/utils/analytics';
 import ConfigStore from 'app/stores/configStore';
 import ExternalLink from 'app/components/externalLink';
-import HookStore from 'app/stores/hookStore';
 
 const StyledTitle = styled('div')`
   color: #493e54;
@@ -22,9 +22,7 @@ export default class ResourceCard extends React.Component {
 
   recordClick = () => {
     let {link, title} = this.props;
-    HookStore.get('analytics:event').forEach(cb =>
-      cb('orgdash.resource_clicked', {link, title})
-    );
+    analytics('orgdash.resource_clicked', {link, title});
   };
 
   render() {
@@ -34,7 +32,7 @@ export default class ResourceCard extends React.Component {
     return (
       <div
         className="flex box p-x-2 p-y-1"
-        style={{flexGrow: '1', alignItems: 'center'}}
+        style={{flexGrow: 1, alignItems: 'center'}}
         onClick={this.recordClick}
       >
         <ExternalLink href={link}>

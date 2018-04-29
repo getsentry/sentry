@@ -5,6 +5,7 @@ import createReactClass from 'create-react-class';
 import $ from 'jquery';
 import styled from 'react-emotion';
 import {t} from 'app/locale';
+import analytics from 'app/utils/analytics';
 import ExternalLink from 'app/components/externalLink';
 import HookStore from 'app/stores/hookStore';
 import CueIcon from 'app/components/assistant/cueIcon';
@@ -64,9 +65,7 @@ const SupportDrawer = createReactClass({
       },
     });
 
-    HookStore.get('analytics:event').forEach(cb =>
-      cb('assistant.search', {query: this.state.inputVal})
-    );
+    analytics('assistant.search', {query: this.state.inputVal});
   }, 300),
 
   handleChange(evt) {
