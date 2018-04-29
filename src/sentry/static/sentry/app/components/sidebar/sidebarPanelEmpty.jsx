@@ -7,8 +7,7 @@ const SidebarPanelEmpty = styled('div')`
   position: absolute;
   top: 50%;
   padding: 0 60px;
-  margin-top: ${() =>
-    `${-62 - 16 / 2}px;`}; // offset for sidebar-panel-header + font-size
+  margin-top: -23px; /* offset for sidebar-panel-header + font-size */
 `;
 
 export default SidebarPanelEmpty;
