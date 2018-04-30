@@ -1,5 +1,10 @@
 from __future__ import absolute_import
 
+import logging
+
+
+logger = logging.getLogger(__name__)
+
 
 class ChangesetError(Exception):
     pass
@@ -21,5 +26,4 @@ def execute_changesets(relay, changesets):
         try:
             execute(relay, changeset.get('project_id'), changeset.get('data'))
         except ChangesetError:
-            # TODO(mitsuhiko): support failing changesets
-            pass
+            logger.error('Changeset failed', exc_info=True)
