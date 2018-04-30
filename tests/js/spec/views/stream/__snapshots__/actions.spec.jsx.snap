@@ -110,6 +110,7 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
             <ExtraDescription
               all={true}
               query=""
+              queryCount={600}
             >
               <p
                 className="error"
@@ -125,7 +126,9 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
                     </span>
                     <span
                       key="2"
-                    />
+                    >
+                      600
+                    </span>
                     <span
                       key="3"
                     >
@@ -358,6 +361,7 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
             <ExtraDescription
               all={true}
               query=""
+              queryCount={1500}
             >
               <p
                 className="error"
@@ -369,11 +373,13 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
                     <span
                       key="0"
                     >
-                      This will apply to all 
+                      This will apply to the first 
                     </span>
                     <span
                       key="2"
-                    />
+                    >
+                      1,000
+                    </span>
                     <span
                       key="3"
                     >
