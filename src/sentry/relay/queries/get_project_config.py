@@ -14,6 +14,8 @@ def execute(relay, project_id, query):
     project = Project.objects.select_related('organization').distinct().filter(
         id=project_id,
     ).get()
+    if project is None:
+        return None
 
     project_keys = ProjectKey.objects.filter(
         project=project,
