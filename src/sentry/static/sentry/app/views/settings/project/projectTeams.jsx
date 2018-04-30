@@ -13,7 +13,7 @@ import Button from 'app/components/buttons/button';
 import Confirm from 'app/components/confirm';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
-import EmptyMessage from '../components/emptyMessage';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/link';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
