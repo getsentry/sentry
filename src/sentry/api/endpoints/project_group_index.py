@@ -904,7 +904,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                 return Response({'detail': six.text_type(exc)}, status=400)
 
             group_list = list(cursor_result)
-            group_ids = [g.id for g in group_list]
 
         if not group_list:
             return Response(status=204)
