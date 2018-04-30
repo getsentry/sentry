@@ -1,53 +1,60 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`Button renders 1`] = `
-<button
-  className="button button-primary button-lg"
+<StyledButton
+  aria-label="Button"
   disabled={false}
   onClick={[Function]}
+  priority="primary"
   role="button"
+  size="large"
 >
-  <Flex
-    align="center"
-    className="button-label"
+  <ButtonLabel
+    size="large"
   >
     Button
-  </Flex>
-</button>
+  </ButtonLabel>
+</StyledButton>
 `;
 
-exports[`Button renders normal link 1`] = `
-<a
-  className="button button-default"
+exports[`Button renders disabled normal link 1`] = `
+<StyledButton
+  aria-label="Normal Link"
   disabled={false}
   href="/some/relative/url"
   onClick={[Function]}
   role="button"
 >
-  <Flex
-    align="center"
-    className="button-label"
-  >
+  <ButtonLabel>
     Normal Link
-  </Flex>
-</a>
+  </ButtonLabel>
+</StyledButton>
+`;
+
+exports[`Button renders normal link 1`] = `
+<StyledButton
+  aria-label="Normal Link"
+  disabled={false}
+  href="/some/relative/url"
+  onClick={[Function]}
+  role="button"
+>
+  <ButtonLabel>
+    Normal Link
+  </ButtonLabel>
+</StyledButton>
 `;
 
 exports[`Button renders react-router link 1`] = `
-<Link
-  className="button button-default"
+<StyledButton
+  aria-label="Router Link"
   disabled={false}
   onClick={[Function]}
-  onlyActiveOnIndex={false}
   role="button"
-  style={Object {}}
   to="/some/route"
 >
-  <Flex
-    align="center"
-    className="button-label"
-  >
+  <ButtonLabel>
     Router Link
-  </Flex>
-</Link>
+  </ButtonLabel>
+</StyledButton>
 `;

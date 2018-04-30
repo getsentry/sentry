@@ -22,7 +22,10 @@ describe('OrganizationDetails', function() {
             },
           }),
         });
-        let tree = render(<OrganizationDetails params={{orgId: 'org-slug'}} />);
+        let tree = render(
+          <OrganizationDetails params={{orgId: 'org-slug'}} />,
+          TestStubs.routerContext()
+        );
         expect(tree).toMatchSnapshot();
       });
 
@@ -38,7 +41,10 @@ describe('OrganizationDetails', function() {
             },
           }),
         });
-        let tree = render(<OrganizationDetails params={{orgId: 'org-slug'}} />);
+        let tree = render(
+          <OrganizationDetails params={{orgId: 'org-slug'}} />,
+          TestStubs.routerContext()
+        );
         expect(tree).toMatchSnapshot();
       });
     });
@@ -58,7 +64,10 @@ describe('OrganizationDetails', function() {
       });
 
       it('should render a deletion in progress prompt', function() {
-        let tree = render(<OrganizationDetails params={{orgId: 'org-slug'}} />);
+        let tree = render(
+          <OrganizationDetails params={{orgId: 'org-slug'}} />,
+          TestStubs.routerContext()
+        );
         expect(tree).toMatchSnapshot();
       });
     });
