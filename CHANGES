@@ -1,14 +1,54 @@
-Version 8.23 (Unreleased)
--------------------------
+Version 8.23
+------------
+
 - Experimental implementation of Slack actions via a new Integrations and Identity API.
 - Display the organization setting that was updated, along with the old/new value, in the Audit Log.
 - Group and ProjectGroupIndex endpoints now return AssignedTo as an object with the keys `id`, `type`, and `name`, instead of a full UserDetails object.
+- Upgrade native symbolication system
+- Added minidump support
+- Deprecated secret keys in DSNs
 
 Schema Changes
 ~~~~~~~~~~~~~~
 
-- Drop index on ``EventTag(project_id, key_id, value_id)``
+- Dropped index on ``EventTag(project_id, key_id, value_id)``
 - Increased length of ``Release.ref`` and ``Release.version`` to 250
+- Added model ``DeletedOrganization``
+- Added model ``DeletedTeam``
+- Added model ``DeletedProject``
+- Added model ``ServiceHook``
+- Removed model ``MiniDumpFile``
+- Removed model ``UserIdentity``
+- Removed and re-added model ``IdentityProvider``
+- Removed and re-added model ``Identity``
+- Added model ``UserPermission``
+- Added model ``PullRequest``
+- Increased length of ``ServiceHook.url`` to 512
+- Added model ``GroupEnvironment``
+- Dropped index on ``ProjectTeam(project_id)``
+- Added column ``SentryRule.environment_id``
+- Added column ``GroupAssignee.team``
+- Changed ``GroupAssignee.team`` to nullable
+- Added column ``EnvironmentProject.is_hidden``
+- Added column ``GroupEnvironment.first_release_id``
+- Added column ``UserReport.environment``
+- Added model ``FileBlobOwner``
+- Added model ``ProjectOwnership``
+- Added model ``AssistantActivity``
+- Added model ``ReleaseProjectEnvironment``
+- Removed ``Project.team``
+- Added model ``LatestRelease``
+- Added unique index on ``Identity(idp, user)``
+- Added model ``PullRequestCommit``
+- Changed column ``User.last_login`` to nullable
+- Added model ``ProjectRedirect``
+- Increased length of ``ProjectDSymFile.uuid`` to 64
+- Added column ``OrganizationIntegration.date_added``
+- Added column ``Integration.date_added``
+- Added model ``TeamAvatar``
+- Remove index on ``Environment(project_id, name)``
+- Added column ``User.flags``
+- Added model ``ProjectAvatar``
 
 API Changes
 ~~~~~~~~~~~
