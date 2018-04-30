@@ -6,7 +6,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
 >
   <div>
     <SettingsPageHeading
-      title="Issue Ownership"
+      title="Issue Owners"
     />
     <div
       className="alert alert-block alert-info"

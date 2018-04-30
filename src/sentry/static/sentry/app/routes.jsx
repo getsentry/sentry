@@ -283,7 +283,7 @@ const projectSettingsRoutes = (
     />
     <Route
       path="ownership/"
-      name="Issue Ownership"
+      name="Issue Owners"
       componentPromise={() =>
         import(/* webpackChunkName: "projectOwnership" */ './views/settings/project/projectOwnership')}
       component={errorHandler(LazyLoad)}

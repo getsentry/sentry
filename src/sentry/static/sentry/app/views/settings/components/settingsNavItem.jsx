@@ -4,6 +4,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import Badge from 'app/components/badge';
+import space from '../../../styles/space';
 
 const StyledNavItem = styled(Link)`
   display: block;
@@ -39,6 +40,15 @@ const StyledNavItem = styled(Link)`
   }
 `;
 
+const NewBadge = styled(Badge)`
+  background: ${p => p.theme.yellowOrange};
+  border-radius: 2px;
+  border: 1px solid ${p => p.theme.yellowOrangeDark};
+  height: auto;
+  padding: ${space(0.25)} ${space(0.5)};
+  line-height: 1;
+`;
+
 class SettingsNavItem extends React.Component {
   static propTypes = {
     label: PropTypes.node.isRequired,
@@ -49,9 +59,17 @@ class SettingsNavItem extends React.Component {
   render() {
     let {badge, label, index, ...props} = this.props;
 
+    let renderedBadge = '';
+
+    if (badge === 'new') {
+      renderedBadge = <NewBadge text={badge} />;
+    } else {
+      renderedBadge = <Badge text={badge} />;
+    }
+
     return (
       <StyledNavItem onlyActiveOnIndex={index} activeClassName="active" {...props}>
-        {label} {badge ? <Badge text={badge} /> : null}
+        {label} {badge ? renderedBadge : null}
       </StyledNavItem>
     );
   }
