@@ -4,6 +4,7 @@ import createReactClass from 'create-react-class';
 import {Flex, Box} from 'grid-emotion';
 import styled from 'react-emotion';
 
+import AsyncComponent from 'app/components/asyncComponent';
 import OrganizationState from 'app/mixins/organizationState';
 import OldDashboard from 'app/views/organizationDashboard/oldDashboard';
 import ProjectNav from 'app/views/organizationDashboard/projectNav';
@@ -14,7 +15,7 @@ import getProjectsByTeams from 'app/utils/getProjectsByTeams';
 import withTeams from 'app/utils/withTeams';
 import withProjects from 'app/utils/withProjects';
 
-class Dashboard extends React.Component {
+class Dashboard extends AsyncComponent {
   static propTypes = {
     teams: PropTypes.array,
     projects: PropTypes.array,
@@ -22,22 +23,32 @@ class Dashboard extends React.Component {
 
   componentWillMount() {
     $(document.body).addClass('org-dashboard');
+    super.componentWillMount();
   }
   componentWillUnmount() {
     $(document.body).removeClass('org-dashboard');
+    super.componentWillUnmount();
   }
 
-  render() {
-    const {projects, teams, params} = this.props;
+  getEndpoints() {
+    const {orgId} = this.props.params;
+    return [['projectsWithStats', `/organizations/${orgId}/projects/?statsPeriod=24h`]];
+  }
+
+  renderBody() {
+    const {teams, projects, params} = this.props;
     const {projectsByTeam} = getProjectsByTeams(teams, projects);
     const projectKeys = Object.keys(projectsByTeam);
 
+    const {projectsWithStats} = this.state;
+    const getStats = id => projectsWithStats.find(project => id === project.id).stats;
+
     return (
-      <Flex flex="1" direction="column">
-        <ProjectNav />
+      <div>
         {projectKeys.map((slug, index) => {
+          const showBorder = index !== projectKeys.length - 1;
           return (
-            <TeamSection key={slug} showBorder={index !== projectKeys.length - 1}>
+            <TeamSection key={slug} showBorder={showBorder}>
               <TeamTitleBar justify="space-between" align="center">
                 <TeamName>{`#${slug}`}</TeamName>
                 <TeamMembers teamId={slug} orgId={params.orgId} />
@@ -49,7 +60,7 @@ class Dashboard extends React.Component {
                       key={project.id}
                       width={['100%', '50%', '33%', '25%']}
                     >
-                      <ProjectCard project={project} />
+                      <ProjectCard project={project} stats={getStats(project.id)} />
                     </ProjectCardWrapper>
                   );
                 })}
@@ -58,7 +69,7 @@ class Dashboard extends React.Component {
           );
         })}
         {!projectKeys.length && <EmptyState orgId={params.orgId} />}
-      </Flex>
+      </div>
     );
   }
 }
@@ -94,7 +105,12 @@ const OrganizationDashboard = createReactClass({
     const hasNewDashboardFeature = this.getFeatures().has('dashboard');
 
     if (hasNewDashboardFeature) {
-      return <Dashboard {...this.props} />;
+      return (
+        <Flex flex="1" direction="column">
+          <ProjectNav />
+          <Dashboard {...this.props} />
+        </Flex>
+      );
     } else {
       return <OldDashboard {...this.props} />;
     }

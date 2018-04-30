@@ -4,6 +4,17 @@ import {mount} from 'enzyme';
 import {Dashboard} from 'app/views/organizationDashboard';
 
 describe('OrganizationDashboard', function() {
+  beforeEach(function() {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/?statsPeriod=24h',
+      data: [],
+    });
+  });
+
+  afterEach(function() {
+    MockApiClient.clearMockResponses();
+  });
+
   it('renders empty state', function() {
     const teams = [TestStubs.Team()];
     const projects = [];
