@@ -1,8 +1,8 @@
 import React from 'react';
 
-import ListLink from '../components/listLink';
-import NarrowLayout from '../components/narrowLayout';
-import {t} from '../locale';
+import ListLink from 'app/components/listLink';
+import NarrowLayout from 'app/components/narrowLayout';
+import {t} from 'app/locale';
 
 class ApiDashboard extends React.Component {
   render() {

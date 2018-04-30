@@ -32,6 +32,10 @@ body {
       z-index: 1000;
     }
   }
+
+  &.org-dashboard {
+    background-color: #fcfcfc;
+  }
 }
 
 #blk_router {
@@ -140,6 +144,11 @@ body.auth {
   padding-right: 30px;
   width: 100% !important;
   flex: 1;
+}
+
+// Container around content in app.jsx
+.main-container {
+  min-height: 100vh;
 }
 
 // So loader can take up full height so that footer is fixed to bottom of screen

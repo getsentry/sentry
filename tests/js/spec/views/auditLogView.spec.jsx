@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {shallow} from 'enzyme';
 
 import {Client} from 'app/api';
 import AuditLogView from 'app/views/settings/organization/auditLog/auditLogView';
@@ -19,7 +19,7 @@ describe('AuditLogView', function() {
   });
 
   it('renders', function(done) {
-    let wrapper = mount(
+    let wrapper = shallow(
       <AuditLogView location={{query: ''}} params={{orgId: org.slug}} />,
       TestStubs.routerContext()
     );

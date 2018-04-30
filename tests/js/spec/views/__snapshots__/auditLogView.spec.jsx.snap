@@ -1,1605 +1,225 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`AuditLogView renders 1`] = `
-<AuditLogView
-  location={
-    Object {
-      "query": "",
-    }
-  }
-  params={
-    Object {
-      "orgId": "org-slug",
-    }
-  }
+<SideEffect(DocumentTitle)
+  title="Organization Name Audit Log - Sentry"
 >
-  <SideEffect(DocumentTitle)
-    title="Organization Name Audit Log - Sentry"
-  >
-    <DocumentTitle
-      title="Organization Name Audit Log - Sentry"
-    >
-      <LazyLoad
-        component={[Function]}
-        entries={
-          Array [
-            Object {
-              "actor": Object {
-                "avatar": Object {
-                  "avatarType": "letter_avatar",
-                  "avatarUuid": "483ed7478a2248d59211f538c2997e0b",
-                },
-                "avatarUrl": "https://secure.gravatar.com/avatar/7b544e8eb9d08ed777be5aa82121155a?s=32&d=mm",
-                "dateJoined": "2018-01-10T00:19:59Z",
-                "email": "billy@sentry.io",
-                "emails": Array [
-                  Object {
-                    "email": "billy@sentry.io",
-                    "id": "5",
-                    "is_verified": true,
-                  },
-                  Object {
-                    "email": "billy36@sentry.io",
-                    "id": "17",
-                    "is_verified": false,
-                  },
-                  Object {
-                    "email": "awerawer@awe.com",
-                    "id": "11",
-                    "is_verified": false,
-                  },
-                  Object {
-                    "email": "test@test.com",
-                    "id": "28",
-                    "is_verified": false,
-                  },
-                  Object {
-                    "email": "billy2@sentry.io",
-                    "id": "10",
-                    "is_verified": true,
-                  },
-                ],
-                "has2fa": true,
-                "id": "1",
-                "identities": Array [
-                  Object {
-                    "dateSynced": "2018-02-21T17:09:46.248Z",
-                    "dateVerified": "2018-02-21T17:09:46.248Z",
-                    "id": "1",
-                    "name": "79684",
-                    "organization": Object {
-                      "name": "default",
-                      "slug": "default",
-                    },
-                    "provider": Object {
-                      "id": "github",
-                      "name": "GitHub",
-                    },
-                  },
-                ],
-                "isActive": true,
-                "isManaged": false,
-                "lastActive": "2018-02-21T17:40:31.555Z",
-                "lastLogin": "2018-02-14T07:09:37.536Z",
-                "name": "billy vong",
-                "options": Object {
-                  "clock24Hours": false,
-                  "language": "en",
-                  "seenReleaseBroadcast": true,
-                  "stacktraceOrder": -1,
-                  "timezone": "America/Los_Angeles",
-                },
-                "permissions": Array [],
-                "username": "billy@sentry.io",
-              },
-              "data": Object {
-                "id": 2,
-                "name": "Ludic Science",
-                "public": false,
-                "slug": "ludic-science",
-                "status": 0,
-              },
-              "dateCreated": "2018-02-21T03:04:23.157Z",
-              "event": "project.edit",
-              "id": "465",
-              "ipAddress": "127.0.0.1",
-              "note": "edited project ludic-science",
-              "targetObject": 2,
-              "targetUser": null,
+  <LazyLoad
+    component={[Function]}
+    entries={
+      Array [
+        Object {
+          "actor": Object {
+            "avatar": Object {
+              "avatarType": "letter_avatar",
+              "avatarUuid": "483ed7478a2248d59211f538c2997e0b",
             },
-            Object {
-              "actor": Object {
-                "avatar": Object {
-                  "avatarType": "letter_avatar",
-                  "avatarUuid": "483ed7478a2248d59211f538c2997e0b",
-                },
-                "avatarUrl": "https://secure.gravatar.com/avatar/7b544e8eb9d08ed777be5aa82121155a?s=32&d=mm",
-                "dateJoined": "2018-01-10T00:19:59Z",
-                "email": "billy@sentry.io",
-                "emails": Array [
-                  Object {
-                    "email": "billy@sentry.io",
-                    "id": "5",
-                    "is_verified": true,
-                  },
-                  Object {
-                    "email": "billy36@sentry.io",
-                    "id": "17",
-                    "is_verified": false,
-                  },
-                  Object {
-                    "email": "awerawer@awe.com",
-                    "id": "11",
-                    "is_verified": false,
-                  },
-                  Object {
-                    "email": "test@test.com",
-                    "id": "28",
-                    "is_verified": false,
-                  },
-                  Object {
-                    "email": "billy2@sentry.io",
-                    "id": "10",
-                    "is_verified": true,
-                  },
-                ],
-                "has2fa": true,
-                "id": "1",
-                "identities": Array [
-                  Object {
-                    "dateSynced": "2018-02-21T17:09:46.248Z",
-                    "dateVerified": "2018-02-21T17:09:46.248Z",
-                    "id": "1",
-                    "name": "79684",
-                    "organization": Object {
-                      "name": "default",
-                      "slug": "default",
-                    },
-                    "provider": Object {
-                      "id": "github",
-                      "name": "GitHub",
-                    },
-                  },
-                ],
-                "isActive": true,
-                "isManaged": false,
-                "lastActive": "2018-02-21T17:40:31.555Z",
-                "lastLogin": "2018-02-14T07:09:37.536Z",
-                "name": "billy vong",
-                "options": Object {
-                  "clock24Hours": false,
-                  "language": "en",
-                  "seenReleaseBroadcast": true,
-                  "stacktraceOrder": -1,
-                  "timezone": "America/Los_Angeles",
-                },
-                "permissions": Array [],
-                "username": "billy@sentry.io",
-              },
-              "data": Object {
-                "accountRateLimit": "from 1000 to 0",
-              },
-              "dateCreated": "2018-02-16T23:45:59.813Z",
-              "event": "org.edit",
-              "id": "408",
-              "ipAddress": "127.0.0.1",
-              "note": "edited the organization setting(s): accountRateLimit from 1000 to 0",
-              "targetObject": 2,
-              "targetUser": null,
-            },
-          ]
-        }
-        eventTypes={
-          Array [
-            "api-key.create",
-            "api-key.edit",
-            "api-key.remove",
-            "member.accept-invite",
-            "member.add",
-            "member.edit",
-            "member.invite",
-            "member.join-team",
-            "member.leave-team",
-            "member.remove",
-            "org.create",
-            "org.edit",
-            "org.remove",
-            "project.create",
-            "project.edit",
-            "project.remove",
-            "project.set-private",
-            "project.set-public",
-            "projectkey.create",
-            "projectkey.disable",
-            "projectkey.edit",
-            "projectkey.enable",
-            "projectkey.remove",
-            "sso-identity.link",
-            "sso.disable",
-            "sso.edit",
-            "sso.enable",
-            "tagkey.remove",
-            "team.create",
-            "team.edit",
-            "team.remove",
-          ]
-        }
-        location={
-          Object {
-            "query": "",
-          }
-        }
-        onEventSelect={[Function]}
-        params={
-          Object {
-            "orgId": "org-slug",
-          }
-        }
-      >
-        <AuditLogList
-          entries={
-            Array [
+            "avatarUrl": "https://secure.gravatar.com/avatar/7b544e8eb9d08ed777be5aa82121155a?s=32&d=mm",
+            "dateJoined": "2018-01-10T00:19:59Z",
+            "email": "billy@sentry.io",
+            "emails": Array [
               Object {
-                "actor": Object {
-                  "avatar": Object {
-                    "avatarType": "letter_avatar",
-                    "avatarUuid": "483ed7478a2248d59211f538c2997e0b",
-                  },
-                  "avatarUrl": "https://secure.gravatar.com/avatar/7b544e8eb9d08ed777be5aa82121155a?s=32&d=mm",
-                  "dateJoined": "2018-01-10T00:19:59Z",
-                  "email": "billy@sentry.io",
-                  "emails": Array [
-                    Object {
-                      "email": "billy@sentry.io",
-                      "id": "5",
-                      "is_verified": true,
-                    },
-                    Object {
-                      "email": "billy36@sentry.io",
-                      "id": "17",
-                      "is_verified": false,
-                    },
-                    Object {
-                      "email": "awerawer@awe.com",
-                      "id": "11",
-                      "is_verified": false,
-                    },
-                    Object {
-                      "email": "test@test.com",
-                      "id": "28",
-                      "is_verified": false,
-                    },
-                    Object {
-                      "email": "billy2@sentry.io",
-                      "id": "10",
-                      "is_verified": true,
-                    },
-                  ],
-                  "has2fa": true,
-                  "id": "1",
-                  "identities": Array [
-                    Object {
-                      "dateSynced": "2018-02-21T17:09:46.248Z",
-                      "dateVerified": "2018-02-21T17:09:46.248Z",
-                      "id": "1",
-                      "name": "79684",
-                      "organization": Object {
-                        "name": "default",
-                        "slug": "default",
-                      },
-                      "provider": Object {
-                        "id": "github",
-                        "name": "GitHub",
-                      },
-                    },
-                  ],
-                  "isActive": true,
-                  "isManaged": false,
-                  "lastActive": "2018-02-21T17:40:31.555Z",
-                  "lastLogin": "2018-02-14T07:09:37.536Z",
-                  "name": "billy vong",
-                  "options": Object {
-                    "clock24Hours": false,
-                    "language": "en",
-                    "seenReleaseBroadcast": true,
-                    "stacktraceOrder": -1,
-                    "timezone": "America/Los_Angeles",
-                  },
-                  "permissions": Array [],
-                  "username": "billy@sentry.io",
-                },
-                "data": Object {
-                  "id": 2,
-                  "name": "Ludic Science",
-                  "public": false,
-                  "slug": "ludic-science",
-                  "status": 0,
-                },
-                "dateCreated": "2018-02-21T03:04:23.157Z",
-                "event": "project.edit",
-                "id": "465",
-                "ipAddress": "127.0.0.1",
-                "note": "edited project ludic-science",
-                "targetObject": 2,
-                "targetUser": null,
+                "email": "billy@sentry.io",
+                "id": "5",
+                "is_verified": true,
               },
               Object {
-                "actor": Object {
-                  "avatar": Object {
-                    "avatarType": "letter_avatar",
-                    "avatarUuid": "483ed7478a2248d59211f538c2997e0b",
-                  },
-                  "avatarUrl": "https://secure.gravatar.com/avatar/7b544e8eb9d08ed777be5aa82121155a?s=32&d=mm",
-                  "dateJoined": "2018-01-10T00:19:59Z",
-                  "email": "billy@sentry.io",
-                  "emails": Array [
-                    Object {
-                      "email": "billy@sentry.io",
-                      "id": "5",
-                      "is_verified": true,
-                    },
-                    Object {
-                      "email": "billy36@sentry.io",
-                      "id": "17",
-                      "is_verified": false,
-                    },
-                    Object {
-                      "email": "awerawer@awe.com",
-                      "id": "11",
-                      "is_verified": false,
-                    },
-                    Object {
-                      "email": "test@test.com",
-                      "id": "28",
-                      "is_verified": false,
-                    },
-                    Object {
-                      "email": "billy2@sentry.io",
-                      "id": "10",
-                      "is_verified": true,
-                    },
-                  ],
-                  "has2fa": true,
-                  "id": "1",
-                  "identities": Array [
-                    Object {
-                      "dateSynced": "2018-02-21T17:09:46.248Z",
-                      "dateVerified": "2018-02-21T17:09:46.248Z",
-                      "id": "1",
-                      "name": "79684",
-                      "organization": Object {
-                        "name": "default",
-                        "slug": "default",
-                      },
-                      "provider": Object {
-                        "id": "github",
-                        "name": "GitHub",
-                      },
-                    },
-                  ],
-                  "isActive": true,
-                  "isManaged": false,
-                  "lastActive": "2018-02-21T17:40:31.555Z",
-                  "lastLogin": "2018-02-14T07:09:37.536Z",
-                  "name": "billy vong",
-                  "options": Object {
-                    "clock24Hours": false,
-                    "language": "en",
-                    "seenReleaseBroadcast": true,
-                    "stacktraceOrder": -1,
-                    "timezone": "America/Los_Angeles",
-                  },
-                  "permissions": Array [],
-                  "username": "billy@sentry.io",
-                },
-                "data": Object {
-                  "accountRateLimit": "from 1000 to 0",
-                },
-                "dateCreated": "2018-02-16T23:45:59.813Z",
-                "event": "org.edit",
-                "id": "408",
-                "ipAddress": "127.0.0.1",
-                "note": "edited the organization setting(s): accountRateLimit from 1000 to 0",
-                "targetObject": 2,
-                "targetUser": null,
+                "email": "billy36@sentry.io",
+                "id": "17",
+                "is_verified": false,
               },
-            ]
-          }
-          eventTypes={
-            Array [
-              "api-key.create",
-              "api-key.edit",
-              "api-key.remove",
-              "member.accept-invite",
-              "member.add",
-              "member.edit",
-              "member.invite",
-              "member.join-team",
-              "member.leave-team",
-              "member.remove",
-              "org.create",
-              "org.edit",
-              "org.remove",
-              "project.create",
-              "project.edit",
-              "project.remove",
-              "project.set-private",
-              "project.set-public",
-              "projectkey.create",
-              "projectkey.disable",
-              "projectkey.edit",
-              "projectkey.enable",
-              "projectkey.remove",
-              "sso-identity.link",
-              "sso.disable",
-              "sso.edit",
-              "sso.enable",
-              "tagkey.remove",
-              "team.create",
-              "team.edit",
-              "team.remove",
-            ]
-          }
-          location={
-            Object {
-              "query": "",
-            }
-          }
-          onEventSelect={[Function]}
-          params={
-            Object {
-              "orgId": "org-slug",
-            }
-          }
-        >
-          <div>
-            <SettingsPageHeading
-              action={
-                <form>
-                  <SelectInput
-                    disabled={false}
-                    multiple={false}
-                    name="event"
-                    onChange={[Function]}
-                    placeholder="Select an option..."
-                    required={false}
-                    showSearch={true}
-                    style={
-                      Object {
-                        "width": 250,
-                      }
-                    }
-                    value=""
-                  >
-                    <option
-                      value=""
-                    >
-                      Any action
-                    </option>
-                    <option>
-                      api-key.create
-                    </option>
-                    <option>
-                      api-key.edit
-                    </option>
-                    <option>
-                      api-key.remove
-                    </option>
-                    <option>
-                      member.accept-invite
-                    </option>
-                    <option>
-                      member.add
-                    </option>
-                    <option>
-                      member.edit
-                    </option>
-                    <option>
-                      member.invite
-                    </option>
-                    <option>
-                      member.join-team
-                    </option>
-                    <option>
-                      member.leave-team
-                    </option>
-                    <option>
-                      member.remove
-                    </option>
-                    <option>
-                      org.create
-                    </option>
-                    <option>
-                      org.edit
-                    </option>
-                    <option>
-                      org.remove
-                    </option>
-                    <option>
-                      project.create
-                    </option>
-                    <option>
-                      project.edit
-                    </option>
-                    <option>
-                      project.remove
-                    </option>
-                    <option>
-                      project.set-private
-                    </option>
-                    <option>
-                      project.set-public
-                    </option>
-                    <option>
-                      projectkey.create
-                    </option>
-                    <option>
-                      projectkey.disable
-                    </option>
-                    <option>
-                      projectkey.edit
-                    </option>
-                    <option>
-                      projectkey.enable
-                    </option>
-                    <option>
-                      projectkey.remove
-                    </option>
-                    <option>
-                      sso-identity.link
-                    </option>
-                    <option>
-                      sso.disable
-                    </option>
-                    <option>
-                      sso.edit
-                    </option>
-                    <option>
-                      sso.enable
-                    </option>
-                    <option>
-                      tagkey.remove
-                    </option>
-                    <option>
-                      team.create
-                    </option>
-                    <option>
-                      team.edit
-                    </option>
-                    <option>
-                      team.remove
-                    </option>
-                  </SelectInput>
-                </form>
-              }
-              title="Audit Log"
-            >
-              <Wrapper>
-                <div
-                  className="css-foidy-Wrapper css-17jmgia0"
-                >
-                  <Flex
-                    align="center"
-                  >
-                    <Base
-                      align="center"
-                      className="css-5ipae5"
-                    >
-                      <div
-                        className="css-5ipae5"
-                        is={null}
-                      >
-                        <Title>
-                          <div
-                            className="css-zmdcxu-Title css-17jmgia1"
-                          >
-                            Audit Log
-                          </div>
-                        </Title>
-                        <div>
-                          <form>
-                            <SelectInput
-                              disabled={false}
-                              multiple={false}
-                              name="event"
-                              onChange={[Function]}
-                              placeholder="Select an option..."
-                              required={false}
-                              showSearch={true}
-                              style={
-                                Object {
-                                  "width": 250,
-                                }
-                              }
-                              value=""
-                            >
-                              <select
-                                disabled={false}
-                                multiple={false}
-                                name="event"
-                                onChange={[Function]}
-                                placeholder="Select an option..."
-                                required={false}
-                                style={
-                                  Object {
-                                    "width": 250,
-                                  }
-                                }
-                                value=""
-                              >
-                                <option
-                                  key="any"
-                                  value=""
-                                >
-                                  Any action
-                                </option>
-                                <option
-                                  key="api-key.create"
-                                >
-                                  api-key.create
-                                </option>
-                                <option
-                                  key="api-key.edit"
-                                >
-                                  api-key.edit
-                                </option>
-                                <option
-                                  key="api-key.remove"
-                                >
-                                  api-key.remove
-                                </option>
-                                <option
-                                  key="member.accept-invite"
-                                >
-                                  member.accept-invite
-                                </option>
-                                <option
-                                  key="member.add"
-                                >
-                                  member.add
-                                </option>
-                                <option
-                                  key="member.edit"
-                                >
-                                  member.edit
-                                </option>
-                                <option
-                                  key="member.invite"
-                                >
-                                  member.invite
-                                </option>
-                                <option
-                                  key="member.join-team"
-                                >
-                                  member.join-team
-                                </option>
-                                <option
-                                  key="member.leave-team"
-                                >
-                                  member.leave-team
-                                </option>
-                                <option
-                                  key="member.remove"
-                                >
-                                  member.remove
-                                </option>
-                                <option
-                                  key="org.create"
-                                >
-                                  org.create
-                                </option>
-                                <option
-                                  key="org.edit"
-                                >
-                                  org.edit
-                                </option>
-                                <option
-                                  key="org.remove"
-                                >
-                                  org.remove
-                                </option>
-                                <option
-                                  key="project.create"
-                                >
-                                  project.create
-                                </option>
-                                <option
-                                  key="project.edit"
-                                >
-                                  project.edit
-                                </option>
-                                <option
-                                  key="project.remove"
-                                >
-                                  project.remove
-                                </option>
-                                <option
-                                  key="project.set-private"
-                                >
-                                  project.set-private
-                                </option>
-                                <option
-                                  key="project.set-public"
-                                >
-                                  project.set-public
-                                </option>
-                                <option
-                                  key="projectkey.create"
-                                >
-                                  projectkey.create
-                                </option>
-                                <option
-                                  key="projectkey.disable"
-                                >
-                                  projectkey.disable
-                                </option>
-                                <option
-                                  key="projectkey.edit"
-                                >
-                                  projectkey.edit
-                                </option>
-                                <option
-                                  key="projectkey.enable"
-                                >
-                                  projectkey.enable
-                                </option>
-                                <option
-                                  key="projectkey.remove"
-                                >
-                                  projectkey.remove
-                                </option>
-                                <option
-                                  key="sso-identity.link"
-                                >
-                                  sso-identity.link
-                                </option>
-                                <option
-                                  key="sso.disable"
-                                >
-                                  sso.disable
-                                </option>
-                                <option
-                                  key="sso.edit"
-                                >
-                                  sso.edit
-                                </option>
-                                <option
-                                  key="sso.enable"
-                                >
-                                  sso.enable
-                                </option>
-                                <option
-                                  key="tagkey.remove"
-                                >
-                                  tagkey.remove
-                                </option>
-                                <option
-                                  key="team.create"
-                                >
-                                  team.create
-                                </option>
-                                <option
-                                  key="team.edit"
-                                >
-                                  team.edit
-                                </option>
-                                <option
-                                  key="team.remove"
-                                >
-                                  team.remove
-                                </option>
-                              </select>
-                            </SelectInput>
-                          </form>
-                        </div>
-                      </div>
-                    </Base>
-                  </Flex>
-                </div>
-              </Wrapper>
-            </SettingsPageHeading>
-            <Panel>
-              <StyledPanel>
-                <div
-                  className="css-wfa8ap-StyledPanel css-5bw71w0"
-                >
-                  <PanelHeader
-                    disablePadding={true}
-                  >
-                    <StyledPanelHeader
-                      disablePadding={true}
-                    >
-                      <Component
-                        className="css-18fb6u1-StyledPanelHeader css-1t1cqk30"
-                        disablePadding={true}
-                      >
-                        <Flex
-                          align="center"
-                          className="css-18fb6u1-StyledPanelHeader css-1t1cqk30"
-                          justify="space-between"
-                        >
-                          <Base
-                            align="center"
-                            className="css-1t1cqk30 css-1pqpjvf"
-                            justify="space-between"
-                          >
-                            <div
-                              className="css-1t1cqk30 css-1pqpjvf"
-                              is={null}
-                            >
-                              <Box
-                                flex="1"
-                                pl={2}
-                              >
-                                <Base
-                                  className="css-1my0viv"
-                                  flex="1"
-                                  pl={2}
-                                >
-                                  <div
-                                    className="css-1my0viv"
-                                    is={null}
-                                  >
-                                    Member
-                                  </div>
-                                </Base>
-                              </Box>
-                              <Box
-                                w={150}
-                              >
-                                <Base
-                                  className="css-v9492v"
-                                  w={150}
-                                >
-                                  <div
-                                    className="css-v9492v"
-                                    is={null}
-                                  >
-                                    Action
-                                  </div>
-                                </Base>
-                              </Box>
-                              <Box
-                                w={130}
-                              >
-                                <Base
-                                  className="css-y2sfni"
-                                  w={130}
-                                >
-                                  <div
-                                    className="css-y2sfni"
-                                    is={null}
-                                  >
-                                    IP
-                                  </div>
-                                </Base>
-                              </Box>
-                              <Box
-                                px={1}
-                                w={150}
-                              >
-                                <Base
-                                  className="css-1czq49t"
-                                  px={1}
-                                  w={150}
-                                >
-                                  <div
-                                    className="css-1czq49t"
-                                    is={null}
-                                  >
-                                    Time
-                                  </div>
-                                </Base>
-                              </Box>
-                            </div>
-                          </Base>
-                        </Flex>
-                      </Component>
-                    </StyledPanelHeader>
-                  </PanelHeader>
-                  <PanelBody
-                    direction="column"
-                    disablePadding={true}
-                    flex={false}
-                  >
-                    <div
-                      className=""
-                    >
-                      <PanelItem
-                        align="center"
-                        key="465"
-                        p={0}
-                      >
-                        <StyledPanelItem
-                          align="center"
-                          p={0}
-                        >
-                          <Base
-                            align="center"
-                            className="css-e60paj-StyledPanelItem css-q9h14u0"
-                            p={0}
-                          >
-                            <div
-                              className="css-e60paj-StyledPanelItem css-q9h14u0"
-                              is={null}
-                            >
-                              <UserInfo
-                                flex="1"
-                                p={2}
-                              >
-                                <Base
-                                  className="css-1ky4pgp-UserInfo css-1arz13t0"
-                                  flex="1"
-                                  p={2}
-                                >
-                                  <div
-                                    className="css-1ky4pgp-UserInfo css-1arz13t0"
-                                    is={null}
-                                  >
-                                    <div>
-                                      <Avatar
-                                        hasTooltip={false}
-                                        style={
-                                          Object {
-                                            "height": 36,
-                                            "marginRight": 8,
-                                            "width": 36,
-                                          }
-                                        }
-                                        user={
-                                          Object {
-                                            "avatar": Object {
-                                              "avatarType": "letter_avatar",
-                                              "avatarUuid": "483ed7478a2248d59211f538c2997e0b",
-                                            },
-                                            "avatarUrl": "https://secure.gravatar.com/avatar/7b544e8eb9d08ed777be5aa82121155a?s=32&d=mm",
-                                            "dateJoined": "2018-01-10T00:19:59Z",
-                                            "email": "billy@sentry.io",
-                                            "emails": Array [
-                                              Object {
-                                                "email": "billy@sentry.io",
-                                                "id": "5",
-                                                "is_verified": true,
-                                              },
-                                              Object {
-                                                "email": "billy36@sentry.io",
-                                                "id": "17",
-                                                "is_verified": false,
-                                              },
-                                              Object {
-                                                "email": "awerawer@awe.com",
-                                                "id": "11",
-                                                "is_verified": false,
-                                              },
-                                              Object {
-                                                "email": "test@test.com",
-                                                "id": "28",
-                                                "is_verified": false,
-                                              },
-                                              Object {
-                                                "email": "billy2@sentry.io",
-                                                "id": "10",
-                                                "is_verified": true,
-                                              },
-                                            ],
-                                            "has2fa": true,
-                                            "id": "1",
-                                            "identities": Array [
-                                              Object {
-                                                "dateSynced": "2018-02-21T17:09:46.248Z",
-                                                "dateVerified": "2018-02-21T17:09:46.248Z",
-                                                "id": "1",
-                                                "name": "79684",
-                                                "organization": Object {
-                                                  "name": "default",
-                                                  "slug": "default",
-                                                },
-                                                "provider": Object {
-                                                  "id": "github",
-                                                  "name": "GitHub",
-                                                },
-                                              },
-                                            ],
-                                            "isActive": true,
-                                            "isManaged": false,
-                                            "lastActive": "2018-02-21T17:40:31.555Z",
-                                            "lastLogin": "2018-02-14T07:09:37.536Z",
-                                            "name": "billy vong",
-                                            "options": Object {
-                                              "clock24Hours": false,
-                                              "language": "en",
-                                              "seenReleaseBroadcast": true,
-                                              "stacktraceOrder": -1,
-                                              "timezone": "America/Los_Angeles",
-                                            },
-                                            "permissions": Array [],
-                                            "username": "billy@sentry.io",
-                                          }
-                                        }
-                                      >
-                                        <UserAvatar
-                                          gravatar={true}
-                                          hasTooltip={false}
-                                          style={
-                                            Object {
-                                              "height": 36,
-                                              "marginRight": 8,
-                                              "width": 36,
-                                            }
-                                          }
-                                          user={
-                                            Object {
-                                              "avatar": Object {
-                                                "avatarType": "letter_avatar",
-                                                "avatarUuid": "483ed7478a2248d59211f538c2997e0b",
-                                              },
-                                              "avatarUrl": "https://secure.gravatar.com/avatar/7b544e8eb9d08ed777be5aa82121155a?s=32&d=mm",
-                                              "dateJoined": "2018-01-10T00:19:59Z",
-                                              "email": "billy@sentry.io",
-                                              "emails": Array [
-                                                Object {
-                                                  "email": "billy@sentry.io",
-                                                  "id": "5",
-                                                  "is_verified": true,
-                                                },
-                                                Object {
-                                                  "email": "billy36@sentry.io",
-                                                  "id": "17",
-                                                  "is_verified": false,
-                                                },
-                                                Object {
-                                                  "email": "awerawer@awe.com",
-                                                  "id": "11",
-                                                  "is_verified": false,
-                                                },
-                                                Object {
-                                                  "email": "test@test.com",
-                                                  "id": "28",
-                                                  "is_verified": false,
-                                                },
-                                                Object {
-                                                  "email": "billy2@sentry.io",
-                                                  "id": "10",
-                                                  "is_verified": true,
-                                                },
-                                              ],
-                                              "has2fa": true,
-                                              "id": "1",
-                                              "identities": Array [
-                                                Object {
-                                                  "dateSynced": "2018-02-21T17:09:46.248Z",
-                                                  "dateVerified": "2018-02-21T17:09:46.248Z",
-                                                  "id": "1",
-                                                  "name": "79684",
-                                                  "organization": Object {
-                                                    "name": "default",
-                                                    "slug": "default",
-                                                  },
-                                                  "provider": Object {
-                                                    "id": "github",
-                                                    "name": "GitHub",
-                                                  },
-                                                },
-                                              ],
-                                              "isActive": true,
-                                              "isManaged": false,
-                                              "lastActive": "2018-02-21T17:40:31.555Z",
-                                              "lastLogin": "2018-02-14T07:09:37.536Z",
-                                              "name": "billy vong",
-                                              "options": Object {
-                                                "clock24Hours": false,
-                                                "language": "en",
-                                                "seenReleaseBroadcast": true,
-                                                "stacktraceOrder": -1,
-                                                "timezone": "America/Los_Angeles",
-                                              },
-                                              "permissions": Array [],
-                                              "username": "billy@sentry.io",
-                                            }
-                                          }
-                                        >
-                                          <BaseAvatar
-                                            gravatar={true}
-                                            gravatarId="billy@sentry.io"
-                                            hasTooltip={false}
-                                            letterId="billy@sentry.io"
-                                            style={
-                                              Object {
-                                                "height": 36,
-                                                "marginRight": 8,
-                                                "width": 36,
-                                              }
-                                            }
-                                            title="billy vong"
-                                            tooltip="billy vong (billy@sentry.io)"
-                                            type="letter_avatar"
-                                            uploadId="483ed7478a2248d59211f538c2997e0b"
-                                          >
-                                            <Tooltip
-                                              disabled={true}
-                                              title="billy vong (billy@sentry.io)"
-                                            >
-                                              <span
-                                                className="avatar"
-                                                style={
-                                                  Object {
-                                                    "height": 36,
-                                                    "marginRight": 8,
-                                                    "width": 36,
-                                                  }
-                                                }
-                                              >
-                                                <LetterAvatar
-                                                  displayName="billy vong"
-                                                  identifier="billy@sentry.io"
-                                                >
-                                                  <svg
-                                                    viewBox="0 0 120 120"
-                                                  >
-                                                    <rect
-                                                      fill="#f868bc"
-                                                      height="120"
-                                                      rx="15"
-                                                      ry="15"
-                                                      width="120"
-                                                      x="0"
-                                                      y="0"
-                                                    />
-                                                    <text
-                                                      fill="#FFFFFF"
-                                                      fontSize="65"
-                                                      style={
-                                                        Object {
-                                                          "dominantBaseline": "central",
-                                                        }
-                                                      }
-                                                      textAnchor="middle"
-                                                      x="50%"
-                                                      y="50%"
-                                                    >
-                                                      BV
-                                                    </text>
-                                                  </svg>
-                                                </LetterAvatar>
-                                              </span>
-                                            </Tooltip>
-                                          </BaseAvatar>
-                                        </UserAvatar>
-                                      </Avatar>
-                                    </div>
-                                    <NameContainer>
-                                      <div
-                                        className="css-q31npu-NameContainer css-1arz13t1"
-                                      >
-                                        <Name>
-                                          <div
-                                            className="css-1y9jqv7-Name css-1arz13t2"
-                                          >
-                                            billy vong
-                                          </div>
-                                        </Name>
-                                        <Note>
-                                          <div
-                                            className="css-18wlwph-Note css-1arz13t3"
-                                          >
-                                            edited project ludic-science
-                                          </div>
-                                        </Note>
-                                      </div>
-                                    </NameContainer>
-                                  </div>
-                                </Base>
-                              </UserInfo>
-                              <Box
-                                w={150}
-                              >
-                                <Base
-                                  className="css-v9492v"
-                                  w={150}
-                                >
-                                  <div
-                                    className="css-v9492v"
-                                    is={null}
-                                  >
-                                    project.edit
-                                  </div>
-                                </Base>
-                              </Box>
-                              <Box
-                                w={130}
-                              >
-                                <Base
-                                  className="css-y2sfni"
-                                  w={130}
-                                >
-                                  <div
-                                    className="css-y2sfni"
-                                    is={null}
-                                  >
-                                    127.0.0.1
-                                  </div>
-                                </Base>
-                              </Box>
-                              <Box
-                                p={1}
-                                w={150}
-                              >
-                                <Base
-                                  className="css-ss3uhf"
-                                  p={1}
-                                  w={150}
-                                >
-                                  <div
-                                    className="css-ss3uhf"
-                                    is={null}
-                                  >
-                                    <DateTime
-                                      date="2018-02-21T03:04:23.157Z"
-                                      seconds={true}
-                                    >
-                                      <time>
-                                        Feb 21, 2018 3:04:23 AM UTC
-                                      </time>
-                                    </DateTime>
-                                  </div>
-                                </Base>
-                              </Box>
-                            </div>
-                          </Base>
-                        </StyledPanelItem>
-                      </PanelItem>
-                      <PanelItem
-                        align="center"
-                        key="408"
-                        p={0}
-                      >
-                        <StyledPanelItem
-                          align="center"
-                          p={0}
-                        >
-                          <Base
-                            align="center"
-                            className="css-e60paj-StyledPanelItem css-q9h14u0"
-                            p={0}
-                          >
-                            <div
-                              className="css-e60paj-StyledPanelItem css-q9h14u0"
-                              is={null}
-                            >
-                              <UserInfo
-                                flex="1"
-                                p={2}
-                              >
-                                <Base
-                                  className="css-1ky4pgp-UserInfo css-1arz13t0"
-                                  flex="1"
-                                  p={2}
-                                >
-                                  <div
-                                    className="css-1ky4pgp-UserInfo css-1arz13t0"
-                                    is={null}
-                                  >
-                                    <div>
-                                      <Avatar
-                                        hasTooltip={false}
-                                        style={
-                                          Object {
-                                            "height": 36,
-                                            "marginRight": 8,
-                                            "width": 36,
-                                          }
-                                        }
-                                        user={
-                                          Object {
-                                            "avatar": Object {
-                                              "avatarType": "letter_avatar",
-                                              "avatarUuid": "483ed7478a2248d59211f538c2997e0b",
-                                            },
-                                            "avatarUrl": "https://secure.gravatar.com/avatar/7b544e8eb9d08ed777be5aa82121155a?s=32&d=mm",
-                                            "dateJoined": "2018-01-10T00:19:59Z",
-                                            "email": "billy@sentry.io",
-                                            "emails": Array [
-                                              Object {
-                                                "email": "billy@sentry.io",
-                                                "id": "5",
-                                                "is_verified": true,
-                                              },
-                                              Object {
-                                                "email": "billy36@sentry.io",
-                                                "id": "17",
-                                                "is_verified": false,
-                                              },
-                                              Object {
-                                                "email": "awerawer@awe.com",
-                                                "id": "11",
-                                                "is_verified": false,
-                                              },
-                                              Object {
-                                                "email": "test@test.com",
-                                                "id": "28",
-                                                "is_verified": false,
-                                              },
-                                              Object {
-                                                "email": "billy2@sentry.io",
-                                                "id": "10",
-                                                "is_verified": true,
-                                              },
-                                            ],
-                                            "has2fa": true,
-                                            "id": "1",
-                                            "identities": Array [
-                                              Object {
-                                                "dateSynced": "2018-02-21T17:09:46.248Z",
-                                                "dateVerified": "2018-02-21T17:09:46.248Z",
-                                                "id": "1",
-                                                "name": "79684",
-                                                "organization": Object {
-                                                  "name": "default",
-                                                  "slug": "default",
-                                                },
-                                                "provider": Object {
-                                                  "id": "github",
-                                                  "name": "GitHub",
-                                                },
-                                              },
-                                            ],
-                                            "isActive": true,
-                                            "isManaged": false,
-                                            "lastActive": "2018-02-21T17:40:31.555Z",
-                                            "lastLogin": "2018-02-14T07:09:37.536Z",
-                                            "name": "billy vong",
-                                            "options": Object {
-                                              "clock24Hours": false,
-                                              "language": "en",
-                                              "seenReleaseBroadcast": true,
-                                              "stacktraceOrder": -1,
-                                              "timezone": "America/Los_Angeles",
-                                            },
-                                            "permissions": Array [],
-                                            "username": "billy@sentry.io",
-                                          }
-                                        }
-                                      >
-                                        <UserAvatar
-                                          gravatar={true}
-                                          hasTooltip={false}
-                                          style={
-                                            Object {
-                                              "height": 36,
-                                              "marginRight": 8,
-                                              "width": 36,
-                                            }
-                                          }
-                                          user={
-                                            Object {
-                                              "avatar": Object {
-                                                "avatarType": "letter_avatar",
-                                                "avatarUuid": "483ed7478a2248d59211f538c2997e0b",
-                                              },
-                                              "avatarUrl": "https://secure.gravatar.com/avatar/7b544e8eb9d08ed777be5aa82121155a?s=32&d=mm",
-                                              "dateJoined": "2018-01-10T00:19:59Z",
-                                              "email": "billy@sentry.io",
-                                              "emails": Array [
-                                                Object {
-                                                  "email": "billy@sentry.io",
-                                                  "id": "5",
-                                                  "is_verified": true,
-                                                },
-                                                Object {
-                                                  "email": "billy36@sentry.io",
-                                                  "id": "17",
-                                                  "is_verified": false,
-                                                },
-                                                Object {
-                                                  "email": "awerawer@awe.com",
-                                                  "id": "11",
-                                                  "is_verified": false,
-                                                },
-                                                Object {
-                                                  "email": "test@test.com",
-                                                  "id": "28",
-                                                  "is_verified": false,
-                                                },
-                                                Object {
-                                                  "email": "billy2@sentry.io",
-                                                  "id": "10",
-                                                  "is_verified": true,
-                                                },
-                                              ],
-                                              "has2fa": true,
-                                              "id": "1",
-                                              "identities": Array [
-                                                Object {
-                                                  "dateSynced": "2018-02-21T17:09:46.248Z",
-                                                  "dateVerified": "2018-02-21T17:09:46.248Z",
-                                                  "id": "1",
-                                                  "name": "79684",
-                                                  "organization": Object {
-                                                    "name": "default",
-                                                    "slug": "default",
-                                                  },
-                                                  "provider": Object {
-                                                    "id": "github",
-                                                    "name": "GitHub",
-                                                  },
-                                                },
-                                              ],
-                                              "isActive": true,
-                                              "isManaged": false,
-                                              "lastActive": "2018-02-21T17:40:31.555Z",
-                                              "lastLogin": "2018-02-14T07:09:37.536Z",
-                                              "name": "billy vong",
-                                              "options": Object {
-                                                "clock24Hours": false,
-                                                "language": "en",
-                                                "seenReleaseBroadcast": true,
-                                                "stacktraceOrder": -1,
-                                                "timezone": "America/Los_Angeles",
-                                              },
-                                              "permissions": Array [],
-                                              "username": "billy@sentry.io",
-                                            }
-                                          }
-                                        >
-                                          <BaseAvatar
-                                            gravatar={true}
-                                            gravatarId="billy@sentry.io"
-                                            hasTooltip={false}
-                                            letterId="billy@sentry.io"
-                                            style={
-                                              Object {
-                                                "height": 36,
-                                                "marginRight": 8,
-                                                "width": 36,
-                                              }
-                                            }
-                                            title="billy vong"
-                                            tooltip="billy vong (billy@sentry.io)"
-                                            type="letter_avatar"
-                                            uploadId="483ed7478a2248d59211f538c2997e0b"
-                                          >
-                                            <Tooltip
-                                              disabled={true}
-                                              title="billy vong (billy@sentry.io)"
-                                            >
-                                              <span
-                                                className="avatar"
-                                                style={
-                                                  Object {
-                                                    "height": 36,
-                                                    "marginRight": 8,
-                                                    "width": 36,
-                                                  }
-                                                }
-                                              >
-                                                <LetterAvatar
-                                                  displayName="billy vong"
-                                                  identifier="billy@sentry.io"
-                                                >
-                                                  <svg
-                                                    viewBox="0 0 120 120"
-                                                  >
-                                                    <rect
-                                                      fill="#f868bc"
-                                                      height="120"
-                                                      rx="15"
-                                                      ry="15"
-                                                      width="120"
-                                                      x="0"
-                                                      y="0"
-                                                    />
-                                                    <text
-                                                      fill="#FFFFFF"
-                                                      fontSize="65"
-                                                      style={
-                                                        Object {
-                                                          "dominantBaseline": "central",
-                                                        }
-                                                      }
-                                                      textAnchor="middle"
-                                                      x="50%"
-                                                      y="50%"
-                                                    >
-                                                      BV
-                                                    </text>
-                                                  </svg>
-                                                </LetterAvatar>
-                                              </span>
-                                            </Tooltip>
-                                          </BaseAvatar>
-                                        </UserAvatar>
-                                      </Avatar>
-                                    </div>
-                                    <NameContainer>
-                                      <div
-                                        className="css-q31npu-NameContainer css-1arz13t1"
-                                      >
-                                        <Name>
-                                          <div
-                                            className="css-1y9jqv7-Name css-1arz13t2"
-                                          >
-                                            billy vong
-                                          </div>
-                                        </Name>
-                                        <Note>
-                                          <div
-                                            className="css-18wlwph-Note css-1arz13t3"
-                                          >
-                                            edited the organization setting(s): accountRateLimit from 1000 to 0
-                                          </div>
-                                        </Note>
-                                      </div>
-                                    </NameContainer>
-                                  </div>
-                                </Base>
-                              </UserInfo>
-                              <Box
-                                w={150}
-                              >
-                                <Base
-                                  className="css-v9492v"
-                                  w={150}
-                                >
-                                  <div
-                                    className="css-v9492v"
-                                    is={null}
-                                  >
-                                    org.edit
-                                  </div>
-                                </Base>
-                              </Box>
-                              <Box
-                                w={130}
-                              >
-                                <Base
-                                  className="css-y2sfni"
-                                  w={130}
-                                >
-                                  <div
-                                    className="css-y2sfni"
-                                    is={null}
-                                  >
-                                    127.0.0.1
-                                  </div>
-                                </Base>
-                              </Box>
-                              <Box
-                                p={1}
-                                w={150}
-                              >
-                                <Base
-                                  className="css-ss3uhf"
-                                  p={1}
-                                  w={150}
-                                >
-                                  <div
-                                    className="css-ss3uhf"
-                                    is={null}
-                                  >
-                                    <DateTime
-                                      date="2018-02-16T23:45:59.813Z"
-                                      seconds={true}
-                                    >
-                                      <time>
-                                        Feb 16, 2018 11:45:59 PM UTC
-                                      </time>
-                                    </DateTime>
-                                  </div>
-                                </Base>
-                              </Box>
-                            </div>
-                          </Base>
-                        </StyledPanelItem>
-                      </PanelItem>
-                    </div>
-                  </PanelBody>
-                </div>
-              </StyledPanel>
-            </Panel>
-          </div>
-        </AuditLogList>
-      </LazyLoad>
-    </DocumentTitle>
-  </SideEffect(DocumentTitle)>
-</AuditLogView>
+              Object {
+                "email": "awerawer@awe.com",
+                "id": "11",
+                "is_verified": false,
+              },
+              Object {
+                "email": "test@test.com",
+                "id": "28",
+                "is_verified": false,
+              },
+              Object {
+                "email": "billy2@sentry.io",
+                "id": "10",
+                "is_verified": true,
+              },
+            ],
+            "has2fa": true,
+            "id": "1",
+            "identities": Array [
+              Object {
+                "dateSynced": "2018-02-21T17:09:46.248Z",
+                "dateVerified": "2018-02-21T17:09:46.248Z",
+                "id": "1",
+                "name": "79684",
+                "organization": Object {
+                  "name": "default",
+                  "slug": "default",
+                },
+                "provider": Object {
+                  "id": "github",
+                  "name": "GitHub",
+                },
+              },
+            ],
+            "isActive": true,
+            "isManaged": false,
+            "lastActive": "2018-02-21T17:40:31.555Z",
+            "lastLogin": "2018-02-14T07:09:37.536Z",
+            "name": "billy vong",
+            "options": Object {
+              "clock24Hours": false,
+              "language": "en",
+              "seenReleaseBroadcast": true,
+              "stacktraceOrder": -1,
+              "timezone": "America/Los_Angeles",
+            },
+            "permissions": Array [],
+            "username": "billy@sentry.io",
+          },
+          "data": Object {
+            "id": 2,
+            "name": "Ludic Science",
+            "public": false,
+            "slug": "ludic-science",
+            "status": 0,
+          },
+          "dateCreated": "2018-02-21T03:04:23.157Z",
+          "event": "project.edit",
+          "id": "465",
+          "ipAddress": "127.0.0.1",
+          "note": "edited project ludic-science",
+          "targetObject": 2,
+          "targetUser": null,
+        },
+        Object {
+          "actor": Object {
+            "avatar": Object {
+              "avatarType": "letter_avatar",
+              "avatarUuid": "483ed7478a2248d59211f538c2997e0b",
+            },
+            "avatarUrl": "https://secure.gravatar.com/avatar/7b544e8eb9d08ed777be5aa82121155a?s=32&d=mm",
+            "dateJoined": "2018-01-10T00:19:59Z",
+            "email": "billy@sentry.io",
+            "emails": Array [
+              Object {
+                "email": "billy@sentry.io",
+                "id": "5",
+                "is_verified": true,
+              },
+              Object {
+                "email": "billy36@sentry.io",
+                "id": "17",
+                "is_verified": false,
+              },
+              Object {
+                "email": "awerawer@awe.com",
+                "id": "11",
+                "is_verified": false,
+              },
+              Object {
+                "email": "test@test.com",
+                "id": "28",
+                "is_verified": false,
+              },
+              Object {
+                "email": "billy2@sentry.io",
+                "id": "10",
+                "is_verified": true,
+              },
+            ],
+            "has2fa": true,
+            "id": "1",
+            "identities": Array [
+              Object {
+                "dateSynced": "2018-02-21T17:09:46.248Z",
+                "dateVerified": "2018-02-21T17:09:46.248Z",
+                "id": "1",
+                "name": "79684",
+                "organization": Object {
+                  "name": "default",
+                  "slug": "default",
+                },
+                "provider": Object {
+                  "id": "github",
+                  "name": "GitHub",
+                },
+              },
+            ],
+            "isActive": true,
+            "isManaged": false,
+            "lastActive": "2018-02-21T17:40:31.555Z",
+            "lastLogin": "2018-02-14T07:09:37.536Z",
+            "name": "billy vong",
+            "options": Object {
+              "clock24Hours": false,
+              "language": "en",
+              "seenReleaseBroadcast": true,
+              "stacktraceOrder": -1,
+              "timezone": "America/Los_Angeles",
+            },
+            "permissions": Array [],
+            "username": "billy@sentry.io",
+          },
+          "data": Object {
+            "accountRateLimit": "from 1000 to 0",
+          },
+          "dateCreated": "2018-02-16T23:45:59.813Z",
+          "event": "org.edit",
+          "id": "408",
+          "ipAddress": "127.0.0.1",
+          "note": "edited the organization setting(s): accountRateLimit from 1000 to 0",
+          "targetObject": 2,
+          "targetUser": null,
+        },
+      ]
+    }
+    eventTypes={
+      Array [
+        "api-key.create",
+        "api-key.edit",
+        "api-key.remove",
+        "member.accept-invite",
+        "member.add",
+        "member.edit",
+        "member.invite",
+        "member.join-team",
+        "member.leave-team",
+        "member.remove",
+        "org.create",
+        "org.edit",
+        "org.remove",
+        "project.create",
+        "project.edit",
+        "project.remove",
+        "project.set-private",
+        "project.set-public",
+        "projectkey.create",
+        "projectkey.disable",
+        "projectkey.edit",
+        "projectkey.enable",
+        "projectkey.remove",
+        "sso-identity.link",
+        "sso.disable",
+        "sso.edit",
+        "sso.enable",
+        "tagkey.remove",
+        "team.create",
+        "team.edit",
+        "team.remove",
+      ]
+    }
+    location={
+      Object {
+        "query": "",
+      }
+    }
+    onEventSelect={[Function]}
+    params={
+      Object {
+        "orgId": "org-slug",
+      }
+    }
+  />
+</SideEffect(DocumentTitle)>
 `;

@@ -1,4 +1,4 @@
-import {t} from '../../../locale';
+import {t} from 'app/locale';
 
 const pathPrefix = '/settings/:orgId/:projectId';
 
@@ -87,8 +87,8 @@ export default function getConfiguration({project}) {
           title: t('Error Tracking'),
         },
         {
-          path: `${pathPrefix}/csp/`,
-          title: t('CSP Reports'),
+          path: `${pathPrefix}/security-headers/`,
+          title: t('Security Headers'),
         },
         {
           path: `${pathPrefix}/user-feedback/`,

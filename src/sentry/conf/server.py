@@ -266,7 +266,9 @@ STATIC_URL = '/_static/{version}/'
 
 # various middleware will use this to identify resources which should not access
 # cookies
-ANONYMOUS_STATIC_PREFIXES = ('/_static/', '/avatar/', '/organization-avatar/', '/team-avatar/')
+ANONYMOUS_STATIC_PREFIXES = (
+    '/_static/', '/avatar/', '/organization-avatar/', '/team-avatar/', '/project-avatar/',
+)
 
 STATICFILES_FINDERS = (
     "django.contrib.staticfiles.finders.FileSystemFinder",
@@ -827,6 +829,7 @@ SENTRY_SMTP_PORT = 1025
 
 SENTRY_INTERFACES = {
     'csp': 'sentry.interfaces.security.Csp',
+    'hpkp': 'sentry.interfaces.security.Hpkp',
     'expectct': 'sentry.interfaces.security.ExpectCT',
     'expectstaple': 'sentry.interfaces.security.ExpectStaple',
     'device': 'sentry.interfaces.device.Device',
@@ -939,6 +942,9 @@ SENTRY_RATELIMITER_OPTIONS = {}
 # The default value for project-level quotas
 SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = '90%'
 
+# Snuba configuration
+SENTRY_SNUBA = os.environ.get('SNUBA', 'http://localhost:1218')
+
 # Node storage backend
 SENTRY_NODESTORE = 'sentry.nodestore.django.DjangoNodeStorage'
 SENTRY_NODESTORE_OPTIONS = {}
@@ -958,7 +964,7 @@ SENTRY_TAGSTORE_OPTIONS = (
 )
 
 # Search backend
-SENTRY_SEARCH = 'sentry.search.django.DjangoSearchBackend'
+SENTRY_SEARCH = os.environ.get('SENTRY_SEARCH', 'sentry.search.django.DjangoSearchBackend')
 SENTRY_SEARCH_OPTIONS = {}
 # SENTRY_SEARCH_OPTIONS = {
 #     'urls': ['http://localhost:9200/'],

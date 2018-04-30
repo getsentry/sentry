@@ -1,11 +1,11 @@
 import React from 'react';
-import AsyncComponent from '../../components/asyncComponent';
-import TimeSince from '../../components/timeSince';
-import CommitLink from '../../components/commitLink';
-import EmptyStateWarning from '../../components/emptyStateWarning';
-import {Panel} from '../../components/panels';
+import AsyncComponent from 'app/components/asyncComponent';
+import TimeSince from 'app/components/timeSince';
+import CommitLink from 'app/components/commitLink';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
+import {Panel} from 'app/components/panels';
 
-import {t} from '../../locale';
+import {t} from 'app/locale';
 
 export default class UnreleasedChanges extends AsyncComponent {
   getEndpoints() {

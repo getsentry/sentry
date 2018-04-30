@@ -3,15 +3,15 @@ import React from 'react';
 import styled from 'react-emotion';
 import TextareaAutosize from 'react-autosize-textarea';
 
-import {Client} from '../../../../api';
-import memberListStore from '../../../../stores/memberListStore';
-import ProjectsStore from '../../../../stores/projectsStore';
-import Button from '../../../../components/buttons/button';
-import SentryTypes from '../../../../proptypes';
-import {addErrorMessage, addSuccessMessage} from '../../../../actionCreators/indicator';
-import {t} from '../../../../locale';
-import {inputStyles} from '../../../../styles/input';
-import RuleBuilder from './ruleBuilder';
+import {Client} from 'app/api';
+import memberListStore from 'app/stores/memberListStore';
+import ProjectsStore from 'app/stores/projectsStore';
+import Button from 'app/components/buttons/button';
+import SentryTypes from 'app/proptypes';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {t} from 'app/locale';
+import {inputStyles} from 'app/styles/input';
+import RuleBuilder from 'app/views/settings/project/projectOwnership/ruleBuilder';
 
 class OwnerInput extends React.Component {
   static propTypes = {
@@ -20,7 +20,6 @@ class OwnerInput extends React.Component {
     initialText: PropTypes.string,
     urls: PropTypes.arrayOf(PropTypes.string),
     paths: PropTypes.arrayOf(PropTypes.string),
-    onSave: PropTypes.func,
   };
 
   constructor(props) {
@@ -103,7 +102,7 @@ class OwnerInput extends React.Component {
 
   mentionableTeams() {
     let {project} = this.props;
-    return (ProjectsStore.getAll().find(p => p.slug == project.slug) || {
+    return (ProjectsStore.getBySlug(project.slug) || {
       teams: [],
     }).teams.map(team => ({
       id: team.id,

@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import ContextBlock from './contextBlock';
+import ContextBlock from 'app/components/events/contexts/contextBlock';
 
 class AppContextType extends React.Component {
   static propTypes = {

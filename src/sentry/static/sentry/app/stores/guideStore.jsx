@@ -1,8 +1,8 @@
 import Reflux from 'reflux';
 import $ from 'jquery';
-import GuideActions from '../actions/guideActions';
-import HookStore from './hookStore';
-import OrganizationsActions from '../actions/organizationsActions';
+import GuideActions from 'app/actions/guideActions';
+import HookStore from 'app/stores/hookStore';
+import OrganizationsActions from 'app/actions/organizationsActions';
 
 const GuideStore = Reflux.createStore({
   init() {
@@ -20,6 +20,7 @@ const GuideStore = Reflux.createStore({
       currentOrg: null,
 
       forceShow: false,
+      prevGuide: null,
     };
     this.listenTo(GuideActions.fetchSucceeded, this.onFetchSucceeded);
     this.listenTo(GuideActions.closeGuideOrSupport, this.onCloseGuideOrSupport);
@@ -85,6 +86,24 @@ const GuideStore = Reflux.createStore({
     this.updateCurrentGuide();
   },
 
+  recordCue(id, cue) {
+    HookStore.get('analytics:event').forEach(cb =>
+      cb('assistant.guide_cued', {
+        guide: id,
+        cue,
+      })
+    );
+  },
+
+  updatePrevGuide(bestGuide) {
+    if (!bestGuide) return;
+
+    if (!this.state.prevGuide || this.state.prevGuide.id !== bestGuide.id) {
+      this.recordCue(bestGuide.id, bestGuide.cue);
+      this.state.prevGuide = bestGuide;
+    }
+  },
+
   updateCurrentGuide() {
     let availableTargets = [...this.state.anchors].map(a => a.props.target);
 
@@ -108,7 +127,7 @@ const GuideStore = Reflux.createStore({
         step => step.target && availableTargets.indexOf(step.target) >= 0
       );
     }
-
+    this.updatePrevGuide(bestGuide);
     this.state.currentGuide = bestGuide;
 
     this.state.currentStep = this.state.forceShow ? 1 : 0;

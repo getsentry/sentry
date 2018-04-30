@@ -230,7 +230,8 @@ class AuditLogEntry(Model):
         elif self.event == AuditLogEntryEvent.PROJECT_ADD:
             return 'created project %s' % (self.data['slug'], )
         elif self.event == AuditLogEntryEvent.PROJECT_EDIT:
-            return 'edited project %s' % (self.data['slug'], )
+            return 'edited project settings ' + (' '.join([' in %s to %s' % (key, value)
+                                                           for (key, value) in six.iteritems(self.data)]))
         elif self.event == AuditLogEntryEvent.PROJECT_REMOVE:
             return 'removed project %s' % (self.data['slug'], )
         elif self.event == AuditLogEntryEvent.PROJECT_REQUEST_TRANSFER:
@@ -276,6 +277,8 @@ class AuditLogEntry(Model):
             return 'removed rule "%s"' % (self.data['label'], )
 
         elif self.event == AuditLogEntryEvent.SET_ONDEMAND:
+            if self.data['ondemand'] == -1:
+                return 'changed on-demand spend to unlimited'
             return 'changed on-demand max spend to $%d' % (self.data['ondemand'] / 100, )
         elif self.event == AuditLogEntryEvent.TRIAL_STARTED:
             return 'started trial'

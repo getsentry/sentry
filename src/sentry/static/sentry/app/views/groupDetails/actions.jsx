@@ -4,22 +4,21 @@ import React from 'react';
 
 import createReactClass from 'create-react-class';
 
-import {t} from '../../locale';
-import ApiMixin from '../../mixins/apiMixin';
-import DropdownLink from '../../components/dropdownLink';
-import GroupActions from '../../actions/groupActions';
-import GroupState from '../../mixins/groupState';
-import HookStore from '../../stores/hookStore';
-import IndicatorStore from '../../stores/indicatorStore';
-import IssuePluginActions from '../../components/group/issuePluginActions';
-import GuideAnchor from '../../components/assistant/guideAnchor';
-import LinkWithConfirmation from '../../components/linkWithConfirmation';
-import MenuItem from '../../components/menuItem';
-import ShareIssue from '../../components/shareIssue';
+import {t} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import DropdownLink from 'app/components/dropdownLink';
+import GroupActions from 'app/actions/groupActions';
+import GroupState from 'app/mixins/groupState';
+import HookStore from 'app/stores/hookStore';
+import IndicatorStore from 'app/stores/indicatorStore';
+import IssuePluginActions from 'app/components/group/issuePluginActions';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
+import LinkWithConfirmation from 'app/components/linkWithConfirmation';
+import MenuItem from 'app/components/menuItem';
+import ShareIssue from 'app/components/shareIssue';
 
-import ResolveActions from '../../components/actions/resolve';
-import IgnoreActions from '../../components/actions/ignore';
-import {openCreateOwnershipRule} from '../../actionCreators/modal';
+import ResolveActions from 'app/components/actions/resolve';
+import IgnoreActions from 'app/components/actions/ignore';
 
 class DeleteActions extends React.Component {
   static propTypes = {
@@ -222,8 +221,6 @@ const GroupDetailsActions = createReactClass({
     }
 
     let hasRelease = this.getProjectFeatures().has('releases');
-    let hasOwners =
-      orgFeatures.has('code-owners') && orgFeatures.has('internal-catchall');
 
     // account for both old and new style plugins
     let hasIssueTracking = group.pluginActions.length || group.pluginIssues.length;
@@ -259,22 +256,6 @@ const GroupDetailsActions = createReactClass({
           onDelete={this.onDelete}
           onDiscard={this.onDiscard}
         />
-
-        {hasOwners && (
-          <div className="btn-group">
-            <a
-              onClick={() =>
-                openCreateOwnershipRule({
-                  project,
-                  organization: org,
-                  issueId: group.id,
-                })}
-              className={'btn btn-default btn-sm btn-create-ownership-rule'}
-            >
-              {t('Create Ownership Rule')}
-            </a>
-          </div>
-        )}
 
         {orgFeatures.has('shared-issues') && (
           <div className="btn-group">

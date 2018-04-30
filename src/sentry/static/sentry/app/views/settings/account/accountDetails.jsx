@@ -1,13 +1,13 @@
 import React from 'react';
 
-import {updateUser} from '../../../actionCreators/account';
-import AccountAvatar from '../account/avatar';
-import AsyncView from '../../asyncView';
-import Form from '../components/forms/form';
-import JsonForm from '../components/forms/jsonForm';
-import SettingsPageHeader from '../components/settingsPageHeader';
-import accountDetailsFields from '../../../data/forms/accountDetails';
-import accountPreferencesFields from '../../../data/forms/accountPreferences';
+import {updateUser} from 'app/actionCreators/account';
+import AccountAvatar from 'app/views/settings/account/avatar';
+import AsyncView from 'app/views/asyncView';
+import Form from 'app/views/settings/components/forms/form';
+import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import accountDetailsFields from 'app/data/forms/accountDetails';
+import accountPreferencesFields from 'app/data/forms/accountPreferences';
 
 const ENDPOINT = '/users/me/';
 

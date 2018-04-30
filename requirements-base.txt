@@ -28,7 +28,7 @@ mock>=0.8.0,<1.1
 mmh3>=2.3.1,<2.4
 oauth2>=1.5.167
 parsimonious==0.8.0
-percy>=0.4.5
+percy>=1.1.2
 petname>=2.0,<2.1
 Pillow>=3.2.0,<=4.2.1
 progressbar2>=3.10,<3.11
@@ -52,7 +52,7 @@ statsd>=3.1.0,<3.2.0
 strict-rfc3339>=0.7
 structlog==16.1.0
 sqlparse>=0.1.16,<0.2.0
-symbolic>=4.0.0,<5.0.0
+symbolic>=5.0.0,<6.0.0
 toronado>=0.0.11,<0.1.0
 ua-parser>=0.6.1,<0.8.0
 urllib3>=1.22,<1.23

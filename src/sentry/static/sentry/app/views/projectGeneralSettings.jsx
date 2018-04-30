@@ -8,22 +8,22 @@ import {
   changeProjectSlug,
   removeProject,
   transferProject,
-} from '../actionCreators/projects';
-import {fields} from '../data/forms/projectGeneralSettings';
-import {getOrganizationState} from '../mixins/organizationState';
-import {t, tct} from '../locale';
-import AsyncView from './asyncView';
-import Button from '../components/buttons/button';
-import Confirm from '../components/confirm';
-import Field from './settings/components/forms/field';
-import Form from './settings/components/forms/form';
-import JsonForm from './settings/components/forms/jsonForm';
-import {Panel, PanelAlert, PanelHeader} from '../components/panels';
-import ProjectsStore from '../stores/projectsStore';
-import SettingsPageHeader from './settings/components/settingsPageHeader';
-import TextBlock from './settings/components/text/textBlock';
-import TextField from './settings/components/forms/textField';
-import recreateRoute from '../utils/recreateRoute';
+} from 'app/actionCreators/projects';
+import {fields} from 'app/data/forms/projectGeneralSettings';
+import {getOrganizationState} from 'app/mixins/organizationState';
+import {t, tct} from 'app/locale';
+import AsyncView from 'app/views/asyncView';
+import Button from 'app/components/buttons/button';
+import Confirm from 'app/components/confirm';
+import Field from 'app/views/settings/components/forms/field';
+import Form from 'app/views/settings/components/forms/form';
+import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import {Panel, PanelAlert, PanelHeader} from 'app/components/panels';
+import ProjectsStore from 'app/stores/projectsStore';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import TextField from 'app/views/settings/components/forms/textField';
+import recreateRoute from 'app/utils/recreateRoute';
 
 class ProjectGeneralSettings extends AsyncView {
   static propTypes = {

@@ -5,19 +5,19 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 
-import {loadEnvironments} from '../../actionCreators/environments';
-import {setActiveProject} from '../../actionCreators/projects';
-import {t} from '../../locale';
-import ApiMixin from '../../mixins/apiMixin';
-import LoadingError from '../../components/loadingError';
-import LoadingIndicator from '../../components/loadingIndicator';
-import MemberListStore from '../../stores/memberListStore';
-import MissingProjectMembership from '../../components/missingProjectMembership';
-import OrganizationState from '../../mixins/organizationState';
-import ProjectsStore from '../../stores/projectsStore';
-import recreateRoute from '../../utils/recreateRoute';
-import SentryTypes from '../../proptypes';
-import withProjects from '../../utils/withProjects';
+import {loadEnvironments} from 'app/actionCreators/environments';
+import {setActiveProject} from 'app/actionCreators/projects';
+import {t} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import MemberListStore from 'app/stores/memberListStore';
+import MissingProjectMembership from 'app/components/missingProjectMembership';
+import OrganizationState from 'app/mixins/organizationState';
+import ProjectsStore from 'app/stores/projectsStore';
+import recreateRoute from 'app/utils/recreateRoute';
+import SentryTypes from 'app/proptypes';
+import withProjects from 'app/utils/withProjects';
 
 const ERROR_TYPES = {
   MISSING_MEMBERSHIP: 'MISSING_MEMBERSHIP',

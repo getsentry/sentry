@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import ProjectLink from '../components/projectLink';
-import {getShortVersion} from '../utils';
+import ProjectLink from 'app/components/projectLink';
+import {getShortVersion} from 'app/utils';
 
 class Version extends React.Component {
   static propTypes = {

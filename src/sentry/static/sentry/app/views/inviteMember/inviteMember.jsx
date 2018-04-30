@@ -4,19 +4,19 @@ import React from 'react';
 import classNames from 'classnames';
 import createReactClass from 'create-react-class';
 
-import {addErrorMessage, addSuccessMessage} from '../../actionCreators/indicator';
-import {t, tct} from '../../locale';
-import ApiMixin from '../../mixins/apiMixin';
-import Button from '../../components/buttons/button';
-import ConfigStore from '../../stores/configStore';
-import LoadingIndicator from '../../components/loadingIndicator';
-import OrganizationState from '../../mixins/organizationState';
-import RoleSelect from './roleSelect';
-import SettingsPageHeader from '../settings/components/settingsPageHeader';
-import TeamSelect from './teamSelect';
-import TextBlock from '../settings/components/text/textBlock';
-import TextField from '../../components/forms/textField';
-import replaceRouterParams from '../../utils/replaceRouterParams';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {t, tct} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import Button from 'app/components/buttons/button';
+import ConfigStore from 'app/stores/configStore';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import OrganizationState from 'app/mixins/organizationState';
+import RoleSelect from 'app/views/inviteMember/roleSelect';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TeamSelect from 'app/views/inviteMember/teamSelect';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import TextField from 'app/components/forms/textField';
+import replaceRouterParams from 'app/utils/replaceRouterParams';
 
 // These don't have allowed and are only used for superusers. superceded by server result of allowed roles
 const STATIC_ROLE_LIST = [

@@ -4,14 +4,14 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {navigateTo} from '../../actionCreators/navigation';
-import {t} from '../../locale';
-import AutoComplete from '../autoComplete';
-import LoadingIndicator from '../loadingIndicator';
-import SearchResult from './searchResult';
-import SearchResultWrapper from './searchResultWrapper';
-import SearchSources from './sources';
-import replaceRouterParams from '../../utils/replaceRouterParams';
+import {navigateTo} from 'app/actionCreators/navigation';
+import {t} from 'app/locale';
+import AutoComplete from 'app/components/autoComplete';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import SearchResult from 'app/components/search/searchResult';
+import SearchResultWrapper from 'app/components/search/searchResultWrapper';
+import SearchSources from 'app/components/search/sources';
+import replaceRouterParams from 'app/utils/replaceRouterParams';
 
 // "Omni" search
 class Search extends React.Component {

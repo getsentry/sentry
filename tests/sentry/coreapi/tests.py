@@ -583,7 +583,7 @@ class DecodeDataTest(BaseAPITest):
     def test_valid_data(self):
         data = self.helper.decode_data('foo')
         assert data == u'foo'
-        assert type(data) == six.text_type
+        assert isinstance(data, six.text_type)
 
     def test_invalid_data(self):
         with self.assertRaises(APIError):
@@ -786,3 +786,45 @@ class SecurityApiHelperTest(BaseAPITest):
             ('blocked-uri', 'http://google.com'),
         ]
         assert len(result['errors']) == 0
+
+    def test_hpkp_validate_basic(self):
+        report = {
+            "release": "abc123",
+            "interface": 'hpkp',
+            "report": {
+                "date-time": "2014-04-06T13:00:50Z",
+                "hostname": "www.example.com",
+                "port": 443,
+                "effective-expiration-date": "2014-05-01T12:40:50Z",
+                "include-subdomains": False,
+                "served-certificate-chain": ["-----BEGIN CERTIFICATE-----\n-----END CERTIFICATE-----"],
+                "validated-certificate-chain": ["-----BEGIN CERTIFICATE-----\n-----END CERTIFICATE-----"],
+                "known-pins": ["pin-sha256=\"E9CZ9INDbd+2eRQozYqqbQ2yXLVKB9+xcprMF+44U1g=\""],
+            }
+        }
+        result = self.validate_and_normalize(report)
+        assert result['release'] == 'abc123'
+        assert result['errors'] == []
+        assert 'sentry.interfaces.Message' in result
+        assert 'culprit' in result
+        assert sorted(result['tags']) == [
+            ('hostname', 'www.example.com'),
+            ('include-subdomains', 'false'),
+            ('port', '443'),
+        ]
+        assert result['sentry.interfaces.User'] == {'ip_address': '198.51.100.0'}
+        assert result['sentry.interfaces.Http'] == {
+            'url': 'www.example.com',
+            'headers': [
+                ('User-Agent', 'Awesome Browser'),
+            ]
+        }
+
+    def test_hpkp_validate_failure(self):
+        report = {
+            "release": "abc123",
+            "interface": 'hpkp',
+            "report": {}
+        }
+        with self.assertRaises(APIError):
+            self.validate_and_normalize(report)

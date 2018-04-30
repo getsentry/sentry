@@ -3,11 +3,11 @@ import React from 'react';
 
 import createReactClass from 'create-react-class';
 
-import EmptyMessage from '../views/settings/components/emptyMessage';
-import IndicatorStore from '../stores/indicatorStore';
-import {joinTeam} from '../actionCreators/teams';
-import ApiMixin from '../mixins/apiMixin';
-import {t} from '../locale';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import IndicatorStore from 'app/stores/indicatorStore';
+import {joinTeam} from 'app/actionCreators/teams';
+import ApiMixin from 'app/mixins/apiMixin';
+import {t} from 'app/locale';
 
 const MissingProjectMembership = createReactClass({
   displayName: 'MissingProjectMembership',

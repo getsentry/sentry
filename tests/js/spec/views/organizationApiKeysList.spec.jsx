@@ -4,6 +4,8 @@ import {mount} from 'enzyme';
 
 import OrganizationApiKeysList from 'app/views/settings/organization/apiKeys/organizationApiKeysList';
 
+jest.unmock('app/utils/recreateRoute');
+
 const childContextTypes = {
   organization: PropTypes.object,
   router: PropTypes.object,

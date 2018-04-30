@@ -5,16 +5,20 @@ from itertools import chain
 import json
 import requests
 import six
-import os
+
+from django.conf import settings
 
 from sentry.models import Group, GroupHash, Environment, Release, ReleaseProject
 from sentry.utils.dates import to_timestamp
 
-SNUBA = os.environ.get('SNUBA', 'http://localhost:5000')
+
+class SnubaError(Exception):
+    pass
 
 
 def query(start, end, groupby, conditions=None, filter_keys=None,
-          aggregations=None, rollup=None, arrayjoin=None, limit=None, orderby=None):
+          aggregations=None, rollup=None, arrayjoin=None, limit=None, orderby=None,
+          having=None):
     """
     Sends a query to snuba.
 
@@ -35,6 +39,7 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
     """
     groupby = groupby or []
     conditions = conditions or []
+    having = having or []
     aggregations = aggregations or [['count()', '', 'aggregate']]
     filter_keys = filter_keys or {}
 
@@ -62,7 +67,7 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
         project_ids = []
 
     if not project_ids:
-        raise Exception("No project_id filter, or none could be inferred from other filters.")
+        raise SnubaError("No project_id filter, or none could be inferred from other filters.")
 
     # If the grouping, aggregation, or any of the conditions reference `issue`
     # we need to fetch the issue definitions (issue -> fingerprint hashes)
@@ -72,11 +77,12 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
     get_issues = 'issue' in all_cols
     issues = get_project_issues(project_ids, filter_keys.get('issue')) if get_issues else None
 
-    url = '{0}/query'.format(SNUBA)
+    url = '{0}/query'.format(settings.SENTRY_SNUBA)
     request = {k: v for k, v in six.iteritems({
         'from_date': start.isoformat(),
         'to_date': end.isoformat(),
         'conditions': conditions,
+        'having': having,
         'groupby': groupby,
         'project': project_ids,
         'aggregations': aggregations,
@@ -87,14 +93,22 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
         'orderby': orderby,
     }) if v is not None}
 
-    response = requests.post(url, data=json.dumps(request))
-    # TODO handle error responses
-    response = json.loads(response.text)
+    try:
+        response = requests.post(url, data=json.dumps(request))
+        response.raise_for_status()
+    except requests.RequestException as re:
+        raise SnubaError(re)
+
+    try:
+        response = json.loads(response.text)
+    except ValueError:
+        raise SnubaError("Could not decode JSON response: {}".format(response.text))
 
     # Validate and scrub response, and translate snuba keys back to IDs
     aggregate_cols = [a[2] for a in aggregations]
     expected_cols = set(groupby + aggregate_cols)
     got_cols = set(c['name'] for c in response['meta'])
+
     assert expected_cols == got_cols
 
     for d in response['data']:

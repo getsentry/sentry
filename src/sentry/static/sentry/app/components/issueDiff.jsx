@@ -3,9 +3,9 @@ import PropTypes from 'prop-types';
 import createReactClass from 'create-react-class';
 import styled, {css} from 'react-emotion';
 
-import ApiMixin from '../mixins/apiMixin';
-import LoadingIndicator from './loadingIndicator';
-import rawStacktraceContent from './events/interfaces/rawStacktraceContent';
+import ApiMixin from 'app/mixins/apiMixin';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import rawStacktraceContent from 'app/components/events/interfaces/rawStacktraceContent';
 
 const getLoadingStyle = p =>
   (p.loading &&
@@ -83,6 +83,7 @@ class IssueDiff extends React.Component {
     if (!exc || !exc.data) return [];
 
     return exc.data.values
+      .filter(value => !!value.stacktrace)
       .map(value => rawStacktraceContent(value.stacktrace, event.platform, value))
       .reduce((acc, value) => {
         return acc.concat(value);

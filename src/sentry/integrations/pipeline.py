@@ -4,10 +4,11 @@ __all__ = ['IntegrationPipeline']
 
 from django.http import HttpResponse
 from django.utils import timezone
+from django.db.models import Q
 
 from sentry.api.serializers import serialize
 from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration
-from sentry.utils.pipeline import Pipeline
+from sentry.pipeline import Pipeline
 from sentry.utils import json
 
 from . import default_manager
@@ -56,11 +57,23 @@ class IntegrationPipeline(Pipeline):
         identity = data.get('user_identity')
 
         if identity:
-            # Create identity provider for this integration if nessicary
-            idp, created = IdentityProvider.objects.get_or_create(
+            idp, created = IdentityProvider.objects.filter(
+                Q(external_id=data['external_id']) | Q(external_id=None),
+            ).get_or_create(
                 organization=self.organization,
                 type=identity['type'],
+                defaults={
+                    'external_id': data['external_id'],
+                },
             )
+
+            # TODO(epurkhiser): Once external_id is backfilled we can get away with this
+            # # Create identity provider for this integration if necessary
+            # idp, created = IdentityProvider.objects.get_or_create(
+            #     external_id=data['external_id'],
+            #     organization=self.organization,
+            #     type=identity['type'],
+            # )
 
             identity, created = Identity.objects.get_or_create(
                 idp=idp,

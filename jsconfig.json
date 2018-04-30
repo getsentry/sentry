@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "target": "es2017",
+    "allowSyntheticDefaultImports": false,
+    "experimentalDecorators": true,
+    "baseUrl": "./src/sentry/static/sentry",
+    "paths": {
+      "app/*": ["src/sentry/static/sentry/app/*"]
+    }
+  },
+  "include": ["tests/js/**/*", "src/sentry/static/sentry/app/**/*"]
+}

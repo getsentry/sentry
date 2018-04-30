@@ -2,13 +2,13 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
 
-import {addErrorMessage, addSuccessMessage} from '../../../../actionCreators/indicator';
-import {t} from '../../../../locale';
-import AsyncComponent from '../../../../components/asyncComponent';
-import Avatar from '../../../../components/avatar';
-import EventOrGroupHeader from '../../../../components/eventOrGroupHeader';
-import LinkWithConfirmation from '../../../../components/linkWithConfirmation';
-import Tooltip from '../../../../components/tooltip';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {t} from 'app/locale';
+import AsyncComponent from 'app/components/asyncComponent';
+import Avatar from 'app/components/avatar';
+import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
+import LinkWithConfirmation from 'app/components/linkWithConfirmation';
+import Tooltip from 'app/components/tooltip';
 
 class GroupTombstoneRow extends React.Component {
   static propTypes = {

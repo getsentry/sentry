@@ -1,110 +1,104 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import createReactClass from 'create-react-class';
-import Reflux from 'reflux';
+import {Flex, Box} from 'grid-emotion';
+import styled from 'react-emotion';
 
-import ApiMixin from '../../mixins/apiMixin';
-import {loadStats} from '../../actionCreators/projects';
+import OrganizationState from 'app/mixins/organizationState';
+import OldDashboard from 'app/views/organizationDashboard/oldDashboard';
+import ProjectNav from 'app/views/organizationDashboard/projectNav';
+import TeamMembers from 'app/views/organizationDashboard/teamMembers';
+import ProjectCard from 'app/views/organizationDashboard/projectCard';
+import getProjectsByTeams from 'app/utils/getProjectsByTeams';
+import withTeams from 'app/utils/withTeams';
+import withProjects from 'app/utils/withProjects';
 
-import GroupStore from '../../stores/groupStore';
-import ProjectsStore from '../../stores/projectsStore';
-import TeamStore from '../../stores/teamStore';
+class Dashboard extends React.Component {
+  static propTypes = {
+    teams: PropTypes.array,
+    projects: PropTypes.array,
+  };
 
-import EventsPerHour from '../../components/events/eventsPerHour';
-import OrganizationHomeContainer from '../../components/organizations/homeContainer';
-import OrganizationState from '../../mixins/organizationState';
-import UnreleasedChanges from './unreleasedChanges';
-import Resources from './resources';
-import Activity from './activity';
-import ProjectList from './projectList';
-import ProjectListOld from './projectListOld';
-import NewIssues from './newIssues';
-import AssignedIssues from './assignedIssues';
+  componentWillMount() {
+    $(document.body).addClass('org-dashboard');
+  }
+  componentWillUnmount() {
+    $(document.body).removeClass('org-dashboard');
+  }
+
+  render() {
+    const {projects, teams} = this.props;
+    const {projectsByTeam} = getProjectsByTeams(teams, projects);
+    const projectKeys = Object.keys(projectsByTeam);
+
+    return (
+      <div>
+        <ProjectNav />
+        <div>
+          {projectKeys.map((slug, index) => {
+            return (
+              <TeamSection key={slug} showBorder={index !== projectKeys.length - 1}>
+                <TeamTitleBar justify="space-between" align="center">
+                  <TeamName>{`#${slug}`}</TeamName>
+                  <TeamMembers teamId={slug} orgId={this.props.params.orgId} />
+                </TeamTitleBar>
+                <ProjectCards>
+                  {projectsByTeam[slug].map(project => {
+                    return (
+                      <ProjectCardWrapper
+                        key={project.id}
+                        width={['100%', '50%', '33%', '25%']}
+                      >
+                        <ProjectCard project={project} />
+                      </ProjectCardWrapper>
+                    );
+                  })}
+                </ProjectCards>
+              </TeamSection>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+}
+
+const TeamSection = styled.div`
+  border-bottom: ${p => (p.showBorder ? '1px solid ' + p.theme.borderLight : 0)};
+`;
+
+const TeamTitleBar = styled(Flex)`
+  padding: 24px 24px 0;
+  margin-bottom: 16px;
+`;
+
+const TeamName = styled.h4`
+  margin: 0;
+  font-size: ${p => p.theme.fontSizeLarge};
+`;
+
+const ProjectCards = styled(Flex)`
+  flex-wrap: wrap;
+  padding: 0 16px 24px;
+`;
+
+const ProjectCardWrapper = styled(Box)`
+  padding: 8px;
+`;
 
 const OrganizationDashboard = createReactClass({
   displayName: 'OrganizationDashboard',
-  mixins: [
-    ApiMixin,
-    Reflux.listenTo(TeamStore, 'onTeamListChange'),
-    Reflux.listenTo(ProjectsStore, 'onProjectListChange'),
-    OrganizationState,
-  ],
-
-  getDefaultProps() {
-    return {
-      statsPeriod: '24h',
-      pageSize: 5,
-    };
-  },
-
-  getInitialState() {
-    return {
-      teams: TeamStore.getAll(),
-      projects: ProjectsStore.getAll(),
-    };
-  },
-
-  componentWillMount() {
-    loadStats(this.api, {
-      orgId: this.props.params.orgId,
-      query: {
-        since: new Date().getTime() / 1000 - 3600 * 24,
-        stat: 'generated',
-        group: 'project',
-      },
-    });
-  },
-
-  componentWillUnmount() {
-    GroupStore.reset();
-  },
-
-  onTeamListChange() {
-    this.setState({
-      teams: TeamStore.getAll(),
-    });
-  },
-
-  onProjectListChange() {
-    this.setState({
-      projects: ProjectsStore.getAll(),
-    });
-  },
+  mixins: [OrganizationState],
 
   render() {
-    let org = this.getOrganization();
-    let projects = org.projects;
-    let showResources = false;
-    if (projects.length == 1 && !projects[0].firstEvent) {
-      showResources = true;
-    }
-    let features = new Set(org.features);
+    const hasNewDashboardFeature = this.getFeatures().has('dashboard');
 
-    return (
-      <OrganizationHomeContainer>
-        <div className="row">
-          <div className="col-md-8">
-            {features.has('unreleased-changes') && <UnreleasedChanges {...this.props} />}
-            {showResources && <Resources org={org} project={projects[0]} />}
-            {!showResources && (
-              <div>
-                <AssignedIssues {...this.props} />
-                <NewIssues {...this.props} />
-                <Activity {...this.props} />
-              </div>
-            )}
-          </div>
-          <div className="col-md-4">
-            <EventsPerHour {...this.props} />
-            {features.has('new-teams') ? (
-              <ProjectList {...this.props} projects={this.state.projects} />
-            ) : (
-              <ProjectListOld {...this.props} projects={this.state.projects} />
-            )}
-          </div>
-        </div>
-      </OrganizationHomeContainer>
-    );
+    if (hasNewDashboardFeature) {
+      return <Dashboard {...this.props} />;
+    } else {
+      return <OldDashboard {...this.props} />;
+    }
   },
 });
 
-export default OrganizationDashboard;
+export default withTeams(withProjects(OrganizationDashboard));

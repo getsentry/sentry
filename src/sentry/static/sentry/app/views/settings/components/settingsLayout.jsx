@@ -4,15 +4,16 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import Alert from '../../../components/alert';
-import Footer from '../../../components/footer';
-import SettingsBackButton from './settingsBackButton';
-import SettingsBreadcrumb from './settingsBreadcrumb';
-import SettingsHeader from './settingsHeader';
-import SettingsSearch from './settingsSearch';
+import Alert from 'app/components/alert';
+import Footer from 'app/components/footer';
+import SettingsBackButton from 'app/views/settings/components/settingsBackButton';
+import SettingsBreadcrumb from 'app/views/settings/components/settingsBreadcrumb';
+import SettingsHeader from 'app/views/settings/components/settingsHeader';
+import SettingsSearch from 'app/views/settings/components/settingsSearch';
+import space from 'app/styles/space';
 
 let StyledAlert = styled(Alert)`
-  margin: 30px 0;
+  margin: ${space(3)} 0;
 `;
 
 // TODO(billy): Temp #NEW-SETTINGS
@@ -70,11 +71,13 @@ const Container = styled(Flex)`
 `;
 
 const SidebarWrapper = styled(Box)`
+  flex-shrink: 0;
   width: ${p => p.theme.settings.sidebarWidth};
 `;
 
 const Content = styled(Box)`
   flex: 1;
+  overflow: hidden; /* We need this so that Content area does not overflow outside of max width */
 `;
 
 const SettingsSubheader = styled.div`

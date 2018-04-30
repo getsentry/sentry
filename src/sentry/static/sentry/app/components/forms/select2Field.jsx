@@ -2,7 +2,7 @@ import jQuery from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import InputField from './inputField';
+import InputField from 'app/components/forms/inputField';
 
 export default class Select2Field extends InputField {
   static propTypes = {

@@ -1,10 +1,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import Avatar from './avatar';
-import TimeSince from './timeSince';
+import Avatar from 'app/components/avatar';
+import TimeSince from 'app/components/timeSince';
 
-import {t} from '../locale';
+import {t} from 'app/locale';
 
 class LastCommit extends React.Component {
   static propTypes = {

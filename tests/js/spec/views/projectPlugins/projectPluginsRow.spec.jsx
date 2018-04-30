@@ -2,8 +2,6 @@ import React from 'react';
 import {shallow, mount} from 'enzyme';
 import ProjectPluginRow from 'app/views/projectPlugins/projectPluginRow';
 
-jest.mock('app/utils/recreateRoute');
-
 describe('ProjectPluginRow', function() {
   let wrapper;
   let plugin = TestStubs.Plugin();

@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import Confirm from './confirm';
+import Confirm from 'app/components/confirm';
 
 /**
  * <Confirm> is a more generic version of this component

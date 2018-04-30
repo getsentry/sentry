@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import six
 import logging
+from itertools import chain
 from uuid import uuid4
 
 from datetime import timedelta
@@ -221,6 +222,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             or (request.access and request.access.has_scope('project:write'))
         )
 
+        changed_proj_settings = {}
+
         if has_project_write:
             serializer_cls = ProjectAdminSerializer
         else:
@@ -240,7 +243,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         result = serializer.object
 
         if not has_project_write:
-            for key in six.iterkeys(ProjectAdminSerializer.base_fields):
+            # options isn't part of the serializer, but should not be editable by members
+            for key in chain(six.iterkeys(ProjectAdminSerializer.base_fields), ['options']):
                 if request.DATA.get(key) and not result.get(key):
                     return Response(
                         {
@@ -256,10 +260,12 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             old_slug = project.slug
             project.slug = result['slug']
             changed = True
+            changed_proj_settings['new_slug'] = project.slug
 
         if result.get('name'):
             project.name = result['name']
             changed = True
+            changed_proj_settings['new_project'] = project.name
 
         old_team_id = None
         new_team = None
@@ -333,8 +339,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             project.update_option(
                 'digests:mail:maximum_delay', result['digestsMaxDelay'])
         if result.get('subjectPrefix') is not None:
-            project.update_option('mail:subject_prefix',
-                                  result['subjectPrefix'])
+            if project.update_option('mail:subject_prefix',
+                                     result['subjectPrefix']):
+                changed_proj_settings['mail:subject_prefix'] = result['subjectPrefix']
         if result.get('subjectTemplate'):
             project.update_option('mail:subject_template',
                                   result['subjectTemplate'])
@@ -358,10 +365,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             project.update_option('sentry:safe_fields', result['safeFields'])
         # resolveAge can be None
         if 'resolveAge' in result:
-            project.update_option(
+            if project.update_option(
                 'sentry:resolve_age',
                 0 if result.get('resolveAge') is None else int(
-                    result['resolveAge']))
+                    result['resolveAge'])):
+                changed_proj_settings['sentry:resolve_age'] = result['resolveAge']
         if result.get('scrapeJavaScript') is not None:
             project.update_option('sentry:scrape_javascript', result['scrapeJavaScript'])
         if result.get('allowedDomains'):
@@ -485,7 +493,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 organization=project.organization,
                 target_object=project.id,
                 event=AuditLogEntryEvent.PROJECT_EDIT,
-                data=project.get_audit_log_data(),
+                data=changed_proj_settings
             )
 
         data = serialize(project, request.user, DetailedProjectSerializer())

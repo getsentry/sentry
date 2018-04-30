@@ -5,9 +5,9 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 
-import {closeModal} from '../actionCreators/modal';
-import Confirm from './confirm';
-import ModalStore from '../stores/modalStore';
+import {closeModal} from 'app/actionCreators/modal';
+import Confirm from 'app/components/confirm';
+import ModalStore from 'app/stores/modalStore';
 
 class GlobalModal extends React.Component {
   static propTypes = {

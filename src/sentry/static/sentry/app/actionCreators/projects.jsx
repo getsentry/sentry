@@ -1,6 +1,6 @@
-import {addErrorMessage, addSuccessMessage} from './indicator';
-import {tct} from '../locale';
-import ProjectActions from '../actions/projectActions';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {tct} from 'app/locale';
+import ProjectActions from 'app/actions/projectActions';
 
 export function update(api, params) {
   ProjectActions.update(params.projectId, params.data);

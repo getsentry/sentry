@@ -3,22 +3,22 @@ import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import styled from 'react-emotion';
 
-import ApiMixin from '../../../mixins/apiMixin';
-import {addErrorMessage, addSuccessMessage} from '../../../actionCreators/indicator';
-import space from '../../../styles/space';
-import Button from '../../../components/buttons/button';
-import DropdownAutoComplete from '../../../components/dropdownAutoComplete';
-import DropdownButton from '../../../components/dropdownButton';
-import EmptyMessage from '../components/emptyMessage';
-import ProjectsStore from '../../../stores/projectsStore';
-import LoadingError from '../../../components/loadingError';
-import OrganizationState from '../../../mixins/organizationState';
-import ProjectListItem from '../components/settingsProjectItem';
-import {Panel, PanelHeader, PanelBody, PanelItem} from '../../../components/panels';
-import InlineSvg from '../../../components/inlineSvg';
+import ApiMixin from 'app/mixins/apiMixin';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import space from 'app/styles/space';
+import Button from 'app/components/buttons/button';
+import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
+import DropdownButton from 'app/components/dropdownButton';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import ProjectsStore from 'app/stores/projectsStore';
+import LoadingError from 'app/components/loadingError';
+import OrganizationState from 'app/mixins/organizationState';
+import ProjectListItem from 'app/views/settings/components/settingsProjectItem';
+import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
+import InlineSvg from 'app/components/inlineSvg';
 
-import {sortProjects} from '../../../utils';
-import {t} from '../../../locale';
+import {sortProjects} from 'app/utils';
+import {t} from 'app/locale';
 
 const TeamProjects = createReactClass({
   displayName: 'TeamProjects',

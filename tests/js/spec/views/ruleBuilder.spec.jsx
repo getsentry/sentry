@@ -1,8 +1,6 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import {ThemeProvider} from 'emotion-theming';
-import theme from 'app/utils/theme';
 import MemberListStore from 'app/stores/memberListStore';
 import TeamStore from 'app/stores/teamStore';
 
@@ -48,9 +46,7 @@ describe('RuleBuilder', function() {
   describe('render()', function() {
     it('renders', function() {
       let wrapper = mount(
-        <ThemeProvider theme={theme}>
-          <RuleBuilder project={project} onAddRule={handleAdd} />
-        </ThemeProvider>,
+        <RuleBuilder project={project} onAddRule={handleAdd} />,
         TestStubs.routerContext()
       );
 
@@ -65,8 +61,8 @@ describe('RuleBuilder', function() {
       expect(handleAdd).not.toHaveBeenCalled();
 
       // Simulate select first element via down arrow / enter
-      wrapper.find('.Select-control').simulate('keyDown', {keyCode: 40});
-      wrapper.find('.Select-control').simulate('keyDown', {keyCode: 13});
+      wrapper.find('SelectOwners .Select-control').simulate('keyDown', {keyCode: 40});
+      wrapper.find('SelectOwners .Select-control').simulate('keyDown', {keyCode: 13});
 
       add.simulate('click');
       expect(handleAdd).toHaveBeenCalled();
@@ -78,20 +74,18 @@ describe('RuleBuilder', function() {
   describe('renders with suggestions', function() {
     it('renders', function() {
       let wrapper = mount(
-        <ThemeProvider theme={theme}>
-          <RuleBuilder
-            project={project}
-            onAddRule={handleAdd}
-            urls={['example.com/a', 'example.com/a/foo']}
-            paths={['a/bar', 'a/foo']}
-          />
-        </ThemeProvider>,
+        <RuleBuilder
+          project={project}
+          onAddRule={handleAdd}
+          urls={['example.com/a', 'example.com/a/foo']}
+          paths={['a/bar', 'a/foo']}
+        />,
         TestStubs.routerContext()
       );
 
       // Simulate select first element via down arrow / enter
-      wrapper.find('.Select-control').simulate('keyDown', {keyCode: 40});
-      wrapper.find('.Select-control').simulate('keyDown', {keyCode: 13});
+      wrapper.find('SelectOwners .Select-control').simulate('keyDown', {keyCode: 40});
+      wrapper.find('SelectOwners .Select-control').simulate('keyDown', {keyCode: 13});
 
       let ruleCandidate = wrapper.find('RuleCandidate').first();
       ruleCandidate.simulate('click');

@@ -2,8 +2,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {browserHistory} from 'react-router';
 
-import utils from '../utils';
-import {t} from '../locale';
+import utils from 'app/utils';
+import {t} from 'app/locale';
 
 export default class Pagination extends React.Component {
   static propTypes = {

@@ -1,10 +1,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import ConfigStore from '../../stores/configStore';
-import DropdownLink from '../dropdownLink';
-import Avatar from '../avatar';
-import MenuItem from '../menuItem';
-import {t} from '../../locale';
+import ConfigStore from 'app/stores/configStore';
+import DropdownLink from 'app/components/dropdownLink';
+import Avatar from 'app/components/avatar';
+import MenuItem from 'app/components/menuItem';
+import {t} from 'app/locale';
 
 class UserNav extends React.Component {
   static contextTypes = {

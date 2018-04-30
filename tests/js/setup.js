@@ -1,12 +1,16 @@
+import {channel, createBroadcast} from 'emotion-theming';
 import jQuery from 'jquery';
 import sinon from 'sinon';
-import ConfigStore from 'app/stores/configStore';
+import Adapter from 'enzyme-adapter-react-16';
+import Enzyme from 'enzyme';
 import MockDate from 'mockdate';
 import PropTypes from 'prop-types';
-import SentryTypes from 'app/proptypes';
-import Enzyme from 'enzyme';
-import Adapter from 'enzyme-adapter-react-16';
 
+import ConfigStore from 'app/stores/configStore';
+import SentryTypes from 'app/proptypes';
+import theme from 'app/utils/theme';
+
+jest.mock('app/utils/recreateRoute');
 jest.mock('app/translations');
 jest.mock('app/api');
 jest.mock('scroll-to-element', () => {});
@@ -42,6 +46,9 @@ window.scrollTo = sinon.spy();
 // Instead of wrapping codeblocks in `setTimeout`
 window.tick = () => new Promise(res => setTimeout(res));
 
+// emotion context broadcast
+const broadcast = createBroadcast(theme);
+
 window.Raven = {
   captureMessage: sinon.spy(),
   captureException: sinon.spy(),
@@ -62,13 +69,26 @@ window.TestStubs = {
     ...params,
   }),
 
-  location: () => ({
+  location: (params = {}) => ({
     query: {},
     pathame: '/mock-pathname/',
+    ...params,
+  }),
+
+  routerProps: (params = {}) => ({
+    location: TestStubs.location(),
+    params: {},
+    routes: [],
+    stepBack: () => {},
+    ...params,
   }),
 
   routerContext: ([context, childContextTypes] = []) => ({
     context: {
+      [channel]: {
+        subscribe: broadcast.subscribe,
+        unsubscribe: broadcast.unsubscribe,
+      },
       location: TestStubs.location(),
       router: TestStubs.router(),
       organization: TestStubs.Organization(),
@@ -76,6 +96,7 @@ window.TestStubs = {
       ...context,
     },
     childContextTypes: {
+      [channel]: PropTypes.object,
       router: PropTypes.object,
       location: PropTypes.object,
       organization: PropTypes.object,
@@ -746,6 +767,8 @@ window.TestStubs = {
           public: 'http://188ee45a58094d939428d8585aa6f661@dev.getsentry.net:8000/1',
           csp:
             'http://dev.getsentry.net:8000/api/1/csp-report/?sentry_key=188ee45a58094d939428d8585aa6f661',
+          security:
+            'http://dev.getsentry.net:8000/api/1/security-report/?sentry_key=188ee45a58094d939428d8585aa6f661',
         },
         public: '188ee45a58094d939428d8585aa6f661',
         secret: 'a33bf9aba64c4bbdaf873bb9023b6d2d',
@@ -831,6 +854,7 @@ window.TestStubs = {
       id: '1',
       slug: 'team-slug',
       name: 'Team Name',
+      isMember: true,
       ...params,
     };
   },

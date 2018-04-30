@@ -577,11 +577,6 @@ def show_emails(request):
                 new_email.set_hash()
                 new_email.save()
                 user.send_confirm_email_singular(new_email)
-                # Update newsletter subscription and mark as unverified
-                newsletter.update_subscription(
-                    user=user,
-                    verified=False,
-                )
 
                 logger.info(
                     'user.email.add',

@@ -2,15 +2,15 @@ import styled from 'react-emotion';
 import React from 'react';
 
 import createReactClass from 'create-react-class';
-import theme from '../../../utils/theme';
+import theme from 'app/utils/theme';
 
-import {update} from '../../../actionCreators/projects';
-import ApiMixin from '../../../mixins/apiMixin';
-import Tooltip from '../../../components/tooltip';
+import {update} from 'app/actionCreators/projects';
+import ApiMixin from 'app/mixins/apiMixin';
+import Tooltip from 'app/components/tooltip';
 
-import Link from '../../../components/link';
-import ProjectLabel from '../../../components/projectLabel';
-import SentryTypes from '../../../proptypes';
+import Link from 'app/components/link';
+import ProjectLabel from 'app/components/projectLabel';
+import SentryTypes from 'app/proptypes';
 
 const InlineButton = styled('button')`
   color: ${p => p.theme.gray1};

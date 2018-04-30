@@ -1,6 +1,6 @@
-import TeamActions from '../actions/teamActions';
-import {tct} from '../locale';
-import {addSuccessMessage, addErrorMessage} from './indicator';
+import TeamActions from 'app/actions/teamActions';
+import {tct} from 'app/locale';
+import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 
 const doCallback = (params = {}, name, ...args) => {
   if (typeof params[name] === 'function') {
@@ -108,7 +108,7 @@ export function createTeam(api, team, params, options) {
       data => {
         TeamActions.createTeamSuccess(data);
         addSuccessMessage(
-          tct('[team] has been add to the [organization] organization', {
+          tct('[team] has been added to the [organization] organization', {
             team: `#${data.slug}`,
             organization: params.orgId,
           })

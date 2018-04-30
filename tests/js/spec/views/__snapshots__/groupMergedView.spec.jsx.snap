@@ -771,7 +771,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                           >
                             <Title>
                               <div
-                                className="css-1dqh62j-Title css-hv83ix0"
+                                className="css-59x5xh-Title-truncateStyles eex8od0"
                               >
                                 <ProjectLink
                                   style={null}
@@ -916,7 +916,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                             </Title>
                             <Message>
                               <div
-                                className="css-ogpcmq-Message css-hv83ix1"
+                                className="css-y5cfdn-Message-truncateStyles eex8od1"
                               >
                                 Cannot read property 'assignedTo' of undefined
                               </div>
@@ -1220,7 +1220,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                           >
                             <Title>
                               <div
-                                className="css-1dqh62j-Title css-hv83ix0"
+                                className="css-59x5xh-Title-truncateStyles eex8od0"
                               >
                                 <ProjectLink
                                   style={null}
@@ -1365,7 +1365,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                             </Title>
                             <Message>
                               <div
-                                className="css-ogpcmq-Message css-hv83ix1"
+                                className="css-y5cfdn-Message-truncateStyles eex8od1"
                               >
                                 Cannot read property 'assignedTo' of undefined
                               </div>
@@ -2144,7 +2144,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                           >
                             <Title>
                               <div
-                                className="css-1dqh62j-Title css-hv83ix0"
+                                className="css-59x5xh-Title-truncateStyles eex8od0"
                               >
                                 <ProjectLink
                                   style={null}
@@ -2289,7 +2289,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                             </Title>
                             <Message>
                               <div
-                                className="css-ogpcmq-Message css-hv83ix1"
+                                className="css-y5cfdn-Message-truncateStyles eex8od1"
                               >
                                 Cannot read property 'assignedTo' of undefined
                               </div>
@@ -2593,7 +2593,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                           >
                             <Title>
                               <div
-                                className="css-1dqh62j-Title css-hv83ix0"
+                                className="css-59x5xh-Title-truncateStyles eex8od0"
                               >
                                 <ProjectLink
                                   style={null}
@@ -2738,7 +2738,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                             </Title>
                             <Message>
                               <div
-                                className="css-ogpcmq-Message css-hv83ix1"
+                                className="css-y5cfdn-Message-truncateStyles eex8od1"
                               >
                                 Cannot read property 'assignedTo' of undefined
                               </div>

@@ -1,6 +1,6 @@
 import {findLastIndex} from 'lodash';
 
-import replaceRouterParams from './replaceRouterParams';
+import replaceRouterParams from 'app/utils/replaceRouterParams';
 
 // Given a route object or a string and a list of routes + params from router, this will attempt to
 // recreate a location string while replacing url params.

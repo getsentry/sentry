@@ -14,7 +14,6 @@ const AssistantContainer = styled('div')`
   color: ${p => p.theme.purple};
   font-weight: bold;
   box-shadow: ${p => p.theme.dropShadowHeavy};
-}
 `;
 
 export default AssistantContainer;

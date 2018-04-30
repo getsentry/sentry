@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import DropdownAutoCompleteMenu from './dropdownAutoCompleteMenu';
+import DropdownAutoCompleteMenu from 'app/components/dropdownAutoCompleteMenu';
 
 class DropdownAutoComplete extends React.Component {
   static propTypes = {

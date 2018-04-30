@@ -1,8 +1,13 @@
 import React from 'react';
 import _ from 'lodash';
-import ConfigStore from './stores/configStore';
-import {t, tct} from './locale';
-import {EmailField, TextField, BooleanField, RadioBooleanField} from './components/forms';
+import ConfigStore from 'app/stores/configStore';
+import {t, tct} from 'app/locale';
+import {
+  EmailField,
+  TextField,
+  BooleanField,
+  RadioBooleanField,
+} from 'app/components/forms';
 
 // This are ordered based on their display order visually
 const sections = [

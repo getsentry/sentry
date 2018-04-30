@@ -2,12 +2,12 @@ import {isEqual} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {Client} from '../api';
-import {t} from '../locale';
-import LoadingError from './loadingError';
-import LoadingIndicator from '../components/loadingIndicator';
-import PermissionDenied from '../views/permissionDenied';
-import RouteError from './../views/routeError';
+import {Client} from 'app/api';
+import {t} from 'app/locale';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import PermissionDenied from 'app/views/permissionDenied';
+import RouteError from 'app/views/routeError';
 
 class AsyncComponent extends React.Component {
   static propTypes = {

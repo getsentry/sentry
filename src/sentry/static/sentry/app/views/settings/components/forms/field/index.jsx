@@ -8,12 +8,12 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import FieldControl from './fieldControl';
-import FieldDescription from './fieldDescription';
-import FieldHelp from './fieldHelp';
-import FieldLabel from './fieldLabel';
-import FieldRequiredBadge from './fieldRequiredBadge';
-import FieldWrapper from './fieldWrapper';
+import FieldControl from 'app/views/settings/components/forms/field/fieldControl';
+import FieldDescription from 'app/views/settings/components/forms/field/fieldDescription';
+import FieldHelp from 'app/views/settings/components/forms/field/fieldHelp';
+import FieldLabel from 'app/views/settings/components/forms/field/fieldLabel';
+import FieldRequiredBadge from 'app/views/settings/components/forms/field/fieldRequiredBadge';
+import FieldWrapper from 'app/views/settings/components/forms/field/fieldWrapper';
 
 class Field extends React.Component {
   static propTypes = {
@@ -154,14 +154,16 @@ class Field extends React.Component {
         hasControlState={!flexibleControlStateSize}
         style={style}
       >
-        <FieldDescription inline={inline} htmlFor={id}>
-          {label && (
-            <FieldLabel>
-              {label} {required && <FieldRequiredBadge />}
-            </FieldLabel>
-          )}
-          {help && <FieldHelp>{help}</FieldHelp>}
-        </FieldDescription>
+        {(label || help) && (
+          <FieldDescription inline={inline} htmlFor={id}>
+            {label && (
+              <FieldLabel>
+                {label} {required && <FieldRequiredBadge />}
+              </FieldLabel>
+            )}
+            {help && <FieldHelp>{help}</FieldHelp>}
+          </FieldDescription>
+        )}
 
         {Control}
       </FieldWrapper>

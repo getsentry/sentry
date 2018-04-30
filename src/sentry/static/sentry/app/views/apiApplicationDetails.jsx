@@ -3,14 +3,14 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import DocumentTitle from 'react-document-title';
 
-import ApiMixin from '../mixins/apiMixin';
-import AutoSelectText from '../components/autoSelectText';
-import ConfigStore from '../stores/configStore';
-import {FormState, TextField, TextareaField} from '../components/forms';
-import IndicatorStore from '../stores/indicatorStore';
-import LoadingError from '../components/loadingError';
-import LoadingIndicator from '../components/loadingIndicator';
-import {t} from '../locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import AutoSelectText from 'app/components/autoSelectText';
+import ConfigStore from 'app/stores/configStore';
+import {FormState, TextField, TextareaField} from 'app/components/forms';
+import IndicatorStore from 'app/stores/indicatorStore';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import {t} from 'app/locale';
 
 const ApiApplicationDetails = createReactClass({
   displayName: 'ApiApplicationDetails',

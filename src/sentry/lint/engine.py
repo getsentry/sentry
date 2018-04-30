@@ -39,6 +39,10 @@ def get_project_root():
     return os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir)
 
 
+def get_sentry_bin(name):
+    return os.path.join(get_project_root(), 'bin', name)
+
+
 def get_node_modules_bin(name):
     return os.path.join(
         get_project_root(), 'node_modules', '.bin', name)
@@ -121,7 +125,9 @@ def py_lint(file_list, parseable=False):
 
 def js_lint(file_list=None, parseable=False, format=False):
 
+    # We require eslint in path but we actually call an eslint wrapper
     eslint_path = get_node_modules_bin('eslint')
+    eslint_wrapper_path = get_sentry_bin('eslint-travis-wrapper')
 
     if not os.path.exists(eslint_path):
         from click import echo
@@ -132,11 +138,39 @@ def js_lint(file_list=None, parseable=False, format=False):
 
     has_errors = False
     if js_file_list:
-        cmd = [eslint_path, '--ext', '.js,.jsx']
+        if os.environ.get('CI'):
+            cmd = [eslint_wrapper_path, '--ext', '.js,.jsx']
+        else:
+            cmd = [eslint_path, '--ext', '.js,.jsx']
+
         if format:
             cmd.append('--fix')
         if parseable:
             cmd.append('--format=checkstyle')
+        status = Popen(cmd + js_file_list).wait()
+        has_errors = status != 0
+
+    return has_errors
+
+
+def js_stylelint(file_list=None, parseable=False, format=False):
+    """
+    stylelint for styled-components
+    """
+
+    stylelint_path = get_node_modules_bin('stylelint')
+
+    if not os.path.exists(stylelint_path):
+        from click import echo
+        echo('!! Skipping JavaScript styled-components linting because "stylelint" is not installed.')
+        return False
+
+    js_file_list = get_js_files(file_list, snapshots=False)
+
+    has_errors = False
+    if js_file_list:
+        cmd = [stylelint_path]
+
         status = Popen(cmd + js_file_list).wait()
         has_errors = status != 0
 
@@ -300,9 +334,11 @@ def run_formatter(cmd, file_list, prompt_on_changes=True):
                 if fp.readline().strip().lower() != 'y':
                     echo(
                         '[sentry.lint] Aborted! Changes have been applied but not staged.', err=True)
-                    sys.exit(1)
-        status = subprocess.Popen(
-            ['git', 'update-index', '--add'] + file_list).wait()
+                    if not os.environ.get('SENTRY_SKIP_FORCE_PATCH'):
+                        sys.exit(1)
+                else:
+                    status = subprocess.Popen(
+                        ['git', 'update-index', '--add'] + file_list).wait()
         has_errors = status != 0
     return has_errors
 
@@ -344,6 +380,7 @@ def run(file_list=None, format=True, lint=True, js=True, py=True,
                 results.append(py_lint(file_list, parseable=parseable))
             if js:
                 results.append(js_lint(file_list, parseable=parseable, format=format))
+                results.append(js_stylelint(file_list, parseable=parseable, format=format))
 
         if test:
             if js:

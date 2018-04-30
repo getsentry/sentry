@@ -1,6 +1,6 @@
-import {Client} from '../api';
-import GuideActions from '../actions/guideActions';
-import HookStore from '../stores/hookStore';
+import {Client} from 'app/api';
+import GuideActions from 'app/actions/guideActions';
+import HookStore from 'app/stores/hookStore';
 
 const api = new Client();
 

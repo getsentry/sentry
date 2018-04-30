@@ -3,18 +3,18 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {defined} from '../../../../../utils';
-import {pulse, fadeOut} from '../../../../../styles/animations';
-import {t} from '../../../../../locale';
-import Button from '../../../../../components/buttons/button';
-import Field from '../field';
-import FieldControl from '../field/fieldControl';
-import FormState from '../../../../../components/forms/state';
-import InlineSvg from '../../../../../components/inlineSvg';
-import PanelAlert from '../../../../../components/panels/panelAlert';
-import Spinner from '../spinner';
-import returnButton from '../returnButton';
-import space from '../../../../../styles/space';
+import {defined} from 'app/utils';
+import {pulse, fadeOut} from 'app/styles/animations';
+import {t} from 'app/locale';
+import Button from 'app/components/buttons/button';
+import Field from 'app/views/settings/components/forms/field';
+import FieldControl from 'app/views/settings/components/forms/field/fieldControl';
+import FormState from 'app/components/forms/state';
+import InlineSvg from 'app/components/inlineSvg';
+import PanelAlert from 'app/components/panels/panelAlert';
+import Spinner from 'app/views/settings/components/forms/spinner';
+import returnButton from 'app/views/settings/components/forms/returnButton';
+import space from 'app/styles/space';
 
 const FormFieldErrorReason = styled.div`
   color: ${p => p.theme.redDark};
@@ -199,6 +199,9 @@ class FormField extends React.Component {
   }
 
   getModel() {
+    if (this.context.form === undefined) {
+      throw new Error('Make sure to wrap your fields into <Form/>');
+    }
     return this.context.form;
   }
 

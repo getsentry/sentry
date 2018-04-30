@@ -1,5 +1,5 @@
 import React from 'react';
-import InputField from './inputField';
+import InputField from 'app/views/settings/components/forms/inputField';
 
 export default class TextField extends React.Component {
   static propTypes = {

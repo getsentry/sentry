@@ -3,10 +3,10 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 
-import SidebarPanel from '../sidebarPanel';
+import SidebarPanel from 'app/components/sidebarPanel';
 
-import IncidentStore from '../../stores/incidentStore';
-import {t} from '../../locale';
+import IncidentStore from 'app/stores/incidentStore';
+import {t} from 'app/locale';
 
 const Incidents = createReactClass({
   displayName: 'Incidents',

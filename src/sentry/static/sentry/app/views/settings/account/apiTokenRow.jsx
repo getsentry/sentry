@@ -3,11 +3,11 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {t} from '../../../locale';
-import Button from '../../../components/buttons/button';
-import DateTime from '../../../components/dateTime';
-import {PanelItem} from '../../../components/panels';
-import TextCopyInput from '../components/forms/textCopyInput';
+import {t} from 'app/locale';
+import Button from 'app/components/buttons/button';
+import DateTime from 'app/components/dateTime';
+import {PanelItem} from 'app/components/panels';
+import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 
 const StyledPanelItem = styled(PanelItem)`
   flex-direction: column;

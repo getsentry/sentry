@@ -5,7 +5,7 @@ __all__ = ['DummyProvider']
 from django.http import HttpResponse
 
 from sentry.identity.base import Provider
-from sentry.utils.pipeline import PipelineView
+from sentry.pipeline import PipelineView
 
 
 class AskEmail(PipelineView):

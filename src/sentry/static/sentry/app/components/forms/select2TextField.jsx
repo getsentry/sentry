@@ -1,6 +1,6 @@
 import React from 'react';
 
-import Select2Field from './select2Field';
+import Select2Field from 'app/components/forms/select2Field';
 
 export default class Select2TextField extends Select2Field {
   getField() {

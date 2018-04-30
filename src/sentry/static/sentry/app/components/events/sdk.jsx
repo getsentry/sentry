@@ -1,8 +1,8 @@
 import React from 'react';
-import SentryTypes from '../../proptypes';
+import SentryTypes from 'app/proptypes';
 
-import GroupEventDataSection from './eventDataSection';
-import {t} from '../../locale';
+import GroupEventDataSection from 'app/components/events/eventDataSection';
+import {t} from 'app/locale';
 
 class EventSdk extends React.Component {
   static propTypes = {

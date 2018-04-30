@@ -88,7 +88,7 @@ class Release(Model):
         db_table = 'sentry_release'
         unique_together = (('organization', 'version'), )
 
-    __repr__ = sane_repr('organization', 'version')
+    __repr__ = sane_repr('organization_id', 'version')
 
     @staticmethod
     def is_valid_version(value):

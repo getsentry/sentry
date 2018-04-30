@@ -2,10 +2,10 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
 
-import SentryTypes from '../../proptypes';
+import SentryTypes from 'app/proptypes';
 
-import AllTeamsRow from './allTeamsRow';
-import {tct} from '../../locale';
+import AllTeamsRow from 'app/views/organizationTeams/allTeamsRow';
+import {tct} from 'app/locale';
 
 class AllTeamsList extends React.Component {
   static propTypes = {

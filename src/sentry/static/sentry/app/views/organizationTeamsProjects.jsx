@@ -4,17 +4,18 @@ import {Box, Flex} from 'grid-emotion';
 import {Link} from 'react-router';
 import LazyLoad from 'react-lazy-load';
 
-import BarChart from '../components/barChart';
-import Button from '../components/buttons/button';
-import {Client} from '../api';
-import {loadStats} from '../actionCreators/projects';
-import {Panel, PanelBody, PanelHeader, PanelItem} from '../components/panels';
-import ProjectLabel from '../components/projectLabel';
-import SentryTypes from '../proptypes';
-import SettingsPageHeader from './settings/components/settingsPageHeader';
-import {t, tct} from '../locale';
-import withProjects from '../utils/withProjects';
-import withTeams from '../utils/withTeams';
+import BarChart from 'app/components/barChart';
+import Button from 'app/components/buttons/button';
+import {Client} from 'app/api';
+import {loadStats} from 'app/actionCreators/projects';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import ProjectLabel from 'app/components/projectLabel';
+import SentryTypes from 'app/proptypes';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import {t, tct} from 'app/locale';
+import withProjects from 'app/utils/withProjects';
+import withTeams from 'app/utils/withTeams';
+import getProjectsByTeams from 'app/utils/getProjectsByTeams';
 
 class OrganizationTeamsProjectsView extends React.Component {
   static propTypes = {
@@ -126,26 +127,8 @@ class OrganizationTeamsProjectsView extends React.Component {
   };
 
   render() {
-    let {projects, teams} = this.props;
-    let projectsByTeam = {};
-    let teamlessProjects = [];
-    let usersTeams = new Set(teams.filter(team => team.isMember).map(team => team.slug));
-
-    projects.forEach(project => {
-      if (!project.teams.length && project.isMember) {
-        teamlessProjects.push(project);
-      } else {
-        project.teams.forEach(team => {
-          if (!usersTeams.has(team.slug)) {
-            return;
-          }
-          if (!projectsByTeam[team.slug]) {
-            projectsByTeam[team.slug] = [];
-          }
-          projectsByTeam[team.slug].push(project);
-        });
-      }
-    });
+    const {projects, teams} = this.props;
+    const {projectsByTeam, teamlessProjects} = getProjectsByTeams(teams, projects);
 
     return (
       <div className="row">

@@ -2,9 +2,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled, {cx} from 'react-emotion';
 
-import {t} from '../../locale';
-import InlineSvg from '../inlineSvg';
-import LoadingIndicator from '../../components/loadingIndicator';
+import {t} from 'app/locale';
+import InlineSvg from 'app/components/inlineSvg';
+import LoadingIndicator from 'app/components/loadingIndicator';
 
 const Toast = styled.div`
   display: flex;

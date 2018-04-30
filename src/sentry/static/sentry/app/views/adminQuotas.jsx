@@ -1,9 +1,9 @@
 /*eslint getsentry/jsx-needs-il8n:0*/
 import React from 'react';
 
-import AsyncView from './asyncView';
-import {TextField} from '../components/forms';
-import InternalStatChart from '../components/internalStatChart';
+import AsyncView from 'app/views/asyncView';
+import {TextField} from 'app/components/forms';
+import InternalStatChart from 'app/components/internalStatChart';
 
 export default class AdminQuotas extends AsyncView {
   getDefaultState() {

@@ -1,0 +1,82 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ProjectCard renders 1`] = `
+<ProjectCard
+  params={
+    Object {
+      "orgId": "org-slug",
+    }
+  }
+  project={
+    Object {
+      "hasAccess": true,
+      "id": "2",
+      "isBookmarked": false,
+      "isMember": true,
+      "name": "Project Name",
+      "slug": "project-slug",
+      "teams": Array [],
+    }
+  }
+>
+  <StyledProjectCard>
+    <div
+      className="css-18be1td-StyledProjectCard efesc7i1"
+    >
+      <Flex
+        align="center"
+        justify="space-between"
+        p={2}
+      >
+        <Base
+          align="center"
+          className="css-188rjiu"
+          justify="space-between"
+          p={2}
+        >
+          <div
+            className="css-188rjiu"
+            is={null}
+          >
+            <StyledLink
+              to="/org-slug/project-slug/"
+            >
+              <Link
+                className="css-kor5al-StyledLink efesc7i0"
+                to="/org-slug/project-slug/"
+              >
+                <Link
+                  className="css-kor5al-StyledLink efesc7i0"
+                  onlyActiveOnIndex={false}
+                  style={Object {}}
+                  to="/org-slug/project-slug/"
+                >
+                  <a
+                    className="css-kor5al-StyledLink efesc7i0"
+                    onClick={[Function]}
+                    style={Object {}}
+                  >
+                    <strong>
+                      project-slug
+                    </strong>
+                  </a>
+                </Link>
+              </Link>
+            </StyledLink>
+            <Star
+              active={false}
+              className="project-select-bookmark icon icon-star-solid"
+              onClick={[Function]}
+            >
+              <a
+                className="project-select-bookmark icon icon-star-solid css-syj8e8-Star efesc7i2"
+                onClick={[Function]}
+              />
+            </Star>
+          </div>
+        </Base>
+      </Flex>
+    </div>
+  </StyledProjectCard>
+</ProjectCard>
+`;

@@ -1,10 +1,10 @@
 import React from 'react';
 
-import {sortArray} from '../utils';
-import {t} from '../locale';
-import IndicatorStore from '../stores/indicatorStore';
-import AsyncView from './asyncView';
-import LazyLoad from '../components/lazyLoad';
+import {sortArray} from 'app/utils';
+import {t} from 'app/locale';
+import IndicatorStore from 'app/stores/indicatorStore';
+import AsyncView from 'app/views/asyncView';
+import LazyLoad from 'app/components/lazyLoad';
 
 class OrganizationRepositoriesView extends AsyncView {
   getEndpoints() {

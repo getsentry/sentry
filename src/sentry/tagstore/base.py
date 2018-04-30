@@ -30,25 +30,7 @@ class TagKeyStatus(object):
 
 
 class TagStorage(Service):
-    __all__ = (
-        'is_valid_key',
-        'is_valid_value',
-        'is_reserved_key',
-        'prefix_reserved_key',
-        'get_standardized_key',
-        'get_tag_key_label',
-        'get_tag_value_label',
-
-        'create_tag_key',
-        'get_or_create_tag_key',
-        'create_tag_value',
-        'get_or_create_tag_value',
-        'create_group_tag_key',
-        'get_or_create_group_tag_key',
-        'create_group_tag_value',
-        'get_or_create_group_tag_value',
-        'create_event_tags',
-
+    __read_methods__ = frozenset([
         'get_tag_key',
         'get_tag_keys',
         'get_tag_value',
@@ -59,10 +41,6 @@ class TagStorage(Service):
         'get_group_tag_values',
         'get_group_list_tag_value',
 
-        'delete_tag_key',
-        'delete_all_group_tag_keys',
-        'delete_all_group_tag_values',
-
         'get_groups_user_counts',
         'get_group_event_ids',
         'get_group_tag_value_count',
@@ -70,20 +48,48 @@ class TagStorage(Service):
         'get_first_release',
         'get_last_release',
         'get_release_tags',
-        'incr_tag_value_times_seen',
-        'incr_group_tag_value_times_seen',
+
         'get_group_ids_for_users',
         'get_group_tag_values_for_users',
         'get_group_ids_for_search_filter',
-        'update_group_tag_key_values_seen',
-        'update_group_for_events',
+
+        'get_group_tag_keys_and_top_values',
 
         'get_tag_value_qs',
         'get_group_tag_value_qs',
         'get_event_tag_qs',
+    ])
 
-        'get_group_tag_keys_and_top_values',
-    )
+    __write_methods__ = frozenset([
+        'create_tag_key',
+        'get_or_create_tag_key',
+        'create_tag_value',
+        'get_or_create_tag_value',
+        'create_group_tag_key',
+        'get_or_create_group_tag_key',
+        'create_group_tag_value',
+        'get_or_create_group_tag_value',
+        'create_event_tags',
+
+        'delete_tag_key',
+        'delete_all_group_tag_keys',
+        'delete_all_group_tag_values',
+
+        'incr_tag_value_times_seen',
+        'incr_group_tag_value_times_seen',
+        'update_group_tag_key_values_seen',
+        'update_group_for_events',
+    ])
+
+    __all__ = frozenset([
+        'is_valid_key',
+        'is_valid_value',
+        'is_reserved_key',
+        'prefix_reserved_key',
+        'get_standardized_key',
+        'get_tag_key_label',
+        'get_tag_value_label',
+    ]) | __read_methods__ | __write_methods__
 
     def setup_merge(self, grouptagkey_model, grouptagvalue_model):
         from sentry.tasks import merge

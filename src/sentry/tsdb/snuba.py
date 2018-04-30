@@ -4,6 +4,7 @@ import six
 
 from sentry.tsdb.base import BaseTSDB, TSDBModel
 from sentry.utils import snuba
+from sentry.utils.dates import to_datetime
 
 
 class SnubaTSDB(BaseTSDB):
@@ -26,7 +27,6 @@ class SnubaTSDB(BaseTSDB):
         TSDBModel.group: ('issue', None),
         TSDBModel.release: ('release', None),
         TSDBModel.users_affected_by_group: ('issue', 'user_id'),
-        TSDBModel.users_affected_by_project: ('project_id', 'user_id'),
         TSDBModel.users_affected_by_project: ('project_id', 'user_id'),
         TSDBModel.frequent_environments_by_group: ('issue', 'environment'),
         TSDBModel.frequent_releases_by_group: ('issue', 'release'),
@@ -68,8 +68,33 @@ class SnubaTSDB(BaseTSDB):
             keys_map['environment'] = [environment_id]
 
         aggregations = [[aggregation, model_aggregate, 'aggregate']]
-        return snuba.query(start, end, groupby, None, keys_map,
-                           aggregations, rollup)
+
+        # For historical compatibility with bucket-counted TSDB implementations
+        # we grab the original bucketed series and add the rollup time to the
+        # timestamp of the last bucket to get the end time.
+        rollup, series = self.get_optimal_rollup_series(start, end, rollup)
+        start = to_datetime(series[0])
+        end = to_datetime(series[-1] + rollup)
+
+        result = snuba.query(start, end, groupby, None, keys_map,
+                             aggregations, rollup)
+
+        if group_on_time:
+            keys_map['time'] = series
+        self.zerofill(result, groupby, keys_map)
+
+        return result
+
+    def zerofill(self, result, groups, group_keys):
+        if len(groups) > 0:
+            for k in group_keys[groups[0]]:
+                if k not in result:
+                    result[k] = 0 if len(groups) == 1 else {}
+
+            if len(groups) > 1:
+                subgroups = groups[1:]
+                for v in result.values():
+                    self.zerofill(v, subgroups, group_keys)
 
     def get_range(self, model, keys, start, end, rollup=None, environment_id=None):
         result = self.get_data(model, keys, start, end, rollup, environment_id,
@@ -109,8 +134,8 @@ class SnubaTSDB(BaseTSDB):
         #    {group:[top1, ...]}
         # into
         #    {group: [(top1, score), ...]}
-        for k in result:
-            item_scores = [(v, float(i + 1)) for i, v in enumerate(reversed(result[k]))]
+        for k, top in six.iteritems(result):
+            item_scores = [(v, float(i + 1)) for i, v in enumerate(reversed(top or []))]
             result[k] = list(reversed(item_scores))
 
         return result
@@ -126,7 +151,7 @@ class SnubaTSDB(BaseTSDB):
         #    {group: [(timestamp, {top1: score, ...}), ...]}
         for k in result:
             result[k] = sorted([
-                (timestamp, {v: float(i + 1) for i, v in enumerate(reversed(topk))})
+                (timestamp, {v: float(i + 1) for i, v in enumerate(reversed(topk or []))})
                 for (timestamp, topk) in result[k].items()
             ])
 
@@ -140,17 +165,11 @@ class SnubaTSDB(BaseTSDB):
         #    {group:{timestamp:{agg:count}}}
         # into
         #    {group: [(timestamp, {agg: count, ...}), ...]}
-        return {k: result[k].items() for k in result}
+        return {k: sorted(result[k].items()) for k in result}
 
     def get_frequency_totals(self, model, items, start, end=None, rollup=None, environment_id=None):
         return self.get_data(model, items, start, end, rollup, environment_id,
                              aggregation='count()')
-
-    def get_optimal_rollup(self, start):
-        """
-        Always return the smallest rollup as we can bucket on any granularity.
-        """
-        return self.rollups.keys()[0]
 
     def flatten_keys(self, items):
         """

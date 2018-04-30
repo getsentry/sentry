@@ -58,6 +58,7 @@ exports[`Stream render() displays the group list 1`] = `
         orgId="org-slug"
         projectId="project-slug"
         query="is:unresolved"
+        queryCount={0}
         realtimeActive={false}
         statsPeriod="24h"
       />
@@ -229,6 +230,7 @@ exports[`Stream toggles environment select all environments 1`] = `
         orgId="org-slug"
         projectId="project-slug"
         query="is:unresolved"
+        queryCount={0}
         realtimeActive={false}
         statsPeriod="24h"
       />

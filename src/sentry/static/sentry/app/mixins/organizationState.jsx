@@ -1,4 +1,4 @@
-import SentryTypes from '../proptypes';
+import SentryTypes from 'app/proptypes';
 
 let OrganizationStateMixin = {
   contextTypes: {

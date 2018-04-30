@@ -1,13 +1,13 @@
 import {browserHistory} from 'react-router';
 import React from 'react';
 
-import {Client} from '../../../../api';
-import {addSuccessMessage} from '../../../../actionCreators/indicator';
-import {t} from '../../../../locale';
-import LazyLoad from '../../../../components/lazyLoad';
-import AsyncView from '../../../asyncView';
-import SentryTypes from '../../../../proptypes';
-import recreateRoute from '../../../../utils/recreateRoute';
+import {Client} from 'app/api';
+import {addSuccessMessage} from 'app/actionCreators/indicator';
+import {t} from 'app/locale';
+import LazyLoad from 'app/components/lazyLoad';
+import AsyncView from 'app/views/asyncView';
+import SentryTypes from 'app/proptypes';
+import recreateRoute from 'app/utils/recreateRoute';
 
 class OrganizationApiKeysView extends AsyncView {
   static contextTypes = {

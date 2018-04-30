@@ -27,6 +27,7 @@ class ProjectKeySerializer(Serializer):
                 'secret': obj.dsn_private,
                 'public': obj.dsn_public,
                 'csp': obj.csp_endpoint,
+                'security': obj.security_endpoint,
                 'minidump': obj.minidump_endpoint,
             },
             'relay': {

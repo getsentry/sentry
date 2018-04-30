@@ -3,11 +3,11 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
 
-import {Form, FormState} from '../../components/forms';
-import {parseRepo} from '../../utils';
-import {t, tct} from '../../locale';
-import LoadingIndicator from '../../components/loadingIndicator';
-import PluginComponentBase from '../../components/bases/pluginComponentBase';
+import {Form, FormState} from 'app/components/forms';
+import {parseRepo} from 'app/utils';
+import {t, tct} from 'app/locale';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import PluginComponentBase from 'app/components/bases/pluginComponentBase';
 
 class PluginSettings extends PluginComponentBase {
   constructor(props, context) {

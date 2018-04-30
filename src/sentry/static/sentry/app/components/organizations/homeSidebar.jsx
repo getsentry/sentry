@@ -2,10 +2,10 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import createReactClass from 'create-react-class';
-import ListLink from '../listLink';
-import OrganizationState from '../../mixins/organizationState';
-import HookStore from '../../stores/hookStore';
-import {t} from '../../locale';
+import ListLink from 'app/components/listLink';
+import OrganizationState from 'app/mixins/organizationState';
+import HookStore from 'app/stores/hookStore';
+import {t} from 'app/locale';
 
 const OrgSettingsMenu = ({access, org, features}) => {
   // Everything requires `org:write` or more permission except
