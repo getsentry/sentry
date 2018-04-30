@@ -1,7 +1,9 @@
 from __future__ import absolute_import
 
-from sentry.utils.http import absolute_uri
 from django.core.urlresolvers import reverse
+
+from sentry.models import ProjectStatus
+from sentry.utils.http import absolute_uri
 
 
 class Config(object):
@@ -9,19 +11,21 @@ class Config(object):
     Config object for relay
     """
 
-    def __init__(self, project, project_key):
-        self.project = project
-        self.project_key = project_key
-        self.get_cdn_url = lambda: self.__class__.get_cdn_url(self)
-
-    def to_dict(self):
-        """Returns a dict containing config information for the sentry relay"""
+    def get_project_config(self, project):
+        """Returns a dict containing the config for a project for the sentry relay"""
         return {
-            'allowedDomains': self.project.get_option('sentry:origins', ['*']),
-            'enabled': self.project_key.is_active,
-            'dsn': self.project_key.dsn_public,
+            'allowedDomains': project.get_option('sentry:origins', ['*']),
         }
 
-    def get_cdn_url(self):
+    def get_project_key_config(self, project_key):
+        """Returns a dict containing the information for a specific project key"""
+        return {
+            'dsn': project_key.dsn_public,
+        }
+
+    def is_project_enabled(self, project):
+        return project.status != ProjectStatus.VISIBLE
+
+    def get_cdn_url(self, project_key):
         """Return the url to the js cdn file for a specific project key"""
-        return absolute_uri(reverse('sentry-relay-cdn-loader', args=[self.project_key.public_key]))
+        return absolute_uri(reverse('sentry-relay-cdn-loader', args=[project_key.public_key]))

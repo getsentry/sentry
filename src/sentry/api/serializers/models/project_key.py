@@ -9,7 +9,7 @@ from sentry.relay import Config
 class ProjectKeySerializer(Serializer):
     def serialize(self, obj, attrs, user):
         name = obj.label or obj.public_key[:14]
-        config = Config(obj.project, obj)
+        config = Config()
         d = {
             'id': obj.public_key,
             'name': name,
@@ -31,7 +31,7 @@ class ProjectKeySerializer(Serializer):
                 'minidump': obj.minidump_endpoint,
             },
             'relay': {
-                'url': config.get_cdn_url(),
+                'url': config.get_cdn_url(obj),
             },
             'cdnSdkUrl': obj.cdn_sdk_url,
             'dateCreated': obj.date_added,

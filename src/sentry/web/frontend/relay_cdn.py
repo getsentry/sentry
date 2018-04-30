@@ -7,7 +7,7 @@ from sentry.models import ProjectKey
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 
-# TODO(hazat)
+
 DEFAULT_SDK_URL = 'https://s3.amazonaws.com/getsentry-cdn/@sentry/browser/0.5.2/bundle.min.js'
 
 
@@ -20,14 +20,13 @@ class RelayJavaScriptLoader(BaseView):
             public_key=public_key
         )
 
-        config = Config(key.project, key)
-
         sdk_url = DEFAULT_SDK_URL
         if key.cdn_sdk_url:
             sdk_url = key.cdn_sdk_url
 
+        config = Config()
         context = {
-            'config': config.to_dict(),
+            'config': config.get_project_key_config(key),
             'sdkUrl': sdk_url,
             'debug': settings.DEBUG
         }
