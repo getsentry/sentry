@@ -196,7 +196,7 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
             flex={false}
           >
             <div
-              className="css-ftvdwr-textStyles"
+              className="css-9vq8an-textStyles"
             >
               <EmptyMessage>
                 <Wrapper>
@@ -416,7 +416,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
             flex={false}
           >
             <div
-              className="css-ftvdwr-textStyles"
+              className="css-9vq8an-textStyles"
             >
               <EnvironmentRow
                 environment={
@@ -963,7 +963,7 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
             flex={false}
           >
             <div
-              className="css-ftvdwr-textStyles"
+              className="css-9vq8an-textStyles"
             >
               <EmptyMessage>
                 <Wrapper>
@@ -1183,7 +1183,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
             flex={false}
           >
             <div
-              className="css-ftvdwr-textStyles"
+              className="css-9vq8an-textStyles"
             >
               <EnvironmentRow
                 actionText="Show"

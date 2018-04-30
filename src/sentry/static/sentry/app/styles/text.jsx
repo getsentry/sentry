@@ -17,7 +17,9 @@ const textStyles = props => {
     blockquote,
     form,
     pre,
-    .auto-select-text {
+    .auto-select-text,
+    .section,
+    [class^='highlight-'] {
       margin-bottom: 20px;
 
       &:last-child {
