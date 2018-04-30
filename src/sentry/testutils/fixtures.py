@@ -429,7 +429,8 @@ class Fixtures(object):
         kwargs.setdefault('is_superuser', False)
 
         user = User(email=email, **kwargs)
-        user.set_password('admin')
+        if not kwargs.get('password'):
+            user.set_password('admin')
         user.save()
 
         # UserEmail is created by a signal
