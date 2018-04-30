@@ -3,12 +3,13 @@ import {css, cx} from 'react-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import textStyles from '../../styles/text';
+import space from 'app/styles/space';
+import textStyles from 'app/styles/text';
 
 const PanelBody = ({disablePadding, flex, direction, ...props}) => {
   let padding = !disablePadding
     ? css`
-        padding: 16px;
+        padding: ${space(2)};
       `
     : '';
   let flexDirection = flex ? direction : undefined;
