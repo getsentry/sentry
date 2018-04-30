@@ -22,7 +22,7 @@ import EnvironmentStore from 'app/stores/environmentStore';
 import ListLink from 'app/components/listLink';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import recreateRoute from 'app/utils/recreateRoute';
-import ConditionalGuideAnchor from 'app/components/assistant/guideAnchor';
+import {conditionallyGuideAnchor} from 'app/components/assistant/guideAnchor';
 
 const TextColorLink = styled(Link)`
   color: ${p => p.theme.gray3};
@@ -129,11 +129,10 @@ const RuleRow = createReactClass({
                   <h6>
                     When <strong>{data.actionMatch}</strong> of these conditions are met:
                   </h6>
-                  <GuideAnchor
-                    show={this.props.firstRule}
-                    target="alert_conditions"
-                    type="text"
-                  >
+                  {conditionallyGuideAnchor(
+                    this.props.firstRule,
+                    'alert_conditions',
+                    'text',
                     <table className="conditions-list table">
                       <tbody>
                         {data.conditions.map((condition, i) => {
@@ -145,7 +144,7 @@ const RuleRow = createReactClass({
                         })}
                       </tbody>
                     </table>
-                  </GuideAnchor>
+                  )}
                 </Condition>
               )}
             </RuleDescriptionColumn>
@@ -159,11 +158,10 @@ const RuleRow = createReactClass({
                     </strong>{' '}
                     for an issue:
                   </h6>
-                  <GuideAnchor
-                    show={this.props.firstRule}
-                    target="alert_actions"
-                    type="text"
-                  >
+                  {conditionallyGuideAnchor(
+                    this.props.firstRule,
+                    'alert_actions',
+                    'text',
                     <table className="actions-list table">
                       <tbody>
                         {data.actions.map((action, i) => {
@@ -175,7 +173,7 @@ const RuleRow = createReactClass({
                         })}
                       </tbody>
                     </table>
-                  </GuideAnchor>
+                  )}
                 </Condition>
               )}
             </RuleDescriptionColumn>
