@@ -119,7 +119,11 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
                 last_deploy_id=deploy.id,
             )
 
-            ReleaseProjectEnvironment.objects.filter(release=release, environment=env).update(
+            ReleaseProjectEnvironment.objects.filter(
+                release=release,
+                environment=env,
+                project__in=projects,
+            ).update(
                 last_deploy_id=deploy.id,
             )
 
