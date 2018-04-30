@@ -172,7 +172,7 @@ exports[`CreateProject render() should render roles when available and allowed, 
                 flex={false}
               >
                 <div
-                  className=""
+                  className="css-ftvdwr-textStyles"
                 >
                   <PanelItem
                     className="css-0"

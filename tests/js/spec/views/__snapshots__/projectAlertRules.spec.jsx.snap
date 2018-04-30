@@ -498,7 +498,7 @@ exports[`projectAlertRules renders 1`] = `
                   flex={false}
                 >
                   <div
-                    className=""
+                    className="css-ftvdwr-textStyles"
                   >
                     <RuleDescriptionRow>
                       <div

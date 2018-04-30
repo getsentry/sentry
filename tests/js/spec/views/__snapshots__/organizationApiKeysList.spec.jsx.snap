@@ -349,7 +349,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
             flex={false}
           >
             <div
-              className=""
+              className="css-ftvdwr-textStyles"
             >
               <PanelItem
                 align="center"
