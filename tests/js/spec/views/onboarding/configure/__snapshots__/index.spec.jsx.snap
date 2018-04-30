@@ -330,7 +330,7 @@ exports[`Configure should render correctly render() should render platform docs 
                                 flex={false}
                               >
                                 <div
-                                  className="css-1pugmsu-padding"
+                                  className="css-zhfi4l-padding-textStyles"
                                 >
                                   <TextBlock>
                                     <Component

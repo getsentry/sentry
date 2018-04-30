@@ -24,7 +24,7 @@ const getPadding = props => {
   if (typeof props.p !== 'undefined') {
     return `padding: ${props.p};`;
   }
-  return `padding: ${space(2)} ${props.hasControlState ? 0 : space(1)} ${space(
+  return `padding: ${space(2)} ${props.hasControlState ? 0 : space(2)} ${space(
     2
   )} ${space(2)}`;
 };

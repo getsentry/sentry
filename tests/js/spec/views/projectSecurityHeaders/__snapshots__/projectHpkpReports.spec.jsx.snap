@@ -27,7 +27,7 @@ exports[`ProjectHpkpReports renders 1`] = `
         disablePadding={false}
         flex={false}
       >
-        <TextBlock>
+        <p>
           <span
             key="4"
           >
@@ -53,18 +53,16 @@ exports[`ProjectHpkpReports renders 1`] = `
               supports capturing violations using the standard reporting hooks.
             </span>
           </span>
-        </TextBlock>
-        <TextBlock>
+        </p>
+        <p>
           To configure HPKP reports
               in Sentry, you'll need to send a header from your server describing your
               policy, as well specifying the authenticated Sentry endpoint.
-        </TextBlock>
-        <TextBlock
-          noMargin={true}
-        >
+        </p>
+        <p>
           For example, in Python you might achieve this via a simple web middleware
-        </TextBlock>
-        <CodeBlock>
+        </p>
+        <pre>
           def middleware(request, response):
     response['Public-Key-Pins'] = \\
         'pin-sha256="cUPcTAZWKaASuYWhhneDttWpY3oBAkE3h2+soZS7sWs="; ' \\
@@ -73,14 +71,12 @@ exports[`ProjectHpkpReports renders 1`] = `
         'report-uri="https://sentry.example.com/api/security-report/"' 
     return response
 
-        </CodeBlock>
-        <TextBlock
-          noMargin={true}
-        >
+        </pre>
+        <p>
           Alternatively you can setup HPKP reports to simply send reports rather than
               actually enforcing the policy
-        </TextBlock>
-        <CodeBlock>
+        </p>
+        <pre>
           def middleware(request, response):
     response['Public-Key-Pins-Report-Only'] = \\
         'pin-sha256="cUPcTAZWKaASuYWhhneDttWpY3oBAkE3h2+soZS7sWs="; ' \\
@@ -89,11 +85,8 @@ exports[`ProjectHpkpReports renders 1`] = `
         'report-uri="https://sentry.example.com/api/security-report/"' 
     return response
 
-        </CodeBlock>
-        <TextBlock
-          className="css-46b038"
-          noMargin={true}
-        >
+        </pre>
+        <p>
           <span
             key="5"
           >
@@ -120,7 +113,7 @@ exports[`ProjectHpkpReports renders 1`] = `
               .
             </span>
           </span>
-        </TextBlock>
+        </p>
       </PanelBody>
     </Panel>
   </div>

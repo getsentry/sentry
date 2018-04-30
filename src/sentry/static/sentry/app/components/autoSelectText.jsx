@@ -37,7 +37,12 @@ class AutoSelectText extends React.Component {
     }
 
     return (
-      <div {...props} ref={this.handleMount} onClick={this.selectText}>
+      <div
+        {...props}
+        ref={this.handleMount}
+        onClick={this.selectText}
+        className="auto-select-text"
+      >
         {children}
       </div>
     );

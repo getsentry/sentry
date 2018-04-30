@@ -214,7 +214,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
               flex={false}
             >
               <div
-                className=""
+                className="css-9vq8an-textStyles"
               >
                 <PanelItem
                   key="1"
