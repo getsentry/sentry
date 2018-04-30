@@ -37,8 +37,7 @@ class ContextsTest(TestCase):
         })
         assert sorted(ctx.iter_tags()) == [
             ('os', 'Windows 6.1.7601'),
-            ('os.name', 'Windows'),
-            ('os.raw_description', 'Microsoft Windows 6.1.7601 S')
+            ('os.name', 'Windows')
         ]
         assert ctx.to_json() == {
             'os': {
