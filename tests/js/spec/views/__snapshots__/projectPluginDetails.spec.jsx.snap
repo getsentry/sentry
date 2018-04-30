@@ -460,21 +460,21 @@ exports[`ProjectPluginDetails renders 1`] = `
                         wrap="wrap"
                       >
                         <Flex
-                          className=""
+                          className="css-9vq8an-textStyles"
                           direction="column"
                           pt={2}
                           px={2}
                           wrap="wrap"
                         >
                           <Base
-                            className="css-1amiuv8"
+                            className="css-eaujjw-textStyles"
                             direction="column"
                             pt={2}
                             px={2}
                             wrap="wrap"
                           >
                             <div
-                              className="css-1amiuv8"
+                              className="css-eaujjw-textStyles"
                               is={null}
                             >
                               <div

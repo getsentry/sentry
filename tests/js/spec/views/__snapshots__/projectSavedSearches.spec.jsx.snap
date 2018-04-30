@@ -184,7 +184,7 @@ exports[`ProjectSavedSearches renders 1`] = `
             flex={false}
           >
             <div
-              className=""
+              className="css-9vq8an-textStyles"
             >
               <SavedSearchRow
                 access={
@@ -949,7 +949,7 @@ exports[`ProjectSavedSearches renders empty 1`] = `
             flex={false}
           >
             <div
-              className=""
+              className="css-9vq8an-textStyles"
             >
               <EmptyStateWarning>
                 <EmptyStreamWrapper

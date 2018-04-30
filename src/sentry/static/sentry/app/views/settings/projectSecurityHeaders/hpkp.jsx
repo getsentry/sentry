@@ -1,6 +1,5 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import styled from 'react-emotion';
 
 import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
@@ -11,12 +10,6 @@ import ReportUri, {
 } from 'app/views/settings/projectSecurityHeaders/reportUri';
 import PreviewFeature from 'app/components/previewFeature';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TextBlock from 'app/views/settings/components/text/textBlock';
-
-const CodeBlock = styled.pre`
-  word-break: break-all;
-  white-space: pre-wrap;
-`;
 
 export default class ProjectHpkpReports extends AsyncView {
   static propTypes = {
@@ -73,7 +66,7 @@ export default class ProjectHpkpReports extends AsyncView {
           <PanelHeader>{t('About')}</PanelHeader>
 
           <PanelBody disablePadding={false}>
-            <TextBlock>
+            <p>
               {tct(
                 `[link:HTTP Public Key Pinning]
               (HPKP) is a security feature that tells a web client to associate a specific
@@ -86,30 +79,30 @@ export default class ProjectHpkpReports extends AsyncView {
                   ),
                 }
               )}
-            </TextBlock>
+            </p>
 
-            <TextBlock>
+            <p>
               {t(
                 `To configure HPKP reports
               in Sentry, you'll need to send a header from your server describing your
               policy, as well specifying the authenticated Sentry endpoint.`
               )}
-            </TextBlock>
+            </p>
 
-            <TextBlock noMargin>
+            <p>
               {t(
                 'For example, in Python you might achieve this via a simple web middleware'
               )}
-            </TextBlock>
-            <CodeBlock>{this.getInstructions()}</CodeBlock>
+            </p>
+            <pre>{this.getInstructions()}</pre>
 
-            <TextBlock noMargin>
+            <p>
               {t(`Alternatively you can setup HPKP reports to simply send reports rather than
               actually enforcing the policy`)}
-            </TextBlock>
-            <CodeBlock>{this.getReportOnlyInstructions()}</CodeBlock>
+            </p>
+            <pre>{this.getReportOnlyInstructions()}</pre>
 
-            <TextBlock noMargin css={{marginTop: 30}}>
+            <p>
               {tct(
                 `We recommend setting this up to only run on a percentage of requests, as
               otherwise you may find that you've quickly exhausted your quota. For more
@@ -120,7 +113,7 @@ export default class ProjectHpkpReports extends AsyncView {
                   ),
                 }
               )}
-            </TextBlock>
+            </p>
           </PanelBody>
         </Panel>
       </div>

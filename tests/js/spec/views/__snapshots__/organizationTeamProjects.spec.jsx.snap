@@ -225,7 +225,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
           flex={false}
         >
           <div
-            className=""
+            className="css-9vq8an-textStyles"
           >
             <StyledPanelItem
               key="2"

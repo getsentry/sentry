@@ -27,7 +27,7 @@ exports[`ProjectExpectCtReports renders 1`] = `
         disablePadding={false}
         flex={false}
       >
-        <TextBlock>
+        <p>
           <span
             key="4"
           >
@@ -50,8 +50,8 @@ exports[`ProjectExpectCtReports renders 1`] = `
       (CT) is a security standard which helps track and identify valid certificates, allowing identification of maliciously issued certificates
             </span>
           </span>
-        </TextBlock>
-        <TextBlock>
+        </p>
+        <p>
           <span
             key="4"
           >
@@ -71,13 +71,11 @@ exports[`ProjectExpectCtReports renders 1`] = `
                a header from your server:
             </span>
           </span>
-        </TextBlock>
-        <CodeBlock>
+        </p>
+        <pre>
           Expect-CT: report-uri="https://sentry.example.com/api/security-report/"
-        </CodeBlock>
-        <TextBlock
-          noMargin={true}
-        >
+        </pre>
+        <p>
           <span
             key="5"
           >
@@ -102,7 +100,7 @@ exports[`ProjectExpectCtReports renders 1`] = `
               .
             </span>
           </span>
-        </TextBlock>
+        </p>
       </PanelBody>
     </Panel>
   </div>

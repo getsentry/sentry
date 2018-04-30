@@ -28,7 +28,12 @@ class AccountIdentityTest(TestCase):
 
         self.login_as(user)
 
-        path = reverse('sentry-account-associate-identity', args=[organization.slug, 'dummy', '1234'])
+        path = reverse(
+            'sentry-account-associate-identity',
+            args=[
+                organization.slug,
+                'dummy',
+                '1234'])
         resp = self.client.get(path)
 
         assert resp.status_code == 200
