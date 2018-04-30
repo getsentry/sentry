@@ -11,10 +11,11 @@ def execute(relay, project_id, query):
     if not project_id:
         pass  # TODO(hazat): error handling
 
-    project = Project.objects.select_related('organization').distinct().filter(
-        id=project_id,
-    ).get()
-    if project is None:
+    try:
+        project = Project.objects.select_related('organization').distinct().filter(
+            id=project_id,
+        ).get()
+    except Project.DoesNotExist:
         return None
 
     project_keys = ProjectKey.objects.filter(
