@@ -28,7 +28,7 @@ describe('OrganizationTeamProjects', function() {
   it('Should render', function() {
     let wrapper = mount(
       <OrganizationTeamsProjectsView params={{orgId: 'org-slug'}} />,
-      TestStubs.routerOrganizationContext()
+      TestStubs.routerContext()
     );
 
     expect(wrapper).toMatchSnapshot();

@@ -74,7 +74,7 @@ const TeamTitleBar = styled(Flex)`
 
 const TeamName = styled.h4`
   margin: 0;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
 
 const ProjectCards = styled(Flex)`

@@ -16,16 +16,19 @@ describe('AccountSecurityDetails', function() {
         url: `${ENDPOINT}15/`,
         body: TestStubs.Authenticators().Totp(),
       });
-      wrapper = mount(<AccountSecurityDetails />, {
-        context: {
-          router: {
-            ...TestStubs.router(),
-            params: {
-              authId: 15,
+      wrapper = mount(
+        <AccountSecurityDetails />,
+        TestStubs.routerContext([
+          {
+            router: {
+              ...TestStubs.router(),
+              params: {
+                authId: 15,
+              },
             },
           },
-        },
-      });
+        ])
+      );
     });
 
     it('has enrolled circle indicator', function() {
@@ -59,16 +62,19 @@ describe('AccountSecurityDetails', function() {
         url: `${ENDPOINT}16/`,
         body: TestStubs.Authenticators().Recovery(),
       });
-      wrapper = mount(<AccountSecurityDetails />, {
-        context: {
-          router: {
-            ...TestStubs.router(),
-            params: {
-              authId: 16,
+      wrapper = mount(
+        <AccountSecurityDetails />,
+        TestStubs.routerContext([
+          {
+            router: {
+              ...TestStubs.router(),
+              params: {
+                authId: 16,
+              },
             },
           },
-        },
-      });
+        ])
+      );
     });
 
     it('has enrolled circle indicator', function() {

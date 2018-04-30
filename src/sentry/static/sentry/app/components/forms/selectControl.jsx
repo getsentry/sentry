@@ -1,7 +1,27 @@
-import ReactSelect from 'react-select';
+import React from 'react';
+import PropTypes from 'prop-types';
+import ReactSelect, {Async} from 'react-select';
 import styled from 'react-emotion';
 
-const StyledSelect = styled(ReactSelect)`
+export default class SelectControl extends React.Component {
+  static propTypes = {
+    async: PropTypes.bool,
+  };
+
+  renderArrow = () => {
+    return <span className="icon-arrow-down" />;
+  };
+
+  render() {
+    let {async, ...props} = this.props;
+
+    return <StyledSelect arrowRenderer={this.renderArrow} async={async} {...props} />;
+  }
+}
+
+const StyledSelect = styled(
+  ({async, ...props}) => (async ? <Async {...props} /> : <ReactSelect {...props} />)
+)`
   font-size: 15px;
 
   .Select-control,
@@ -39,5 +59,3 @@ const StyledSelect = styled(ReactSelect)`
     border-color: ${p => p.theme.gray};
   }
 `;
-
-export default StyledSelect;

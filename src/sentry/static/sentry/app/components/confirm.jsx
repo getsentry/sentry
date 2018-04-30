@@ -146,6 +146,7 @@ class Confirm extends React.PureComponent {
               {cancelText}
             </Button>
             <Button
+              data-test-id="confirm-modal"
               disabled={this.state.disableConfirmButton}
               priority={priority}
               onClick={this.handleConfirm}
