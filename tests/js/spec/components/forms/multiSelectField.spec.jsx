@@ -15,6 +15,17 @@ describe('MultiSelectField', function() {
       expect(wrapper).toMatchSnapshot();
     });
 
+    it('has the right value from props', function() {
+      let wrapper = shallow(
+        <MultiSelectField
+          options={[{label: 'a', value: 'a'}, {label: 'b', value: 'b'}]}
+          name="fieldName"
+          value={['a']}
+        />
+      );
+      expect(wrapper.find('MultiSelectControl').prop('value')).toEqual(['a']);
+    });
+
     it('renders with form context', function() {
       let wrapper = shallow(
         <MultiSelectField
@@ -32,7 +43,8 @@ describe('MultiSelectField', function() {
           },
         }
       );
-      expect(wrapper).toMatchSnapshot();
+
+      expect(wrapper.find('MultiSelectControl').prop('value')).toEqual(['a', 'b']);
     });
   });
 });

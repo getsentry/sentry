@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 
 import FormField from 'app/components/forms/formField';
-import StyledSelect from 'app/components/forms/select.styled';
+import SelectControl from 'app/components/forms/selectControl';
 
 export default class SelectField extends FormField {
   static propTypes = {
@@ -26,22 +26,17 @@ export default class SelectField extends FormField {
     this.setValue(value);
   };
 
-  renderArrow = () => {
-    return <span className="icon-arrow-down" />;
-  };
-
   getField() {
     const {options, placeholder, disabled, required} = this.props;
 
     return (
-      <StyledSelect
+      <SelectControl
         id={this.getId()}
         options={options}
         placeholder={placeholder}
         disabled={disabled}
         required={required}
         value={this.state.value}
-        arrowRenderer={this.renderArrow}
         onChange={this.onChange.bind(this)}
         clearable={this.props.clearable}
       />

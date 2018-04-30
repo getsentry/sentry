@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import MultiSelectField from 'app/components/forms/multiSelectField';
+import MultiSelectControl from 'app/components/forms/multiSelectControl';
 import ActorAvatar from 'app/components/actorAvatar';
 
 import {t} from 'app/locale';
@@ -34,10 +34,9 @@ export default class SelectOwners extends React.Component {
 
   render() {
     return (
-      <MultiSelectField
+      <MultiSelectControl
         options={this.props.options}
-        multi={true}
-        style={{width: 200}}
+        style={{width: 200, overflow: 'visible'}}
         valueComponent={ValueComponent}
         placeholder={t('Add Owners')}
         onChange={this.props.onChange}
