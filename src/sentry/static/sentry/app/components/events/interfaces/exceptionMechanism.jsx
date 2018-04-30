@@ -39,7 +39,7 @@ class ExceptionMechanism extends React.Component {
       );
     }
 
-    if (this.props.data.type) {
+    if (this.props.data.type && this.props.data.description) {
       pills.push(
         <Pill
           key="generic"

@@ -26,6 +26,14 @@ describe('ExceptionMechanism', function() {
       expect(elem.find('li')).toHaveLength(0);
     });
 
+    it('should not render generic pills if description is missing', function() {
+      mechanism = {
+        type: 'promise',
+      };
+      elem = mount(<ExceptionMechanism data={mechanism} platform={platform} />);
+      expect(elem.find('li')).toHaveLength(0);
+    });
+
     it('should render one mach_exception', function() {
       mechanism = {
         mach_exception: {
