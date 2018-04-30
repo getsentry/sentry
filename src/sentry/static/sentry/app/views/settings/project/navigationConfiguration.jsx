@@ -52,8 +52,11 @@ export default function getConfiguration({project}) {
         },
         {
           path: `${pathPrefix}/ownership/`,
-          title: t('Issue Ownership'),
-          description: t('Manage code ownership rules for a project'),
+          title: t('Issue Owners'),
+          description: t('Manage issue ownership rules for a project'),
+          badge: () => {
+            return 'new';
+          },
         },
         {
           path: `${pathPrefix}/data-forwarding/`,

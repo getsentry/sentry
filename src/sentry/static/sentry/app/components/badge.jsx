@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import {cx} from 'react-emotion';
 
 class Badge extends React.Component {
   static propTypes = {
@@ -12,7 +13,7 @@ class Badge extends React.Component {
     if (this.props.isNew) {
       className += ' new';
     }
-    return <span className={className}>{this.props.text}</span>;
+    return <span className={cx(className, this.props.className)}>{this.props.text}</span>;
   }
 }
 
