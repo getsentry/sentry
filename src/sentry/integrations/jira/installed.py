@@ -24,6 +24,7 @@ class JiraInstalledEndpoint(Endpoint):
                 Integration.objects.create(
                     provider='jira',
                     external_id=data['clientKey'],
+                    name=data['baseUrl'],
                     metadata={
                         'oauth_client_id': data['oauthClientId'],
                         # public key is possibly deprecated, so we can maybe remove this

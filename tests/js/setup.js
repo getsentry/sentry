@@ -461,6 +461,7 @@ window.TestStubs = {
     return {
       key: 'github',
       name: 'GitHub',
+      canAdd: true,
       config: [],
       setupDialog: {
         url: '/github-integration-setup-uri/',
