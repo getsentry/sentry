@@ -36,7 +36,7 @@ class OrganizationCrumb extends React.Component {
             })}
           >
             <Flex align="center">
-              <IdBadge organization={organization} />
+              <IdBadge avatarSize={18} organization={organization} />
             </Flex>
           </TextLink>
         }
