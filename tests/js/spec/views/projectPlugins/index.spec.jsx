@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import {mount} from 'enzyme';
 
 import ProjectPlugins from 'app/views/projectPlugins';
@@ -9,6 +8,7 @@ jest.mock('app/actionCreators/plugins');
 
 describe('ProjectPluginsContainer', function() {
   let org, project, plugins, wrapper, params, organization;
+  let routerContext = TestStubs.routerContext();
 
   beforeEach(function() {
     org = TestStubs.Organization();
@@ -41,15 +41,10 @@ describe('ProjectPluginsContainer', function() {
       url: `/projects/${org.slug}/${project.slug}/plugins/github/`,
       method: 'DELETE',
     });
-    wrapper = mount(<ProjectPlugins params={params} organization={organization} />, {
-      context: {
-        router: TestStubs.router(),
-      },
-
-      childContextTypes: {
-        router: PropTypes.object,
-      },
-    });
+    wrapper = mount(
+      <ProjectPlugins params={params} organization={organization} />,
+      routerContext
+    );
   });
 
   it('calls `fetchPlugins` action creator after mount', function() {

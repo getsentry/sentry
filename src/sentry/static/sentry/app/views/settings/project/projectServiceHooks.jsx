@@ -157,6 +157,7 @@ export default class ProjectServiceHooks extends AsyncView {
           action={
             access.has('project:write') ? (
               <Button
+                data-test-id="new-service-hook"
                 to={`/settings/${orgId}/${projectId}/hooks/new/`}
                 size="small"
                 priority="primary"

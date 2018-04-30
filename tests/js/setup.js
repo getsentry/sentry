@@ -7,7 +7,6 @@ import MockDate from 'mockdate';
 import PropTypes from 'prop-types';
 
 import ConfigStore from 'app/stores/configStore';
-import SentryTypes from 'app/proptypes';
 import theme from 'app/utils/theme';
 
 jest.mock('app/utils/recreateRoute');
@@ -102,19 +101,6 @@ window.TestStubs = {
       organization: PropTypes.object,
       project: PropTypes.object,
       ...childContextTypes,
-    },
-  }),
-
-  routerOrganizationContext: () => ({
-    context: {
-      location: TestStubs.location(),
-      router: TestStubs.router(),
-      organization: TestStubs.Organization(),
-    },
-    childContextTypes: {
-      router: PropTypes.object,
-      location: PropTypes.object,
-      organization: SentryTypes.Organization,
     },
   }),
 

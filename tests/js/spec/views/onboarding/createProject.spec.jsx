@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import {shallow, mount} from 'enzyme';
 
@@ -21,20 +20,19 @@ describe('CreateProject', function() {
       ...baseProps,
     };
 
-    let wrapper = shallow(<CreateProject {...props} />, {
-      context: {
-        organization: {
-          id: '1',
-          slug: 'testOrg',
-          teams: [{slug: 'test', id: '1', name: 'test', hasAccess: false}],
+    let wrapper = shallow(
+      <CreateProject {...props} />,
+      TestStubs.routerContext([
+        {
+          organization: {
+            id: '1',
+            slug: 'testOrg',
+            teams: [{slug: 'test', id: '1', name: 'test', hasAccess: false}],
+          },
+          location: {query: {}},
         },
-        location: {query: {}},
-      },
-      childContextTypes: {
-        organization: PropTypes.object,
-        location: PropTypes.object,
-      },
-    });
+      ])
+    );
 
     expect(wrapper).toMatchSnapshot();
   });
@@ -66,22 +64,19 @@ describe('CreateProject', function() {
       ...baseProps,
     };
 
-    let wrapper = mount(<CreateProject {...props} />, {
-      context: {
-        organization: {
-          id: '1',
-          slug: 'testOrg',
-          teams: [{slug: 'test', id: '1', name: 'test', hasAccess: true}],
+    let wrapper = mount(
+      <CreateProject {...props} />,
+      TestStubs.routerContext([
+        {
+          organization: {
+            id: '1',
+            slug: 'testOrg',
+            teams: [{slug: 'test', id: '1', name: 'test', hasAccess: true}],
+          },
+          location: {query: {}},
         },
-        router: TestStubs.router(),
-        location: {query: {}},
-      },
-      childContextTypes: {
-        router: PropTypes.object,
-        organization: PropTypes.object,
-        location: PropTypes.object,
-      },
-    });
+      ])
+    );
 
     let node = wrapper.find('PlatformCard').first();
     node.simulate('click');
@@ -106,22 +101,19 @@ describe('CreateProject', function() {
       ...baseProps,
     };
 
-    let wrapper = mount(<CreateProject {...props} />, {
-      context: {
-        organization: {
-          id: '1',
-          slug: 'testOrg',
-          teams: [{slug: 'test', id: '1', name: 'test', hasAccess: true}],
+    let wrapper = mount(
+      <CreateProject {...props} />,
+      TestStubs.routerContext([
+        {
+          organization: {
+            id: '1',
+            slug: 'testOrg',
+            teams: [{slug: 'test', id: '1', name: 'test', hasAccess: true}],
+          },
+          location: {query: {platform: 'ruby'}},
         },
-        router: TestStubs.router(),
-        location: {query: {platform: 'ruby'}},
-      },
-      childContextTypes: {
-        router: PropTypes.object,
-        organization: PropTypes.object,
-        location: PropTypes.object,
-      },
-    });
+      ])
+    );
 
     expect(wrapper.state().projectName).toBe('Ruby');
 
@@ -133,22 +125,19 @@ describe('CreateProject', function() {
       ...baseProps,
     };
 
-    let wrapper = mount(<CreateProject {...props} />, {
-      context: {
-        organization: {
-          id: '1',
-          slug: 'testOrg',
-          teams: [{slug: 'test', id: '1', name: 'test', hasAccess: true}],
+    let wrapper = mount(
+      <CreateProject {...props} />,
+      TestStubs.routerContext([
+        {
+          organization: {
+            id: '1',
+            slug: 'testOrg',
+            teams: [{slug: 'test', id: '1', name: 'test', hasAccess: true}],
+          },
+          location: {query: {platform: 'XrubyROOLs'}},
         },
-        router: TestStubs.router(),
-        location: {query: {platform: 'XrubyROOLs'}},
-      },
-      childContextTypes: {
-        router: PropTypes.object,
-        organization: PropTypes.object,
-        location: PropTypes.object,
-      },
-    });
+      ])
+    );
 
     expect(wrapper.state().projectName).toBe('');
 

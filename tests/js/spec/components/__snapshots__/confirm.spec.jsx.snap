@@ -57,6 +57,7 @@ exports[`Confirm renders 1`] = `
       </Button>
       <Button
         autoFocus={true}
+        data-test-id="confirm-modal"
         disabled={false}
         onClick={[Function]}
         priority="primary"

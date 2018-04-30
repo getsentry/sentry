@@ -55,7 +55,7 @@ describe('OrganizationTeamProjects', function() {
   it('Should render', function() {
     let wrapper = mount(
       <OrganizationTeamProjects params={{orgId: 'org-slug', teamId: team.slug}} />,
-      TestStubs.routerOrganizationContext()
+      TestStubs.routerContext()
     );
 
     expect(wrapper).toMatchSnapshot();
@@ -65,7 +65,7 @@ describe('OrganizationTeamProjects', function() {
   it('Should allow bookmarking', function() {
     let wrapper = mount(
       <OrganizationTeamProjects params={{orgId: 'org-slug', teamId: team.slug}} />,
-      TestStubs.routerOrganizationContext()
+      TestStubs.routerContext()
     );
 
     let star = wrapper.find('.icon-star-outline');
@@ -83,7 +83,7 @@ describe('OrganizationTeamProjects', function() {
   it('Should allow adding and removing projects', function(done) {
     let wrapper = mount(
       <OrganizationTeamProjects params={{orgId: 'org-slug', teamId: team.slug}} />,
-      TestStubs.routerOrganizationContext()
+      TestStubs.routerContext()
     );
 
     let add = wrapper.find('DropdownButton').first();

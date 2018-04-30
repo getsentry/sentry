@@ -5,7 +5,8 @@ import ApiTokenRow from 'app/views/settings/account/apiTokenRow';
 describe('ApiTokenRow', function() {
   it('renders', function() {
     let wrapper = shallow(
-      <ApiTokenRow onRemove={() => {}} token={TestStubs.ApiToken()} />
+      <ApiTokenRow onRemove={() => {}} token={TestStubs.ApiToken()} />,
+      TestStubs.routerContext()
     );
 
     // Should be loading
@@ -14,7 +15,10 @@ describe('ApiTokenRow', function() {
 
   it('calls onRemove callback when trash can is clicked', function() {
     let cb = jest.fn();
-    let wrapper = mount(<ApiTokenRow onRemove={cb} token={TestStubs.ApiToken()} />);
+    let wrapper = mount(
+      <ApiTokenRow onRemove={cb} token={TestStubs.ApiToken()} />,
+      TestStubs.routerContext()
+    );
 
     wrapper.find('Button').simulate('click');
     expect(cb).toHaveBeenCalled();

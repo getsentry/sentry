@@ -1,11 +1,9 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import {shallow, mount} from 'enzyme';
 
 import {Client} from 'app/api';
 import Configure from 'app/views/onboarding/configure';
 import ProjectsStore from 'app/stores/projectsStore';
-import SentryTypes from 'app/proptypes';
 
 describe('Configure should render correctly', function() {
   let sandbox;
@@ -92,10 +90,14 @@ describe('Configure should render correctly', function() {
       };
       props.params.platform = 'node';
 
-      let wrapper = shallow(<Configure {...props} />, {
-        context: {organization: {id: '1337', slug: 'testOrg', teams: [['project-slug']]}},
-        childContextTypes: {organization: SentryTypes.Organization},
-      });
+      let wrapper = shallow(
+        <Configure {...props} />,
+        TestStubs.routerContext([
+          {
+            organization: {id: '1337', slug: 'testOrg', teams: [['project-slug']]},
+          },
+        ])
+      );
 
       const component = wrapper.instance();
 
@@ -119,15 +121,14 @@ describe('Configure should render correctly', function() {
         Configure.prototype.__reactAutoBindPairs.indexOf('redirectToNeutralDocs') + 1;
       Configure.prototype.__reactAutoBindPairs[index] = handleSubmitStub;
 
-      let wrapper = shallow(<Configure {...props} />, {
-        context: {
-          organization: {
-            id: '1337',
-            slug: 'testOrg',
-            teams: [['project-slug']],
+      let wrapper = shallow(
+        <Configure {...props} />,
+        TestStubs.routerContext([
+          {
+            organization: {id: '1337', slug: 'testOrg', teams: [['project-slug']]},
           },
-        },
-      });
+        ])
+      );
 
       expect(wrapper).toMatchSnapshot();
       expect(handleSubmitStub.callCount).toEqual(1);
@@ -139,51 +140,47 @@ describe('Configure should render correctly', function() {
       };
       props.params.platform = 'node';
 
-      let wrapper = mount(<Configure {...props} />, {
-        context: {
-          router: TestStubs.router(),
-          project: TestStubs.Project(),
-          organization: {
-            id: '1337',
-            slug: 'testOrg',
-            projects: [
-              {
-                name: 'Test Project',
-                slug: 'project-slug',
-                id: 'testProject',
-                hasAccess: true,
-                isBookmarked: false,
-                teams: [
-                  {
-                    id: 'coolteam',
-                    slug: 'coolteam',
-                    hasAccess: true,
-                  },
-                ],
-              },
-            ],
-            teams: [
-              {
-                id: 'coolteam',
-                slug: 'coolteam',
-                hasAccess: true,
-                projects: [
-                  {
-                    name: 'Test Project',
-                    slug: 'project-slug',
-                    id: 'testProject',
-                  },
-                ],
-              },
-            ],
+      let wrapper = mount(
+        <Configure {...props} />,
+        TestStubs.routerContext([
+          {
+            organization: {
+              id: '1337',
+              slug: 'testOrg',
+              projects: [
+                {
+                  name: 'Test Project',
+                  slug: 'project-slug',
+                  id: 'testProject',
+                  hasAccess: true,
+                  isBookmarked: false,
+                  teams: [
+                    {
+                      id: 'coolteam',
+                      slug: 'coolteam',
+                      hasAccess: true,
+                    },
+                  ],
+                },
+              ],
+              teams: [
+                {
+                  id: 'coolteam',
+                  slug: 'coolteam',
+                  hasAccess: true,
+                  projects: [
+                    {
+                      name: 'Test Project',
+                      slug: 'project-slug',
+                      id: 'testProject',
+                    },
+                  ],
+                },
+              ],
+            },
           },
-        },
-        childContextTypes: {
-          organization: SentryTypes.Organization,
-          project: SentryTypes.Project,
-          router: PropTypes.object,
-        },
-      });
+        ])
+      );
 
       setTimeout(() => {
         wrapper.update();

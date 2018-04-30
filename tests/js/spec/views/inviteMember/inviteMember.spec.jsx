@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import {shallow, mount} from 'enzyme';
 import _ from 'lodash';
 import {InviteMember} from 'app/views/inviteMember/inviteMember';
@@ -29,8 +28,8 @@ describe('CreateProject', function() {
       location: {query: {}},
     };
 
-    const baseContext = {
-      context: {
+    const baseContext = TestStubs.routerContext([
+      {
         organization: {
           id: '1',
           slug: 'testOrg',
@@ -39,15 +38,9 @@ describe('CreateProject', function() {
             {slug: 'foo', id: '2', name: 'foo', hasAccess: false},
           ],
         },
-        router: TestStubs.router(),
         location: {query: {}},
       },
-      childContextTypes: {
-        organization: PropTypes.object,
-        location: PropTypes.object,
-        router: PropTypes.object,
-      },
-    };
+    ]);
 
     it('should render loading', function() {
       let wrapper = shallow(<InviteMember {...baseProps} />, baseContext);

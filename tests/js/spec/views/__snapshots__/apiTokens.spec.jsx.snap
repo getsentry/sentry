@@ -92,544 +92,103 @@ exports[`ApiTokens renders empty result 1`] = `
 `;
 
 exports[`ApiTokens renders with result 1`] = `
-<ApiTokens>
-  <SideEffect(DocumentTitle)
-    title="API Tokens - Sentry"
-  >
-    <DocumentTitle
-      title="API Tokens - Sentry"
-    >
-      <div>
-        <SettingsPageHeading
-          action={
-            <Button
-              className="ref-create-token"
-              disabled={false}
-              priority="primary"
-              size="small"
-              to="/settings/account/api/auth-tokens/new-token/"
-            >
-              Create New Token
-            </Button>
-          }
-          title="Auth Tokens"
+<SideEffect(DocumentTitle)
+  title="API Tokens - Sentry"
+>
+  <div>
+    <SettingsPageHeading
+      action={
+        <Button
+          className="ref-create-token"
+          disabled={false}
+          priority="primary"
+          size="small"
+          to="/settings/account/api/auth-tokens/new-token/"
         >
-          <Wrapper>
-            <div
-              className="css-12kovf2-Wrapper e1kblvez0"
-            >
-              <Flex
-                align="center"
-              >
-                <Base
-                  align="center"
-                  className="css-5ipae5"
-                >
-                  <div
-                    className="css-5ipae5"
-                    is={null}
-                  >
-                    <Title>
-                      <div
-                        className="css-zmdcxu-Title e1kblvez1"
-                      >
-                        Auth Tokens
-                      </div>
-                    </Title>
-                    <div>
-                      <Button
-                        className="ref-create-token"
-                        disabled={false}
-                        priority="primary"
-                        size="small"
-                        to="/settings/account/api/auth-tokens/new-token/"
-                      >
-                        <Link
-                          className="ref-create-token button button-primary button-sm"
-                          disabled={false}
-                          onClick={[Function]}
-                          onlyActiveOnIndex={false}
-                          role="button"
-                          style={Object {}}
-                          to="/settings/account/api/auth-tokens/new-token/"
-                        >
-                          <a
-                            className="ref-create-token button button-primary button-sm"
-                            disabled={false}
-                            onClick={[Function]}
-                            role="button"
-                            style={Object {}}
-                          >
-                            <Flex
-                              align="center"
-                              className="button-label"
-                            >
-                              <Base
-                                align="center"
-                                className="button-label css-5ipae5"
-                              >
-                                <div
-                                  className="button-label css-5ipae5"
-                                  is={null}
-                                >
-                                  Create New Token
-                                </div>
-                              </Base>
-                            </Flex>
-                          </a>
-                        </Link>
-                      </Button>
-                    </div>
-                  </div>
-                </Base>
-              </Flex>
-            </div>
-          </Wrapper>
-        </SettingsPageHeading>
-        <TextBlock>
-          <Component
-            className="css-1geyb25-TextBlock ec8ep340"
+          Create New Token
+        </Button>
+      }
+      title="Auth Tokens"
+    />
+    <TextBlock>
+      Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API.
+    </TextBlock>
+    <TextBlock>
+      <span
+        key="5"
+      >
+        <span
+          key="0"
+        >
+          For more information on how to use the web API, see our 
+        </span>
+        <a
+          href="https://docs.sentry.io/hosted/api/"
+          key="2"
+        >
+          <span
+            key="1"
           >
-            <div
-              className="css-1geyb25-TextBlock ec8ep340"
-            >
-              Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API.
-            </div>
-          </Component>
-        </TextBlock>
-        <TextBlock>
-          <Component
-            className="css-1geyb25-TextBlock ec8ep340"
+            documentation
+          </span>
+        </a>
+        <span
+          key="3"
+        >
+          .
+        </span>
+      </span>
+    </TextBlock>
+    <TextBlock>
+      <small>
+        psst. Looking for the 
+        <strong>
+          DSN
+        </strong>
+         for an SDK? You'll find that under
+         
+        <strong>
+          [Project] » Settings » Client Keys
+        </strong>
+        .
+      </small>
+    </TextBlock>
+    <Panel>
+      <PanelHeader
+        disablePadding={true}
+      >
+        <Flex
+          align="center"
+        >
+          <Box
+            flex="1"
+            px={2}
           >
-            <div
-              className="css-1geyb25-TextBlock ec8ep340"
-            >
-              <span
-                key="5"
-              >
-                <span
-                  key="0"
-                >
-                  For more information on how to use the web API, see our 
-                </span>
-                <a
-                  href="https://docs.sentry.io/hosted/api/"
-                  key="2"
-                >
-                  <span
-                    key="1"
-                  >
-                    documentation
-                  </span>
-                </a>
-                <span
-                  key="3"
-                >
-                  .
-                </span>
-              </span>
-            </div>
-          </Component>
-        </TextBlock>
-        <TextBlock>
-          <Component
-            className="css-1geyb25-TextBlock ec8ep340"
-          >
-            <div
-              className="css-1geyb25-TextBlock ec8ep340"
-            >
-              <small>
-                psst. Looking for the 
-                <strong>
-                  DSN
-                </strong>
-                 for an SDK? You'll find that under
-                 
-                <strong>
-                  [Project] » Settings » Client Keys
-                </strong>
-                .
-              </small>
-            </div>
-          </Component>
-        </TextBlock>
-        <Panel>
-          <StyledPanel>
-            <div
-              className="css-1ctfmmx-StyledPanel e1laxa7d0"
-            >
-              <PanelHeader
-                disablePadding={true}
-              >
-                <StyledPanelHeader
-                  disablePadding={true}
-                >
-                  <Component
-                    className="css-4b6nsw-StyledPanelHeader-getPadding e1p8v8nv0"
-                    disablePadding={true}
-                  >
-                    <Flex
-                      align="center"
-                      className="css-4b6nsw-StyledPanelHeader-getPadding e1p8v8nv0"
-                      justify="space-between"
-                    >
-                      <Base
-                        align="center"
-                        className="e1p8v8nv0 css-1nuqm32-StyledPanelHeader-getPadding"
-                        justify="space-between"
-                      >
-                        <div
-                          className="e1p8v8nv0 css-1nuqm32-StyledPanelHeader-getPadding"
-                          is={null}
-                        >
-                          <Flex
-                            align="center"
-                          >
-                            <Base
-                              align="center"
-                              className="css-5ipae5"
-                            >
-                              <div
-                                className="css-5ipae5"
-                                is={null}
-                              >
-                                <Box
-                                  flex="1"
-                                  px={2}
-                                >
-                                  <Base
-                                    className="css-pcjga5"
-                                    flex="1"
-                                    px={2}
-                                  >
-                                    <div
-                                      className="css-pcjga5"
-                                      is={null}
-                                    >
-                                      Auth Token
-                                    </div>
-                                  </Base>
-                                </Box>
-                              </div>
-                            </Base>
-                          </Flex>
-                        </div>
-                      </Base>
-                    </Flex>
-                  </Component>
-                </StyledPanelHeader>
-              </PanelHeader>
-              <PanelBody
-                direction="column"
-                disablePadding={true}
-                flex={false}
-              >
-                <div
-                  className=""
-                >
-                  <ApiTokenRow
-                    key="apitoken123"
-                    onRemove={[Function]}
-                    token={
-                      Object {
-                        "dateCreated": 2018-01-12T02:01:41.000Z,
-                        "scopes": Array [
-                          "scope1",
-                          "scope2",
-                        ],
-                        "token": "apitoken123",
-                      }
-                    }
-                  >
-                    <StyledPanelItem
-                      p={2}
-                    >
-                      <PanelItem
-                        className="css-1bzgvtg-StyledPanelItem egigtit0"
-                        p={2}
-                      >
-                        <StyledPanelItem
-                          className="css-1bzgvtg-StyledPanelItem egigtit0"
-                          p={2}
-                        >
-                          <Base
-                            className="egigtit0 css-95j4yk-StyledPanelItem-StyledPanelItem eo8n7lk0"
-                            p={2}
-                          >
-                            <div
-                              className="egigtit0 css-95j4yk-StyledPanelItem-StyledPanelItem eo8n7lk0"
-                              is={null}
-                            >
-                              <div>
-                                <Flex>
-                                  <Base
-                                    className="css-sncxrr"
-                                  >
-                                    <div
-                                      className="css-sncxrr"
-                                      is={null}
-                                    >
-                                      <Box
-                                        flex="1"
-                                      >
-                                        <Base
-                                          className="css-vti0ei"
-                                          flex="1"
-                                        >
-                                          <div
-                                            className="css-vti0ei"
-                                            is={null}
-                                          >
-                                            <div
-                                              style={
-                                                Object {
-                                                  "marginBottom": 5,
-                                                }
-                                              }
-                                            >
-                                              <small>
-                                                <TextCopyInput
-                                                  flexValueContainer={false}
-                                                  onCopy={[Function]}
-                                                  renderer={[Function]}
-                                                >
-                                                  <Flex>
-                                                    <Base
-                                                      className="css-sncxrr"
-                                                    >
-                                                      <div
-                                                        className="css-sncxrr"
-                                                        is={null}
-                                                      >
-                                                        <OverflowContainer>
-                                                          <div
-                                                            className="css-1qj34or-OverflowContainer e1usehz71"
-                                                          >
-                                                            <StyledInput
-                                                              onClick={[Function]}
-                                                              readOnly={true}
-                                                              value="apitoken123"
-                                                            >
-                                                              <Component
-                                                                className="css-5but09-StyledInput-readOnlyStyle-inputStyles e1usehz70"
-                                                                onClick={[Function]}
-                                                                readOnly={true}
-                                                                value="apitoken123"
-                                                              >
-                                                                <input
-                                                                  className="css-5but09-StyledInput-readOnlyStyle-inputStyles e1usehz70"
-                                                                  onClick={[Function]}
-                                                                  readOnly={true}
-                                                                  value="apitoken123"
-                                                                />
-                                                              </Component>
-                                                            </StyledInput>
-                                                          </div>
-                                                        </OverflowContainer>
-                                                        <Clipboard
-                                                          errorMessage="Error copying to clipboard"
-                                                          hideMessages={false}
-                                                          hideUnsupported={true}
-                                                          onClick={[Function]}
-                                                          successMessage="Copied to clipboard"
-                                                          value="apitoken123"
-                                                        />
-                                                      </div>
-                                                    </Base>
-                                                  </Flex>
-                                                </TextCopyInput>
-                                              </small>
-                                            </div>
-                                          </div>
-                                        </Base>
-                                      </Box>
-                                      <Action
-                                        pl={2}
-                                      >
-                                        <Base
-                                          className="css-qlqj9f-Action egigtit4"
-                                          pl={2}
-                                        >
-                                          <div
-                                            className="css-qlqj9f-Action egigtit4"
-                                            is={null}
-                                          >
-                                            <StyledButton
-                                              icon="icon-circle-subtract"
-                                              onClick={[Function]}
-                                              size="small"
-                                            >
-                                              <Button
-                                                className="css-fla6ex-StyledButton egigtit6"
-                                                disabled={false}
-                                                icon="icon-circle-subtract"
-                                                onClick={[Function]}
-                                                size="small"
-                                              >
-                                                <button
-                                                  className="css-fla6ex-StyledButton egigtit6 button button-default button-sm"
-                                                  disabled={false}
-                                                  onClick={[Function]}
-                                                  role="button"
-                                                >
-                                                  <Flex
-                                                    align="center"
-                                                    className="button-label"
-                                                  >
-                                                    <Base
-                                                      align="center"
-                                                      className="button-label css-5ipae5"
-                                                    >
-                                                      <div
-                                                        className="button-label css-5ipae5"
-                                                        is={null}
-                                                      >
-                                                        <Icon
-                                                          size="small"
-                                                        >
-                                                          <Base
-                                                            className="css-11bwulm-Icon e17811v30"
-                                                            size="small"
-                                                          >
-                                                            <div
-                                                              className="css-11bwulm-Icon e17811v30"
-                                                              is={null}
-                                                              size="small"
-                                                            >
-                                                              <StyledInlineSvg
-                                                                size="12px"
-                                                                src="icon-circle-subtract"
-                                                              >
-                                                                <InlineSvg
-                                                                  className="css-1ov3rcq-StyledInlineSvg e17811v31"
-                                                                  size="12px"
-                                                                  src="icon-circle-subtract"
-                                                                >
-                                                                  <StyledSvg
-                                                                    className="css-1ov3rcq-StyledInlineSvg e17811v31"
-                                                                    height="12px"
-                                                                    viewBox={Object {}}
-                                                                    width="12px"
-                                                                  >
-                                                                    <svg
-                                                                      className="e17811v31 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
-                                                                      height="12px"
-                                                                      viewBox={Object {}}
-                                                                      width="12px"
-                                                                    >
-                                                                      <use
-                                                                        href="#test"
-                                                                        xlinkHref="#test"
-                                                                      />
-                                                                    </svg>
-                                                                  </StyledSvg>
-                                                                </InlineSvg>
-                                                              </StyledInlineSvg>
-                                                            </div>
-                                                          </Base>
-                                                        </Icon>
-                                                        <span
-                                                          className="ref-delete-api-token"
-                                                        >
-                                                          Remove
-                                                        </span>
-                                                      </div>
-                                                    </Base>
-                                                  </Flex>
-                                                </button>
-                                              </Button>
-                                            </StyledButton>
-                                          </div>
-                                        </Base>
-                                      </Action>
-                                    </div>
-                                  </Base>
-                                </Flex>
-                              </div>
-                              <Details>
-                                <Base
-                                  className="css-dpx4kh-Details egigtit1"
-                                >
-                                  <div
-                                    className="css-dpx4kh-Details egigtit1"
-                                    is={null}
-                                  >
-                                    <Box
-                                      flex="1"
-                                    >
-                                      <Base
-                                        className="css-vti0ei"
-                                        flex="1"
-                                      >
-                                        <div
-                                          className="css-vti0ei"
-                                          is={null}
-                                        >
-                                          <Heading>
-                                            <div
-                                              className="css-1f0mnd4-Heading egigtit5"
-                                            >
-                                              Scopes
-                                            </div>
-                                          </Heading>
-                                          <ScopeList>
-                                            <div
-                                              className="css-5kshz2-ScopeList egigtit2"
-                                            >
-                                              scope1, scope2
-                                            </div>
-                                          </ScopeList>
-                                        </div>
-                                      </Base>
-                                    </Box>
-                                    <Box>
-                                      <Base
-                                        className="css-roynbj"
-                                      >
-                                        <div
-                                          className="css-roynbj"
-                                          is={null}
-                                        >
-                                          <Heading>
-                                            <div
-                                              className="css-1f0mnd4-Heading egigtit5"
-                                            >
-                                              Created
-                                            </div>
-                                          </Heading>
-                                          <Time>
-                                            <time
-                                              className="css-1suld8z-Time egigtit3"
-                                            >
-                                              <DateTime
-                                                date={2018-01-12T02:01:41.000Z}
-                                                seconds={true}
-                                              >
-                                                <time>
-                                                  Jan 12, 2018 2:01:41 AM UTC
-                                                </time>
-                                              </DateTime>
-                                            </time>
-                                          </Time>
-                                        </div>
-                                      </Base>
-                                    </Box>
-                                  </div>
-                                </Base>
-                              </Details>
-                            </div>
-                          </Base>
-                        </StyledPanelItem>
-                      </PanelItem>
-                    </StyledPanelItem>
-                  </ApiTokenRow>
-                </div>
-              </PanelBody>
-            </div>
-          </StyledPanel>
-        </Panel>
-      </div>
-    </DocumentTitle>
-  </SideEffect(DocumentTitle)>
-</ApiTokens>
+            Auth Token
+          </Box>
+        </Flex>
+      </PanelHeader>
+      <PanelBody
+        direction="column"
+        disablePadding={true}
+        flex={false}
+      >
+        <ApiTokenRow
+          key="apitoken123"
+          onRemove={[Function]}
+          token={
+            Object {
+              "dateCreated": 2018-01-12T02:01:41.000Z,
+              "scopes": Array [
+                "scope1",
+                "scope2",
+              ],
+              "token": "apitoken123",
+            }
+          }
+        />
+      </PanelBody>
+    </Panel>
+  </div>
+</SideEffect(DocumentTitle)>
 `;

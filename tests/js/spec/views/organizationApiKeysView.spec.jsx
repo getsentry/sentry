@@ -1,15 +1,8 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import {mount} from 'enzyme';
 
 import {Client} from 'app/api';
 import OrganizationApiKeysView from 'app/views/settings/organization/apiKeys/organizationApiKeysView';
-
-const childContextTypes = {
-  organization: PropTypes.object,
-  router: PropTypes.object,
-  location: PropTypes.object,
-};
 
 const routes = [
   {path: '/'},
@@ -19,6 +12,8 @@ const routes = [
 ];
 
 describe('OrganizationApiKeysView', function() {
+  let routerContext = TestStubs.routerContext();
+
   beforeEach(function() {
     Client.clearMockResponses();
     Client.addMockResponse({
@@ -44,14 +39,7 @@ describe('OrganizationApiKeysView', function() {
         params={{orgId: 'org-slug'}}
         routes={routes}
       />,
-      {
-        context: {
-          router: TestStubs.router(),
-          organization: TestStubs.Organization(),
-          location: TestStubs.location(),
-        },
-        childContextTypes,
-      }
+      routerContext
     );
 
     expect(wrapper.state('keys')).toEqual([TestStubs.ApiKey()]);
@@ -64,14 +52,7 @@ describe('OrganizationApiKeysView', function() {
         params={{orgId: 'org-slug'}}
         routes={routes}
       />,
-      {
-        context: {
-          router: TestStubs.router(),
-          organization: TestStubs.Organization(),
-          location: TestStubs.location(),
-        },
-        childContextTypes,
-      }
+      routerContext
     );
     // OrganizationApiKeysView.handleRemove = jest.fn();
     // expect(OrganizationApiKeysView.handleRemove).not.toHaveBeenCalled();
