@@ -40,7 +40,7 @@ class ProjectOwnership extends AsyncView {
 
     return (
       <div>
-        <SettingsPageHeader title={t('Issue Ownership')} />
+        <SettingsPageHeader title={t('Issue Owners')} />
 
         <div className="alert alert-block alert-info">
           {t(`Psst! This feature is still a work-in-progress. Thanks for being an early
