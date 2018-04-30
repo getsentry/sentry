@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import BreadcrumbDropdown from 'app/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
-import LetterAvatar from 'app/components/letterAvatar';
+import IdBadge from 'app/components/idBadge';
 import MenuItem from 'app/views/settings/components/settingsBreadcrumb/menuItem';
 import SentryTypes from 'app/proptypes';
 import TextLink from 'app/components/textLink';
@@ -36,14 +36,7 @@ class OrganizationCrumb extends React.Component {
             })}
           >
             <Flex align="center">
-              <span style={{width: 18, height: 18, marginRight: 6}}>
-                <LetterAvatar
-                  style={{display: 'inline-block'}}
-                  displayName={organization.slug}
-                  identifier={organization.slug}
-                />
-              </span>
-              {organization.slug}
+              <IdBadge organization={organization} />
             </Flex>
           </TextLink>
         }
@@ -65,7 +58,11 @@ class OrganizationCrumb extends React.Component {
         route={route}
         items={organizations.map(org => ({
           value: org.slug,
-          label: <MenuItem>{org.slug}</MenuItem>,
+          label: (
+            <MenuItem>
+              <IdBadge organization={org} />
+            </MenuItem>
+          ),
         }))}
         {...props}
       />

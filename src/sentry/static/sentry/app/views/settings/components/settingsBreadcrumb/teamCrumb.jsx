@@ -1,9 +1,9 @@
-import {Flex} from 'grid-emotion';
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 
 import BreadcrumbDropdown from 'app/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
+import IdBadge from 'app/components/idBadge';
 import MenuItem from 'app/views/settings/components/settingsBreadcrumb/menuItem';
 import TextLink from 'app/components/textLink';
 import recreateRoute from 'app/utils/recreateRoute';
@@ -33,7 +33,7 @@ class TeamCrumb extends React.Component {
               params: {...params, teamId: team.slug},
             })}
           >
-            <Flex align="center">#{team.slug}</Flex>
+            <IdBadge team={team} />
           </TextLink>
         }
         onSelect={item => {
@@ -46,9 +46,13 @@ class TeamCrumb extends React.Component {
         }}
         hasMenu={hasMenu}
         route={route}
-        items={teams.map(({slug}) => ({
-          value: slug,
-          label: <MenuItem>#{slug}</MenuItem>,
+        items={teams.map(teamItem => ({
+          value: teamItem.slug,
+          label: (
+            <MenuItem>
+              <IdBadge team={teamItem} />
+            </MenuItem>
+          ),
         }))}
         {...props}
       />

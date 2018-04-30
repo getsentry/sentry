@@ -4,6 +4,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import BreadcrumbDropdown from 'app/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
+import IdBadge from 'app/components/idBadge';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import MenuItem from 'app/views/settings/components/settingsBreadcrumb/menuItem';
 import SentryTypes from 'app/proptypes';
@@ -12,21 +13,6 @@ import recreateRoute from 'app/utils/recreateRoute';
 import replaceRouterParams from 'app/utils/replaceRouterParams';
 import withLatestContext from 'app/utils/withLatestContext';
 import withProjects from 'app/utils/withProjects';
-
-const HEIGHT = '24px';
-const ProjectName = styled.div`
-  display: flex;
-
-  .loading {
-    width: 26px;
-    height: ${HEIGHT};
-    margin: 0;
-  }
-`;
-
-const ProjectTextLink = styled(TextLink)`
-  line-height: ${HEIGHT};
-`;
 
 class ProjectCrumb extends React.Component {
   static propTypes = {
@@ -62,16 +48,14 @@ class ProjectCrumb extends React.Component {
             {!latestProject ? (
               <LoadingIndicator mini />
             ) : (
-              <div>
-                <ProjectTextLink
-                  to={replaceRouterParams('/settings/:orgId/:projectId/', {
-                    orgId: latestOrganization.slug,
-                    projectId: latestProject.slug,
-                  })}
-                >
-                  {latestProject.slug}
-                </ProjectTextLink>
-              </div>
+              <ProjectTextLink
+                to={replaceRouterParams('/settings/:orgId/:projectId/', {
+                  orgId: latestOrganization.slug,
+                  projectId: latestProject.slug,
+                })}
+              >
+                <IdBadge project={latestProject} />
+              </ProjectTextLink>
             )}
           </ProjectName>
         }
@@ -90,7 +74,11 @@ class ProjectCrumb extends React.Component {
         }}
         items={projects.map(project => ({
           value: project.slug,
-          label: <MenuItem>{project.slug}</MenuItem>,
+          label: (
+            <MenuItem>
+              <IdBadge project={project} />
+            </MenuItem>
+          ),
         }))}
         {...props}
       />
@@ -100,3 +88,20 @@ class ProjectCrumb extends React.Component {
 
 export {ProjectCrumb};
 export default withProjects(withLatestContext(ProjectCrumb));
+
+// Set height of crumb because of spinner
+const HEIGHT = '24px';
+
+const ProjectName = styled.div`
+  display: flex;
+
+  .loading {
+    width: 26px;
+    height: ${HEIGHT};
+    margin: 0;
+  }
+`;
+
+const ProjectTextLink = styled(TextLink)`
+  line-height: ${HEIGHT};
+`;

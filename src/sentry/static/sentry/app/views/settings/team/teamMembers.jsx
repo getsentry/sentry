@@ -3,7 +3,7 @@ import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
 import ApiMixin from 'app/mixins/apiMixin';
-import UserBadge from 'app/components/userBadge';
+import IdBadge from 'app/components/idBadge';
 import Avatar from 'app/components/avatar';
 import Button from 'app/components/buttons/button';
 import Link from 'app/components/link';
@@ -243,7 +243,7 @@ const TeamMembers = createReactClass({
         {this.state.teamMemberList.length ? (
           this.state.teamMemberList.map((member, i) => (
             <StyledMemberContainer key={i}>
-              <UserBadge avatarSize={36} user={member} orgId={params.orgId} />
+              <IdBadge avatarSize={36} user={member} orgId={params.orgId} />
               {access.has('org:write') && this.removeButton(member)}
             </StyledMemberContainer>
           ))

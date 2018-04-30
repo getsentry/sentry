@@ -1,6 +1,7 @@
 const theme = {
   breakpoints: ['768px', '992px', '1200px'],
 
+  // Colors
   offWhite: '#FAF9FB',
   whiteDark: '#fbfbfc',
   white: '#FFFFFF',
@@ -89,6 +90,10 @@ const theme = {
       textDark: '#5d3e3b',
     },
   },
+
+  // Max-width for displaying slugs
+  // i.e. organization, project, or team
+  maxSlugWidth: '200px',
 
   grid: 8,
   fontSizeSmall: '12px',

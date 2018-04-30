@@ -1,7 +1,7 @@
 import React from 'react';
 import {mount, shallow} from 'enzyme';
 
-import UserBadge from 'app/components/userBadge';
+import UserBadge from 'app/components/idBadge/userBadge';
 
 describe('UserBadge', function() {
   let user = TestStubs.User();

@@ -35,11 +35,9 @@ exports[`TeamMembers render() renders 1`] = `
   <StyledMemberContainer
     key="0"
   >
-    <UserBadge
+    <IdBadge
       avatarSize={36}
-      hideEmail={false}
       orgId="org-slug"
-      useLink={true}
       user={
         Object {
           "email": "sentry1@test.com",
@@ -81,11 +79,9 @@ exports[`TeamMembers render() renders 1`] = `
   <StyledMemberContainer
     key="1"
   >
-    <UserBadge
+    <IdBadge
       avatarSize={36}
-      hideEmail={false}
       orgId="org-slug"
-      useLink={true}
       user={
         Object {
           "email": "sentry2@test.com",
@@ -127,11 +123,9 @@ exports[`TeamMembers render() renders 1`] = `
   <StyledMemberContainer
     key="2"
   >
-    <UserBadge
+    <IdBadge
       avatarSize={36}
-      hideEmail={false}
       orgId="org-slug"
-      useLink={true}
       user={
         Object {
           "email": "sentry3@test.com",
@@ -173,11 +167,9 @@ exports[`TeamMembers render() renders 1`] = `
   <StyledMemberContainer
     key="3"
   >
-    <UserBadge
+    <IdBadge
       avatarSize={36}
-      hideEmail={false}
       orgId="org-slug"
-      useLink={true}
       user={
         Object {
           "email": "sentry4@test.com",
