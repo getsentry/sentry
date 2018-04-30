@@ -31,11 +31,11 @@ def execute(relay, project_id, query):
     return {
         'disabled': project.status > 0,
         'slug': project.slug,
-        'last_fetch': now,
-        'last_change': now,
+        'lastFetch': now,
+        'lastChange': now,
         'rev': uuid.uuid4().hex,
-        'public_keys': public_keys,
+        'publicKeys': public_keys,
         'config': {
-            'allowed_domains': project.get_option('sentry:origins', [])
+            'allowedDomains': project.get_option('sentry:origins', [])
         }
     }
