@@ -78,10 +78,6 @@ class BaseAvatar extends React.Component {
     return `/avatar/${uploadId}/?${qs.stringify({s: this.getRemoteImageSize()})}`;
   };
 
-  handleLoad = () => {
-    this.setState({showBackupAvatar: true});
-  };
-
   handleError = () => {
     this.setState({showBackupAvatar: true, loadError: true});
   };
@@ -95,7 +91,6 @@ class BaseAvatar extends React.Component {
 
     let props = {
       onError: this.handleError,
-      onLoad: this.handleLoad,
     };
     if (type === 'gravatar') {
       return <img src={this.buildGravatarUrl()} {...props} />;
