@@ -1241,6 +1241,10 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     'sentry.integrations.vsts.VSTSIntegration',
 )
 
+SENTRY_INTERNAL_INTEGRATIONS = (
+    'vsts',
+)
+
 
 def get_raven_config():
     return {
