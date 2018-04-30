@@ -11,11 +11,12 @@ from sentry.web.helpers import render_to_response
 
 class AccountIdentityAssociateView(OrganizationView):
     @never_cache
-    def handle(self, request, organization, provider_key):
+    def handle(self, request, organization, provider_key, external_id):
         try:
             provider_model = IdentityProvider.objects.get(
                 organization=organization,
                 type=provider_key,
+                external_id=external_id,
             )
         except IdentityProvider.DoesNotExist:
             return self.redirect(reverse('sentry-account-settings-identities'))

@@ -39,7 +39,7 @@ class IdentityProvider(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_identityprovider'
-        unique_together = (('type', 'organization'), ('type', 'organization', 'external_id'),)
+        unique_together = (('type', 'organization', 'external_id'),)
 
 
 class Identity(Model):
