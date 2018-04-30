@@ -33,7 +33,7 @@ class TeamCrumb extends React.Component {
               params: {...params, teamId: team.slug},
             })}
           >
-            <IdBadge team={team} />
+            <IdBadge avatarSize={18} team={team} />
           </TextLink>
         }
         onSelect={item => {

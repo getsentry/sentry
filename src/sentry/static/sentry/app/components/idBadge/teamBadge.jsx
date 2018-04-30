@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 
 import BaseBadge from 'app/components/idBadge/baseBadge';
 import SentryTypes from 'app/proptypes';
-import SlugOverflow from 'app/components/idBadge/slugOverflow';
+import BadgeDisplayName from 'app/components/idBadge/badgeDisplayName';
 
 export default class TeamBadge extends React.Component {
   static propTypes = {
@@ -23,7 +23,7 @@ export default class TeamBadge extends React.Component {
 
     return (
       <BaseBadge
-        displayName={<SlugOverflow>#{team.slug}</SlugOverflow>}
+        displayName={<BadgeDisplayName>#{team.slug}</BadgeDisplayName>}
         {...this.props}
       />
     );

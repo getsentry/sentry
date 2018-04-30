@@ -9,6 +9,6 @@ describe('ProjectBadge', function() {
       TestStubs.routerContext()
     );
     expect(wrapper.find('StyledAvatar')).toHaveLength(0);
-    expect(wrapper.find('SlugOverflow').text()).toEqual('project-slug');
+    expect(wrapper.find('BadgeDisplayName').text()).toEqual('project-slug');
   });
 });

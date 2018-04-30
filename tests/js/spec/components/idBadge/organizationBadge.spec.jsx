@@ -9,6 +9,6 @@ describe('OrganizationBadge', function() {
       TestStubs.routerContext()
     );
     expect(wrapper.find('StyledAvatar')).toHaveLength(1);
-    expect(wrapper.find('SlugOverflow').text()).toEqual('org-slug');
+    expect(wrapper.find('BadgeDisplayName').text()).toEqual('org-slug');
   });
 });

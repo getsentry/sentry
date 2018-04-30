@@ -48,14 +48,14 @@ class ProjectCrumb extends React.Component {
             {!latestProject ? (
               <LoadingIndicator mini />
             ) : (
-              <ProjectTextLink
+              <TextLink
                 to={replaceRouterParams('/settings/:orgId/:projectId/', {
                   orgId: latestOrganization.slug,
                   projectId: latestProject.slug,
                 })}
               >
                 <IdBadge project={latestProject} />
-              </ProjectTextLink>
+              </TextLink>
             )}
           </ProjectName>
         }
@@ -100,8 +100,4 @@ const ProjectName = styled.div`
     height: ${HEIGHT};
     margin: 0;
   }
-`;
-
-const ProjectTextLink = styled(TextLink)`
-  line-height: ${HEIGHT};
 `;

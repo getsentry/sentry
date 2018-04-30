@@ -91,10 +91,6 @@ const theme = {
     },
   },
 
-  // Max-width for displaying slugs
-  // i.e. organization, project, or team
-  maxSlugWidth: '200px',
-
   grid: 8,
   fontSizeSmall: '12px',
   fontSizeMedium: '14px',
@@ -102,6 +98,10 @@ const theme = {
   fontSizeExtraLarge: '18px',
 
   settings: {
+    // Max-width for settings breadcrumbs
+    // i.e. organization, project, or team
+    maxCrumbWidth: '240px',
+
     containerWidth: '1140px',
     headerHeight: '115px',
     sidebarWidth: '210px',

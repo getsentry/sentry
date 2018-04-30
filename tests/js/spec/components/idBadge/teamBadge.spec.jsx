@@ -6,6 +6,6 @@ describe('TeamBadge', function() {
   it('renders with Avatar and team name', function() {
     let wrapper = mount(<TeamBadge team={TestStubs.Team()} />, TestStubs.routerContext());
     expect(wrapper.find('StyledAvatar')).toHaveLength(1);
-    expect(wrapper.find('SlugOverflow').text()).toEqual('#team-slug');
+    expect(wrapper.find('BadgeDisplayName').text()).toEqual('#team-slug');
   });
 });
