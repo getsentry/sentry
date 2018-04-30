@@ -5,7 +5,6 @@ import SidebarPanelItem from 'app/components/sidebarPanelItem';
 class SidebarPanel extends React.Component {
   static propTypes = {
     title: PropTypes.string,
-    items: PropTypes.array,
     hidePanel: PropTypes.func,
   };
 

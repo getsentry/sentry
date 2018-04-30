@@ -10,7 +10,6 @@ const LatestDeployOrReleaseTime = createReactClass({
   displayName: 'LatestDeployOrReleaseTime',
 
   propTypes: {
-    orgId: PropTypes.string.isRequired,
     release: PropTypes.object.isRequired,
   },
 
