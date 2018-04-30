@@ -10,10 +10,10 @@ uname = re.compile('^(?P<name>[a-zA-Z]+) (?P<version>\d+\.\d+\.\d+(\.[1-9]+)?).*
 
 # If there's no name and version, attempts to infer from raw_description
 def normalize(data):
-    raw_description = data.get('raw_description', None)
+    raw_description = data.get('raw_description')
     if raw_description is not None \
-            and data.get('name', None) is None \
-            and data.get('version', None) is None:
+            and data.get('name') is None \
+            and data.get('version') is None:
         r = windows.search(raw_description)
         if r:
             data['name'] = 'Windows'
