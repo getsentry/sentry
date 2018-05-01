@@ -9,6 +9,7 @@ import Tooltip from '../tooltip';
 
 class SidebarItem extends React.Component {
   static propTypes = {
+    ...Link.propTypes,
     router: PropTypes.object,
     href: PropTypes.string,
     id: PropTypes.string,
@@ -49,6 +50,7 @@ class SidebarItem extends React.Component {
     let {
       router,
       href,
+      index,
       to,
       icon,
       label,
@@ -58,8 +60,6 @@ class SidebarItem extends React.Component {
       collapsed,
       className,
       orientation,
-
-      ...props
     } = this.props;
 
     // If there is no active panel open and if path is active according to react-router
@@ -67,9 +67,12 @@ class SidebarItem extends React.Component {
       !hasPanel &&
       router &&
       to &&
-      router.isActive({
-        pathname: to,
-      });
+      router.isActive(
+        {
+          pathname: to,
+        },
+        index
+      );
     let isTop = orientation === 'top';
     let placement = isTop ? 'bottom' : 'right';
 
@@ -85,7 +88,6 @@ class SidebarItem extends React.Component {
           to={to}
           className={className}
           onClick={this.handleClick}
-          {...props}
         >
           <SidebarItemWrapper>
             <SidebarItemIcon>{icon}</SidebarItemIcon>
