@@ -10,20 +10,21 @@ body {
   color: @gray-darker;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
-  padding-left: @sidebar-width;
   min-height: 100vh;
-
-  // Fake sidebar rendering until actual sidebar is loaded
-
-  background-image: linear-gradient(@header-bg-color, @header-bg-color);
-  background-size: @sidebar-width;
-  background-repeat: repeat-y;
 
   &.new-settings {
     overflow-y: scroll;
     background-image: none;
     background-color: #fcfcfc;
     padding: 0;
+
+    &.body-sidebar {
+      padding-left: @sidebar-expanded-width;
+
+      &.collapsed {
+        padding-left: @sidebar-collapsed-width;
+      }
+    }
 
     .messages-container {
       margin: 0;
@@ -52,6 +53,14 @@ body.narrow {
   padding: 0;
 
   background: #fff;
+
+  &.body-sidebar {
+    padding-left: @sidebar-expanded-width;
+
+    &.collapsed {
+      padding-left: @sidebar-collapsed-width;
+    }
+  }
 
   &.dialog {
     padding-top: 0;
@@ -149,6 +158,7 @@ body.auth {
 // Container around content in app.jsx
 .main-container {
   min-height: 100vh;
+  outline: none;
 }
 
 // So loader can take up full height so that footer is fixed to bottom of screen
@@ -502,7 +512,7 @@ footer {
       right: 0;
       top: 0;
       font-size: 20px;
-      background: @header-bg-color;
+      background: @sidebar-bg-color;
       padding-left: 30px;
     }
 

@@ -1,14 +1,15 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-
 import createReactClass from 'create-react-class';
 
-import ApiMixin from 'app/mixins/apiMixin';
-import LoadingIndicator from 'app/components/loadingIndicator';
 import {t} from 'app/locale';
-
-import SidebarPanel from 'app/components/sidebarPanel';
-import SidebarPanelItem from 'app/components/sidebarPanelItem';
+import ApiMixin from 'app/mixins/apiMixin';
+import IconSidebarWhatsNew from 'app/icons/icon-sidebar-whats-new';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import SidebarItem from 'app/components/sidebar/sidebarItem';
+import SidebarPanel from 'app/components/sidebar/sidebarPanel';
+import SidebarPanelEmpty from 'app/components/sidebar/sidebarPanelEmpty';
+import SidebarPanelItem from 'app/components/sidebar/sidebarPanelItem';
 
 const MARK_SEEN_DELAY = 1000;
 const POLLER_DELAY = 60000;
@@ -17,6 +18,8 @@ const Broadcasts = createReactClass({
   displayName: 'Broadcasts',
 
   propTypes: {
+    orientation: PropTypes.oneOf(['top', 'left']),
+    collapsed: PropTypes.bool,
     showPanel: PropTypes.bool,
     currentPanel: PropTypes.string,
     hidePanel: PropTypes.func,
@@ -75,12 +78,14 @@ const Broadcasts = createReactClass({
     });
   },
 
-  onShowPanel() {
+  handleShowPanel() {
     this.timer = window.setTimeout(this.markSeen, MARK_SEEN_DELAY);
     this.props.onShowPanel();
   },
 
   getUnseenIds() {
+    if (!this.state.broadcasts) return [];
+
     return this.state.broadcasts
       .filter(item => {
         return !item.hasSeen;
@@ -112,35 +117,45 @@ const Broadcasts = createReactClass({
   },
 
   render() {
+    let {orientation, collapsed, currentPanel, showPanel, hidePanel} = this.props;
     let {broadcasts, loading} = this.state;
+
+    let unseenPosts = this.getUnseenIds();
+
     return (
-      <li className={this.props.currentPanel == 'broadcasts' ? 'active' : null}>
-        <a
-          className="broadcasts-toggle"
-          onClick={this.onShowPanel}
-          title={t('Updates from Sentry')}
-        >
-          <span className="icon icon-globe" />
-          {this.getUnseenIds() > 0 && <span className="activity-indicator" />}
-        </a>
-        {this.props.showPanel &&
-          this.props.currentPanel == 'broadcasts' && (
+      <React.Fragment>
+        <SidebarItem
+          data-test-id="sidebar-broadcasts"
+          orientation={orientation}
+          collapsed={collapsed}
+          active={currentPanel == 'broadcasts'}
+          badge={unseenPosts.length}
+          icon={<IconSidebarWhatsNew size={22} />}
+          label={t("What's new")}
+          onClick={this.handleShowPanel}
+        />
+
+        {showPanel &&
+          currentPanel == 'broadcasts' && (
             <SidebarPanel
-              title={t('Recent updates from Sentry')}
-              hidePanel={this.props.hidePanel}
+              data-test-id="sidebar-broadcasts-panel"
+              orientation={orientation}
+              collapsed={collapsed}
+              title={t("What's new in Sentry")}
+              hidePanel={hidePanel}
             >
               {loading ? (
                 <LoadingIndicator />
               ) : broadcasts.length === 0 ? (
-                <div className="sidebar-panel-empty">
+                <SidebarPanelEmpty>
                   {t('No recent updates from the Sentry team.')}
-                </div>
+                </SidebarPanelEmpty>
               ) : (
                 broadcasts.map(item => {
                   return (
                     <SidebarPanelItem
                       key={item.id}
-                      className={!item.hasSeen && 'unseen'}
+                      hasSeen={item.hasSeen}
                       title={item.title}
                       message={item.message}
                       link={item.link}
@@ -150,7 +165,7 @@ const Broadcasts = createReactClass({
               )}
             </SidebarPanel>
           )}
-      </li>
+      </React.Fragment>
     );
   },
 });
