@@ -19,6 +19,7 @@ let validHookNames = new Set([
   'issue:secondary-column',
   'analytics:onboarding-complete',
   'analytics:event',
+  'sidebar:organization-dropdown-menu',
 ]);
 
 const HookStore = Reflux.createStore({
