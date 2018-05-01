@@ -3,6 +3,7 @@ import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
 import Raven from 'raven-js';
 
+import analytics from 'app/utils/analytics';
 import Waiting from 'app/views/onboarding/configure/waiting';
 import ApiMixin from 'app/mixins/apiMixin';
 import ProjectContext from 'app/views/projects/projectContext';
@@ -86,9 +87,7 @@ const Configure = createReactClass({
 
   submit() {
     HookStore.get('analytics:onboarding-complete').forEach(cb => cb());
-    HookStore.get('analytics:event').forEach(cb =>
-      cb('onboarding.complete', {project: this.props.params.projectId})
-    );
+    analytics('onboarding.complete', {project: this.props.params.projectId});
     this.redirectUrl();
   },
 
