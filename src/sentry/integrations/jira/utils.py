@@ -3,18 +3,12 @@ from __future__ import absolute_import
 import hashlib
 import jwt
 
-from six.moves.urllib.parse import quote
-
 from sentry.models import Integration
+from sentry.utils.http import percent_encode
 
 
 class JiraValidationError(Exception):
     pass
-
-
-def percent_encode(val):
-    # see https://en.wikipedia.org/wiki/Percent-encoding
-    return quote(val.encode('utf8', errors='replace')).replace('%7E', '~').replace('/', '%2F')
 
 
 def get_query_hash(uri, method, query_params=None):

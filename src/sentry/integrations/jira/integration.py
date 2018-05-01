@@ -3,13 +3,21 @@ from __future__ import absolute_import
 
 from sentry.integrations import Integration, IntegrationMetadata
 
+alert_link = {
+    'text': 'Visit the **Atlassian Marketplace** to install this integration.',
+    # TODO(jess): update this when we have our app listed on the
+    # atlassian marketplace
+    'link': 'https://marketplace.atlassian.com/',
+}
 
 metadata = IntegrationMetadata(
-    description='Sync Sentry and JIRA issues. This integration must be installed from the JIRA app store.',
+    description='Sync Sentry and JIRA issues.',
     author='The Sentry Team',
     issue_url='https://github.com/getsentry/sentry/issues/new?title=JIRA%20Integration:%20&labels=Component%3A%20Integrations',
     source_url='https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/jira',
-    aspects={},
+    aspects={
+        'alert_link': alert_link,
+    },
 )
 
 

@@ -200,8 +200,10 @@ export default class OrganizationIntegrationConfig extends AsyncView {
       link = link.replace(`{${key}}`, this.props.params[key]);
     }
 
+    let props = link.startsWith('http') ? {href: link} : {to: link};
+
     return (
-      <AlertLink to={link}>
+      <AlertLink {...props}>
         <span dangerouslySetInnerHTML={{__html: linkHtml}} />
       </AlertLink>
     );
