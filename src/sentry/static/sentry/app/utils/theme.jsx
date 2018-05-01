@@ -1,5 +1,5 @@
 const theme = {
-  breakpoints: [768, 992, 1200],
+  breakpoints: ['768px', '992px', '1200px'],
 
   offWhite: '#FAF9FB',
   whiteDark: '#fbfbfc',

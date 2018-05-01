@@ -39,7 +39,7 @@ class Sidebar extends React.Component {
 
     if (!window.matchMedia) return;
     // TODO(billy): We should consider moving this into a component
-    this.mq = window.matchMedia(`(max-width: ${theme.breakpoints[0]}px)`);
+    this.mq = window.matchMedia(`(max-width: ${theme.breakpoints[0]})`);
     this.mq.addListener(this.handleMediaQueryChange);
     this.state.horizontal = this.mq.matches;
   }
@@ -310,7 +310,7 @@ const responsiveFlex = css`
   display: flex;
   flex-direction: column;
 
-  @media (max-width: ${theme.breakpoints[0]}px) {
+  @media (max-width: ${theme.breakpoints[0]}) {
     flex-direction: row;
   }
 `;
@@ -331,7 +331,7 @@ const StyledSidebar = styled('div')`
   ${responsiveFlex};
   ${p => p.collapsed && `width: ${p.theme.sidebar.collapsedWidth};`};
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}px) {
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
     top: 0;
     left: 0;
     right: 0;
@@ -350,7 +350,7 @@ const SidebarSectionGroup = styled('div')`
 
 const SidebarSection = styled(SidebarSectionGroup)`
   ${p => !p.noMargin && `margin: ${space(1)} 0`};
-  @media (max-width: ${p => p.theme.breakpoints[0]}px) {
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
     margin: 0 ${space(1)};
   }
 `;
@@ -370,7 +370,7 @@ const StyledInlineSvg = styled(({className, collapsed, ...props}) => (
 ))``;
 
 const SidebarCollapseItem = styled(SidebarItem)`
-  @media (max-width: ${p => p.theme.breakpoints[0]}px) {
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
     display: none;
   }
 `;
