@@ -6,11 +6,10 @@ import {Flex} from 'grid-emotion';
 
 import SentryTypes from 'app/proptypes';
 import Link from 'app/components/link';
-
 import {Client} from 'app/api';
-
 import {update} from 'app/actionCreators/projects';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import PlatformList from 'app/views/organizationDashboard/platformList';
 
 class ProjectCard extends React.Component {
   static propTypes = {
@@ -45,6 +44,7 @@ class ProjectCard extends React.Component {
             onClick={this.toggleProjectBookmark}
           />
         </Flex>
+        <PlatformList platforms={project.platforms} />
       </StyledProjectCard>
     );
   }
