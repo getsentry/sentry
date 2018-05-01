@@ -200,8 +200,10 @@ export default class OrganizationIntegrationConfig extends AsyncView {
       link = link.replace(`{${key}}`, this.props.params[key]);
     }
 
+    let props = link.startsWith('http') ? {href: link} : {to: link};
+
     return (
-      <AlertLink to={link}>
+      <AlertLink {...props}>
         <span dangerouslySetInnerHTML={{__html: linkHtml}} />
       </AlertLink>
     );
@@ -223,11 +225,13 @@ export default class OrganizationIntegrationConfig extends AsyncView {
     const header = (
       <PanelHeader disablePadding hasButtons>
         <Box px={2}>{t('Workspaces')}</Box>
-        <Box mr={1}>
-          <Button size="xsmall" onClick={() => this.handleAddIntegration(provider)}>
-            <span className="icon icon-add" /> {t('Add Workspace')}
-          </Button>
-        </Box>
+        {provider.canAdd && (
+          <Box mr={1}>
+            <Button size="xsmall" onClick={() => this.handleAddIntegration(provider)}>
+              <span className="icon icon-add" /> {t('Add Workspace')}
+            </Button>
+          </Box>
+        )}
       </PanelHeader>
     );
 

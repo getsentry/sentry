@@ -19,6 +19,7 @@ class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
                     'name': provider.name,
                     'metadata': metadata,
                     'config': provider.get_config(),
+                    'canAdd': provider.can_add,
                     'setupDialog': dict(
                         url='/organizations/{}/integrations/{}/setup/'.format(
                             organization.slug,
