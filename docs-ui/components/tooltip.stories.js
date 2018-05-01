@@ -8,7 +8,10 @@ import Button from 'sentry-ui/buttons/button';
 
 storiesOf('Tooltip', module).add(
   'default',
-  withInfo('Description')(() => {
+  withInfo({
+    text: 'Adds a tool to any component',
+    propTablesExclude: [Button],
+  })(() => {
     let title = text('My tooltip', 'My tooltip');
     let disabled = boolean('Disabled', false);
 
