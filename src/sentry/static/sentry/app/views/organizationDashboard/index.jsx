@@ -44,7 +44,7 @@ class Dashboard extends AsyncComponent {
     const getStats = id => projectsWithStats.find(project => id === project.id).stats;
 
     return (
-      <div>
+      <React.Fragment>
         {projectKeys.map((slug, index) => {
           const showBorder = index !== projectKeys.length - 1;
           return (
@@ -69,7 +69,7 @@ class Dashboard extends AsyncComponent {
           );
         })}
         {!projectKeys.length && <EmptyState orgId={params.orgId} />}
-      </div>
+      </React.Fragment>
     );
   }
 }
