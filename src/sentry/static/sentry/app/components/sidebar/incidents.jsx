@@ -53,9 +53,9 @@ const Incidents = createReactClass({
     if (!status) return null;
 
     let active = currentPanel === 'statusupdate';
-    let isEmpty = !status.incidents && status.incidents.length === 0;
+    let isEmpty = !status.incidents || status.incidents.length === 0;
 
-    // TODO(billy): Only show `SidebarItem` when `status.incidents` > 0
+    if (isEmpty) return null;
 
     return (
       <React.Fragment>
