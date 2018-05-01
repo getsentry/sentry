@@ -5,7 +5,7 @@ from django.http import HttpResponse
 from sentry import options
 from sentry.options.manager import FLAG_PRIORITIZE_DISK
 from sentry.identity.oauth2 import OAuth2Provider, OAuth2LoginView, OAuth2CallbackView
-from sentry.utils.pipeline import PipelineView
+from sentry.pipeline import PipelineView
 
 options.register('vsts.client-id', flags=FLAG_PRIORITIZE_DISK)
 options.register('vsts.client-secret', flags=FLAG_PRIORITIZE_DISK)

@@ -6,7 +6,6 @@ import six
 from six.moves.urllib.parse import parse_qs, urlencode, urlparse
 
 from sentry.integrations.vsts import VSTSIntegration
-from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration, OrganizationIntegration
 from sentry.testutils import IntegrationTestCase
 
 
@@ -15,9 +14,8 @@ class VSTSIntegrationTest(IntegrationTestCase):
     instance = 'example.visualstudio.com'
     default_project = 'MyFirstProject'
 
-    @responses.activate
     def test_path(self):
-        resp = self.client.get(self.path)
+        resp = self.client.get(self.init_path)
         assert resp.status_code == 302
         redirect = urlparse(resp['Location'])
         assert redirect.scheme == 'https'
@@ -30,15 +28,16 @@ class VSTSIntegrationTest(IntegrationTestCase):
         assert params['response_type'] == ['code']
         assert params['client_id'] == ['vsts-client-id']
 
+    @responses.activate
     def test_oath(self):
-        resp = self.client.get(self.path)
+        resp = self.client.get(self.init_path)
         assert resp.status_code == 302
         redirect = urlparse(resp['Location'])
         params = parse_qs(redirect.query)
         authorize_params = {k: v[0] for k, v in six.iteritems(params)}
 
         responses.add(
-            responses.GET, 'https://app.vssps.visualstudio.com/oauth2/token',
+            responses.POST, 'https://app.vssps.visualstudio.com/oauth2/token',
             json={
                 'access_token': 'xxxxxxxxx',
                 'token_type': 'jwt-bearer',
@@ -48,7 +47,7 @@ class VSTSIntegrationTest(IntegrationTestCase):
         )
 
         resp = self.client.get('{}?{}'.format(
-            self.path,
+            self.setup_path,
             urlencode({
                 'code': 'oauth-code',
                 'state': authorize_params['state'],
@@ -57,40 +56,14 @@ class VSTSIntegrationTest(IntegrationTestCase):
 
         mock_request = responses.calls[0].request
         req_params = parse_qs(mock_request.body)
-        assert req_params['grant_type'] == ['authorization_code']
-        assert req_params['code'] == ['oauth-code']
+        assert req_params['grant_type'] == ['urn:ietf:params:oauth:grant-type:jwt-bearer']
+        assert req_params['assertion'] == ['oauth-code']
         assert req_params['redirect_uri'] == ['http://testserver/extensions/vsts/setup/']
-        assert req_params['client_id'] == ['vsts-client-id']
-        assert req_params['client_secret'] == ['vsts-client-secret']
+        assert req_params['client_assertion_type'] == [
+            'urn:ietf:params:oauth:client-assertion-type:jwt-bearer']
+        assert req_params['client_assertion'] == ['vsts-client-secret']
 
         assert resp.status_code == 200
-        self.assertDialogSuccess(resp)
-
-        integration = Integration.objects.get(provider=self.provider.key)
-        assert integration.external_id == 'TXXXXXXX1'
-        assert integration.name == 'Example'
-        assert integration.metadata == {
-            'access_token': 'xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx',
-            'scopes': sorted(self.provider.identity_oauth_scopes),
-            'icon': 'http://example.com/ws_icon.jpg',
-            'domain_name': 'test-slack-workspace.slack.com',
-        }
-        oi = OrganizationIntegration.objects.get(
-            integration=integration,
-            organization=self.organization,
-        )
-        assert oi.config == {}
-
-        idp = IdentityProvider.objects.get(
-            type='slack',
-            organization=self.organization,
-        )
-        identity = Identity.objects.get(
-            idp=idp,
-            user=self.user,
-            external_id='UXXXXXXX1',
-        )
-        assert identity.status == IdentityStatus.VALID
 
     @responses.activate
     def test_build_integration(self):

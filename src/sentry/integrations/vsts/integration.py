@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 from sentry import http
 from sentry.integrations import Integration, IntegrationMetadata
-from sentry.utils.pipeline import NestedPipelineView
+from sentry.pipeline import NestedPipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.utils.http import absolute_uri
 DESCRIPTION = """
