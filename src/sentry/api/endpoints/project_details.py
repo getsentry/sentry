@@ -88,7 +88,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     securityToken = serializers.RegexField(r'^[-a-zA-Z0-9+/=\s]+$', max_length=255)
     securityTokenHeader = serializers.RegexField(r'^[a-zA-Z0-9_\-]+$', max_length=20)
     verifySSL = serializers.BooleanField(required=False)
-    defaultEnvironment = serializers.CharField(required=False)
+    defaultEnvironment = serializers.CharField(required=False, allow_none=True)
     dataScrubber = serializers.BooleanField(required=False)
     dataScrubberDefaults = serializers.BooleanField(required=False)
     sensitiveFields = ListField(child=serializers.CharField(), required=False)
@@ -350,8 +350,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get('subjectTemplate'):
             project.update_option('mail:subject_template',
                                   result['subjectTemplate'])
-        if result.get('defaultEnvironment') is not None:
-            project.update_option('sentry:default_environment', result['defaultEnvironment'])
         if result.get('scrubIPAddresses') is not None:
             project.update_option('sentry:scrub_ip_address', result['scrubIPAddresses'])
         if result.get('securityToken') is not None:
@@ -368,6 +366,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             project.update_option('sentry:sensitive_fields', result['sensitiveFields'])
         if result.get('safeFields') is not None:
             project.update_option('sentry:safe_fields', result['safeFields'])
+        if 'defaultEnvironment' in result:
+            if result['defaultEnvironment'] is None:
+                project.delete_option('sentry:default_environment')
+            else:
+                project.update_option('sentry:default_environment', result['defaultEnvironment'])
         # resolveAge can be None
         if 'resolveAge' in result:
             if project.update_option(
