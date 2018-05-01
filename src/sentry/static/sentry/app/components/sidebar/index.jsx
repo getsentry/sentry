@@ -31,8 +31,8 @@ class Sidebar extends React.Component {
     location: PropTypes.object,
   };
 
-  constructor(...args) {
-    super(...args);
+  constructor(props) {
+    super(props);
     this.state = {
       horizontal: false,
     };
@@ -58,9 +58,9 @@ class Sidebar extends React.Component {
     });
   }
 
-  componentWillReceiveProps(nextProps, nextContext) {
+  componentWillReceiveProps(nextProps) {
     let {collapsed, location} = this.props;
-    let nextLocation = nextProps.location || nextContext.location;
+    let nextLocation = nextProps.location;
 
     // Close active panel if we navigated anywhere
     if (nextLocation && location && location.pathname !== nextLocation.pathname) {
@@ -237,7 +237,7 @@ class Sidebar extends React.Component {
           </SidebarSection>
         </SidebarSectionGroup>
 
-        <SidebarEndSectionGroup>
+        <SidebarSectionGroup>
           <SidebarSection>
             <Broadcasts
               orientation={orientation}
@@ -281,7 +281,7 @@ class Sidebar extends React.Component {
               />
             </SidebarSection>
           )}
-        </SidebarEndSectionGroup>
+        </SidebarSectionGroup>
       </StyledSidebar>
     );
   }
@@ -347,8 +347,6 @@ const SidebarSectionGroup = styled('div')`
   ${responsiveFlex};
   flex-shrink: 0;
 `;
-
-const SidebarEndSectionGroup = styled(SidebarSectionGroup)``;
 
 const SidebarSection = styled(SidebarSectionGroup)`
   ${p => !p.noMargin && `margin: ${space(1)} 0`};

@@ -115,20 +115,7 @@ class BaseAvatar extends React.Component {
   }
 
   render() {
-    let {
-      className,
-      hasTooltip,
-      size,
-      tooltip,
-      style,
-      remoteImageSize, // eslint-disable-line no-unused-vars
-      title, // eslint-disable-line no-unused-vars
-      uploadId, // eslint-disable-line no-unused-vars
-      gravatarId, // eslint-disable-line no-unused-vars
-      letterId, // eslint-disable-line no-unused-vars
-      type, // eslint-disable-line no-unused-vars
-      ...props
-    } = this.props;
+    let {className, hasTooltip, size, tooltip, style} = this.props;
     let sizeStyle = {};
 
     if (size) {
@@ -146,7 +133,6 @@ class BaseAvatar extends React.Component {
             ...sizeStyle,
             ...style,
           }}
-          {...props}
         >
           {this.state.showBackupAvatar && this.renderLetterAvatar()}
           {this.renderImg()}
