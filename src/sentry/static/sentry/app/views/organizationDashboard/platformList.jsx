@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 import {Flex} from 'grid-emotion';
+import {t} from 'app/locale';
 
 export default class PlatformList extends React.Component {
   static propTypes = {
@@ -29,7 +30,7 @@ export default class PlatformList extends React.Component {
     if (!platforms.length)
       return (
         <NoPlatforms align="center" p={2}>
-          No platforms yet
+          {t('No platforms yet')}
         </NoPlatforms>
       );
 
@@ -70,5 +71,6 @@ const PlatformText = styled.div`
 `;
 
 const NoPlatforms = styled(Flex)`
+  color: ${p => p.theme.gray2};
   height: 70px;
 `;
