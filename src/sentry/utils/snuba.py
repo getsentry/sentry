@@ -181,7 +181,9 @@ def get_project_issues(project_ids, issue_ids=None):
     Returns a list: [(issue_id: [hash1, hash2, ...]), ...]
     """
     if issue_ids:
-        hashes = GroupHash.objects.filter(group_id__in=issue_ids[:500])
+        # TODO remove this when Snuba accepts more than 500 issues
+        issue_ids = issue_ids[:500]
+        hashes = GroupHash.objects.filter(group_id__in=issue_ids)
     else:
         hashes = GroupHash.objects.filter(project__in=project_ids)
     result = {}
