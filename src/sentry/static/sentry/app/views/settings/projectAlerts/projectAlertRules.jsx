@@ -22,7 +22,7 @@ import EnvironmentStore from 'app/stores/environmentStore';
 import ListLink from 'app/components/listLink';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import recreateRoute from 'app/utils/recreateRoute';
-import {conditionallyGuideAnchor} from 'app/components/assistant/guideAnchor';
+import {conditionalGuideAnchor} from 'app/components/assistant/guideAnchor';
 
 const TextColorLink = styled(Link)`
   color: ${p => p.theme.gray3};
@@ -129,7 +129,7 @@ const RuleRow = createReactClass({
                   <h6>
                     When <strong>{data.actionMatch}</strong> of these conditions are met:
                   </h6>
-                  {conditionallyGuideAnchor(
+                  {conditionalGuideAnchor(
                     this.props.firstRule,
                     'alert_conditions',
                     'text',
@@ -158,7 +158,7 @@ const RuleRow = createReactClass({
                     </strong>{' '}
                     for an issue:
                   </h6>
-                  {conditionallyGuideAnchor(
+                  {conditionalGuideAnchor(
                     this.props.firstRule,
                     'alert_actions',
                     'text',

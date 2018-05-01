@@ -5,9 +5,9 @@ from django.utils.translation import ugettext_lazy as _
 
 # Guide Schema
 # id (text, required): unique id
-# cue (text, optional):  The text used to prmopt the user to initiate the guide.
-#                        Leaving this blank
+# cue (text, optional):  The text used to prompt the user to initiate the guide.
 # required_targets (list): An empty list will cause the guide to be shown regardless
+#                          of page/targets presence.
 # steps (list): List of steps
 
 # Step Schema
