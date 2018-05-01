@@ -178,7 +178,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                                       width="1em"
                                                                     >
                                                                       <svg
-                                                                        className="e1yghndz0 css-1gdv3x4-StyledSvg-StyledChevronDown css-adkcw30"
+                                                                        className="e1yghndz0 css-1gdv3x4-StyledSvg-StyledChevronDown e2idor0"
                                                                         height="1em"
                                                                         viewBox={Object {}}
                                                                         width="1em"
@@ -239,11 +239,11 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                   p={2}
                 >
                   <Base
-                    className="er5mk5i1 css-avuc83-StyledPanelItem-StyledPanelItem css-q9h14u0"
+                    className="er5mk5i1 css-avuc83-StyledPanelItem-StyledPanelItem eo8n7lk0"
                     p={2}
                   >
                     <div
-                      className="er5mk5i1 css-avuc83-StyledPanelItem-StyledPanelItem css-q9h14u0"
+                      className="er5mk5i1 css-avuc83-StyledPanelItem-StyledPanelItem eo8n7lk0"
                       is={null}
                     >
                       <ProjectItem
@@ -545,7 +545,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                 width="1em"
                                               >
                                                 <svg
-                                                  className="er5mk5i0 css-10g0ex9-StyledSvg-RemoveIcon css-adkcw30"
+                                                  className="er5mk5i0 css-10g0ex9-StyledSvg-RemoveIcon e2idor0"
                                                   height="1em"
                                                   viewBox={Object {}}
                                                   width="1em"
@@ -559,7 +559,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                             </InlineSvg>
                                           </Component>
                                         </RemoveIcon>
-                                         
+
                                         Remove
                                       </div>
                                     </Base>
