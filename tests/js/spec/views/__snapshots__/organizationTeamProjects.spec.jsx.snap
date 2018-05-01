@@ -559,7 +559,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                             </InlineSvg>
                                           </Component>
                                         </RemoveIcon>
-
+                                         
                                         Remove
                                       </div>
                                     </Base>
