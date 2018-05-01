@@ -83,6 +83,7 @@ class SidebarItem extends React.Component {
         tooltipOptions={{placement, html: true}}
       >
         <StyledSidebarItem
+          data-test-id={this.props['data-test-id']}
           active={active || isActiveRouter}
           href={href}
           to={to}
