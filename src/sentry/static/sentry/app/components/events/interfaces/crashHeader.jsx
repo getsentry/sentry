@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import SentryTypes from 'app/proptypes';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
@@ -12,7 +11,6 @@ const CrashHeader = createReactClass({
   propTypes: {
     title: PropTypes.string,
     beforeTitle: PropTypes.any,
-    group: SentryTypes.Group.isRequired,
     platform: PropTypes.string,
     thread: PropTypes.object,
     exception: PropTypes.object,

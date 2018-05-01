@@ -15,10 +15,8 @@ const GroupReleaseChart = createReactClass({
     release: PropTypes.shape({
       version: PropTypes.string.isRequired,
     }),
-    releaseStats: PropTypes.object,
     statsPeriod: PropTypes.string.isRequired,
     environment: PropTypes.string,
-    environmentStats: PropTypes.object,
     firstSeen: PropTypes.string,
     lastSeen: PropTypes.string,
     title: PropTypes.string,

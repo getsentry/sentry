@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 
 function isOverflowing(el) {
@@ -7,10 +6,6 @@ function isOverflowing(el) {
 }
 
 class SummaryLine extends React.Component {
-  static propTypes = {
-    crumb: PropTypes.object.isRequired,
-  };
-
   state = {
     expanded: false,
     hasOverflow: false,

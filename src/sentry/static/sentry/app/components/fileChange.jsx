@@ -12,7 +12,6 @@ const FileChange = createReactClass({
   propTypes: {
     filename: PropTypes.string.isRequired,
     authors: PropTypes.array.isRequired,
-    types: PropTypes.object.isRequired,
   },
 
   mixins: [ApiMixin],
