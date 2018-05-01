@@ -24,7 +24,7 @@ exports[`ProjectCard renders 1`] = `
 >
   <StyledProjectCard>
     <div
-      className="css-18be1td-StyledProjectCard efesc7i5"
+      className="css-18be1td-StyledProjectCard efesc7i1"
     >
       <Flex
         align="center"
@@ -45,17 +45,17 @@ exports[`ProjectCard renders 1`] = `
               to="/org-slug/project-slug/"
             >
               <Link
-                className="css-kor5al-StyledLink efesc7i4"
+                className="css-kor5al-StyledLink efesc7i0"
                 to="/org-slug/project-slug/"
               >
                 <Link
-                  className="css-kor5al-StyledLink efesc7i4"
+                  className="css-kor5al-StyledLink efesc7i0"
                   onlyActiveOnIndex={false}
                   style={Object {}}
                   to="/org-slug/project-slug/"
                 >
                   <a
-                    className="css-kor5al-StyledLink efesc7i4"
+                    className="css-kor5al-StyledLink efesc7i0"
                     onClick={[Function]}
                     style={Object {}}
                   >
@@ -72,7 +72,7 @@ exports[`ProjectCard renders 1`] = `
               onClick={[Function]}
             >
               <a
-                className="project-select-bookmark icon icon-star-solid css-syj8e8-Star efesc7i6"
+                className="project-select-bookmark icon icon-star-solid css-syj8e8-Star efesc7i2"
                 onClick={[Function]}
               />
             </Star>
@@ -102,15 +102,15 @@ exports[`ProjectCard renders 1`] = `
               >
                 <Flex
                   direction="row-reverse"
-                  m={18}
+                  p={2}
                 >
                   <Base
-                    className="css-rerv0t"
+                    className="css-1tznizk"
                     direction="row-reverse"
-                    m={18}
+                    p={2}
                   >
                     <div
-                      className="css-rerv0t"
+                      className="css-1tznizk"
                       is={null}
                     >
                       <StyledPlatformIconWrapper
@@ -118,13 +118,13 @@ exports[`ProjectCard renders 1`] = `
                         key="javascript"
                       >
                         <span
-                          className="javascript css-128o7xp-StyledPlatformIconWrapper efesc7i0"
+                          className="javascript css-128o7xp-StyledPlatformIconWrapper e1mca4c60"
                         >
                           <StyledPlatformIcon
                             className="platformicon platformicon-javascript"
                           >
                             <span
-                              className="platformicon platformicon-javascript css-hf0kxf-StyledPlatformIcon efesc7i1"
+                              className="platformicon platformicon-javascript css-hf0kxf-StyledPlatformIcon e1mca4c61"
                             />
                           </StyledPlatformIcon>
                         </span>
@@ -135,7 +135,7 @@ exports[`ProjectCard renders 1`] = `
               </div>
               <PlatformText>
                 <div
-                  className="css-12aj0sd-PlatformText efesc7i2"
+                  className="css-12aj0sd-PlatformText e1mca4c62"
                 >
                   javascript
                 </div>
