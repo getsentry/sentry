@@ -66,7 +66,7 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint, EnvironmentMixin):
             paginator_cls = Paginator
 
         if key == 'user':
-            serializer_cls = UserTagValueSerializer()
+            serializer_cls = UserTagValueSerializer(group.project_id)
         else:
             serializer_cls = None
 
