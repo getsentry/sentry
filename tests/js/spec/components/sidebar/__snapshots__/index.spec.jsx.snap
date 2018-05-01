@@ -9,7 +9,7 @@ exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
   onMouseLeave={[Function]}
 >
   <div
-    className="css-s59sa2-SwitchOrganizationMenu-SidebarDropdownMenu ejj552r19"
+    className="css-1t0ls5k-SwitchOrganizationMenu-SidebarDropdownMenu ejj552r19"
     data-test-id="sidebar-switch-org-menu"
     onClick={[Function]}
     onMouseEnter={[Function]}
@@ -161,7 +161,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
   }
 >
   <div
-    className="css-1jg00gp-OrgAndUserMenu-SidebarDropdownMenu ejj552r17"
+    className="css-1d11loe-OrgAndUserMenu-SidebarDropdownMenu ejj552r17"
     onClick={[Function]}
     onMouseEnter={[Function]}
     onMouseLeave={[Function]}
@@ -1008,7 +1008,7 @@ exports[`Sidebar SidebarPanel can display Broadcasts panel and mark as seen 1`] 
 >
   <SidebarPanelItemRoot>
     <div
-      className="css-yzdh5l-SidebarPanelItemRoot er110870"
+      className="css-11zw7jo-SidebarPanelItemRoot er110870"
     >
       <Title
         hasSeen={false}
@@ -1115,42 +1115,79 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
             href="https://status.sentry.io"
             size="small"
           >
-            <ExternalLink
-              className="button button-default button-sm"
+            <StyledButton
+              aria-label="Learn more"
               disabled={false}
+              external={true}
               href="https://status.sentry.io"
               onClick={[Function]}
-              rel="noreferrer noopener"
               role="button"
-              target="_blank"
+              size="small"
             >
-              <a
-                className="button button-default button-sm"
+              <Component
+                aria-label="Learn more"
+                className="css-dvpz5-StyledButton-getColors e17811v30"
                 disabled={false}
+                external={true}
                 href="https://status.sentry.io"
                 onClick={[Function]}
-                rel="noreferrer noopener"
                 role="button"
-                target="_blank"
+                size="small"
               >
-                <Flex
-                  align="center"
-                  className="button-label"
+                <ExternalLink
+                  aria-label="Learn more"
+                  className="css-dvpz5-StyledButton-getColors e17811v30"
+                  disabled={false}
+                  href="https://status.sentry.io"
+                  onClick={[Function]}
+                  rel="noreferrer noopener"
+                  role="button"
+                  size="small"
+                  target="_blank"
                 >
-                  <Base
-                    align="center"
-                    className="button-label css-5ipae5"
+                  <a
+                    aria-label="Learn more"
+                    className="css-dvpz5-StyledButton-getColors e17811v30"
+                    disabled={false}
+                    href="https://status.sentry.io"
+                    onClick={[Function]}
+                    rel="noreferrer noopener"
+                    role="button"
+                    size="small"
+                    target="_blank"
                   >
-                    <div
-                      className="button-label css-5ipae5"
-                      is={null}
+                    <ButtonLabel
+                      size="small"
                     >
-                      Learn more
-                    </div>
-                  </Base>
-                </Flex>
-              </a>
-            </ExternalLink>
+                      <Component
+                        className="css-179w01k-ButtonLabel e17811v31"
+                        size="small"
+                      >
+                        <Flex
+                          align="center"
+                          className="css-179w01k-ButtonLabel e17811v31"
+                          size="small"
+                        >
+                          <Base
+                            align="center"
+                            className="e17811v31 css-8mahft-ButtonLabel"
+                            size="small"
+                          >
+                            <div
+                              className="e17811v31 css-8mahft-ButtonLabel"
+                              is={null}
+                              size="small"
+                            >
+                              Learn more
+                            </div>
+                          </Base>
+                        </Flex>
+                      </Component>
+                    </ButtonLabel>
+                  </a>
+                </ExternalLink>
+              </Component>
+            </StyledButton>
           </Button>
         </div>
       </li>

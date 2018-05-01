@@ -190,7 +190,7 @@ class Sidebar extends React.Component {
               onClick={this.hidePanel}
               icon={<InlineSvg src="icon-projects" />}
               label={t('Projects')}
-              to={`/organizations/${organization.slug}/projects/`}
+              to={`/${organization.slug}/`}
             />
           </SidebarSection>
 
