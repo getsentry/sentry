@@ -1387,15 +1387,6 @@ class GroupDeleteTest(APITestCase):
             self.project.slug,
         )
 
-    def test_global_is_forbidden(self):
-        self.login_as(user=self.user)
-        response = self.client.delete(
-            self.path, data={
-                'status': 'resolved',
-            }, format='json'
-        )
-        assert response.status_code == 400
-
     def test_delete_by_id(self):
         group1 = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
         group2 = self.create_group(checksum='b' * 32, status=GroupStatus.UNRESOLVED)
@@ -1455,3 +1446,45 @@ class GroupDeleteTest(APITestCase):
 
         assert Group.objects.filter(id=group4.id).exists()
         assert GroupHash.objects.filter(group_id=group4.id).exists()
+
+    def test_bulk_delete(self):
+        groups = []
+        for i in range(10, 41):
+            groups.append(
+                self.create_group(
+                    project=self.project,
+                    checksum=six.binary_type(i) * 16,
+                    status=GroupStatus.RESOLVED))
+
+        for group in groups:
+            GroupHash.objects.create(
+                project=group.project,
+                hash=uuid4().hex,
+                group=group,
+            )
+
+        self.login_as(user=self.user)
+
+        # if query is '' it defaults to is:unresolved
+        url = self.path + '?query='
+        response = self.client.delete(url, format='json')
+
+        assert response.status_code == 204
+
+        for group in groups:
+            assert Group.objects.get(id=group.id).status == GroupStatus.PENDING_DELETION
+            assert not GroupHash.objects.filter(group_id=group.id).exists()
+
+        Group.objects.filter(
+            id__in=[
+                group.id for group in groups]).update(
+            status=GroupStatus.UNRESOLVED)
+
+        with self.tasks():
+            response = self.client.delete(url, format='json')
+
+        assert response.status_code == 204
+
+        for group in groups:
+            assert not Group.objects.filter(id=group.id).exists()
+            assert not GroupHash.objects.filter(group_id=group.id).exists()

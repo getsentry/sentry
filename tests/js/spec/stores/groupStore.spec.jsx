@@ -81,5 +81,15 @@ describe('GroupStore', function() {
         expect(GroupStore.trigger.firstCall.args[0]).toEqual(new Set([1, 2, 3]));
       });
     });
+
+    describe('onDeleteSuccess()', function() {
+      it("should treat undefined itemIds argument as 'all'", function() {
+        sandbox.stub(GroupStore, 'trigger');
+        GroupStore.onDeleteSuccess(1337, undefined, 'somedata');
+
+        expect(GroupStore.trigger.calledOnce).toBeTruthy();
+        expect(GroupStore.trigger.firstCall.args[0]).toEqual(new Set([1, 2, 3]));
+      });
+    });
   });
 });
