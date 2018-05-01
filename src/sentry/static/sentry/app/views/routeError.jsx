@@ -6,8 +6,6 @@ import React from 'react';
 class RouteError extends React.Component {
   static propTypes = {
     error: PropTypes.object.isRequired,
-    // not used yet, but future proofing
-    onRetry: PropTypes.func,
   };
 
   componentWillMount() {
