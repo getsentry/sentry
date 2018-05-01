@@ -31,6 +31,7 @@ class SidebarDropdown extends React.Component {
 
   render() {
     let {org, orientation, collapsed, config, user, onClick} = this.props;
+    let hasOrgWrite = org.access.indexOf('org:write') > -1;
 
     return (
       <DropdownMenu>
@@ -86,7 +87,7 @@ class SidebarDropdown extends React.Component {
                   )}
 
                   <SidebarMenuItem>
-                    <SwitchOrganization />
+                    <SwitchOrganization canCreateOrganization={hasOrgWrite} />
                   </SidebarMenuItem>
 
                   <Divider />

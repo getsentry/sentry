@@ -19,10 +19,12 @@ import SidebarDropdownMenu from './sidebarDropdownMenu.styled';
 class SwitchOrganization extends React.Component {
   static propTypes = {
     organizations: PropTypes.arrayOf(SentryTypes.Organization),
+    canCreateOrganization: PropTypes.bool,
   };
 
   render() {
-    let {organizations} = this.props;
+    let {organizations, canCreateOrganization} = this.props;
+    let hasOrganizations = organizations && !!organizations.length;
 
     return (
       <DropdownMenu isNestedDropdown>
@@ -53,16 +55,18 @@ class SwitchOrganization extends React.Component {
                       <SidebarOrgSummary organization={organization} />
                     </SidebarMenuItem>
                   ))}
-                  <Divider />
-                  <SidebarMenuItem
-                    to={'/organizations/new/'}
-                    style={{alignItems: 'center'}}
-                  >
-                    <MenuItemLabelWithIcon>
-                      <AddIcon src="icon-circle-add" />
-                      <span>{t('Create a new organization')}</span>
-                    </MenuItemLabelWithIcon>
-                  </SidebarMenuItem>
+                  {hasOrganizations && canCreateOrganization && <Divider />}
+                  {canCreateOrganization && (
+                    <SidebarMenuItem
+                      to={'/organizations/new/'}
+                      style={{alignItems: 'center'}}
+                    >
+                      <MenuItemLabelWithIcon>
+                        <AddIcon src="icon-circle-add" />
+                        <span>{t('Create a new organization')}</span>
+                      </MenuItemLabelWithIcon>
+                    </SidebarMenuItem>
+                  )}
                 </SwitchOrganizationMenu>
               )}
             </React.Fragment>

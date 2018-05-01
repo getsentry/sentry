@@ -15,11 +15,6 @@ exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
     onMouseEnter={[Function]}
     onMouseLeave={[Function]}
   >
-    <Divider>
-      <div
-        className="css-1pf7o79-Divider ek5mfa70"
-      />
-    </Divider>
     <SidebarMenuItem
       style={
         Object {
@@ -560,8 +555,11 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
               <span
                 className="css-rkoh57-MenuItemLabel-MenuItemLabel ebifsjx0"
               >
-                <withOrganizations>
+                <withOrganizations
+                  canCreateOrganization={true}
+                >
                   <SwitchOrganization
+                    canCreateOrganization={true}
                     organizations={Array []}
                   >
                     <DropdownMenu
