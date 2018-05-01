@@ -7,8 +7,6 @@ import styled from 'react-emotion';
 import Alert from 'app/components/alert';
 import Footer from 'app/components/footer';
 import space from 'app/styles/space';
-import Sidebar from 'app/components/sidebar';
-import withLatestContext from 'app/utils/withLatestContext';
 
 import SettingsBackButton from './settingsBackButton';
 import SettingsBreadcrumb from './settingsBreadcrumb';
@@ -96,8 +94,6 @@ const SettingsSubheader = styled.div`
   font-size: 14px;
 `;
 
-const SidebarContainer = withLatestContext(Sidebar);
-
 class SettingsLayout extends React.Component {
   static propTypes = {
     renderNavigation: PropTypes.func,
@@ -114,7 +110,6 @@ class SettingsLayout extends React.Component {
     let childRoute = childProps.route || route || {};
     return (
       <React.Fragment>
-        <SidebarContainer />
         <SettingsHeader>
           <SettingsSubheader>
             <Container>
