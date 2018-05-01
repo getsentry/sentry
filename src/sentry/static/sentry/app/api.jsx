@@ -64,6 +64,9 @@ export class Client {
     };
   }
 
+  /**
+   * Attempt to cancel all active XHR requests
+   */
   clear() {
     for (let id in this.activeRequests) {
       this.activeRequests[id].cancel();

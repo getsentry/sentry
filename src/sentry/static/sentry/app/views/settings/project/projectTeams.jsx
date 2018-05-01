@@ -3,13 +3,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-  removeIndicator,
-} from 'app/actionCreators/indicator';
-import {addTeamToProject} from 'app/actionCreators/projects';
+import {removeTeamFromProject, addTeamToProject} from 'app/actionCreators/projects';
 import {getOrganizationState} from 'app/mixins/organizationState';
 import {openCreateTeamModal} from 'app/actionCreators/modal';
 import {t, tct} from 'app/locale';
@@ -50,24 +44,16 @@ const TeamRow = createReactClass({
   handleRemove() {
     if (this.state.loading) return;
 
-    let loadingIndicator = addLoadingMessage(t('Saving changes...'));
     let {orgId, projectId, team} = this.props;
-    this.api.request(`/projects/${orgId}/${projectId}/teams/${team.slug}/`, {
-      method: 'DELETE',
-      success: (d, _, jqXHR) => {
-        this.props.onRemove();
-        addSuccessMessage(t(`#${team.slug} has been removed from project`));
-        removeIndicator(loadingIndicator);
-      },
-      error: () => {
+
+    removeTeamFromProject(this.api, orgId, projectId, team.slug)
+      .then(() => this.props.onRemove())
+      .catch(() => {
         this.setState({
           error: true,
           loading: false,
         });
-        removeIndicator(loadingIndicator);
-        addErrorMessage(t(`Unable to remove #${team.slug} from project`));
-      },
-    });
+      });
   },
 
   render() {
@@ -138,7 +124,7 @@ class ProjectTeams extends AsyncView {
 
     let {orgId, projectId} = this.props.params;
 
-    addTeamToProject(this.api, orgId, projectId, team.slug).then(
+    addTeamToProject(this.api, orgId, projectId, team).then(
       () => {
         this.handleAddedTeam(team);
       },
