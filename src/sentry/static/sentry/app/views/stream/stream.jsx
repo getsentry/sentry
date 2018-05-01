@@ -8,12 +8,12 @@ import classNames from 'classnames';
 import qs from 'query-string';
 import {omit, isEqual} from 'lodash';
 
+import analytics from 'app/utils/analytics';
 import SentryTypes from 'app/proptypes';
 import ApiMixin from 'app/mixins/apiMixin';
 import ConfigStore from 'app/stores/configStore';
 import GroupStore from 'app/stores/groupStore';
 import EnvironmentStore from 'app/stores/environmentStore';
-import HookStore from 'app/stores/hookStore';
 import ErrorRobot from 'app/components/errorRobot';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -495,13 +495,11 @@ const Stream = createReactClass({
     // Ignore saved searches
     if (this.state.savedSearchList.map(s => s.query == this.state.query).length > 0) {
       let {orgId, projectId} = this.props.params;
-      HookStore.get('analytics:event').forEach(cb =>
-        cb('issue.search', {
-          query: this.state.query,
-          organization_id: orgId,
-          project_id: projectId,
-        })
-      );
+      analytics('issue.search', {
+        query: this.state.query,
+        organization_id: orgId,
+        project_id: projectId,
+      });
     }
   },
 

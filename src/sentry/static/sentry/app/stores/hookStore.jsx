@@ -55,4 +55,3 @@ const HookStore = Reflux.createStore({
 });
 
 export default HookStore;
-window.hook = HookStore;
