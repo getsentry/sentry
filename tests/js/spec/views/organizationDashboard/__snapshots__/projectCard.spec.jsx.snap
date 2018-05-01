@@ -14,6 +14,9 @@ exports[`ProjectCard renders 1`] = `
       "isBookmarked": false,
       "isMember": true,
       "name": "Project Name",
+      "platforms": Array [
+        "javascript",
+      ],
       "slug": "project-slug",
       "teams": Array [],
     }
@@ -76,6 +79,71 @@ exports[`ProjectCard renders 1`] = `
           </div>
         </Base>
       </Flex>
+      <PlatformList
+        platforms={
+          Array [
+            "javascript",
+          ]
+        }
+      >
+        <Flex
+          align="center"
+        >
+          <Base
+            align="center"
+            className="css-5ipae5"
+          >
+            <div
+              className="css-5ipae5"
+              is={null}
+            >
+              <div
+                className="org-dashboard-platform-list"
+              >
+                <Flex
+                  direction="row-reverse"
+                  p={2}
+                >
+                  <Base
+                    className="css-1tznizk"
+                    direction="row-reverse"
+                    p={2}
+                  >
+                    <div
+                      className="css-1tznizk"
+                      is={null}
+                    >
+                      <StyledPlatformIconWrapper
+                        className="javascript"
+                        key="javascript"
+                      >
+                        <span
+                          className="javascript css-128o7xp-StyledPlatformIconWrapper e1mca4c60"
+                        >
+                          <StyledPlatformIcon
+                            className="platformicon platformicon-javascript"
+                          >
+                            <span
+                              className="platformicon platformicon-javascript css-hf0kxf-StyledPlatformIcon e1mca4c61"
+                            />
+                          </StyledPlatformIcon>
+                        </span>
+                      </StyledPlatformIconWrapper>
+                    </div>
+                  </Base>
+                </Flex>
+              </div>
+              <PlatformText>
+                <div
+                  className="css-12aj0sd-PlatformText e1mca4c62"
+                >
+                  javascript
+                </div>
+              </PlatformText>
+            </div>
+          </Base>
+        </Flex>
+      </PlatformList>
     </div>
   </StyledProjectCard>
 </ProjectCard>
