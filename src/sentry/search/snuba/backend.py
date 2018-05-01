@@ -279,6 +279,8 @@ def do_search(project_id, environment_id, tags, start, end,
         filters['environment'] = [environment_id]
 
     if candidates is not None:
+        # TODO remove this when Snuba accepts more than 500 issues
+        candidates = candidates[:500]
         hashes = list(
             GroupHash.objects.filter(
                 group_id__in=candidates
