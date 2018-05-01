@@ -19,7 +19,7 @@ metadata = IntegrationMetadata(
 
 class VSTSIntegration(Integration):
     key = 'vsts'
-    name = 'VSTS'
+    name = 'Visual Studio Team Services'
     metadata = metadata
     domain = '.visualstudio.com'
     api_version = '4.1'
@@ -50,29 +50,6 @@ class VSTSIntegration(Integration):
 
         return [identity_pipeline_view]
 
-    def get_config(self):
-        return [
-            {
-                'name': 'instance',
-                'label': 'Instance',
-                'type': 'text',
-                'placeholder': 'example.visualstudio.com',
-                'required': True,
-                'help': 'VS Team Services account ({account}.visualstudio.com) or TFS server ({server:port}).',
-            },
-            {
-                'name': 'default_project',
-                'label': 'Default Project Name',
-                'type': 'text',
-                'placeholder': 'MyProject',
-                'required': False,
-                'help': (
-                    'Enter the Visual Studio Team Services project name that you wish '
-                    'to use as a default for new work items'
-                ),
-            },
-        ]
-
     def get_projects(self, instance, access_token):
         session = http.build_session()
         url = 'https://%s/DefaultCollection/_apis/projects' % instance
@@ -80,7 +57,7 @@ class VSTSIntegration(Integration):
             url,
             headers={
                 'Content-Type': 'application/json',
-                'Authorization': 'Bearer {}'.format(access_token),
+                'Authorization': 'Bearer %s' % access_token,
             }
         )
         response.raise_for_status()

@@ -49,10 +49,6 @@ class VSTSIdentityProvider(OAuth2Provider):
 
 class VSTSOAuth2CallbackView(OAuth2CallbackView):
 
-    def __init__(self, access_token_url=None, client_id=None, client_secret=None, *args, **kwargs):
-        super(VSTSOAuth2CallbackView, self).__init__(access_token_url, client_id, client_secret,
-                                                     *args, **kwargs)
-
     def exchange_token(self, request, pipeline, code):
         from sentry.http import safe_urlopen, safe_urlread
         from sentry.utils.http import absolute_uri
@@ -83,7 +79,7 @@ class ConfigView(PipelineView):
     <form method="POST">
         Instance: <input type="text" name="instance" placeholder="example.visualstudio.com" required=True />
         <br />
-        VS Team Services account ({account}.visualstudio.com) or TFS server ({server:port}).
+        VS Team Services account (account.visualstudio.com).
         <br />
         Default Project: <input type="text" name="default_project" placeholder="MyProject" required=True />
         <br />
