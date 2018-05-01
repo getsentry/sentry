@@ -5,7 +5,7 @@ from django.utils.translation import ugettext_lazy as _
 
 # Guide Schema
 # id (text, required): unique id
-# cue (text, optional):  The text used to prompt the user to initiate the guide.
+# cue (text):  The text used to prompt the user to initiate the guide.
 # required_targets (list): An empty list will cause the guide to be shown regardless
 #                          of page/targets presence.
 # steps (list): List of steps
@@ -183,7 +183,7 @@ GUIDES = {
                 'message': _('Sentry, by default, alerts on every <i>new</i> issue via email. '
                              'If that\'s too noisy, sending the new issue alerts to '
                              'a service like Slack help reduce inbox noise.<br><br> Enabling '
-                             '<a href="https://sentry.io/settings/account/notifications/#weeklyReports">'
+                             '<a href="https://sentry.io/settings/account/notifications/#weeklyReports" target="_blank">'
                              'weekly reports</a> can also help you stay on top of issues without '
                              'getting overwhelmed.'),
                 'target': 'alert_conditions',
@@ -192,7 +192,7 @@ GUIDES = {
                 'title': _('Define priority alerts'),
                 'message': _('Not all alerts are created equal. Create rules for frequently occuring errors or specific '
                              'tags to escalate critical issues by alerting you via email or PagerDuty.<br><br>'
-                             '<a href="https://blog.sentry.io/2017/10/12/proactive-alert-rules">Learn more</a> '
+                             '<a href="https://blog.sentry.io/2017/10/12/proactive-alert-rules" target="_blank">Learn more</a> '
                              'about wrangling alerts.'),
                 'target': 'alert_actions',
             },
@@ -200,24 +200,19 @@ GUIDES = {
                 'title': _('Fine-tune your personal settings'),
                 'message': _('You can control alerts at the project <em>and</em> the user level. '
                              'If you\'d like to customize your <i>personal</i> alert settings, '
-                             'go to <a href="/account/settings/notifications/">Account Notifications</a>. '
+                             'go to <a href="/account/settings/notifications/" target="_blank">Account Notifications</a>. '
                              'There, you can choose which project\'s alert or workflow notifications you\'d like to receive.'),
                 'target': None,
             },
             {
                 'title': _('What are legacy integrations?'),
                 'message': _('You can see what integrations are legacy or not in '
-                             '<a href="/settings/${orgSlug}/${projectSlug}/plugins/">integration settings</a>. '
+                             '<a href="/settings/${orgSlug}/${projectSlug}/plugins/" target="_blank">integration settings</a>. '
                              'If you want an alert rule to trigger both legacy and global '
                              'integrations, you need to add both as actions. '
-                             '<a href="https://help.sentry.io/hc/en-us/articles/360003063454">Learn more</a>.'),
+                             '<a href="https://help.sentry.io/hc/en-us/articles/360003063454" target="_blank">Learn more</a>.'),
                 'target': None,
             },
         ],
     },
 }
-
-# Configure -> next steps???
-# turning on w/o config should take you to config page
-# legacy plugins after config, go to an issue?
-# send test event?

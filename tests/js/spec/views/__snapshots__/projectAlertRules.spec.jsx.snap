@@ -643,7 +643,6 @@ exports[`projectAlertRules renders 1`] = `
                                    of these conditions are met:
                                 </h6>
                                 <GuideAnchor
-                                  show={true}
                                   target="alert_conditions"
                                   type="text"
                                 >
@@ -714,7 +713,6 @@ exports[`projectAlertRules renders 1`] = `
                                   for an issue:
                                 </h6>
                                 <GuideAnchor
-                                  show={true}
                                   target="alert_actions"
                                   type="text"
                                 >

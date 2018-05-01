@@ -98,7 +98,6 @@ exports[`GroupActions render() renders correctly 1`] = `
     }
   />
   <GuideAnchor
-    show={true}
     target="issue_tracking"
     type="text"
   >

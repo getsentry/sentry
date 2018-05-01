@@ -264,7 +264,6 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
               }
             />
             <GuideAnchor
-              show={true}
               target="ignore_delete_discard"
               type="text"
             >
@@ -5299,7 +5298,6 @@ exports[`IgnoreActions without confirmation renders 1`] = `
             }
           />
           <GuideAnchor
-            show={true}
             target="ignore_delete_discard"
             type="text"
           >
