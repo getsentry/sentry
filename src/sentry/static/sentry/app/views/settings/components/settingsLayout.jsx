@@ -75,9 +75,12 @@ const SidebarWrapper = styled(Box)`
   width: ${p => p.theme.settings.sidebarWidth};
 `;
 
+/**
+ * Note: `overflow: hidden` will cause some buttons in `SettingsPageHeader` to be cut off because it has negative margin.
+ * Will also cut off tooltips.
+ */
 const Content = styled(Box)`
   flex: 1;
-  overflow: hidden; /* We need this so that Content area does not overflow outside of max width */
 `;
 
 const SettingsSubheader = styled.div`
