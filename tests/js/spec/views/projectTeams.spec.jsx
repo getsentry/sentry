@@ -101,8 +101,11 @@ describe('ProjectTeams', function() {
       })
     );
 
+    await tick();
+
     // Remove second team
     wrapper
+      .update()
       .find('PanelBody Button')
       .first()
       .simulate('click');

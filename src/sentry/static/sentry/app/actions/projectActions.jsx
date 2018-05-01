@@ -13,4 +13,10 @@ export default Reflux.createActions([
   'removeProjectSuccess',
   'setActive',
   'changeSlug',
+  'addTeam',
+  'addTeamSuccess',
+  'addTeamError',
+  'removeTeam',
+  'removeTeamSuccess',
+  'removeTeamError',
 ]);
