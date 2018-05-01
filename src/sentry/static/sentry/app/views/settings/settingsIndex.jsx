@@ -267,6 +267,8 @@ class SettingsIndex extends React.Component {
     );
   }
 }
+
+export {SettingsIndex};
 export default withLatestContext(SettingsIndex);
 
 const HomePanelHeader = styled(PanelHeader)`
