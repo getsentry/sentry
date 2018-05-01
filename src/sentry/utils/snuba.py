@@ -176,14 +176,14 @@ def get_snuba_map(column, ids):
 def get_project_issues(project_ids, issue_ids=None):
     """
     Get a list of issues and associated fingerprint hashes for a list of
-    project ids. If issue_ids is also set, then also restrict to only those
-    issues as well.
+    project ids. If issue_ids is set, then return only those issues.
 
     Returns a list: [(issue_id: [hash1, hash2, ...]), ...]
     """
-    hashes = GroupHash.objects.filter(project__in=project_ids)
     if issue_ids:
-        hashes = hashes.filter(group_id__in=issue_ids)
+        hashes = GroupHash.objects.filter(group_id__in=issue_ids[:500])
+    else:
+        hashes = GroupHash.objects.filter(project__in=project_ids)
     result = {}
     for gid, hsh in hashes.values_list('group_id', 'hash'):
         result.setdefault(gid, []).append(hsh)
