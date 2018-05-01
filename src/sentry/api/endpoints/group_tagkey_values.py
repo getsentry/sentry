@@ -8,6 +8,7 @@ from sentry.api.paginator import DateTimePaginator, Paginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.tagvalue import UserTagValueSerializer
 from sentry.models import Group, Environment
+from sentry.tagstore.types import GroupTagValue
 from sentry.utils.apidocs import scenario
 
 
@@ -74,5 +75,19 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint, EnvironmentMixin):
             queryset=queryset,
             order_by=order_by,
             paginator_cls=paginator_cls,
-            on_results=lambda x: serialize(x, request.user, serializer_cls),
+            on_results=lambda results: serialize(
+                map(  # XXX: This is a pretty big abstraction leak
+                    lambda instance: GroupTagValue(
+                        group_id=instance.group_id,
+                        key=instance.key,
+                        value=instance.value,
+                        times_seen=instance.times_seen,
+                        last_seen=instance.last_seen,
+                        first_seen=instance.first_seen,
+                    ),
+                    results,
+                ),
+                request.user,
+                serializer_cls,
+            ),
         )
