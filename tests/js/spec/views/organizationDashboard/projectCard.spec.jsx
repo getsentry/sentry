@@ -10,6 +10,7 @@ describe('ProjectCard', function() {
       <ProjectCard
         project={TestStubs.Project({platforms: ['javascript']})}
         params={{orgId: 'org-slug'}}
+        stats={[[1525042800, 1], [1525046400, 2]]}
       />,
       TestStubs.routerContext()
     );
