@@ -212,7 +212,7 @@ exports[`projectAlertRules renders 1`] = `
                                                         width="12px"
                                                       >
                                                         <svg
-                                                          className="e17811v33 css-1jjmnki-StyledSvg-StyledInlineSvg css-adkcw30"
+                                                          className="e17811v33 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
                                                           height="12px"
                                                           viewBox={Object {}}
                                                           width="12px"

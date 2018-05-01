@@ -186,12 +186,12 @@ exports[`CreateProject render() should render roles when available and allowed, 
                       p={2}
                     >
                       <Base
-                        className="css-7bvhkr-StyledPanelItem css-q9h14u0"
+                        className="css-7bvhkr-StyledPanelItem eo8n7lk0"
                         onClick={[Function]}
                         p={2}
                       >
                         <div
-                          className="css-7bvhkr-StyledPanelItem css-q9h14u0"
+                          className="css-7bvhkr-StyledPanelItem eo8n7lk0"
                           is={null}
                           onClick={[Function]}
                         >
@@ -269,12 +269,12 @@ exports[`CreateProject render() should render roles when available and allowed, 
                       p={2}
                     >
                       <Base
-                        className="css-7bvhkr-StyledPanelItem css-q9h14u0"
+                        className="css-7bvhkr-StyledPanelItem eo8n7lk0"
                         onClick={[Function]}
                         p={2}
                       >
                         <div
-                          className="css-7bvhkr-StyledPanelItem css-q9h14u0"
+                          className="css-7bvhkr-StyledPanelItem eo8n7lk0"
                           is={null}
                           onClick={[Function]}
                         >
@@ -423,11 +423,11 @@ exports[`CreateProject render() should render roles when available and allowed, 
                       p={2}
                     >
                       <Base
-                        className="css-1fnar07-StyledPanelItem css-q9h14u0"
+                        className="css-1fnar07-StyledPanelItem eo8n7lk0"
                         p={2}
                       >
                         <div
-                          className="css-1fnar07-StyledPanelItem css-q9h14u0"
+                          className="css-1fnar07-StyledPanelItem eo8n7lk0"
                           is={null}
                         >
                           <TeamItem

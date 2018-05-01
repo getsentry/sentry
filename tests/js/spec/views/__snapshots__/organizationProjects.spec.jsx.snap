@@ -161,7 +161,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                                           width="12px"
                                                         >
                                                           <svg
-                                                            className="e17811v33 css-1jjmnki-StyledSvg-StyledInlineSvg css-adkcw30"
+                                                            className="e17811v33 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
                                                             height="12px"
                                                             viewBox={Object {}}
                                                             width="12px"
@@ -270,11 +270,11 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                     >
                       <Base
                         align="center"
-                        className="css-1oshx4q-StyledPanelItem css-q9h14u0"
+                        className="css-1oshx4q-StyledPanelItem eo8n7lk0"
                         p={0}
                       >
                         <div
-                          className="css-1oshx4q-StyledPanelItem css-q9h14u0"
+                          className="css-1oshx4q-StyledPanelItem eo8n7lk0"
                           is={null}
                         >
                           <Box

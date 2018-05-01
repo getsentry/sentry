@@ -423,7 +423,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
               width="1em"
             >
               <svg
-                className="e1hyuoc78 css-1uv43pt-StyledSvg-Divider css-adkcw30"
+                className="e1hyuoc78 css-1uv43pt-StyledSvg-Divider e2idor0"
                 height="1em"
                 viewBox={Object {}}
                 width="1em"
@@ -769,7 +769,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                                             width="16px"
                                           >
                                             <svg
-                                              className="e17811v33 css-1jjmnki-StyledSvg-StyledInlineSvg css-adkcw30"
+                                              className="e17811v33 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
                                               height="16px"
                                               viewBox={Object {}}
                                               width="16px"

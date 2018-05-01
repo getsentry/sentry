@@ -149,11 +149,11 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                         >
                           <Base
                             align="center"
-                            className="css-dmmai1-StyledPanelItem css-q9h14u0"
+                            className="css-dmmai1-StyledPanelItem eo8n7lk0"
                             p={2}
                           >
                             <div
-                              className="css-dmmai1-StyledPanelItem css-q9h14u0"
+                              className="css-dmmai1-StyledPanelItem eo8n7lk0"
                               is={null}
                             >
                               <Flex

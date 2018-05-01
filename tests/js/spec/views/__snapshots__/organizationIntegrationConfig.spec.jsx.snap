@@ -226,12 +226,12 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                     py={2}
                   >
                     <Base
-                      className="css-1uon4oe-StyledPanelItem css-q9h14u0"
+                      className="css-1uon4oe-StyledPanelItem eo8n7lk0"
                       p={0}
                       py={2}
                     >
                       <div
-                        className="css-1uon4oe-StyledPanelItem css-q9h14u0"
+                        className="css-1uon4oe-StyledPanelItem eo8n7lk0"
                         is={null}
                       >
                         <Box
@@ -480,7 +480,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                     width="1em"
                   >
                     <svg
-                      className="css-ryh69w-StyledSvg css-adkcw30"
+                      className="css-ryh69w-StyledSvg e2idor0"
                       height="1em"
                       viewBox={Object {}}
                       width="1em"
