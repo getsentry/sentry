@@ -204,7 +204,7 @@ const StackedBarChart = createReactClass({
       10,
       this.state.series
         .map(s => Math.max(...s.data.map(p => p.y)))
-        .reduce((a, b) => a + b)
+        .reduce((a, b) => a + b, 0)
     );
   },
 
