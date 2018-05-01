@@ -67,6 +67,13 @@ const Undo = styled.div`
   }
 `;
 
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  .loading-indicator {
+    border-color: ${p => p.theme.gray4};
+    border-left-color: ${p => p.theme.purple};
+  }
+`;
+
 function ToastIndicator({indicator, onDismiss, className, ...props}) {
   let icon;
   let {options, message, type} = indicator;
@@ -90,7 +97,11 @@ function ToastIndicator({indicator, onDismiss, className, ...props}) {
       className={cx(className, 'ref-toast', `ref-${type}`)}
       {...props}
     >
-      {type == 'loading' ? <LoadingIndicator mini /> : <Icon type={type}>{icon}</Icon>}
+      {type == 'loading' ? (
+        <StyledLoadingIndicator mini />
+      ) : (
+        <Icon type={type}>{icon}</Icon>
+      )}
       <Message>{message}</Message>
       {showUndo && <Undo onClick={undo}>{t('Undo')}</Undo>}
     </Toast>
