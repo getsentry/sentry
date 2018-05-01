@@ -5,6 +5,7 @@ import Reflux from 'reflux';
 import {capitalize} from 'lodash';
 import styled from 'react-emotion';
 import {Flex, Box} from 'grid-emotion';
+import {Link} from 'react-router';
 
 import ApiMixin from 'app/mixins/apiMixin';
 import DropdownLink from 'app/components/dropdownLink';
@@ -63,7 +64,18 @@ const getConfirm = (numIssues, allInQuerySelected, query, queryCount) => {
           query={query}
           queryCount={queryCount}
         />
-        {!canBeUndone && <p>{t('This action cannot be undone.')}</p>}
+        {!canBeUndone && (
+          <p>
+            {tct(
+              'Bulk deletion is only recommended for junk data. To clear your stream, consider resolving or ignoring. [link:When should I delete events?]',
+              {
+                link: (
+                  <Link to="https://help.sentry.io/hc/en-us/articles/360003443113-When-should-I-delete-events-" />
+                ),
+              }
+            )}
+          </p>
+        )}
       </div>
     );
   };
@@ -387,7 +399,7 @@ const StreamActions = createReactClass({
                 <MenuItem noAnchor={true}>
                   <ActionLink
                     className="action-delete"
-                    disabled={!anySelected || allInQuerySelected}
+                    disabled={!anySelected}
                     onAction={this.onDelete}
                     shouldConfirm={this.shouldConfirm('delete')}
                     message={confirm('delete', false)}
