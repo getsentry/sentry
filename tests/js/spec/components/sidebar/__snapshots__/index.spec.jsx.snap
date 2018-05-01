@@ -476,7 +476,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
     </SidebarMenuItem>
     <Divider>
       <div
-        className="css-1pf7o79-Divider ek5mfa70"
+        className="css-19r16al-Divider ek5mfa70"
       />
     </Divider>
     <SidebarUserSummary
