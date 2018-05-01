@@ -346,7 +346,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get('defaultEnvironment') is not None:
             project.update_option('sentry:default_environment', result['defaultEnvironment'])
         if result.get('scrubIPAddresses') is not None:
-            project.update_option('sentry:scrub_ip_address', result['scrubIPAddresses'])
+            if project.update_option('sentry:scrub_ip_address', result['scrubIPAddresses']):
+                changed_proj_settings['sentry:scrub_ip_address'] = result['scrubIPAddresses']
         if result.get('securityToken') is not None:
             project.update_option('sentry:token', result['securityToken'])
         if result.get('securityTokenHeader') is not None:
@@ -354,9 +355,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get('verifySSL') is not None:
             project.update_option('sentry:verify_ssl', result['verifySSL'])
         if result.get('dataScrubber') is not None:
-            project.update_option('sentry:scrub_data', result['dataScrubber'])
+            if project.update_option('sentry:scrub_data', result['dataScrubber']):
+                changed_proj_settings['sentry:scrub_data'] = result['dataScrubber']
         if result.get('dataScrubberDefaults') is not None:
-            project.update_option('sentry:scrub_defaults', result['dataScrubberDefaults'])
+            if project.update_option('sentry:scrub_defaults', result['dataScrubberDefaults']):
+                changed_proj_settings['sentry:scrub_defaults'] = result['dataScrubberDefaults']
         if result.get('sensitiveFields') is not None:
             project.update_option('sentry:sensitive_fields', result['sensitiveFields'])
         if result.get('safeFields') is not None:

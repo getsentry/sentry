@@ -238,7 +238,7 @@ class ProjectUpdateTest(APITestCase):
             'filters:releases': '1.*\n2.1.*',
             'filters:error_messages': 'TypeError*\n*: integer division by modulo or zero',
             'mail:subject_prefix': '[Sentry]',
-            'sentry:resolve_age': 1
+            'sentry:scrub_ip_address': False
         }
         with self.feature('projects:custom-inbound-filters'):
             resp = self.client.put(self.path, data={'options': options})
@@ -247,7 +247,15 @@ class ProjectUpdateTest(APITestCase):
         assert project.get_option('sentry:origins', []) == options['sentry:origins'].split('\n')
         assert project.get_option('sentry:resolve_age', 0) == options['sentry:resolve_age']
         assert project.get_option('sentry:scrub_data', True) == options['sentry:scrub_data']
+        assert AuditLogEntry.objects.filter(
+            organization=project.organization,
+            event=AuditLogEntryEvent.PROJECT_EDIT,
+        ).exists()
         assert project.get_option('sentry:scrub_defaults', True) == options['sentry:scrub_defaults']
+        assert AuditLogEntry.objects.filter(
+            organization=project.organization,
+            event=AuditLogEntryEvent.PROJECT_EDIT,
+        ).exists()
         assert project.get_option('sentry:sensitive_fields',
                                   []) == options['sentry:sensitive_fields']
         assert project.get_option('sentry:safe_fields', []) == options['sentry:safe_fields']
@@ -266,6 +274,11 @@ class ProjectUpdateTest(APITestCase):
             event=AuditLogEntryEvent.PROJECT_EDIT,
         ).exists()
         assert project.get_option('sentry:resolve_age', 1)
+        assert AuditLogEntry.objects.filter(
+            organization=project.organization,
+            event=AuditLogEntryEvent.PROJECT_EDIT,
+        ).exists()
+        assert project.get_option('sentry:scrub_ip_address', False)
         assert AuditLogEntry.objects.filter(
             organization=project.organization,
             event=AuditLogEntryEvent.PROJECT_EDIT,
