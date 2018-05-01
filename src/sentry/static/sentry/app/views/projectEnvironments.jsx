@@ -152,7 +152,10 @@ const ProjectEnvironments = createReactClass({
 
   // Change "Default Environment"
   handleSetAsDefault(env) {
-    const data = {defaultEnvironment: env.name};
+    const defaultEnvironment = env.name === ALL_ENVIRONMENTS_KEY ? null : env.name;
+
+    const data = {defaultEnvironment};
+
     const oldProject = this.state.project;
 
     // Optimistically update state
@@ -212,8 +215,7 @@ const ProjectEnvironments = createReactClass({
     if (this.state.isHidden) return null;
     let {project} = this.state;
 
-    let isAllEnvironmentsDefault =
-      project && project.defaultEnvironment === ALL_ENVIRONMENTS_KEY;
+    let isAllEnvironmentsDefault = project && project.defaultEnvironment === null;
 
     return (
       <EnvironmentRow
@@ -237,8 +239,7 @@ const ProjectEnvironments = createReactClass({
     if (this.state.isHidden) return null;
     let {environments, project} = this.state;
     // Default environment that is not a valid environment
-    let isAllEnvironmentsDefault =
-      project && project.defaultEnvironment === ALL_ENVIRONMENTS_KEY;
+    let isAllEnvironmentsDefault = project && project.defaultEnvironment === null;
 
     let hasOtherDefaultEnvironment =
       project &&

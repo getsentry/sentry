@@ -163,7 +163,7 @@ describe('ProjectEnvironments', function() {
         expect.anything(),
         expect.objectContaining({
           data: {
-            defaultEnvironment: ALL_ENVIRONMENTS_KEY,
+            defaultEnvironment: null,
           },
         })
       );
