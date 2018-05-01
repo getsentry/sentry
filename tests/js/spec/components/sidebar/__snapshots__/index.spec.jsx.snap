@@ -461,86 +461,40 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
         </Component>
       </MenuItemLink>
     </SidebarMenuItem>
-    <SidebarMenuItem
-      to="/settings/org-slug/billing/"
-    >
-      <MenuItemLink
-        to="/settings/org-slug/billing/"
-      >
-        <Component
-          className="css-1vsrn4x-MenuItemLink ebifsjx1"
-          to="/settings/org-slug/billing/"
-        >
-          <Link
-            className="css-1vsrn4x-MenuItemLink ebifsjx1"
-            to="/settings/org-slug/billing/"
-          >
-            <Link
-              className="css-1vsrn4x-MenuItemLink ebifsjx1"
-              onlyActiveOnIndex={false}
-              style={Object {}}
-              to="/settings/org-slug/billing/"
-            >
-              <a
-                className="css-1vsrn4x-MenuItemLink ebifsjx1"
-                onClick={[Function]}
-                style={Object {}}
-              >
-                <MenuItemLabel
-                  hasMenu={false}
-                >
-                  <span
-                    className="css-3xcmix-MenuItemLabel-MenuItemLabel ebifsjx0"
-                  >
-                    Usage & Billing
-                  </span>
-                </MenuItemLabel>
-              </a>
-            </Link>
-          </Link>
-        </Component>
-      </MenuItemLink>
-    </SidebarMenuItem>
-    <SidebarMenuItem
-      to="/organizations/org-slug/support/"
-    >
-      <MenuItemLink
-        to="/organizations/org-slug/support/"
-      >
-        <Component
-          className="css-1vsrn4x-MenuItemLink ebifsjx1"
-          to="/organizations/org-slug/support/"
-        >
-          <Link
-            className="css-1vsrn4x-MenuItemLink ebifsjx1"
-            to="/organizations/org-slug/support/"
-          >
-            <Link
-              className="css-1vsrn4x-MenuItemLink ebifsjx1"
-              onlyActiveOnIndex={false}
-              style={Object {}}
-              to="/organizations/org-slug/support/"
-            >
-              <a
-                className="css-1vsrn4x-MenuItemLink ebifsjx1"
-                onClick={[Function]}
-                style={Object {}}
-              >
-                <MenuItemLabel
-                  hasMenu={false}
-                >
-                  <span
-                    className="css-3xcmix-MenuItemLabel-MenuItemLabel ebifsjx0"
-                  >
-                    Support
-                  </span>
-                </MenuItemLabel>
-              </a>
-            </Link>
-          </Link>
-        </Component>
-      </MenuItemLink>
-    </SidebarMenuItem>
+    <Hook
+      Components={
+        Object {
+          "SidebarMenuItem": [Function],
+        }
+      }
+      name="sidebar:organization-dropdown-menu"
+      organization={
+        Object {
+          "access": Array [
+            "org:read",
+            "org:write",
+            "org:admin",
+            "project:read",
+            "project:write",
+            "project:admin",
+            "team:read",
+            "team:write",
+            "team:admin",
+          ],
+          "features": Array [],
+          "id": "3",
+          "name": "Organization Name",
+          "onboardingTasks": Array [],
+          "projects": Array [],
+          "slug": "org-slug",
+          "status": Object {
+            "id": "active",
+            "name": "active",
+          },
+          "teams": Array [],
+        }
+      }
+    />
     <SidebarMenuItem>
       <MenuItemLink>
         <Component

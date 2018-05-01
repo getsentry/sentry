@@ -5,6 +5,7 @@ import styled from 'react-emotion';
 import {t} from 'app/locale';
 import Avatar from 'app/components/avatar';
 import DropdownMenu from 'app/components/dropdownMenu';
+import Hook from 'app/components/hook';
 import SentryTypes from 'app/proptypes';
 import TextOverflow from 'app/components/textOverflow';
 import UserBadge from 'app/components/userBadge';
@@ -73,12 +74,12 @@ class SidebarDropdown extends React.Component {
                   <SidebarMenuItem to={`/settings/${org.slug}/members/`}>
                     {t('Members')}
                   </SidebarMenuItem>
-                  <SidebarMenuItem to={`/settings/${org.slug}/billing/`}>
-                    {t('Usage & Billing')}
-                  </SidebarMenuItem>
-                  <SidebarMenuItem to={`/organizations/${org.slug}/support/`}>
-                    {t('Support')}
-                  </SidebarMenuItem>
+
+                  <Hook
+                    name="sidebar:organization-dropdown-menu"
+                    organization={org}
+                    Components={{SidebarMenuItem}}
+                  />
 
                   {config.isOnPremise && (
                     <SidebarMenuItem href="https://forum.sentry.io/">
