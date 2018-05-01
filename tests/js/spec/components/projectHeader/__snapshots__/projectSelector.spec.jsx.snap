@@ -74,6 +74,19 @@ exports[`ProjectSelector render() can filter projects by project name 1`] = `
     className="project-select"
   >
     <h3>
+      <Link
+        className="home-crumb"
+        to="/org/"
+      >
+        <a
+          className="home-crumb"
+          href="/org/"
+        >
+          <span
+            className="icon-home"
+          />
+        </a>
+      </Link>
       <span
         onClick={[Function]}
         role="button"
@@ -254,6 +267,19 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
     className="project-select"
   >
     <h3>
+      <Link
+        className="home-crumb"
+        to="/org/"
+      >
+        <a
+          className="home-crumb"
+          href="/org/"
+        >
+          <span
+            className="icon-home"
+          />
+        </a>
+      </Link>
       <span
         onClick={[Function]}
         role="button"
@@ -387,6 +413,14 @@ exports[`ProjectSelector render() lists projects and has filter 1`] = `
   className="project-select"
 >
   <h3>
+    <Link
+      className="home-crumb"
+      to="/org/"
+    >
+      <span
+        className="icon-home"
+      />
+    </Link>
     <span
       onClick={[Function]}
       role="button"
@@ -454,6 +488,14 @@ exports[`ProjectSelector render() should show empty message and create project b
   className="project-select"
 >
   <h3>
+    <Link
+      className="home-crumb"
+      to="/org-slug/"
+    >
+      <span
+        className="icon-home"
+      />
+    </Link>
     <span
       onClick={[Function]}
       role="button"
@@ -513,6 +555,14 @@ exports[`ProjectSelector render() should show empty message with no projects but
   className="project-select"
 >
   <h3>
+    <Link
+      className="home-crumb"
+      to="/org-slug/"
+    >
+      <span
+        className="icon-home"
+      />
+    </Link>
     <span
       onClick={[Function]}
       role="button"
@@ -625,6 +675,19 @@ exports[`ProjectSelector render() shows empty filter message when filtering has 
     className="project-select"
   >
     <h3>
+      <Link
+        className="home-crumb"
+        to="/org/"
+      >
+        <a
+          className="home-crumb"
+          href="/org/"
+        >
+          <span
+            className="icon-home"
+          />
+        </a>
+      </Link>
       <span
         onClick={[Function]}
         role="button"
