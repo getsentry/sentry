@@ -43,4 +43,11 @@ describe('ProjectCard', function() {
       })
     );
   });
+
+  it('renders with one platform', function() {
+    const platformList = wrapper.find('PlatformList');
+    expect(
+      platformList.find('StyledPlatformIcon.platformicon.platformicon-javascript')
+    ).toHaveLength(1);
+  });
 });
