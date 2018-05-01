@@ -131,7 +131,7 @@ test-js:
 # builds and creates percy snapshots
 test-styleguide:
 	@echo "--> Building and snapshotting styleguide"
-	@npm run snapshot
+	@git diff --name-only ${TRAVIS_COMMIT_RANGE} | grep -q -e '\.stories\.js$$' -e '\.jsx$$' && yarn snapshot || echo '    ...skipping (no javascript files changed)'
 	@echo ""
 
 test-python: build-platform-assets
