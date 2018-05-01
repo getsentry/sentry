@@ -64,6 +64,20 @@ class VSTSIntegration(Integration):
         response_json = response.json()
         return response_json
 
+    def get_account_info(self, instance, access_token):
+        session = http.build_session()
+        url = 'https://%s/_apis/accounts?api-version=4.1' % instance
+        response = session.get(
+            url,
+            headers={
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer %s' % access_token,
+            }
+        )
+        response.raise_for_status()
+        response_json = response.json()
+        return response_json
+
     def get_default_project(self, name, projects):
         for project in projects:
             if project['name'] == name:
@@ -82,12 +96,12 @@ class VSTSIntegration(Integration):
             'name': default_project['name'],
             'external_id': default_project['id'],
             'metadata': {
-                'access_token': access_token,
                 'scopes': scopes,
                 'domain_name': instance,
                 # icon doesn't appear to be possible
             },
             'user_identity': {
+                'access_token': access_token,
                 'type': 'vsts',
                 'external_id': instance,
                 'scopes': [],

@@ -1,8 +1,10 @@
 from __future__ import absolute_import
 
-from django.http import HttpResponse
+from django import forms
 
 from sentry import options
+
+from sentry.web.helpers import render_to_response
 from sentry.options.manager import FLAG_PRIORITIZE_DISK
 from sentry.identity.oauth2 import OAuth2Provider, OAuth2LoginView, OAuth2CallbackView
 from sentry.pipeline import PipelineView
@@ -43,7 +45,8 @@ class VSTSIdentityProvider(OAuth2Provider):
                 client_id=self.get_oauth_client_id(),
                 client_secret=self.get_oauth_client_secret(),
             ),
-            ConfigView(),
+            AccountConfigView(),
+            ProjectConfigView(),
         ]
 
 
@@ -74,25 +77,48 @@ class VSTSOAuth2CallbackView(OAuth2CallbackView):
         return json.loads(body)
 
 
-class ConfigView(PipelineView):
-    TEMPLATE = '''
-    <form method="POST">
-        Instance: <input type="text" name="instance" placeholder="example.visualstudio.com" required=True />
-        <br />
-        VS Team Services account (account.visualstudio.com).
-        <br />
-        Default Project: <input type="text" name="default_project" placeholder="MyProject" required=True />
-        <br />
-        Enter the Visual Studio Team Services project name that you wish to use as a default for new work items
-        <br />
-        <input type="submit" value="Submit" />
-    </form>
-    '''
+class AccountForm(forms.Form):
+    instance = forms.CharField(
+        label='Instance',
+        widget=forms.TextInput(attrs={'placeholder': 'eg. example.visualstudio.com'}),
+        help_text='VS Team Services account (account.visualstudio.com).',
+    )
 
+
+class ProjectForm(forms.Form):
+    project = forms.ChoiceField(
+        choices=[],
+        label='Project',
+        help_text='Enter the Visual Studio Team Services project name that you wish to use as a default for new work items'
+    )
+
+    def add_project_choices(self, choices):
+        self.project.choices = choices
+
+
+class AccountConfigView(PipelineView):
     def dispatch(self, request, pipeline):
         if 'instance' in request.POST:
             pipeline.bind_state('instance', request.POST.get('instance'))
-            if 'default_project' in request.POST:
-                pipeline.bind_state('default_project', request.POST.get('default_project'))
-                return pipeline.next_step()
-        return HttpResponse(self.TEMPLATE)
+            return pipeline.next_step()
+        return render_to_response(
+            template='templates/vsts-account.html',
+            context={
+                'form': AccountForm(),
+            },
+            request=request,
+        )
+
+
+class ProjectConfigView(PipelineView):
+    def dispatch(self, request, pipeline):
+        if 'project' in request.POST:
+            pipeline.bind_state('project', request.POST.get('project'))
+            return pipeline.next_step()
+        return render_to_response(
+            template='templates/vsts-account.html',
+            context={
+                'form': ProjectForm(),
+            },
+            request=request,
+        )
