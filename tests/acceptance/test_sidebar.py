@@ -25,5 +25,5 @@ class SidebarTest(AcceptanceTestCase):
             self.browser.click('[data-test-id="sidebar-broadcasts"]')
             self.browser.wait_until('[data-test-id="sidebar-broadcasts-panel"]')
             self.browser.snapshot('sidebar - broadcasts panel')
-            self.browser.click('.organization-home')
+            self.browser.click('footer')
             self.browser.wait_until_not('[data-test-id="sidebar-broadcasts-panel"]')
