@@ -1,8 +1,9 @@
 from __future__ import absolute_import
+from sentry.tagstore.base import TagKeyStatus
 
 
 class TagKey(object):
-    def __init__(self, key, values_seen, status):
+    def __init__(self, key, values_seen, status=TagKeyStatus.VISIBLE):
         self.key = key
         self.values_seen = values_seen
         self.status = status
