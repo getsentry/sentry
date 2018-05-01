@@ -25,7 +25,7 @@ describe('Hook', function() {
     HookStore.init();
   });
 
-  it('can render component from a hook', function() {
+  it('renders component from a hook', function() {
     let wrapper = mount(
       <div>
         <Hook name="footer" organization={TestStubs.Organization()} />
@@ -36,6 +36,18 @@ describe('Hook', function() {
     expect(HookStore.hooks.footer).toHaveLength(1);
     expect(wrapper.find('Wrapper')).toHaveLength(1);
     expect(wrapper.find('Wrapper').prop('organization').slug).toBe('org-slug');
+  });
+
+  it('renders an invalid hook', function() {
+    let wrapper = mount(
+      <div>
+        <Hook name="invalid-hook" organization={TestStubs.Organization()} />
+      </div>,
+      routerContext
+    );
+
+    expect(wrapper.find('Wrapper')).toHaveLength(0);
+    expect(wrapper.find('div')).toHaveLength(1);
   });
 
   it('can re-render when hooks get after initial render', function() {

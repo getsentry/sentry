@@ -47,6 +47,8 @@ const Hook = createReactClass({
   render() {
     let {children} = this.props;
 
+    if (!this.state.hooks || !this.state.hooks.length) return null;
+
     if (typeof children === 'function') {
       return children({hooks: this.state.hooks});
     }
