@@ -421,13 +421,7 @@ class LegacyTagStorage(TagStorage):
 
             if updated:
                 delete_tag_key_task.delay(object_id=tagkey.id, model=models.TagKey)
-                deleted.append(
-                    TagKey(
-                        key=tagkey.key,
-                        values_seen=tagkey.values_seen,
-                        status=tagkey.status,
-                    )
-                )
+                deleted.append(tagkey)
 
         return deleted
 
