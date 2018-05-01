@@ -33,6 +33,7 @@ class SidebarDropdown extends React.Component {
   render() {
     let {org, orientation, collapsed, config, user, onClick} = this.props;
     let hasOrgWrite = org.access.indexOf('org:write') > -1;
+    let hasMemberRead = org.access.indexOf('member:read') > -1;
 
     return (
       <DropdownMenu>
@@ -65,15 +66,16 @@ class SidebarDropdown extends React.Component {
               {isOpen && (
                 <OrgAndUserMenu {...getMenuProps({isStyled: true, org})}>
                   <SidebarOrgSummary organization={org} />
-                  <SidebarMenuItem to={`/settings/${org.slug}/`}>
-                    {t('Organization settings')}
-                  </SidebarMenuItem>
-                  <SidebarMenuItem to={`/organizations/${org.slug}/teams/`}>
-                    {t('Projects')}
-                  </SidebarMenuItem>
-                  <SidebarMenuItem to={`/settings/${org.slug}/members/`}>
-                    {t('Members')}
-                  </SidebarMenuItem>
+                  {hasOrgWrite && (
+                    <SidebarMenuItem to={`/settings/${org.slug}/`}>
+                      {t('Organization settings')}
+                    </SidebarMenuItem>
+                  )}
+                  {hasMemberRead && (
+                    <SidebarMenuItem to={`/settings/${org.slug}/members/`}>
+                      {t('Members')}
+                    </SidebarMenuItem>
+                  )}
 
                   <Hook
                     name="sidebar:organization-dropdown-menu"

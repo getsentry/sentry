@@ -88,6 +88,23 @@ describe('Sidebar', function() {
       expect(wrapper.find('OrgAndUserMenu')).toMatchSnapshot();
     });
 
+    it('has link to Members settings with `member:write`', function() {
+      let org = TestStubs.Organization();
+      org = {
+        ...org,
+        access: [...org.access, 'member:read'],
+      };
+
+      wrapper = createWrapper({
+        organization: org,
+      });
+      wrapper.find('SidebarDropdownActor').simulate('click');
+      expect(wrapper.find('OrgAndUserMenu')).toHaveLength(1);
+      expect(
+        wrapper.find('SidebarMenuItem[to="/settings/org-slug/members/"]')
+      ).toHaveLength(1);
+    });
+
     it('can open "Switch Organization" sub-menu', function() {
       jest.useFakeTimers();
       wrapper = createWrapper();
