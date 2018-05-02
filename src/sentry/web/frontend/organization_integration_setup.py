@@ -2,6 +2,8 @@ from __future__ import absolute_import, print_function
 
 import logging
 
+from django.http import Http404
+
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.web.frontend.base import OrganizationView
 
@@ -19,6 +21,10 @@ class OrganizationIntegrationSetupView(OrganizationView):
             organization=organization,
             provider_key=provider_id,
         )
+
+        if not pipeline.provider.can_add:
+            raise Http404
+
         pipeline.initialize()
 
         return pipeline.current_step()
