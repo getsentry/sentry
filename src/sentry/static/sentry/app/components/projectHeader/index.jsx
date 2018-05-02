@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
+import {Flex} from 'grid-emotion';
 
 import SentryTypes from 'app/proptypes';
 import ProjectLink from 'app/components/projectLink';
@@ -16,6 +17,8 @@ import {
   setActiveEnvironment,
   clearActiveEnvironment,
 } from 'app/actionCreators/environments';
+
+import BackfillNotice from './backfillNotice';
 
 class ProjectHeader extends React.Component {
   static propTypes = {
@@ -108,45 +111,50 @@ class ProjectHeader extends React.Component {
             </ul>
           </div>
           {showEnvironmentsToggle && (
-            <div className="project-header-toggle">
-              <label>{t('Environment')}</label>
-              <DropdownLink
-                anchorRight={true}
-                title={activeEnvironmentTitle}
-                className="environment-selector-toggle"
-              >
-                <MenuItem
-                  onClick={clearActiveEnvironment}
-                  className={activeEnvironment === null && 'active'}
+            <Flex>
+              <BackfillNotice project={project} />
+              <div className="project-header-toggle">
+                <label>{t('Environment')}</label>
+                <DropdownLink
+                  anchorRight={true}
+                  title={activeEnvironmentTitle}
+                  className="environment-selector-toggle"
                 >
-                  {allEnvironmentsLabel}
-                </MenuItem>
-                {environments.map(env => (
                   <MenuItem
-                    key={env.id}
-                    onClick={() => setActiveEnvironment(env)}
-                    className={
-                      activeEnvironment && activeEnvironment.name === env.name && 'active'
-                    }
+                    onClick={clearActiveEnvironment}
+                    className={activeEnvironment === null && 'active'}
                   >
-                    {env.displayName}
+                    {allEnvironmentsLabel}
                   </MenuItem>
-                ))}
-                <MenuItem divider={true} />
-                <div style={{textAlign: 'center', padding: '5px 0px'}}>
-                  <Button
-                    to={
-                      orgFeatures.has('new-settings')
-                        ? `/settings/${org.slug}/${project.slug}/environments/`
-                        : `/${org.slug}/${project.slug}/settings/`
-                    }
-                    size="small"
-                  >
-                    {t('Manage environments')}
-                  </Button>
-                </div>
-              </DropdownLink>
-            </div>
+                  {environments.map(env => (
+                    <MenuItem
+                      key={env.id}
+                      onClick={() => setActiveEnvironment(env)}
+                      className={
+                        activeEnvironment &&
+                        activeEnvironment.name === env.name &&
+                        'active'
+                      }
+                    >
+                      {env.displayName}
+                    </MenuItem>
+                  ))}
+                  <MenuItem divider={true} />
+                  <div style={{textAlign: 'center', padding: '5px 0px'}}>
+                    <Button
+                      to={
+                        orgFeatures.has('new-settings')
+                          ? `/settings/${org.slug}/${project.slug}/environments/`
+                          : `/${org.slug}/${project.slug}/settings/`
+                      }
+                      size="small"
+                    >
+                      {t('Manage environments')}
+                    </Button>
+                  </div>
+                </DropdownLink>
+              </div>
+            </Flex>
           )}
         </div>
       </div>
