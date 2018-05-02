@@ -18,6 +18,14 @@ class ProjectEnvironmentsEndpoint(ProjectEndpoint):
     def get(self, request, project):
         queryset = EnvironmentProject.objects.filter(
             project=project,
+        ).exclude(
+            # HACK(mattrobenolt): We don't want to surface the
+            # "No Environment" environment to the UI since it
+            # doesn't really exist. This might very likely change
+            # with new tagstore backend in the future, but until
+            # then, we're hiding it since it causes more problems
+            # than it's worth.
+            environment__name='',
         ).select_related('environment').order_by('environment__name')
 
         visibility = request.GET.get('visibility', 'visible')
