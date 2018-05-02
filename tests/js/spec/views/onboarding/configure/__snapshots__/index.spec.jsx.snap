@@ -151,6 +151,7 @@ exports[`Configure should render correctly render() should render platform docs 
                 "goBack": [MockFunction],
                 "goForward": [MockFunction],
                 "isActive": [MockFunction],
+                "listen": [MockFunction],
                 "location": Object {
                   "query": Object {},
                 },

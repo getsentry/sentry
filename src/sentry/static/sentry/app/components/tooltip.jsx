@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
+import {isEqual} from 'lodash';
 import 'bootstrap/js/tooltip';
 
 // Non-mixin way to get Tooltips
@@ -24,7 +25,11 @@ class Tooltip extends React.Component {
   }
 
   componentDidUpdate = prevProps => {
-    if (prevProps.title != this.props.title) {
+    // Reattach tooltip if options or tooltip message changes
+    if (
+      !isEqual(prevProps.tooltipOptions, this.props.tooltipOptions) ||
+      prevProps.title != this.props.title
+    ) {
       this.removeTooltips(this.ref);
       this.attachTooltips(this.ref);
     }

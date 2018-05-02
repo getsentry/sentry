@@ -26,7 +26,7 @@ describe('Avatar', function() {
         },
       });
       let avatar = mount(<Avatar user={user} />);
-      expect(avatar.find('.avatar')).toHaveLength(1);
+      expect(avatar.find('span.avatar')).toHaveLength(1);
     });
 
     it('should show a gravatar when avatar type is gravatar', function() {

@@ -15,9 +15,7 @@ class UserAvatar extends React.Component {
     gravatar: true,
   };
 
-  getType = () => {
-    let {user, gravatar} = this.props;
-
+  getType = (user, gravatar) => {
     if (user.avatar) {
       return user.avatar.avatarType;
     }
@@ -29,11 +27,11 @@ class UserAvatar extends React.Component {
   };
 
   render() {
-    let {user, ...props} = this.props;
+    let {user, gravatar, ...props} = this.props;
 
     if (!user) return null;
 
-    let type = this.getType();
+    let type = this.getType(user, gravatar);
 
     return (
       <BaseAvatar

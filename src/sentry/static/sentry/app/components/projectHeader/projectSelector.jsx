@@ -345,13 +345,17 @@ const ProjectSelector = createReactClass({
     const dropdownClassNames = classNames('project-dropdown', {
       'is-empty': !hasProjects,
     });
+    const hasNewDashboardFeature = features.has('dashboard');
 
     return (
       <div className="project-select">
         <h3>
-          <Link to={`/${org.slug}/`} className="home-crumb">
-            <span className="icon-home" />
-          </Link>
+          {!hasNewDashboardFeature && (
+            <Link to={`/${org.slug}/`} className="home-crumb">
+              <span className="icon-home" />
+            </Link>
+          )}
+
           {this.state.activeProject ? (
             this.getLinkNode(this.state.activeTeam, this.state.activeProject)
           ) : (

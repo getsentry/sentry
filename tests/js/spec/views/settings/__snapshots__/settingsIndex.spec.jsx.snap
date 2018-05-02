@@ -56,11 +56,14 @@ exports[`SettingsIndex renders 1`] = `
                         "newsletter_consent_prompt": false,
                       },
                       "hasPasswordAuth": true,
+                      "id": "1",
                       "isAuthenticated": true,
+                      "name": "Foo Bar",
                       "options": Object {
                         "timezone": "UTC",
                       },
                       "permissions": Set {},
+                      "username": "foo@example.com",
                     }
                   }
                 />

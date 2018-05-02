@@ -2,6 +2,7 @@
 import React from 'react';
 import {mount, shallow} from 'enzyme';
 import GroupSimilarView from 'app/views/groupSimilar/groupSimilarView';
+
 import issues from '../../mocks/issues';
 
 jest.mock('app/mixins/projectState', () => {
@@ -52,7 +53,9 @@ describe('Issues Similar View', function() {
     );
 
     await tick();
+    await tick();
+    wrapper.update();
     expect(mock).toHaveBeenCalled();
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper.find('GroupGroupingView')).toMatchSnapshot();
   });
 });

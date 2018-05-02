@@ -13,6 +13,7 @@ from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions
+from selenium.webdriver.common.action_chains import ActionChains
 from six.moves.urllib.parse import quote, urlparse
 
 # if we're not running in a PR, we kill the PERCY_TOKEN because its a push
@@ -82,6 +83,18 @@ class Browser(object):
         if selector:
             self.wait_until_clickable(selector, timeout)
             self.click(selector)
+        else:
+            raise ValueError
+
+        return self
+
+    def move_to(self, selector=None):
+        """
+        Mouse move to ``selector``
+        """
+        if selector:
+            actions = ActionChains(self.driver)
+            actions.move_to_element(self.element(selector)).perform()
         else:
             raise ValueError
 
