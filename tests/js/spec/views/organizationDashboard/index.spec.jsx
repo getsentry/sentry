@@ -51,8 +51,23 @@ describe('OrganizationDashboard', function() {
         TestStubs.routerContext()
       );
       const emptyState = wrapper.find('EmptyState');
+      const favorites = wrapper.find('[data-test-id="favorites"]');
       const projectCard = wrapper.find('ProjectCardWrapper');
       expect(emptyState).toHaveLength(0);
+      expect(favorites).toHaveLength(0);
+      expect(projectCard).toHaveLength(1);
+    });
+
+    it('renders favorited project in favorites section ', function() {
+      const teams = [TestStubs.Team()];
+      const projects = [TestStubs.Project({teams, isBookmarked: true})];
+
+      const wrapper = shallow(
+        <Dashboard teams={teams} projects={projects} params={{orgId: 'org-slug'}} />,
+        TestStubs.routerContext()
+      );
+      const favorites = wrapper.find('[data-test-id="favorites"]');
+      const projectCard = favorites.find('ProjectCardWrapper');
       expect(projectCard).toHaveLength(1);
     });
   });
