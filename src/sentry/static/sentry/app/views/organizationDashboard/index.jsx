@@ -6,14 +6,16 @@ import styled from 'react-emotion';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import OrganizationState from 'app/mixins/organizationState';
-import OldDashboard from 'app/views/organizationDashboard/oldDashboard';
-import ProjectNav from 'app/views/organizationDashboard/projectNav';
-import TeamMembers from 'app/views/organizationDashboard/teamMembers';
-import ProjectCard from 'app/views/organizationDashboard/projectCard';
-import EmptyState from 'app/views/organizationDashboard/emptyState';
 import getProjectsByTeams from 'app/utils/getProjectsByTeams';
 import withTeams from 'app/utils/withTeams';
 import withProjects from 'app/utils/withProjects';
+import {t} from 'app/locale';
+
+import OldDashboard from './oldDashboard';
+import ProjectNav from './projectNav';
+import TeamMembers from './teamMembers';
+import ProjectCard from './projectCard';
+import EmptyState from './emptyState';
 
 class Dashboard extends AsyncComponent {
   static propTypes = {
@@ -35,16 +37,40 @@ class Dashboard extends AsyncComponent {
     return [['projectsWithStats', `/organizations/${orgId}/projects/?statsPeriod=24h`]];
   }
 
+  renderProjectCard(project) {
+    const {projectsWithStats} = this.state;
+
+    const getStats = id => projectsWithStats.find(p => id === p.id).stats;
+
+    return (
+      <ProjectCardWrapper key={project.id} width={['100%', '50%', '33%', '25%']}>
+        <ProjectCard project={project} stats={getStats(project.id)} />
+      </ProjectCardWrapper>
+    );
+  }
+
   renderBody() {
     const {teams, projects, params} = this.props;
     const {projectsByTeam} = getProjectsByTeams(teams, projects);
     const projectKeys = Object.keys(projectsByTeam);
 
-    const {projectsWithStats} = this.state;
-    const getStats = id => projectsWithStats.find(project => id === project.id).stats;
+    const favorites = projects.filter(project => project.isBookmarked);
 
     return (
       <React.Fragment>
+        {favorites.length > 0 && (
+          <div data-test-id="favorites">
+            <TeamSection>
+              <TeamTitleBar>
+                <TeamName>{t('Favorites')}</TeamName>
+              </TeamTitleBar>
+            </TeamSection>
+            <ProjectCards>
+              {favorites.map(project => this.renderProjectCard(project))}
+            </ProjectCards>
+          </div>
+        )}
+
         {projectKeys.map((slug, index) => {
           const showBorder = index !== projectKeys.length - 1;
           return (
@@ -54,16 +80,7 @@ class Dashboard extends AsyncComponent {
                 <TeamMembers teamId={slug} orgId={params.orgId} />
               </TeamTitleBar>
               <ProjectCards>
-                {projectsByTeam[slug].map(project => {
-                  return (
-                    <ProjectCardWrapper
-                      key={project.id}
-                      width={['100%', '50%', '33%', '25%']}
-                    >
-                      <ProjectCard project={project} stats={getStats(project.id)} />
-                    </ProjectCardWrapper>
-                  );
-                })}
+                {projectsByTeam[slug].map(project => this.renderProjectCard(project))}
               </ProjectCards>
             </TeamSection>
           );
