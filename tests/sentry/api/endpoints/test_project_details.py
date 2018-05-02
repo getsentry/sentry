@@ -258,7 +258,15 @@ class ProjectUpdateTest(APITestCase):
         ).exists()
         assert project.get_option('sentry:sensitive_fields',
                                   []) == options['sentry:sensitive_fields']
+        assert AuditLogEntry.objects.filter(
+            organization=project.organization,
+            event=AuditLogEntryEvent.PROJECT_EDIT,
+        ).exists()
         assert project.get_option('sentry:safe_fields', []) == options['sentry:safe_fields']
+        assert AuditLogEntry.objects.filter(
+            organization=project.organization,
+            event=AuditLogEntryEvent.PROJECT_EDIT,
+        ).exists()
         assert project.get_option('sentry:csp_ignored_sources_defaults',
                                   True) == options['sentry:csp_ignored_sources_defaults']
         assert project.get_option('sentry:csp_ignored_sources',
@@ -278,7 +286,9 @@ class ProjectUpdateTest(APITestCase):
             organization=project.organization,
             event=AuditLogEntryEvent.PROJECT_EDIT,
         ).exists()
-        assert project.get_option('sentry:scrub_ip_address', False)
+        assert project.get_option(
+            'sentry:scrub_ip_address',
+            True) == options['sentry:scrub_ip_address']
         assert AuditLogEntry.objects.filter(
             organization=project.organization,
             event=AuditLogEntryEvent.PROJECT_EDIT,

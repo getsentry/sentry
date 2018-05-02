@@ -361,9 +361,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if project.update_option('sentry:scrub_defaults', result['dataScrubberDefaults']):
                 changed_proj_settings['sentry:scrub_defaults'] = result['dataScrubberDefaults']
         if result.get('sensitiveFields') is not None:
-            project.update_option('sentry:sensitive_fields', result['sensitiveFields'])
+            if project.update_option('sentry:sensitive_fields', result['sensitiveFields']):
+                changed_proj_settings['sentry:sensitive_fields'] = result['sensitiveFields']
         if result.get('safeFields') is not None:
-            project.update_option('sentry:safe_fields', result['safeFields'])
+            if project.update_option('sentry:safe_fields', result['safeFields']):
+                changed_proj_settings['sentry:safe_fields'] = result['safeFields']
         # resolveAge can be None
         if 'resolveAge' in result:
             if project.update_option(
