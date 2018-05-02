@@ -23,7 +23,7 @@ class RelayJavaScriptLoader(BaseView):
         config = Config(key.project)
         context = {
             'config': config.get_project_key_config(key),
-            'jsSdkUrl': key.data.get('jsSdkUrl', DEFAULT_SDK_URL),
+            'jsSdkUrl': key.data.get('js_sdk_url', DEFAULT_SDK_URL),
             'debug': settings.DEBUG
         }
 

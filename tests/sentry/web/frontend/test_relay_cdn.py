@@ -19,7 +19,7 @@ class RelayJavaScriptLoaderTest(TestCase):
 
     def test_renders_js_loader_with_different_url(self):
         url = 'https://get-sentry.com'
-        self.projectkey.data = {'jsSdkUrl': url}
+        self.projectkey.data = {'js_sdk_url': url}
         self.projectkey.save()
         resp = self.client.get(self.path)
         assert resp.status_code == 200

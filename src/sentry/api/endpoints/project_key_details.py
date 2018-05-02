@@ -92,7 +92,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
             if result.get('jsSdkUrl') == '':
                 key.data = {}
             else:
-                key.data = {'jsSdkUrl': result.get('jsSdkUrl', None)}
+                key.data = {'js_sdk_url': result.get('jsSdkUrl', None)}
 
             if result.get('name'):
                 key.label = result['name']
