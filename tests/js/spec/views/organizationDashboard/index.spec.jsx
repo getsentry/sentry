@@ -70,5 +70,37 @@ describe('OrganizationDashboard', function() {
       const projectCard = favorites.find('ProjectCardWrapper');
       expect(projectCard).toHaveLength(1);
     });
+
+    it('renders bookmarked projects first in team list', function() {
+      const teams = [TestStubs.Team()];
+      const proj1 = TestStubs.Project({
+        id: '1',
+        slug: 'proj-1',
+        teams,
+        isBookmarked: false,
+        stats: [],
+      });
+      const proj2 = TestStubs.Project({
+        id: '2',
+        slug: 'proj-2',
+        teams,
+        isBookmarked: true,
+        stats: [],
+      });
+      const projects = [proj1, proj2];
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/projects/?statsPeriod=24h',
+        body: [proj1, proj2],
+      });
+
+      const wrapper = shallow(
+        <Dashboard teams={teams} projects={projects} params={{orgId: 'org-slug'}} />,
+        TestStubs.routerContext()
+      );
+      const projectCards = wrapper.find('ProjectCardWrapper');
+      expect(projectCards.first().prop('data-test-id')).toBe('proj-2');
+      expect(projectCards.last().prop('data-test-id')).toBe('proj-1');
+    });
   });
 });

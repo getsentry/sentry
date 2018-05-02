@@ -7,6 +7,7 @@ import styled from 'react-emotion';
 import AsyncComponent from 'app/components/asyncComponent';
 import OrganizationState from 'app/mixins/organizationState';
 import getProjectsByTeams from 'app/utils/getProjectsByTeams';
+import {sortProjects} from 'app/utils';
 import withTeams from 'app/utils/withTeams';
 import withProjects from 'app/utils/withProjects';
 import {t} from 'app/locale';
@@ -51,7 +52,8 @@ class Dashboard extends AsyncComponent {
 
   renderBody() {
     const {teams, projects, params} = this.props;
-    const {projectsByTeam} = getProjectsByTeams(teams, projects);
+    const sortedProjects = sortProjects(projects);
+    const {projectsByTeam} = getProjectsByTeams(teams, sortedProjects);
     const projectKeys = Object.keys(projectsByTeam);
 
     const favorites = projects.filter(project => project.isBookmarked);
