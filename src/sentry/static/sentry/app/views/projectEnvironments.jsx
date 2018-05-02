@@ -256,7 +256,10 @@ const ProjectEnvironments = createReactClass({
           id: project.defaultEnvironment,
           displayName: (
             <React.Fragment>
-              <Tooltip title={t('This is not an active environment')}>
+              <Tooltip
+                title={t('This is not an active environment')}
+                tooltipOptions={{container: 'body'}}
+              >
                 <span css={{marginRight: 8}}>
                   <InvalidDefaultEnvironmentIcon />
                 </span>
