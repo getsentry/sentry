@@ -9,7 +9,7 @@ from sentry.relay import Config
 class ProjectKeySerializer(Serializer):
     def serialize(self, obj, attrs, user):
         name = obj.label or obj.public_key[:14]
-        config = Config()
+        config = Config(obj.project)
         d = {
             'id': obj.public_key,
             'name': name,

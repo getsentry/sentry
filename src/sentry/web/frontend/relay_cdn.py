@@ -24,7 +24,8 @@ class RelayJavaScriptLoader(BaseView):
         if key.cdn_sdk_url:
             sdk_url = key.cdn_sdk_url
 
-        config = Config()
+        config = Config(key.project)
+
         context = {
             'config': config.get_project_key_config(key),
             'sdkUrl': sdk_url,
