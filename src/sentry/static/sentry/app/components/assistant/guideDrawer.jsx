@@ -16,6 +16,7 @@ export default class GuideDrawer extends React.Component {
     onFinish: PropTypes.func.isRequired,
     onDismiss: PropTypes.func.isRequired,
     orgSlug: PropTypes.string,
+    projectSlug: PropTypes.string,
   };
 
   handleFinish = useful => {
@@ -33,6 +34,7 @@ export default class GuideDrawer extends React.Component {
   render() {
     let messageVariables = {
       orgSlug: this.props.orgSlug,
+      projectSlug: this.props.projectSlug,
     };
 
     return (
