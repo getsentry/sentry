@@ -1,7 +1,8 @@
 import Reflux from 'reflux';
 import _ from 'lodash';
 
-import ProjectActions from '../actions/projectActions';
+import ProjectActions from 'app/actions/projectActions';
+import TeamActions from 'app/actions/teamActions';
 
 const ProjectsStore = Reflux.createStore({
   init() {
@@ -10,6 +11,9 @@ const ProjectsStore = Reflux.createStore({
     this.listenTo(ProjectActions.updateSuccess, this.onUpdateSuccess);
     this.listenTo(ProjectActions.loadStatsSuccess, this.onStatsLoadSuccess);
     this.listenTo(ProjectActions.changeSlug, this.onChangeSlug);
+    this.listenTo(ProjectActions.addTeamSuccess, this.onAddTeam);
+    this.listenTo(ProjectActions.removeTeamSuccess, this.onRemoveTeam);
+    this.listenTo(TeamActions.removeTeamSuccess, this.onDeleteTeam);
   },
 
   reset() {
@@ -37,9 +41,8 @@ const ProjectsStore = Reflux.createStore({
 
     this.itemsById = {
       ...this.itemsById,
+      [newProject.id]: newProject,
     };
-
-    this.itemsById[newProject.id] = newProject;
 
     // Ideally we'd always trigger this.itemsById, but following existing patterns
     // so we don't break things
@@ -47,13 +50,20 @@ const ProjectsStore = Reflux.createStore({
   },
 
   onCreateSuccess(project) {
-    this.itemsById[project.id] = project;
+    this.itemsById = {
+      ...this.itemsById,
+      [project.id]: project,
+    };
     this.trigger(new Set([project.id]));
   },
 
   onUpdateSuccess(data) {
     let project = this.getById(data.id);
-    Object.assign(project, data);
+    let newProject = Object.assign({}, project, data);
+    this.itemsById = {
+      ...this.itemsById,
+      [project.id]: newProject,
+    };
     this.trigger(new Set([data.id]));
   },
 
@@ -66,6 +76,67 @@ const ProjectsStore = Reflux.createStore({
       }
     });
     this.trigger(new Set(touchedIds));
+  },
+
+  /**
+   * Listener for when a team is completely removed
+   * @param {String} teamSlug Team Slug
+   */
+  onDeleteTeam(teamSlug) {
+    // Look for team in all projects
+    let projectIds = this.getWithTeam(teamSlug).map(projectWithTeam => {
+      this.removeTeamFromProject(teamSlug, projectWithTeam);
+      return projectWithTeam.id;
+    });
+
+    this.trigger(new Set([projectIds]));
+  },
+
+  onRemoveTeam(teamSlug, projectSlug) {
+    let project = this.getBySlug(projectSlug);
+    if (!project) return;
+
+    this.removeTeamFromProject(teamSlug, project);
+    this.trigger(new Set([project.id]));
+  },
+
+  onAddTeam(team, projectSlug) {
+    let project = this.getBySlug(projectSlug);
+
+    // Don't do anything if we can't find a project
+    if (!project) return;
+
+    this.itemsById = {
+      ...this.itemsById,
+      [project.id]: {
+        ...project,
+        teams: [...project.teams, team],
+      },
+    };
+
+    this.trigger(new Set([project.id]));
+  },
+
+  // Internal method, does not trigger
+  removeTeamFromProject(teamSlug, project) {
+    let newTeams = project.teams.filter(({slug}) => slug !== teamSlug);
+
+    this.itemsById = {
+      ...this.itemsById,
+      [project.id]: {
+        ...project,
+        teams: newTeams,
+      },
+    };
+  },
+
+  /**
+   * Returns a list of projects that has the specified team
+   *
+   * @param {String} teamSlug Slug of team to find in projects
+   */
+  getWithTeam(teamSlug) {
+    return this.getAll().filter(({teams}) => teams.find(({slug}) => slug === teamSlug));
   },
 
   getAll() {

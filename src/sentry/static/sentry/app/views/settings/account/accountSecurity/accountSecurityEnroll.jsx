@@ -8,19 +8,19 @@ import {
   addErrorMessage,
   addMessage,
   addSuccessMessage,
-} from '../../../../actionCreators/indicator';
-import {t} from '../../../../locale';
-import AsyncView from '../../../asyncView';
-import Button from '../../../../components/buttons/button';
-import CircleIndicator from '../../../../components/circleIndicator';
-import Form from '../../components/forms/form';
-import JsonForm from '../../components/forms/jsonForm';
-import {PanelItem} from '../../../../components/panels';
-import Qrcode from '../../../../components/qrcode';
-import RemoveConfirm from './components/removeConfirm';
-import SettingsPageHeader from '../../components/settingsPageHeader';
-import TextBlock from '../../components/text/textBlock';
-import U2fsign from '../../../../components/u2fsign';
+} from 'app/actionCreators/indicator';
+import {t} from 'app/locale';
+import AsyncView from 'app/views/asyncView';
+import Button from 'app/components/buttons/button';
+import CircleIndicator from 'app/components/circleIndicator';
+import Form from 'app/views/settings/components/forms/form';
+import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import {PanelItem} from 'app/components/panels';
+import Qrcode from 'app/components/qrcode';
+import RemoveConfirm from 'app/views/settings/account/accountSecurity/components/removeConfirm';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import U2fsign from 'app/components/u2fsign';
 
 const ENDPOINT = '/users/me/authenticators/';
 

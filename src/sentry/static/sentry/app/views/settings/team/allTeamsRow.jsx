@@ -4,11 +4,11 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 
-import {addErrorMessage, addSuccessMessage} from '../../../actionCreators/indicator';
-import {joinTeam, leaveTeam} from '../../../actionCreators/teams';
-import {t, tct} from '../../../locale';
-import ApiMixin from '../../../mixins/apiMixin';
-import {PanelItem} from '../../../components/panels';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {joinTeam, leaveTeam} from 'app/actionCreators/teams';
+import {t, tct} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import {PanelItem} from 'app/components/panels';
 
 // TODO(dcramer): this isnt great UX
 

@@ -1,19 +1,11 @@
 import Reflux from 'reflux';
-import {toTitleCase} from '../utils';
+import {toTitleCase} from 'app/utils';
 
-import ProjectActions from '../actions/projectActions';
-import EnvironmentActions from '../actions/environmentActions';
+import ProjectActions from 'app/actions/projectActions';
+import EnvironmentActions from 'app/actions/environmentActions';
 
-import {setActiveEnvironment} from '../actionCreators/environments';
-import {ALL_ENVIRONMENTS_KEY} from '../constants';
-
-const PRODUCTION_ENV_NAMES = new Set([
-  'production',
-  'prod',
-  'release',
-  'master',
-  'trunk',
-]);
+import {setActiveEnvironment} from 'app/actionCreators/environments';
+import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
 
 const DEFAULT_EMPTY_ENV_NAME = '(No Environment)';
 const DEFAULT_EMPTY_ROUTING_NAME = 'none';
@@ -90,9 +82,7 @@ const EnvironmentStore = Reflux.createStore({
 
     let defaultEnv = allEnvs.find(e => e.name === this.defaultEnvironment);
 
-    let prodEnv = allEnvs.find(e => PRODUCTION_ENV_NAMES.has(e.name));
-
-    return defaultEnv || prodEnv || null;
+    return defaultEnv || null;
   },
 });
 

@@ -1,12 +1,15 @@
+import {channel, createBroadcast} from 'emotion-theming';
 import jQuery from 'jquery';
 import sinon from 'sinon';
-import ConfigStore from 'app/stores/configStore';
+import Adapter from 'enzyme-adapter-react-16';
+import Enzyme from 'enzyme';
 import MockDate from 'mockdate';
 import PropTypes from 'prop-types';
-import SentryTypes from 'app/proptypes';
-import Enzyme from 'enzyme';
-import Adapter from 'enzyme-adapter-react-16';
 
+import ConfigStore from 'app/stores/configStore';
+import theme from 'app/utils/theme';
+
+jest.mock('app/utils/recreateRoute');
 jest.mock('app/translations');
 jest.mock('app/api');
 jest.mock('scroll-to-element', () => {});
@@ -41,6 +44,9 @@ window.scrollTo = sinon.spy();
 
 // Instead of wrapping codeblocks in `setTimeout`
 window.tick = () => new Promise(res => setTimeout(res));
+
+// emotion context broadcast
+const broadcast = createBroadcast(theme);
 
 window.Raven = {
   captureMessage: sinon.spy(),
@@ -78,6 +84,10 @@ window.TestStubs = {
 
   routerContext: ([context, childContextTypes] = []) => ({
     context: {
+      [channel]: {
+        subscribe: broadcast.subscribe,
+        unsubscribe: broadcast.unsubscribe,
+      },
       location: TestStubs.location(),
       router: TestStubs.router(),
       organization: TestStubs.Organization(),
@@ -85,24 +95,12 @@ window.TestStubs = {
       ...context,
     },
     childContextTypes: {
+      [channel]: PropTypes.object,
       router: PropTypes.object,
       location: PropTypes.object,
       organization: PropTypes.object,
       project: PropTypes.object,
       ...childContextTypes,
-    },
-  }),
-
-  routerOrganizationContext: () => ({
-    context: {
-      location: TestStubs.location(),
-      router: TestStubs.router(),
-      organization: TestStubs.Organization(),
-    },
-    childContextTypes: {
-      router: PropTypes.object,
-      location: PropTypes.object,
-      organization: SentryTypes.Organization,
     },
   }),
 
@@ -449,6 +447,7 @@ window.TestStubs = {
     return {
       key: 'github',
       name: 'GitHub',
+      canAdd: true,
       config: [],
       setupDialog: {
         url: '/github-integration-setup-uri/',

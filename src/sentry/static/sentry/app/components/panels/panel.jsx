@@ -2,15 +2,16 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import PanelBody from './panelBody';
-import PanelHeader from './panelHeader';
+import PanelBody from 'app/components/panels/panelBody';
+import PanelHeader from 'app/components/panels/panelHeader';
+import space from 'app/styles/space';
 
 const StyledPanel = styled.div`
   background: #fff;
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => p.theme.borderDark};
   box-shadow: ${p => p.theme.dropShadowLight};
-  margin-bottom: ${p => p.theme.grid * 4}px;
+  margin-bottom: ${space(3)};
   position: relative;
 `;
 

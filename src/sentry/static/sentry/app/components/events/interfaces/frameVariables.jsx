@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {objectToArray} from '../../../utils';
-import KeyValueList from './keyValueList';
+import {objectToArray} from 'app/utils';
+import KeyValueList from 'app/components/events/interfaces/keyValueList';
 
 class FrameVariables extends React.Component {
   static propTypes = {

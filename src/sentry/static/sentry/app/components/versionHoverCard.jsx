@@ -3,18 +3,18 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import _ from 'lodash';
 
-import Avatar from './avatar';
+import Avatar from 'app/components/avatar';
 
-import LastCommit from './lastCommit';
-import LoadingIndicator from './loadingIndicator';
-import LoadingError from './loadingError';
-import TimeSince from './timeSince';
-import Hovercard from './hovercard';
+import LastCommit from 'app/components/lastCommit';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import LoadingError from 'app/components/loadingError';
+import TimeSince from 'app/components/timeSince';
+import Hovercard from 'app/components/hovercard';
 
-import {getShortVersion} from '../utils';
-import {t, tct} from '../locale';
+import {getShortVersion} from 'app/utils';
+import {t, tct} from 'app/locale';
 
-import ApiMixin from '../mixins/apiMixin';
+import ApiMixin from 'app/mixins/apiMixin';
 
 const VersionHoverCard = createReactClass({
   displayName: 'VersionHoverCard',

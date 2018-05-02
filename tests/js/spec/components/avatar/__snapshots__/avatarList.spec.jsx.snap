@@ -69,7 +69,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
           }
         >
           <Component
-            className="css-5o5its-StyledAvatar css-zk10lh0"
+            className="css-5o5its-StyledAvatar e1axh4r50"
             size={28}
             user={
               Object {
@@ -81,7 +81,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
             }
           >
             <Avatar
-              className="css-5o5its-StyledAvatar css-zk10lh0"
+              className="css-5o5its-StyledAvatar e1axh4r50"
               hasTooltip={false}
               size={28}
               user={
@@ -94,7 +94,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
               }
             >
               <UserAvatar
-                className="css-5o5its-StyledAvatar css-zk10lh0"
+                className="css-5o5its-StyledAvatar e1axh4r50"
                 gravatar={true}
                 hasTooltip={false}
                 size={28}
@@ -108,7 +108,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 }
               >
                 <BaseAvatar
-                  className="css-5o5its-StyledAvatar css-zk10lh0"
+                  className="css-5o5its-StyledAvatar e1axh4r50"
                   gravatar={true}
                   gravatarId="foo@example.com"
                   hasTooltip={false}
@@ -124,7 +124,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                     title="Foo Bar (foo@example.com)"
                   >
                     <span
-                      className="avatar css-5o5its-StyledAvatar css-zk10lh0"
+                      className="avatar css-5o5its-StyledAvatar e1axh4r50"
                       style={
                         Object {
                           "height": "28px",
@@ -157,7 +157,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
           }
         >
           <Component
-            className="css-5o5its-StyledAvatar css-zk10lh0"
+            className="css-5o5its-StyledAvatar e1axh4r50"
             size={28}
             user={
               Object {
@@ -169,7 +169,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
             }
           >
             <Avatar
-              className="css-5o5its-StyledAvatar css-zk10lh0"
+              className="css-5o5its-StyledAvatar e1axh4r50"
               hasTooltip={false}
               size={28}
               user={
@@ -182,7 +182,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
               }
             >
               <UserAvatar
-                className="css-5o5its-StyledAvatar css-zk10lh0"
+                className="css-5o5its-StyledAvatar e1axh4r50"
                 gravatar={true}
                 hasTooltip={false}
                 size={28}
@@ -196,7 +196,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 }
               >
                 <BaseAvatar
-                  className="css-5o5its-StyledAvatar css-zk10lh0"
+                  className="css-5o5its-StyledAvatar e1axh4r50"
                   gravatar={true}
                   gravatarId="foo@example.com"
                   hasTooltip={false}
@@ -212,7 +212,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                     title="Foo Bar (foo@example.com)"
                   >
                     <span
-                      className="avatar css-5o5its-StyledAvatar css-zk10lh0"
+                      className="avatar css-5o5its-StyledAvatar e1axh4r50"
                       style={
                         Object {
                           "height": "28px",
@@ -245,7 +245,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
           }
         >
           <Component
-            className="css-5o5its-StyledAvatar css-zk10lh0"
+            className="css-5o5its-StyledAvatar e1axh4r50"
             size={28}
             user={
               Object {
@@ -257,7 +257,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
             }
           >
             <Avatar
-              className="css-5o5its-StyledAvatar css-zk10lh0"
+              className="css-5o5its-StyledAvatar e1axh4r50"
               hasTooltip={false}
               size={28}
               user={
@@ -270,7 +270,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
               }
             >
               <UserAvatar
-                className="css-5o5its-StyledAvatar css-zk10lh0"
+                className="css-5o5its-StyledAvatar e1axh4r50"
                 gravatar={true}
                 hasTooltip={false}
                 size={28}
@@ -284,7 +284,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 }
               >
                 <BaseAvatar
-                  className="css-5o5its-StyledAvatar css-zk10lh0"
+                  className="css-5o5its-StyledAvatar e1axh4r50"
                   gravatar={true}
                   gravatarId="foo@example.com"
                   hasTooltip={false}
@@ -300,7 +300,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                     title="Foo Bar (foo@example.com)"
                   >
                     <span
-                      className="avatar css-5o5its-StyledAvatar css-zk10lh0"
+                      className="avatar css-5o5its-StyledAvatar e1axh4r50"
                       style={
                         Object {
                           "height": "28px",
@@ -333,7 +333,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
           }
         >
           <Component
-            className="css-5o5its-StyledAvatar css-zk10lh0"
+            className="css-5o5its-StyledAvatar e1axh4r50"
             size={28}
             user={
               Object {
@@ -345,7 +345,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
             }
           >
             <Avatar
-              className="css-5o5its-StyledAvatar css-zk10lh0"
+              className="css-5o5its-StyledAvatar e1axh4r50"
               hasTooltip={false}
               size={28}
               user={
@@ -358,7 +358,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
               }
             >
               <UserAvatar
-                className="css-5o5its-StyledAvatar css-zk10lh0"
+                className="css-5o5its-StyledAvatar e1axh4r50"
                 gravatar={true}
                 hasTooltip={false}
                 size={28}
@@ -372,7 +372,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 }
               >
                 <BaseAvatar
-                  className="css-5o5its-StyledAvatar css-zk10lh0"
+                  className="css-5o5its-StyledAvatar e1axh4r50"
                   gravatar={true}
                   gravatarId="foo@example.com"
                   hasTooltip={false}
@@ -388,7 +388,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                     title="Foo Bar (foo@example.com)"
                   >
                     <span
-                      className="avatar css-5o5its-StyledAvatar css-zk10lh0"
+                      className="avatar css-5o5its-StyledAvatar e1axh4r50"
                       style={
                         Object {
                           "height": "28px",
@@ -421,7 +421,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
           }
         >
           <Component
-            className="css-5o5its-StyledAvatar css-zk10lh0"
+            className="css-5o5its-StyledAvatar e1axh4r50"
             size={28}
             user={
               Object {
@@ -433,7 +433,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
             }
           >
             <Avatar
-              className="css-5o5its-StyledAvatar css-zk10lh0"
+              className="css-5o5its-StyledAvatar e1axh4r50"
               hasTooltip={false}
               size={28}
               user={
@@ -446,7 +446,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
               }
             >
               <UserAvatar
-                className="css-5o5its-StyledAvatar css-zk10lh0"
+                className="css-5o5its-StyledAvatar e1axh4r50"
                 gravatar={true}
                 hasTooltip={false}
                 size={28}
@@ -460,7 +460,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 }
               >
                 <BaseAvatar
-                  className="css-5o5its-StyledAvatar css-zk10lh0"
+                  className="css-5o5its-StyledAvatar e1axh4r50"
                   gravatar={true}
                   gravatarId="foo@example.com"
                   hasTooltip={false}
@@ -476,7 +476,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                     title="Foo Bar (foo@example.com)"
                   >
                     <span
-                      className="avatar css-5o5its-StyledAvatar css-zk10lh0"
+                      className="avatar css-5o5its-StyledAvatar e1axh4r50"
                       style={
                         Object {
                           "height": "28px",
@@ -500,7 +500,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
           size={28}
         >
           <Component
-            className="css-x39mfn-CollapsedUsers css-zk10lh1"
+            className="css-n3i1n8-CollapsedUsers e1axh4r51"
             size={28}
           >
             <div />
@@ -557,7 +557,7 @@ exports[`AvatarList renders with user avatars 1`] = `
           }
         >
           <Component
-            className="css-5o5its-StyledAvatar css-zk10lh0"
+            className="css-5o5its-StyledAvatar e1axh4r50"
             size={28}
             user={
               Object {
@@ -569,7 +569,7 @@ exports[`AvatarList renders with user avatars 1`] = `
             }
           >
             <Avatar
-              className="css-5o5its-StyledAvatar css-zk10lh0"
+              className="css-5o5its-StyledAvatar e1axh4r50"
               hasTooltip={false}
               size={28}
               user={
@@ -582,7 +582,7 @@ exports[`AvatarList renders with user avatars 1`] = `
               }
             >
               <UserAvatar
-                className="css-5o5its-StyledAvatar css-zk10lh0"
+                className="css-5o5its-StyledAvatar e1axh4r50"
                 gravatar={true}
                 hasTooltip={false}
                 size={28}
@@ -596,7 +596,7 @@ exports[`AvatarList renders with user avatars 1`] = `
                 }
               >
                 <BaseAvatar
-                  className="css-5o5its-StyledAvatar css-zk10lh0"
+                  className="css-5o5its-StyledAvatar e1axh4r50"
                   gravatar={true}
                   gravatarId="foo@example.com"
                   hasTooltip={false}
@@ -612,7 +612,7 @@ exports[`AvatarList renders with user avatars 1`] = `
                     title="Foo Bar (foo@example.com)"
                   >
                     <span
-                      className="avatar css-5o5its-StyledAvatar css-zk10lh0"
+                      className="avatar css-5o5its-StyledAvatar e1axh4r50"
                       style={
                         Object {
                           "height": "28px",
@@ -645,7 +645,7 @@ exports[`AvatarList renders with user avatars 1`] = `
           }
         >
           <Component
-            className="css-5o5its-StyledAvatar css-zk10lh0"
+            className="css-5o5its-StyledAvatar e1axh4r50"
             size={28}
             user={
               Object {
@@ -657,7 +657,7 @@ exports[`AvatarList renders with user avatars 1`] = `
             }
           >
             <Avatar
-              className="css-5o5its-StyledAvatar css-zk10lh0"
+              className="css-5o5its-StyledAvatar e1axh4r50"
               hasTooltip={false}
               size={28}
               user={
@@ -670,7 +670,7 @@ exports[`AvatarList renders with user avatars 1`] = `
               }
             >
               <UserAvatar
-                className="css-5o5its-StyledAvatar css-zk10lh0"
+                className="css-5o5its-StyledAvatar e1axh4r50"
                 gravatar={true}
                 hasTooltip={false}
                 size={28}
@@ -684,7 +684,7 @@ exports[`AvatarList renders with user avatars 1`] = `
                 }
               >
                 <BaseAvatar
-                  className="css-5o5its-StyledAvatar css-zk10lh0"
+                  className="css-5o5its-StyledAvatar e1axh4r50"
                   gravatar={true}
                   gravatarId="foo@example.com"
                   hasTooltip={false}
@@ -700,7 +700,7 @@ exports[`AvatarList renders with user avatars 1`] = `
                     title="Foo Bar (foo@example.com)"
                   >
                     <span
-                      className="avatar css-5o5its-StyledAvatar css-zk10lh0"
+                      className="avatar css-5o5its-StyledAvatar e1axh4r50"
                       style={
                         Object {
                           "height": "28px",

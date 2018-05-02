@@ -3,9 +3,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {t, tct} from '../../../../locale';
-import Button from '../../../../components/buttons/button';
-import {PanelItem} from '../../../../components/panels';
+import {t, tct} from 'app/locale';
+import Button from 'app/components/buttons/button';
+import {PanelItem} from 'app/components/panels';
 
 export default class ProviderItem extends React.PureComponent {
   static propTypes = {

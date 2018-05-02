@@ -2,8 +2,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
 
-import ContextData from '../../contextData';
-import {deviceNameMapper} from '../../../utils';
+import ContextData from 'app/components/contextData';
+import {deviceNameMapper} from 'app/utils';
 
 class KeyValueList extends React.Component {
   static propTypes = {

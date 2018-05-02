@@ -1,6 +1,6 @@
-import {DEFAULT_TOAST_DURATION} from '../constants';
-import {t} from '../locale';
-import IndicatorActions from '../actions/indicatorActions';
+import {DEFAULT_TOAST_DURATION} from 'app/constants';
+import {t} from 'app/locale';
+import IndicatorActions from 'app/actions/indicatorActions';
 
 // Removes a single indicator
 export function removeIndicator(indicator) {
@@ -20,7 +20,10 @@ export function addMessage(msg, type, options = {}) {
   duration = typeof duration === 'undefined' ? DEFAULT_TOAST_DURATION : duration;
 
   let action = options.append ? 'append' : 'replace';
-  return IndicatorActions[action](msg, type, {...options, duration});
+  // XXX: This differs from `IndicatorStore.add` since it won't return the indicator that is created
+  // because we are firing an action. You can just add a new message and it will, by default,
+  // replace active indicator
+  IndicatorActions[action](msg, type, {...options, duration});
 }
 
 function addMessageWithType(type) {

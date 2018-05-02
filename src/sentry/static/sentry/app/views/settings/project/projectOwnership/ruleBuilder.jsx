@@ -2,17 +2,18 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 import {Flex} from 'grid-emotion';
-import memberListStore from '../../../../stores/memberListStore';
-import ProjectsStore from '../../../../stores/projectsStore';
-import Button from '../../../../components/buttons/button';
-import SelectInput from '../../../../components/selectInput';
-import TextOverflow from '../../../../components/textOverflow';
-import InlineSvg from '../../../../components/inlineSvg';
-import Input from '../../../../views/settings/components/forms/controls/input';
-import SentryTypes from '../../../../proptypes';
-import {buildUserId, buildTeamId} from '../../../../utils';
-import {addErrorMessage} from '../../../../actionCreators/indicator';
-import SelectOwners from './selectOwners';
+import memberListStore from 'app/stores/memberListStore';
+import ProjectsStore from 'app/stores/projectsStore';
+import Button from 'app/components/buttons/button';
+import SelectField from 'app/components/forms/selectField';
+import TextOverflow from 'app/components/textOverflow';
+import InlineSvg from 'app/components/inlineSvg';
+import Input from 'app/views/settings/components/forms/controls/input';
+import SentryTypes from 'app/proptypes';
+import {buildUserId, buildTeamId} from 'app/utils';
+import {addErrorMessage} from 'app/actionCreators/indicator';
+import SelectOwners from 'app/views/settings/project/projectOwnership/selectOwners';
+import {t} from 'app/locale';
 
 const initialState = {
   text: '',
@@ -66,8 +67,8 @@ class RuleBuilder extends React.Component {
     }));
   }
 
-  handleTypeChange = e => {
-    this.setState({type: e[0].value});
+  handleTypeChange = val => {
+    this.setState({type: val});
   };
 
   handleChangeValue = e => {
@@ -133,10 +134,15 @@ class RuleBuilder extends React.Component {
           </Candidates>
         )}
         <BuilderBar>
-          <BuilderSelect value={type} showSearch={false} onChange={this.handleTypeChange}>
-            <option value="path">Path</option>
-            <option value="url">URL</option>
-          </BuilderSelect>
+          <BuilderSelect
+            name="select-type"
+            value={type}
+            showSearch={false}
+            onChange={this.handleTypeChange}
+            options={[{value: 'path', label: t('Path')}, {value: 'url', label: t('URL')}]}
+            style={{width: 140}}
+            clearable={false}
+          />
           <BuilderInput
             controlled
             value={text}
@@ -200,9 +206,8 @@ const BuilderBar = styled.div`
   margin-bottom: 1em;
 `;
 
-const BuilderSelect = styled(SelectInput)`
-  padding: 0.5em;
-  margin-right: 5px;
+const BuilderSelect = styled(SelectField)`
+  margin-right: 10px;
   width: 80px;
   flex-shrink: 0;
 `;

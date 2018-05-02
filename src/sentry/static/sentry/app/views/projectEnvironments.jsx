@@ -5,31 +5,31 @@ import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
-import {ALL_ENVIRONMENTS_KEY} from '../constants';
+import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
-} from '../actionCreators/indicator';
+} from 'app/actionCreators/indicator';
 import {
   loadActiveEnvironments,
   loadHiddenEnvironments,
-} from '../actionCreators/environments';
-import {t, tct} from '../locale';
-import {update} from '../actionCreators/projects';
-import {Panel, PanelHeader, PanelBody, PanelItem} from '../components/panels';
-import ApiMixin from '../mixins/apiMixin';
-import Button from '../components/buttons/button';
-import EmptyMessage from './settings/components/emptyMessage';
-import EnvironmentStore from '../stores/environmentStore';
-import InlineSvg from '../components/inlineSvg';
-import ListLink from '../components/listLink';
-import LoadingIndicator from '../components/loadingIndicator';
-import SentryTypes from '../proptypes';
-import SettingsPageHeader from './settings/components/settingsPageHeader';
-import Tag from './settings/components/tag';
-import Tooltip from '../components/tooltip';
-import recreateRoute from '../utils/recreateRoute';
+} from 'app/actionCreators/environments';
+import {t, tct} from 'app/locale';
+import {update} from 'app/actionCreators/projects';
+import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
+import ApiMixin from 'app/mixins/apiMixin';
+import Button from 'app/components/buttons/button';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import EnvironmentStore from 'app/stores/environmentStore';
+import InlineSvg from 'app/components/inlineSvg';
+import ListLink from 'app/components/listLink';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import SentryTypes from 'app/proptypes';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import Tag from 'app/views/settings/components/tag';
+import Tooltip from 'app/components/tooltip';
+import recreateRoute from 'app/utils/recreateRoute';
 
 const ProjectEnvironments = createReactClass({
   propTypes: {
@@ -152,7 +152,10 @@ const ProjectEnvironments = createReactClass({
 
   // Change "Default Environment"
   handleSetAsDefault(env) {
-    const data = {defaultEnvironment: env.name};
+    const defaultEnvironment = env.name === ALL_ENVIRONMENTS_KEY ? null : env.name;
+
+    const data = {defaultEnvironment};
+
     const oldProject = this.state.project;
 
     // Optimistically update state
@@ -212,8 +215,7 @@ const ProjectEnvironments = createReactClass({
     if (this.state.isHidden) return null;
     let {project} = this.state;
 
-    let isAllEnvironmentsDefault =
-      project && project.defaultEnvironment === ALL_ENVIRONMENTS_KEY;
+    let isAllEnvironmentsDefault = project && project.defaultEnvironment === null;
 
     return (
       <EnvironmentRow
@@ -237,8 +239,7 @@ const ProjectEnvironments = createReactClass({
     if (this.state.isHidden) return null;
     let {environments, project} = this.state;
     // Default environment that is not a valid environment
-    let isAllEnvironmentsDefault =
-      project && project.defaultEnvironment === ALL_ENVIRONMENTS_KEY;
+    let isAllEnvironmentsDefault = project && project.defaultEnvironment === null;
 
     let hasOtherDefaultEnvironment =
       project &&

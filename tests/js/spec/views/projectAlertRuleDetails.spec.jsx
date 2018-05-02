@@ -6,6 +6,7 @@ import ProjectAlertRuleDetails from 'app/views/settings/projectAlerts/projectAle
 import EnvironmentStore from 'app/stores/environmentStore';
 
 jest.mock('jquery');
+jest.unmock('app/utils/recreateRoute');
 
 describe('ProjectAlertRuleDetails', function() {
   let projectAlertRuleDetailsRoutes = [
@@ -78,12 +79,7 @@ describe('ProjectAlertRuleDetails', function() {
           routes={projectAlertRuleDetailsRoutes}
           params={{orgId: 'org-slug', projectId: 'project-slug'}}
         />,
-        {
-          context: {
-            project: TestStubs.Project(),
-            organization: TestStubs.Organization(),
-          },
-        }
+        TestStubs.routerContext()
       );
     });
     it('renders', function() {
@@ -137,12 +133,7 @@ describe('ProjectAlertRuleDetails', function() {
           routes={projectAlertRuleDetailsRoutes}
           params={{orgId: 'org-slug', projectId: 'project-slug', ruleId: '1'}}
         />,
-        {
-          context: {
-            project: TestStubs.Project(),
-            organization: TestStubs.Organization(),
-          },
-        }
+        TestStubs.routerContext()
       );
     });
     it('renders', function() {

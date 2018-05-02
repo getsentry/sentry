@@ -2,12 +2,11 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {Link} from 'react-router';
 
-import {tct} from '../../../locale';
-import AsyncView from '../../asyncView';
-import Field from '../components/forms/field';
-import getDynamicText from '../../../utils/getDynamicText';
-import {Panel, PanelAlert, PanelBody, PanelHeader} from '../../../components/panels';
-import TextCopyInput from '../components/forms/textCopyInput';
+import {tct} from 'app/locale';
+import Field from 'app/views/settings/components/forms/field';
+import getDynamicText from 'app/utils/getDynamicText';
+import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
+import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 
 const DEFAULT_ENDPOINT = 'https://sentry.example.com/api/security-report/';
 
@@ -19,7 +18,7 @@ export const getSecurityDsn = keyList => {
   });
 };
 
-export default class ReportUri extends AsyncView {
+export default class ReportUri extends React.Component {
   static propTypes = {
     keyList: PropTypes.array.isRequired,
   };

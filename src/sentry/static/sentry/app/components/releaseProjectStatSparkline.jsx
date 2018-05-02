@@ -4,12 +4,12 @@ import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 import {Sparklines, SparklinesLine} from 'react-sparklines';
 
-import LoadingIndicator from '../components/loadingIndicator';
-import LoadingError from '../components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import LoadingError from 'app/components/loadingError';
 
-import ApiMixin from '../mixins/apiMixin';
+import ApiMixin from 'app/mixins/apiMixin';
 
-import {t, tn} from '../locale';
+import {t, tn} from 'app/locale';
 
 const ReleaseProjectStatSparkline = createReactClass({
   displayName: 'ReleaseProjectStatSparkline',

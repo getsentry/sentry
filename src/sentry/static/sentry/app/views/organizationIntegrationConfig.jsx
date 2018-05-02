@@ -3,19 +3,19 @@ import {keyBy} from 'lodash';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {sortArray} from '../utils';
-import {t} from '../locale';
-import AlertLink from '../components/alertLink';
-import AsyncView from './asyncView';
-import Button from '../components/buttons/button';
-import Confirm from '../components/confirm';
-import EmptyMessage from './settings/components/emptyMessage';
-import IndicatorStore from '../stores/indicatorStore';
-import LoadingError from '../components/loadingError';
-import {Panel, PanelBody, PanelHeader, PanelItem} from '../components/panels';
-import PluginIcon from '../plugins/components/pluginIcon';
-import SettingsPageHeader from './settings/components/settingsPageHeader';
-import marked from '../utils/marked';
+import {sortArray} from 'app/utils';
+import {t} from 'app/locale';
+import AlertLink from 'app/components/alertLink';
+import AsyncView from 'app/views/asyncView';
+import Button from 'app/components/buttons/button';
+import Confirm from 'app/components/confirm';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import IndicatorStore from 'app/stores/indicatorStore';
+import LoadingError from 'app/components/loadingError';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import PluginIcon from 'app/plugins/components/pluginIcon';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import marked from 'app/utils/marked';
 
 const IntegrationIcon = styled.img`
   height: 32px;
@@ -200,8 +200,10 @@ export default class OrganizationIntegrationConfig extends AsyncView {
       link = link.replace(`{${key}}`, this.props.params[key]);
     }
 
+    let props = link.startsWith('http') ? {href: link} : {to: link};
+
     return (
-      <AlertLink to={link}>
+      <AlertLink {...props}>
         <span dangerouslySetInnerHTML={{__html: linkHtml}} />
       </AlertLink>
     );
@@ -223,11 +225,13 @@ export default class OrganizationIntegrationConfig extends AsyncView {
     const header = (
       <PanelHeader disablePadding hasButtons>
         <Box px={2}>{t('Workspaces')}</Box>
-        <Box mr={1}>
-          <Button size="xsmall" onClick={() => this.handleAddIntegration(provider)}>
-            <span className="icon icon-add" /> {t('Add Workspace')}
-          </Button>
-        </Box>
+        {provider.canAdd && (
+          <Box mr={1}>
+            <Button size="xsmall" onClick={() => this.handleAddIntegration(provider)}>
+              <span className="icon icon-add" /> {t('Add Workspace')}
+            </Button>
+          </Box>
+        )}
       </PanelHeader>
     );
 

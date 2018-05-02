@@ -1,10 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import MultiSelectField from '../../../../components/forms/multiSelectField';
-import ActorAvatar from '../../../../components/actorAvatar';
+import MultiSelectControl from 'app/components/forms/multiSelectControl';
+import ActorAvatar from 'app/components/actorAvatar';
 
-import {t} from '../../../../locale';
+import {t} from 'app/locale';
 
 class ValueComponent extends React.Component {
   static propTypes = {
@@ -34,10 +34,9 @@ export default class SelectOwners extends React.Component {
 
   render() {
     return (
-      <MultiSelectField
+      <MultiSelectControl
         options={this.props.options}
-        multi={true}
-        style={{width: 200}}
+        style={{width: 200, overflow: 'visible'}}
         valueComponent={ValueComponent}
         placeholder={t('Add Owners')}
         onChange={this.props.onChange}

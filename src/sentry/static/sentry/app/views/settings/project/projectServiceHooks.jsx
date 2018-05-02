@@ -3,17 +3,17 @@ import {Link} from 'react-router';
 import React from 'react';
 import createReactClass from 'create-react-class';
 
-import {t} from '../../../locale';
-import ApiMixin from '../../../mixins/apiMixin';
-import AsyncView from '../../asyncView';
-import Button from '../../../components/buttons/button';
-import EmptyMessage from '../components/emptyMessage';
-import Field from '../components/forms/field';
-import IndicatorStore from '../../../stores/indicatorStore';
-import {Panel, PanelAlert, PanelBody, PanelHeader} from '../../../components/panels';
-import SettingsPageHeader from '../components/settingsPageHeader';
-import Switch from '../../../components/switch';
-import Truncate from '../../../components/truncate';
+import {t} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import AsyncView from 'app/views/asyncView';
+import Button from 'app/components/buttons/button';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import Field from 'app/views/settings/components/forms/field';
+import IndicatorStore from 'app/stores/indicatorStore';
+import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import Switch from 'app/components/switch';
+import Truncate from 'app/components/truncate';
 
 const ServiceHookRow = createReactClass({
   displayName: 'ServiceHookRow',
@@ -157,6 +157,7 @@ export default class ProjectServiceHooks extends AsyncView {
           action={
             access.has('project:write') ? (
               <Button
+                data-test-id="new-service-hook"
                 to={`/settings/${orgId}/${projectId}/hooks/new/`}
                 size="small"
                 priority="primary"

@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 
-import InlineSvg from '../../../components/inlineSvg';
+import InlineSvg from 'app/components/inlineSvg';
 
 const Wrapper = styled.div`
   display: flex;
@@ -10,7 +10,7 @@ const Wrapper = styled.div`
   flex-direction: column;
   color: ${p => p.theme.gray4};
   padding: ${p => p.theme.grid * 3}px;
-  font-size: ${p => (p.theme.large ? p.theme.fontSizeLarge : p.theme.fontSizeMedium)};
+  font-size: ${p => (p.theme.large ? p.theme.fontSizeExtraLarge : p.theme.fontSizeLarge)};
   font-weight: bold;
 `;
 

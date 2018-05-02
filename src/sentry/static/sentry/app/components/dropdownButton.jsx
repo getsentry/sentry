@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import Button from './buttons/button';
-import InlineSvg from './inlineSvg';
+import Button from 'app/components/buttons/button';
+import InlineSvg from 'app/components/inlineSvg';
 
 const DropdownButton = ({isOpen, children, ...props}) => {
   return (
@@ -13,6 +13,7 @@ const DropdownButton = ({isOpen, children, ...props}) => {
   );
 };
 
+DropdownButton.displayName = 'DropdownButton';
 DropdownButton.propTypes = {
   isOpen: PropTypes.bool,
 };
@@ -28,7 +29,7 @@ const StyledButton = styled(({isOpen, ...props}) => <Button {...props} />)`
   border-bottom-left-radius: ${p => (p.isOpen ? 0 : p.theme.borderRadius)};
   position: relative;
   z-index: 2;
-  box-shadow: none;
+  box-shadow: ${p => (p.isOpen ? 'none' : p.theme.dropShadowLight)};
 
   &,
   &:hover {

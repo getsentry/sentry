@@ -1,7 +1,7 @@
 import React from 'react';
 
-import {openModal} from './modal';
-import ContextPickerModal from '../components/contextPickerModal';
+import {openModal} from 'app/actionCreators/modal';
+import ContextPickerModal from 'app/components/contextPickerModal';
 
 export function navigateTo(to, router) {
   // Check for placeholder params

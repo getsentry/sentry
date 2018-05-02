@@ -1,4 +1,4 @@
-import {t} from '../../../locale';
+import {t} from 'app/locale';
 
 const pathPrefix = '/settings/:orgId/:projectId';
 
@@ -52,8 +52,9 @@ export default function getConfiguration({project}) {
         },
         {
           path: `${pathPrefix}/ownership/`,
-          title: t('Issue Ownership'),
-          description: t('Manage code ownership rules for a project'),
+          title: t('Issue Owners'),
+          description: t('Manage issue ownership rules for a project'),
+          badge: () => 'new',
         },
         {
           path: `${pathPrefix}/data-forwarding/`,

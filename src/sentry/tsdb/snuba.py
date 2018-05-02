@@ -165,7 +165,7 @@ class SnubaTSDB(BaseTSDB):
         #    {group:{timestamp:{agg:count}}}
         # into
         #    {group: [(timestamp, {agg: count, ...}), ...]}
-        return {k: result[k].items() for k in result}
+        return {k: sorted(result[k].items()) for k in result}
 
     def get_frequency_totals(self, model, items, start, end=None, rollup=None, environment_id=None):
         return self.get_data(model, items, start, end, rollup, environment_id,

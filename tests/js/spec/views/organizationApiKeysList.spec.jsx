@@ -1,14 +1,9 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import {mount} from 'enzyme';
 
 import OrganizationApiKeysList from 'app/views/settings/organization/apiKeys/organizationApiKeysList';
 
-const childContextTypes = {
-  organization: PropTypes.object,
-  router: PropTypes.object,
-  location: PropTypes.object,
-};
+jest.unmock('app/utils/recreateRoute');
 
 const routes = [
   {path: '/'},
@@ -26,7 +21,8 @@ describe('OrganizationApiKeysList', function() {
         params={{orgId: 'org-slug'}}
         routes={routes}
         keys={[TestStubs.ApiKey()]}
-      />
+      />,
+      TestStubs.routerContext()
     );
     expect(wrapper).toMatchSnapshot();
   });
@@ -38,14 +34,7 @@ describe('OrganizationApiKeysList', function() {
         routes={routes}
         keys={[TestStubs.ApiKey()]}
       />,
-      {
-        context: {
-          router: TestStubs.router(),
-          organization: TestStubs.Organization(),
-          location: TestStubs.location(),
-        },
-        childContextTypes,
-      }
+      TestStubs.routerContext()
     );
 
     wrapper.update();

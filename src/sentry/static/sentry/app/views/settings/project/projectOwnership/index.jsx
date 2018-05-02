@@ -1,15 +1,15 @@
 import React from 'react';
 import styled from 'react-emotion';
 
-import {t} from '../../../../locale';
-import AsyncView from '../../../asyncView';
+import {t} from 'app/locale';
+import AsyncView from 'app/views/asyncView';
 
-import {Panel, PanelBody, PanelHeader} from '../../../../components/panels';
-import SentryTypes from '../../../../proptypes';
-import SettingsPageHeader from '../../components/settingsPageHeader';
-import Form from '../../components/forms/form';
-import JsonForm from '../../components/forms/jsonForm';
-import OwnerInput from './ownerInput';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import SentryTypes from 'app/proptypes';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import Form from 'app/views/settings/components/forms/form';
+import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import OwnerInput from 'app/views/settings/project/projectOwnership/ownerInput';
 
 const CodeBlock = styled.pre`
   word-break: break-all;
@@ -40,7 +40,7 @@ class ProjectOwnership extends AsyncView {
 
     return (
       <div>
-        <SettingsPageHeader title={t('Issue Ownership')} />
+        <SettingsPageHeader title={t('Issue Owners')} />
 
         <div className="alert alert-block alert-info">
           {t(`Psst! This feature is still a work-in-progress. Thanks for being an early
@@ -88,12 +88,15 @@ class ProjectOwnership extends AsyncView {
           <JsonForm
             forms={[
               {
-                title: 'Default Ownership',
+                title: t('If ownership cannot be determined for an issue...'),
                 fields: [
                   {
                     name: 'fallthrough',
                     type: 'boolean',
-                    label: 'Default Owner is everyone',
+                    label: t('All users with access to this project are owners'),
+                    help: t(
+                      'Owners will receive notifications for issues they are responsible for.'
+                    ),
                   },
                 ],
               },

@@ -1,10 +1,10 @@
 import React from 'react';
 import createReactClass from 'create-react-class';
-import {t} from '../../locale';
+import {t} from 'app/locale';
 
-import ApiMixin from '../../mixins/apiMixin';
-import OrganizationState from '../../mixins/organizationState';
-import TodoItem from './toDoItem';
+import ApiMixin from 'app/mixins/apiMixin';
+import OrganizationState from 'app/mixins/organizationState';
+import TodoItem from 'app/components/onboardingWizard/toDoItem';
 
 const TodoList = createReactClass({
   displayName: 'TodoList',

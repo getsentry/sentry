@@ -1,12 +1,12 @@
 import React from 'react';
 
-import {t} from '../../locale';
-import {fetchPlugins, enablePlugin, disablePlugin} from '../../actionCreators/plugins';
-import withPlugins from '../../utils/withPlugins';
-import ProjectPlugins from './projectPlugins';
-import OrganizationIntegrations from './organizationIntegrations';
-import SentryTypes from '../../proptypes';
-import SettingsPageHeader from '../settings/components/settingsPageHeader';
+import {t} from 'app/locale';
+import {fetchPlugins, enablePlugin, disablePlugin} from 'app/actionCreators/plugins';
+import withPlugins from 'app/utils/withPlugins';
+import ProjectPlugins from 'app/views/projectPlugins/projectPlugins';
+import OrganizationIntegrations from 'app/views/projectPlugins/organizationIntegrations';
+import SentryTypes from 'app/proptypes';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 
 class ProjectPluginsContainer extends React.Component {
   static propTypes = {

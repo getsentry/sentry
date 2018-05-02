@@ -5,22 +5,22 @@ import classNames from 'classnames';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
-import {assignToUser, assignToActor, clearAssignment} from '../actionCreators/group';
-import {t} from '../locale';
-import {valueIsEqual, buildUserId, buildTeamId} from '../utils';
-import ActorAvatar from '../components/actorAvatar';
-import Avatar from '../components/avatar';
-import ConfigStore from '../stores/configStore';
-import DropdownLink from './dropdownLink';
-import FlowLayout from './flowLayout';
-import GroupStore from '../stores/groupStore';
-import InlineSvg from './inlineSvg';
-import LoadingIndicator from '../components/loadingIndicator';
-import MemberListStore from '../stores/memberListStore';
-import MenuItem from './menuItem';
-import ProjectsStore from '../stores/projectsStore';
-import SentryTypes from '../proptypes';
-import TextOverflow from './textOverflow';
+import {assignToUser, assignToActor, clearAssignment} from 'app/actionCreators/group';
+import {t} from 'app/locale';
+import {valueIsEqual, buildUserId, buildTeamId} from 'app/utils';
+import ActorAvatar from 'app/components/actorAvatar';
+import Avatar from 'app/components/avatar';
+import ConfigStore from 'app/stores/configStore';
+import DropdownLink from 'app/components/dropdownLink';
+import FlowLayout from 'app/components/flowLayout';
+import GroupStore from 'app/stores/groupStore';
+import InlineSvg from 'app/components/inlineSvg';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import MemberListStore from 'app/stores/memberListStore';
+import MenuItem from 'app/components/menuItem';
+import ProjectsStore from 'app/stores/projectsStore';
+import SentryTypes from 'app/proptypes';
+import TextOverflow from 'app/components/textOverflow';
 
 const AssigneeSelector = createReactClass({
   displayName: 'AssigneeSelector',

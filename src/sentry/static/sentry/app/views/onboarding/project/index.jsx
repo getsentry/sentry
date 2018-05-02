@@ -2,11 +2,11 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import classnames from 'classnames';
 
-import PlatformPicker from './platformpicker';
-import PlatformiconTile from './platformiconTile';
-import SelectInput from '../../../components/selectInput';
-import {t} from '../../../locale';
-import HookStore from '../../../stores/hookStore';
+import analytics from 'app/utils/analytics';
+import PlatformPicker from 'app/views/onboarding/project/platformpicker';
+import PlatformiconTile from 'app/views/onboarding/project/platformiconTile';
+import SelectField from 'app/components/forms/selectField';
+import {t} from 'app/locale';
 
 class OnboardingProject extends React.Component {
   static propTypes = {
@@ -42,7 +42,7 @@ class OnboardingProject extends React.Component {
   submit = () => {
     this.setWarning(this.props.name);
     if (this.props.name) {
-      HookStore.get('analytics:event').forEach(cb => cb('platformpicker.create_project'));
+      analytics('platformpicker.create_project');
       this.props.next();
     }
   };
@@ -53,19 +53,18 @@ class OnboardingProject extends React.Component {
     return (
       <div className="new-project-team">
         <h4>{t('Team') + ':'}</h4>
-        <div className="project-team-wrapper">
-          <SelectInput
+        <div>
+          <SelectField
+            name="select-team"
+            clearable={false}
             value={team}
-            style={{width: 180, padding: '10px'}}
-            required={true}
-            onChange={e => setTeam(e[0].value)}
-          >
-            {teams.map(({slug, name, id}, i) => (
-              <option key={id} value={slug}>
-                #{slug}
-              </option>
-            ))}
-          </SelectInput>
+            style={{width: 180}}
+            onChange={val => setTeam(val)}
+            options={teams.map(({slug}) => ({
+              label: `#${slug}`,
+              value: slug,
+            }))}
+          />
         </div>
       </div>
     );

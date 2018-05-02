@@ -5,6 +5,7 @@ import six
 
 from django.core.urlresolvers import reverse
 
+from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.models import Project, ProjectBookmark, ProjectStatus, UserOption, DeletedProject, ProjectRedirect, AuditLogEntry, AuditLogEntryEvent
 from sentry.testutils import APITestCase
 
@@ -216,6 +217,12 @@ class ProjectUpdateTest(APITestCase):
         project = Project.objects.get(id=self.project.id)
         assert project.slug != new_project.slug
 
+    def test_reserved_slug(self):
+        resp = self.client.put(self.path, data={
+            'slug': list(RESERVED_PROJECT_SLUGS)[0],
+        })
+        assert resp.status_code == 400, resp.content
+
     def test_platform(self):
         resp = self.client.put(self.path, data={
             'platform': 'cocoa',
@@ -286,9 +293,7 @@ class ProjectUpdateTest(APITestCase):
             organization=project.organization,
             event=AuditLogEntryEvent.PROJECT_EDIT,
         ).exists()
-        assert project.get_option(
-            'sentry:scrub_ip_address',
-            True) == options['sentry:scrub_ip_address']
+        assert project.get_option('sentry:scrub_ip_address',True) == options['sentry:scrub_ip_address']
         assert AuditLogEntry.objects.filter(
             organization=project.organization,
             event=AuditLogEntryEvent.PROJECT_EDIT,

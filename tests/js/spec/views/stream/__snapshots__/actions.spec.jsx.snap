@@ -152,8 +152,8 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
               }
             }
           >
-            <button
-              className="button button-default"
+            <StyledButton
+              aria-label="Cancel"
               disabled={false}
               onClick={[Function]}
               role="button"
@@ -163,54 +163,117 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
                 }
               }
             >
-              <Flex
-                align="center"
-                className="button-label"
+              <Component
+                aria-label="Cancel"
+                className="css-133e1g3-StyledButton-getColors e17811v30"
+                disabled={false}
+                onClick={[Function]}
+                role="button"
+                style={
+                  Object {
+                    "marginRight": 10,
+                  }
+                }
               >
-                <Base
-                  align="center"
-                  className="button-label css-5ipae5"
+                <button
+                  aria-label="Cancel"
+                  className="css-133e1g3-StyledButton-getColors e17811v30"
+                  disabled={false}
+                  onClick={[Function]}
+                  role="button"
+                  style={
+                    Object {
+                      "marginRight": 10,
+                    }
+                  }
                 >
-                  <div
-                    className="button-label css-5ipae5"
-                    is={null}
-                  >
-                    Cancel
-                  </div>
-                </Base>
-              </Flex>
-            </button>
+                  <ButtonLabel>
+                    <Component
+                      className="css-1lzmoq1-ButtonLabel e17811v31"
+                    >
+                      <Flex
+                        align="center"
+                        className="css-1lzmoq1-ButtonLabel e17811v31"
+                      >
+                        <Base
+                          align="center"
+                          className="e17811v31 css-1br8hoo-ButtonLabel"
+                        >
+                          <div
+                            className="e17811v31 css-1br8hoo-ButtonLabel"
+                            is={null}
+                          >
+                            Cancel
+                          </div>
+                        </Base>
+                      </Flex>
+                    </Component>
+                  </ButtonLabel>
+                </button>
+              </Component>
+            </StyledButton>
           </Button>
           <Button
             autoFocus={true}
+            data-test-id="confirm-modal"
             disabled={false}
             onClick={[Function]}
             priority="primary"
           >
-            <button
+            <StyledButton
+              aria-label="Bulk resolve issues"
               autoFocus={true}
-              className="button button-primary"
+              data-test-id="confirm-modal"
               disabled={false}
               onClick={[Function]}
+              priority="primary"
               role="button"
             >
-              <Flex
-                align="center"
-                className="button-label"
+              <Component
+                aria-label="Bulk resolve issues"
+                autoFocus={true}
+                className="css-1a9yqga-StyledButton-getColors e17811v30"
+                data-test-id="confirm-modal"
+                disabled={false}
+                onClick={[Function]}
+                priority="primary"
+                role="button"
               >
-                <Base
-                  align="center"
-                  className="button-label css-5ipae5"
+                <button
+                  aria-label="Bulk resolve issues"
+                  autoFocus={true}
+                  className="css-1a9yqga-StyledButton-getColors e17811v30"
+                  data-test-id="confirm-modal"
+                  disabled={false}
+                  onClick={[Function]}
+                  priority="primary"
+                  role="button"
                 >
-                  <div
-                    className="button-label css-5ipae5"
-                    is={null}
-                  >
-                    Bulk resolve issues
-                  </div>
-                </Base>
-              </Flex>
-            </button>
+                  <ButtonLabel>
+                    <Component
+                      className="css-1lzmoq1-ButtonLabel e17811v31"
+                    >
+                      <Flex
+                        align="center"
+                        className="css-1lzmoq1-ButtonLabel e17811v31"
+                      >
+                        <Base
+                          align="center"
+                          className="e17811v31 css-1br8hoo-ButtonLabel"
+                        >
+                          <div
+                            className="e17811v31 css-1br8hoo-ButtonLabel"
+                            is={null}
+                          >
+                            Bulk resolve issues
+                          </div>
+                        </Base>
+                      </Flex>
+                    </Component>
+                  </ButtonLabel>
+                </button>
+              </Component>
+            </StyledButton>
           </Button>
         </div>
       </div>
@@ -403,8 +466,8 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
               }
             }
           >
-            <button
-              className="button button-default"
+            <StyledButton
+              aria-label="Cancel"
               disabled={false}
               onClick={[Function]}
               role="button"
@@ -414,54 +477,117 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
                 }
               }
             >
-              <Flex
-                align="center"
-                className="button-label"
+              <Component
+                aria-label="Cancel"
+                className="css-133e1g3-StyledButton-getColors e17811v30"
+                disabled={false}
+                onClick={[Function]}
+                role="button"
+                style={
+                  Object {
+                    "marginRight": 10,
+                  }
+                }
               >
-                <Base
-                  align="center"
-                  className="button-label css-5ipae5"
+                <button
+                  aria-label="Cancel"
+                  className="css-133e1g3-StyledButton-getColors e17811v30"
+                  disabled={false}
+                  onClick={[Function]}
+                  role="button"
+                  style={
+                    Object {
+                      "marginRight": 10,
+                    }
+                  }
                 >
-                  <div
-                    className="button-label css-5ipae5"
-                    is={null}
-                  >
-                    Cancel
-                  </div>
-                </Base>
-              </Flex>
-            </button>
+                  <ButtonLabel>
+                    <Component
+                      className="css-1lzmoq1-ButtonLabel e17811v31"
+                    >
+                      <Flex
+                        align="center"
+                        className="css-1lzmoq1-ButtonLabel e17811v31"
+                      >
+                        <Base
+                          align="center"
+                          className="e17811v31 css-1br8hoo-ButtonLabel"
+                        >
+                          <div
+                            className="e17811v31 css-1br8hoo-ButtonLabel"
+                            is={null}
+                          >
+                            Cancel
+                          </div>
+                        </Base>
+                      </Flex>
+                    </Component>
+                  </ButtonLabel>
+                </button>
+              </Component>
+            </StyledButton>
           </Button>
           <Button
             autoFocus={true}
+            data-test-id="confirm-modal"
             disabled={false}
             onClick={[Function]}
             priority="primary"
           >
-            <button
+            <StyledButton
+              aria-label="Bulk resolve issues"
               autoFocus={true}
-              className="button button-primary"
+              data-test-id="confirm-modal"
               disabled={false}
               onClick={[Function]}
+              priority="primary"
               role="button"
             >
-              <Flex
-                align="center"
-                className="button-label"
+              <Component
+                aria-label="Bulk resolve issues"
+                autoFocus={true}
+                className="css-1a9yqga-StyledButton-getColors e17811v30"
+                data-test-id="confirm-modal"
+                disabled={false}
+                onClick={[Function]}
+                priority="primary"
+                role="button"
               >
-                <Base
-                  align="center"
-                  className="button-label css-5ipae5"
+                <button
+                  aria-label="Bulk resolve issues"
+                  autoFocus={true}
+                  className="css-1a9yqga-StyledButton-getColors e17811v30"
+                  data-test-id="confirm-modal"
+                  disabled={false}
+                  onClick={[Function]}
+                  priority="primary"
+                  role="button"
                 >
-                  <div
-                    className="button-label css-5ipae5"
-                    is={null}
-                  >
-                    Bulk resolve issues
-                  </div>
-                </Base>
-              </Flex>
-            </button>
+                  <ButtonLabel>
+                    <Component
+                      className="css-1lzmoq1-ButtonLabel e17811v31"
+                    >
+                      <Flex
+                        align="center"
+                        className="css-1lzmoq1-ButtonLabel e17811v31"
+                      >
+                        <Base
+                          align="center"
+                          className="e17811v31 css-1br8hoo-ButtonLabel"
+                        >
+                          <div
+                            className="e17811v31 css-1br8hoo-ButtonLabel"
+                            is={null}
+                          >
+                            Bulk resolve issues
+                          </div>
+                        </Base>
+                      </Flex>
+                    </Component>
+                  </ButtonLabel>
+                </button>
+              </Component>
+            </StyledButton>
           </Button>
         </div>
       </div>

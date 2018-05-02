@@ -153,6 +153,30 @@ def js_lint(file_list=None, parseable=False, format=False):
     return has_errors
 
 
+def js_stylelint(file_list=None, parseable=False, format=False):
+    """
+    stylelint for styled-components
+    """
+
+    stylelint_path = get_node_modules_bin('stylelint')
+
+    if not os.path.exists(stylelint_path):
+        from click import echo
+        echo('!! Skipping JavaScript styled-components linting because "stylelint" is not installed.')
+        return False
+
+    js_file_list = get_js_files(file_list, snapshots=False)
+
+    has_errors = False
+    if js_file_list:
+        cmd = [stylelint_path]
+
+        status = Popen(cmd + js_file_list).wait()
+        has_errors = status != 0
+
+    return has_errors
+
+
 def yarn_check(file_list):
     """
     Checks if package.json was modified WITHOUT a corresponding change in the Yarn
@@ -356,6 +380,7 @@ def run(file_list=None, format=True, lint=True, js=True, py=True,
                 results.append(py_lint(file_list, parseable=parseable))
             if js:
                 results.append(js_lint(file_list, parseable=parseable, format=format))
+                results.append(js_stylelint(file_list, parseable=parseable, format=format))
 
         if test:
             if js:

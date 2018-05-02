@@ -3,8 +3,8 @@ import PropTypes from 'prop-types';
 import jQuery from 'jquery';
 import createReactClass from 'create-react-class';
 
-import {ApiForm, RadioBooleanField} from '../components/forms';
-import NarrowLayout from '../components/narrowLayout';
+import {ApiForm, RadioBooleanField} from 'app/components/forms';
+import NarrowLayout from 'app/components/narrowLayout';
 
 export default createReactClass({
   displayName: 'NewsletterConsent',

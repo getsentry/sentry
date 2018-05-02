@@ -3,28 +3,22 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-  removeIndicator,
-} from '../../../actionCreators/indicator';
-import {addTeamToProject} from '../../../actionCreators/projects';
-import {getOrganizationState} from '../../../mixins/organizationState';
-import {openCreateTeamModal} from '../../../actionCreators/modal';
-import {t, tct} from '../../../locale';
-import ApiMixin from '../../../mixins/apiMixin';
-import AsyncView from '../../asyncView';
-import Button from '../../../components/buttons/button';
-import Confirm from '../../../components/confirm';
-import DropdownAutoComplete from '../../../components/dropdownAutoComplete';
-import DropdownButton from '../../../components/dropdownButton';
-import EmptyMessage from '../components/emptyMessage';
-import InlineSvg from '../../../components/inlineSvg';
-import Link from '../../../components/link';
-import {Panel, PanelBody, PanelHeader, PanelItem} from '../../../components/panels';
-import SettingsPageHeader from '../components/settingsPageHeader';
-import space from '../../../styles/space';
+import {removeTeamFromProject, addTeamToProject} from 'app/actionCreators/projects';
+import {getOrganizationState} from 'app/mixins/organizationState';
+import {openCreateTeamModal} from 'app/actionCreators/modal';
+import {t, tct} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import AsyncView from 'app/views/asyncView';
+import Button from 'app/components/buttons/button';
+import Confirm from 'app/components/confirm';
+import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
+import DropdownButton from 'app/components/dropdownButton';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import InlineSvg from 'app/components/inlineSvg';
+import Link from 'app/components/link';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import space from 'app/styles/space';
 
 const TeamRow = createReactClass({
   displayName: 'TeamRow',
@@ -50,24 +44,16 @@ const TeamRow = createReactClass({
   handleRemove() {
     if (this.state.loading) return;
 
-    let loadingIndicator = addLoadingMessage(t('Saving changes...'));
     let {orgId, projectId, team} = this.props;
-    this.api.request(`/projects/${orgId}/${projectId}/teams/${team.slug}/`, {
-      method: 'DELETE',
-      success: (d, _, jqXHR) => {
-        this.props.onRemove();
-        addSuccessMessage(t(`#${team.slug} has been removed from project`));
-        removeIndicator(loadingIndicator);
-      },
-      error: () => {
+
+    removeTeamFromProject(this.api, orgId, projectId, team.slug)
+      .then(() => this.props.onRemove())
+      .catch(() => {
         this.setState({
           error: true,
           loading: false,
         });
-        removeIndicator(loadingIndicator);
-        addErrorMessage(t(`Unable to remove #${team.slug} from project`));
-      },
-    });
+      });
   },
 
   render() {
@@ -138,7 +124,7 @@ class ProjectTeams extends AsyncView {
 
     let {orgId, projectId} = this.props.params;
 
-    addTeamToProject(this.api, orgId, projectId, team.slug).then(
+    addTeamToProject(this.api, orgId, projectId, team).then(
       () => {
         this.handleAddedTeam(team);
       },

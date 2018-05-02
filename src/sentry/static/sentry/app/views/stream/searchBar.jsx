@@ -6,21 +6,19 @@ import Reflux from 'reflux';
 import _ from 'lodash';
 import classNames from 'classnames';
 
-import TagStore from '../../stores/tagStore';
-import MemberListStore from '../../stores/memberListStore';
+import TagStore from 'app/stores/tagStore';
+import MemberListStore from 'app/stores/memberListStore';
 
-import ApiMixin from '../../mixins/apiMixin';
-import {t} from '../../locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import {t} from 'app/locale';
 
-import SearchDropdown from './searchDropdown';
-import OrganizationState from '../../mixins/organizationState';
+import SearchDropdown from 'app/views/stream/searchDropdown';
+import OrganizationState from 'app/mixins/organizationState';
 
 const SearchBar = createReactClass({
   displayName: 'SearchBar',
 
   propTypes: {
-    orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
     defaultQuery: PropTypes.string,
     query: PropTypes.string,
     defaultSearchItems: PropTypes.array.isRequired,

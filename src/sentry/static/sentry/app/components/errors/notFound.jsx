@@ -1,5 +1,5 @@
 import React from 'react';
-import {t} from '../../locale';
+import {t} from 'app/locale';
 
 class NotFound extends React.Component {
   render() {

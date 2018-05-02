@@ -4,16 +4,18 @@ import createReactClass from 'create-react-class';
 import {Flex, Box} from 'grid-emotion';
 import styled from 'react-emotion';
 
-import OrganizationState from '../../mixins/organizationState';
-import OldDashboard from './oldDashboard';
-import ProjectNav from './projectNav';
-import TeamMembers from './teamMembers';
-import ProjectCard from './projectCard';
-import getProjectsByTeams from '../../utils/getProjectsByTeams';
-import withTeams from '../../utils/withTeams';
-import withProjects from '../../utils/withProjects';
+import AsyncComponent from 'app/components/asyncComponent';
+import OrganizationState from 'app/mixins/organizationState';
+import OldDashboard from 'app/views/organizationDashboard/oldDashboard';
+import ProjectNav from 'app/views/organizationDashboard/projectNav';
+import TeamMembers from 'app/views/organizationDashboard/teamMembers';
+import ProjectCard from 'app/views/organizationDashboard/projectCard';
+import EmptyState from 'app/views/organizationDashboard/emptyState';
+import getProjectsByTeams from 'app/utils/getProjectsByTeams';
+import withTeams from 'app/utils/withTeams';
+import withProjects from 'app/utils/withProjects';
 
-class Dashboard extends React.Component {
+class Dashboard extends AsyncComponent {
   static propTypes = {
     teams: PropTypes.array,
     projects: PropTypes.array,
@@ -21,44 +23,53 @@ class Dashboard extends React.Component {
 
   componentWillMount() {
     $(document.body).addClass('org-dashboard');
+    super.componentWillMount();
   }
   componentWillUnmount() {
     $(document.body).removeClass('org-dashboard');
+    super.componentWillUnmount();
   }
 
-  render() {
-    const {projects, teams} = this.props;
+  getEndpoints() {
+    const {orgId} = this.props.params;
+    return [['projectsWithStats', `/organizations/${orgId}/projects/?statsPeriod=24h`]];
+  }
+
+  renderBody() {
+    const {teams, projects, params} = this.props;
     const {projectsByTeam} = getProjectsByTeams(teams, projects);
     const projectKeys = Object.keys(projectsByTeam);
 
+    const {projectsWithStats} = this.state;
+    const getStats = id => projectsWithStats.find(project => id === project.id).stats;
+
     return (
-      <div>
-        <ProjectNav />
-        <div>
-          {projectKeys.map((slug, index) => {
-            return (
-              <TeamSection key={slug} showBorder={index !== projectKeys.length - 1}>
-                <TeamTitleBar justify="space-between" align="center">
-                  <TeamName>{`#${slug}`}</TeamName>
-                  <TeamMembers teamId={slug} orgId={this.props.params.orgId} />
-                </TeamTitleBar>
-                <ProjectCards>
-                  {projectsByTeam[slug].map(project => {
-                    return (
-                      <ProjectCardWrapper
-                        key={project.id}
-                        width={['100%', '50%', '33%', '25%']}
-                      >
-                        <ProjectCard project={project} />
-                      </ProjectCardWrapper>
-                    );
-                  })}
-                </ProjectCards>
-              </TeamSection>
-            );
-          })}
-        </div>
-      </div>
+      <React.Fragment>
+        {projectKeys.map((slug, index) => {
+          const showBorder = index !== projectKeys.length - 1;
+          return (
+            <TeamSection key={slug} showBorder={showBorder}>
+              <TeamTitleBar justify="space-between" align="center">
+                <TeamName>{`#${slug}`}</TeamName>
+                <TeamMembers teamId={slug} orgId={params.orgId} />
+              </TeamTitleBar>
+              <ProjectCards>
+                {projectsByTeam[slug].map(project => {
+                  return (
+                    <ProjectCardWrapper
+                      key={project.id}
+                      width={['100%', '50%', '33%', '25%']}
+                    >
+                      <ProjectCard project={project} stats={getStats(project.id)} />
+                    </ProjectCardWrapper>
+                  );
+                })}
+              </ProjectCards>
+            </TeamSection>
+          );
+        })}
+        {!projectKeys.length && <EmptyState orgId={params.orgId} />}
+      </React.Fragment>
     );
   }
 }
@@ -74,7 +85,7 @@ const TeamTitleBar = styled(Flex)`
 
 const TeamName = styled.h4`
   margin: 0;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
 
 const ProjectCards = styled(Flex)`
@@ -94,11 +105,17 @@ const OrganizationDashboard = createReactClass({
     const hasNewDashboardFeature = this.getFeatures().has('dashboard');
 
     if (hasNewDashboardFeature) {
-      return <Dashboard {...this.props} />;
+      return (
+        <Flex flex="1" direction="column">
+          <ProjectNav />
+          <Dashboard {...this.props} />
+        </Flex>
+      );
     } else {
       return <OldDashboard {...this.props} />;
     }
   },
 });
 
+export {Dashboard};
 export default withTeams(withProjects(OrganizationDashboard));

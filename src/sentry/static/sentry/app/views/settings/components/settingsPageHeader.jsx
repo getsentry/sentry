@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 import {Flex, Box} from 'grid-emotion';
+import space from 'app/styles/space';
 
 class SettingsPageHeading extends React.Component {
   static propTypes = {
@@ -29,13 +30,13 @@ class SettingsPageHeading extends React.Component {
 const Wrapper = styled.div`
   font-size: 14px;
   box-shadow: inset 0 -1px 0 ${p => p.theme.borderLight};
-  margin: -20px 0 30px;
+  margin: -${space(3)} 0 ${space(3)};
 `;
 
 const Title = styled.div`
   font-size: 20px;
   font-weight: bold;
-  margin: 20px 0;
+  margin: ${space(3)} 0;
   flex: 1;
 `;
 

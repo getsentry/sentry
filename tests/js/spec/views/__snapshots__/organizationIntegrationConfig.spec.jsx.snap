@@ -26,7 +26,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
       >
         <Wrapper>
           <div
-            className="css-foidy-Wrapper css-17jmgia0"
+            className="css-1pnrn3o-Wrapper e1kblvez0"
           >
             <Flex
               align="center"
@@ -59,7 +59,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                             size={28}
                           >
                             <div
-                              className="css-1g0dosy-IntegrationIcon css-10uim240"
+                              className="css-1g0dosy-IntegrationIcon e1bhjds90"
                               size={28}
                             />
                           </IntegrationIcon>
@@ -69,7 +69,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                   </Box>
                   <Title>
                     <div
-                      className="css-zmdcxu-Title css-17jmgia1"
+                      className="css-zmdcxu-Title e1kblvez1"
                     >
                       GitHub
                     </div>
@@ -83,7 +83,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
       <Panel>
         <StyledPanel>
           <div
-            className="css-wfa8ap-StyledPanel css-5bw71w0"
+            className="css-17lswg2-StyledPanel e1laxa7d0"
           >
             <PanelHeader
               disablePadding={true}
@@ -94,22 +94,22 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                 hasButtons={true}
               >
                 <Component
-                  className="css-bx554z-StyledPanelHeader css-1t1cqk30"
+                  className="css-72tw6l-StyledPanelHeader-getPadding e1p8v8nv0"
                   disablePadding={true}
                   hasButtons={true}
                 >
                   <Flex
                     align="center"
-                    className="css-bx554z-StyledPanelHeader css-1t1cqk30"
+                    className="css-72tw6l-StyledPanelHeader-getPadding e1p8v8nv0"
                     justify="space-between"
                   >
                     <Base
                       align="center"
-                      className="css-1t1cqk30 css-1wxtvvf"
+                      className="e1p8v8nv0 css-ce5pxn-StyledPanelHeader-getPadding"
                       justify="space-between"
                     >
                       <div
-                        className="css-1t1cqk30 css-1wxtvvf"
+                        className="e1p8v8nv0 css-ce5pxn-StyledPanelHeader-getPadding"
                         is={null}
                       >
                         <Box
@@ -143,33 +143,61 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                                 onClick={[Function]}
                                 size="xsmall"
                               >
-                                <button
-                                  className="button button-default button-xs"
+                                <StyledButton
                                   disabled={false}
                                   onClick={[Function]}
                                   role="button"
+                                  size="xsmall"
                                 >
-                                  <Flex
-                                    align="center"
-                                    className="button-label"
+                                  <Component
+                                    className="css-dvpz5-StyledButton-getColors e17811v30"
+                                    disabled={false}
+                                    onClick={[Function]}
+                                    role="button"
+                                    size="xsmall"
                                   >
-                                    <Base
-                                      align="center"
-                                      className="button-label css-5ipae5"
+                                    <button
+                                      className="css-dvpz5-StyledButton-getColors e17811v30"
+                                      disabled={false}
+                                      onClick={[Function]}
+                                      role="button"
+                                      size="xsmall"
                                     >
-                                      <div
-                                        className="button-label css-5ipae5"
-                                        is={null}
+                                      <ButtonLabel
+                                        size="xsmall"
                                       >
-                                        <span
-                                          className="icon icon-add"
-                                        />
-                                         
-                                        Add Workspace
-                                      </div>
-                                    </Base>
-                                  </Flex>
-                                </button>
+                                        <Component
+                                          className="css-9vplug-ButtonLabel e17811v31"
+                                          size="xsmall"
+                                        >
+                                          <Flex
+                                            align="center"
+                                            className="css-9vplug-ButtonLabel e17811v31"
+                                            size="xsmall"
+                                          >
+                                            <Base
+                                              align="center"
+                                              className="e17811v31 css-esdzbq-ButtonLabel"
+                                              size="xsmall"
+                                            >
+                                              <div
+                                                className="e17811v31 css-esdzbq-ButtonLabel"
+                                                is={null}
+                                                size="xsmall"
+                                              >
+                                                <span
+                                                  className="icon icon-add"
+                                                />
+                                                 
+                                                Add Workspace
+                                              </div>
+                                            </Base>
+                                          </Flex>
+                                        </Component>
+                                      </ButtonLabel>
+                                    </button>
+                                  </Component>
+                                </StyledButton>
                               </Button>
                             </div>
                           </Base>
@@ -186,7 +214,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
               flex={false}
             >
               <div
-                className=""
+                className="css-9vq8an-textStyles"
               >
                 <PanelItem
                   key="1"
@@ -198,12 +226,12 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                     py={2}
                   >
                     <Base
-                      className="css-17iyzx4-StyledPanelItem css-q9h14u0"
+                      className="css-1uon4oe-StyledPanelItem eo8n7lk0"
                       p={0}
                       py={2}
                     >
                       <div
-                        className="css-17iyzx4-StyledPanelItem css-q9h14u0"
+                        className="css-1uon4oe-StyledPanelItem eo8n7lk0"
                         is={null}
                       >
                         <Box
@@ -221,7 +249,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                                 src="http://example.com/integration_icon.png"
                               >
                                 <img
-                                  className="css-lx37iq-IntegrationIcon css-1iov4vb0"
+                                  className="css-lx37iq-IntegrationIcon e16ncsfk0"
                                   src="http://example.com/integration_icon.png"
                                 />
                               </IntegrationIcon>
@@ -243,14 +271,14 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                             >
                               <IntegrationName>
                                 <div
-                                  className="css-1daz7ru-IntegrationName css-1iov4vb1"
+                                  className="css-1daz7ru-IntegrationName e16ncsfk1"
                                 >
                                   Test Integration
                                 </div>
                               </IntegrationName>
                               <DomainName>
                                 <div
-                                  className="css-1y54ser-DomainName css-1iov4vb2"
+                                  className="css-1ay0cji-DomainName e16ncsfk2"
                                 >
                                   gtithub.com/test-integration
                                 </div>
@@ -283,36 +311,64 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                                   onClick={[Function]}
                                   size="small"
                                 >
-                                  <button
-                                    className="button button-default button-sm"
+                                  <StyledButton
                                     disabled={false}
                                     onClick={[Function]}
                                     role="button"
+                                    size="small"
                                   >
-                                    <Flex
-                                      align="center"
-                                      className="button-label"
+                                    <Component
+                                      className="css-dvpz5-StyledButton-getColors e17811v30"
+                                      disabled={false}
+                                      onClick={[Function]}
+                                      role="button"
+                                      size="small"
                                     >
-                                      <Base
-                                        align="center"
-                                        className="button-label css-5ipae5"
+                                      <button
+                                        className="css-dvpz5-StyledButton-getColors e17811v30"
+                                        disabled={false}
+                                        onClick={[Function]}
+                                        role="button"
+                                        size="small"
                                       >
-                                        <div
-                                          className="button-label css-5ipae5"
-                                          is={null}
+                                        <ButtonLabel
+                                          size="small"
                                         >
-                                          <span
-                                            className="icon icon-trash"
-                                            style={
-                                              Object {
-                                                "margin": 0,
-                                              }
-                                            }
-                                          />
-                                        </div>
-                                      </Base>
-                                    </Flex>
-                                  </button>
+                                          <Component
+                                            className="css-179w01k-ButtonLabel e17811v31"
+                                            size="small"
+                                          >
+                                            <Flex
+                                              align="center"
+                                              className="css-179w01k-ButtonLabel e17811v31"
+                                              size="small"
+                                            >
+                                              <Base
+                                                align="center"
+                                                className="e17811v31 css-8mahft-ButtonLabel"
+                                                size="small"
+                                              >
+                                                <div
+                                                  className="e17811v31 css-8mahft-ButtonLabel"
+                                                  is={null}
+                                                  size="small"
+                                                >
+                                                  <span
+                                                    className="icon icon-trash"
+                                                    style={
+                                                      Object {
+                                                        "margin": 0,
+                                                      }
+                                                    }
+                                                  />
+                                                </div>
+                                              </Base>
+                                            </Flex>
+                                          </Component>
+                                        </ButtonLabel>
+                                      </button>
+                                    </Component>
+                                  </StyledButton>
                                 </Button>
                                 <Modal
                                   animation={false}
@@ -383,27 +439,27 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
         to="/url/with/params/org-slug/"
       >
         <Component
-          className="css-ryqtzi-AlertLink css-1k2xcw02"
+          className="css-bvjbpd-AlertLink e1fthm6j2"
           to="/url/with/params/org-slug/"
         >
           <Link
-            className="css-ryqtzi-AlertLink css-1k2xcw02"
+            className="css-bvjbpd-AlertLink e1fthm6j2"
             to="/url/with/params/org-slug/"
           >
             <Link
-              className="css-ryqtzi-AlertLink css-1k2xcw02"
+              className="css-bvjbpd-AlertLink e1fthm6j2"
               onlyActiveOnIndex={false}
               style={Object {}}
               to="/url/with/params/org-slug/"
             >
               <a
-                className="css-ryqtzi-AlertLink css-1k2xcw02"
+                className="css-bvjbpd-AlertLink e1fthm6j2"
                 onClick={[Function]}
                 style={Object {}}
               >
                 <AlertLinkText>
                   <div
-                    className="css-19z7wog-AlertLinkText css-1k2xcw00"
+                    className="css-19z7wog-AlertLinkText e1fthm6j0"
                   >
                     <span
                       dangerouslySetInnerHTML={
@@ -424,7 +480,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                     width="1em"
                   >
                     <svg
-                      className="css-ryh69w-StyledSvg css-adkcw30"
+                      className="css-ryh69w-StyledSvg e2idor0"
                       height="1em"
                       viewBox={Object {}}
                       width="1em"
@@ -447,10 +503,10 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
       </h5>
       <Details>
         <Base
-          className="css-16wp28j-Details css-1iov4vb3"
+          className="css-16wp28j-Details e16ncsfk3"
         >
           <div
-            className="css-16wp28j-Details css-1iov4vb3"
+            className="css-16wp28j-Details e16ncsfk3"
             is={null}
           >
             <Box
@@ -473,7 +529,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                     }
                   >
                     <div
-                      className="css-i2iqfw-Description css-1iov4vb4"
+                      className="css-i2iqfw-Description e16ncsfk4"
                       dangerouslySetInnerHTML={
                         Object {
                           "__html": "<p><em>markdown</em> formatted <em>description</em></p>
@@ -484,7 +540,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                   </Description>
                   <AuthorName>
                     <div
-                      className="css-v0poyl-AuthorName css-1iov4vb5"
+                      className="css-agaydm-AuthorName e16ncsfk5"
                     >
                       By Morty
                     </div>
@@ -507,7 +563,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                     href="http://example.com/integration_issue_url"
                   >
                     <a
-                      className="css-5qmaie-MetadataLink css-1iov4vb6"
+                      className="css-5qmaie-MetadataLink e16ncsfk6"
                       href="http://example.com/integration_issue_url"
                     >
                       Report an Issue
@@ -517,7 +573,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                     href="http://example.com/integration_source_url"
                   >
                     <a
-                      className="css-5qmaie-MetadataLink css-1iov4vb6"
+                      className="css-5qmaie-MetadataLink e16ncsfk6"
                       href="http://example.com/integration_source_url"
                     >
                       View Source

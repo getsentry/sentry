@@ -48,3 +48,5 @@ export const DEFAULT_FUSE_OPTIONS = {
   // tokenize: true,
   // findAllMatches: true,
 };
+
+export const MENU_CLOSE_DELAY = 200;

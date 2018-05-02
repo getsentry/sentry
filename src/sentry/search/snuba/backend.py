@@ -19,12 +19,6 @@ from sentry.utils.dates import to_timestamp
 
 
 logger = logging.getLogger('sentry.search.snuba')
-
-
-# https://github.com/getsentry/sentry/blob/804c85100d0003cfdda91701911f21ed5f66f67c/src/sentry/event_manager.py#L241-L271
-priority_expr = 'toUInt32(log(times_seen) * 600) + toUInt32(last_seen)'
-
-
 datetime_format = '%Y-%m-%dT%H:%M:%S+00:00'
 
 
@@ -56,21 +50,31 @@ def _datetime_cursor_calculator(field, fn):
 
 sort_strategies = {
     # sort_by -> Tuple[
-    #   String: expression to generate sort value (of type T, used below),
+    #   String: column or alias to sort by (of type T, used below),
+    #   List[String]: extra aggregate columns required for this sorting strategy,
     #   Function[T] -> int: function for converting a group's data to a cursor value),
     # ]
     'priority': (
-        '-priority', calculate_priority_cursor,
+        'priority', ['last_seen', 'times_seen'], calculate_priority_cursor,
     ),
     'date': (
-        '-last_seen', _datetime_cursor_calculator('last_seen', max),
+        'last_seen', [], _datetime_cursor_calculator('last_seen', max),
     ),
     'new': (
-        '-first_seen', _datetime_cursor_calculator('first_seen', min),
+        'first_seen', [], _datetime_cursor_calculator('first_seen', min),
     ),
     'freq': (
-        '-times_seen', lambda data: sum(data['times_seen']),
+        'times_seen', [], lambda data: sum(data['times_seen']),
     ),
+}
+
+
+aggregation_defs = {
+    'times_seen': ['count()', ''],
+    'first_seen': ['min', 'timestamp'],
+    'last_seen': ['max', 'timestamp'],
+    # https://github.com/getsentry/sentry/blob/804c85100d0003cfdda91701911f21ed5f66f67c/src/sentry/event_manager.py#L241-L271
+    'priority': ['toUInt32(log(times_seen) * 600) + toUInt32(last_seen)', ''],
 }
 
 
@@ -232,7 +236,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
         # query with Snuba? Something else?
         candidate_group_ids = list(group_queryset.values_list('id', flat=True))
 
-        sort_expression, calculate_cursor_for_group = sort_strategies[sort_by]
+        sort, extra_aggregations, calculate_cursor_for_group = sort_strategies[sort_by]
 
         group_data = do_search(
             project_id=project.id,
@@ -240,7 +244,8 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
             tags=tags,
             start=start,
             end=end,
-            sort=sort_expression,
+            sort=sort,
+            extra_aggregations=extra_aggregations,
             candidates=candidate_group_ids,
             **parameters
         )
@@ -262,7 +267,8 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
 
 
 def do_search(project_id, environment_id, tags, start, end,
-              sort, candidates=None, limit=1000, **parameters):
+              sort, extra_aggregations, candidates=None, limit=1000, **parameters):
+
     from sentry.search.base import ANY
 
     filters = {
@@ -273,6 +279,8 @@ def do_search(project_id, environment_id, tags, start, end,
         filters['environment'] = [environment_id]
 
     if candidates is not None:
+        # TODO remove this when Snuba accepts more than 500 issues
+        candidates = candidates[:500]
         hashes = list(
             GroupHash.objects.filter(
                 group_id__in=candidates
@@ -285,6 +293,10 @@ def do_search(project_id, environment_id, tags, start, end,
             return {}
 
         filters['primary_hash'] = hashes
+
+        # TODO: See TODO above about sending too many candidates to Snuba.
+        # https://github.com/getsentry/sentry/blob/63c50ec68ed4fb2314e20323198dd384487feba7/src/sentry/search/snuba/backend.py#L218
+        limit = len(hashes)
 
     having = SnubaConditionBuilder({
         'age_from': ScalarCondition('first_seen', '>'),
@@ -306,17 +318,21 @@ def do_search(project_id, environment_id, tags, start, end,
         else:
             conditions.append((col, '=', val))
 
-    aggregations = [
-        ['count()', '', 'times_seen'],
-        ['min', 'timestamp', 'first_seen'],
-        ['max', 'timestamp', 'last_seen'],
-        [priority_expr, '', 'priority']
-    ]
+    required_aggregations = set([sort] + extra_aggregations)
+    for h in having:
+        alias = h[0]
+        required_aggregations.add(alias)
 
-    # {hash -> {times_seen -> int
-    #           first_seen -> date_str,
-    #           last_seen -> date_str,
-    #           priority -> int},
+    aggregations = []
+    for alias in required_aggregations:
+        aggregations.append(aggregation_defs[alias] + [alias])
+
+    # {hash -> {<agg_alias> -> <agg_value>,
+    #           <agg_alias> -> <agg_value>,
+    #           ...},
+    #  ...}
+    # _OR_ if there's only one <agg_alias> in use
+    # {hash -> <agg_value>,
     #  ...}
     snuba_results = snuba.query(
         start=start,
@@ -326,7 +342,7 @@ def do_search(project_id, environment_id, tags, start, end,
         having=having,
         filter_keys=filters,
         aggregations=aggregations,
-        orderby=sort,
+        orderby='-' + sort,
         limit=limit,
     )
 
@@ -353,8 +369,19 @@ def do_search(project_id, environment_id, tags, start, end,
                 group_data[group_id] = defaultdict(list)
 
             dest = group_data[group_id]
-            for k, v in obj.items():
-                dest[k].append(v)
+
+            # NOTE: The Snuba utility code is trying to be helpful by collapsing
+            # results with only one aggregate down to the single value. It's a
+            # bit of a hack that we then immediately undo that work here, but
+            # many other callers get value out of that functionality. If we see
+            # this pattern again we should either add an option to opt-out of
+            # the 'help' here or remove it from the Snuba code altogether.
+            if len(required_aggregations) == 1:
+                alias = list(required_aggregations)[0]
+                dest[alias].append(obj)
+            else:
+                for k, v in obj.items():
+                    dest[k].append(v)
         else:
             logger.warning(
                 'search.hash_not_found',

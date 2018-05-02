@@ -1,78 +1,47 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import Select from 'react-select';
-import styled from 'react-emotion';
 
-import InputField from './inputField';
+import {defined} from 'app/utils';
+import FormField from 'app/components/forms/formField';
+import MultiSelectControl from 'app/components/forms/multiSelectControl';
 
-export default class MultiSelectField extends InputField {
+export default class MultiSelectField extends FormField {
   static propTypes = {
-    options: PropTypes.array.isRequired,
+    options: PropTypes.array,
     onChange: PropTypes.func,
     value: PropTypes.any,
   };
 
-  constructor(props) {
-    super(props);
-    this.state = {
-      values: [],
-    };
+  // Overriding this for now so that we can set default value to `[]`
+  getValue(props, context) {
+    let form = (context || this.context || {}).form;
+    props = props || this.props;
+    if (defined(props.value)) {
+      return props.value;
+    }
+    if (form && form.data.hasOwnProperty(props.name)) {
+      return defined(form.data[props.name]) ? form.data[props.name] : [];
+    }
+    return defined(props.defaultValue) ? props.defaultValue : [];
   }
 
-  handleChange = value => {
-    this.setState({values: value}, () => {
-      if (typeof this.props.onChange === 'function') {
-        this.props.onChange(value);
-      }
-    });
+  getClassName() {
+    return '';
+  }
+
+  onChange = (opts = []) => {
+    const value = opts.map(opt => opt.value);
+    this.setValue(value);
   };
 
-  renderArrow = () => {
-    return <span className="icon-arrow-down" />;
-  };
-
-  render() {
+  getField() {
     return (
-      <MultiSelect
+      <MultiSelectControl
         id={this.getId()}
-        onChange={this.handleChange}
-        value={this.state.values}
-        multi={true}
-        arrowRenderer={this.renderArrow}
-        style={{width: 200, zIndex: 100, overflow: 'visible'}}
+        value={this.state.value}
         {...this.props}
+        onChange={this.onChange}
       />
     );
   }
 }
-
-const MultiSelect = styled(Select)`
-  font-size: 15px;
-  .Select-control {
-    overflow: visible;
-  }
-  .Select-input {
-    height: 37px;
-    input {
-      padding: 10px 0;
-    }
-  }
-
-  .Select-placeholder,
-  .Select--single > .Select-control .Select-value {
-    height: 37px;
-    &:focus {
-      border: 1px solid ${p => p.theme.gray};
-    }
-  }
-
-  .Select-option.is-focused {
-    color: white;
-    background-color: ${p => p.theme.purple};
-  }
-  .Select-multi-value-wrapper {
-    > a {
-      margin-left: 4px;
-    }
-  }
-`;

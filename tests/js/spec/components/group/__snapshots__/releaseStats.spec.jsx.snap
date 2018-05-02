@@ -55,6 +55,7 @@ exports[`GroupReleaseStats renders 1`] = `
           title="All Environments"
         >
           <DropdownMenu
+            alwaysRenderMenu={true}
             keepMenuOpen={false}
           >
             <span
@@ -80,6 +81,7 @@ exports[`GroupReleaseStats renders 1`] = `
               <ul
                 className="dropdown-menu"
                 onClick={[Function]}
+                onMouseEnter={[Function]}
                 onMouseLeave={[Function]}
               >
                 <MenuItem

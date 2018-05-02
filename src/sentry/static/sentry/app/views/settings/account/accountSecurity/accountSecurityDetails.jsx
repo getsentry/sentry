@@ -10,17 +10,17 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {addErrorMessage, addSuccessMessage} from '../../../../actionCreators/indicator';
-import {t} from '../../../../locale';
-import AsyncView from '../../../asyncView';
-import Button from '../../../../components/buttons/button';
-import CircleIndicator from '../../../../components/circleIndicator';
-import DateTime from '../../../../components/dateTime';
-import RecoveryCodes from './components/recoveryCodes';
-import RemoveConfirm from './components/removeConfirm';
-import SettingsPageHeader from '../../components/settingsPageHeader';
-import TextBlock from '../../components/text/textBlock';
-import U2fEnrolledDetails from './components/u2fEnrolledDetails';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {t} from 'app/locale';
+import AsyncView from 'app/views/asyncView';
+import Button from 'app/components/buttons/button';
+import CircleIndicator from 'app/components/circleIndicator';
+import DateTime from 'app/components/dateTime';
+import RecoveryCodes from 'app/views/settings/account/accountSecurity/components/recoveryCodes';
+import RemoveConfirm from 'app/views/settings/account/accountSecurity/components/removeConfirm';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import U2fEnrolledDetails from 'app/views/settings/account/accountSecurity/components/u2fEnrolledDetails';
 
 const ENDPOINT = '/users/me/authenticators/';
 

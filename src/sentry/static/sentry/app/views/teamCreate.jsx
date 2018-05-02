@@ -1,11 +1,11 @@
 import {withRouter} from 'react-router';
 import React from 'react';
 
-import {t} from '../locale';
-import AsyncView from './asyncView';
-import CreateTeamForm from '../components/createTeam/createTeamForm';
-import NarrowLayout from '../components/narrowLayout';
-import SentryTypes from '../proptypes';
+import {t} from 'app/locale';
+import AsyncView from 'app/views/asyncView';
+import CreateTeamForm from 'app/components/createTeam/createTeamForm';
+import NarrowLayout from 'app/components/narrowLayout';
+import SentryTypes from 'app/proptypes';
 
 class TeamCreate extends AsyncView {
   static contextTypes = {

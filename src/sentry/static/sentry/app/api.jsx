@@ -2,8 +2,8 @@ import $ from 'jquery';
 import {isUndefined} from 'lodash';
 import idx from 'idx';
 
-import {openSudo} from './actionCreators/modal';
-import GroupActions from './actions/groupActions';
+import {openSudo} from 'app/actionCreators/modal';
+import GroupActions from 'app/actions/groupActions';
 
 export class Request {
   constructor(xhr) {
@@ -64,6 +64,9 @@ export class Client {
     };
   }
 
+  /**
+   * Attempt to cancel all active XHR requests
+   */
   clear() {
     for (let id in this.activeRequests) {
       this.activeRequests[id].cancel();

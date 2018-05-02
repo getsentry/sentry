@@ -5,20 +5,21 @@ import Reflux from 'reflux';
 import {capitalize} from 'lodash';
 import styled from 'react-emotion';
 import {Flex, Box} from 'grid-emotion';
+import {Link} from 'react-router';
 
-import ApiMixin from '../../mixins/apiMixin';
-import DropdownLink from '../../components/dropdownLink';
-import IndicatorStore from '../../stores/indicatorStore';
-import MenuItem from '../../components/menuItem';
-import SelectedGroupStore from '../../stores/selectedGroupStore';
-import {t, tct, tn} from '../../locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import DropdownLink from 'app/components/dropdownLink';
+import IndicatorStore from 'app/stores/indicatorStore';
+import MenuItem from 'app/components/menuItem';
+import SelectedGroupStore from 'app/stores/selectedGroupStore';
+import {t, tct, tn} from 'app/locale';
 
-import Checkbox from '../../components/checkbox';
-import ToolbarHeader from '../../components/toolbarHeader';
-import ResolveActions from '../../components/actions/resolve';
-import IgnoreActions from '../../components/actions/ignore';
-import ActionLink from '../../components/actions/actionLink';
-import Tooltip from '../../components/tooltip';
+import Checkbox from 'app/components/checkbox';
+import ToolbarHeader from 'app/components/toolbarHeader';
+import ResolveActions from 'app/components/actions/resolve';
+import IgnoreActions from 'app/components/actions/ignore';
+import ActionLink from 'app/components/actions/actionLink';
+import Tooltip from 'app/components/tooltip';
 
 const BULK_LIMIT = 1000;
 const BULK_LIMIT_STR = BULK_LIMIT.toLocaleString();
@@ -63,7 +64,18 @@ const getConfirm = (numIssues, allInQuerySelected, query, queryCount) => {
           query={query}
           queryCount={queryCount}
         />
-        {!canBeUndone && <p>{t('This action cannot be undone.')}</p>}
+        {!canBeUndone && (
+          <p>
+            {tct(
+              'Bulk deletion is only recommended for junk data. To clear your stream, consider resolving or ignoring. [link:When should I delete events?]',
+              {
+                link: (
+                  <Link to="https://help.sentry.io/hc/en-us/articles/360003443113-When-should-I-delete-events-" />
+                ),
+              }
+            )}
+          </p>
+        )}
       </div>
     );
   };
@@ -387,7 +399,7 @@ const StreamActions = createReactClass({
                 <MenuItem noAnchor={true}>
                   <ActionLink
                     className="action-delete"
-                    disabled={!anySelected || allInQuerySelected}
+                    disabled={!anySelected}
                     onAction={this.onDelete}
                     shouldConfirm={this.shouldConfirm('delete')}
                     message={confirm('delete', false)}

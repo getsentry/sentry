@@ -4,14 +4,15 @@ import _ from 'lodash';
 import createReactClass from 'create-react-class';
 import $ from 'jquery';
 import styled from 'react-emotion';
-import {t} from '../../locale';
-import ExternalLink from '../externalLink';
-import HookStore from '../../stores/hookStore';
-import CueIcon from './cueIcon';
-import CloseIcon from './closeIcon';
-import AssistantContainer from './assistantContainer';
-import Input from '../../views/settings/components/forms/controls/input';
-import InlineSvg from '../../components/inlineSvg';
+import {t} from 'app/locale';
+import analytics from 'app/utils/analytics';
+import ExternalLink from 'app/components/externalLink';
+import HookStore from 'app/stores/hookStore';
+import CueIcon from 'app/components/assistant/cueIcon';
+import CloseIcon from 'app/components/assistant/closeIcon';
+import AssistantContainer from 'app/components/assistant/assistantContainer';
+import Input from 'app/views/settings/components/forms/controls/input';
+import InlineSvg from 'app/components/inlineSvg';
 
 // SupportDrawer slides up when the user clicks on a "Need Help?" cue.
 const SupportDrawer = createReactClass({
@@ -64,9 +65,7 @@ const SupportDrawer = createReactClass({
       },
     });
 
-    HookStore.get('analytics:event').forEach(cb =>
-      cb('assistant.search', {query: this.state.inputVal})
-    );
+    analytics('assistant.search', {query: this.state.inputVal});
   }, 300),
 
   handleChange(evt) {
@@ -159,7 +158,7 @@ const StyledInput = styled(Input)`
 const StyledSearchIcon = styled(InlineSvg)`
   left: 0.75em;
   position: absolute;
-  top: 53%; //this is an optics thing
+  top: 53%; /* this is an optics thing */
   transform: translateY(-50%);
   color: ${p => p.theme.gray1};
 `;

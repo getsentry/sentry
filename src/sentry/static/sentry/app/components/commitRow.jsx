@@ -4,13 +4,13 @@ import React from 'react';
 import styled from 'react-emotion';
 import {Flex} from 'grid-emotion';
 
-import Avatar from './avatar';
-import TimeSince from './timeSince';
-import CommitLink from './commitLink';
-import {t, tct} from '../locale';
+import Avatar from 'app/components/avatar';
+import TimeSince from 'app/components/timeSince';
+import CommitLink from 'app/components/commitLink';
+import {t, tct} from 'app/locale';
 
-import {PanelItem} from './panels';
-import TextOverflow from './textOverflow';
+import {PanelItem} from 'app/components/panels';
+import TextOverflow from 'app/components/textOverflow';
 
 export default class CommitRow extends React.Component {
   static propTypes = {

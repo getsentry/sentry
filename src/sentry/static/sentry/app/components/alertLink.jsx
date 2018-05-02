@@ -2,8 +2,9 @@ import styled from 'react-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import Link from './link';
-import InlineSvg from './inlineSvg';
+import Link from 'app/components/link';
+import InlineSvg from 'app/components/inlineSvg';
+import space from 'app/styles/space';
 
 const AlertLinkText = styled('div')`
   flex-grow: 1;
@@ -25,8 +26,8 @@ const AlertLink = styled(({children, icon, ...props}) => (
   background-color: ${t => t.theme.yellowLightest};
   color: ${t => t.theme.gray5};
   border: 1px dashed ${t => t.theme.borderDark};
-  padding: ${t => t.theme.grid * 2}px;
-  margin-bottom: ${t => t.theme.grid * 4}px;
+  padding: ${space(2)};
+  margin-bottom: ${space(3)};
   border-radius: 0.25em;
   transition: 0.2s border-color;
 

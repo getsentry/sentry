@@ -5,7 +5,7 @@ __all__ = ['Integration', 'IntegrationMetadata']
 import logging
 from collections import namedtuple
 
-from sentry.utils.pipeline import PipelineProvider
+from sentry.pipeline import PipelineProvider
 
 
 IntegrationMetadata = namedtuple('IntegrationMetadata', [
@@ -37,7 +37,7 @@ class Integration(PipelineProvider):
     # a human readable name (e.g. 'Slack')
     name = None
 
-    # an IntegrationMetadata object, used to provider extra details in the
+    # an IntegrationMetadata object, used to provide extra details in the
     # configuration interface of the integration.
     metadata = None
 
@@ -46,6 +46,9 @@ class Integration(PipelineProvider):
         'width': 600,
         'height': 600,
     }
+
+    # whether or not the integration installation be initiated from Sentry
+    can_add = True
 
     def get_logger(self):
         return logging.getLogger('sentry.integration.%s' % (self.key, ))

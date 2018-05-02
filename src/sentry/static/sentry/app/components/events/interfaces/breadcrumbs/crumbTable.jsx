@@ -2,12 +2,11 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
 
-import Category from './category';
+import Category from 'app/components/events/interfaces/breadcrumbs/category';
 
 class CrumbTable extends React.Component {
   static propTypes = {
     crumb: PropTypes.object,
-    title: PropTypes.string,
     kvData: PropTypes.object,
     summary: PropTypes.object,
   };

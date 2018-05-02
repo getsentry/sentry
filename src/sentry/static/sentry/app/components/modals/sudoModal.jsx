@@ -3,16 +3,16 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 
-import {t} from '../../locale';
-import Alert from '../alert';
-import ApiMixin from '../../mixins/apiMixin';
-import Button from '../buttons/button';
-import ConfigStore from '../../stores/configStore';
-import Form from '../../views/settings/components/forms/form';
-import InputField from '../../views/settings/components/forms/inputField';
-import TextBlock from '../../views/settings/components/text/textBlock';
-import U2fContainer from '../u2fContainer';
-import space from '../../styles/space';
+import {t} from 'app/locale';
+import Alert from 'app/components/alert';
+import ApiMixin from 'app/mixins/apiMixin';
+import Button from 'app/components/buttons/button';
+import ConfigStore from 'app/stores/configStore';
+import Form from 'app/views/settings/components/forms/form';
+import InputField from 'app/views/settings/components/forms/inputField';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import U2fContainer from 'app/components/u2fContainer';
+import space from 'app/styles/space';
 
 class SudoModal extends React.Component {
   static propTypes = {

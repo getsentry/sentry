@@ -1,8 +1,8 @@
 import Reflux from 'reflux';
 import $ from 'jquery';
-import GuideActions from '../actions/guideActions';
-import HookStore from './hookStore';
-import OrganizationsActions from '../actions/organizationsActions';
+import GuideActions from 'app/actions/guideActions';
+import OrganizationsActions from 'app/actions/organizationsActions';
+import analytics from 'app/utils/analytics';
 
 const GuideStore = Reflux.createStore({
   init() {
@@ -68,11 +68,9 @@ const GuideStore = Reflux.createStore({
     this.state.currentStep += 1;
     this.trigger(this.state);
     if (this.state.currentGuide && this.state.currentStep == 1) {
-      HookStore.get('analytics:event').forEach(cb =>
-        cb('assistant.guide_opened', {
-          guide: this.state.currentGuide.id,
-        })
-      );
+      analytics('assistant.guide_opened', {
+        guide: this.state.currentGuide.id,
+      });
     }
   },
 
@@ -87,12 +85,10 @@ const GuideStore = Reflux.createStore({
   },
 
   recordCue(id, cue) {
-    HookStore.get('analytics:event').forEach(cb =>
-      cb('assistant.guide_cued', {
-        guide: id,
-        cue,
-      })
-    );
+    analytics('assistant.guide_cued', {
+      guide: id,
+      cue,
+    });
   },
 
   updatePrevGuide(bestGuide) {

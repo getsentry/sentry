@@ -2,8 +2,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import SelectInput from '../../../../components/selectInput';
-import RuleNode from './ruleNode';
+import SelectInput from 'app/components/selectInput';
+import RuleNode from 'app/views/settings/projectAlerts/ruleEditor/ruleNode';
 
 class RuleNodeList extends React.Component {
   static propTypes = {

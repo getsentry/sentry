@@ -1,31 +1,22 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
 
-import {addErrorMessage, addSuccessMessage} from '../../../actionCreators/indicator';
-import {t, tct} from '../../../locale';
-import AsyncView from '../../asyncView';
-import AutoSelectText from '../../../components/autoSelectText';
-import Button from '../../../components/buttons/button';
-import Confirm from '../../../components/confirm';
-import DynamicWrapper from '../../../components/dynamicWrapper';
-import Field from '../components/forms/field';
-import LoadingIndicator from '../../../components/loadingIndicator';
-import {Panel, PanelBody, PanelHeader} from '../../../components/panels';
-import PluginList from '../../../components/pluginList';
-import SentryTypes from '../../../proptypes';
-import SettingsPageHeader from '../components/settingsPageHeader';
-import TextBlock from '../components/text/textBlock';
-import TextCopyInput from '../components/forms/textCopyInput';
-import withPlugins from '../../../utils/withPlugins';
-
-const noMargin = {margin: 0};
-const marginTop = {marginTop: 30};
-
-const PreWrap = styled.pre`
-  word-break: break-all;
-  white-space: pre-wrap;
-`;
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {t, tct} from 'app/locale';
+import AsyncView from 'app/views/asyncView';
+import AutoSelectText from 'app/components/autoSelectText';
+import Button from 'app/components/buttons/button';
+import Confirm from 'app/components/confirm';
+import DynamicWrapper from 'app/components/dynamicWrapper';
+import getDynamicText from 'app/utils/getDynamicText';
+import Field from 'app/views/settings/components/forms/field';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import PluginList from 'app/components/pluginList';
+import SentryTypes from 'app/proptypes';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
+import withPlugins from 'app/utils/withPlugins';
 
 class ProjectReleaseTracking extends AsyncView {
   static propTypes = {
@@ -107,38 +98,39 @@ class ProjectReleaseTracking extends AsyncView {
 
     let {token, webhookUrl} = this.state.data;
 
+    token = getDynamicText({value: token, fixed: '__TOKEN__'});
+    webhookUrl = getDynamicText({value: webhookUrl, fixed: '__WEBHOOK_URL__'});
+
     return (
       <div>
         <SettingsPageHeader title={t('Release Tracking')} />
-        <TextBlock>
+        <p>
           {t(
             'Configure release tracking for this project to automatically record new releases of your application.'
           )}
-        </TextBlock>
+        </p>
 
         <Panel>
           <PanelHeader>{t('Client Configuration')}</PanelHeader>
           <PanelBody disablePadding={false} flex>
-            <TextBlock css={noMargin}>
+            <p>
               {tct('Start by binding the [release] attribute in your application', {
                 release: <code>release</code>,
               })}
-            </TextBlock>
+            </p>
             <AutoSelectText>
-              <PreWrap style={noMargin}>
-                {this.getReleaseClientConfigurationIntructions()}
-              </PreWrap>
+              <pre>{this.getReleaseClientConfigurationIntructions()}</pre>
             </AutoSelectText>
-            <TextBlock css={marginTop}>
+            <p>
               {t(
                 "This will annotate each event with the version of your application, as well as automatically create a release entity in the system the first time it's seen."
               )}
-            </TextBlock>
-            <TextBlock css={noMargin}>
+            </p>
+            <p>
               {t(
                 'In addition you may configure a release hook (or use our API) to push a release and include additional metadata with it.'
               )}
-            </TextBlock>
+            </p>
           </PanelBody>
         </Panel>
 
@@ -149,10 +141,7 @@ class ProjectReleaseTracking extends AsyncView {
               label={t('Token')}
               help={t('A unique secret which is used to generate deploy hook URLs')}
             >
-              <DynamicWrapper
-                value={<TextCopyInput>{token}</TextCopyInput>}
-                fixed="__TOKEN__"
-              />
+              <TextCopyInput>{token}</TextCopyInput>
             </Field>
             <Field
               label={t('Regenerate Token')}
@@ -180,42 +169,35 @@ class ProjectReleaseTracking extends AsyncView {
         <Panel>
           <PanelHeader>{t('Webhook')}</PanelHeader>
           <PanelBody disablePadding={false} flex>
-            <TextBlock css={noMargin}>
+            <p>
               {t(
                 'If you simply want to integrate with an existing system, sometimes its easiest just to use a webhook.'
               )}
-            </TextBlock>
+            </p>
 
-            <DynamicWrapper
-              value={
-                <AutoSelectText>
-                  <PreWrap>{webhookUrl}</PreWrap>
-                </AutoSelectText>
-              }
-              fixed={<PreWrap>__WEBHOOK_URL__</PreWrap>}
-            />
+            <AutoSelectText>
+              <pre>{webhookUrl}</pre>
+            </AutoSelectText>
 
-            <TextBlock css={noMargin}>
+            <p>
               {t(
                 'The release webhook accepts the same parameters as the "Create a new Release" API endpoint.'
               )}
-            </TextBlock>
+            </p>
 
             <DynamicWrapper
               value={
                 <AutoSelectText>
-                  <PreWrap style={noMargin}>
-                    {this.getReleaseWebhookIntructions()}
-                  </PreWrap>
+                  <pre>{this.getReleaseWebhookIntructions()}</pre>
                 </AutoSelectText>
               }
               fixed={
-                <PreWrap style={noMargin}>
+                <pre>
                   {`curl __WEBHOOK_URL__ \\
   -X POST \\
   -H 'Content-Type: application/json' \\
   -d \'{"version": "abcdefg"}\'`}
-                </PreWrap>
+                </pre>
               }
             />
           </PanelBody>
@@ -230,17 +212,17 @@ class ProjectReleaseTracking extends AsyncView {
         <Panel>
           <PanelHeader>{t('API')}</PanelHeader>
           <PanelBody disablePadding={false} flex>
-            <TextBlock>
+            <p>
               {t(
                 'You can notify Sentry when you release new versions of your application via our HTTP API.'
               )}
-            </TextBlock>
+            </p>
 
-            <TextBlock css={noMargin}>
+            <p>
               {tct('See the [link:Releases API documentation] for more information.', {
                 link: <a href="https://docs.sentry.io/hosted/api/releases/" />,
               })}
-            </TextBlock>
+            </p>
           </PanelBody>
         </Panel>
       </div>

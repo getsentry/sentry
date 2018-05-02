@@ -1,7 +1,7 @@
 import React from 'react';
 
-import {extractMultilineFields} from '../../utils';
-import {t, tct} from '../../locale';
+import {extractMultilineFields} from 'app/utils';
+import {t, tct} from 'app/locale';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/';

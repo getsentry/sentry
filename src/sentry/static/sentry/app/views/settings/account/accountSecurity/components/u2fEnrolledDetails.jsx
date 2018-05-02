@@ -2,15 +2,15 @@ import {Box, Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {t} from '../../../../../locale';
-import Button from '../../../../../components/buttons/button';
-import Confirm from '../../../../../components/confirm';
-import ConfirmHeader from './confirmHeader';
-import DateTime from '../../../../../components/dateTime';
-import {Panel, PanelBody, PanelHeader, PanelItem} from '../../../../../components/panels';
-import TextBlock from '../../../components/text/textBlock';
-import EmptyMessage from '../../../components/emptyMessage';
-import Tooltip from '../../../../../components/tooltip';
+import {t} from 'app/locale';
+import Button from 'app/components/buttons/button';
+import Confirm from 'app/components/confirm';
+import ConfirmHeader from 'app/views/settings/account/accountSecurity/components/confirmHeader';
+import DateTime from 'app/components/dateTime';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import Tooltip from 'app/components/tooltip';
 
 /**
  * List u2f devices w/ ability to remove a single device

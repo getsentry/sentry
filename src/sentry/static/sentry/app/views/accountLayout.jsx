@@ -1,9 +1,9 @@
 import React from 'react';
 
-import DropdownLink from '../components/dropdownLink';
-import MenuItem from '../components/menuItem';
-import NarrowLayout from '../components/narrowLayout';
-import {t} from '../locale';
+import DropdownLink from 'app/components/dropdownLink';
+import MenuItem from 'app/components/menuItem';
+import NarrowLayout from 'app/components/narrowLayout';
+import {t} from 'app/locale';
 
 class AccountLayout extends React.Component {
   render() {

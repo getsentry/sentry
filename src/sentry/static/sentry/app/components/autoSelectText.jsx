@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import {selectText} from '../utils/selectText';
+import {selectText} from 'app/utils/selectText';
 
 class AutoSelectText extends React.Component {
   static propTypes = {
@@ -37,7 +37,12 @@ class AutoSelectText extends React.Component {
     }
 
     return (
-      <div {...props} ref={this.handleMount} onClick={this.selectText}>
+      <div
+        {...props}
+        ref={this.handleMount}
+        onClick={this.selectText}
+        className="auto-select-text"
+      >
         {children}
       </div>
     );

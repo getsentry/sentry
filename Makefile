@@ -26,7 +26,7 @@ install-brew:
 	@hash brew 2> /dev/null && brew bundle || (echo '! Homebrew not found, skipping system dependencies.')
 
 install-python:
-	# must be executed serialially
+	# must be executed serially
 	$(MAKE) install-python-base
 	$(MAKE) install-python-develop
 
@@ -262,7 +262,6 @@ travis-test-network: test-network
 travis-test-snuba: test-snuba
 travis-test-js:
 	$(MAKE) test-js
-	$(MAKE) test-styleguide
 travis-test-cli: test-cli
 travis-test-dist:
 	SENTRY_BUILD=$(TRAVIS_COMMIT) SENTRY_LIGHT_BUILD=0 python setup.py sdist bdist_wheel

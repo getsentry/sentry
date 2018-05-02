@@ -10,31 +10,31 @@ import {
   addLoadingMessage,
   addSuccessMessage,
   removeIndicator,
-} from '../../../../actionCreators/indicator';
-import {getOrganizationState} from '../../../../mixins/organizationState';
-import {t} from '../../../../locale';
-import ApiMixin from '../../../../mixins/apiMixin';
-import AsyncView from '../../../asyncView';
-import BooleanField from '../../components/forms/booleanField';
-import Button from '../../../../components/buttons/button';
-import Confirm from '../../../../components/confirm';
-import DateTime from '../../../../components/dateTime';
-import EmptyMessage from '../../components/emptyMessage';
-import Field from '../../components/forms/field';
-import Form from '../../components/forms/form';
-import FormField from '../../components/forms/formField';
-import HookStore from '../../../../stores/hookStore';
-import InputControl from '../../components/forms/controls/input';
-import LoadingError from '../../../../components/loadingError';
-import LoadingIndicator from '../../../../components/loadingIndicator';
-import {Panel, PanelAlert, PanelBody, PanelHeader} from '../../../../components/panels';
-import ProjectKeyCredentials from './projectKeyCredentials';
-import RangeSlider from '../../components/forms/controls/rangeSlider';
-import SentryTypes from '../../../../proptypes';
-import SettingsPageHeader from '../../components/settingsPageHeader';
-import StackedBarChart from '../../../../components/stackedBarChart';
-import TextBlock from '../../components/text/textBlock';
-import TextField from '../../components/forms/textField';
+} from 'app/actionCreators/indicator';
+import {getOrganizationState} from 'app/mixins/organizationState';
+import {t} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import AsyncView from 'app/views/asyncView';
+import BooleanField from 'app/views/settings/components/forms/booleanField';
+import Button from 'app/components/buttons/button';
+import Confirm from 'app/components/confirm';
+import DateTime from 'app/components/dateTime';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import Field from 'app/views/settings/components/forms/field';
+import Form from 'app/views/settings/components/forms/form';
+import FormField from 'app/views/settings/components/forms/formField';
+import HookStore from 'app/stores/hookStore';
+import InputControl from 'app/views/settings/components/forms/controls/input';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
+import ProjectKeyCredentials from 'app/views/settings/project/projectKeys/projectKeyCredentials';
+import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
+import SentryTypes from 'app/proptypes';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import StackedBarChart from 'app/components/stackedBarChart';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import TextField from 'app/views/settings/components/forms/textField';
 
 const RATE_LIMIT_FORMAT_MAP = new Map([
   [0, 'None'],

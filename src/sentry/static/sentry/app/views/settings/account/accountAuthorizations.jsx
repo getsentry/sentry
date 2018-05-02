@@ -3,13 +3,13 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {t, tct} from '../../../locale';
-import AsyncView from '../../asyncView';
-import Button from '../../../components/buttons/button';
-import EmptyMessage from '../components/emptyMessage';
-import IndicatorStore from '../../../stores/indicatorStore';
-import {Panel, PanelBody, PanelHeader, PanelItem} from '../../../components/panels';
-import SettingsPageHeader from '../components/settingsPageHeader';
+import {t, tct} from 'app/locale';
+import AsyncView from 'app/views/asyncView';
+import Button from 'app/components/buttons/button';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import IndicatorStore from 'app/stores/indicatorStore';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 
 class AuthorizationRow extends React.Component {
   static propTypes = {

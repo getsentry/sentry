@@ -6,7 +6,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
 >
   <div>
     <SettingsPageHeading
-      title="Issue Ownership"
+      title="Issue Owners"
     />
     <div
       className="alert alert-block alert-info"
@@ -147,12 +147,13 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
             Object {
               "fields": Array [
                 Object {
-                  "label": "Default Owner is everyone",
+                  "help": "Owners will receive notifications for issues they are responsible for.",
+                  "label": "All users with access to this project are owners",
                   "name": "fallthrough",
                   "type": "boolean",
                 },
               ],
-              "title": "Default Ownership",
+              "title": "If ownership cannot be determined for an issue...",
             },
           ]
         }

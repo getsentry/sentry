@@ -1,17 +1,20 @@
 import React from 'react';
 
 import {shallow} from 'enzyme';
-import ProjectExpectCtReports from 'app/views/settings/projectSecurityHeaders/expectCt';
+import ProjectHpkpReports from 'app/views/settings/projectSecurityHeaders/hpkp';
 
-jest.mock('app/utils/recreateRoute');
-
-describe('ProjectExpectCtReports', function() {
+describe('ProjectHpkpReports', function() {
   let org = TestStubs.Organization();
   let project = TestStubs.Project();
-  let url = `/projects/${org.slug}/${project.slug}/expect-ct/`;
+  let url = `/projects/${org.slug}/${project.slug}/hpkp/`;
 
   beforeEach(function() {
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/`,
+      method: 'GET',
+      body: [],
+    });
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/keys/`,
       method: 'GET',
@@ -21,7 +24,7 @@ describe('ProjectExpectCtReports', function() {
 
   it('renders', function() {
     let wrapper = shallow(
-      <ProjectExpectCtReports
+      <ProjectHpkpReports
         organization={org}
         project={project}
         setProjectNavSection={() => {}}

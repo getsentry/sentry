@@ -1,15 +1,12 @@
-import {ThemeProvider} from 'emotion-theming';
 import React from 'react';
 import {mount} from 'enzyme';
 
 import EnvironmentStore from 'app/stores/environmentStore';
 import ProjectEnvironments from 'app/views/projectEnvironments';
 import recreateRoute from 'app/utils/recreateRoute';
-import theme from 'app/utils/theme';
 import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
 
 jest.mock('app/utils/recreateRoute');
-
 recreateRoute.mockReturnValue('/org-slug/project-slug/settings/');
 
 function mountComponent(isHidden) {
@@ -17,16 +14,14 @@ function mountComponent(isHidden) {
   const project = TestStubs.Project();
   let path = isHidden ? 'environments/hidden/' : 'environments/';
   return mount(
-    <ThemeProvider theme={theme}>
-      <ProjectEnvironments
-        params={{
-          orgId: org.slug,
-          projectId: project.slug,
-        }}
-        route={{path}}
-        routes={[]}
-      />
-    </ThemeProvider>,
+    <ProjectEnvironments
+      params={{
+        orgId: org.slug,
+        projectId: project.slug,
+      }}
+      route={{path}}
+      routes={[]}
+    />,
     TestStubs.routerContext()
   );
 }
@@ -108,7 +103,7 @@ describe('ProjectEnvironments', function() {
       EnvironmentStore.loadInitialData([
         ...TestStubs.Environments(false),
         {
-          id: '3',
+          id: 'no-environment-id',
           name: '',
           displayName: '(No Environment)',
         },
@@ -168,7 +163,7 @@ describe('ProjectEnvironments', function() {
         expect.anything(),
         expect.objectContaining({
           data: {
-            defaultEnvironment: ALL_ENVIRONMENTS_KEY,
+            defaultEnvironment: null,
           },
         })
       );

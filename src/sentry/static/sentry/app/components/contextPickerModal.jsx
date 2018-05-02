@@ -3,15 +3,15 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 
-import {fetchOrganizationDetails} from '../actionCreators/organizations';
-import {t} from '../locale';
-import LatestContextStore from '../stores/latestContextStore';
-import LoadingIndicator from './loadingIndicator';
-import OrganizationsStore from '../stores/organizationsStore';
-import Select2Field from './forms/select2Field';
-import SentryTypes from '../proptypes';
-import replaceRouterParams from '../utils/replaceRouterParams';
-import withProjects from '../utils/withProjects';
+import {fetchOrganizationDetails} from 'app/actionCreators/organizations';
+import {t} from 'app/locale';
+import LatestContextStore from 'app/stores/latestContextStore';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import OrganizationsStore from 'app/stores/organizationsStore';
+import Select2Field from 'app/components/forms/select2Field';
+import SentryTypes from 'app/proptypes';
+import replaceRouterParams from 'app/utils/replaceRouterParams';
+import withProjects from 'app/utils/withProjects';
 
 class ContextPickerModal extends React.Component {
   static propTypes = {

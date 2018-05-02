@@ -1,10 +1,10 @@
 import React from 'react';
 import _ from 'lodash';
 
-import AsyncView from './asyncView';
-import {t} from '../locale';
-import {getOption, getOptionField} from '../options';
-import {ApiForm} from '../components/forms';
+import AsyncView from 'app/views/asyncView';
+import {t} from 'app/locale';
+import {getOption, getOptionField} from 'app/options';
+import {ApiForm} from 'app/components/forms';
 
 const optionsAvailable = [
   'system.url-prefix',

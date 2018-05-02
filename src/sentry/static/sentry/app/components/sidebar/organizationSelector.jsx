@@ -2,13 +2,13 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 
-import {t} from '../../locale';
-import AppState from '../../mixins/appState';
-import Avatar from '../avatar';
-import ConfigStore from '../../stores/configStore';
-import Link from '../link';
-import OrganizationsStore from '../../stores/organizationsStore';
-import SidebarPanel from '../sidebarPanel';
+import {t} from 'app/locale';
+import AppState from 'app/mixins/appState';
+import Avatar from 'app/components/avatar';
+import ConfigStore from 'app/stores/configStore';
+import Link from 'app/components/link';
+import OrganizationsStore from 'app/stores/organizationsStore';
+import SidebarPanel from 'app/components/sidebarPanel';
 
 let RouterOrBrowserLink = ({isRouter, path, ...props}) =>
   isRouter ? <Link to={path} {...props} /> : <a href={path} {...props} />;

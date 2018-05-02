@@ -3,8 +3,8 @@ import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 import {Flex} from 'grid-emotion';
 
-import SentryTypes from '../../proptypes';
-import Avatar from '../../components/avatar';
+import SentryTypes from 'app/proptypes';
+import Avatar from 'app/components/avatar';
 
 export default class AvatarList extends React.Component {
   static propTypes = {
@@ -49,7 +49,7 @@ const CollapsedUsers = styled(({size}) => <div />)`
   font-weight: 600;
   background-color: ${p => p.theme.borderLight};
   color: ${p => p.theme.gray2};
-  font-size: ${p => p.theme.fontSizeSmall}
+  font-size: ${p => p.theme.fontSizeSmall};
   width: ${p => p.size}px;
   height: ${p => p.size}px;
   border-radius: 50%;

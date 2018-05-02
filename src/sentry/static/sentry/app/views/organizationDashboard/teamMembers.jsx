@@ -1,8 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import AsyncComponent from '../../components/asyncComponent';
-import AvatarList from '../../components/avatar/avatarList';
+import AsyncComponent from 'app/components/asyncComponent';
+import AvatarList from 'app/components/avatar/avatarList';
 
 export default class TeamMembers extends AsyncComponent {
   static propTypes = {
