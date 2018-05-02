@@ -1,12 +1,7 @@
 from __future__ import absolute_import
 
 from sentry import options
-from sentry.options.manager import FLAG_PRIORITIZE_DISK
 from sentry.identity.oauth2 import OAuth2Provider
-
-options.register('slack.client-id', flags=FLAG_PRIORITIZE_DISK)
-options.register('slack.client-secret', flags=FLAG_PRIORITIZE_DISK)
-options.register('slack.verification-token', flags=FLAG_PRIORITIZE_DISK)
 
 
 class SlackIdentityProvider(OAuth2Provider):
