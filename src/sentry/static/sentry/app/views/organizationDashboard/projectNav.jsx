@@ -94,6 +94,7 @@ const ProjectNav = createReactClass({
 });
 
 const StyledNav = styled(Flex)`
+  font-size: 20px;
   border-bottom: 1px solid ${p => p.theme.borderLight};
   box-shadow: ${p => p.theme.dropShadowLight};
   background-color: white;
