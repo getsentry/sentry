@@ -73,7 +73,7 @@ const ProjectNav = createReactClass({
 
     const title = (
       <Button size="small">
-        <span>{t('Add new')}</span>
+        <span>{t('Add new...')}</span>
         <span className="icon-arrow-down" />
       </Button>
     );
