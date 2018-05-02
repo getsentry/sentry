@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from django import forms
 
+from sentry import http
 from sentry import options
 
 from sentry.web.helpers import render_to_response
@@ -46,7 +47,6 @@ class VSTSIdentityProvider(OAuth2Provider):
                 client_secret=self.get_oauth_client_secret(),
             ),
             AccountConfigView(),
-            ProjectConfigView(),
         ]
 
 
@@ -85,22 +85,15 @@ class AccountForm(forms.Form):
     )
 
 
-class ProjectForm(forms.Form):
-    project = forms.ChoiceField(
-        choices=[],
-        label='Project',
-        help_text='Enter the Visual Studio Team Services project name that you wish to use as a default for new work items'
-    )
-
-    def add_project_choices(self, choices):
-        self.project.choices = choices
-
-
 class AccountConfigView(PipelineView):
     def dispatch(self, request, pipeline):
         if 'instance' in request.POST:
-            pipeline.bind_state('instance', request.POST.get('instance'))
-            return pipeline.next_step()
+            instance = request.POST.get('instance')
+            account = self.get_account_info(instance, pipeline)
+            if account is not None:
+                pipeline.bind_state('instance', instance)
+                pipeline.bind_state('account', account)
+                return pipeline.next_step()
         return render_to_response(
             template='templates/vsts-account.html',
             context={
@@ -109,16 +102,29 @@ class AccountConfigView(PipelineView):
             request=request,
         )
 
-
-class ProjectConfigView(PipelineView):
-    def dispatch(self, request, pipeline):
-        if 'project' in request.POST:
-            pipeline.bind_state('project', request.POST.get('project'))
-            return pipeline.next_step()
-        return render_to_response(
-            template='templates/vsts-account.html',
-            context={
-                'form': ProjectForm(),
-            },
-            request=request,
+    def get_accounts(self, instance, pipeline):
+        session = http.build_session()
+        url = 'https://%s/_apis/accounts?api-version=4.1' % instance
+        access_token = pipeline.state['identity']['data']['access_token']
+        response = session.get(
+            url,
+            headers={
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer %s' % access_token,
+            }
         )
+        if response.status_code == 203:
+            return response.json()
+        return None
+
+    def get_account_info(self, instance, pipeline):
+        accounts = self.get_accounts(instance, pipeline)
+        if accounts is None:
+            return accounts
+
+        if accounts['count'] > 1:
+            account_name = instance.split('.', maxsplit=1)[0].lower()
+            for account in accounts['value']:
+                if account_name in account['accountName'].lower():
+                    return account
+        return accounts['value'][0]

@@ -1,7 +1,10 @@
 from __future__ import absolute_import
 from sentry import http
+
+from django import forms
+from sentry.web.helpers import render_to_response
 from sentry.integrations import Integration, IntegrationMetadata
-from sentry.pipeline import NestedPipelineView
+from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.utils.http import absolute_uri
 DESCRIPTION = """
@@ -15,6 +18,35 @@ metadata = IntegrationMetadata(
     source_url='https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/vsts',
     aspects={},
 )
+
+
+class ProjectConfigView(PipelineView):
+    def dispatch(self, request, pipeline):
+        if 'project' in request.POST:
+            pipeline.bind_state('project', request.POST.get('project'))
+            return pipeline.next_step()
+        project_form = ProjectForm()
+        project_form.add_project_choices(pipeline)
+        return render_to_response(
+            template='templates/vsts-account.html',
+            context={
+                'form': project_form,
+            },
+            request=request,
+        )
+
+
+class ProjectForm(forms.Form):
+    project = forms.ChoiceField(
+        choices=[],
+        label='Project',
+        help_text='Enter the Visual Studio Team Services project name that you wish to use as a default for new work items'
+    )
+
+    def add_project_choices(self, pipeline):
+        instance = pipeline.state['identity']['instance']
+        access_token = pipeline.state['identity']['data']['access_token']
+        self.project.choices = get_projects(instance, access_token)
 
 
 class VSTSIntegration(Integration):
@@ -48,21 +80,10 @@ class VSTSIntegration(Integration):
             config=identity_pipeline_config,
         )
 
-        return [identity_pipeline_view]
-
-    def get_projects(self, instance, access_token):
-        session = http.build_session()
-        url = 'https://%s/DefaultCollection/_apis/projects' % instance
-        response = session.get(
-            url,
-            headers={
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer %s' % access_token,
-            }
-        )
-        response.raise_for_status()
-        response_json = response.json()
-        return response_json
+        return [
+            identity_pipeline_view,
+            ProjectConfigView(),
+        ]
 
     def get_account_info(self, instance, access_token):
         session = http.build_session()
@@ -108,3 +129,16 @@ class VSTSIntegration(Integration):
                 'data': {},
             }
         }
+
+
+def get_projects(instance, access_token):
+    session = http.build_session()
+    response = session.get(
+        'https://%s/DefaultCollection/_apis/projects' % instance,
+        headers={
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer %s' % access_token,
+        }
+    )
+    response.raise_for_status()
+    return response.json()
