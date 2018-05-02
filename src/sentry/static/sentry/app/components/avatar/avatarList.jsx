@@ -26,7 +26,7 @@ export default class AvatarList extends React.Component {
     return (
       <Flex direction="row-reverse">
         {visibleUsers.map(user => {
-          return <StyledAvatar key={user.id} user={user} size={avatarSize} />;
+          return <StyledAvatar key={user.id} user={user} size={avatarSize} hasTooltip />;
         })}
         {!!numCollapsedUsers && (
           <CollapsedUsers size={avatarSize}>{numCollapsedUsers}</CollapsedUsers>
