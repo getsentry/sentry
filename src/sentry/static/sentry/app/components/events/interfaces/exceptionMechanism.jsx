@@ -1,3 +1,4 @@
+import _ from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Pills from 'app/components/pills';
@@ -36,6 +37,35 @@ class ExceptionMechanism extends React.Component {
           {posix_signal.name} <em>({posix_signal.signal})</em>
         </Pill>
       );
+    }
+
+    if (this.props.data.type && this.props.data.description) {
+      pills.push(
+        <Pill
+          key="generic"
+          name={this.props.data.type}
+          value={this.props.data.description}
+        />
+      );
+      if (this.props.data.extra && _.isObject(this.props.data.extra)) {
+        let counter = 0;
+        _.forOwn(this.props.data.extra, function(value, key) {
+          if (!_.isObject(value)) {
+            pills.push(
+              <Pill key={`generic-extra-${counter++}`} name={key} value={value} />
+            );
+          }
+        });
+      }
+      if (this.props.data.handled !== undefined) {
+        pills.push(
+          <Pill
+            key="generic-extra-handled"
+            name="handled"
+            value={this.props.data.handled}
+          />
+        );
+      }
     }
 
     if (pills.length === 0) {
