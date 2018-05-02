@@ -19,7 +19,6 @@ const MergedItem = createReactClass({
   propTypes: {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
-    groupId: PropTypes.string.isRequired,
     fingerprint: PropTypes.string.isRequired,
     disabled: PropTypes.bool,
     event: PropTypes.shape({

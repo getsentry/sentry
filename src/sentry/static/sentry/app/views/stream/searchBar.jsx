@@ -19,8 +19,6 @@ const SearchBar = createReactClass({
   displayName: 'SearchBar',
 
   propTypes: {
-    orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
     defaultQuery: PropTypes.string,
     query: PropTypes.string,
     defaultSearchItems: PropTypes.array.isRequired,

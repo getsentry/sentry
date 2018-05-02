@@ -7,6 +7,7 @@ from django.http import HttpResponseRedirect, HttpResponse
 from django.utils.translation import ugettext as _
 
 from sentry import options
+from sentry.app import ratelimiter
 from sentry.web.frontend.base import BaseView
 from sentry.web.forms.accounts import TwoFactorForm
 from sentry.web.helpers import render_to_response
@@ -111,6 +112,20 @@ class TwoFactorAuthView(BaseView):
 
         challenge = activation = None
         interface = self.negotiate_interface(request, interfaces)
+
+        if request.method == 'POST' and ratelimiter.is_limited(
+            u'auth-2fa:user:{}'.format(user.id),
+            limit=5,
+            window=60,
+        ):
+            # TODO: Maybe email the account owner or do something to notify someone
+            # This would probably be good for them to know.
+            return HttpResponse(
+                'You have made too many 2FA attempts. Please try again later.',
+                content_type='text/plain',
+                status=429,
+            )
+
         if request.method == 'GET':
             activation = interface.activate(request)
             if activation is not None and activation.type == 'challenge':

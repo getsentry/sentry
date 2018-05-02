@@ -6,15 +6,17 @@ import {Flex} from 'grid-emotion';
 
 import SentryTypes from 'app/proptypes';
 import Link from 'app/components/link';
-
 import {Client} from 'app/api';
 
+import PlatformList from 'app/views/organizationDashboard/platformList';
+import Chart from 'app/views/organizationDashboard/chart';
 import {update} from 'app/actionCreators/projects';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 class ProjectCard extends React.Component {
   static propTypes = {
     project: SentryTypes.Project.isRequired,
+    stats: PropTypes.array,
     params: PropTypes.object,
   };
 
@@ -31,7 +33,7 @@ class ProjectCard extends React.Component {
   };
 
   render() {
-    const {project, params} = this.props;
+    const {project, stats, params} = this.props;
 
     return (
       <StyledProjectCard>
@@ -45,6 +47,8 @@ class ProjectCard extends React.Component {
             onClick={this.toggleProjectBookmark}
           />
         </Flex>
+        <Chart stats={stats} />
+        <PlatformList platforms={project.platforms} />
       </StyledProjectCard>
     );
   }

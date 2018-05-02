@@ -2,11 +2,11 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import classnames from 'classnames';
 
+import analytics from 'app/utils/analytics';
 import PlatformPicker from 'app/views/onboarding/project/platformpicker';
 import PlatformiconTile from 'app/views/onboarding/project/platformiconTile';
 import SelectField from 'app/components/forms/selectField';
 import {t} from 'app/locale';
-import HookStore from 'app/stores/hookStore';
 
 class OnboardingProject extends React.Component {
   static propTypes = {
@@ -42,7 +42,7 @@ class OnboardingProject extends React.Component {
   submit = () => {
     this.setWarning(this.props.name);
     if (this.props.name) {
-      HookStore.get('analytics:event').forEach(cb => cb('platformpicker.create_project'));
+      analytics('platformpicker.create_project');
       this.props.next();
     }
   };

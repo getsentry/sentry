@@ -200,7 +200,6 @@ class ThreadsInterface extends React.Component {
     event: SentryTypes.Event.isRequired,
     type: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
-    platform: PropTypes.string,
   };
 
   constructor(props) {

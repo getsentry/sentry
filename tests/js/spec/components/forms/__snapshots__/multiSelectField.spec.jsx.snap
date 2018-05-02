@@ -1,45 +1,5 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`MultiSelectField render() renders with form context 1`] = `
-<div
-  className=""
->
-  <div
-    className="controls"
-  >
-    <StyledSelect
-      arrowRenderer={[Function]}
-      disabled={false}
-      hideErrorMessage={false}
-      id="id-fieldName"
-      multi={true}
-      name="fieldName"
-      onChange={[Function]}
-      options={
-        Array [
-          Object {
-            "label": "a",
-            "value": "a",
-          },
-          Object {
-            "label": "b",
-            "value": "b",
-          },
-        ]
-      }
-      required={false}
-      style={
-        Object {
-          "overflow": "visible",
-          "width": 200,
-        }
-      }
-      value={Array []}
-    />
-  </div>
-</div>
-`;
-
 exports[`MultiSelectField render() renders without form context 1`] = `
 <div
   className=""
@@ -47,12 +7,10 @@ exports[`MultiSelectField render() renders without form context 1`] = `
   <div
     className="controls"
   >
-    <StyledSelect
-      arrowRenderer={[Function]}
+    <MultiSelectControl
       disabled={false}
       hideErrorMessage={false}
       id="id-fieldName"
-      multi={true}
       name="fieldName"
       onChange={[Function]}
       options={
@@ -68,12 +26,6 @@ exports[`MultiSelectField render() renders without form context 1`] = `
         ]
       }
       required={false}
-      style={
-        Object {
-          "overflow": "visible",
-          "width": 200,
-        }
-      }
       value={Array []}
     />
   </div>

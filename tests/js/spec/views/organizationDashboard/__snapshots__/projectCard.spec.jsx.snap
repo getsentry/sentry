@@ -14,9 +14,24 @@ exports[`ProjectCard renders 1`] = `
       "isBookmarked": false,
       "isMember": true,
       "name": "Project Name",
+      "platforms": Array [
+        "javascript",
+      ],
       "slug": "project-slug",
       "teams": Array [],
     }
+  }
+  stats={
+    Array [
+      Array [
+        1525042800,
+        1,
+      ],
+      Array [
+        1525046400,
+        2,
+      ],
+    ]
   }
 >
   <StyledProjectCard>
@@ -76,6 +91,251 @@ exports[`ProjectCard renders 1`] = `
           </div>
         </Base>
       </Flex>
+      <Chart
+        stats={
+          Array [
+            Array [
+              1525042800,
+              1,
+            ],
+            Array [
+              1525046400,
+              2,
+            ],
+          ]
+        }
+      >
+        <div>
+          <StyledBarChart
+            height={80}
+            label="events"
+            points={
+              Array [
+                Object {
+                  "x": 1525042800,
+                  "y": 1,
+                },
+                Object {
+                  "x": 1525046400,
+                  "y": 2,
+                },
+              ]
+            }
+          >
+            <BarChart
+              className="css-fcxdqz-StyledBarChart e1wib7610"
+              height={80}
+              label="events"
+              points={
+                Array [
+                  Object {
+                    "x": 1525042800,
+                    "y": 1,
+                  },
+                  Object {
+                    "x": 1525046400,
+                    "y": 2,
+                  },
+                ]
+              }
+            >
+              <StackedBarChart
+                barClasses={
+                  Array [
+                    "chart-bar",
+                  ]
+                }
+                className="css-fcxdqz-StyledBarChart e1wib7610"
+                height={80}
+                label="events"
+                markers={Array []}
+                points={
+                  Array [
+                    Object {
+                      "x": 1525042800,
+                      "y": Array [
+                        1,
+                      ],
+                    },
+                    Object {
+                      "x": 1525046400,
+                      "y": Array [
+                        2,
+                      ],
+                    },
+                  ]
+                }
+                series={Array []}
+                width={null}
+              >
+                <figure
+                  className="css-fcxdqz-StyledBarChart e1wib7610 barchart"
+                  style={
+                    Object {
+                      "height": 80,
+                      "width": null,
+                    }
+                  }
+                >
+                  <span
+                    className="max-y"
+                  >
+                    <count
+                      value={10}
+                    >
+                      <span>
+                        10
+                      </span>
+                    </count>
+                  </span>
+                  <span
+                    className="min-y"
+                  >
+                    0
+                  </span>
+                  <span>
+                    <Tooltip
+                      key="1525042800"
+                      title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 29, 2018<br />11:00 PM  &#8594; 11:59 PM</span></div></div><div class=\\"value-label\\">1 events</div>"
+                      tooltipOptions={
+                        Object {
+                          "html": true,
+                          "placement": "bottom",
+                        }
+                      }
+                    >
+                      <a
+                        className="tip chart-column"
+                        style={
+                          Object {
+                            "height": "100%",
+                            "width": "50%",
+                          }
+                        }
+                        title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 29, 2018<br />11:00 PM  &#8594; 11:59 PM</span></div></div><div class=\\"value-label\\">1 events</div>"
+                      >
+                        <span
+                          className="chart-bar"
+                          key="0"
+                          style={
+                            Object {
+                              "backgroundColor": null,
+                              "bottom": "0%",
+                              "height": "9.9%",
+                            }
+                          }
+                        >
+                          1
+                        </span>
+                      </a>
+                    </Tooltip>
+                    <Tooltip
+                      key="1525046400"
+                      title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 30, 2018<br />12:00 AM  &#8594; 12:59 AM</span></div></div><div class=\\"value-label\\">2 events</div>"
+                      tooltipOptions={
+                        Object {
+                          "html": true,
+                          "placement": "bottom",
+                        }
+                      }
+                    >
+                      <a
+                        className="tip chart-column"
+                        style={
+                          Object {
+                            "height": "100%",
+                            "width": "50%",
+                          }
+                        }
+                        title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 30, 2018<br />12:00 AM  &#8594; 12:59 AM</span></div></div><div class=\\"value-label\\">2 events</div>"
+                      >
+                        <span
+                          className="chart-bar"
+                          key="0"
+                          style={
+                            Object {
+                              "backgroundColor": null,
+                              "bottom": "0%",
+                              "height": "19.8%",
+                            }
+                          }
+                        >
+                          2
+                        </span>
+                      </a>
+                    </Tooltip>
+                  </span>
+                </figure>
+              </StackedBarChart>
+            </BarChart>
+          </StyledBarChart>
+        </div>
+      </Chart>
+      <PlatformList
+        platforms={
+          Array [
+            "javascript",
+          ]
+        }
+      >
+        <Flex
+          align="center"
+        >
+          <Base
+            align="center"
+            className="css-5ipae5"
+          >
+            <div
+              className="css-5ipae5"
+              is={null}
+            >
+              <div
+                className="org-dashboard-platform-list"
+              >
+                <Flex
+                  direction="row-reverse"
+                  p={2}
+                >
+                  <Base
+                    className="css-1tznizk"
+                    direction="row-reverse"
+                    p={2}
+                  >
+                    <div
+                      className="css-1tznizk"
+                      is={null}
+                    >
+                      <StyledPlatformIconWrapper
+                        className="javascript"
+                        key="javascript"
+                      >
+                        <span
+                          className="javascript css-128o7xp-StyledPlatformIconWrapper e1mca4c60"
+                        >
+                          <StyledPlatformIcon
+                            className="platformicon platformicon-javascript"
+                          >
+                            <span
+                              className="platformicon platformicon-javascript css-hf0kxf-StyledPlatformIcon e1mca4c61"
+                            />
+                          </StyledPlatformIcon>
+                        </span>
+                      </StyledPlatformIconWrapper>
+                    </div>
+                  </Base>
+                </Flex>
+              </div>
+              <PlatformText>
+                <div
+                  className="css-12aj0sd-PlatformText e1mca4c62"
+                >
+                  javascript
+                </div>
+              </PlatformText>
+            </div>
+          </Base>
+        </Flex>
+      </PlatformList>
     </div>
   </StyledProjectCard>
 </ProjectCard>

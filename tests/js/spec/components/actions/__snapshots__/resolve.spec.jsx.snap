@@ -133,7 +133,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                     >
                       <StyledGuideAnchorRipples>
                         <div
-                          className="css-1t9mqkr-StyledGuideAnchorRipples e130o4352"
+                          className="css-3zj3g7-StyledGuideAnchorRipples e130o4352"
                         />
                       </StyledGuideAnchorRipples>
                     </div>
@@ -573,7 +573,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
                   >
                     <StyledGuideAnchorRipples>
                       <div
-                        className="css-1t9mqkr-StyledGuideAnchorRipples e130o4352"
+                        className="css-3zj3g7-StyledGuideAnchorRipples e130o4352"
                       />
                     </StyledGuideAnchorRipples>
                   </div>

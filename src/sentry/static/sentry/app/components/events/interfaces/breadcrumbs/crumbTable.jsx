@@ -7,7 +7,6 @@ import Category from 'app/components/events/interfaces/breadcrumbs/category';
 class CrumbTable extends React.Component {
   static propTypes = {
     crumb: PropTypes.object,
-    title: PropTypes.string,
     kvData: PropTypes.object,
     summary: PropTypes.object,
   };

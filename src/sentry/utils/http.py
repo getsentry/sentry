@@ -11,7 +11,7 @@ import six
 
 from collections import namedtuple
 from django.conf import settings
-from six.moves.urllib.parse import parse_qs, urlencode, urljoin, urlparse
+from six.moves.urllib.parse import parse_qs, quote, urlencode, urljoin, urlparse
 from functools import partial
 
 from sentry import options
@@ -256,3 +256,8 @@ def heuristic_decode(data, possible_content_type=None):
             continue
 
     return (data, inferred_content_type)
+
+
+def percent_encode(val):
+    # see https://en.wikipedia.org/wiki/Percent-encoding
+    return quote(val.encode('utf8', errors='replace')).replace('%7E', '~').replace('/', '%2F')

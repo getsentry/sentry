@@ -196,7 +196,7 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
             flex={false}
           >
             <div
-              className=""
+              className="css-9vq8an-textStyles"
             >
               <EmptyMessage>
                 <Wrapper>
@@ -416,7 +416,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
             flex={false}
           >
             <div
-              className=""
+              className="css-9vq8an-textStyles"
             >
               <EnvironmentRow
                 environment={
@@ -479,29 +479,61 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                               onClick={[Function]}
                               size="xsmall"
                             >
-                              <button
-                                className="css-10adnmx-EnvironmentButton ezuela50 button button-default button-xs"
+                              <StyledButton
+                                aria-label="Set as default"
+                                className="css-10adnmx-EnvironmentButton ezuela50"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"
+                                size="xsmall"
                               >
-                                <Flex
-                                  align="center"
-                                  className="button-label"
+                                <Component
+                                  aria-label="Set as default"
+                                  className="ezuela50 css-6f9oti-StyledButton-getColors-EnvironmentButton e17811v30"
+                                  disabled={false}
+                                  onClick={[Function]}
+                                  role="button"
+                                  size="xsmall"
                                 >
-                                  <Base
-                                    align="center"
-                                    className="button-label css-5ipae5"
+                                  <button
+                                    aria-label="Set as default"
+                                    className="ezuela50 css-6f9oti-StyledButton-getColors-EnvironmentButton e17811v30"
+                                    disabled={false}
+                                    onClick={[Function]}
+                                    role="button"
+                                    size="xsmall"
                                   >
-                                    <div
-                                      className="button-label css-5ipae5"
-                                      is={null}
+                                    <ButtonLabel
+                                      size="xsmall"
                                     >
-                                      Set as default
-                                    </div>
-                                  </Base>
-                                </Flex>
-                              </button>
+                                      <Component
+                                        className="css-9vplug-ButtonLabel e17811v31"
+                                        size="xsmall"
+                                      >
+                                        <Flex
+                                          align="center"
+                                          className="css-9vplug-ButtonLabel e17811v31"
+                                          size="xsmall"
+                                        >
+                                          <Base
+                                            align="center"
+                                            className="e17811v31 css-esdzbq-ButtonLabel"
+                                            size="xsmall"
+                                          >
+                                            <div
+                                              className="e17811v31 css-esdzbq-ButtonLabel"
+                                              is={null}
+                                              size="xsmall"
+                                            >
+                                              Set as default
+                                            </div>
+                                          </Base>
+                                        </Flex>
+                                      </Component>
+                                    </ButtonLabel>
+                                  </button>
+                                </Component>
+                              </StyledButton>
                             </Button>
                           </EnvironmentButton>
                         </div>
@@ -579,29 +611,61 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                               onClick={[Function]}
                               size="xsmall"
                             >
-                              <button
-                                className="css-10adnmx-EnvironmentButton ezuela50 button button-default button-xs"
+                              <StyledButton
+                                aria-label="Set as default"
+                                className="css-10adnmx-EnvironmentButton ezuela50"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"
+                                size="xsmall"
                               >
-                                <Flex
-                                  align="center"
-                                  className="button-label"
+                                <Component
+                                  aria-label="Set as default"
+                                  className="ezuela50 css-6f9oti-StyledButton-getColors-EnvironmentButton e17811v30"
+                                  disabled={false}
+                                  onClick={[Function]}
+                                  role="button"
+                                  size="xsmall"
                                 >
-                                  <Base
-                                    align="center"
-                                    className="button-label css-5ipae5"
+                                  <button
+                                    aria-label="Set as default"
+                                    className="ezuela50 css-6f9oti-StyledButton-getColors-EnvironmentButton e17811v30"
+                                    disabled={false}
+                                    onClick={[Function]}
+                                    role="button"
+                                    size="xsmall"
                                   >
-                                    <div
-                                      className="button-label css-5ipae5"
-                                      is={null}
+                                    <ButtonLabel
+                                      size="xsmall"
                                     >
-                                      Set as default
-                                    </div>
-                                  </Base>
-                                </Flex>
-                              </button>
+                                      <Component
+                                        className="css-9vplug-ButtonLabel e17811v31"
+                                        size="xsmall"
+                                      >
+                                        <Flex
+                                          align="center"
+                                          className="css-9vplug-ButtonLabel e17811v31"
+                                          size="xsmall"
+                                        >
+                                          <Base
+                                            align="center"
+                                            className="e17811v31 css-esdzbq-ButtonLabel"
+                                            size="xsmall"
+                                          >
+                                            <div
+                                              className="e17811v31 css-esdzbq-ButtonLabel"
+                                              is={null}
+                                              size="xsmall"
+                                            >
+                                              Set as default
+                                            </div>
+                                          </Base>
+                                        </Flex>
+                                      </Component>
+                                    </ButtonLabel>
+                                  </button>
+                                </Component>
+                              </StyledButton>
                             </Button>
                           </EnvironmentButton>
                           <EnvironmentButton
@@ -614,29 +678,61 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                               onClick={[Function]}
                               size="xsmall"
                             >
-                              <button
-                                className="css-10adnmx-EnvironmentButton ezuela50 button button-default button-xs"
+                              <StyledButton
+                                aria-label="Hide"
+                                className="css-10adnmx-EnvironmentButton ezuela50"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"
+                                size="xsmall"
                               >
-                                <Flex
-                                  align="center"
-                                  className="button-label"
+                                <Component
+                                  aria-label="Hide"
+                                  className="ezuela50 css-6f9oti-StyledButton-getColors-EnvironmentButton e17811v30"
+                                  disabled={false}
+                                  onClick={[Function]}
+                                  role="button"
+                                  size="xsmall"
                                 >
-                                  <Base
-                                    align="center"
-                                    className="button-label css-5ipae5"
+                                  <button
+                                    aria-label="Hide"
+                                    className="ezuela50 css-6f9oti-StyledButton-getColors-EnvironmentButton e17811v30"
+                                    disabled={false}
+                                    onClick={[Function]}
+                                    role="button"
+                                    size="xsmall"
                                   >
-                                    <div
-                                      className="button-label css-5ipae5"
-                                      is={null}
+                                    <ButtonLabel
+                                      size="xsmall"
                                     >
-                                      Hide
-                                    </div>
-                                  </Base>
-                                </Flex>
-                              </button>
+                                      <Component
+                                        className="css-9vplug-ButtonLabel e17811v31"
+                                        size="xsmall"
+                                      >
+                                        <Flex
+                                          align="center"
+                                          className="css-9vplug-ButtonLabel e17811v31"
+                                          size="xsmall"
+                                        >
+                                          <Base
+                                            align="center"
+                                            className="e17811v31 css-esdzbq-ButtonLabel"
+                                            size="xsmall"
+                                          >
+                                            <div
+                                              className="e17811v31 css-esdzbq-ButtonLabel"
+                                              is={null}
+                                              size="xsmall"
+                                            >
+                                              Hide
+                                            </div>
+                                          </Base>
+                                        </Flex>
+                                      </Component>
+                                    </ButtonLabel>
+                                  </button>
+                                </Component>
+                              </StyledButton>
                             </Button>
                           </EnvironmentButton>
                         </div>
@@ -727,29 +823,61 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                               onClick={[Function]}
                               size="xsmall"
                             >
-                              <button
-                                className="css-10adnmx-EnvironmentButton ezuela50 button button-default button-xs"
+                              <StyledButton
+                                aria-label="Hide"
+                                className="css-10adnmx-EnvironmentButton ezuela50"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"
+                                size="xsmall"
                               >
-                                <Flex
-                                  align="center"
-                                  className="button-label"
+                                <Component
+                                  aria-label="Hide"
+                                  className="ezuela50 css-6f9oti-StyledButton-getColors-EnvironmentButton e17811v30"
+                                  disabled={false}
+                                  onClick={[Function]}
+                                  role="button"
+                                  size="xsmall"
                                 >
-                                  <Base
-                                    align="center"
-                                    className="button-label css-5ipae5"
+                                  <button
+                                    aria-label="Hide"
+                                    className="ezuela50 css-6f9oti-StyledButton-getColors-EnvironmentButton e17811v30"
+                                    disabled={false}
+                                    onClick={[Function]}
+                                    role="button"
+                                    size="xsmall"
                                   >
-                                    <div
-                                      className="button-label css-5ipae5"
-                                      is={null}
+                                    <ButtonLabel
+                                      size="xsmall"
                                     >
-                                      Hide
-                                    </div>
-                                  </Base>
-                                </Flex>
-                              </button>
+                                      <Component
+                                        className="css-9vplug-ButtonLabel e17811v31"
+                                        size="xsmall"
+                                      >
+                                        <Flex
+                                          align="center"
+                                          className="css-9vplug-ButtonLabel e17811v31"
+                                          size="xsmall"
+                                        >
+                                          <Base
+                                            align="center"
+                                            className="e17811v31 css-esdzbq-ButtonLabel"
+                                            size="xsmall"
+                                          >
+                                            <div
+                                              className="e17811v31 css-esdzbq-ButtonLabel"
+                                              is={null}
+                                              size="xsmall"
+                                            >
+                                              Hide
+                                            </div>
+                                          </Base>
+                                        </Flex>
+                                      </Component>
+                                    </ButtonLabel>
+                                  </button>
+                                </Component>
+                              </StyledButton>
                             </Button>
                           </EnvironmentButton>
                         </div>
@@ -963,7 +1091,7 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
             flex={false}
           >
             <div
-              className=""
+              className="css-9vq8an-textStyles"
             >
               <EmptyMessage>
                 <Wrapper>
@@ -1183,7 +1311,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
             flex={false}
           >
             <div
-              className=""
+              className="css-9vq8an-textStyles"
             >
               <EnvironmentRow
                 actionText="Show"
@@ -1254,29 +1382,61 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                               onClick={[Function]}
                               size="xsmall"
                             >
-                              <button
-                                className="css-10adnmx-EnvironmentButton ezuela50 button button-default button-xs"
+                              <StyledButton
+                                aria-label="Show"
+                                className="css-10adnmx-EnvironmentButton ezuela50"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"
+                                size="xsmall"
                               >
-                                <Flex
-                                  align="center"
-                                  className="button-label"
+                                <Component
+                                  aria-label="Show"
+                                  className="ezuela50 css-6f9oti-StyledButton-getColors-EnvironmentButton e17811v30"
+                                  disabled={false}
+                                  onClick={[Function]}
+                                  role="button"
+                                  size="xsmall"
                                 >
-                                  <Base
-                                    align="center"
-                                    className="button-label css-5ipae5"
+                                  <button
+                                    aria-label="Show"
+                                    className="ezuela50 css-6f9oti-StyledButton-getColors-EnvironmentButton e17811v30"
+                                    disabled={false}
+                                    onClick={[Function]}
+                                    role="button"
+                                    size="xsmall"
                                   >
-                                    <div
-                                      className="button-label css-5ipae5"
-                                      is={null}
+                                    <ButtonLabel
+                                      size="xsmall"
                                     >
-                                      Show
-                                    </div>
-                                  </Base>
-                                </Flex>
-                              </button>
+                                      <Component
+                                        className="css-9vplug-ButtonLabel e17811v31"
+                                        size="xsmall"
+                                      >
+                                        <Flex
+                                          align="center"
+                                          className="css-9vplug-ButtonLabel e17811v31"
+                                          size="xsmall"
+                                        >
+                                          <Base
+                                            align="center"
+                                            className="e17811v31 css-esdzbq-ButtonLabel"
+                                            size="xsmall"
+                                          >
+                                            <div
+                                              className="e17811v31 css-esdzbq-ButtonLabel"
+                                              is={null}
+                                              size="xsmall"
+                                            >
+                                              Show
+                                            </div>
+                                          </Base>
+                                        </Flex>
+                                      </Component>
+                                    </ButtonLabel>
+                                  </button>
+                                </Component>
+                              </StyledButton>
                             </Button>
                           </EnvironmentButton>
                         </div>

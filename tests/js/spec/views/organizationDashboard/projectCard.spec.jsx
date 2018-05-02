@@ -7,14 +7,18 @@ describe('ProjectCard', function() {
   let wrapper, projectMock;
   beforeEach(function() {
     wrapper = mount(
-      <ProjectCard project={TestStubs.Project()} params={{orgId: 'org-slug'}} />,
+      <ProjectCard
+        project={TestStubs.Project({platforms: ['javascript']})}
+        params={{orgId: 'org-slug'}}
+        stats={[[1525042800, 1], [1525046400, 2]]}
+      />,
       TestStubs.routerContext()
     );
 
     projectMock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/',
       method: 'PUT',
-      data: TestStubs.Project({isBookmarked: false}),
+      data: TestStubs.Project({isBookmarked: false, platforms: ['javascript']}),
     });
   });
 
@@ -39,5 +43,12 @@ describe('ProjectCard', function() {
         },
       })
     );
+  });
+
+  it('renders with one platform', function() {
+    const platformList = wrapper.find('PlatformList');
+    expect(
+      platformList.find('StyledPlatformIcon.platformicon.platformicon-javascript')
+    ).toHaveLength(1);
   });
 });

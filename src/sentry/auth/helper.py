@@ -405,6 +405,8 @@ class AuthHelper(object):
                 data=identity.get('data', {}),
             )
 
+        user.send_confirm_emails(is_new_user=True)
+
         self._handle_new_membership(auth_identity)
 
         return auth_identity
@@ -468,12 +470,14 @@ class AuthHelper(object):
         Flow is activated upon a user logging in to where an AuthIdentity is
         not present.
 
+        XXX(dcramer): this docstring is out of date
+
         The flow will attempt to answer the following:
 
         - Is there an existing user with the same email address? Should they be
           merged?
 
-        - Is there an existing user (via authentication) that shoudl be merged?
+        - Is there an existing user (via authentication) that should be merged?
 
         - Should I create a new user based on this identity?
         """
@@ -490,16 +494,13 @@ class AuthHelper(object):
         else:
             acting_user = request.user
 
-        verified_email = acting_user and acting_user.emails.filter(
-            is_verified=True,
-            email__iexact=identity['email'],
-        ).exists()
-
         # If they already have an SSO account and the identity provider says
         # the email matches we go ahead and let them merge it. This is the
         # only way to prevent them having duplicate accounts, and because
         # we trust identity providers, its considered safe.
-        if acting_user and identity.get('email_verified') and verified_email:
+        # Note: we do not trust things like SAML, so the SSO implementation needs
+        # to consider if 'email_verified' can be trusted or not
+        if acting_user and identity.get('email_verified'):
             # we only allow this flow to happen if the existing user has
             # membership, otherwise we short circuit because it might be
             # an attempt to hijack membership of another organization
@@ -514,12 +515,19 @@ class AuthHelper(object):
                     after_2fa=request.build_absolute_uri(),
                     organization_id=self.organization.id
                 ):
-                    return HttpResponseRedirect(auth.get_login_redirect(self.request))
-                # assume they've confirmed they want to attach the identity
-                op = 'confirm'
+                    if acting_user.has_usable_password():
+                        return HttpResponseRedirect(auth.get_login_redirect(self.request))
+                    else:
+                        acting_user = None
+                else:
+                    # assume they've confirmed they want to attach the identity
+                    op = 'confirm'
             else:
                 # force them to create a new account
                 acting_user = None
+        # without a usable password they cant login, so let's clear the acting_user
+        elif acting_user and not acting_user.has_usable_password():
+            acting_user = None
 
         if op == 'confirm' and request.user.is_authenticated():
             auth_identity = self._handle_attach_identity(identity)

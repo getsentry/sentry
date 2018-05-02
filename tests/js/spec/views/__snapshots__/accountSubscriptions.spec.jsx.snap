@@ -135,7 +135,7 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                   flex={false}
                 >
                   <div
-                    className=""
+                    className="css-9vq8an-textStyles"
                   >
                     <PanelItem
                       align="center"
