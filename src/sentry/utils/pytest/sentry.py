@@ -237,3 +237,7 @@ def pytest_runtest_teardown(item):
 
     from celery.task.control import discard_all
     discard_all()
+
+    from sentry.models import OrganizationOption, ProjectOption, UserOption
+    for model in (OrganizationOption, ProjectOption, UserOption):
+        model.objects.clear_local_cache()
