@@ -3,7 +3,7 @@ import {storiesOf} from '@storybook/react';
 // import {action} from '@storybook/addon-actions';
 import {withInfo} from '@storybook/addon-info';
 
-import NarrowLayout from 'sentry-ui/narrowLayout';
+import NarrowLayout from 'app/components/narrowLayout';
 
 storiesOf('NarrowLayout', module).add(
   'default',

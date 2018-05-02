@@ -3,7 +3,7 @@ import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 import {text} from '@storybook/addon-knobs';
 
-import Hovercard from 'sentry-ui/hovercard';
+import Hovercard from 'app/components/hovercard';
 
 storiesOf('Hovercard', module).add(
   'default',

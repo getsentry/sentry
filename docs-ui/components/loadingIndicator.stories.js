@@ -3,7 +3,7 @@ import {storiesOf} from '@storybook/react';
 // import {action} from '@storybook/addon-actions';
 import {withInfo} from '@storybook/addon-info';
 
-import LoadingIndicator from 'sentry-ui/loadingIndicator';
+import LoadingIndicator from 'app/components/loadingIndicator';
 
 storiesOf('LoadingIndicator', module)
   .add(

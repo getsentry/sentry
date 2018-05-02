@@ -2,9 +2,9 @@ import React from 'react';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
-import GlobalModal from 'sentry-ui/globalModal';
-import Button from 'sentry-ui/buttons/button';
-import {openModal} from 'application-root/actionCreators/modal';
+import GlobalModal from 'app/components/globalModal';
+import Button from 'app/components/buttons/button';
+import {openModal} from 'app/actionCreators/modal';
 
 storiesOf('GlobalModal', module).add(
   'default',

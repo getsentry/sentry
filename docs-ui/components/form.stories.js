@@ -9,14 +9,14 @@ import {
   TextField as LegacyTextField,
   PasswordField,
   BooleanField,
-} from 'sentry-ui/forms';
-import NewBooleanField from 'settings-ui/forms/booleanField';
-import RadioField from 'settings-ui/forms/radioField';
-import RadioGroup from 'settings-ui/forms/controls/radioGroup';
-import RangeSlider from 'settings-ui/forms/controls/rangeSlider';
-import Form from 'settings-ui/forms/form';
-import FormField from 'settings-ui/forms/formField';
-import TextField from 'settings-ui/forms/textField';
+} from 'app/components/forms';
+import NewBooleanField from 'app/views/settings/components/forms/booleanField';
+import RadioField from 'app/views/settings/components/forms/radioField';
+import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
+import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
+import Form from 'app/views/settings/components/forms/form';
+import FormField from 'app/views/settings/components/forms/formField';
+import TextField from 'app/views/settings/components/forms/textField';
 
 class UndoButton extends React.Component {
   static contextTypes = {

@@ -3,7 +3,7 @@ import {storiesOf} from '@storybook/react';
 // import {action} from '@storybook/addon-actions';
 import {withInfo} from '@storybook/addon-info';
 
-import StackedBarChart from 'sentry-ui/stackedBarChart';
+import StackedBarChart from 'app/components/stackedBarChart';
 
 storiesOf('StackedBarChart', module).add(
   'default',

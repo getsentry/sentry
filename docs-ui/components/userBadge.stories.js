@@ -2,7 +2,7 @@ import React from 'react';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
-import UserBadge from 'sentry-ui/userBadge';
+import UserBadge from 'app/components/userBadge';
 
 const user = {
   name: 'Chrissy',

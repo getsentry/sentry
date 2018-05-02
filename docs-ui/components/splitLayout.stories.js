@@ -3,7 +3,7 @@ import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 // import {action} from '@storybook/addon-actions';
 
-import SplitLayout from 'sentry-ui/splitLayout';
+import SplitLayout from 'app/components/splitLayout';
 
 storiesOf('ComponentLayouts/SplitLayout', module).add(
   'default',

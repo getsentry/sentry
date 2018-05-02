@@ -2,14 +2,9 @@ import React from 'react';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
-import Button from 'sentry-ui/buttons/button';
-import {
-  Panel,
-  PanelHeader,
-  PanelBody,
-  PanelItem,
-} from 'application-root/components/panels';
-import Field from 'application-root/views/settings/components/forms/field';
+import Button from 'app/components/buttons/button';
+import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
+import Field from 'app/views/settings/components/forms/field';
 
 storiesOf('New Settings/Panel', module)
   .add(

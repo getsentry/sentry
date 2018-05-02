@@ -10,8 +10,6 @@ const staticPath = path.resolve(
   'sentry',
   'app'
 );
-const componentPath = path.resolve(staticPath, 'components');
-const newSettingsPath = path.resolve(staticPath, 'views', 'settings', 'components');
 
 const sentryConfig = require('../webpack.config');
 const appConfig = sentryConfig[0];
@@ -83,9 +81,7 @@ module.exports = {
   resolve: {
     extensions: appConfig.resolve.extensions,
     alias: Object.assign({}, appConfig.resolve.alias, {
-      'sentry-ui': componentPath,
-      'settings-ui': newSettingsPath,
-      'application-root': staticPath,
+      app: staticPath,
     }),
   },
 };

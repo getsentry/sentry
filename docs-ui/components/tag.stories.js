@@ -2,7 +2,7 @@ import React from 'react';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
-import Tag from 'settings-ui/tag';
+import Tag from 'app/views/settings/components/tag';
 
 storiesOf('Tags', module)
   .add(

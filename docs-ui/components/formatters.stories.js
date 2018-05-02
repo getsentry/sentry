@@ -3,10 +3,10 @@ import {storiesOf} from '@storybook/react';
 // import {action} from '@storybook/addon-actions';
 import {withInfo} from '@storybook/addon-info';
 
-import FileSize from 'sentry-ui/fileSize';
-import Duration from 'sentry-ui/duration';
-import DateTime from 'sentry-ui/dateTime';
-import Count from 'sentry-ui/count';
+import FileSize from 'app/components/fileSize';
+import Duration from 'app/components/duration';
+import DateTime from 'app/components/dateTime';
+import Count from 'app/components/count';
 
 storiesOf('Formatters', module)
   .add(

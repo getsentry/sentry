@@ -2,10 +2,10 @@ import React from 'react';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
-import {Panel, PanelHeader} from 'sentry-ui/panels';
-import EmptyMessage from 'settings-ui/emptyMessage';
+import {Panel, PanelHeader} from 'app/components/panels';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
-import Button from 'sentry-ui/buttons/button';
+import Button from 'app/components/buttons/button';
 
 storiesOf('EmptyMessage', module)
   .add(
