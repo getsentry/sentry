@@ -32,8 +32,8 @@ class SidebarDropdown extends React.Component {
 
   render() {
     let {org, orientation, collapsed, config, user, onClick} = this.props;
-    let hasOrgWrite = org.access.indexOf('org:write') > -1;
-    let hasMemberRead = org.access.indexOf('member:read') > -1;
+    let hasOrgWrite = org && org.access && org.access.indexOf('org:write') > -1;
+    let hasMemberRead = org && org.access && org.access.indexOf('member:read') > -1;
 
     return (
       <DropdownMenu>

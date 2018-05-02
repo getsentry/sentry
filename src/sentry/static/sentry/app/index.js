@@ -157,7 +157,9 @@ export default {
     ProjectSelector: require('app/components/projectHeader/projectSelector').default,
     SettingsPageHeader: require('app/views/settings/components/settingsPageHeader')
       .default,
-    Sidebar: require('app/components/sidebar').default,
+
+    // #NEW-SETTINGS #SIDEBAR -- need to update this when we remove old sidebar
+    Sidebar: require('app/components/sidebar.old').default,
     StackedBarChart: require('app/components/stackedBarChart').default,
     TextBlock: require('app/views/settings/components/text/textBlock').default,
     TimeSince: require('app/components/timeSince').default,
