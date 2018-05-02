@@ -2,7 +2,7 @@ import React from 'react';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
-import Avatar from 'sentry-ui/avatar';
+import Avatar from 'app/components/avatar';
 
 const USER = {
   id: 1,

@@ -3,8 +3,8 @@ import {storiesOf} from '@storybook/react';
 // import {action} from '@storybook/addon-actions';
 import {withInfo} from '@storybook/addon-info';
 
-import DropdownLink from 'sentry-ui/dropdownLink';
-import MenuItem from 'sentry-ui/menuItem';
+import DropdownLink from 'app/components/dropdownLink';
+import MenuItem from 'app/components/menuItem';
 
 storiesOf('Links/DropdownLink', module)
   .add(

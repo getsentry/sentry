@@ -2,7 +2,7 @@ import React from 'react';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
-import TextLink from 'sentry-ui/textLink';
+import TextLink from 'app/components/textLink';
 
 storiesOf('Links/TextLink', module).add(
   'default',

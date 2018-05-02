@@ -5,8 +5,8 @@ import {withInfo} from '@storybook/addon-info';
 import {action} from '@storybook/addon-actions';
 import {boolean} from '@storybook/addon-knobs';
 
-import Button from 'sentry-ui/buttons/button';
-import DropdownButton from 'sentry-ui/dropdownButton';
+import Button from 'app/components/buttons/button';
+import DropdownButton from 'app/components/dropdownButton';
 
 const Item = styled('span')`
   padding: 12px;
