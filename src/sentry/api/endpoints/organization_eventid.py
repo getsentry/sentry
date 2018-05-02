@@ -35,27 +35,47 @@ class EventIdLookupEndpoint(OrganizationEndpoint):
                                           event ID should be looked up in.
         :param string event_id: the event ID to look up.
         :auth: required
+
+        Return:
+            organizationSlug
+            projectSlug
+            groupId
+            eventId (optional)
         """
 
         # Largely copied from ProjectGroupIndexEndpoint
         if len(event_id) != 32:
             return Response({'detail': 'Event ID must be 32 characters.'}, status=400)
 
-        project_ids = Project.objects.filter(organization=organization).values_list('id', flat=True)
+        project_slugs_by_id = dict(
+            Project.objects.filter(
+                organization=organization).values_list(
+                'id', 'slug'))
 
         try:
-            event = Event.objects.filter(event_id=event_id, project_id__in=project_ids).get()
-        except Event.DoesNotExist:
+            event = Event.objects.filter(event_id=event_id,
+                                         project_id__in=project_slugs_by_id.keys())[0]
+        except IndexError:
             try:
-                EventMapping.objects.filter(event_id=event_id, project_id__in=project_ids).get()
-            except EventMapping.DoesNotExist:
+                event_mapping = EventMapping.objects.filter(event_id=event_id,
+                                                            project_id__in=project_slugs_by_id.keys())[0]
+
+            except IndexError:
                 raise ResourceDoesNotExist()
+
+            return Response(
+                {
+                    'organizationSlug': organization.slug,
+                    'projectSlug': project_slugs_by_id[event_mapping.project_id],
+                    'groupId': six.text_type(event_mapping.group_id),
+                }
+            )
 
         return Response(
             {
                 'organizationSlug': organization.slug,
-                'projectSlug': event.group.project.slug,
+                'projectSlug': project_slugs_by_id[event.project_id],
                 'groupId': six.text_type(event.group_id),
-                'eventId': event.id,
+                'eventId': six.text_type(event.id)
             }
         )

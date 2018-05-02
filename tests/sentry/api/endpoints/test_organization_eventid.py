@@ -26,4 +26,4 @@ class EventIdLookupEndpointTest(APITestCase):
         assert response.data['organizationSlug'] == org.slug
         assert response.data['projectSlug'] == project.slug
         assert response.data['groupId'] == six.text_type(group.id)
-        assert response.data['eventId'] == event.id
+        assert response.data['eventId'] == six.text_type(event.id)
