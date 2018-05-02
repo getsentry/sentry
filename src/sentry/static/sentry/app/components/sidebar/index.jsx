@@ -276,7 +276,7 @@ class Sidebar extends React.Component {
                 data-test-id="sidebar-collapse"
                 {...sidebarItemProps}
                 icon={<StyledInlineSvg src="icon-collapse" collapsed={collapsed} />}
-                label={t('Collapse')}
+                label={t('Expand')}
                 onClick={this.toggleSidebar}
               />
             </SidebarSection>
