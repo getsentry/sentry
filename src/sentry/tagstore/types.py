@@ -1,15 +1,35 @@
 from __future__ import absolute_import
+
 from sentry.tagstore.base import TagKeyStatus
 
 
-class TagKey(object):
+class TagType(object):
+    def __repr__(self):
+        return '<%s: %s>' % (
+            type(self).__name__,
+            ', '.join('%s=%r' % (name, getattr(self, name)) for name in self.__slots__),
+        )
+
+    def __hash__(self):
+        return hash(tuple([getattr(self, name) for name in self.__slots__]))
+
+    def __eq__(self, other):
+        return type(self) == type(other) and \
+            all(getattr(self, name) == getattr(other, name) for name in self.__slots__)
+
+
+class TagKey(TagType):
+    __slots__ = ['key', 'values_seen', 'status']
+
     def __init__(self, key, values_seen, status=TagKeyStatus.VISIBLE):
         self.key = key
         self.values_seen = values_seen
         self.status = status
 
 
-class TagValue(object):
+class TagValue(TagType):
+    __slots__ = ['key', 'value', 'times_seen', 'first_seen', 'last_seen']
+
     def __init__(self, key, value, times_seen, first_seen, last_seen):
         self.key = key
         self.value = value
@@ -18,14 +38,18 @@ class TagValue(object):
         self.last_seen = last_seen
 
 
-class GroupTagKey(object):
+class GroupTagKey(TagType):
+    __slots__ = ['group_id', 'key', 'values_seen']
+
     def __init__(self, group_id, key, values_seen):
         self.group_id = group_id
         self.key = key
         self.values_seen = values_seen
 
 
-class GroupTagValue(object):
+class GroupTagValue(TagType):
+    __slots__ = ['group_id', 'key', 'value', 'times_seen', 'first_seen', 'last_seen']
+
     def __init__(self, group_id, key, value, times_seen, first_seen, last_seen):
         self.group_id = group_id
         self.key = key
