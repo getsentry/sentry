@@ -77,7 +77,7 @@
     {% endif %}
   }
 
-  var script = attachSDK('{{ sdkUrl|safe }}');
+  var script = attachSDK('{{ jsSdkUrl|safe }}');
   {% if debug %}
   console.log('Fetching @sentry/browser...');
   {% endif %}

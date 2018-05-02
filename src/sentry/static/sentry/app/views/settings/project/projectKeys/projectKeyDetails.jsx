@@ -34,8 +34,8 @@ import SentryTypes from 'app/proptypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import StackedBarChart from 'app/components/stackedBarChart';
 import TextBlock from 'app/views/settings/components/text/textBlock';
-import TextCopyInput from '../../components/forms/textCopyInput';
 import TextField from 'app/views/settings/components/forms/textField';
+import TextCopyInput from '../../components/forms/textCopyInput';
 
 const RATE_LIMIT_FORMAT_MAP = new Map([
   [0, 'None'],
@@ -391,12 +391,12 @@ const KeySettings = createReactClass({
               <PanelHeader>{t('CDN')}</PanelHeader>
               <PanelBody>
                 <TextField
-                  name="cdnSdkUrl"
+                  name="jsSdkUrl"
                   help={t(
-                    'Change this to the URL of the SDK of you choice. By default this is the latest SDK version. If you set an URL here you need to update it manually.'
+                    'Change this to the URL of the SDK of your choice. By default this is the latest SDK version. If you set an URL here you need to update it manually.'
                   )}
                   label={t('Url of SDK to be loaded')}
-                  placeholder={t('Leave empty to use default version')}
+                  placeholder={t('Leave empty to use default')}
                   required={false}
                 />
 

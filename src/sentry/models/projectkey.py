@@ -14,6 +14,7 @@ import re
 from bitfield import BitField
 from uuid import uuid4
 
+from jsonfield import JSONField
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import models
@@ -67,7 +68,7 @@ class ProjectKey(Model):
 
     objects = BaseManager(cache_fields=('public_key', 'secret_key', ))
 
-    cdn_sdk_url = models.URLField(null=True)
+    data = JSONField()
 
     # support legacy project keys in API
     scopes = (
