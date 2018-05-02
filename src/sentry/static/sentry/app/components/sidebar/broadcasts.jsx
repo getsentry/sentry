@@ -4,7 +4,7 @@ import createReactClass from 'create-react-class';
 
 import {t} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
-import IconSidebarWhatsNew from 'app/icons/icon-sidebar-whats-new';
+import InlineSvg from 'app/components/inlineSvg';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import SidebarItem from 'app/components/sidebar/sidebarItem';
 import SidebarPanel from 'app/components/sidebar/sidebarPanel';
@@ -130,7 +130,7 @@ const Broadcasts = createReactClass({
           collapsed={collapsed}
           active={currentPanel == 'broadcasts'}
           badge={unseenPosts.length}
-          icon={<IconSidebarWhatsNew size={22} />}
+          icon={<InlineSvg src="icon-broadcast" size="22px" />}
           label={t("What's new")}
           onClick={this.handleShowPanel}
         />
