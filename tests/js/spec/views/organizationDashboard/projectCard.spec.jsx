@@ -57,7 +57,7 @@ describe('ProjectCard', function() {
     wrapper = mount(
       <ProjectCard
         project={TestStubs.Project({
-          platforms: ['javascript'],
+          platforms: [],
           firstEvent: null,
           platform: 'csharp',
         })}

@@ -58,15 +58,9 @@ class ProjectCard extends React.Component {
         </Flex>
         <ChartContainer>
           <Chart stats={stats} noEvents={!project.firstEvent} />
-          {!project.firstEvent && (
-            <NoEvents
-              orgId={params.orgId}
-              projectId={project.slug}
-              platformId={project.platform}
-            />
-          )}
+          {!project.firstEvent && <NoEvents />}
         </ChartContainer>
-        <PlatformList platforms={project.platforms} />
+        <PlatformList project={project} orgId={params.orgId} />
       </StyledProjectCard>
     );
   }
