@@ -9,11 +9,12 @@ import {Client} from 'app/api';
 import Link from 'app/components/link';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
-
-import PlatformList from 'app/views/organizationDashboard/platformList';
-import Chart from 'app/views/organizationDashboard/chart';
 import {update} from 'app/actionCreators/projects';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+
+import PlatformList from './platformList';
+import Chart from './chart';
+import NoEvents from './noEvents';
 
 class ProjectCard extends React.Component {
   static propTypes = {
@@ -55,12 +56,25 @@ class ProjectCard extends React.Component {
             />
           </Tooltip>
         </Flex>
-        <Chart stats={stats} />
+        <ChartContainer>
+          <Chart stats={stats} noEvents={!project.firstEvent} />
+          {!project.firstEvent && (
+            <NoEvents
+              orgId={params.orgId}
+              projectId={project.slug}
+              platformId={project.platform}
+            />
+          )}
+        </ChartContainer>
         <PlatformList platforms={project.platforms} />
       </StyledProjectCard>
     );
   }
 }
+
+const ChartContainer = styled.div`
+  position: relative;
+`;
 
 const StyledLink = styled(Link)`
   ${overflowEllipsis};

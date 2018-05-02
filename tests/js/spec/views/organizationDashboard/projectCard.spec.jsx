@@ -5,6 +5,7 @@ import {ProjectCard} from 'app/views/organizationDashboard/projectCard';
 
 describe('ProjectCard', function() {
   let wrapper, projectMock;
+
   beforeEach(function() {
     wrapper = mount(
       <ProjectCard
@@ -50,5 +51,24 @@ describe('ProjectCard', function() {
     expect(
       platformList.find('StyledPlatformIcon.platformicon.platformicon-javascript')
     ).toHaveLength(1);
+  });
+
+  it('renders empty state if no event has ever been sent', function() {
+    wrapper = mount(
+      <ProjectCard
+        project={TestStubs.Project({
+          platforms: ['javascript'],
+          firstEvent: null,
+          platform: 'csharp',
+        })}
+        params={{orgId: 'org-slug'}}
+        stats={[]}
+      />,
+      TestStubs.routerContext()
+    );
+
+    expect(wrapper.find('NoEvents')).toHaveLength(1);
+    const button = wrapper.find('Button');
+    expect(button.prop('to')).toBe('/org-slug/project-slug/getting-started/csharp/');
   });
 });
