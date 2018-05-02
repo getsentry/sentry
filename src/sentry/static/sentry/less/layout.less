@@ -36,6 +36,15 @@ body {
   &.org-dashboard {
     background-color: #fcfcfc;
   }
+
+  &.body-sidebar {
+    padding-left: @sidebar-expanded-width;
+    font-family: 'Rubik', 'Avenir Next', 'Helvetica Neue', sans-serif;
+
+    &.collapsed {
+      padding-left: @sidebar-collapsed-width;
+    }
+  }
 }
 
 #blk_router {
@@ -52,6 +61,14 @@ body.narrow {
   padding: 0;
 
   background: #fff;
+
+  &.body-sidebar {
+    padding-left: @sidebar-expanded-width;
+
+    &.collapsed {
+      padding-left: @sidebar-collapsed-width;
+    }
+  }
 
   &.dialog {
     padding-top: 0;
@@ -149,6 +166,7 @@ body.auth {
 // Container around content in app.jsx
 .main-container {
   min-height: 100vh;
+  outline: none;
 }
 
 // So loader can take up full height so that footer is fixed to bottom of screen
@@ -444,6 +462,15 @@ footer {
 
     // Account for there being no footer on mobile
     padding-bottom: 20px;
+
+    &.body-sidebar {
+      padding-left: 0;
+      padding-top: @sidebar-mobile-height;
+
+      &.collapsed {
+        padding-left: 0;
+      }
+    }
   }
 
   .app {
@@ -502,7 +529,7 @@ footer {
       right: 0;
       top: 0;
       font-size: 20px;
-      background: @header-bg-color;
+      background: @sidebar-bg-color;
       padding-left: 30px;
     }
 

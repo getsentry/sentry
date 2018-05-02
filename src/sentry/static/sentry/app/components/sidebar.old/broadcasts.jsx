@@ -1,15 +1,14 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+
 import createReactClass from 'create-react-class';
 
-import {t} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
-import InlineSvg from 'app/components/inlineSvg';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import SidebarItem from 'app/components/sidebar/sidebarItem';
-import SidebarPanel from 'app/components/sidebar/sidebarPanel';
-import SidebarPanelEmpty from 'app/components/sidebar/sidebarPanelEmpty';
-import SidebarPanelItem from 'app/components/sidebar/sidebarPanelItem';
+import {t} from 'app/locale';
+
+import SidebarPanel from 'app/components/sidebar.old/sidebarPanel';
+import SidebarPanelItem from 'app/components/sidebar.old/sidebarPanelItem';
 
 const MARK_SEEN_DELAY = 1000;
 const POLLER_DELAY = 60000;
@@ -18,8 +17,6 @@ const Broadcasts = createReactClass({
   displayName: 'Broadcasts',
 
   propTypes: {
-    orientation: PropTypes.oneOf(['top', 'left']),
-    collapsed: PropTypes.bool,
     showPanel: PropTypes.bool,
     currentPanel: PropTypes.string,
     hidePanel: PropTypes.func,
@@ -78,14 +75,12 @@ const Broadcasts = createReactClass({
     });
   },
 
-  handleShowPanel() {
+  onShowPanel() {
     this.timer = window.setTimeout(this.markSeen, MARK_SEEN_DELAY);
     this.props.onShowPanel();
   },
 
   getUnseenIds() {
-    if (!this.state.broadcasts) return [];
-
     return this.state.broadcasts
       .filter(item => {
         return !item.hasSeen;
@@ -117,45 +112,35 @@ const Broadcasts = createReactClass({
   },
 
   render() {
-    let {orientation, collapsed, currentPanel, showPanel, hidePanel} = this.props;
     let {broadcasts, loading} = this.state;
-
-    let unseenPosts = this.getUnseenIds();
-
     return (
-      <React.Fragment>
-        <SidebarItem
-          data-test-id="sidebar-broadcasts"
-          orientation={orientation}
-          collapsed={collapsed}
-          active={currentPanel == 'broadcasts'}
-          badge={unseenPosts.length}
-          icon={<InlineSvg src="icon-broadcast" size="22px" />}
-          label={t("What's new")}
-          onClick={this.handleShowPanel}
-        />
-
-        {showPanel &&
-          currentPanel == 'broadcasts' && (
+      <li className={this.props.currentPanel == 'broadcasts' ? 'active' : null}>
+        <a
+          className="broadcasts-toggle"
+          onClick={this.onShowPanel}
+          title={t('Updates from Sentry')}
+        >
+          <span className="icon icon-globe" />
+          {this.getUnseenIds() > 0 && <span className="activity-indicator" />}
+        </a>
+        {this.props.showPanel &&
+          this.props.currentPanel == 'broadcasts' && (
             <SidebarPanel
-              data-test-id="sidebar-broadcasts-panel"
-              orientation={orientation}
-              collapsed={collapsed}
-              title={t("What's new in Sentry")}
-              hidePanel={hidePanel}
+              title={t('Recent updates from Sentry')}
+              hidePanel={this.props.hidePanel}
             >
               {loading ? (
                 <LoadingIndicator />
               ) : broadcasts.length === 0 ? (
-                <SidebarPanelEmpty>
+                <div className="sidebar-panel-empty">
                   {t('No recent updates from the Sentry team.')}
-                </SidebarPanelEmpty>
+                </div>
               ) : (
                 broadcasts.map(item => {
                   return (
                     <SidebarPanelItem
                       key={item.id}
-                      hasSeen={item.hasSeen}
+                      className={!item.hasSeen && 'unseen'}
                       title={item.title}
                       message={item.message}
                       link={item.link}
@@ -165,7 +150,7 @@ const Broadcasts = createReactClass({
               )}
             </SidebarPanel>
           )}
-      </React.Fragment>
+      </li>
     );
   },
 });

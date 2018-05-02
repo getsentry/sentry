@@ -8,7 +8,7 @@ import Avatar from 'app/components/avatar';
 import ConfigStore from 'app/stores/configStore';
 import Link from 'app/components/link';
 import OrganizationsStore from 'app/stores/organizationsStore';
-import SidebarPanel from 'app/components/sidebarPanel';
+import SidebarPanel from 'app/components/sidebar.old/sidebarPanel';
 
 let RouterOrBrowserLink = ({isRouter, path, ...props}) =>
   isRouter ? <Link to={path} {...props} /> : <a href={path} {...props} />;

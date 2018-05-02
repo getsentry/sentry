@@ -1,14 +1,12 @@
 import React from 'react';
-
 import createReactClass from 'create-react-class';
 
+import {t} from 'app/locale';
+import Button from 'app/components/buttons/button';
 import OrganizationHomeSidebar from 'app/components/organizations/homeSidebar';
 import OrganizationState from 'app/mixins/organizationState';
 import ProjectSelector from 'app/components/projectHeader/projectSelector';
 import Tooltip from 'app/components/tooltip';
-import {t} from 'app/locale';
-
-import Button from 'app/components/buttons/button';
 
 const HomeContainer = createReactClass({
   displayName: 'HomeContainer',
@@ -18,6 +16,7 @@ const HomeContainer = createReactClass({
   render() {
     let org = this.getOrganization();
     let access = this.getAccess();
+    let hasNewDashboardFeature = this.getFeatures().has('dashboard');
 
     return (
       <div className={`${this.props.className || ''} organization-home`}>
@@ -49,30 +48,36 @@ const HomeContainer = createReactClass({
                 </Button>
               </Tooltip>
             )}
-            {access.has('team:write') ? (
-              <Button to={`/organizations/${org.slug}/teams/new/`} priority="primary">
-                {t('New Team')}
-              </Button>
-            ) : (
-              <Tooltip
-                title={t('You do not have enough permission to create new teams')}
-                tooltipOptions={{placement: 'bottom'}}
-              >
-                <Button priority="primary" disabled>
+            {!hasNewDashboardFeature ? (
+              access.has('team:write') ? (
+                <Button to={`/organizations/${org.slug}/teams/new/`} priority="primary">
                   {t('New Team')}
                 </Button>
-              </Tooltip>
-            )}
+              ) : (
+                <Tooltip
+                  title={t('You do not have enough permission to create new teams')}
+                  tooltipOptions={{placement: 'bottom'}}
+                >
+                  <Button priority="primary" disabled>
+                    {t('New Team')}
+                  </Button>
+                </Tooltip>
+              )
+            ) : null}
           </div>
         </div>
-        <div className="container">
-          <div className="content row">
-            <div className="col-md-2 org-sidebar">
-              <OrganizationHomeSidebar />
+        {!hasNewDashboardFeature ? (
+          <div className="container">
+            <div className="content row">
+              <div className="col-md-2 org-sidebar">
+                <OrganizationHomeSidebar />
+              </div>
+              <div className="col-md-10">{this.props.children}</div>
             </div>
-            <div className="col-md-10">{this.props.children}</div>
           </div>
-        </div>
+        ) : (
+          <div className="container">{this.props.children}</div>
+        )}
       </div>
     );
   },
