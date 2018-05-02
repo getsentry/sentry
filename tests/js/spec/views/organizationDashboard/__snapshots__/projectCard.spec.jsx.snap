@@ -419,7 +419,7 @@ exports[`ProjectCard renders 1`] = `
                 </div>
                 <PlatformText>
                   <div
-                    className="css-12aj0sd-PlatformText e1mca4c62"
+                    className="css-1oyd7ep-PlatformText e1mca4c62"
                   >
                     javascript
                   </div>

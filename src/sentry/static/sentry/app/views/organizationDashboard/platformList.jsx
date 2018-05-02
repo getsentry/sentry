@@ -85,11 +85,12 @@ const StyledPlatformIcon = styled.span`
 const PlatformText = styled.div`
   color: ${p => p.theme.gray2};
   font-size: 13px;
+  line-height: 13px;
 `;
 
 const NoPlatforms = styled(Flex)`
   color: ${p => p.theme.gray2};
-  height: 70px;
+  height: 66px;
 `;
 
 export default withRouter(PlatformList);
