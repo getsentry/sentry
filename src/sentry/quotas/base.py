@@ -116,7 +116,7 @@ class Quota(Service):
         # If there is only a single org, this one org should
         # be allowed to consume the entire quota.
         if settings.SENTRY_SINGLE_ORGANIZATION or account_limit:
-            if system_limit and system_limit < account_limit:
+            if system_limit and (not account_limit or system_limit < account_limit / 60):
                 return (system_limit, 60)
             # an account limit is enforced, which is set as a fixed value and cannot
             # utilize percentage based limits
