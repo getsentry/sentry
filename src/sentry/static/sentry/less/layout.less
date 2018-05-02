@@ -44,6 +44,20 @@ body {
     &.collapsed {
       padding-left: @sidebar-collapsed-width;
     }
+
+    /* This accounts for the old home icon, can be removed when old-#sidebar is */
+    .project-dropdown {
+      .dropdown-menu {
+        left: 0;
+      }
+    }
+
+    /* This is for organization level views e.g. "Assigned to me" */
+    .organization-home {
+      .container {
+        margin-top: 16px;
+      }
+    }
   }
 }
 
@@ -251,27 +265,6 @@ body.auth {
 
     + .dropdown-menu {
       z-index: @zindex-sticky-bar + 2;
-    }
-  }
-
-  .project-select {
-    position: relative;
-
-    h3 {
-      font-size: 20px;
-      margin: 0;
-
-      a {
-        color: @gray-dark;
-
-        &:hover {
-          color: @gray-darkest;
-        }
-      }
-    }
-
-    .project-selected {
-      background-color: lighten(@blue-light, 30);
     }
   }
 
