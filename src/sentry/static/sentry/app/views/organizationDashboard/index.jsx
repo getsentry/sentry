@@ -59,7 +59,7 @@ class Dashboard extends AsyncComponent {
     return (
       <React.Fragment>
         {favorites.length > 0 && (
-          <React.Fragment>
+          <div data-test-id="favorites">
             <TeamSection>
               <TeamTitleBar>
                 <TeamName>{t('Favorites')}</TeamName>
@@ -68,7 +68,7 @@ class Dashboard extends AsyncComponent {
             <ProjectCards>
               {favorites.map(project => this.renderProjectCard(project))}
             </ProjectCards>
-          </React.Fragment>
+          </div>
         )}
 
         {projectKeys.map((slug, index) => {
