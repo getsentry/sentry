@@ -35,12 +35,14 @@ const Hook = createReactClass({
     };
   },
 
-  handleHooks(name, hooks) {
+  handleHooks(hookName, hooks) {
+    let {name, ...props} = this.props;
+
     // Make sure that the incoming hook update matches this component's hook name
-    if (name !== this.props.name) return;
+    if (hookName !== name) return;
 
     this.setState(state => ({
-      hooks: hooks.map(cb => cb(this.props)),
+      hooks: hooks.map(cb => cb(props)),
     }));
   },
 
