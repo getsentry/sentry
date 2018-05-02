@@ -134,7 +134,6 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                     >
                       <img
                         onError={[Function]}
-                        onLoad={[Function]}
                         src="undefined/avatar/b48def645758b95537d4424c84d1a9ff?d=blank&s=32"
                       />
                     </span>
@@ -222,7 +221,6 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                     >
                       <img
                         onError={[Function]}
-                        onLoad={[Function]}
                         src="undefined/avatar/b48def645758b95537d4424c84d1a9ff?d=blank&s=32"
                       />
                     </span>
@@ -310,7 +308,6 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                     >
                       <img
                         onError={[Function]}
-                        onLoad={[Function]}
                         src="undefined/avatar/b48def645758b95537d4424c84d1a9ff?d=blank&s=32"
                       />
                     </span>
@@ -398,7 +395,6 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                     >
                       <img
                         onError={[Function]}
-                        onLoad={[Function]}
                         src="undefined/avatar/b48def645758b95537d4424c84d1a9ff?d=blank&s=32"
                       />
                     </span>
@@ -486,7 +482,6 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                     >
                       <img
                         onError={[Function]}
-                        onLoad={[Function]}
                         src="undefined/avatar/b48def645758b95537d4424c84d1a9ff?d=blank&s=32"
                       />
                     </span>
@@ -622,7 +617,6 @@ exports[`AvatarList renders with user avatars 1`] = `
                     >
                       <img
                         onError={[Function]}
-                        onLoad={[Function]}
                         src="undefined/avatar/b48def645758b95537d4424c84d1a9ff?d=blank&s=32"
                       />
                     </span>
@@ -710,7 +704,6 @@ exports[`AvatarList renders with user avatars 1`] = `
                     >
                       <img
                         onError={[Function]}
-                        onLoad={[Function]}
                         src="undefined/avatar/b48def645758b95537d4424c84d1a9ff?d=blank&s=32"
                       />
                     </span>

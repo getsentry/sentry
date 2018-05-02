@@ -1918,7 +1918,6 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
                                             >
                                               <img
                                                 onError={[Function]}
-                                                onLoad={[Function]}
                                                 src="undefined/avatar/e1f3994f2632af3d1c8c2dcc168a10e6?d=blank&s=32"
                                               />
                                             </span>
