@@ -236,6 +236,7 @@ const GroupStore = Reflux.createStore({
   },
 
   onDelete(changeId, itemIds) {
+    itemIds = this._itemIdsOrAll(itemIds);
     itemIds.forEach(itemId => {
       this.addStatus(itemId, 'delete');
     });
