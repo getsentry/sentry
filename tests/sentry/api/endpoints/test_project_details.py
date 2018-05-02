@@ -293,7 +293,9 @@ class ProjectUpdateTest(APITestCase):
             organization=project.organization,
             event=AuditLogEntryEvent.PROJECT_EDIT,
         ).exists()
-        assert project.get_option('sentry:scrub_ip_address',True) == options['sentry:scrub_ip_address']
+        assert project.get_option(
+            'sentry:scrub_ip_address',
+            True) == options['sentry:scrub_ip_address']
         assert AuditLogEntry.objects.filter(
             organization=project.organization,
             event=AuditLogEntryEvent.PROJECT_EDIT,
