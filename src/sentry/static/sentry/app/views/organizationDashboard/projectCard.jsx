@@ -5,8 +5,10 @@ import {withRouter} from 'react-router';
 import {Flex} from 'grid-emotion';
 
 import SentryTypes from 'app/proptypes';
-import Link from 'app/components/link';
 import {Client} from 'app/api';
+import Link from 'app/components/link';
+import Tooltip from 'app/components/tooltip';
+import {t} from 'app/locale';
 
 import PlatformList from 'app/views/organizationDashboard/platformList';
 import Chart from 'app/views/organizationDashboard/chart';
@@ -35,17 +37,23 @@ class ProjectCard extends React.Component {
   render() {
     const {project, stats, params} = this.props;
 
+    const bookmarkText = project.isBookmarked
+      ? t('Unstar this project')
+      : t('Star this project');
+
     return (
       <StyledProjectCard>
         <Flex justify="space-between" p={2} align="center">
           <StyledLink to={`/${params.orgId}/${project.slug}/`}>
             <strong>{project.slug}</strong>
           </StyledLink>
-          <Star
-            active={project.isBookmarked}
-            className="project-select-bookmark icon icon-star-solid"
-            onClick={this.toggleProjectBookmark}
-          />
+          <Tooltip title={bookmarkText}>
+            <Star
+              active={project.isBookmarked}
+              className="project-select-bookmark icon icon-star-solid"
+              onClick={this.toggleProjectBookmark}
+            />
+          </Tooltip>
         </Flex>
         <Chart stats={stats} />
         <PlatformList platforms={project.platforms} />

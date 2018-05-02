@@ -78,16 +78,22 @@ exports[`ProjectCard renders 1`] = `
                 </Link>
               </Link>
             </StyledLink>
-            <Star
-              active={false}
-              className="project-select-bookmark icon icon-star-solid"
-              onClick={[Function]}
+            <Tooltip
+              title="Star this project"
             >
-              <a
-                className="project-select-bookmark icon icon-star-solid css-syj8e8-Star efesc7i2"
+              <Star
+                active={false}
+                className="tip project-select-bookmark icon icon-star-solid"
                 onClick={[Function]}
-              />
-            </Star>
+                title="Star this project"
+              >
+                <a
+                  className="tip project-select-bookmark icon icon-star-solid css-syj8e8-Star efesc7i2"
+                  onClick={[Function]}
+                  title="Star this project"
+                />
+              </Star>
+            </Tooltip>
           </div>
         </Base>
       </Flex>
