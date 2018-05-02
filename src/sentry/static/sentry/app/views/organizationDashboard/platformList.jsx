@@ -4,6 +4,8 @@ import styled from 'react-emotion';
 import {Flex} from 'grid-emotion';
 import {t} from 'app/locale';
 
+const MAX_PLATFORMS = 5;
+
 export default class PlatformList extends React.Component {
   static propTypes = {
     platforms: PropTypes.arrayOf(PropTypes.string),
@@ -20,12 +22,15 @@ export default class PlatformList extends React.Component {
   getIcons(platforms) {
     return (
       <Flex direction="row-reverse" p={2}>
-        {platforms.map(this.getIcon)}
+        {platforms
+          .slice()
+          .reverse()
+          .map(this.getIcon)}
       </Flex>
     );
   }
   render() {
-    const {platforms} = this.props;
+    const platforms = this.props.platforms.slice(0, MAX_PLATFORMS);
 
     if (!platforms.length)
       return (
@@ -37,12 +42,7 @@ export default class PlatformList extends React.Component {
     return (
       <Flex align="center">
         <div className="org-dashboard-platform-list">{this.getIcons(platforms)}</div>
-        <PlatformText>
-          {platforms
-            .slice()
-            .reverse()
-            .join(', ')}
-        </PlatformText>
+        <PlatformText>{platforms.join(', ')}</PlatformText>
       </Flex>
     );
   }
