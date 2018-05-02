@@ -28,6 +28,35 @@ from . import models
 from sentry.tagstore.types import TagKey, TagValue, GroupTagKey, GroupTagValue
 
 
+transformers = {
+    models.TagKey: lambda instance: TagKey(
+        key=instance.key,
+        values_seen=instance.values_seen,
+        status=instance.status,
+    ),
+    models.TagValue: lambda instance: TagValue(
+        key=instance.key,
+        value=instance.value,
+        times_seen=instance.times_seen,
+        first_seen=instance.first_seen,
+        last_seen=instance.last_seen,
+    ),
+    models.GroupTagKey: lambda instance: GroupTagKey(
+        group_id=instance.group_id,
+        key=instance.key,
+        values_seen=instance.values_seen,
+    ),
+    models.GroupTagValue: lambda instance: GroupTagValue(
+        group_id=instance.group_id,
+        key=instance.key,
+        value=instance.value,
+        times_seen=instance.times_seen,
+        first_seen=instance.first_seen,
+        last_seen=instance.last_seen,
+    ),
+}
+
+
 class LegacyTagStorage(TagStorage):
     """\
     The legacy tagstore backend ignores the ``environment_id`` (because it doesn't store this information
@@ -267,11 +296,7 @@ class LegacyTagStorage(TagStorage):
         except models.TagKey.DoesNotExist:
             raise TagKeyNotFound
 
-        return TagKey(
-            key=instance.key,
-            values_seen=instance.values_seen,
-            status=instance.status,
-        )
+        return transformers[models.TagKey](instance)
 
     def get_tag_keys(self, project_id, environment_id, status=TagKeyStatus.VISIBLE):
         qs = models.TagKey.objects.filter(project_id=project_id)
@@ -279,13 +304,7 @@ class LegacyTagStorage(TagStorage):
         if status is not None:
             qs = qs.filter(status=status)
 
-        return [
-            TagKey(
-                key=instance.key,
-                values_seen=instance.values_seen,
-                status=instance.status,
-            ) for instance in qs
-        ]
+        return list(map(transformers[models.TagKey], qs))
 
     def get_tag_value(self, project_id, environment_id, key, value):
         from sentry.tagstore.exceptions import TagValueNotFound
@@ -299,13 +318,7 @@ class LegacyTagStorage(TagStorage):
         except models.TagValue.DoesNotExist:
             raise TagValueNotFound
 
-        return TagValue(
-            key=instance.key,
-            value=instance.value,
-            times_seen=instance.times_seen,
-            last_seen=instance.last_seen,
-            first_seen=instance.first_seen,
-        )
+        return transformers[models.TagValue](instance)
 
     def get_tag_values(self, project_id, environment_id, key):
         qs = models.TagValue.objects.filter(
@@ -313,15 +326,7 @@ class LegacyTagStorage(TagStorage):
             key=key,
         )
 
-        return [
-            TagValue(
-                key=instance.key,
-                value=instance.value,
-                times_seen=instance.times_seen,
-                last_seen=instance.last_seen,
-                first_seen=instance.first_seen,
-            ) for instance in qs
-        ]
+        return list(map(transformers[models.TagValue], qs))
 
     def get_group_tag_key(self, project_id, group_id, environment_id, key):
         from sentry.tagstore.exceptions import GroupTagKeyNotFound
@@ -334,11 +339,7 @@ class LegacyTagStorage(TagStorage):
         except models.GroupTagKey.DoesNotExist:
             raise GroupTagKeyNotFound
 
-        return GroupTagKey(
-            group_id=instance.group_id,
-            key=instance.key,
-            values_seen=instance.values_seen,
-        )
+        return transformers[models.GroupTagKey](instance)
 
     def get_group_tag_keys(self, project_id, group_id, environment_id, limit=None):
         qs = models.GroupTagKey.objects.filter(group_id=group_id)
@@ -346,13 +347,7 @@ class LegacyTagStorage(TagStorage):
         if limit is not None:
             qs = qs[:limit]
 
-        return [
-            GroupTagKey(
-                group_id=instance.group_id,
-                key=instance.key,
-                values_seen=instance.values_seen,
-            ) for instance in qs
-        ]
+        return list(map(transformers[models.GroupTagKey], qs))
 
     def get_group_tag_value(self, project_id, group_id, environment_id, key, value):
         from sentry.tagstore.exceptions import GroupTagValueNotFound
@@ -376,16 +371,7 @@ class LegacyTagStorage(TagStorage):
             key=key,
         )
 
-        return [
-            GroupTagValue(
-                group_id=instance.group_id,
-                key=instance.key,
-                value=instance.value,
-                times_seen=instance.times_seen,
-                last_seen=instance.last_seen,
-                first_seen=instance.first_seen,
-            ) for instance in qs
-        ]
+        return list(map(transformers[models.GroupTagValue], qs))
 
     def get_group_list_tag_value(self, project_id, group_id_list, environment_id, key, value):
         qs = models.GroupTagValue.objects.filter(
@@ -393,16 +379,8 @@ class LegacyTagStorage(TagStorage):
             key=key,
             value=value,
         )
-        return {
-            result.group_id: GroupTagValue(
-                group_id=result.group_id,
-                key=result.key,
-                value=result.value,
-                times_seen=result.times_seen,
-                last_seen=result.last_seen,
-                first_seen=result.first_seen,
-            ) for result in qs
-        }
+        t = transformers[models.GroupTagValue]
+        return {result.group_id: t(result) for result in qs}
 
     def delete_tag_key(self, project_id, key):
         from sentry.tagstore.tasks import delete_tag_key as delete_tag_key_task
@@ -559,45 +537,37 @@ class LegacyTagStorage(TagStorage):
             # This doesnt guarantee percentage is accurate, but it does ensure
             # that the query has a maximum cost
             return list(
-                GroupTagValue(
-                    group_id=instance.group_id,
-                    key=instance.key,
-                    value=instance.value,
-                    times_seen=instance.times_seen,
-                    last_seen=instance.last_seen,
-                    first_seen=instance.first_seen,
-                ) for instance in models.GroupTagValue.objects.raw(
-                    """
-                    SELECT *
-                    FROM (
+                map(
+                    transformers[models.GroupTagValue],
+                    models.GroupTagValue.objects.raw(
+                        """
                         SELECT *
-                        FROM sentry_messagefiltervalue
-                        WHERE group_id = %%s
-                        AND key = %%s
-                        ORDER BY last_seen DESC
-                        LIMIT 10000
-                    ) as a
-                    ORDER BY times_seen DESC
-                    LIMIT %d
-                    """ % limit, [group_id, key]
+                        FROM (
+                            SELECT *
+                            FROM sentry_messagefiltervalue
+                            WHERE group_id = %%s
+                            AND key = %%s
+                            ORDER BY last_seen DESC
+                            LIMIT 10000
+                        ) as a
+                        ORDER BY times_seen DESC
+                        LIMIT %d
+                        """ % limit, [group_id, key]
+                    )
                 )
             )
 
         cutoff = timezone.now() - timedelta(days=7)
-        return [
-            GroupTagValue(
-                group_id=instance.group_id,
-                key=instance.key,
-                value=instance.value,
-                times_seen=instance.times_seen,
-                last_seen=instance.last_seen,
-                first_seen=instance.first_seen,
-            ) for instance in models.GroupTagValue.objects.filter(
-                group_id=group_id,
-                key=key,
-                last_seen__gte=cutoff,
-            ).order_by('-times_seen')[:limit]
-        ]
+        return list(
+            map(
+                transformers[models.GroupTagValue],
+                models.GroupTagValue.objects.filter(
+                    group_id=group_id,
+                    key=key,
+                    last_seen__gte=cutoff,
+                ).order_by('-times_seen')[:limit]
+            )
+        )
 
     def get_first_release(self, project_id, group_id):
         try:
@@ -624,19 +594,16 @@ class LegacyTagStorage(TagStorage):
         return last_release.value
 
     def get_release_tags(self, project_ids, environment_id, versions):
-        return [
-            TagValue(
-                key=instance.key,
-                value=instance.value,
-                times_seen=instance.times_seen,
-                last_seen=instance.last_seen,
-                first_seen=instance.first_seen,
-            ) for instance in models.TagValue.objects.filter(
-                project_id__in=project_ids,
-                key='sentry:release',
-                value__in=versions,
+        return list(
+            map(
+                transformers[models.TagValue],
+                models.TagValue.objects.filter(
+                    project_id__in=project_ids,
+                    key='sentry:release',
+                    value__in=versions,
+                ),
             )
-        ]
+        )
 
     def get_group_ids_for_users(self, project_ids, event_users, limit=100):
         return list(
@@ -649,19 +616,15 @@ class LegacyTagStorage(TagStorage):
 
     def get_group_tag_values_for_users(self, event_users, limit=100):
         tag_filters = [Q(value=eu.tag_value, project_id=eu.project_id) for eu in event_users]
-        return [
-            GroupTagValue(
-                group_id=instance.group_id,
-                key=instance.key,
-                value=instance.value,
-                times_seen=instance.times_seen,
-                last_seen=instance.last_seen,
-                first_seen=instance.first_seen,
-            ) for instance in models.GroupTagValue.objects.filter(
-                reduce(or_, tag_filters),
-                key='sentry:user',
-            ).order_by('-last_seen')[:limit]
-        ]
+        return list(
+            map(
+                transformers[models.GroupTagValue],
+                models.GroupTagValue.objects.filter(
+                    reduce(or_, tag_filters),
+                    key='sentry:user',
+                ).order_by('-last_seen')[:limit],
+            )
+        )
 
     def get_group_ids_for_search_filter(
             self, project_id, environment_id, tags, candidates=None, limit=1000):
