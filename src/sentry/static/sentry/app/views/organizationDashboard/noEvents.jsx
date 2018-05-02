@@ -20,18 +20,27 @@ export default class NoEvents extends React.Component {
       : ''}`;
 
     return (
-      <Background align="center" justify="center">
-        <Button size="small" to={link}>
-          {t('Configure project')}
-        </Button>
-      </Background>
+      <Container>
+        <Background align="center" justify="center">
+          <Button size="small" to={link}>
+            {t('Configure project')}
+          </Button>
+        </Background>
+      </Container>
     );
   }
 }
 
+const Container = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+`;
+
 const Background = styled(Flex)`
-  height: 80px;
-  background-color: rgba(175, 163, 187, 0.1);
+  background-color: rgba(175, 163, 187, 0.2);
   margin-left: 4px;
   margin-right: 4px;
+  height: 80px;
 `;

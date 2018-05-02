@@ -56,20 +56,25 @@ class ProjectCard extends React.Component {
             />
           </Tooltip>
         </Flex>
-        {project.firstEvent ? (
-          <Chart stats={stats} />
-        ) : (
-          <NoEvents
-            orgId={params.orgId}
-            projectId={project.slug}
-            platformId={project.platform}
-          />
-        )}
+        <ChartContainer>
+          <Chart stats={stats} noEvents={!project.firstEvent} />
+          {!project.firstEvent && (
+            <NoEvents
+              orgId={params.orgId}
+              projectId={project.slug}
+              platformId={project.platform}
+            />
+          )}
+        </ChartContainer>
         <PlatformList platforms={project.platforms} />
       </StyledProjectCard>
     );
   }
 }
+
+const ChartContainer = styled.div`
+  position: relative;
+`;
 
 const StyledLink = styled(Link)`
   ${overflowEllipsis};

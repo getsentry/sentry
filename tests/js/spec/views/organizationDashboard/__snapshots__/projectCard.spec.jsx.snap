@@ -36,7 +36,7 @@ exports[`ProjectCard renders 1`] = `
 >
   <StyledProjectCard>
     <div
-      className="css-18be1td-StyledProjectCard efesc7i1"
+      className="css-18be1td-StyledProjectCard efesc7i2"
     >
       <Flex
         align="center"
@@ -57,17 +57,17 @@ exports[`ProjectCard renders 1`] = `
               to="/org-slug/project-slug/"
             >
               <Link
-                className="css-kor5al-StyledLink efesc7i0"
+                className="css-kor5al-StyledLink efesc7i1"
                 to="/org-slug/project-slug/"
               >
                 <Link
-                  className="css-kor5al-StyledLink efesc7i0"
+                  className="css-kor5al-StyledLink efesc7i1"
                   onlyActiveOnIndex={false}
                   style={Object {}}
                   to="/org-slug/project-slug/"
                 >
                   <a
-                    className="css-kor5al-StyledLink efesc7i0"
+                    className="css-kor5al-StyledLink efesc7i1"
                     onClick={[Function]}
                     style={Object {}}
                   >
@@ -88,7 +88,7 @@ exports[`ProjectCard renders 1`] = `
                 title="Add to bookmarks"
               >
                 <a
-                  className="tip project-select-bookmark icon icon-star-solid css-syj8e8-Star efesc7i2"
+                  className="tip project-select-bookmark icon icon-star-solid css-syj8e8-Star efesc7i3"
                   onClick={[Function]}
                   title="Add to bookmarks"
                 />
@@ -97,102 +97,295 @@ exports[`ProjectCard renders 1`] = `
           </div>
         </Base>
       </Flex>
-      <NoEvents
-        orgId="org-slug"
-        projectId="project-slug"
-      >
-        <Background
-          align="center"
-          justify="center"
+      <ChartContainer>
+        <div
+          className="css-l3ron9-ChartContainer efesc7i0"
         >
-          <Base
-            align="center"
-            className="css-e1uive-Background eks1zeg0"
-            justify="center"
+          <Chart
+            noEvents={true}
+            stats={
+              Array [
+                Array [
+                  1525042800,
+                  1,
+                ],
+                Array [
+                  1525046400,
+                  2,
+                ],
+              ]
+            }
           >
-            <div
-              className="css-e1uive-Background eks1zeg0"
-              is={null}
-            >
-              <Button
-                disabled={false}
-                size="small"
-                to="/org-slug/project-slug/getting-started/"
+            <div>
+              <StyledBarChart
+                height={80}
+                label="events"
+                points={
+                  Array [
+                    Object {
+                      "x": 1525042800,
+                      "y": 1,
+                    },
+                    Object {
+                      "x": 1525046400,
+                      "y": 2,
+                    },
+                  ]
+                }
               >
-                <StyledButton
-                  aria-label="Configure project"
-                  disabled={false}
-                  onClick={[Function]}
-                  role="button"
-                  size="small"
-                  to="/org-slug/project-slug/getting-started/"
+                <BarChart
+                  className="css-fcxdqz-StyledBarChart e1wib7610"
+                  height={80}
+                  label="events"
+                  points={
+                    Array [
+                      Object {
+                        "x": 1525042800,
+                        "y": 1,
+                      },
+                      Object {
+                        "x": 1525046400,
+                        "y": 2,
+                      },
+                    ]
+                  }
                 >
-                  <Component
-                    aria-label="Configure project"
-                    className="css-dvpz5-StyledButton-getColors e17811v30"
-                    disabled={false}
-                    onClick={[Function]}
-                    role="button"
-                    size="small"
-                    to="/org-slug/project-slug/getting-started/"
+                  <StackedBarChart
+                    barClasses={
+                      Array [
+                        "chart-bar",
+                      ]
+                    }
+                    className="css-fcxdqz-StyledBarChart e1wib7610"
+                    height={80}
+                    label="events"
+                    markers={Array []}
+                    points={
+                      Array [
+                        Object {
+                          "x": 1525042800,
+                          "y": Array [
+                            1,
+                          ],
+                        },
+                        Object {
+                          "x": 1525046400,
+                          "y": Array [
+                            2,
+                          ],
+                        },
+                      ]
+                    }
+                    series={Array []}
+                    width={null}
                   >
-                    <Link
-                      aria-label="Configure project"
-                      className="css-dvpz5-StyledButton-getColors e17811v30"
-                      disabled={false}
-                      onClick={[Function]}
-                      onlyActiveOnIndex={false}
-                      role="button"
-                      size="small"
-                      style={Object {}}
-                      to="/org-slug/project-slug/getting-started/"
+                    <figure
+                      className="css-fcxdqz-StyledBarChart e1wib7610 barchart"
+                      style={
+                        Object {
+                          "height": 80,
+                          "width": null,
+                        }
+                      }
                     >
-                      <a
-                        aria-label="Configure project"
-                        className="css-dvpz5-StyledButton-getColors e17811v30"
-                        disabled={false}
-                        onClick={[Function]}
-                        role="button"
-                        size="small"
-                        style={Object {}}
+                      <span
+                        className="max-y"
                       >
-                        <ButtonLabel
+                        <count
+                          value={10}
+                        >
+                          <span>
+                            10
+                          </span>
+                        </count>
+                      </span>
+                      <span
+                        className="min-y"
+                      >
+                        0
+                      </span>
+                      <span>
+                        <Tooltip
+                          key="1525042800"
+                          title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 29, 2018<br />11:00 PM  &#8594; 11:59 PM</span></div></div><div class=\\"value-label\\">1 events</div>"
+                          tooltipOptions={
+                            Object {
+                              "html": true,
+                              "placement": "bottom",
+                            }
+                          }
+                        >
+                          <a
+                            className="tip chart-column"
+                            style={
+                              Object {
+                                "height": "100%",
+                                "width": "50%",
+                              }
+                            }
+                            title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 29, 2018<br />11:00 PM  &#8594; 11:59 PM</span></div></div><div class=\\"value-label\\">1 events</div>"
+                          >
+                            <span
+                              className="chart-bar"
+                              key="0"
+                              style={
+                                Object {
+                                  "backgroundColor": null,
+                                  "bottom": "0%",
+                                  "height": "9.9%",
+                                }
+                              }
+                            >
+                              1
+                            </span>
+                          </a>
+                        </Tooltip>
+                        <Tooltip
+                          key="1525046400"
+                          title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 30, 2018<br />12:00 AM  &#8594; 12:59 AM</span></div></div><div class=\\"value-label\\">2 events</div>"
+                          tooltipOptions={
+                            Object {
+                              "html": true,
+                              "placement": "bottom",
+                            }
+                          }
+                        >
+                          <a
+                            className="tip chart-column"
+                            style={
+                              Object {
+                                "height": "100%",
+                                "width": "50%",
+                              }
+                            }
+                            title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 30, 2018<br />12:00 AM  &#8594; 12:59 AM</span></div></div><div class=\\"value-label\\">2 events</div>"
+                          >
+                            <span
+                              className="chart-bar"
+                              key="0"
+                              style={
+                                Object {
+                                  "backgroundColor": null,
+                                  "bottom": "0%",
+                                  "height": "19.8%",
+                                }
+                              }
+                            >
+                              2
+                            </span>
+                          </a>
+                        </Tooltip>
+                      </span>
+                    </figure>
+                  </StackedBarChart>
+                </BarChart>
+              </StyledBarChart>
+            </div>
+          </Chart>
+          <NoEvents
+            orgId="org-slug"
+            projectId="project-slug"
+          >
+            <Container>
+              <div
+                className="css-1m9okvh-Container eks1zeg0"
+              >
+                <Background
+                  align="center"
+                  justify="center"
+                >
+                  <Base
+                    align="center"
+                    className="css-yrqnia-Background eks1zeg1"
+                    justify="center"
+                  >
+                    <div
+                      className="css-yrqnia-Background eks1zeg1"
+                      is={null}
+                    >
+                      <Button
+                        disabled={false}
+                        size="small"
+                        to="/org-slug/project-slug/getting-started/"
+                      >
+                        <StyledButton
+                          aria-label="Configure project"
+                          disabled={false}
+                          onClick={[Function]}
+                          role="button"
                           size="small"
+                          to="/org-slug/project-slug/getting-started/"
                         >
                           <Component
-                            className="css-179w01k-ButtonLabel e17811v31"
+                            aria-label="Configure project"
+                            className="css-dvpz5-StyledButton-getColors e17811v30"
+                            disabled={false}
+                            onClick={[Function]}
+                            role="button"
                             size="small"
+                            to="/org-slug/project-slug/getting-started/"
                           >
-                            <Flex
-                              align="center"
-                              className="css-179w01k-ButtonLabel e17811v31"
+                            <Link
+                              aria-label="Configure project"
+                              className="css-dvpz5-StyledButton-getColors e17811v30"
+                              disabled={false}
+                              onClick={[Function]}
+                              onlyActiveOnIndex={false}
+                              role="button"
                               size="small"
+                              style={Object {}}
+                              to="/org-slug/project-slug/getting-started/"
                             >
-                              <Base
-                                align="center"
-                                className="e17811v31 css-8mahft-ButtonLabel"
+                              <a
+                                aria-label="Configure project"
+                                className="css-dvpz5-StyledButton-getColors e17811v30"
+                                disabled={false}
+                                onClick={[Function]}
+                                role="button"
                                 size="small"
+                                style={Object {}}
                               >
-                                <div
-                                  className="e17811v31 css-8mahft-ButtonLabel"
-                                  is={null}
+                                <ButtonLabel
                                   size="small"
                                 >
-                                  Configure project
-                                </div>
-                              </Base>
-                            </Flex>
+                                  <Component
+                                    className="css-179w01k-ButtonLabel e17811v31"
+                                    size="small"
+                                  >
+                                    <Flex
+                                      align="center"
+                                      className="css-179w01k-ButtonLabel e17811v31"
+                                      size="small"
+                                    >
+                                      <Base
+                                        align="center"
+                                        className="e17811v31 css-8mahft-ButtonLabel"
+                                        size="small"
+                                      >
+                                        <div
+                                          className="e17811v31 css-8mahft-ButtonLabel"
+                                          is={null}
+                                          size="small"
+                                        >
+                                          Configure project
+                                        </div>
+                                      </Base>
+                                    </Flex>
+                                  </Component>
+                                </ButtonLabel>
+                              </a>
+                            </Link>
                           </Component>
-                        </ButtonLabel>
-                      </a>
-                    </Link>
-                  </Component>
-                </StyledButton>
-              </Button>
-            </div>
-          </Base>
-        </Background>
-      </NoEvents>
+                        </StyledButton>
+                      </Button>
+                    </div>
+                  </Base>
+                </Background>
+              </div>
+            </Container>
+          </NoEvents>
+        </div>
+      </ChartContainer>
       <PlatformList
         platforms={
           Array [
