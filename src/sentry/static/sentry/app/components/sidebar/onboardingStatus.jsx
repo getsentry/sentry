@@ -23,9 +23,10 @@ class OnboardingStatus extends React.Component {
     let doneTasks = (org.onboardingTasks || []).filter(
       task => task.status === 'complete' || task.status === 'skipped'
     );
+    let allDisplayedTasks = TodoList.TASKS.filter(task => task.display);
 
     let percentage = Math.round(
-      doneTasks.length / TodoList.TASKS.length * 100
+      doneTasks.length / allDisplayedTasks.length * 100
     ).toString();
 
     let style = {
@@ -33,7 +34,7 @@ class OnboardingStatus extends React.Component {
       width: collapsed ? undefined : percentage + '%',
     };
 
-    if (doneTasks.length >= TodoList.TASKS.filter(task => task.display).length) {
+    if (doneTasks.length >= allDisplayedTasks.length) {
       return null;
     }
 
@@ -41,8 +42,7 @@ class OnboardingStatus extends React.Component {
       <div className={currentPanel === 'todos' ? 'onboarding active' : 'onboarding'}>
         <Tooltip
           title={t(
-            `Getting started with Sentry: <br />${doneTasks.length} / ${TodoList.TASKS
-              .length} tasks completed`
+            `Getting started with Sentry: <br />${doneTasks.length} / ${allDisplayedTasks.length} tasks completed`
           )}
           tooltipOptions={{html: true}}
         >
