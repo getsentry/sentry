@@ -12,7 +12,8 @@ import sentry
 BASE_URL = 'https://docs.sentry.io/_platforms/{}'
 
 # Also see INTEGRATION_DOC_FOLDER in setup.py
-DOC_FOLDER = os.path.abspath(os.path.join(os.path.dirname(sentry.__file__), 'integration-docs'))
+DOC_FOLDER = os.environ.get('INTEGRATION_DOC_FOLDER') or os.path.abspath(
+    os.path.join(os.path.dirname(sentry.__file__), 'integration-docs'))
 
 # We cannot leverage six here, so we need to vendor
 # bits that we need.
@@ -79,8 +80,9 @@ def get_integration_id(platform_id, integration_id):
     return '{}-{}'.format(platform_id, integration_id)
 
 
-def sync_docs():
-    echo('syncing documentation (platform index)')
+def sync_docs(quiet=False):
+    if not quiet:
+        echo('syncing documentation (platform index)')
     body = urlopen(BASE_URL.format('_index.json')).read().decode('utf-8')
     data = json.loads(body)
     platform_list = []
@@ -109,11 +111,12 @@ def sync_docs():
 
     for platform_id, platform_data in iteritems(data['platforms']):
         for integration_id, integration in iteritems(platform_data):
-            sync_integration_docs(platform_id, integration_id, integration['details'])
+            sync_integration_docs(platform_id, integration_id, integration['details'], quiet)
 
 
-def sync_integration_docs(platform_id, integration_id, path):
-    echo('  syncing documentation for %s.%s integration' % (platform_id, integration_id))
+def sync_integration_docs(platform_id, integration_id, path, quiet=False):
+    if not quiet:
+        echo('  syncing documentation for %s.%s integration' % (platform_id, integration_id))
 
     data = json.load(urlopen(BASE_URL.format(path)))
 

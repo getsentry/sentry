@@ -27,6 +27,7 @@ exports[`PlatformPicker render() should only render Mobile platforms under Mobil
           onChange={[Function]}
           placeholder="Filter"
           type="text"
+          value=""
         />
       </div>
     </li>
@@ -34,6 +35,7 @@ exports[`PlatformPicker render() should only render Mobile platforms under Mobil
       activeClassName="active"
       index={false}
       isActive={[Function]}
+      key="popular"
       onClick={[Function]}
       to=""
     >
@@ -43,15 +45,27 @@ exports[`PlatformPicker render() should only render Mobile platforms under Mobil
       activeClassName="active"
       index={false}
       isActive={[Function]}
+      key="browser"
       onClick={[Function]}
       to=""
     >
-      Frontend
+      Browser
     </ListLink>
     <ListLink
       activeClassName="active"
       index={false}
       isActive={[Function]}
+      key="server"
+      onClick={[Function]}
+      to=""
+    >
+      Server
+    </ListLink>
+    <ListLink
+      activeClassName="active"
+      index={false}
+      isActive={[Function]}
+      key="mobile"
       onClick={[Function]}
       to=""
     >
@@ -61,15 +75,17 @@ exports[`PlatformPicker render() should only render Mobile platforms under Mobil
       activeClassName="active"
       index={false}
       isActive={[Function]}
+      key="desktop"
       onClick={[Function]}
       to=""
     >
-      Backend
+      Desktop
     </ListLink>
     <ListLink
       activeClassName="active"
       index={false}
       isActive={[Function]}
+      key="all"
       onClick={[Function]}
       to=""
     >
@@ -81,21 +97,31 @@ exports[`PlatformPicker render() should only render Mobile platforms under Mobil
   >
     <PlatformCard
       className=""
+      key="cordova"
+      onClick={[Function]}
+      platform="cordova"
+    />
+    <PlatformCard
+      className=""
+      key="java-android"
       onClick={[Function]}
       platform="java-android"
     />
     <PlatformCard
       className=""
+      key="objc"
       onClick={[Function]}
       platform="objc"
     />
     <PlatformCard
       className=""
+      key="cocoa"
       onClick={[Function]}
       platform="cocoa"
     />
     <PlatformCard
       className=""
+      key="swift"
       onClick={[Function]}
       platform="swift"
     />
@@ -130,6 +156,7 @@ exports[`PlatformPicker render() should render renderPlatformList with Python wh
           onChange={[Function]}
           placeholder="Filter"
           type="text"
+          value="py"
         />
       </div>
     </li>
@@ -137,6 +164,7 @@ exports[`PlatformPicker render() should render renderPlatformList with Python wh
       activeClassName="active"
       index={false}
       isActive={[Function]}
+      key="popular"
       onClick={[Function]}
       to=""
     >
@@ -146,15 +174,27 @@ exports[`PlatformPicker render() should render renderPlatformList with Python wh
       activeClassName="active"
       index={false}
       isActive={[Function]}
+      key="browser"
       onClick={[Function]}
       to=""
     >
-      Frontend
+      Browser
     </ListLink>
     <ListLink
       activeClassName="active"
       index={false}
       isActive={[Function]}
+      key="server"
+      onClick={[Function]}
+      to=""
+    >
+      Server
+    </ListLink>
+    <ListLink
+      activeClassName="active"
+      index={false}
+      isActive={[Function]}
+      key="mobile"
       onClick={[Function]}
       to=""
     >
@@ -164,15 +204,17 @@ exports[`PlatformPicker render() should render renderPlatformList with Python wh
       activeClassName="active"
       index={false}
       isActive={[Function]}
+      key="desktop"
       onClick={[Function]}
       to=""
     >
-      Backend
+      Desktop
     </ListLink>
     <ListLink
       activeClassName="active"
       index={false}
       isActive={[Function]}
+      key="all"
       onClick={[Function]}
       to=""
     >
@@ -184,46 +226,55 @@ exports[`PlatformPicker render() should render renderPlatformList with Python wh
   >
     <PlatformCard
       className=""
+      key="python-bottle"
       onClick={[Function]}
       platform="python-bottle"
     />
     <PlatformCard
       className=""
+      key="python-celery"
       onClick={[Function]}
       platform="python-celery"
     />
     <PlatformCard
       className=""
+      key="python-django"
       onClick={[Function]}
       platform="python-django"
     />
     <PlatformCard
       className=""
+      key="python-flask"
       onClick={[Function]}
       platform="python-flask"
     />
     <PlatformCard
       className=""
+      key="python-pylons"
       onClick={[Function]}
       platform="python-pylons"
     />
     <PlatformCard
       className=""
+      key="python-pyramid"
       onClick={[Function]}
       platform="python-pyramid"
     />
     <PlatformCard
       className=""
+      key="python"
       onClick={[Function]}
       platform="python"
     />
     <PlatformCard
       className=""
+      key="python-rq"
       onClick={[Function]}
       platform="python-rq"
     />
     <PlatformCard
       className=""
+      key="python-tornado"
       onClick={[Function]}
       platform="python-tornado"
     />
@@ -258,6 +309,7 @@ exports[`PlatformPicker render() should render renderPlatformList with community
           onChange={[Function]}
           placeholder="Filter"
           type="text"
+          value="aaaaaa"
         />
       </div>
     </li>
@@ -265,6 +317,7 @@ exports[`PlatformPicker render() should render renderPlatformList with community
       activeClassName="active"
       index={false}
       isActive={[Function]}
+      key="popular"
       onClick={[Function]}
       to=""
     >
@@ -274,15 +327,27 @@ exports[`PlatformPicker render() should render renderPlatformList with community
       activeClassName="active"
       index={false}
       isActive={[Function]}
+      key="browser"
       onClick={[Function]}
       to=""
     >
-      Frontend
+      Browser
     </ListLink>
     <ListLink
       activeClassName="active"
       index={false}
       isActive={[Function]}
+      key="server"
+      onClick={[Function]}
+      to=""
+    >
+      Server
+    </ListLink>
+    <ListLink
+      activeClassName="active"
+      index={false}
+      isActive={[Function]}
+      key="mobile"
       onClick={[Function]}
       to=""
     >
@@ -292,15 +357,17 @@ exports[`PlatformPicker render() should render renderPlatformList with community
       activeClassName="active"
       index={false}
       isActive={[Function]}
+      key="desktop"
       onClick={[Function]}
       to=""
     >
-      Backend
+      Desktop
     </ListLink>
     <ListLink
       activeClassName="active"
       index={false}
       isActive={[Function]}
+      key="all"
       onClick={[Function]}
       to=""
     >
@@ -309,7 +376,7 @@ exports[`PlatformPicker render() should render renderPlatformList with community
   </ul>
   <p>
     Not finding your platform? There's a rich ecosystem of community supported SDKs as well (including Perl, CFML, Clojure, and ActionScript).
-     Try searching for Sentry clients or contacting support.
+ Try searching for Sentry clients or contacting support.
   </p>
 </div>
 `;
@@ -321,14 +388,9 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       "query": Object {},
     }
   }
-  params={
-    Object {
-      "isActive": "",
-      "platform": "",
-      "setPlatform": "",
-    }
-  }
+  platform=""
   setPlatform={[Function]}
+  showOther={true}
 >
   <div
     className="platform-picker"
@@ -356,6 +418,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
             onChange={[Function]}
             placeholder="Filter"
             type="text"
+            value=""
           />
         </div>
       </li>
@@ -363,6 +426,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         activeClassName="active"
         index={false}
         isActive={[Function]}
+        key="popular"
         onClick={[Function]}
         to=""
       >
@@ -388,6 +452,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         activeClassName="active"
         index={false}
         isActive={[Function]}
+        key="browser"
         onClick={[Function]}
         to=""
       >
@@ -404,7 +469,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
               onClick={[Function]}
               style={Object {}}
             >
-              Frontend
+              Browser
             </a>
           </Link>
         </li>
@@ -413,6 +478,33 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         activeClassName="active"
         index={false}
         isActive={[Function]}
+        key="server"
+        onClick={[Function]}
+        to=""
+      >
+        <li
+          className=""
+        >
+          <Link
+            onClick={[Function]}
+            onlyActiveOnIndex={false}
+            style={Object {}}
+            to=""
+          >
+            <a
+              onClick={[Function]}
+              style={Object {}}
+            >
+              Server
+            </a>
+          </Link>
+        </li>
+      </ListLink>
+      <ListLink
+        activeClassName="active"
+        index={false}
+        isActive={[Function]}
+        key="mobile"
         onClick={[Function]}
         to=""
       >
@@ -438,6 +530,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         activeClassName="active"
         index={false}
         isActive={[Function]}
+        key="desktop"
         onClick={[Function]}
         to=""
       >
@@ -454,7 +547,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
               onClick={[Function]}
               style={Object {}}
             >
-              Backend
+              Desktop
             </a>
           </Link>
         </li>
@@ -463,6 +556,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         activeClassName="active"
         index={false}
         isActive={[Function]}
+        key="all"
         onClick={[Function]}
         to=""
       >
@@ -490,11 +584,13 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
     >
       <PlatformCard
         className=""
+        key="csharp"
         onClick={[Function]}
         platform="csharp"
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -503,7 +599,6 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           >
             <li
               className="platform-tile list-unstyled csharp csharp "
-              onClick={[Function]}
             >
               <span
                 className="platformicon platformicon-csharp"
@@ -519,11 +614,73 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="cordova"
+        onClick={[Function]}
+        platform="cordova"
+      >
+        <span
+          className="platform-card"
+          onClick={[Function]}
+        >
+          <PlatformiconTile
+            className=""
+            onClick={[Function]}
+            platform="cordova"
+          >
+            <li
+              className="platform-tile list-unstyled cordova cordova "
+            >
+              <span
+                className="platformicon platformicon-cordova"
+              />
+            </li>
+          </PlatformiconTile>
+          <h5>
+             
+            Cordova
+             
+          </h5>
+        </span>
+      </PlatformCard>
+      <PlatformCard
+        className=""
+        key="electron"
+        onClick={[Function]}
+        platform="electron"
+      >
+        <span
+          className="platform-card"
+          onClick={[Function]}
+        >
+          <PlatformiconTile
+            className=""
+            onClick={[Function]}
+            platform="electron"
+          >
+            <li
+              className="platform-tile list-unstyled electron electron "
+            >
+              <span
+                className="platformicon platformicon-electron"
+              />
+            </li>
+          </PlatformiconTile>
+          <h5>
+             
+            Electron
+             
+          </h5>
+        </span>
+      </PlatformCard>
+      <PlatformCard
+        className=""
+        key="elixir"
         onClick={[Function]}
         platform="elixir"
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -532,7 +689,6 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           >
             <li
               className="platform-tile list-unstyled elixir elixir "
-              onClick={[Function]}
             >
               <span
                 className="platformicon platformicon-elixir"
@@ -548,11 +704,13 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="go"
         onClick={[Function]}
         platform="go"
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -561,7 +719,6 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           >
             <li
               className="platform-tile list-unstyled go go "
-              onClick={[Function]}
             >
               <span
                 className="platformicon platformicon-go"
@@ -577,11 +734,13 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="go-http"
         onClick={[Function]}
         platform="go-http"
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -590,7 +749,6 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           >
             <li
               className="platform-tile list-unstyled go-http go "
-              onClick={[Function]}
             >
               <span
                 className="platformicon platformicon-go-http"
@@ -606,11 +764,13 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="java-android"
         onClick={[Function]}
         platform="java-android"
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -619,7 +779,6 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           >
             <li
               className="platform-tile list-unstyled java-android java "
-              onClick={[Function]}
             >
               <span
                 className="platformicon platformicon-java-android"
@@ -635,11 +794,13 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="java-appengine"
         onClick={[Function]}
         platform="java-appengine"
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -648,7 +809,6 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           >
             <li
               className="platform-tile list-unstyled java-appengine java "
-              onClick={[Function]}
             >
               <span
                 className="platformicon platformicon-java-appengine"
@@ -664,11 +824,13 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="java"
         onClick={[Function]}
         platform="java"
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -677,7 +839,6 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           >
             <li
               className="platform-tile list-unstyled java java "
-              onClick={[Function]}
             >
               <span
                 className="platformicon platformicon-java"
@@ -693,11 +854,13 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="java-log4j"
         onClick={[Function]}
         platform="java-log4j"
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -706,7 +869,6 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           >
             <li
               className="platform-tile list-unstyled java-log4j java "
-              onClick={[Function]}
             >
               <span
                 className="platformicon platformicon-java-log4j"
@@ -722,11 +884,13 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="java-log4j2"
         onClick={[Function]}
         platform="java-log4j2"
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -735,7 +899,6 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           >
             <li
               className="platform-tile list-unstyled java-log4j2 java "
-              onClick={[Function]}
             >
               <span
                 className="platformicon platformicon-java-log4j2"
@@ -751,11 +914,13 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="java-logback"
         onClick={[Function]}
         platform="java-logback"
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -764,7 +929,6 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           >
             <li
               className="platform-tile list-unstyled java-logback java "
-              onClick={[Function]}
             >
               <span
                 className="platformicon platformicon-java-logback"
@@ -780,11 +944,13 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="java-logging"
         onClick={[Function]}
         platform="java-logging"
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -793,7 +959,6 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           >
             <li
               className="platform-tile list-unstyled java-logging java "
-              onClick={[Function]}
             >
               <span
                 className="platformicon platformicon-java-logging"
@@ -809,11 +974,13 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="javascript-angular"
         onClick={[Function]}
         platform="javascript-angular"
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -822,7 +989,6 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           >
             <li
               className="platform-tile list-unstyled javascript-angular javascript "
-              onClick={[Function]}
             >
               <span
                 className="platformicon platformicon-javascript-angular"
@@ -838,11 +1004,13 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="javascript-angularjs"
         onClick={[Function]}
         platform="javascript-angularjs"
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -851,7 +1019,6 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           >
             <li
               className="platform-tile list-unstyled javascript-angularjs javascript "
-              onClick={[Function]}
             >
               <span
                 className="platformicon platformicon-javascript-angularjs"
@@ -867,11 +1034,13 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="javascript-backbone"
         onClick={[Function]}
         platform="javascript-backbone"
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -880,7 +1049,6 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           >
             <li
               className="platform-tile list-unstyled javascript-backbone javascript "
-              onClick={[Function]}
             >
               <span
                 className="platformicon platformicon-javascript-backbone"
@@ -896,11 +1064,13 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="javascript-ember"
         onClick={[Function]}
         platform="javascript-ember"
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -909,7 +1079,6 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           >
             <li
               className="platform-tile list-unstyled javascript-ember javascript "
-              onClick={[Function]}
             >
               <span
                 className="platformicon platformicon-javascript-ember"
@@ -925,11 +1094,13 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="javascript"
         onClick={[Function]}
         platform="javascript"
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -938,7 +1109,6 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           >
             <li
               className="platform-tile list-unstyled javascript javascript "
-              onClick={[Function]}
             >
               <span
                 className="platformicon platformicon-javascript"
@@ -954,11 +1124,13 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="javascript-react"
         onClick={[Function]}
         platform="javascript-react"
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -967,7 +1139,6 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           >
             <li
               className="platform-tile list-unstyled javascript-react javascript "
-              onClick={[Function]}
             >
               <span
                 className="platformicon platformicon-javascript-react"
@@ -983,11 +1154,13 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="javascript-vue"
         onClick={[Function]}
         platform="javascript-vue"
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -996,7 +1169,6 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           >
             <li
               className="platform-tile list-unstyled javascript-vue javascript "
-              onClick={[Function]}
             >
               <span
                 className="platformicon platformicon-javascript-vue"
@@ -1012,11 +1184,43 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="minidump"
+        onClick={[Function]}
+        platform="minidump"
+      >
+        <span
+          className="platform-card"
+          onClick={[Function]}
+        >
+          <PlatformiconTile
+            className=""
+            onClick={[Function]}
+            platform="minidump"
+          >
+            <li
+              className="platform-tile list-unstyled minidump minidump "
+            >
+              <span
+                className="platformicon platformicon-minidump"
+              />
+            </li>
+          </PlatformiconTile>
+          <h5>
+             
+            Minidump
+             
+          </h5>
+        </span>
+      </PlatformCard>
+      <PlatformCard
+        className=""
+        key="node-connect"
         onClick={[Function]}
         platform="node-connect"
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1025,7 +1229,6 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           >
             <li
               className="platform-tile list-unstyled node-connect node "
-              onClick={[Function]}
             >
               <span
                 className="platformicon platformicon-node-connect"
@@ -1041,11 +1244,13 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="node-express"
         onClick={[Function]}
         platform="node-express"
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1054,7 +1259,6 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           >
             <li
               className="platform-tile list-unstyled node-express node "
-              onClick={[Function]}
             >
               <span
                 className="platformicon platformicon-node-express"
@@ -1070,11 +1274,13 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="node-koa"
         onClick={[Function]}
         platform="node-koa"
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1083,7 +1289,6 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           >
             <li
               className="platform-tile list-unstyled node-koa node "
-              onClick={[Function]}
             >
               <span
                 className="platformicon platformicon-node-koa"
@@ -1099,11 +1304,13 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="node"
         onClick={[Function]}
         platform="node"
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1112,7 +1319,6 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           >
             <li
               className="platform-tile list-unstyled node node "
-              onClick={[Function]}
             >
               <span
                 className="platformicon platformicon-node"
@@ -1128,11 +1334,13 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="objc"
         onClick={[Function]}
         platform="objc"
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1141,7 +1349,6 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           >
             <li
               className="platform-tile list-unstyled objc objc "
-              onClick={[Function]}
             >
               <span
                 className="platformicon platformicon-objc"
@@ -1157,11 +1364,13 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="php-laravel"
         onClick={[Function]}
         platform="php-laravel"
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1170,7 +1379,6 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           >
             <li
               className="platform-tile list-unstyled php-laravel php "
-              onClick={[Function]}
             >
               <span
                 className="platformicon platformicon-php-laravel"
@@ -1186,11 +1394,13 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="php-monolog"
         onClick={[Function]}
         platform="php-monolog"
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1199,7 +1409,6 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           >
             <li
               className="platform-tile list-unstyled php-monolog php "
-              onClick={[Function]}
             >
               <span
                 className="platformicon platformicon-php-monolog"
@@ -1215,11 +1424,13 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="php"
         onClick={[Function]}
         platform="php"
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1228,7 +1439,6 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           >
             <li
               className="platform-tile list-unstyled php php "
-              onClick={[Function]}
             >
               <span
                 className="platformicon platformicon-php"
@@ -1244,11 +1454,13 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="php-symfony2"
         onClick={[Function]}
         platform="php-symfony2"
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1257,7 +1469,6 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           >
             <li
               className="platform-tile list-unstyled php-symfony2 php "
-              onClick={[Function]}
             >
               <span
                 className="platformicon platformicon-php-symfony2"
@@ -1273,11 +1484,13 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="python-bottle"
         onClick={[Function]}
         platform="python-bottle"
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1286,7 +1499,6 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           >
             <li
               className="platform-tile list-unstyled python-bottle python "
-              onClick={[Function]}
             >
               <span
                 className="platformicon platformicon-python-bottle"
@@ -1302,11 +1514,13 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="python-celery"
         onClick={[Function]}
         platform="python-celery"
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1315,7 +1529,6 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           >
             <li
               className="platform-tile list-unstyled python-celery python "
-              onClick={[Function]}
             >
               <span
                 className="platformicon platformicon-python-celery"
@@ -1331,11 +1544,13 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="python-django"
         onClick={[Function]}
         platform="python-django"
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1344,7 +1559,6 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           >
             <li
               className="platform-tile list-unstyled python-django python "
-              onClick={[Function]}
             >
               <span
                 className="platformicon platformicon-python-django"
@@ -1360,11 +1574,13 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="python-flask"
         onClick={[Function]}
         platform="python-flask"
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1373,7 +1589,6 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           >
             <li
               className="platform-tile list-unstyled python-flask python "
-              onClick={[Function]}
             >
               <span
                 className="platformicon platformicon-python-flask"
@@ -1389,11 +1604,13 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="python-pylons"
         onClick={[Function]}
         platform="python-pylons"
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1402,7 +1619,6 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           >
             <li
               className="platform-tile list-unstyled python-pylons python "
-              onClick={[Function]}
             >
               <span
                 className="platformicon platformicon-python-pylons"
@@ -1418,11 +1634,13 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="python-pyramid"
         onClick={[Function]}
         platform="python-pyramid"
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1431,7 +1649,6 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           >
             <li
               className="platform-tile list-unstyled python-pyramid python "
-              onClick={[Function]}
             >
               <span
                 className="platformicon platformicon-python-pyramid"
@@ -1447,11 +1664,13 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="python"
         onClick={[Function]}
         platform="python"
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1460,7 +1679,6 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           >
             <li
               className="platform-tile list-unstyled python python "
-              onClick={[Function]}
             >
               <span
                 className="platformicon platformicon-python"
@@ -1476,11 +1694,13 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="python-rq"
         onClick={[Function]}
         platform="python-rq"
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1489,7 +1709,6 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           >
             <li
               className="platform-tile list-unstyled python-rq python "
-              onClick={[Function]}
             >
               <span
                 className="platformicon platformicon-python-rq"
@@ -1505,11 +1724,13 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="python-tornado"
         onClick={[Function]}
         platform="python-tornado"
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1518,7 +1739,6 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           >
             <li
               className="platform-tile list-unstyled python-tornado python "
-              onClick={[Function]}
             >
               <span
                 className="platformicon platformicon-python-tornado"
@@ -1534,11 +1754,13 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="cocoa"
         onClick={[Function]}
         platform="cocoa"
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1547,7 +1769,6 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           >
             <li
               className="platform-tile list-unstyled cocoa cocoa "
-              onClick={[Function]}
             >
               <span
                 className="platformicon platformicon-cocoa"
@@ -1563,11 +1784,13 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="ruby-rack"
         onClick={[Function]}
         platform="ruby-rack"
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1576,7 +1799,6 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           >
             <li
               className="platform-tile list-unstyled ruby-rack ruby "
-              onClick={[Function]}
             >
               <span
                 className="platformicon platformicon-ruby-rack"
@@ -1592,11 +1814,13 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="ruby-rails"
         onClick={[Function]}
         platform="ruby-rails"
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1605,7 +1829,6 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           >
             <li
               className="platform-tile list-unstyled ruby-rails ruby "
-              onClick={[Function]}
             >
               <span
                 className="platformicon platformicon-ruby-rails"
@@ -1621,11 +1844,13 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="ruby"
         onClick={[Function]}
         platform="ruby"
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1634,7 +1859,6 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           >
             <li
               className="platform-tile list-unstyled ruby ruby "
-              onClick={[Function]}
             >
               <span
                 className="platformicon platformicon-ruby"
@@ -1650,11 +1874,43 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="rust"
+        onClick={[Function]}
+        platform="rust"
+      >
+        <span
+          className="platform-card"
+          onClick={[Function]}
+        >
+          <PlatformiconTile
+            className=""
+            onClick={[Function]}
+            platform="rust"
+          >
+            <li
+              className="platform-tile list-unstyled rust rust "
+            >
+              <span
+                className="platformicon platformicon-rust"
+              />
+            </li>
+          </PlatformiconTile>
+          <h5>
+             
+            Rust
+             
+          </h5>
+        </span>
+      </PlatformCard>
+      <PlatformCard
+        className=""
+        key="swift"
         onClick={[Function]}
         platform="swift"
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1663,7 +1919,6 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           >
             <li
               className="platform-tile list-unstyled swift swift "
-              onClick={[Function]}
             >
               <span
                 className="platformicon platformicon-swift"
@@ -1679,11 +1934,13 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="mock"
         onClick={[Function]}
         platform="mock"
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1692,7 +1949,6 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           >
             <li
               className="platform-tile list-unstyled mock mock "
-              onClick={[Function]}
             >
               <span
                 className="platformicon platformicon-mock"
@@ -1708,11 +1964,13 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="other"
         onClick={[Function]}
         platform="other"
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1721,7 +1979,6 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           >
             <li
               className="platform-tile list-unstyled other other "
-              onClick={[Function]}
             >
               <span
                 className="platformicon platformicon-other"

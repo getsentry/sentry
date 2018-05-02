@@ -12,7 +12,7 @@ has_gis = "django.contrib.gis" in settings.INSTALLED_APPS
 if has_gis:
     # Alright,import the field
     from django.contrib.gis.db.models.fields import GeometryField
-    
+
     # Make some introspection rules
     if django.VERSION[0] == 1 and django.VERSION[1] >= 1:
         # Django 1.1's gis module renamed these.
@@ -40,6 +40,6 @@ if has_gis:
                 },
             ),
         ]
-    
+
     # Install them
     add_introspection_rules(rules, ["^django\.contrib\.gis"])

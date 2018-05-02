@@ -1,27 +1,37 @@
+import DocumentTitle from 'react-document-title';
+import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
+
+import {t} from '../locale';
 import ApiMixin from '../mixins/apiMixin';
 import Count from '../components/count';
-import DocumentTitle from 'react-document-title';
+import ExternalLink from '../components/externalLink';
 import ListLink from '../components/listLink';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
-import ReleaseStats from '../components/releaseStats';
 import ProjectState from '../mixins/projectState';
+import ReleaseStats from '../components/releaseStats';
+import SentryTypes from '../proptypes';
+import TextOverflow from '../components/textOverflow';
 import TimeSince from '../components/timeSince';
 import Version from '../components/version';
-import {t} from '../locale';
+import withEnvironmentInQueryString from '../utils/withEnvironmentInQueryString';
 
-const ReleaseDetails = React.createClass({
+const ReleaseDetails = createReactClass({
+  displayName: 'ReleaseDetails',
+
   propTypes: {
-    setProjectNavSection: React.PropTypes.func
+    setProjectNavSection: PropTypes.func,
+    environment: SentryTypes.Environment,
   },
 
   contextTypes: {
-    location: React.PropTypes.object
+    location: PropTypes.object,
   },
 
   childContextTypes: {
-    release: React.PropTypes.object
+    release: PropTypes.object,
   },
 
   mixins: [ApiMixin, ProjectState],
@@ -30,13 +40,13 @@ const ReleaseDetails = React.createClass({
     return {
       release: null,
       loading: true,
-      error: false
+      error: false,
     };
   },
 
   getChildContext() {
     return {
-      release: this.state.release
+      release: this.state.release,
     };
   },
 
@@ -45,32 +55,41 @@ const ReleaseDetails = React.createClass({
     this.fetchData();
   },
 
+  componentDidUpdate(prevProps) {
+    if (this.props.environment !== prevProps.environment) {
+      this.fetchData();
+    }
+  },
+
   getTitle() {
     let project = this.getProject();
-    let team = this.getTeam();
     let params = this.props.params;
-    return 'Release ' + params.version + ' | ' + team.name + ' / ' + project.name;
+    return 'Release ' + params.version + ' | ' + project.slug;
   },
 
   fetchData() {
     this.setState({
       loading: true,
-      error: false
+      error: false,
     });
 
+    const {environment} = this.props;
+    const query = environment ? {environment: environment.name} : {};
+
     this.api.request(this.getReleaseDetailsEndpoint(), {
+      query,
       success: data => {
         this.setState({
           loading: false,
-          release: data
+          release: data,
         });
       },
       error: () => {
         this.setState({
           loading: false,
-          error: true
+          error: true,
         });
-      }
+      },
     });
   },
 
@@ -99,13 +118,12 @@ const ReleaseDetails = React.createClass({
     let {orgId, projectId} = this.props.params;
     return (
       <DocumentTitle title={this.getTitle()}>
-        <div>
+        <div className="ref-release-details">
           <div className="release-details">
             <div className="row">
               <div className="col-sm-4 col-xs-12">
                 <h3>
-                  {t('Release')}
-                  {' '}
+                  {t('Release')}{' '}
                   <strong>
                     <Version
                       orgId={orgId}
@@ -115,9 +133,15 @@ const ReleaseDetails = React.createClass({
                     />
                   </strong>
                 </h3>
+                {!!release.url && (
+                  <div>
+                    <ExternalLink href={release.url}>
+                      <TextOverflow>{release.url}</TextOverflow>
+                    </ExternalLink>
+                  </div>
+                )}
                 <div className="release-meta">
-                  <span className="icon icon-clock" />
-                  {' '}
+                  <span className="icon icon-clock" />{' '}
                   <TimeSince date={release.dateCreated} />
                 </div>
               </div>
@@ -135,59 +159,79 @@ const ReleaseDetails = React.createClass({
               <div className="col-sm-2 hidden-xs">
                 <div className="release-stats">
                   <h6 className="nav-header">{t('First Event')}</h6>
-                  {release.firstEvent
-                    ? <span className="stream-count">
-                        <TimeSince date={release.firstEvent} />
-                      </span>
-                    : <span>—</span>}
+                  {release.firstEvent ? (
+                    <span className="stream-count">
+                      <TimeSince date={release.firstEvent} />
+                    </span>
+                  ) : (
+                    <span>—</span>
+                  )}
                 </div>
               </div>
               <div className="col-sm-2 hidden-xs">
                 <div className="release-stats">
                   <h6 className="nav-header">{t('Last Event')}</h6>
-                  {release.lastEvent
-                    ? <span className="stream-count">
-                        <TimeSince date={release.lastEvent} />
-                      </span>
-                    : <span>—</span>}
+                  {release.lastEvent ? (
+                    <span className="stream-count">
+                      <TimeSince date={release.lastEvent} />
+                    </span>
+                  ) : (
+                    <span>—</span>
+                  )}
                 </div>
               </div>
             </div>
             <ul className="nav nav-tabs">
               <ListLink
-                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/`}
+                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(
+                  release.version
+                )}/`}
                 isActive={loc => {
                   // react-router isActive will return true for any route that is part of the active route
                   // e.g. parent routes. To avoid matching on sub-routes, insist on strict path equality.
                   return loc.pathname === this.props.location.pathname;
-                }}>
+                }}
+              >
                 {t('Overview')}
               </ListLink>
               <ListLink
-                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/new-events/`}>
+                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(
+                  release.version
+                )}/new-events/`}
+              >
                 {t('New Issues')}
               </ListLink>
               <ListLink
-                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/all-events/`}>
+                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(
+                  release.version
+                )}/all-events/`}
+              >
                 {t('All Issues')}
               </ListLink>
               <ListLink
-                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/artifacts/`}>
+                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(
+                  release.version
+                )}/artifacts/`}
+              >
                 {t('Artifacts')}
               </ListLink>
               <ListLink
-                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/commits/`}>
+                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(
+                  release.version
+                )}/commits/`}
+              >
                 {t('Commits')}
               </ListLink>
             </ul>
           </div>
           {React.cloneElement(this.props.children, {
-            release: release
+            release,
+            environment: this.props.environment,
           })}
         </div>
       </DocumentTitle>
     );
-  }
+  },
 });
 
-export default ReleaseDetails;
+export default withEnvironmentInQueryString(ReleaseDetails);

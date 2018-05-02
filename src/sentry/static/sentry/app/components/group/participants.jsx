@@ -1,19 +1,18 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
+import createReactClass from 'create-react-class';
+
 import Avatar from '../avatar';
-import TooltipMixin from '../../mixins/tooltip';
+import Tooltip from '../tooltip';
 import {userDisplayName} from '../../utils/formatters';
 
-const GroupParticipants = React.createClass({
-  propTypes: {
-    participants: React.PropTypes.array.isRequired
-  },
+const GroupParticipants = createReactClass({
+  displayName: 'GroupParticipants',
 
-  mixins: [
-    TooltipMixin({
-      selector: '.tip'
-    })
-  ],
+  propTypes: {
+    participants: PropTypes.array.isRequired,
+  },
 
   render() {
     let participants = this.props.participants;
@@ -28,15 +27,17 @@ const GroupParticipants = React.createClass({
         <ul className="faces">
           {participants.map((user, i) => {
             return (
-              <li key={user.username} className="tip" title={userDisplayName(user)}>
-                <Avatar size={32} user={user} />
+              <li key={user.username}>
+                <Tooltip title={userDisplayName(user)}>
+                  <Avatar size={28} user={user} />
+                </Tooltip>
               </li>
             );
           })}
         </ul>
       </div>
     );
-  }
+  },
 });
 
 export default GroupParticipants;

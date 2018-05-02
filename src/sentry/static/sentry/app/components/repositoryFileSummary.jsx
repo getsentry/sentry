@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import FileChange from './fileChange';
 import {t, tn} from '../locale';
@@ -14,32 +15,31 @@ function Collapsed(props) {
 }
 
 Collapsed.propTypes = {
-  onClick: React.PropTypes.func.isRequired,
-  count: React.PropTypes.number.isRequired
+  onClick: PropTypes.func.isRequired,
+  count: PropTypes.number.isRequired,
 };
 
-const RepositoryFileSummary = React.createClass({
-  propTypes: {
-    fileChangeSummary: React.PropTypes.object,
-    repository: React.PropTypes.string
-  },
+class RepositoryFileSummary extends React.Component {
+  static propTypes = {
+    fileChangeSummary: PropTypes.object,
+    repository: PropTypes.string,
+  };
 
-  statics: {
-    MAX_WHEN_COLLAPSED: 5
-  },
+  static MAX_WHEN_COLLAPSED = 5;
 
-  getInitialState() {
-    return {
+  constructor(...args) {
+    super(...args);
+    this.state = {
       loading: true,
-      collapsed: true
+      collapsed: true,
     };
-  },
+  }
 
-  onCollapseToggle() {
+  onCollapseToggle = () => {
     this.setState({
-      collapsed: !this.state.collapsed
+      collapsed: !this.state.collapsed,
     });
-  },
+  };
 
   render() {
     let {repository, fileChangeSummary} = this.props;
@@ -73,18 +73,20 @@ const RepositoryFileSummary = React.createClass({
               />
             );
           })}
-          {numCollapsed > 0 &&
-            <Collapsed onClick={this.onCollapseToggle} count={numCollapsed} />}
+          {numCollapsed > 0 && (
+            <Collapsed onClick={this.onCollapseToggle} count={numCollapsed} />
+          )}
           {numCollapsed === 0 &&
-            canCollapse &&
-            <li className="list-group-item list-group-item-sm align-center">
-              <span className="icon-container" />
-              <a onClick={this.onCollapseToggle}>{t('Collapse')}</a>
-            </li>}
+            canCollapse && (
+              <li className="list-group-item list-group-item-sm align-center">
+                <span className="icon-container" />
+                <a onClick={this.onCollapseToggle}>{t('Collapse')}</a>
+              </li>
+            )}
         </ul>
       </div>
     );
   }
-});
+}
 
 export default RepositoryFileSummary;

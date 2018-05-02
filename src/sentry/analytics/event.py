@@ -3,9 +3,13 @@ from __future__ import absolute_import, print_function
 __all__ = ('Attribute', 'Event', 'Map')
 
 import six
+from uuid import uuid1
+from base64 import b64encode
 
 from collections import Mapping
 from django.utils import timezone
+
+from sentry.utils.dates import to_timestamp
 
 
 class Attribute(object):
@@ -68,13 +72,15 @@ class Map(Attribute):
 
 
 class Event(object):
-    __slots__ = ['attributes', 'data', 'datetime', 'type']
+    __slots__ = ['uuid', 'attributes', 'data', 'datetime', 'type']
 
     type = None
 
     attributes = ()
 
     def __init__(self, type=None, datetime=None, **items):
+        self.uuid = uuid1()
+
         self.datetime = datetime or timezone.now()
         if type is not None:
             self.type = type
@@ -99,16 +105,16 @@ class Event(object):
         self.data = data
 
     def serialize(self):
-        return dict(
-            {
-                'timestamp': int(self.datetime.isoformat('%s')),
-                'type': self.type,
-            }, **self.data
-        )
+        return {
+            'uuid': b64encode(self.uuid.bytes),
+            'timestamp': to_timestamp(self.datetime),
+            'type': self.type,
+            'data': self.data,
+        }
 
     @classmethod
     def from_instance(cls, instance, **kwargs):
         values = {}
         for attr in cls.attributes:
-            values[attr.name] = (kwargs.get(attr.name) or getattr(instance, attr.name, None))
+            values[attr.name] = kwargs.get(attr.name, getattr(instance, attr.name, None))
         return cls(**values)

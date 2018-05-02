@@ -13,4 +13,3 @@ if 'objectpermissions' in settings.INSTALLED_APPS:
     else:
         add_ignored_fields(["^objectpermissions\.models\.UserPermissionRelation",
                             "^objectpermissions\.models\.GroupPermissionRelation"])
-

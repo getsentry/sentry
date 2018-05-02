@@ -11,7 +11,7 @@ class GroupTombstoneEndpoint(ProjectEndpoint):
     def get(self, request, project):
         """
         Retrieve a Project's GroupTombstones
-        ```````````````
+        ````````````````````````````````````
 
         Lists a project's `GroupTombstone` objects
 

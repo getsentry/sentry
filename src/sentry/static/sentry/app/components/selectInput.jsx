@@ -1,31 +1,31 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import jQuery from 'jquery';
 
-const SelectInput = React.createClass({
-  propTypes: {
-    disabled: React.PropTypes.bool,
-    multiple: React.PropTypes.bool,
-    required: React.PropTypes.bool,
-    placeholder: React.PropTypes.string,
-    value: React.PropTypes.string,
-    onChange: React.PropTypes.func
-  },
+class SelectInput extends React.Component {
+  static propTypes = {
+    disabled: PropTypes.bool,
+    multiple: PropTypes.bool,
+    required: PropTypes.bool,
+    showSearch: PropTypes.bool, // enables text search input
+    placeholder: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    onChange: PropTypes.func,
+  };
 
-  getDefaultProps() {
-    return {
-      // HTML attrs
-      disabled: false,
-      multiple: false,
-      required: false,
+  static defaultProps = {
+    // HTML attrs
+    disabled: false,
+    multiple: false,
+    required: false,
 
-      // Extra options
-      placeholder: 'Select an option...',
-
-      // Component options
-      value: '',
-      onChange: $.noop
-    };
-  },
+    // Extra options
+    showSearch: true,
+    placeholder: 'Select an option...',
+    // Component options
+    value: '',
+    onChange: $.noop,
+  };
 
   componentDidMount() {
     this.create();
@@ -42,46 +42,52 @@ const SelectInput = React.createClass({
         options[selectedIndex].selected = true;
       }
     }
-  },
+  }
 
   componentWillUpdate() {
     this.destroy();
-  },
+  }
 
   componentDidUpdate() {
     this.create();
-  },
+  }
 
   componentWillUnmount() {
     this.destroy();
-  },
+  }
 
-  getSelect2Value() {
+  getSelect2Value = () => {
     return this.select2.getValue();
-  },
+  };
 
-  create() {
+  create = () => {
     this.select2 = jQuery(this.refs.select).select2({
-      width: 'element'
+      width: 'element',
+      // disables filter input
+      minimumResultsForSearch: this.props.showSearch ? 0 : -1,
     });
     this.select2.on('change', this.onChange);
-  },
+  };
 
-  destroy() {
+  destroy = () => {
+    this.select2.off('change', this.onChange);
     jQuery(this.refs.select).select2('destroy');
-  },
+  };
 
-  onChange(...args) {
+  onChange = (...args) => {
     this.props.onChange.call(this, this.select2, ...args);
-  },
+  };
 
   render() {
+    let {...props} = this.props;
+    delete props.showSearch;
+
     return (
-      <select ref="select" {...this.props}>
+      <select ref="select" {...props}>
         {this.props.children}
       </select>
     );
   }
-});
+}
 
 export default SelectInput;

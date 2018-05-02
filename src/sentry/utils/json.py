@@ -9,6 +9,7 @@ sentry.utils.json
 # Avoid shadowing the standard library json module
 from __future__ import absolute_import
 
+from enum import Enum
 from simplejson import JSONEncoder, _default_decoder
 import datetime
 import uuid
@@ -37,6 +38,10 @@ def better_default_encoder(o):
         return list(o)
     elif isinstance(o, decimal.Decimal):
         return six.text_type(o)
+    elif isinstance(o, Enum):
+        return o.value
+    elif callable(o):
+        return '<function>'
     raise TypeError(repr(o) + ' is not JSON serializable')
 
 

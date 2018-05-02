@@ -1,21 +1,27 @@
 from __future__ import absolute_import
 
 import functools
+import logging
 import posixpath
 import six
 
 from threading import Lock
 
 import rb
+from django.utils.functional import SimpleLazyObject
 from pkg_resources import resource_string
 from redis.client import Script
 from redis.connection import ConnectionPool
+from redis.exceptions import ConnectionError, BusyLoadingError
+from rediscluster import StrictRedisCluster
 
 from sentry import options
 from sentry.exceptions import InvalidConfiguration
 from sentry.utils import warnings
 from sentry.utils.warnings import DeprecatedSettingWarning
 from sentry.utils.versioning import Version, check_versions
+
+logger = logging.getLogger(__name__)
 
 _pool_cache = {}
 _pool_lock = Lock()
@@ -53,27 +59,96 @@ def make_rb_cluster(*args, **kwargs):
     return _make_rb_cluster(*args, **kwargs)
 
 
+class _RBCluster(object):
+    def supports(self, config):
+        return not config.get('is_redis_cluster', False)
+
+    def factory(self, **config):
+        # rb expects a dict of { host, port } dicts where the key is the host
+        # ID. Coerce the configuration into the correct format if necessary.
+        hosts = config['hosts']
+        hosts = {k: v for k, v in enumerate(hosts)} if isinstance(hosts, list) else hosts
+        config['hosts'] = hosts
+
+        return _make_rb_cluster(**config)
+
+    def __str__(self):
+        return 'Redis Blaster Cluster'
+
+
+class RetryingStrictRedisCluster(StrictRedisCluster):
+    """
+    Execute a command with cluster reinitialization retry logic.
+
+    Should a cluster respond with a ConnectionError or BusyLoadingError the
+    cluster nodes list will be reinitialized and the command will be executed
+    again with the most up to date view of the world.
+    """
+
+    def execute_command(self, *args, **kwargs):
+        try:
+            return super(self.__class__, self).execute_command(*args, **kwargs)
+        except (ConnectionError, BusyLoadingError):
+            self.connection_pool.nodes.reset()
+            return super(self.__class__, self).execute_command(*args, **kwargs)
+
+
+class _RedisCluster(object):
+    def supports(self, config):
+        return config.get('is_redis_cluster', False)
+
+    def factory(self, **config):
+        # StrictRedisCluster expects a list of { host, port } dicts. Coerce the
+        # configuration into the correct format if necessary.
+        hosts = config.get('hosts')
+        hosts = hosts.values() if isinstance(hosts, dict) else hosts
+
+        # Redis cluster does not wait to attempt to connect. We'd prefer to not
+        # make TCP connections on boot. Wrap the client in a lazy proxy object.
+        def cluster_factory():
+            return RetryingStrictRedisCluster(
+                startup_nodes=hosts,
+                decode_responses=True,
+                skip_full_coverage_check=True,
+            )
+
+        return SimpleLazyObject(cluster_factory)
+
+    def __str__(self):
+        return 'Redis Cluster'
+
+
 class ClusterManager(object):
-    def __init__(self, options_manager):
+    def __init__(self, options_manager, cluster_type=_RBCluster):
         self.__clusters = {}
         self.__options_manager = options_manager
+        self.__cluster_type = cluster_type()
 
     def get(self, key):
         cluster = self.__clusters.get(key)
 
-        if cluster is None:
-            # TODO: This would probably be safer with a lock, but I'm not sure
-            # that it's necessary.
-            configuration = self.__options_manager.get('redis.clusters').get(key)
-            if configuration is None:
-                raise KeyError('Invalid cluster name: {}'.format(key))
+        if cluster:
+            return cluster
 
-            cluster = self.__clusters[key] = _make_rb_cluster(**configuration)
+        # TODO: This would probably be safer with a lock, but I'm not sure
+        # that it's necessary.
+        configuration = self.__options_manager.get('redis.clusters').get(key)
+        if configuration is None:
+            raise KeyError('Invalid cluster name: {}'.format(key))
+
+        if not self.__cluster_type.supports(configuration):
+            raise KeyError('Invalid cluster type, expected: {}'.format(self.__cluster_type))
+
+        cluster = self.__clusters[key] = self.__cluster_type.factory(**configuration)
 
         return cluster
 
 
+# TODO(epurkhiser): When migration of all rb cluster to true redis clusters has
+# completed, remove the rb ``clusters`` module variable and rename
+# redis_clusters to clusters.
 clusters = ClusterManager(options.default_manager)
+redis_clusters = ClusterManager(options.default_manager, _RedisCluster)
 
 
 def get_cluster_from_options(setting, options, cluster_manager=clusters):

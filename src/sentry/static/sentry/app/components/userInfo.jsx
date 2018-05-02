@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 function getUserDisplayName(name) {
@@ -8,10 +9,10 @@ function getUserDisplayName(name) {
   return parts[0].toLowerCase().replace(/[\.-_]+/, ' ');
 }
 
-const UserInfo = React.createClass({
-  propTypes: {
-    user: React.PropTypes.any.isRequired
-  },
+class UserInfo extends React.Component {
+  static propTypes = {
+    user: PropTypes.any.isRequired,
+  };
 
   render() {
     // XXX(dcramer): not supported by babel
@@ -27,8 +28,12 @@ const UserInfo = React.createClass({
     let name = user.name || user.email;
     let displayName = getUserDisplayName(name);
 
-    return <span title={name} {...other}>{displayName}</span>;
+    return (
+      <span title={name} {...other}>
+        {displayName}
+      </span>
+    );
   }
-});
+}
 
 export default UserInfo;

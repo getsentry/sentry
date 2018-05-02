@@ -102,8 +102,8 @@ class ActivityEmail(object):
     def get_subject(self):
         group = self.group
 
-        return u'[%s] %s: %s' % (
-            self.project.get_full_name(), group.get_level_display(), group.title
+        return u'%s - %s' % (
+            group.qualified_short_id, group.title
         )
 
     def get_subject_with_prefix(self):
@@ -138,7 +138,6 @@ class ActivityEmail(object):
         group = self.group
 
         headers = {
-            'X-Sentry-Team': project.team.slug,
             'X-Sentry-Project': project.slug,
         }
 
@@ -164,7 +163,8 @@ class ActivityEmail(object):
             )
         avatar_type = user.get_avatar_type()
         if avatar_type == 'upload':
-            return '<img class="avatar" src="{}" />'.format(escape(self._get_user_avatar_url(user)))
+            return '<img class="avatar" src="{}" />'.format(
+                escape(self._get_user_avatar_url(user)))
         elif avatar_type == 'letter_avatar':
             return get_email_avatar(user.get_display_name(), user.get_label(), 20, False)
         else:

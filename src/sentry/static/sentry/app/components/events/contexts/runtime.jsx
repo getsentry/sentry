@@ -1,12 +1,13 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import ContextBlock from './contextBlock';
 
-const RuntimeContextType = React.createClass({
-  propTypes: {
-    alias: React.PropTypes.string.isRequired,
-    data: React.PropTypes.object.isRequired
-  },
+class RuntimeContextType extends React.Component {
+  static propTypes = {
+    alias: PropTypes.string.isRequired,
+    data: PropTypes.object.isRequired,
+  };
 
   render() {
     let {name, version, build, ...data} = this.props.data;
@@ -18,7 +19,7 @@ const RuntimeContextType = React.createClass({
       />
     );
   }
-});
+}
 
 RuntimeContextType.getTitle = function(value) {
   return 'Runtime';

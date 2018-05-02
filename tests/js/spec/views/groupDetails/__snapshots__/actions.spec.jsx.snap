@@ -5,26 +5,17 @@ exports[`GroupActions render() renders correctly 1`] = `
   className="group-actions"
 >
   <ResolveActions
-    group={
-      Object {
-        "id": "1337",
-        "pluginActions": Array [],
-        "pluginIssues": Array [],
-      }
-    }
+    confirmLabel="Resolve"
     hasRelease={false}
+    isAutoResolved={false}
+    isResolved={false}
     onUpdate={[Function]}
     orgId="org"
     projectId="project"
   />
   <IgnoreActions
-    group={
-      Object {
-        "id": "1337",
-        "pluginActions": Array [],
-        "pluginIssues": Array [],
-      }
-    }
+    confirmLabel="Ignore"
+    isIgnored={false}
     onUpdate={[Function]}
   />
   <div
@@ -43,18 +34,79 @@ exports[`GroupActions render() renders correctly 1`] = `
   <DeleteActions
     onDelete={[Function]}
     onDiscard={[Function]}
+    organization={
+      Object {
+        "access": Array [
+          "org:read",
+          "org:write",
+          "org:admin",
+          "project:read",
+          "project:write",
+          "project:admin",
+          "team:read",
+          "team:write",
+          "team:admin",
+        ],
+        "features": Array [],
+        "id": "4660",
+        "name": "Organization Name",
+        "onboardingTasks": Array [],
+        "projects": Array [],
+        "slug": "org",
+        "status": Object {
+          "id": "active",
+          "name": "active",
+        },
+        "teams": Array [],
+      }
+    }
     project={
       Object {
+        "allowedDomains": Array [
+          "example.com",
+          "https://example.com",
+        ],
+        "dataScrubber": false,
+        "dataScrubberDefaults": false,
+        "digestsMaxDelay": 60,
+        "digestsMinDelay": 5,
+        "features": Array [],
+        "hasAccess": true,
         "id": "2448",
+        "isBookmarked": false,
+        "isMember": true,
+        "name": "project name",
+        "resolveAge": 48,
+        "safeFields": Array [
+          "business-email",
+          "company",
+        ],
+        "scrapeJavaScript": true,
+        "scrubIPAddresses": false,
+        "securityToken": "security-token",
+        "securityTokenHeader": "x-security-header",
+        "sensitiveFields": Array [
+          "creditcard",
+          "ssn",
+        ],
         "slug": "project",
+        "subjectPrefix": "[my-org]",
+        "subjectTemplate": "[$project] \${tag:level}: $title",
+        "teams": Array [],
+        "verifySSL": true,
       }
     }
   />
-  <a
-    className="btn btn-default btn-sm btn-config-issue-tracking"
-    href="/org/project/settings/issue-tracking/"
+  <GuideAnchor
+    target="issue_tracking"
+    type="text"
   >
-    Link Issue Tracker
-  </a>
+    <a
+      className="btn btn-default btn-sm btn-config-issue-tracking"
+      href="/org/project/settings/issue-tracking/"
+    >
+      Link Issue Tracker
+    </a>
+  </GuideAnchor>
 </div>
 `;

@@ -5,7 +5,9 @@ from south.db import DEFAULT_DB_ALIAS
 # Placed here so it's guaranteed to be imported on Django start
 import django
 if django.VERSION[0] > 1 or (django.VERSION[0] == 1 and django.VERSION[1] > 6):
-    raise RuntimeError("South does not support Django 1.7 or higher. Please use native Django migrations.")
+    raise RuntimeError(
+        "South does not support Django 1.7 or higher. Please use native Django migrations.")
+
 
 class MigrationHistory(models.Model):
     app_name = models.CharField(max_length=255)
@@ -38,6 +40,6 @@ class MigrationHistory(models.Model):
 
     def get_migration(self):
         return self.get_migrations().migration(self.migration)
-    
+
     def __str__(self):
         return "<%s: %s>" % (self.app_name, self.migration)

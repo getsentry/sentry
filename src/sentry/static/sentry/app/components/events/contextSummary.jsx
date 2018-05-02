@@ -1,7 +1,8 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import Avatar from '../../components/avatar';
-import PropTypes from '../../proptypes';
+import SentryTypes from '../../proptypes';
 import {t} from '../../locale';
 import {objectIsEmpty, deviceNameMapper} from '../../utils';
 
@@ -13,10 +14,10 @@ const generateClassName = function(name) {
     .replace(/\-+$/, '');
 };
 
-const NoSummary = React.createClass({
-  propTypes: {
-    title: React.PropTypes.string.isRequired
-  },
+class NoSummary extends React.Component {
+  static propTypes = {
+    title: PropTypes.string.isRequired,
+  };
 
   render() {
     return (
@@ -26,13 +27,13 @@ const NoSummary = React.createClass({
       </div>
     );
   }
-});
+}
 
-const GenericSummary = React.createClass({
-  propTypes: {
-    data: React.PropTypes.object.isRequired,
-    unknownTitle: React.PropTypes.string.isRequired
-  },
+class GenericSummary extends React.Component {
+  static propTypes = {
+    data: PropTypes.object.isRequired,
+    unknownTitle: PropTypes.string.isRequired,
+  };
 
   render() {
     let data = this.props.data;
@@ -47,16 +48,18 @@ const GenericSummary = React.createClass({
       <div className={`context-item ${className}`}>
         <span className="context-item-icon" />
         <h3>{data.name}</h3>
-        <p><strong>{t('Version:')}</strong> {data.version || t('Unknown')}</p>
+        <p>
+          <strong>{t('Version:')}</strong> {data.version || t('Unknown')}
+        </p>
       </div>
     );
   }
-});
+}
 
-const UserSummary = React.createClass({
-  propTypes: {
-    data: React.PropTypes.object.isRequired
-  },
+class UserSummary extends React.Component {
+  static propTypes = {
+    data: PropTypes.object.isRequired,
+  };
 
   render() {
     let user = this.props.data;
@@ -73,120 +76,117 @@ const UserSummary = React.createClass({
 
     return (
       <div className="context-item user">
-        {userTitle
-          ? <Avatar
-              user={user}
-              size={48}
-              className="context-item-icon"
-              gravatar={false}
-            />
-          : <span className="context-item-icon" />}
+        {userTitle ? (
+          <Avatar user={user} size={48} className="context-item-icon" gravatar={false} />
+        ) : (
+          <span className="context-item-icon" />
+        )}
         <h3>{userTitle}</h3>
-        {user.id && user.id !== userTitle
-          ? <p><strong>{t('ID:')}</strong> {user.id}</p>
-          : user.username &&
-              user.username !== userTitle &&
-              <p><strong>{t('Username:')}</strong> {user.username}</p>}
+        {user.id && user.id !== userTitle ? (
+          <p>
+            <strong>{t('ID:')}</strong> {user.id}
+          </p>
+        ) : (
+          user.username &&
+          user.username !== userTitle && (
+            <p>
+              <strong>{t('Username:')}</strong> {user.username}
+            </p>
+          )
+        )}
       </div>
     );
   }
-});
+}
 
-const DeviceSummary = React.createClass({
-  propTypes: {
-    data: React.PropTypes.object.isRequired
-  },
+class DeviceSummary extends React.Component {
+  static propTypes = {
+    data: PropTypes.object.isRequired,
+  };
 
   render() {
     let data = this.props.data;
 
-    if (objectIsEmpty(data) || !data.model) {
+    if (objectIsEmpty(data)) {
       return <NoSummary title={t('Unknown Device')} />;
     }
 
     // TODO(dcramer): we need a better way to parse it
-    let className = generateClassName(data.model);
+    let className = data.model && generateClassName(data.model);
+
+    let subTitle = <p />;
+
+    if (data.arch) {
+      subTitle = (
+        <p>
+          <strong>{t('Arch:')}</strong> {data.arch}
+        </p>
+      );
+    } else if (data.model_id) {
+      subTitle = (
+        <p>
+          <strong>{t('Model:')}</strong> {data.model_id}
+        </p>
+      );
+    }
 
     return (
       <div className={`context-item ${className}`}>
         <span className="context-item-icon" />
-        <h3>{deviceNameMapper(data.model)}</h3>
-        <p>{data.arch || data.model_id || ''}</p>
+        <h3>{data.model ? deviceNameMapper(data.model) : t('Unknown Device')}</h3>
+        {subTitle}
       </div>
     );
   }
-});
+}
 
-const EventContextSummary = React.createClass({
-  propTypes: {
-    group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired
-  },
+const MIN_CONTEXTS = 3;
+const MAX_CONTEXTS = 4;
+const KNOWN_CONTEXTS = [
+  {key: 'user', Component: UserSummary},
+  {key: 'browser', Component: GenericSummary, unknownTitle: t('Unknown Browser')},
+  {key: 'runtime', Component: GenericSummary, unknownTitle: t('Unknown Runtime')},
+  {key: 'os', Component: GenericSummary, unknownTitle: t('Unknown OS')},
+  {key: 'device', Component: DeviceSummary},
+];
+
+class EventContextSummary extends React.Component {
+  static propTypes = {
+    event: SentryTypes.Event.isRequired,
+  };
 
   render() {
     let evt = this.props.event;
-    let contexts = evt.contexts;
+    let contextCount = 0;
 
-    let children = [<UserSummary key="user" data={evt.user} />];
-    switch (evt.platform) {
-      case 'cocoa':
-        children.push(<DeviceSummary key="device" data={contexts.device} />);
-        children.push(
-          <GenericSummary key="os" data={contexts.os} unknownTitle={t('Unknown OS')} />
-        );
-        break;
-      case 'java':
-        if (contexts.os && contexts.os.name === 'Android') {
-          children.push(<DeviceSummary key="device" data={contexts.device} />);
-          children.push(
-            <GenericSummary key="os" data={contexts.os} unknownTitle={t('Unknown OS')} />
-          );
-        }
-        break;
-      case 'javascript':
-        children.push(
-          <GenericSummary
-            key="browser"
-            data={contexts.browser}
-            unknownTitle={t('Unknown Browser')}
-          />
-        );
-        children.push(
-          contexts.os
-            ? <GenericSummary
-                key="os"
-                data={contexts.os}
-                unknownTitle={t('Unknown OS')}
-              />
-            : <DeviceSummary key="device" data={contexts.device} />
-        );
-        break;
-      default:
-        children.push(
-          <GenericSummary
-            key="runtime"
-            data={contexts.runtime}
-            unknownTitle={t('Unknown Runtime')}
-          />
-        );
-        children.push(
-          contexts.os
-            ? <GenericSummary
-                key="os"
-                data={contexts.os}
-                unknownTitle={t('Unknown OS')}
-              />
-            : <DeviceSummary key="device" data={contexts.device} />
-        );
-        break;
+    // Add defined contexts in the declared order, until we reach the limit
+    // defined by MAX_CONTEXTS.
+    let contexts = KNOWN_CONTEXTS.map(({key, Component, ...props}) => {
+      if (contextCount >= MAX_CONTEXTS) return null;
+      let data = evt.contexts[key] || evt[key];
+      if (objectIsEmpty(data)) return null;
+      contextCount += 1;
+      return <Component key={key} data={data} {...props} />;
+    });
+
+    // Bail out if all contexts are empty or only the user context is set
+    if (contextCount === 0 || (contextCount === 1 && contexts[0])) {
+      return null;
     }
 
-    return (
-      <div className="context-summary">
-        {children}
-      </div>
-    );
+    if (contextCount < MIN_CONTEXTS) {
+      // Add contents in the declared order until we have at least MIN_CONTEXTS
+      // contexts in our list.
+      contexts = KNOWN_CONTEXTS.map(({key, Component, ...props}, index) => {
+        if (contexts[index]) return contexts[index];
+        if (contextCount >= MIN_CONTEXTS) return null;
+        contextCount += 1;
+        return <Component key={key} data={{}} {...props} />;
+      });
+    }
+
+    return <div className="context-summary">{contexts}</div>;
   }
-});
+}
 
 export default EventContextSummary;

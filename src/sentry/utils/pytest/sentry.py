@@ -5,12 +5,32 @@ import os
 
 from django.conf import settings
 
+TEST_ROOT = os.path.normpath(
+    os.path.join(
+        os.path.dirname(__file__),
+        os.pardir,
+        os.pardir,
+        os.pardir,
+        os.pardir,
+        'tests'))
+
 
 def pytest_configure(config):
     # HACK: Only needed for testing!
     os.environ.setdefault('_SENTRY_SKIP_CONFIGURATION', '1')
 
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'sentry.conf.server')
+
+    # override docs which are typically synchronized from an upstream server
+    # to ensure tests are consistent
+    os.environ.setdefault(
+        'INTEGRATION_DOC_FOLDER',
+        os.path.join(
+            TEST_ROOT,
+            'fixtures',
+            'integration-docs'))
+    from sentry.utils import integrationdocs
+    integrationdocs.DOC_FOLDER = os.environ['INTEGRATION_DOC_FOLDER']
 
     if not settings.configured:
         # only configure the db if its not already done
@@ -74,6 +94,8 @@ def pytest_configure(config):
     middleware[sudo] = 'sentry.testutils.middleware.SudoMiddleware'
     settings.MIDDLEWARE_CLASSES = tuple(middleware)
 
+    settings.SENTRY_OPTIONS['cloudflare.secret-key'] = 'cloudflare-secret-key'
+
     # enable draft features
     settings.SENTRY_OPTIONS['mail.enable-replies'] = True
 
@@ -81,6 +103,10 @@ def pytest_configure(config):
 
     settings.SENTRY_TSDB = 'sentry.tsdb.inmemory.InMemoryTSDB'
     settings.SENTRY_TSDB_OPTIONS = {}
+
+    if settings.SENTRY_NEWSLETTER == 'sentry.newsletter.base.Newsletter':
+        settings.SENTRY_NEWSLETTER = 'sentry.newsletter.dummy.DummyNewsletter'
+        settings.SENTRY_NEWSLETTER_OPTIONS = {}
 
     settings.BROKER_BACKEND = 'memory'
     settings.BROKER_URL = None
@@ -115,6 +141,9 @@ def pytest_configure(config):
             },
             'mail.backend': 'django.core.mail.backends.locmem.EmailBackend',
             'system.url-prefix': 'http://testserver',
+            'slack.client-id': 'slack-client-id',
+            'slack.client-secret': 'slack-client-secret',
+            'slack.verification-token': 'slack-verification-token',
         }
     )
 
@@ -122,6 +151,9 @@ def pytest_configure(config):
     # networking isn't stable
     patcher = mock.patch('socket.getfqdn', return_value='localhost')
     patcher.start()
+
+    if not settings.SOUTH_TESTS_MIGRATE:
+        settings.INSTALLED_APPS = tuple(i for i in settings.INSTALLED_APPS if i != 'south')
 
     from sentry.runner.initializer import (
         bootstrap_options, configure_structlog, initialize_receivers, fix_south,
@@ -136,16 +168,7 @@ def pytest_configure(config):
 
     initialize_receivers()
     setup_services()
-
-    from sentry.plugins import plugins
-    from sentry.plugins.utils import TestIssuePlugin2
-
-    plugins.register(TestIssuePlugin2)
-
-    from sentry.plugins import bindings
-    from sentry.plugins.providers.dummy import DummyRepositoryProvider
-
-    bindings.add('repository.provider', DummyRepositoryProvider, id='dummy')
+    register_extensions()
 
     from sentry.utils.redis import clusters
 
@@ -160,10 +183,33 @@ def pytest_configure(config):
     http.DISALLOWED_IPS = set()
 
 
+def register_extensions():
+    from sentry.plugins import plugins
+    from sentry.plugins.utils import TestIssuePlugin2
+
+    plugins.register(TestIssuePlugin2)
+
+    from sentry import integrations
+    from sentry.integrations.example import ExampleIntegration
+    from sentry.integrations.slack import SlackIntegration
+    integrations.register(ExampleIntegration)
+    integrations.register(SlackIntegration)
+
+    from sentry.plugins import bindings
+    from sentry.plugins.providers.dummy import DummyRepositoryProvider
+
+    bindings.add('repository.provider', DummyRepositoryProvider, id='dummy')
+
+
 def pytest_runtest_teardown(item):
     from sentry import tsdb
     # TODO(dcramer): this only works if this is the correct tsdb backend
-    tsdb.backend.flush()
+    tsdb.flush()
+
+    # XXX(dcramer): only works with DummyNewsletter
+    from sentry import newsletter
+    if hasattr(newsletter.backend, 'clear'):
+        newsletter.backend.clear()
 
     from sentry.utils.redis import clusters
 

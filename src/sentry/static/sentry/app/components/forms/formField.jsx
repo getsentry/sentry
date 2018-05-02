@@ -1,50 +1,75 @@
+import classNames from 'classnames';
+import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 import idx from 'idx';
 
 import {defined} from '../../utils';
+import InlineSvg from '../inlineSvg';
 
-export default class FormField extends React.Component {
+const StyledInlineSvg = styled(InlineSvg)`
+  display: block;
+  color: ${p => p.theme.gray3};
+`;
+
+export default class FormField extends React.PureComponent {
   static propTypes = {
-    name: React.PropTypes.string.isRequired,
+    name: PropTypes.string.isRequired,
+    /** Inline style */
+    style: PropTypes.object,
 
-    label: React.PropTypes.string,
-    defaultValue: React.PropTypes.any,
-    disabled: React.PropTypes.bool,
-    disabledReason: React.PropTypes.string,
-    help: React.PropTypes.oneOfType([React.PropTypes.string, React.PropTypes.element]),
-    required: React.PropTypes.bool,
+    label: PropTypes.node,
+
+    // This is actually used but eslint doesn't parse it correctly
+    // eslint-disable-next-line react/no-unused-prop-types
+    defaultValue: PropTypes.any,
+
+    disabled: PropTypes.bool,
+    disabledReason: PropTypes.string,
+    help: PropTypes.oneOfType([PropTypes.string, PropTypes.element]),
+    required: PropTypes.bool,
+    hideErrorMessage: PropTypes.bool,
 
     // the following should only be used without form context
-    onChange: React.PropTypes.func,
-    error: React.PropTypes.string,
-    value: React.PropTypes.any
+    onChange: PropTypes.func,
+    error: PropTypes.string,
+    value: PropTypes.any,
   };
 
   static defaultProps = {
+    hideErrorMessage: false,
     disabled: false,
-    required: false
+    required: false,
   };
 
   static contextTypes = {
-    form: React.PropTypes.object
+    form: PropTypes.object,
   };
 
   constructor(props, context) {
-    super(props);
-
+    super(props, context);
     this.state = {
-      value: this.getValue(props, context)
+      error: null,
+      value: this.getValue(props, context),
     };
   }
 
+  componentDidMount() {}
+
   componentWillReceiveProps(nextProps, nextContext) {
-    if (
-      this.props.value !== nextProps.value ||
-      (!defined(this.context.form) && defined(nextContext.form))
-    ) {
-      this.setState({value: this.getValue(nextProps, nextContext)});
+    let newError = this.getError(nextProps, nextContext);
+    if (newError != this.state.error) {
+      this.setState({error: newError});
+    }
+    if (this.props.value !== nextProps.value || defined(nextContext.form)) {
+      let newValue = this.getValue(nextProps, nextContext);
+      if (newValue !== this.state.value) {
+        this.setValue(newValue);
+      }
     }
   }
+
+  componentWillUnmount() {}
 
   getValue(props, context) {
     let form = (context || this.context || {}).form;
@@ -53,9 +78,9 @@ export default class FormField extends React.Component {
       return props.value;
     }
     if (form && form.data.hasOwnProperty(props.name)) {
-      return form.data[props.name];
+      return defined(form.data[props.name]) ? form.data[props.name] : '';
     }
-    return props.defaultValue || '';
+    return defined(props.defaultValue) ? props.defaultValue : '';
   }
 
   getError(props, context) {
@@ -84,7 +109,7 @@ export default class FormField extends React.Component {
     let form = (this.context || {}).form;
     this.setState(
       {
-        value: value
+        value,
       },
       () => {
         this.props.onChange && this.props.onChange(this.coerceValue(this.state.value));
@@ -97,30 +122,44 @@ export default class FormField extends React.Component {
     throw new Error('Must be implemented by child.');
   }
 
-  render() {
-    let className = this.getClassName();
-    let error = this.getError();
-    if (error) {
-      className += ' has-error';
-    }
-    if (this.props.required) {
-      className += ' required';
-    }
+  getFinalClassNames() {
+    let {className, required} = this.props;
+    let {error} = this.state;
+    return classNames(className, this.getClassName(), {
+      'has-error': !!error,
+      required,
+    });
+  }
+
+  renderDisabledReason() {
+    let {disabled, disabledReason} = this.props;
+    if (!disabled) return null;
+    if (!disabledReason) return null;
     return (
-      <div className={className}>
+      <span className="disabled-indicator tip" title={disabledReason}>
+        <StyledInlineSvg src="icon-circle-question" size="18px" />
+      </span>
+    );
+  }
+
+  render() {
+    let {label, hideErrorMessage, help, style} = this.props;
+    let {error} = this.state;
+    let cx = this.getFinalClassNames();
+    let shouldShowErrorMessage = error && !hideErrorMessage;
+
+    return (
+      <div style={style} className={cx}>
         <div className="controls">
-          {this.props.label &&
+          {label && (
             <label htmlFor={this.getId()} className="control-label">
-              {this.props.label}
-            </label>}
+              {label}
+            </label>
+          )}
           {this.getField()}
-          {this.props.disabled &&
-            this.props.disabledReason &&
-            <span className="disabled-indicator tip" title={this.props.disabledReason}>
-              <span className="icon-question" />
-            </span>}
-          {defined(this.props.help) && <p className="help-block">{this.props.help}</p>}
-          {error && <p className="error">{error}</p>}
+          {this.renderDisabledReason()}
+          {defined(help) && <p className="help-block">{help}</p>}
+          {shouldShowErrorMessage && <p className="error">{error}</p>}
         </div>
       </div>
     );

@@ -35,7 +35,7 @@ def update_key_scenario(runner):
 
 class RateLimitSerializer(serializers.Serializer):
     count = serializers.IntegerField(min_value=0, required=False)
-    window = serializers.IntegerField(min_value=0, max_value=60 * 24, required=False)
+    window = serializers.IntegerField(min_value=0, max_value=60 * 60 * 24, required=False)
 
 
 class KeySerializer(serializers.Serializer):

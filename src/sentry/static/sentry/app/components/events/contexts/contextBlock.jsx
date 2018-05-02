@@ -1,15 +1,16 @@
+import PropTypes from 'prop-types';
 import React from 'react';
-import _ from 'underscore';
+import _ from 'lodash';
 
-import KeyValueList from '../interfaces/keyValueList';
 import {defined} from '../../../utils';
+import ErrorBoundary from '../../errorBoundary';
+import KeyValueList from '../interfaces/keyValueList';
 
-const ContextBlock = React.createClass({
-  propTypes: {
-    alias: React.PropTypes.string.isRequired,
-    data: React.PropTypes.object.isRequired,
-    knownData: React.PropTypes.array
-  },
+class ContextBlock extends React.Component {
+  static propTypes = {
+    data: PropTypes.object.isRequired,
+    knownData: PropTypes.array,
+  };
 
   render() {
     let data = [];
@@ -43,10 +44,12 @@ const ContextBlock = React.createClass({
 
     return (
       <div className={className}>
-        <KeyValueList data={data} isSorted={false} />
+        <ErrorBoundary mini>
+          <KeyValueList data={data} isSorted={false} />
+        </ErrorBoundary>
       </div>
     );
   }
-});
+}
 
 export default ContextBlock;

@@ -5,26 +5,50 @@ import six
 from collections import defaultdict
 from six.moves import zip
 
+from sentry import roles
 from sentry.app import env
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
-    OrganizationAccessRequest, OrganizationMemberTeam, Project, ProjectStatus, Team
+    OrganizationAccessRequest, OrganizationMember, OrganizationMemberTeam,
+    ProjectStatus, ProjectTeam, Team, TeamAvatar
 )
+
+
+def get_team_memberships(team_list, user):
+    if user.is_authenticated():
+        memberships = frozenset(
+            OrganizationMemberTeam.objects.filter(
+                organizationmember__user=user,
+                team__in=team_list,
+            ).values_list('team', flat=True)
+        )
+    else:
+        memberships = frozenset()
+
+    return memberships
+
+
+def get_org_roles(org_ids, user):
+    if user.is_authenticated():
+        # map of org id to role
+        org_roles = {
+            om.organization_id: om.role for om in
+            OrganizationMember.objects.filter(
+                user=user,
+                organization__in=set(org_ids),
+            )}
+    else:
+        org_roles = {}
+
+    return org_roles
 
 
 @register(Team)
 class TeamSerializer(Serializer):
     def get_attrs(self, item_list, user):
         request = env.request
-        if user.is_authenticated():
-            memberships = frozenset(
-                OrganizationMemberTeam.objects.filter(
-                    organizationmember__user=user,
-                    team__in=item_list,
-                ).values_list('team', flat=True)
-            )
-        else:
-            memberships = frozenset()
+        memberships = get_team_memberships(item_list, user)
 
         if user.is_authenticated():
             access_requests = frozenset(
@@ -36,15 +60,21 @@ class TeamSerializer(Serializer):
         else:
             access_requests = frozenset()
 
-        is_superuser = (request and request.is_superuser() and request.user == user)
+        org_roles = get_org_roles([t.organization_id for t in item_list], user)
+        avatars = {a.team_id: a for a in TeamAvatar.objects.filter(team__in=item_list)}
+
+        is_superuser = (request and is_active_superuser(request) and request.user == user)
         result = {}
         for team in item_list:
             is_member = team.id in memberships
+            org_role = org_roles.get(team.organization_id)
             if is_member:
                 has_access = True
             elif is_superuser:
                 has_access = True
             elif team.organization.flags.allow_joinleave:
+                has_access = True
+            elif org_role and roles.get(org_role).is_global:
                 has_access = True
             else:
                 has_access = False
@@ -52,10 +82,18 @@ class TeamSerializer(Serializer):
                 'pending_request': team.id in access_requests,
                 'is_member': is_member,
                 'has_access': has_access,
+                'avatar': avatars.get(team.id),
             }
         return result
 
     def serialize(self, obj, attrs, user):
+        if attrs.get('avatar'):
+            avatar = {
+                'avatarType': attrs['avatar'].get_avatar_type_display(),
+                'avatarUuid': attrs['avatar'].ident if attrs['avatar'].file_id else None
+            }
+        else:
+            avatar = {'avatarType': 'letter_avatar', 'avatarUuid': None}
         return {
             'id': six.text_type(obj.id),
             'slug': obj.slug,
@@ -64,29 +102,33 @@ class TeamSerializer(Serializer):
             'isMember': attrs['is_member'],
             'hasAccess': attrs['has_access'],
             'isPending': attrs['pending_request'],
+            'avatar': avatar,
         }
 
 
 class TeamWithProjectsSerializer(TeamSerializer):
     def get_attrs(self, item_list, user):
-        project_qs = list(
-            Project.objects.filter(
+        project_teams = list(
+            ProjectTeam.objects.filter(
                 team__in=item_list,
-                status=ProjectStatus.VISIBLE,
-            ).order_by('name', 'slug')
+                project__status=ProjectStatus.VISIBLE,
+            ).order_by('project__name', 'project__slug').select_related('project')
         )
 
-        team_map = {i.id: i for i in item_list}
         # TODO(dcramer): we should query in bulk for ones we're missing here
         orgs = {i.organization_id: i.organization for i in item_list}
 
-        for project in project_qs:
-            project._team_cache = team_map[project.team_id]
-            project._organization_cache = orgs[project.organization_id]
+        for project_team in project_teams:
+            project_team.project._organization_cache = orgs[project_team.project.organization_id]
+
+        projects = [pt.project for pt in project_teams]
+        projects_by_id = {
+            project.id: data for project, data in zip(projects, serialize(projects, user))
+        }
 
         project_map = defaultdict(list)
-        for project, data in zip(project_qs, serialize(project_qs, user)):
-            project_map[project.team_id].append(data)
+        for project_team in project_teams:
+            project_map[project_team.team_id].append(projects_by_id[project_team.project_id])
 
         result = super(TeamWithProjectsSerializer, self).get_attrs(item_list, user)
         for team in item_list:

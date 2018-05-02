@@ -1,72 +1,69 @@
+import PropTypes from 'prop-types';
 import React from 'react';
-import ListLink from '../../../components/listLink';
 import classnames from 'classnames';
+import _ from 'lodash';
 
-import {flattenedPlatforms, categoryLists} from '../utils';
+import ListLink from '../../../components/listLink';
+import {flattenedPlatforms, categoryList} from '../utils';
 import PlatformCard from './platformCard';
 import {t} from '../../../locale';
+import HookStore from '../../../stores/hookStore';
 
-const categoryList = Object.keys(categoryLists).concat('All');
+const allCategories = categoryList.concat({id: 'all', name: t('All')});
 
-const PlatformPicker = React.createClass({
-  propTypes: {
-    setPlatform: React.PropTypes.func.isRequired,
-    platform: React.PropTypes.string
-  },
+class PlatformPicker extends React.Component {
+  static propTypes = {
+    setPlatform: PropTypes.func.isRequired,
+    platform: PropTypes.string,
+    showOther: PropTypes.bool,
+  };
 
-  getInitialState() {
-    return {
-      tab: categoryList[0],
-      filter: ''
+  static defaultProps = {showOther: true};
+
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      tab: allCategories[0].id,
+      filter: (this.props.platform || '').split('-')[0],
     };
-  },
+  }
 
-  renderPlatformList() {
-    let {tab} = this.state;
-
-    const tabSubset = flattenedPlatforms.filter(
-      platform => tab === 'All' || categoryLists[tab].includes(platform.id)
-    );
-
-    let subsetMatch = ({id}) => id.includes(this.state.filter);
-
-    let filtered = tabSubset.filter(subsetMatch);
-
-    if (!filtered.length) {
-      filtered = flattenedPlatforms.filter(subsetMatch);
-    }
-
-    if (!filtered.length) {
-      return (
-        <p>
-          {t(
-            "Not finding your platform? There's a rich ecosystem of community supported SDKs as well (including Perl, CFML, Clojure, and ActionScript).\n Try searching for Sentry clients or contacting support."
-          )}
-        </p>
+  logSearch = _.debounce(() => {
+    if (this.state.filter) {
+      HookStore.get('analytics:event').forEach(cb =>
+        cb('platformpicker.search', {
+          query: this.state.filter.toLowerCase(),
+          num_results: this.getPlatformList().length,
+        })
       );
     }
+  }, 300);
 
-    return (
-      <ul className="client-platform-list platform-tiles">
-        {filtered.map((platform, idx) => {
-          return (
-            <PlatformCard
-              platform={platform.id}
-              className={classnames({
-                selected: this.props.platform === platform.id
-              })}
-              key={platform.id}
-              onClick={() => {
-                this.props.setPlatform(platform.id);
-              }}
-            />
-          );
-        })}
-      </ul>
-    );
-  },
+  getPlatformList = () => {
+    let subsetMatch = ({id}) => id.includes(this.state.filter.toLowerCase());
+    let filtered;
+
+    if (this.state.filter) {
+      filtered = flattenedPlatforms.filter(subsetMatch);
+    } else {
+      let {tab} = this.state;
+      const currentCategory = categoryList.find(({id}) => id === tab);
+      const tabSubset = flattenedPlatforms.filter(platform => {
+        return tab === 'all' || currentCategory.platforms.includes(platform.id);
+      });
+      filtered = tabSubset.filter(subsetMatch);
+    }
+
+    if (!this.props.showOther) {
+      filtered = filtered.filter(({id}) => id !== 'other');
+    }
+
+    return filtered;
+  };
 
   render() {
+    let {filter} = this.state;
+    let filtered = this.getPlatformList();
     return (
       <div className="platform-picker">
         <ul className="nav nav-tabs">
@@ -75,32 +72,64 @@ const PlatformPicker = React.createClass({
               <span className="icon icon-search" />
               <input
                 type="text"
+                value={this.state.filter}
                 className="platform-filter"
-                label="Filter"
+                label={t('Filter')}
                 placeholder="Filter"
-                onChange={e => this.setState({filter: e.target.value})}
+                onChange={e => this.setState({filter: e.target.value}, this.logSearch)}
               />
             </div>
           </li>
-          {categoryList.map(categoryName => {
+          {allCategories.map(({id, name}) => {
             return (
               <ListLink
-                key={categoryName}
+                key={id}
                 onClick={e => {
-                  this.setState({tab: categoryName});
+                  HookStore.get('analytics:event').forEach(cb =>
+                    cb('platformpicker.select_tab', {tab: id})
+                  );
+                  this.setState({tab: id, filter: ''});
                   e.preventDefault();
                 }}
                 to={''}
-                isActive={() => categoryName === this.state.tab}>
-                {categoryName}
+                isActive={() => id === (filter ? 'all' : this.state.tab)}
+              >
+                {name}
               </ListLink>
             );
           })}
         </ul>
-        {this.renderPlatformList()}
+        {filtered.length ? (
+          <ul className="client-platform-list platform-tiles">
+            {filtered.map((platform, idx) => {
+              return (
+                <PlatformCard
+                  platform={platform.id}
+                  className={classnames({
+                    selected: this.props.platform === platform.id,
+                  })}
+                  key={platform.id}
+                  onClick={e => {
+                    HookStore.get('analytics:event').forEach(cb =>
+                      cb('platformpicker.select_platform', {platform: platform.id})
+                    );
+                    this.props.setPlatform(platform.id);
+                    e.preventDefault();
+                  }}
+                />
+              );
+            })}
+          </ul>
+        ) : (
+          <p>
+            {t(
+              "Not finding your platform? There's a rich ecosystem of community supported SDKs as well (including Perl, CFML, Clojure, and ActionScript).\n Try searching for Sentry clients or contacting support."
+            )}
+          </p>
+        )}
       </div>
     );
   }
-});
+}
 
 export default PlatformPicker;

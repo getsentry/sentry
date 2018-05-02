@@ -1,4 +1,6 @@
+import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 
 import AlertActions from '../actions/alertActions';
 import ApiMixin from '../mixins/apiMixin';
@@ -8,9 +10,10 @@ import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import {t} from '../locale';
 
-const AvatarSettings = React.createClass({
+const AvatarSettings = createReactClass({
+  displayName: 'AvatarSettings',
   propTypes: {
-    userId: React.PropTypes.number
+    userId: PropTypes.number,
   },
 
   mixins: [ApiMixin],
@@ -20,7 +23,7 @@ const AvatarSettings = React.createClass({
       user: null,
       savedDataUrl: null,
       dataUrl: null,
-      hasError: false
+      hasError: false,
     };
   },
 
@@ -30,7 +33,7 @@ const AvatarSettings = React.createClass({
       success: this.updateUserState,
       error: () => {
         this.setState({hasError: true});
-      }
+      },
     });
   },
 
@@ -39,7 +42,7 @@ const AvatarSettings = React.createClass({
   },
 
   updateUserState(user) {
-    this.setState({user: user});
+    this.setState({user});
   },
 
   updateDataUrlState(dataUrlState) {
@@ -49,16 +52,16 @@ const AvatarSettings = React.createClass({
   handleError(msg) {
     AlertActions.addAlert({
       message: t(msg),
-      type: 'error'
+      type: 'error',
     });
   },
 
   handleSuccess(user) {
-    this.setState({user: user});
+    this.setState({user});
     AlertActions.addAlert({
       message: t('Successfully saved avatar preferences'),
       type: 'success',
-      expireAfrer: 3000
+      expireAfrer: 3000,
     });
   },
 
@@ -72,13 +75,13 @@ const AvatarSettings = React.createClass({
       method: 'PUT',
       data: {
         avatar_photo: avatarPhoto,
-        avatar_type: this.state.user.avatar.avatarType
+        avatar_type: this.state.user.avatar.avatarType,
       },
       success: user => {
         this.setState({savedDataUrl: this.state.dataUrl});
         this.handleSuccess(user);
       },
-      error: this.handleError.bind(this, 'There was an error saving your preferences.')
+      error: this.handleError.bind(this, 'There was an error saving your preferences.'),
     });
   },
 
@@ -93,24 +96,27 @@ const AvatarSettings = React.createClass({
     let gravatarMessage = (
       <div className="well">
         {t('Gravatars are managed through ')}
-        <a href="http://gravatar.com" target="_blank">Gravatar.com</a>
+        <a href="http://gravatar.com" target="_blank" rel="noreferrer noopener">
+          Gravatar.com
+        </a>
       </div>
     );
 
     return (
-      <div>
+      <div style={{lineHeight: '1.5em'}}>
         <form>
           <AvatarRadio user={this.state.user} updateUser={this.updateUserState} />
 
           {this.state.user.avatar.avatarType === 'gravatar' && gravatarMessage}
 
-          {this.state.user.avatar.avatarType === 'upload' &&
+          {this.state.user.avatar.avatarType === 'upload' && (
             <AvatarCropper
               {...this.props}
               user={this.state.user}
               savedDataUrl={this.state.savedDataUrl}
               updateDataUrlState={this.updateDataUrlState}
-            />}
+            />
+          )}
           <fieldset className="form-actions">
             <button className="btn btn-primary" onClick={this.saveSettings}>
               {t('Done')}
@@ -119,7 +125,7 @@ const AvatarSettings = React.createClass({
         </form>
       </div>
     );
-  }
+  },
 });
 
 export default AvatarSettings;

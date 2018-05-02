@@ -1,21 +1,22 @@
 import React from 'react';
-import PropTypes from '../../proptypes';
 
 import {objectToArray} from '../../utils';
-import EventDataSection from './eventDataSection';
-import ClippedBox from '../clippedBox';
-import KeyValueList from './interfaces/keyValueList';
 import {t} from '../../locale';
+import ClippedBox from '../clippedBox';
+import ErrorBoundary from '../errorBoundary';
+import EventDataSection from './eventDataSection';
+import KeyValueList from './interfaces/keyValueList';
+import SentryTypes from '../../proptypes';
 
-const EventPackageData = React.createClass({
-  propTypes: {
-    group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired
-  },
+class EventPackageData extends React.Component {
+  static propTypes = {
+    group: SentryTypes.Group.isRequired,
+    event: SentryTypes.Event.isRequired,
+  };
 
   shouldComponentUpdate(nextProps, nextState) {
     return this.props.event.id !== nextProps.event.id;
-  },
+  }
 
   render() {
     let packages = objectToArray(this.props.event.packages);
@@ -25,13 +26,16 @@ const EventPackageData = React.createClass({
         group={this.props.group}
         event={this.props.event}
         type="packages"
-        title={t('Packages')}>
+        title={t('Packages')}
+      >
         <ClippedBox>
-          <KeyValueList data={packages} />
+          <ErrorBoundary mini>
+            <KeyValueList data={packages} />
+          </ErrorBoundary>
         </ClippedBox>
       </EventDataSection>
     );
   }
-});
+}
 
 export default EventPackageData;

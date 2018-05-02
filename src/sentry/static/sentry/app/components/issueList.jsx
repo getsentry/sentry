@@ -1,5 +1,9 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
+import createReactClass from 'create-react-class';
+
+import {Panel, PanelBody} from './panels';
 import ApiMixin from '../mixins/apiMixin';
 import CompactIssue from './compactIssue';
 import LoadingError from './loadingError';
@@ -7,14 +11,17 @@ import LoadingIndicator from './loadingIndicator';
 import Pagination from './pagination';
 import {t} from '../locale';
 
-const IssueList = React.createClass({
+const IssueList = createReactClass({
+  displayName: 'IssueList',
+
   propTypes: {
-    endpoint: React.PropTypes.string.isRequired,
-    query: React.PropTypes.object,
-    pagination: React.PropTypes.bool,
-    renderEmpty: React.PropTypes.func,
-    statsPeriod: React.PropTypes.string,
-    showActions: React.PropTypes.bool
+    endpoint: PropTypes.string.isRequired,
+    query: PropTypes.object,
+    pagination: PropTypes.bool,
+    renderEmpty: PropTypes.func,
+    statsPeriod: PropTypes.string,
+    showActions: PropTypes.bool,
+    noBorder: PropTypes.bool,
   },
 
   mixins: [ApiMixin],
@@ -22,7 +29,8 @@ const IssueList = React.createClass({
   getDefaultProps() {
     return {
       pagination: true,
-      query: {}
+      query: {},
+      noBorder: false,
     };
   },
 
@@ -31,7 +39,7 @@ const IssueList = React.createClass({
       issueIds: [],
       loading: true,
       error: false,
-      pageLinks: null
+      pageLinks: null,
     };
   },
 
@@ -63,48 +71,52 @@ const IssueList = React.createClass({
       method: 'GET',
       query: {
         cursor: (location && location.query && location.query.cursor) || '',
-        ...this.props.query
+        ...this.props.query,
       },
       success: (data, _, jqXHR) => {
         this.setState({
-          data: data,
+          data,
           loading: false,
           error: false,
           issueIds: data.map(item => item.id),
-          pageLinks: jqXHR.getResponseHeader('Link')
+          pageLinks: jqXHR.getResponseHeader('Link'),
         });
       },
       error: () => {
         this.setState({
           loading: false,
-          error: true
+          error: true,
         });
-      }
+      },
     });
   },
 
   renderResults() {
     let body;
-    let params = this.props.params;
+    const {params, noBorder} = this.props;
 
     if (this.state.loading) body = this.renderLoading();
     else if (this.state.error) body = <LoadingError onRetry={this.fetchData} />;
     else if (this.state.issueIds.length > 0) {
+      const panelStyle = noBorder ? {border: 0, borderRadius: 0} : {};
+
       body = (
-        <ul className="issue-list">
-          {this.state.data.map(issue => {
-            return (
-              <CompactIssue
-                key={issue.id}
-                id={issue.id}
-                data={issue}
-                orgId={params.orgId}
-                statsPeriod={this.props.statsPeriod}
-                showActions={this.props.showActions}
-              />
-            );
-          })}
-        </ul>
+        <Panel style={panelStyle}>
+          <PanelBody className="issue-list">
+            {this.state.data.map(issue => {
+              return (
+                <CompactIssue
+                  key={issue.id}
+                  id={issue.id}
+                  data={issue}
+                  orgId={params.orgId}
+                  statsPeriod={this.props.statsPeriod}
+                  showActions={this.props.showActions}
+                />
+              );
+            })}
+          </PanelBody>
+        </Panel>
       );
     } else body = (this.props.renderEmpty || this.renderEmpty)();
 
@@ -125,14 +137,15 @@ const IssueList = React.createClass({
 
   render() {
     return (
-      <div>
+      <React.Fragment>
         {this.renderResults()}
         {this.props.pagination &&
-          this.state.pageLinks &&
-          <Pagination pageLinks={this.state.pageLinks} {...this.props} />}
-      </div>
+          this.state.pageLinks && (
+            <Pagination pageLinks={this.state.pageLinks} {...this.props} />
+          )}
+      </React.Fragment>
     );
-  }
+  },
 });
 
 export default IssueList;

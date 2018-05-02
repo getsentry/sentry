@@ -22,6 +22,8 @@ class GroupSnooze(Model):
     - If ``user_count`` is set, the snooze is lfited when unique users match.
     - If ``user_window`` is set (in addition to count), the snooze is lifted
       when the rate unique users matches.
+
+    NOTE: `window` and `user_window` are specified in minutes
     """
     __core__ = False
 
@@ -69,7 +71,7 @@ class GroupSnooze(Model):
         return True
 
     def test_frequency_rates(self):
-        from sentry.tsdb import backend as tsdb
+        from sentry import tsdb
 
         end = timezone.now()
         start = end - timedelta(minutes=self.window)
@@ -86,7 +88,7 @@ class GroupSnooze(Model):
         return True
 
     def test_user_rates(self):
-        from sentry.tsdb import backend as tsdb
+        from sentry import tsdb
 
         end = timezone.now()
         start = end - timedelta(minutes=self.user_window)

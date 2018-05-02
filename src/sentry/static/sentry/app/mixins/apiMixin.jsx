@@ -7,7 +7,7 @@ let ApiMixin = {
 
   componentWillUnmount() {
     this.api.clear();
-  }
+  },
 };
 
 export default ApiMixin;

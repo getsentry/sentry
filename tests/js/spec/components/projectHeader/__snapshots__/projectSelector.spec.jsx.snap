@@ -6,6 +6,48 @@ exports[`ProjectSelector render() can filter projects by project name 1`] = `
     Object {
       "access": Array [],
       "id": "org",
+      "projects": Array [
+        Object {
+          "isMember": true,
+          "name": "Test Project",
+          "slug": "test-project",
+          "team": Object {
+            "isMember": true,
+            "name": "Test Team",
+            "projects": Array [
+              Object {
+                "name": "Test Project",
+                "slug": "test-project",
+              },
+              Object {
+                "name": "Another Project",
+                "slug": "another-project",
+              },
+            ],
+            "slug": "test-team",
+          },
+        },
+        Object {
+          "isMember": true,
+          "name": "Another Project",
+          "slug": "another-project",
+          "team": Object {
+            "isMember": true,
+            "name": "Test Team",
+            "projects": Array [
+              Object {
+                "name": "Test Project",
+                "slug": "test-project",
+              },
+              Object {
+                "name": "Another Project",
+                "slug": "another-project",
+              },
+            ],
+            "slug": "test-team",
+          },
+        },
+      ],
       "slug": "org",
       "teams": Array [
         Object {
@@ -45,72 +87,104 @@ exports[`ProjectSelector render() can filter projects by project name 1`] = `
           />
         </a>
       </Link>
-      Select a project
+      <span
+        onClick={[Function]}
+        role="button"
+        style={
+          Object {
+            "cursor": "pointer",
+          }
+        }
+      >
+        Select a project
+      </span>
       <DropdownLink
+        alwaysRenderMenu={false}
+        anchorRight={false}
         caret={true}
         disabled={false}
+        isOpen={true}
         onClose={[Function]}
         onOpen={[Function]}
         title=""
         topLevelClasses="project-dropdown"
       >
-        <span
-          className="project-dropdown dropdown"
+        <DropdownMenu
+          isOpen={true}
+          keepMenuOpen={false}
+          onClose={[Function]}
+          onOpen={[Function]}
         >
-          <a
-            className="dropdown-toggle"
-            data-toggle="dropdown"
+          <span
+            className="dropdown project-dropdown open"
           >
-            <i
-              className="icon-arrow-down"
-            />
-          </a>
-          <ul
-            className="dropdown-menu"
-          >
-            <li
-              className="project-filter"
+            <a
+              className="dropdown-actor dropdown-toggle hover"
+              onClick={[Function]}
+              onMouseEnter={[Function]}
+              onMouseLeave={[Function]}
             >
-              <input
-                onBlur={[Function]}
-                onChange={[Function]}
-                onKeyDown={[Function]}
-                onKeyUp={[Function]}
-                placeholder="Filter projects"
-                type="text"
-                value="another"
-              />
-            </li>
-            <MenuItem
-              className=""
-              href="/org/another-project/"
-              linkClassName=""
+              <div
+                className="dropdown-actor-title"
+              >
+                <span />
+                <i
+                  className="icon-arrow-down"
+                />
+              </div>
+            </a>
+            <ul
+              className="dropdown-menu"
+              onClick={[Function]}
+              onMouseLeave={[Function]}
             >
               <li
-                className=""
-                href={null}
-                role="presentation"
-                title={null}
+                className="project-filter"
+                key="_filter"
               >
-                <a
-                  className=""
-                  href="/org/another-project/"
+                <input
+                  onBlur={[Function]}
+                  onChange={[Function]}
                   onClick={[Function]}
-                  tabIndex="-1"
-                >
-                  <span>
-                    <strong
-                      className="highlight"
-                    >
-                      Another
-                    </strong>
-                     Project
-                  </span>
-                </a>
+                  onKeyDown={[Function]}
+                  onKeyUp={[Function]}
+                  placeholder="Filter projects"
+                  type="text"
+                  value="another"
+                />
               </li>
-            </MenuItem>
-          </ul>
-        </span>
+              <MenuItem
+                className=""
+                href="/org/another-project/"
+                key="another-project"
+                linkClassName=""
+              >
+                <li
+                  className=""
+                  href={null}
+                  role="presentation"
+                  title={null}
+                >
+                  <a
+                    className=""
+                    href="/org/another-project/"
+                    onClick={[Function]}
+                    tabIndex="-1"
+                  >
+                    <span>
+                      <strong
+                        className="highlight"
+                      >
+                        Another
+                      </strong>
+                       Project
+                    </span>
+                  </a>
+                </li>
+              </MenuItem>
+            </ul>
+          </span>
+        </DropdownMenu>
       </DropdownLink>
     </h3>
   </div>
@@ -123,6 +197,48 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
     Object {
       "access": Array [],
       "id": "org",
+      "projects": Array [
+        Object {
+          "isMember": true,
+          "name": "Test Project",
+          "slug": "test-project",
+          "team": Object {
+            "isMember": true,
+            "name": "Test Team",
+            "projects": Array [
+              Object {
+                "name": "Test Project",
+                "slug": "test-project",
+              },
+              Object {
+                "name": "Another Project",
+                "slug": "another-project",
+              },
+            ],
+            "slug": "test-team",
+          },
+        },
+        Object {
+          "isMember": true,
+          "name": "Another Project",
+          "slug": "another-project",
+          "team": Object {
+            "isMember": true,
+            "name": "Test Team",
+            "projects": Array [
+              Object {
+                "name": "Test Project",
+                "slug": "test-project",
+              },
+              Object {
+                "name": "Another Project",
+                "slug": "another-project",
+              },
+            ],
+            "slug": "test-team",
+          },
+        },
+      ],
       "slug": "org",
       "teams": Array [
         Object {
@@ -162,93 +278,126 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
           />
         </a>
       </Link>
-      Select a project
+      <span
+        onClick={[Function]}
+        role="button"
+        style={
+          Object {
+            "cursor": "pointer",
+          }
+        }
+      >
+        Select a project
+      </span>
       <DropdownLink
+        alwaysRenderMenu={false}
+        anchorRight={false}
         caret={true}
         disabled={false}
+        isOpen={true}
         onClose={[Function]}
         onOpen={[Function]}
         title=""
         topLevelClasses="project-dropdown"
       >
-        <span
-          className="project-dropdown dropdown"
+        <DropdownMenu
+          isOpen={true}
+          keepMenuOpen={false}
+          onClose={[Function]}
+          onOpen={[Function]}
         >
-          <a
-            className="dropdown-toggle"
-            data-toggle="dropdown"
+          <span
+            className="dropdown project-dropdown open"
           >
-            <i
-              className="icon-arrow-down"
-            />
-          </a>
-          <ul
-            className="dropdown-menu"
-          >
-            <li
-              className="project-filter"
+            <a
+              className="dropdown-actor dropdown-toggle hover"
+              onClick={[Function]}
+              onMouseEnter={[Function]}
+              onMouseLeave={[Function]}
             >
-              <input
-                onBlur={[Function]}
-                onChange={[Function]}
-                onKeyDown={[Function]}
-                onKeyUp={[Function]}
-                placeholder="Filter projects"
-                type="text"
-                value="TEST"
-              />
-            </li>
-            <MenuItem
-              className=""
-              href="/org/another-project/"
-              linkClassName=""
+              <div
+                className="dropdown-actor-title"
+              >
+                <span />
+                <i
+                  className="icon-arrow-down"
+                />
+              </div>
+            </a>
+            <ul
+              className="dropdown-menu"
+              onClick={[Function]}
+              onMouseLeave={[Function]}
             >
               <li
-                className=""
-                href={null}
-                role="presentation"
-                title={null}
+                className="project-filter"
+                key="_filter"
               >
-                <a
-                  className=""
-                  href="/org/another-project/"
+                <input
+                  onBlur={[Function]}
+                  onChange={[Function]}
                   onClick={[Function]}
-                  tabIndex="-1"
-                >
-                  Another Project
-                </a>
+                  onKeyDown={[Function]}
+                  onKeyUp={[Function]}
+                  placeholder="Filter projects"
+                  type="text"
+                  value="TEST"
+                />
               </li>
-            </MenuItem>
-            <MenuItem
-              className=""
-              href="/org/test-project/"
-              linkClassName=""
-            >
-              <li
+              <MenuItem
                 className=""
-                href={null}
-                role="presentation"
-                title={null}
+                href="/org/another-project/"
+                key="another-project"
+                linkClassName=""
               >
-                <a
+                <li
                   className=""
-                  href="/org/test-project/"
-                  onClick={[Function]}
-                  tabIndex="-1"
+                  href={null}
+                  role="presentation"
+                  title={null}
                 >
-                  <span>
-                    <strong
-                      className="highlight"
-                    >
-                      Test
-                    </strong>
-                     Project
-                  </span>
-                </a>
-              </li>
-            </MenuItem>
-          </ul>
-        </span>
+                  <a
+                    className=""
+                    href="/org/another-project/"
+                    onClick={[Function]}
+                    tabIndex="-1"
+                  >
+                    Another Project
+                  </a>
+                </li>
+              </MenuItem>
+              <MenuItem
+                className=""
+                href="/org/test-project/"
+                key="test-project"
+                linkClassName=""
+              >
+                <li
+                  className=""
+                  href={null}
+                  role="presentation"
+                  title={null}
+                >
+                  <a
+                    className=""
+                    href="/org/test-project/"
+                    onClick={[Function]}
+                    tabIndex="-1"
+                  >
+                    <span>
+                      <strong
+                        className="highlight"
+                      >
+                        Test
+                      </strong>
+                       Project
+                    </span>
+                  </a>
+                </li>
+              </MenuItem>
+            </ul>
+          </span>
+        </DropdownMenu>
       </DropdownLink>
     </h3>
   </div>
@@ -268,10 +417,23 @@ exports[`ProjectSelector render() lists projects and has filter 1`] = `
         className="icon-home"
       />
     </Link>
-    Select a project
+    <span
+      onClick={[Function]}
+      role="button"
+      style={
+        Object {
+          "cursor": "pointer",
+        }
+      }
+    >
+      Select a project
+    </span>
     <DropdownLink
+      alwaysRenderMenu={false}
+      anchorRight={false}
       caret={true}
       disabled={false}
+      isOpen={false}
       onClose={[Function]}
       onOpen={[Function]}
       title=""
@@ -279,10 +441,12 @@ exports[`ProjectSelector render() lists projects and has filter 1`] = `
     >
       <li
         className="project-filter"
+        key="_filter"
       >
         <input
           onBlur={[Function]}
           onChange={[Function]}
+          onClick={[Function]}
           onKeyDown={[Function]}
           onKeyUp={[Function]}
           placeholder="Filter projects"
@@ -293,6 +457,7 @@ exports[`ProjectSelector render() lists projects and has filter 1`] = `
       <MenuItem
         className=""
         href="/org/another-project/"
+        key="another-project"
         linkClassName=""
       >
         <span>
@@ -302,6 +467,7 @@ exports[`ProjectSelector render() lists projects and has filter 1`] = `
       <MenuItem
         className=""
         href="/org/test-project/"
+        key="test-project"
         linkClassName=""
       >
         <span>
@@ -326,10 +492,23 @@ exports[`ProjectSelector render() should show empty message and create project b
         className="icon-home"
       />
     </Link>
-    Select a project
+    <span
+      onClick={[Function]}
+      role="button"
+      style={
+        Object {
+          "cursor": "pointer",
+        }
+      }
+    >
+      Select a project
+    </span>
     <DropdownLink
+      alwaysRenderMenu={false}
+      anchorRight={false}
       caret={true}
       disabled={false}
+      isOpen={false}
       onClose={[Function]}
       onOpen={[Function]}
       title=""
@@ -337,6 +516,7 @@ exports[`ProjectSelector render() should show empty message and create project b
     >
       <MenuItem
         className="empty-projects-item"
+        key="empty-message"
         noAnchor={true}
       >
         <div
@@ -347,9 +527,11 @@ exports[`ProjectSelector render() should show empty message and create project b
       </MenuItem>
       <MenuItem
         divider={true}
+        key="divider"
       />
       <MenuItem
         className="empty-projects-item"
+        key="create-project"
         noAnchor={true}
       >
         <a
@@ -377,10 +559,23 @@ exports[`ProjectSelector render() should show empty message with no projects but
         className="icon-home"
       />
     </Link>
-    Select a project
+    <span
+      onClick={[Function]}
+      role="button"
+      style={
+        Object {
+          "cursor": "pointer",
+        }
+      }
+    >
+      Select a project
+    </span>
     <DropdownLink
+      alwaysRenderMenu={false}
+      anchorRight={false}
       caret={true}
       disabled={false}
+      isOpen={false}
       onClose={[Function]}
       onOpen={[Function]}
       title=""
@@ -388,6 +583,7 @@ exports[`ProjectSelector render() should show empty message with no projects but
     >
       <MenuItem
         className="empty-projects-item"
+        key="empty-message"
         noAnchor={true}
       >
         <div
@@ -407,6 +603,48 @@ exports[`ProjectSelector render() shows empty filter message when filtering has 
     Object {
       "access": Array [],
       "id": "org",
+      "projects": Array [
+        Object {
+          "isMember": true,
+          "name": "Test Project",
+          "slug": "test-project",
+          "team": Object {
+            "isMember": true,
+            "name": "Test Team",
+            "projects": Array [
+              Object {
+                "name": "Test Project",
+                "slug": "test-project",
+              },
+              Object {
+                "name": "Another Project",
+                "slug": "another-project",
+              },
+            ],
+            "slug": "test-team",
+          },
+        },
+        Object {
+          "isMember": true,
+          "name": "Another Project",
+          "slug": "another-project",
+          "team": Object {
+            "isMember": true,
+            "name": "Test Team",
+            "projects": Array [
+              Object {
+                "name": "Test Project",
+                "slug": "test-project",
+              },
+              Object {
+                "name": "Another Project",
+                "slug": "another-project",
+              },
+            ],
+            "slug": "test-team",
+          },
+        },
+      ],
       "slug": "org",
       "teams": Array [
         Object {
@@ -446,61 +684,93 @@ exports[`ProjectSelector render() shows empty filter message when filtering has 
           />
         </a>
       </Link>
-      Select a project
+      <span
+        onClick={[Function]}
+        role="button"
+        style={
+          Object {
+            "cursor": "pointer",
+          }
+        }
+      >
+        Select a project
+      </span>
       <DropdownLink
+        alwaysRenderMenu={false}
+        anchorRight={false}
         caret={true}
         disabled={false}
+        isOpen={true}
         onClose={[Function]}
         onOpen={[Function]}
         title=""
         topLevelClasses="project-dropdown is-empty"
       >
-        <span
-          className="project-dropdown is-empty dropdown"
+        <DropdownMenu
+          isOpen={true}
+          keepMenuOpen={false}
+          onClose={[Function]}
+          onOpen={[Function]}
         >
-          <a
-            className="dropdown-toggle"
-            data-toggle="dropdown"
+          <span
+            className="dropdown project-dropdown is-empty open"
           >
-            <i
-              className="icon-arrow-down"
-            />
-          </a>
-          <ul
-            className="dropdown-menu"
-          >
-            <li
-              className="project-filter"
+            <a
+              className="dropdown-actor dropdown-toggle hover"
+              onClick={[Function]}
+              onMouseEnter={[Function]}
+              onMouseLeave={[Function]}
             >
-              <input
-                onBlur={[Function]}
-                onChange={[Function]}
-                onKeyDown={[Function]}
-                onKeyUp={[Function]}
-                placeholder="Filter projects"
-                type="text"
-                value="Foo"
-              />
-            </li>
-            <MenuItem
-              className="empty-projects-item"
-              noAnchor={true}
+              <div
+                className="dropdown-actor-title"
+              >
+                <span />
+                <i
+                  className="icon-arrow-down"
+                />
+              </div>
+            </a>
+            <ul
+              className="dropdown-menu"
+              onClick={[Function]}
+              onMouseLeave={[Function]}
             >
               <li
-                className="empty-projects-item"
-                href={null}
-                role="presentation"
-                title={null}
+                className="project-filter"
+                key="_filter"
               >
-                <div
-                  className="empty-message"
-                >
-                  No projects found
-                </div>
+                <input
+                  onBlur={[Function]}
+                  onChange={[Function]}
+                  onClick={[Function]}
+                  onKeyDown={[Function]}
+                  onKeyUp={[Function]}
+                  placeholder="Filter projects"
+                  type="text"
+                  value="Foo"
+                />
               </li>
-            </MenuItem>
-          </ul>
-        </span>
+              <MenuItem
+                className="empty-projects-item"
+                key="empty-message"
+                noAnchor={true}
+              >
+                <li
+                  className="empty-projects-item"
+                  href={null}
+                  role="presentation"
+                  title={null}
+                >
+                  <div
+                    className="empty-message"
+                  >
+                    No projects found
+                  </div>
+                </li>
+              </MenuItem>
+            </ul>
+          </span>
+        </DropdownMenu>
       </DropdownLink>
     </h3>
   </div>

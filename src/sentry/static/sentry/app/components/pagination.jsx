@@ -1,29 +1,30 @@
+import PropTypes from 'prop-types';
 import React from 'react';
-import utils from '../utils';
 import {browserHistory} from 'react-router';
+
+import utils from '../utils';
 import {t} from '../locale';
 
-export default React.createClass({
-  propTypes: {
-    pageLinks: React.PropTypes.string,
-    to: React.PropTypes.string,
-    onCursor: React.PropTypes.func
-  },
+export default class Pagination extends React.Component {
+  static propTypes = {
+    pageLinks: PropTypes.string,
+    to: PropTypes.string,
+    onCursor: PropTypes.func,
+  };
 
-  contextTypes: {
-    location: React.PropTypes.object
-  },
+  static contextTypes = {
+    location: PropTypes.object,
+  };
 
-  getDefaultProps() {
-    return {
-      onCursor: (cursor, path, query) => {
-        browserHistory.pushState(null, path, {
-          ...query,
-          cursor: cursor
-        });
-      }
-    };
-  },
+  static defaultProps = {
+    onCursor: (cursor, path, query) => {
+      query.cursor = cursor;
+      browserHistory.push({
+        pathname: path,
+        query,
+      });
+    },
+  };
 
   render() {
     let {onCursor, pageLinks} = this.props;
@@ -48,14 +49,15 @@ export default React.createClass({
     }
 
     return (
-      <div className="stream-pagination">
+      <div className="stream-pagination clearfix">
         <div className="btn-group pull-right">
           <a
             onClick={() => {
               onCursor(links.previous.cursor, path, query);
             }}
             className={previousPageClassName}
-            disabled={links.previous.results === false}>
+            disabled={links.previous.results === false}
+          >
             <span title={t('Previous')} className="icon-arrow-left" />
           </a>
           <a
@@ -63,11 +65,12 @@ export default React.createClass({
               onCursor(links.next.cursor, path, query);
             }}
             className={nextPageClassName}
-            disabled={links.next.results === false}>
+            disabled={links.next.results === false}
+          >
             <span title={t('Next')} className="icon-arrow-right" />
           </a>
         </div>
       </div>
     );
   }
-});
+}

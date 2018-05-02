@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
 
@@ -6,36 +7,35 @@ import IssueList from './issueList';
 import OrganizationHomeContainer from './organizations/homeContainer';
 import {t} from '../locale';
 
-const OrganizationIssueList = React.createClass({
-  propTypes: {
-    title: React.PropTypes.string,
-    endpoint: React.PropTypes.string.isRequired,
-    pageSize: React.PropTypes.number
-  },
+class OrganizationIssueList extends React.Component {
+  static propTypes = {
+    title: PropTypes.string,
+    endpoint: PropTypes.string.isRequired,
+    pageSize: PropTypes.number,
+  };
 
-  getInitialState() {
-    return this.getQueryStringState(this.props);
-  },
+  constructor(props) {
+    super(props);
+    this.state = this.getQueryStringState(props);
+  }
 
   componentWillReceiveProps(nextProps) {
     if (nextProps.location.search !== this.props.location.search) {
       this.setState(this.getQueryStringState(nextProps), this.fetchData);
     }
-  },
+  }
 
   componentWillUnmount() {
     GroupStore.reset();
-  },
+  }
 
-  getQueryStringState(props) {
-    let location = props.location;
-    let status = location.query.hasOwnProperty('status')
-      ? location.query.status
-      : 'unresolved';
+  getQueryStringState = props => {
+    let query = props.location.query;
+    let status = 'status' in query ? query.status : 'unresolved';
     return {
-      status: status
+      status,
     };
-  },
+  };
 
   render() {
     let path = this.props.location.pathname;
@@ -48,12 +48,14 @@ const OrganizationIssueList = React.createClass({
               to={path}
               className={
                 'btn btn-sm btn-default' + (status === 'unresolved' ? ' active' : '')
-              }>
+              }
+            >
               {t('Unresolved')}
             </Link>
             <Link
               to={{pathname: path, query: {status: ''}}}
-              className={'btn btn-sm btn-default' + (status === '' ? ' active' : '')}>
+              className={'btn btn-sm btn-default' + (status === '' ? ' active' : '')}
+            >
               {t('All Issues')}
             </Link>
           </div>
@@ -64,7 +66,7 @@ const OrganizationIssueList = React.createClass({
           query={{
             status: this.state.status,
             statsPeriod: '24h',
-            per_page: this.props.pageSize || 25
+            per_page: this.props.pageSize || 25,
           }}
           statsPeriod="24h"
           {...this.props}
@@ -72,6 +74,6 @@ const OrganizationIssueList = React.createClass({
       </OrganizationHomeContainer>
     );
   }
-});
+}
 
 export default OrganizationIssueList;

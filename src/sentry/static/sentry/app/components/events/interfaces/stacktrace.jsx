@@ -1,7 +1,8 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import ConfigStore from '../../../stores/configStore';
 import GroupEventDataSection from '../eventDataSection';
-import PropTypes from '../../../proptypes';
+import SentryTypes from '../../../proptypes';
 import {t} from '../../../locale';
 import CrashHeader from './crashHeader';
 import CrashContent from './crashContent';
@@ -11,37 +12,37 @@ export function isStacktraceNewestFirst() {
   // user may not be authenticated
   let options = user ? user.options : {};
   switch (options.stacktraceOrder) {
-    case 'newestFirst':
+    case 2:
       return true;
-    case 'newestLast':
+    case 1:
       return false;
-    case 'default': // is "default" a valid value? or bad case statement
+    case -1:
     default:
       return true;
   }
 }
 
-const StacktraceInterface = React.createClass({
-  propTypes: {
-    group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired,
-    type: React.PropTypes.string.isRequired,
-    data: React.PropTypes.object.isRequired,
-    platform: React.PropTypes.string
-  },
+class StacktraceInterface extends React.Component {
+  static propTypes = {
+    group: SentryTypes.Group.isRequired,
+    event: SentryTypes.Event.isRequired,
+    type: PropTypes.string.isRequired,
+    data: PropTypes.object.isRequired,
+  };
 
-  getInitialState() {
-    return {
+  constructor(...args) {
+    super(...args);
+    this.state = {
       stackView: this.props.data.hasSystemFrames ? 'app' : 'full',
-      newestFirst: isStacktraceNewestFirst()
+      newestFirst: isStacktraceNewestFirst(),
     };
-  },
+  }
 
-  toggleStack(value) {
+  toggleStack = value => {
     this.setState({
-      stackView: value
+      stackView: value,
     });
-  },
+  };
 
   render() {
     let group = this.props.group;
@@ -70,7 +71,8 @@ const StacktraceInterface = React.createClass({
         event={evt}
         type={this.props.type}
         title={title}
-        wrapTitle={false}>
+        wrapTitle={false}
+      >
         <CrashContent
           group={group}
           event={evt}
@@ -81,6 +83,6 @@ const StacktraceInterface = React.createClass({
       </GroupEventDataSection>
     );
   }
-});
+}
 
 export default StacktraceInterface;

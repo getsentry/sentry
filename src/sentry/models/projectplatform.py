@@ -9,6 +9,8 @@ from sentry.db.models import (Model, BoundedBigIntegerField, sane_repr)
 class ProjectPlatform(Model):
     """
     Tracks usage of a platform for a given project.
+
+    Note: This model is used solely for analytics.
     """
     __core__ = False
 

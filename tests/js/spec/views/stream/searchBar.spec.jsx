@@ -1,21 +1,38 @@
 import React from 'react';
 import {shallow, mount} from 'enzyme';
 
-import {Client} from 'app/api';
 import SearchBar from 'app/views/stream/searchBar';
-import StreamTagStore from 'app/stores/streamTagStore';
+import TagStore from 'app/stores/tagStore';
 
 describe('SearchBar', function() {
+  let sandbox;
+  let options;
+  let urlTagValuesMock;
+  let environmentTagValuesMock;
+
   beforeEach(function() {
-    StreamTagStore.reset();
+    TagStore.reset();
+    TagStore.onLoadTagsSuccess(TestStubs.Tags());
 
-    this.sandbox = sinon.sandbox.create();
+    sandbox = sinon.sandbox.create();
 
-    this.sandbox.stub(Client.prototype, 'request');
+    options = {
+      context: {organization: {id: '123', features: ['environments']}},
+    };
+
+    urlTagValuesMock = MockApiClient.addMockResponse({
+      url: '/projects/123/456/tags/url/values/',
+      body: [],
+    });
+    environmentTagValuesMock = MockApiClient.addMockResponse({
+      url: '/projects/123/456/tags/environment/values/',
+      body: [],
+    });
   });
 
   afterEach(function() {
-    this.sandbox.restore();
+    MockApiClient.clearMockResponses();
+    sandbox.restore();
   });
 
   describe('getQueryTerms()', function() {
@@ -26,12 +43,12 @@ describe('SearchBar', function() {
       query = 'tagname:derp browser:';
       expect(SearchBar.getQueryTerms(query, query.length)).toEqual([
         'tagname:derp',
-        'browser:'
+        'browser:',
       ]);
 
       query = '   browser:"Chrome 33.0"    ';
       expect(SearchBar.getQueryTerms(query, query.length)).toEqual([
-        'browser:"Chrome 33.0"'
+        'browser:"Chrome 33.0"',
       ]);
     });
   });
@@ -55,9 +72,9 @@ describe('SearchBar', function() {
         orgId: '123',
         projectId: '456',
         query: 'is:unresolved ruby',
-        defaultQuery: 'is:unresolved'
+        defaultQuery: 'is:unresolved',
       };
-      let searchBar = shallow(<SearchBar {...props} />).instance();
+      let searchBar = shallow(<SearchBar {...props} />, options).instance();
 
       searchBar.clearSearch();
 
@@ -70,9 +87,9 @@ describe('SearchBar', function() {
         projectId: '456',
         query: 'is:unresolved ruby',
         defaultQuery: 'is:unresolved',
-        onSearch: this.sandbox.spy()
+        onSearch: sandbox.spy(),
       };
-      let searchBar = shallow(<SearchBar {...props} />).instance();
+      let searchBar = shallow(<SearchBar {...props} />, options).instance();
 
       searchBar.clearSearch();
 
@@ -85,7 +102,10 @@ describe('SearchBar', function() {
 
   describe('onQueryFocus()', function() {
     it('displays the drop down', function() {
-      let searchBar = shallow(<SearchBar orgId="123" projectId="456" />).instance();
+      let searchBar = shallow(
+        <SearchBar orgId="123" projectId="456" />,
+        options
+      ).instance();
       expect(searchBar.state.dropdownVisible).toBe(false);
 
       searchBar.onQueryFocus();
@@ -96,10 +116,13 @@ describe('SearchBar', function() {
 
   describe('onQueryBlur()', function() {
     it('hides the drop down', function() {
-      let searchBar = shallow(<SearchBar orgId="123" projectId="456" />).instance();
+      let searchBar = shallow(
+        <SearchBar orgId="123" projectId="456" />,
+        options
+      ).instance();
       searchBar.state.dropdownVisible = true;
 
-      let clock = this.sandbox.useFakeTimers();
+      let clock = sandbox.useFakeTimers();
       searchBar.onQueryBlur();
       clock.tick(201); // doesn't close until 200ms
 
@@ -110,11 +133,11 @@ describe('SearchBar', function() {
   describe('onKeyUp()', function() {
     describe('escape', function() {
       it('blurs the input', function() {
-        let wrapper = shallow(<SearchBar orgId="123" projectId="456" />);
+        let wrapper = shallow(<SearchBar orgId="123" projectId="456" />, options);
         wrapper.setState({dropdownVisible: true});
 
         let instance = wrapper.instance();
-        this.sandbox.stub(instance, 'blur');
+        sandbox.stub(instance, 'blur');
 
         wrapper.find('input').simulate('keyup', {key: 'Escape', keyCode: '27'});
 
@@ -125,13 +148,14 @@ describe('SearchBar', function() {
 
   describe('render()', function() {
     it('invokes onSearch() when submitting the form', function() {
-      let stubbedOnSearch = this.sandbox.spy();
+      let stubbedOnSearch = sandbox.spy();
       let wrapper = mount(
-        <SearchBar onSearch={stubbedOnSearch} orgId="123" projectId="456" />
+        <SearchBar onSearch={stubbedOnSearch} orgId="123" projectId="456" />,
+        options
       );
 
       wrapper.find('form').simulate('submit', {
-        preventDefault() {}
+        preventDefault() {},
       });
 
       expect(stubbedOnSearch.called).toBe(true);
@@ -142,9 +166,9 @@ describe('SearchBar', function() {
         orgId: '123',
         projectId: '456',
         query: 'is:unresolved',
-        onSearch: this.sandbox.spy()
+        onSearch: sandbox.spy(),
       };
-      let wrapper = mount(<SearchBar {...props} />);
+      let wrapper = mount(<SearchBar {...props} />, options);
 
       wrapper.find('.search-clear-form').simulate('click');
 
@@ -160,20 +184,28 @@ describe('SearchBar', function() {
       orgId: '123',
       projectId: '456',
       query: '',
-      defaultQuery: 'is:unresolved'
+      defaultQuery: 'is:unresolved',
     };
-    let wrapper = mount(<SearchBar {...props} />);
+    let wrapper = mount(<SearchBar {...props} />, options);
     expect(wrapper.state('query')).toEqual('');
   });
 
   describe('updateAutoCompleteItems()', function() {
+    let clock;
+
+    beforeEach(function() {
+      clock = sandbox.useFakeTimers();
+    });
+    afterEach(function() {
+      clock.restore();
+    });
     it('sets state when empty', function() {
       let props = {
         orgId: '123',
         projectId: '456',
-        query: ''
+        query: '',
       };
-      let searchBar = mount(<SearchBar {...props} />).instance();
+      let searchBar = mount(<SearchBar {...props} />, options).instance();
       searchBar.updateAutoCompleteItems();
       expect(searchBar.state.searchTerm).toEqual('');
       expect(searchBar.state.searchItems).toEqual(searchBar.props.defaultSearchItems);
@@ -184,9 +216,9 @@ describe('SearchBar', function() {
       let props = {
         orgId: '123',
         projectId: '456',
-        query: 'fu'
+        query: 'fu',
       };
-      let searchBar = mount(<SearchBar {...props} />).instance();
+      let searchBar = mount(<SearchBar {...props} />, options).instance();
       searchBar.updateAutoCompleteItems();
       expect(searchBar.state.searchTerm).toEqual('fu');
       expect(searchBar.state.searchItems).toEqual([]);
@@ -197,10 +229,11 @@ describe('SearchBar', function() {
       let props = {
         orgId: '123',
         projectId: '456',
-        query: 'url:"fu"'
+        query: 'url:"fu"',
       };
-      let searchBar = mount(<SearchBar {...props} />).instance();
+      let searchBar = mount(<SearchBar {...props} />, options).instance();
       searchBar.updateAutoCompleteItems();
+      clock.tick(301);
       expect(searchBar.state.searchTerm).toEqual('"fu"');
       expect(searchBar.state.searchItems).toEqual([]);
       expect(searchBar.state.activeSearchItem).toEqual(0);
@@ -210,14 +243,14 @@ describe('SearchBar', function() {
       let props = {
         orgId: '123',
         projectId: '456',
-        query: 'is:unresolved fu'
+        query: 'is:unresolved fu',
       };
-      let searchBar = mount(<SearchBar {...props} />).instance();
+      let searchBar = mount(<SearchBar {...props} />, options).instance();
       searchBar.getCursorPosition = jest.fn();
       searchBar.getCursorPosition.mockReturnValue(15); // end of line
       searchBar.updateAutoCompleteItems();
       expect(searchBar.state.searchTerm).toEqual('fu');
-      expect(searchBar.state.searchItems.length).toEqual(0);
+      expect(searchBar.state.searchItems).toHaveLength(0);
       expect(searchBar.state.activeSearchItem).toEqual(0);
     });
 
@@ -225,13 +258,29 @@ describe('SearchBar', function() {
       let props = {
         orgId: '123',
         projectId: '456',
-        query: 'url:"http://example.com"'
+        query: 'url:"http://example.com"',
       };
-      let searchBar = mount(<SearchBar {...props} />).instance();
+
+      let searchBar = mount(<SearchBar {...props} />, options).instance();
       searchBar.updateAutoCompleteItems();
       expect(searchBar.state.searchTerm).toEqual('"http://example.com"');
       expect(searchBar.state.searchItems).toEqual([]);
       expect(searchBar.state.activeSearchItem).toEqual(0);
+      clock.tick(301);
+      expect(urlTagValuesMock).toHaveBeenCalled();
+    });
+
+    it('does not request values when tag is environments', function() {
+      let props = {
+        orgId: '123',
+        projectId: '456',
+        query: 'environment:production',
+        excludeEnvironment: true,
+      };
+      let searchBar = mount(<SearchBar {...props} />, options).instance();
+      searchBar.updateAutoCompleteItems();
+      clock.tick(301);
+      expect(environmentTagValuesMock).not.toHaveBeenCalled();
     });
   });
 });

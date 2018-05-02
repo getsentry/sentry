@@ -11,15 +11,19 @@ exports[`CustomResolutionModal render() renders correctly 1`] = `
   keyboard={true}
   manager={
     ModalManager {
+      "add": [Function],
       "containers": Array [],
       "data": Array [],
       "handleContainerOverflow": true,
       "hideSiblingNodes": true,
+      "isTopModal": [Function],
       "modals": Array [],
+      "remove": [Function],
     }
   }
   onHide={[Function]}
   renderBackdrop={[Function]}
+  restoreFocus={true}
   show={false}
 >
   <div
@@ -45,12 +49,13 @@ exports[`CustomResolutionModal render() renders correctly 1`] = `
         </h6>
         <Select2FieldAutocomplete
           ajaxDelay={250}
+          allowClear={false}
           allowEmpty={false}
-          className="form-control"
           disabled={false}
           escapeMarkup={false}
           formatResult={[Function]}
           formatSelection={[Function]}
+          hideErrorMessage={false}
           id="version"
           minimumInputLength={null}
           multiple={false}
@@ -60,11 +65,6 @@ exports[`CustomResolutionModal render() renders correctly 1`] = `
           onResults={[Function]}
           placeholder="e.g. 1.0.4"
           required={false}
-          style={
-            Object {
-              "padding": "3px 10px",
-            }
-          }
           url="/api/0/projects/org/project/releases/"
           value=""
         />

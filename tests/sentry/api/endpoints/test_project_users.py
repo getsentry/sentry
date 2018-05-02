@@ -14,7 +14,7 @@ class ProjectUsersTest(APITestCase):
 
         self.project = self.create_project()
         self.euser1 = EventUser.objects.create(
-            project=self.project,
+            project_id=self.project.id,
             ident='1',
             email='foo@example.com',
             username='foobar',
@@ -22,7 +22,7 @@ class ProjectUsersTest(APITestCase):
         )
 
         self.euser2 = EventUser.objects.create(
-            project=self.project,
+            project_id=self.project.id,
             ident='2',
             email='bar@example.com',
             username='baz',

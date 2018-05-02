@@ -1,6 +1,10 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
+import createReactClass from 'create-react-class';
+
 import {logException} from '../../utils/logging';
+import EventCause from './eventCause';
 import EventContexts from './contexts';
 import EventContextSummary from './contextSummary';
 import EventDataSection from './eventDataSection';
@@ -11,7 +15,8 @@ import EventTags from './eventTags';
 import EventSdk from './sdk';
 import EventDevice from './device';
 import EventUserReport from './userReport';
-import PropTypes from '../../proptypes';
+import SentryTypes from '../../proptypes';
+import GroupState from '../../mixins/groupState';
 import utils from '../../utils';
 import {t} from '../../locale';
 
@@ -34,23 +39,27 @@ export const INTERFACES = {
   csp: CspInterface,
   breadcrumbs: BreadcrumbsInterface,
   threads: ThreadsInterface,
-  debugmeta: DebugMetaInterface
+  debugmeta: DebugMetaInterface,
 };
 
-const EventEntries = React.createClass({
+const EventEntries = createReactClass({
+  displayName: 'EventEntries',
+
   propTypes: {
-    group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired,
-    orgId: React.PropTypes.string.isRequired,
-    project: React.PropTypes.object.isRequired,
+    group: SentryTypes.Group.isRequired,
+    event: SentryTypes.Event.isRequired,
+    orgId: PropTypes.string.isRequired,
+    project: PropTypes.object.isRequired,
     // TODO(dcramer): ideally isShare would be replaced with simple permission
     // checks
-    isShare: React.PropTypes.bool
+    isShare: PropTypes.bool,
   },
+
+  mixins: [GroupState],
 
   getDefaultProps() {
     return {
-      isShare: false
+      isShare: false,
     };
   },
 
@@ -61,12 +70,10 @@ const EventEntries = React.createClass({
   interfaces: INTERFACES,
 
   render() {
-    let group = this.props.group;
-    let evt = this.props.event;
-    let isShare = this.props.isShare;
-    let project = this.props.project;
-
-    let entries = evt.entries.map((entry, entryIdx) => {
+    let {group, isShare, project, event, orgId} = this.props;
+    let organization = this.getOrganization();
+    let features = organization ? new Set(organization.features) : new Set();
+    let entries = event.entries.map((entry, entryIdx) => {
       try {
         let Component = this.interfaces[entry.type];
         if (!Component) {
@@ -80,7 +87,7 @@ const EventEntries = React.createClass({
           <Component
             key={'entry-' + entryIdx}
             group={group}
-            event={evt}
+            event={event}
             type={entry.type}
             data={entry.data}
             isShare={isShare}
@@ -91,58 +98,68 @@ const EventEntries = React.createClass({
         return (
           <EventDataSection
             group={group}
-            event={evt}
+            event={event}
             type={entry.type}
-            title={entry.type}>
+            title={entry.type}
+          >
             <p>{t('There was an error rendering this data.')}</p>
           </EventDataSection>
         );
       }
     });
 
-    let hasContext = !utils.objectIsEmpty(evt.user) || !utils.objectIsEmpty(evt.contexts);
-
-    let hasContextSummary =
-      hasContext &&
-      (evt.platform === 'cocoa' ||
-        evt.platform === 'javascript' ||
-        evt.platform === 'java');
+    let hasContext =
+      !utils.objectIsEmpty(event.user) || !utils.objectIsEmpty(event.contexts);
 
     return (
       <div className="entries">
-        {evt.userReport && <EventUserReport group={group} event={evt} />}
-        {!utils.objectIsEmpty(evt.errors) && <EventErrors group={group} event={evt} />}
-        {!utils.objectIsEmpty(evt.sdk) &&
-          evt.sdk.upstream.isNewer &&
-          <div className="alert-block alert-info box">
-            <span className="icon-exclamation" />
-            {t(
-              'This event was reported with an old version of the %s SDK.',
-              evt.platform
-            )}
-            {evt.sdk.upstream.url &&
-              <a href={evt.sdk.upstream.url} className="btn btn-sm btn-default">
-                {t('Learn More')}
-              </a>}
-          </div>}
-        {hasContextSummary && <EventContextSummary group={group} event={evt} />}
-        <EventTags
-          group={group}
-          event={evt}
-          orgId={this.props.orgId}
-          projectId={project.slug}
-        />
+        {!utils.objectIsEmpty(event.errors) && (
+          <EventErrors group={group} event={event} />
+        )}{' '}
+        {!isShare &&
+          features.has('suggested-commits') && (
+            <EventCause event={event} orgId={orgId} projectId={project.slug} />
+          )}
+        {event.userReport && (
+          <EventUserReport
+            report={event.userReport}
+            orgId={orgId}
+            projectId={project.slug}
+            issueId={group.id}
+          />
+        )}
+        {!utils.objectIsEmpty(event.sdk) &&
+          event.sdk.upstream.isNewer && (
+            <div className="alert-block alert-info box">
+              <span className="icon-exclamation" />
+              {t(
+                'This event was reported with an old version of the %s SDK.',
+                event.platform
+              )}
+              {event.sdk.upstream.url && (
+                <a href={event.sdk.upstream.url} className="btn btn-sm btn-default">
+                  {t('Learn More')}
+                </a>
+              )}
+            </div>
+          )}
+        {hasContext && <EventContextSummary group={group} event={event} />}
+        <EventTags group={group} event={event} orgId={orgId} projectId={project.slug} />
         {entries}
-        {hasContext && <EventContexts group={group} event={evt} />}
-        {!utils.objectIsEmpty(evt.context) &&
-          <EventExtraData group={group} event={evt} />}
-        {!utils.objectIsEmpty(evt.packages) &&
-          <EventPackageData group={group} event={evt} />}
-        {!utils.objectIsEmpty(evt.device) && <EventDevice group={group} event={evt} />}
-        {!utils.objectIsEmpty(evt.sdk) && <EventSdk group={group} event={evt} />}
+        {hasContext && <EventContexts group={group} event={event} />}
+        {!utils.objectIsEmpty(event.context) && (
+          <EventExtraData group={group} event={event} />
+        )}
+        {!utils.objectIsEmpty(event.packages) && (
+          <EventPackageData group={group} event={event} />
+        )}
+        {!utils.objectIsEmpty(event.device) && (
+          <EventDevice group={group} event={event} />
+        )}
+        {!utils.objectIsEmpty(event.sdk) && <EventSdk group={group} event={event} />}
       </div>
     );
-  }
+  },
 });
 
 export default EventEntries;

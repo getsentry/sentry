@@ -6,6 +6,8 @@ from ua_parser.user_agent_parser import Parse
 from rest_framework import serializers
 from sentry.models import ProjectOption
 from sentry.api.fields import MultipleChoiceField
+from sentry.utils.data_filters import FilterStatKeys
+
 """
 For default (legacy) filter
 """
@@ -28,7 +30,7 @@ class LegacyBrowserFilterSerializer(serializers.Serializer):
 
 
 class LegacyBrowsersFilter(Filter):
-    id = 'legacy-browsers'
+    id = FilterStatKeys.LEGACY_BROWSER
     name = 'Filter out known errors from legacy browsers'
     description = 'Older browsers often give less accurate information, and while they may report valid issues, the context to understand them is incorrect or missing.'
     default = False
@@ -179,6 +181,10 @@ class LegacyBrowsersFilter(Filter):
 
         if not browser['family']:
             return False
+
+        # IE Desktop and IE Mobile use the same engines, therefore we can treat them as one
+        if browser['family'] == "IE Mobile":
+            browser['family'] = "IE"
 
         # handle old style config
         if opts == '1':

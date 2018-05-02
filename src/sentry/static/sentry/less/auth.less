@@ -12,6 +12,10 @@
   .form-actions {
     margin-top: 20px;
   }
+
+  .form-actions-samlidp {
+    margin: 10px 0;
+  }
 }
 
 section.org-login {
@@ -33,71 +37,38 @@ section.org-login {
   border-radius: 2px;
   position: relative;
   top: 1px;
+  background-size: cover;
 
   &.google {
-    background: url(../images/auth-providers/google.png);
-    background-size: cover;
+    background-image: url(../images/auth-providers/google.png);
   }
 
   &.github {
-    background: url(../images/auth-providers/github.jpg);
-    background-size: cover;
+    background-image: url(../images/auth-providers/github.png);
   }
 
   &.onelogin {
-    background: url(../images/auth-providers/onelogin.png);
-    background-size: cover;
+    background-image: url(../images/auth-providers/onelogin.png);
+  }
+
+  &.auth0 {
+    background-image: url(../images/auth-providers/auth0.png);
   }
 
   &.okta {
-    background: url(../images/auth-providers/okta.png);
-    background-size: cover;
-  }
-}
-
-// Toggle SSO
-
-.sso-toggle-container {
-  margin-top: 2px;
-  font-size: 15px;
-
-  .go-back {
-    display: none;
-    position: relative;
+    background-image: url(../images/auth-providers/okta.png);
   }
 
-  a {
-    color: lighten(@gray, 30);
-
-    &:hover {
-      color: lighten(@gray, 10);
-    }
+  &.rippling {
+    background-image: url(../images/auth-providers/rippling.png);
   }
 
-  .icon-arrow-left {
-    position: absolute;
-    background: 0;
-    font-size: 18px;
-    left: -20px;
-  }
-}
-
-.show-sso {
-
-  .sso-link {
-    display: none;
+  &.saml2 {
+    background-image: url(../images/auth-providers/saml2.png);
   }
 
-  .go-back {
-    display: block;
-  }
-
-  #standard {
-    display: none;
-  }
-
-  #sso {
-    display: block;
+  &.slack {
+    background-image: url(../images/integrations/slack-logo.png);
   }
 }
 
@@ -122,13 +93,13 @@ section.org-login {
       bottom: 6px;
       right: 6px;
       color: #fff;
-      background: rgba(0,0,0, .4);
+      background: rgba(0, 0, 0, 0.4);
       .square(20px);
       border-radius: 3px;
       text-align: center;
       line-height: 20px;
       font-size: 12px;
-      .transition(.1s opacity linear);
+      .transition(0.1s opacity linear);
     }
 
     &:hover {
@@ -177,7 +148,7 @@ section.org-login {
     &.enrolled {
       h4:after {
         display: inline-block;
-        content: "";
+        content: '';
         .square(14px);
         border-radius: 14px;
         margin-left: 10px;
@@ -197,7 +168,7 @@ div.u2f-box {
   div.device-animation-frame {
     margin: 0 auto;
     border-radius: 50%;
-    box-shadow: 0 1px 2px rgba(0,0,0, .08);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
     border: 1px solid darken(@trim, 5);
     width: 100px;
     height: 100px;
@@ -212,7 +183,7 @@ div.u2f-box {
     margin-left: -25px;
     margin-top: -9px;
     opacity: 0;
-    .transition(all ease-in .4s);
+    .transition(all ease-in 0.4s);
 
     .dot {
       display: inline-block;
@@ -229,11 +200,11 @@ div.u2f-box {
       animation-fill-mode: both;
 
       &:nth-child(2) {
-        animation-delay: .4s;
+        animation-delay: 0.4s;
       }
 
       &:nth-child(3) {
-        animation-delay: .8s;
+        animation-delay: 0.8s;
       }
 
       &:last-child {
@@ -247,7 +218,7 @@ div.u2f-box {
     background-size: 100px 100px;
     width: 100px;
     height: 100px;
-    .transition(opacity .3s);
+    .transition(opacity 0.3s);
   }
 
   div.device-failed {
@@ -259,7 +230,7 @@ div.u2f-box {
     text-align: center;
     margin-left: -50px;
     &:after {
-      content: ":-(";
+      content: ':-(';
     }
     font-size: 46px;
     font-weight: bold;
@@ -305,13 +276,37 @@ div.u2f-box {
 }
 
 @keyframes blink {
-    0% {
-      opacity: .1;
-    }
-    30% {
-      opacity: 1;
-    }
-    100% {
-      opacity: .1;
-    }
+  0% {
+    opacity: 0.1;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.1;
+  }
+}
+
+.password-strength-heading {
+  font-weight: bold;
+}
+
+.password-warnings {
+  opacity: 0.8;
+  font-size: 0.9em;
+  font-style: italic;
+}
+
+.password-strength {
+  display: none;
+  &.visible {
+    display: block;
+  }
+  .progress {
+    margin: 5px 0;
+  }
+  .progress-bar {
+    border-radius: 2px;
+    height: 14px;
+  }
 }

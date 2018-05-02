@@ -1,13 +1,14 @@
+import _ from 'lodash';
 import Reflux from 'reflux';
+
 import GroupActions from '../actions/groupActions';
 import IndicatorStore from './indicatorStore';
 import PendingChangeQueue from '../utils/pendingChangeQueue';
 import {t} from '../locale';
-import _ from 'underscore';
 
 function showAlert(msg, type) {
   IndicatorStore.add(msg, type, {
-    duration: 4000
+    duration: 4000,
   });
 }
 
@@ -54,7 +55,7 @@ const GroupStore = Reflux.createStore({
       if (itemsById[item.id]) {
         this.items[idx] = {
           ...item,
-          ...itemsById[item.id]
+          ...itemsById[item.id],
         };
         delete itemsById[item.id];
       }
@@ -173,7 +174,7 @@ const GroupStore = Reflux.createStore({
           for (let c = 0; c < pendingForId.length; c++) {
             rItem = {
               ...rItem,
-              ...pendingForId[c].params
+              ...pendingForId[c].params,
             };
           }
         }
@@ -205,7 +206,7 @@ const GroupStore = Reflux.createStore({
         pendingById[item.id].forEach(change => {
           rItem = {
             ...rItem,
-            ...change.params
+            ...change.params,
           };
         });
       }
@@ -242,10 +243,13 @@ const GroupStore = Reflux.createStore({
   },
 
   onDeleteError(changeId, itemIds, response) {
+    showAlert(t('Unable to delete events. Please try again.'), 'error');
+
+    if (!itemIds) return;
+
     itemIds.forEach(itemId => {
       this.clearStatus(itemId, 'delete');
     });
-    showAlert(t('Unable to delete events. Please try again.'), 'error');
     this.trigger(new Set(itemIds));
   },
 
@@ -285,6 +289,8 @@ const GroupStore = Reflux.createStore({
     itemIds.forEach(itemId => {
       this.addStatus(itemId, 'merge');
     });
+    // XXX(billy): Not sure if this is a bug or not but do we need to publish all itemIds?
+    // Seems like we only need to publish parent id
     this.trigger(new Set(itemIds));
   },
 
@@ -355,14 +361,14 @@ const GroupStore = Reflux.createStore({
       if (itemIds.indexOf(item.id) !== -1) {
         this.items[idx] = {
           ...item,
-          ...response
+          ...response,
         };
         this.clearStatus(item.id, 'update');
       }
     });
     this.pendingChanges.remove(changeId);
     this.trigger(new Set(itemIds));
-  }
+  },
 });
 
 export default GroupStore;

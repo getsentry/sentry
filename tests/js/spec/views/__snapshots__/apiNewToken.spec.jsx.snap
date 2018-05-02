@@ -1,10 +1,10 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`ApiNewToken render() renders 1`] = `
-<DocumentTitle
-  title="Create API Token"
+<SideEffect(DocumentTitle)
+  title="Create API Token - Sentry"
 >
-  <NarryLayout>
+  <NarrowLayout>
     <h3>
       Create New Token
     </h3>
@@ -13,18 +13,27 @@ exports[`ApiNewToken render() renders 1`] = `
       Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API.
     </p>
     <p>
-      <span>
-        <span>
+      <span
+        key="5"
+      >
+        <span
+          key="0"
+        >
           For more information on how to use the web API, see our 
         </span>
         <a
           href="https://docs.sentry.io/hosted/api/"
+          key="2"
         >
-          <span>
+          <span
+            key="1"
+          >
             documentation
           </span>
         </a>
-        <span>
+        <span
+          key="3"
+        >
           .
         </span>
       </span>
@@ -34,7 +43,9 @@ exports[`ApiNewToken render() renders 1`] = `
       apiMethod="POST"
       cancelLabel="Cancel"
       className="form-stacked api-new-token"
+      errorMessage="Unable to save your changes. Please ensure all fields are valid and try again."
       footerClass="form-actions align-right"
+      hideErrors={false}
       initialData={
         Object {
           "scopes": Array [
@@ -51,8 +62,11 @@ exports[`ApiNewToken render() renders 1`] = `
       onCancel={[Function]}
       onSubmitSuccess={[Function]}
       requireChanges={false}
+      resetOnError={false}
       submitDisabled={false}
+      submitErrorMessage="There was an error saving your changes."
       submitLabel="Save Changes"
+      submitLoadingMessage="Saving changes.."
     >
       <MultipleCheckboxField
         choices={
@@ -116,11 +130,12 @@ exports[`ApiNewToken render() renders 1`] = `
           ]
         }
         disabled={false}
+        hideErrorMessage={false}
         label="Scopes"
         name="scopes"
         required={true}
       />
     </ApiForm>
-  </NarryLayout>
-</DocumentTitle>
+  </NarrowLayout>
+</SideEffect(DocumentTitle)>
 `;

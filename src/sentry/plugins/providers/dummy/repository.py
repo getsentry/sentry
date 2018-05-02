@@ -5,6 +5,7 @@ from sentry.plugins.providers.repository import RepositoryProvider
 
 class DummyRepositoryProvider(RepositoryProvider):
     name = 'Example'
+    auth_provider = 'dummy'
 
     def get_config(self):
         return [

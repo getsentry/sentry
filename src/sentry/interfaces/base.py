@@ -1,23 +1,14 @@
 from __future__ import absolute_import
 
 import six
+from collections import OrderedDict
 
 from django.conf import settings
 from django.utils.translation import ugettext as _
 
 from sentry.utils.html import escape
 from sentry.utils.imports import import_string
-
-
-def iter_interfaces():
-    rv = {}
-
-    for name, import_path in six.iteritems(settings.SENTRY_INTERFACES):
-        rv.setdefault(import_path, []).append(name)
-
-    for import_path, keys in six.iteritems(rv):
-        iface = import_string(import_path)
-        yield iface, keys
+from sentry.utils.safe import safe_execute
 
 
 def get_interface(name):
@@ -32,6 +23,27 @@ def get_interface(name):
         raise ValueError('Unable to load interface: %s' % (name, ))
 
     return interface
+
+
+def get_interfaces(data):
+    result = []
+    for key, data in six.iteritems(data):
+        try:
+            cls = get_interface(key)
+        except ValueError:
+            continue
+
+        value = safe_execute(
+            cls.to_python, data, _with_transaction=False
+        )
+        if not value:
+            continue
+
+        result.append((key, value))
+
+    return OrderedDict(
+        (k, v) for k, v in sorted(result, key=lambda x: x[1].get_score(), reverse=True)
+    )
 
 
 class InterfaceValidationError(Exception):
@@ -76,7 +88,7 @@ class Interface(object):
 
     @classmethod
     def to_python(cls, data):
-        return cls(data)
+        return cls(**data)
 
     def get_api_context(self, is_public=False):
         return self.to_json()

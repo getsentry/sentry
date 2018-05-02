@@ -14,11 +14,8 @@
     </div>
   </div>
   <script>
-  $(function(){
-    ReactDOM.render(
-      React.createElement(Router.Router, {history: Router.browserHistory}, Sentry.routes()),
-      document.getElementById('blk_router')
-    );
+  $(function() {
+    if (typeof SentryRenderApp === 'function') SentryRenderApp();
   });
   </script>
 {% endblock %}

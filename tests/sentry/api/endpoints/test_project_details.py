@@ -5,7 +5,7 @@ import six
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import Project, ProjectBookmark, ProjectStatus, UserOption
+from sentry.models import Project, ProjectBookmark, ProjectStatus, UserOption, DeletedProject, ProjectRedirect, AuditLogEntry, AuditLogEntryEvent
 from sentry.testutils import APITestCase
 
 
@@ -40,7 +40,7 @@ class ProjectDetailsTest(APITestCase):
         project = self.create_project(
             name='Bar',
             slug='bar',
-            team=team,
+            teams=[team],
         )
         # We want to make sure we don't hit the LegacyProjectRedirect view at all.
         url = '/api/0/projects/%s/%s/' % (org.slug, project.slug)
@@ -63,10 +63,35 @@ class ProjectDetailsTest(APITestCase):
         assert response.status_code == 200
         assert response.data['stats']['unresolved'] == 1
 
+    def test_project_renamed_302(self):
+        project = self.create_project()
+        self.login_as(user=self.user)
+
+        url = reverse('sentry-api-0-project-details', kwargs={
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug,
+        })
+
+        # Rename the project
+        self.client.put(url, data={'slug': 'foobar'})
+
+        response = self.client.get(url)
+        assert response.status_code == 302
+        assert response.data['detail']['slug'] == 'foobar'
+
 
 class ProjectUpdateTest(APITestCase):
-    def test_simple(self):
-        project = self.project  # force creation
+    def setUp(self):
+        super(ProjectUpdateTest, self).setUp()
+        self.path = reverse('sentry-api-0-project-details', kwargs={
+            'organization_slug': self.project.organization.slug,
+            'project_slug': self.project.slug,
+        })
+        self.login_as(user=self.user)
+
+    def test_team_changes(self):
+        project = self.create_project()
+        team = self.create_team(members=[self.user])
         self.login_as(user=self.user)
         url = reverse(
             'sentry-api-0-project-details',
@@ -77,24 +102,61 @@ class ProjectUpdateTest(APITestCase):
         )
         resp = self.client.put(
             url, data={
-                'name': 'hello world',
-                'slug': 'foobar',
-                'platform': 'cocoa',
+                'team': team.slug,
             }
         )
         assert resp.status_code == 200, resp.content
         project = Project.objects.get(id=project.id)
-        assert project.name == 'hello world'
-        assert project.slug == 'foobar'
-        assert project.platform == 'cocoa'
+        assert project.teams.first() == team
 
-    def test_member_changes(self):
+    def test_team_changes_not_found(self):
+        project = self.create_project()
+        self.login_as(user=self.user)
+        url = reverse(
+            'sentry-api-0-project-details',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+            }
+        )
+        resp = self.client.put(
+            url, data={
+                'team': 'the-team-that-does-not-exist',
+            }
+        )
+        assert resp.status_code == 400, resp.content
+        assert resp.data['detail'][0] == 'The new team is not found.'
+        project = Project.objects.get(id=project.id)
+
+        assert project.teams.first() == self.team
+
+    def test_simple_member_restriction(self):
         project = self.create_project()
         user = self.create_user('bar@example.com')
         self.create_member(
             user=user,
             organization=project.organization,
-            teams=[project.team],
+            teams=[project.teams.first()],
+            role='member',
+        )
+        self.login_as(user)
+        resp = self.client.put(self.path, data={
+            'slug': 'zzz',
+            'isBookmarked': 'true',
+        })
+        assert resp.status_code == 403
+        assert not ProjectBookmark.objects.filter(
+            user=user,
+            project_id=self.project.id,
+        ).exists()
+
+    def test_member_changes_permission_denied(self):
+        project = self.create_project()
+        user = self.create_user('bar@example.com')
+        self.create_member(
+            user=user,
+            organization=project.organization,
+            teams=[project.teams.first()],
             role='member',
         )
         self.login_as(user=user)
@@ -111,24 +173,58 @@ class ProjectUpdateTest(APITestCase):
                 'isBookmarked': 'true',
             }
         )
-        assert response.status_code == 200
-        assert response.data['slug'] != 'zzz'
+        assert response.status_code == 403
 
-        assert ProjectBookmark.objects.filter(
+        assert Project.objects.get(id=project.id).slug != 'zzz'
+
+        assert not ProjectBookmark.objects.filter(
             user=user,
             project_id=project.id,
         ).exists()
 
-    def test_options(self):
-        project = self.project  # force creation
-        self.login_as(user=self.user)
-        url = reverse(
-            'sentry-api-0-project-details',
-            kwargs={
-                'organization_slug': project.organization.slug,
-                'project_slug': project.slug,
-            }
+    def test_name(self):
+        resp = self.client.put(self.path, data={
+            'name': 'hello world',
+        })
+        assert resp.status_code == 200, resp.content
+        project = Project.objects.get(id=self.project.id)
+        assert project.name == 'hello world'
+
+    def test_slug(self):
+        resp = self.client.put(self.path, data={
+            'slug': 'foobar',
+        })
+        assert resp.status_code == 200, resp.content
+        project = Project.objects.get(id=self.project.id)
+        assert project.slug == 'foobar'
+        assert ProjectRedirect.objects.filter(
+            project=self.project,
+            redirect_slug=self.project.slug,
         )
+        assert AuditLogEntry.objects.filter(
+            organization=project.organization,
+            event=AuditLogEntryEvent.PROJECT_EDIT,
+        ).exists()
+
+    def test_invalid_slug(self):
+        new_project = self.create_project()
+        resp = self.client.put(self.path, data={
+            'slug': new_project.slug,
+        })
+
+        assert resp.status_code == 400
+        project = Project.objects.get(id=self.project.id)
+        assert project.slug != new_project.slug
+
+    def test_platform(self):
+        resp = self.client.put(self.path, data={
+            'platform': 'cocoa',
+        })
+        assert resp.status_code == 200, resp.content
+        project = Project.objects.get(id=self.project.id)
+        assert project.platform == 'cocoa'
+
+    def test_options(self):
         options = {
             'sentry:origins': 'foo\nbar',
             'sentry:resolve_age': 1,
@@ -138,10 +234,14 @@ class ProjectUpdateTest(APITestCase):
             'sentry:safe_fields': ['token'],
             'sentry:csp_ignored_sources_defaults': False,
             'sentry:csp_ignored_sources': 'foo\nbar',
+            'filters:blacklisted_ips': '127.0.0.1\n198.51.100.0',
+            'filters:releases': '1.*\n2.1.*',
+            'filters:error_messages': 'TypeError*\n*: integer division by modulo or zero',
         }
-        resp = self.client.put(url, data={'options': options})
+        with self.feature('projects:custom-inbound-filters'):
+            resp = self.client.put(self.path, data={'options': options})
         assert resp.status_code == 200, resp.content
-        project = Project.objects.get(id=project.id)
+        project = Project.objects.get(id=self.project.id)
         assert project.get_option('sentry:origins', []) == options['sentry:origins'].split('\n')
         assert project.get_option('sentry:resolve_age', 0) == options['sentry:resolve_age']
         assert project.get_option('sentry:scrub_data', True) == options['sentry:scrub_data']
@@ -153,70 +253,277 @@ class ProjectUpdateTest(APITestCase):
                                   True) == options['sentry:csp_ignored_sources_defaults']
         assert project.get_option('sentry:csp_ignored_sources',
                                   []) == options['sentry:csp_ignored_sources'].split('\n')
+        assert project.get_option('sentry:blacklisted_ips') == ['127.0.0.1', '198.51.100.0']
+        assert project.get_option('sentry:releases') == ['1.*', '2.1.*']
+        assert project.get_option('sentry:error_messages') == [
+            'TypeError*', '*: integer division by modulo or zero'
+        ]
 
     def test_bookmarks(self):
-        project = self.project  # force creation
-        self.login_as(user=self.user)
-        url = reverse(
-            'sentry-api-0-project-details',
-            kwargs={
-                'organization_slug': project.organization.slug,
-                'project_slug': project.slug,
-            }
-        )
-        resp = self.client.put(
-            url, data={
-                'isBookmarked': 'true',
-            }
-        )
-        assert resp.status_code == 200, resp.content
-        assert ProjectBookmark.objects.filter(
-            project_id=project.id,
-            user=self.user,
-        ).exists()
-
-        resp = self.client.put(
-            url, data={
-                'isBookmarked': 'false',
-            }
-        )
+        resp = self.client.put(self.path, data={
+            'isBookmarked': 'false',
+        })
         assert resp.status_code == 200, resp.content
         assert not ProjectBookmark.objects.filter(
-            project_id=project.id,
+            project_id=self.project.id,
             user=self.user,
         ).exists()
 
     def test_subscription(self):
-        project = self.project  # force creation
-        self.login_as(user=self.user)
-        url = reverse(
-            'sentry-api-0-project-details',
-            kwargs={
-                'organization_slug': project.organization.slug,
-                'project_slug': project.slug,
-            }
-        )
-        resp = self.client.put(
-            url, data={
-                'isSubscribed': 'true',
-            }
-        )
+        resp = self.client.put(self.path, data={
+            'isSubscribed': 'true',
+        })
         assert resp.status_code == 200, resp.content
         assert UserOption.objects.get(
             user=self.user,
-            project=project,
+            project=self.project,
         ).value == 1
 
-        resp = self.client.put(
-            url, data={
-                'isSubscribed': 'false',
-            }
-        )
+        resp = self.client.put(self.path, data={
+            'isSubscribed': 'false',
+        })
         assert resp.status_code == 200, resp.content
         assert UserOption.objects.get(
             user=self.user,
-            project=project,
+            project=self.project,
         ).value == 0
+
+    def test_security_token(self):
+        resp = self.client.put(self.path, data={
+            'securityToken': 'fizzbuzz',
+        })
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_security_token() == 'fizzbuzz'
+        assert resp.data['securityToken'] == 'fizzbuzz'
+
+        # can delete
+        resp = self.client.put(self.path, data={
+            'securityToken': '',
+        })
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_security_token() == ''
+        assert resp.data['securityToken'] == ''
+
+    def test_security_token_header(self):
+        resp = self.client.put(self.path, data={
+            'securityTokenHeader': 'X-Hello-World',
+        })
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_option('sentry:token_header') == 'X-Hello-World'
+        assert resp.data['securityTokenHeader'] == 'X-Hello-World'
+
+        # can delete
+        resp = self.client.put(self.path, data={
+            'securityTokenHeader': '',
+        })
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_option('sentry:token_header') == ''
+        assert resp.data['securityTokenHeader'] == ''
+
+    def test_verify_ssl(self):
+        resp = self.client.put(self.path, data={
+            'verifySSL': False,
+        })
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_option('sentry:verify_ssl') is False
+        assert resp.data['verifySSL'] is False
+
+    def test_scrub_ip_address(self):
+        resp = self.client.put(self.path, data={
+            'scrubIPAddresses': True,
+        })
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_option('sentry:scrub_ip_address') is True
+        assert resp.data['scrubIPAddresses'] is True
+
+        resp = self.client.put(self.path, data={
+            'scrubIPAddresses': False,
+        })
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_option('sentry:scrub_ip_address') is False
+        assert resp.data['scrubIPAddresses'] is False
+
+    def test_scrape_javascript(self):
+        resp = self.client.put(self.path, data={
+            'scrapeJavaScript': False,
+        })
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_option('sentry:scrape_javascript') is False
+        assert resp.data['scrapeJavaScript'] is False
+
+    def test_default_environment(self):
+        resp = self.client.put(self.path, data={
+            'defaultEnvironment': 'dev',
+        })
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_option('sentry:default_environment') == 'dev'
+        assert resp.data['defaultEnvironment'] == 'dev'
+
+        resp = self.client.put(self.path, data={
+            'defaultEnvironment': '',
+        })
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_option('sentry:default_environment') == ''
+        assert resp.data['defaultEnvironment'] == ''
+
+    def test_resolve_age(self):
+        resp = self.client.put(self.path, data={
+            'resolveAge': 5,
+        })
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_option('sentry:resolve_age') == 5
+        assert resp.data['resolveAge'] == 5
+
+        # can set to 0 or delete
+        resp = self.client.put(self.path, data={
+            'resolveAge': '',
+        })
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_option('sentry:resolve_age') == 0
+        assert resp.data['resolveAge'] == 0
+
+    def test_allowed_domains(self):
+        resp = self.client.put(self.path, data={
+            'allowedDomains': ['foobar.com', 'https://example.com'],
+        })
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_option('sentry:origins') == ['foobar.com', 'https://example.com']
+        assert resp.data['allowedDomains'] == ['foobar.com', 'https://example.com']
+
+        # cannot be empty
+        resp = self.client.put(self.path, data={
+            'allowedDomains': '',
+        })
+        assert resp.status_code == 400, resp.content
+        assert self.project.get_option('sentry:origins') == ['foobar.com', 'https://example.com']
+        assert resp.data['allowedDomains'] == [
+            'Empty value will block all requests, use * to accept from all domains']
+
+        resp = self.client.put(self.path, data={
+            'allowedDomains': ['*', ''],
+        })
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_option('sentry:origins') == ['*']
+        assert resp.data['allowedDomains'] == ['*']
+
+    def test_safe_fields(self):
+        resp = self.client.put(self.path, data={
+            'safeFields': ['foobar.com', 'https://example.com'],
+        })
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_option('sentry:safe_fields') == [
+            'foobar.com', 'https://example.com']
+        assert resp.data['safeFields'] == ['foobar.com', 'https://example.com']
+
+    def test_sensitive_fields(self):
+        resp = self.client.put(self.path, data={
+            'sensitiveFields': ['foobar.com', 'https://example.com'],
+        })
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_option('sentry:sensitive_fields') == [
+            'foobar.com', 'https://example.com']
+        assert resp.data['sensitiveFields'] == ['foobar.com', 'https://example.com']
+
+    def test_data_scrubber(self):
+        resp = self.client.put(self.path, data={
+            'dataScrubber': False,
+        })
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_option('sentry:scrub_data') is False
+        assert resp.data['dataScrubber'] is False
+
+    def test_data_scrubber_defaults(self):
+        resp = self.client.put(self.path, data={
+            'dataScrubberDefaults': False,
+        })
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_option('sentry:scrub_defaults') is False
+        assert resp.data['dataScrubberDefaults'] is False
+
+    def test_digests_delay(self):
+        resp = self.client.put(self.path, data={
+            'digestsMinDelay': 1000
+        })
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_option('digests:mail:minimum_delay') == 1000
+
+        resp = self.client.put(self.path, data={
+            'digestsMaxDelay': 1200
+        })
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_option('digests:mail:maximum_delay') == 1200
+
+        resp = self.client.put(self.path, data={
+            'digestsMinDelay': 300,
+            'digestsMaxDelay': 600,
+        })
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_option('digests:mail:minimum_delay') == 300
+        assert self.project.get_option('digests:mail:maximum_delay') == 600
+
+    def test_digests_min_without_max(self):
+        resp = self.client.put(self.path, data={
+            'digestsMinDelay': 1200
+        })
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_option('digests:mail:minimum_delay') == 1200
+
+    def test_digests_max_without_min(self):
+        resp = self.client.put(self.path, data={
+            'digestsMaxDelay': 1200
+        })
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_option('digests:mail:maximum_delay') == 1200
+
+    def test_invalid_digests_min_delay(self):
+        min_delay = 120
+
+        self.project.update_option('digests:mail:minimum_delay', min_delay)
+
+        resp = self.client.put(self.path, data={
+            'digestsMinDelay': 59
+        })
+        assert resp.status_code == 400
+
+        resp = self.client.put(self.path, data={
+            'digestsMinDelay': 3601
+        })
+        assert resp.status_code == 400
+        assert self.project.get_option('digests:mail:minimum_delay') == min_delay
+
+    def test_invalid_digests_max_delay(self):
+        min_delay = 120
+        max_delay = 360
+
+        self.project.update_option('digests:mail:minimum_delay', min_delay)
+        self.project.update_option('digests:mail:maximum_delay', max_delay)
+
+        resp = self.client.put(self.path, data={
+            'digestsMaxDelay': 59
+        })
+        assert resp.status_code == 400
+
+        resp = self.client.put(self.path, data={
+            'digestsMaxDelay': 3601
+        })
+        assert resp.status_code == 400
+        assert self.project.get_option('digests:mail:maximum_delay') == max_delay
+
+        # test sending only max
+        resp = self.client.put(self.path, data={
+            'digestsMaxDelay': 100
+        })
+        assert resp.status_code == 400
+        assert self.project.get_option('digests:mail:maximum_delay') == max_delay
+
+        # test sending min + invalid max
+        resp = self.client.put(self.path, data={
+            'digestsMinDelay': 120,
+            'digestsMaxDelay': 100,
+        })
+        assert resp.status_code == 400
+        assert self.project.get_option('digests:mail:minimum_delay') == min_delay
+        assert self.project.get_option('digests:mail:maximum_delay') == max_delay
 
 
 class ProjectDeleteTest(APITestCase):
@@ -253,6 +560,8 @@ class ProjectDeleteTest(APITestCase):
         )
 
         assert Project.objects.get(id=project.id).status == ProjectStatus.PENDING_DELETION
+        deleted_project = DeletedProject.objects.get(slug=project.slug)
+        self.assert_valid_deleted_log(deleted_project, project)
 
     @mock.patch('sentry.api.endpoints.project_details.delete_project')
     def test_internal_project(self, mock_delete_project):

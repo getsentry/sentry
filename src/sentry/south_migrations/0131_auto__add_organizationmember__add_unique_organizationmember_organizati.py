@@ -20,7 +20,7 @@ class Migration(SchemaMigration):
                     )
                 ), ('type', self.gf('django.db.models.fields.PositiveIntegerField')(default=50)), (
                     'date_added',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ),
             )
         )
@@ -38,7 +38,7 @@ class Migration(SchemaMigration):
                     self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.User'])
                 ), ('status', self.gf('django.db.models.fields.PositiveIntegerField')(default=0)), (
                     'date_added',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ),
             )
         )

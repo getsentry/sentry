@@ -1,38 +1,42 @@
+import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import ReactDOM from 'react-dom';
 import Reflux from 'reflux';
-import _ from 'underscore';
+import _ from 'lodash';
 import classNames from 'classnames';
 
-import StreamTagStore from '../../stores/streamTagStore';
+import TagStore from '../../stores/tagStore';
 import MemberListStore from '../../stores/memberListStore';
 
 import ApiMixin from '../../mixins/apiMixin';
 import {t} from '../../locale';
 
-import PureRenderMixin from 'react-addons-pure-render-mixin';
-
 import SearchDropdown from './searchDropdown';
+import OrganizationState from '../../mixins/organizationState';
 
-const SearchBar = React.createClass({
+const SearchBar = createReactClass({
+  displayName: 'SearchBar',
+
   propTypes: {
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-
-    defaultQuery: React.PropTypes.string,
-    query: React.PropTypes.string,
-    defaultSearchItems: React.PropTypes.array.isRequired,
-    disabled: React.PropTypes.bool,
-    placeholder: React.PropTypes.string,
-
-    onQueryChange: React.PropTypes.func,
-    onSearch: React.PropTypes.func
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    defaultQuery: PropTypes.string,
+    query: PropTypes.string,
+    defaultSearchItems: PropTypes.array.isRequired,
+    disabled: PropTypes.bool,
+    placeholder: PropTypes.string,
+    onSearch: PropTypes.func,
+    // If true, excludes the environment tag from the autocompletion list
+    // This is because we don't want to treat environment as a tag in some places
+    // such as the stream view where it is a top level concept
+    excludeEnvironment: PropTypes.bool,
   },
 
   mixins: [
     ApiMixin,
-    PureRenderMixin,
-    Reflux.listenTo(MemberListStore, 'onMemberListStoreChange')
+    OrganizationState,
+    Reflux.listenTo(MemberListStore, 'onMemberListStoreChange'),
   ],
 
   statics: {
@@ -53,7 +57,7 @@ const SearchBar = React.createClass({
      */
     getQueryTerms(query, cursor) {
       return query.slice(0, cursor).match(/\S+:"[^"]*"?|\S+/g);
-    }
+    },
   },
 
   getDefaultProps() {
@@ -61,47 +65,55 @@ const SearchBar = React.createClass({
       defaultQuery: '',
       query: null,
       onSearch: function() {},
-      onQueryChange: function() {},
-
+      excludeEnvironment: false,
       defaultSearchItems: [
         {
           title: t('Tag'),
           desc: t('key/value pair associated to an issue'),
           example: 'browser:"Chrome 34", has:browser',
           className: 'icon-tag',
-          value: 'browser:'
+          value: 'browser:',
         },
         {
           title: t('Status'),
           desc: t('State of an issue'),
           example: 'is:resolved, unresolved, ignored, assigned, unassigned',
           className: 'icon-toggle',
-          value: 'is:'
+          value: 'is:',
+        },
+        {
+          title: t('Time or Count'),
+          desc: t('Time or Count related search'),
+          example: 'firstSeen, lastSeen, event.timestamp, timesSeen',
+          className: 'icon-clock',
+          value: '',
         },
         {
           title: t('Assigned'),
           desc: t('team member assigned to an issue'),
           example: 'assigned:[me|user@example.com]',
           className: 'icon-user',
-          value: 'assigned:'
+          value: 'assigned:',
         },
         {
           title: t('Bookmarked By'),
           desc: t('team member who bookmarked an issue'),
           example: 'bookmarks:[me|user@example.com]',
           className: 'icon-user',
-          value: 'bookmarks:'
+          value: 'bookmarks:',
         },
         {
           desc: t('or paste an event id to jump straight to it'),
           className: 'icon-hash',
-          value: ''
-        }
-      ]
+          value: '',
+        },
+      ],
     };
   },
 
   getInitialState() {
+    const hasEnvironmentsFeature = this.getFeatures().has('environments');
+
     return {
       query: this.props.query !== null ? this.props.query : this.props.defaultQuery,
 
@@ -113,7 +125,8 @@ const SearchBar = React.createClass({
       members: MemberListStore.getAll(),
 
       dropdownVisible: false,
-      loading: false
+      loading: false,
+      hasEnvironmentsFeature,
     };
   },
 
@@ -121,7 +134,7 @@ const SearchBar = React.createClass({
     // query was updated by another source (e.g. sidebar filters)
     if (nextProps.query !== this.state.query) {
       this.setState({
-        query: nextProps.query
+        query: nextProps.query,
       });
     }
   },
@@ -144,7 +157,7 @@ const SearchBar = React.createClass({
 
   onQueryFocus() {
     this.setState({
-      dropdownVisible: true
+      dropdownVisible: true,
     });
   },
 
@@ -178,9 +191,17 @@ const SearchBar = React.createClass({
    * e.g. ['is:', 'assigned:', 'url:', 'release:']
    */
   getTagKeys: function(query) {
-    return StreamTagStore.getTagKeys()
+    const allKeys = TagStore.getTagKeys()
       .map(key => key + ':')
       .filter(key => key.indexOf(query) > -1);
+
+    // If the environment feature is active and excludeEnvironment = true
+    // then remove the environment key
+    if (this.state.hasEnvironmentsFeature && this.props.excludeEnvironment) {
+      return allKeys.filter(key => key !== 'environment:');
+    } else {
+      return allKeys;
+    }
   },
 
   /**
@@ -192,13 +213,14 @@ const SearchBar = React.createClass({
     query = query.replace('"', '').trim();
 
     this.setState({
-      loading: true
+      loading: true,
     });
 
     let {orgId, projectId} = this.props;
+
     this.api.request(`/projects/${orgId}/${projectId}/tags/${tag.key}/values/`, {
       data: {
-        query: query
+        query,
       },
       method: 'GET',
       success: values => {
@@ -211,7 +233,7 @@ const SearchBar = React.createClass({
           tag.key,
           query
         );
-      }
+      },
     });
   }, 300),
 
@@ -269,7 +291,7 @@ const SearchBar = React.createClass({
       return void this.setState({
         searchTerm: '',
         searchItems: this.props.defaultSearchItems,
-        activeSearchItem: 0
+        activeSearchItem: 0,
       });
     }
 
@@ -298,11 +320,21 @@ const SearchBar = React.createClass({
 
       this.setState({
         searchTerm: query,
-        searchItems: filteredSearchItems
+        searchItems: filteredSearchItems,
       });
 
-      let tag = StreamTagStore.getTag(tagName);
+      let tag = TagStore.getTag(tagName);
+
       if (!tag) return undefined;
+
+      // Ignore the environment tag if the feature is active and excludeEnvironment = true
+      if (
+        this.state.hasEnvironmentsFeature &&
+        this.props.excludeEnvironment &&
+        tagName === 'environment'
+      ) {
+        return undefined;
+      }
 
       return void (tag.predefined ? this.getPredefinedTagValues : this.getTagValues)(
         tag,
@@ -321,7 +353,7 @@ const SearchBar = React.createClass({
     autoCompleteItems = autoCompleteItems.map(item => {
       let out = {
         desc: item,
-        value: item
+        value: item,
       };
 
       // Specify icons according to tag value
@@ -332,6 +364,11 @@ const SearchBar = React.createClass({
         case 'assigned':
         case 'bookmarks':
           out.className = 'icon-user';
+          break;
+        case 'firstSeen':
+        case 'lastSeen':
+        case 'event.timestamp':
+          out.className = 'icon-clock';
           break;
         default:
           out.className = 'icon-tag';
@@ -345,7 +382,7 @@ const SearchBar = React.createClass({
 
     this.setState({
       searchItems: autoCompleteItems.slice(0, 5), // only show 5
-      activeSearchItem: 0
+      activeSearchItem: 0,
     });
   },
 
@@ -361,9 +398,10 @@ const SearchBar = React.createClass({
       // Move active selection up/down
       delete searchItems[state.activeSearchItem].active;
 
-      state.activeSearchItem = evt.key === 'ArrowDown'
-        ? Math.min(state.activeSearchItem + 1, searchItems.length - 1)
-        : Math.max(state.activeSearchItem - 1, 0);
+      state.activeSearchItem =
+        evt.key === 'ArrowDown'
+          ? Math.min(state.activeSearchItem + 1, searchItems.length - 1)
+          : Math.max(state.activeSearchItem - 1, 0);
 
       searchItems[state.activeSearchItem].active = true;
       this.setState({searchItems: searchItems.slice(0)});
@@ -392,18 +430,19 @@ const SearchBar = React.createClass({
 
       newQuery = query.slice(0, lastTermIndex); // get text preceding last term
 
-      newQuery = last.indexOf(':') > -1
-        ? // tag key present: replace everything after colon with replaceText
-          newQuery.replace(/\:"[^"]*"?$|\:\S*$/, ':' + replaceText)
-        : // no tag key present: replace last token with replaceText
-          newQuery.replace(/\S+$/, replaceText);
+      newQuery =
+        last.indexOf(':') > -1
+          ? // tag key present: replace everything after colon with replaceText
+            newQuery.replace(/\:"[^"]*"?$|\:\S*$/, ':' + replaceText)
+          : // no tag key present: replace last token with replaceText
+            newQuery.replace(/\S+$/, replaceText);
 
       newQuery = newQuery.concat(query.slice(lastTermIndex));
     }
 
     this.setState(
       {
-        query: newQuery
+        query: newQuery,
       },
       () => {
         // setting a new input value will lose focus; restore it
@@ -419,7 +458,7 @@ const SearchBar = React.createClass({
   onMemberListStoreChange(members) {
     this.setState(
       {
-        members: members
+        members,
       },
       this.updateAutoCompleteItems
     );
@@ -427,7 +466,7 @@ const SearchBar = React.createClass({
 
   render() {
     let dropdownStyle = {
-      display: this.state.dropdownVisible ? 'block' : 'none'
+      display: this.state.dropdownVisible ? 'block' : 'none',
     };
 
     let rootClassNames = ['search'];
@@ -454,15 +493,16 @@ const SearchBar = React.createClass({
               disabled={this.props.disabled}
             />
             <span className="icon-search" />
-            {this.state.query !== '' &&
+            {this.state.query !== '' && (
               <div>
                 <a className="search-clear-form" onClick={this.clearSearch}>
                   <span className="icon-circle-cross" />
                 </a>
-              </div>}
+              </div>
+            )}
           </div>
 
-          {(this.state.loading || this.state.searchItems.length > 0) &&
+          {(this.state.loading || this.state.searchItems.length > 0) && (
             <div style={dropdownStyle}>
               <SearchDropdown
                 style={dropdownStyle}
@@ -471,11 +511,12 @@ const SearchBar = React.createClass({
                 loading={this.state.loading}
                 searchSubstring={this.state.searchTerm}
               />
-            </div>}
+            </div>
+          )}
         </form>
       </div>
     );
-  }
+  },
 });
 
 export default SearchBar;

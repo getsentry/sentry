@@ -8,6 +8,7 @@ sentry.web.frontend.accounts
 from __future__ import absolute_import
 
 import logging
+from functools import partial, update_wrapper
 
 import six
 
@@ -43,16 +44,6 @@ from sentry.utils import auth
 logger = logging.getLogger('sentry.accounts')
 
 
-def send_password_recovery_mail(request, user):
-    password_hash, created = LostPasswordHash.objects.get_or_create(user=user)
-    if not password_hash.is_valid():
-        password_hash.date_added = timezone.now()
-        password_hash.set_hash()
-        password_hash.save()
-    password_hash.send_recover_mail(request)
-    return password_hash
-
-
 @login_required
 def login_redirect(request):
     login_url = auth.get_login_redirect(request)
@@ -60,12 +51,11 @@ def login_redirect(request):
 
 
 def expired(request, user):
-    password_hash = send_password_recovery_mail(request, user)
-    return render_to_response(
-        'sentry/account/recover/expired.html', {
-            'email': password_hash.user.email,
-        }, request
-    )
+    password_hash = LostPasswordHash.for_user(user)
+    password_hash.send_email(request)
+
+    context = {'email': password_hash.user.email}
+    return render_to_response('sentry/account/recover/expired.html', context, request)
 
 
 def recover(request):
@@ -88,31 +78,40 @@ def recover(request):
         )
         logger.warning('recover.rate-limited', extra=extra)
 
-    form = RecoverPasswordForm(request.POST or None)
+    prefill = {'user': request.GET.get('email')}
+
+    form = RecoverPasswordForm(request.POST or None, initial=prefill)
     extra['user_recovered'] = form.data.get('user')
 
     if form.is_valid():
-        password_hash = send_password_recovery_mail(request, form.cleaned_data['user'])
+        email = form.cleaned_data['user']
+        password_hash = LostPasswordHash.for_user(email)
+        password_hash.send_email(request)
 
         extra['passwordhash_id'] = password_hash.id
         extra['user_id'] = password_hash.user_id
 
         logger.info('recover.sent', extra=extra)
-        return render_to_response(
-            'sentry/account/recover/sent.html', {
-                'email': password_hash.user.email,
-            }, request
-        )
 
-    context = {
-        'form': form,
-    }
+        tpl = 'sentry/account/recover/sent.html'
+        context = {'email': password_hash.user.email}
+
+        return render_to_response(tpl, context, request)
+
     if form._errors:
         logger.warning('recover.error', extra=extra)
-    return render_to_response('sentry/account/recover/index.html', context, request)
+
+    tpl = 'sentry/account/recover/index.html'
+    context = {'form': form}
+
+    return render_to_response(tpl, context, request)
 
 
-def recover_confirm(request, user_id, hash):
+def get_template(name, mode):
+    return 'sentry/account/{}/{}.html'.format(mode, name)
+
+
+def recover_confirm(request, user_id, hash, mode='recover'):
     try:
         password_hash = LostPasswordHash.objects.get(user=user_id, hash=hash)
         if not password_hash.is_valid():
@@ -121,47 +120,51 @@ def recover_confirm(request, user_id, hash):
         user = password_hash.user
 
     except LostPasswordHash.DoesNotExist:
-        context = {}
-        tpl = 'sentry/account/recover/failure.html'
+        tpl = get_template('failure', mode)
+        return render_to_response(tpl, {}, request)
 
-    else:
-        tpl = 'sentry/account/recover/confirm.html'
+    if request.method == 'POST':
+        form = ChangePasswordRecoverForm(request.POST)
+        if form.is_valid():
+            with transaction.atomic():
+                user.set_password(form.cleaned_data['password'])
+                user.refresh_session_nonce(request)
+                user.save()
 
-        if request.method == 'POST':
-            form = ChangePasswordRecoverForm(request.POST)
-            if form.is_valid():
-                with transaction.atomic():
-                    user.set_password(form.cleaned_data['password'])
-                    user.refresh_session_nonce(request)
-                    user.save()
+                # Ugly way of doing this, but Django requires the backend be set
+                user = authenticate(
+                    username=user.username,
+                    password=form.cleaned_data['password'],
+                )
 
-                    # Ugly way of doing this, but Django requires the backend be set
-                    user = authenticate(
-                        username=user.username,
-                        password=form.cleaned_data['password'],
-                    )
-
+                # Only log the user in if there is no two-factor on the
+                # account.
+                if not Authenticator.objects.user_has_2fa(user):
                     login_user(request, user)
 
-                    password_hash.delete()
+                password_hash.delete()
 
-                    capture_security_activity(
-                        account=user,
-                        type='password-changed',
-                        actor=request.user,
-                        ip_address=request.META['REMOTE_ADDR'],
-                        send_email=True,
-                    )
+                capture_security_activity(
+                    account=user,
+                    type='password-changed',
+                    actor=request.user,
+                    ip_address=request.META['REMOTE_ADDR'],
+                    send_email=True,
+                )
 
-                return login_redirect(request)
-        else:
-            form = ChangePasswordRecoverForm()
+            return login_redirect(request)
+    else:
+        form = ChangePasswordRecoverForm()
 
-        context = {
-            'form': form,
-        }
+    tpl = get_template('confirm', mode)
+    context = {'form': form}
 
     return render_to_response(tpl, context, request)
+
+
+# Set password variation of password recovery
+set_password_confirm = partial(recover_confirm, mode='set_password')
+set_password_confirm = update_wrapper(set_password_confirm, recover)
 
 
 @login_required
@@ -295,6 +298,8 @@ def account_settings(request):
                 user.send_confirm_email_singular(user_email)
                 msg = _('A confirmation email has been sent to %s.') % user_email.email
                 messages.add_message(request, messages.SUCCESS, msg)
+
+        user.clear_lost_passwords()
 
         messages.add_message(request, messages.SUCCESS, _('Your settings were saved.'))
         return HttpResponseRedirect(request.path)
@@ -509,11 +514,11 @@ def show_emails(request):
                 'email': email,
             }
         )
-
+        user.clear_lost_passwords()
         return HttpResponseRedirect(request.path)
 
     if 'primary' in request.POST:
-        new_primary = request.POST['new_primary_email'].lower()
+        new_primary = request.POST['new_primary_email'].lower().strip()
 
         if User.objects.filter(Q(email__iexact=new_primary) | Q(username__iexact=new_primary)
                                ).exclude(id=user.id).exists():
@@ -522,7 +527,13 @@ def show_emails(request):
             )
 
         elif new_primary != user.email:
-
+            new_primary_email = UserEmail.objects.get(user=user, email__iexact=new_primary)
+            if not new_primary_email.is_verified:
+                messages.add_message(
+                    request, messages.ERROR, _(
+                        "Cannot make an unverified address your primary email")
+                )
+                return HttpResponseRedirect(request.path)
             # update notification settings for those set to primary email with new primary email
             alert_email = UserOption.objects.get_value(user=user, key='alert_email')
 
@@ -545,16 +556,17 @@ def show_emails(request):
             if has_new_username and not User.objects.filter(username__iexact=new_primary).exists():
                 user.username = user.email
             user.save()
+        user.clear_lost_passwords()
         return HttpResponseRedirect(request.path)
 
     if email_form.is_valid():
 
-        alternative_email = email_form.cleaned_data['alt_email'].lower()
+        alternative_email = email_form.cleaned_data['alt_email'].lower().strip()
 
         # check if this alternative email already exists for user
         if alternative_email and not UserEmail.objects.filter(
             user=user, email__iexact=alternative_email
-        ):
+        ).exists():
             # create alternative email for user
             try:
                 with transaction.atomic():
@@ -565,11 +577,6 @@ def show_emails(request):
                 new_email.set_hash()
                 new_email.save()
                 user.send_confirm_email_singular(new_email)
-                # Update newsletter subscription and mark as unverified
-                newsletter.update_subscription(
-                    user=user,
-                    verified=False,
-                )
 
                 logger.info(
                     'user.email.add',
@@ -581,6 +588,8 @@ def show_emails(request):
                 )
                 msg = _('A confirmation email has been sent to %s.') % new_email.email
                 messages.add_message(request, messages.SUCCESS, msg)
+
+        user.clear_lost_passwords()
 
         messages.add_message(request, messages.SUCCESS, _('Your settings were saved.'))
         return HttpResponseRedirect(request.path)

@@ -36,7 +36,13 @@ class IssueGroupActionEndpoint(PluginGroupEndpoint):
 
 class IssueTrackingPlugin2(Plugin):
     auth_provider = None
+
     allowed_actions = ('create', 'link', 'unlink')
+
+    # we default this to None to support legacy integrations, but newer style
+    # should explicitly call out what is stored
+    issue_fields = None
+    # issue_fields = frozenset(['id', 'title', 'url'])
 
     def configure(self, project, request):
         return react_plugin_config(self, project, request)
@@ -139,31 +145,38 @@ class IssueTrackingPlugin2(Plugin):
     def get_link_existing_issue_fields(self, request, group, event, **kwargs):
         return []
 
-    def get_issue_url(self, group, issue_id, **kwargs):
+    def _get_issue_url_compat(self, group, issue, **kwargs):
+        if self.issue_fields is None:
+            return self.get_issue_url(group, issue['id'])
+        return self.get_issue_url(group, issue)
+
+    def _get_issue_label_compat(self, group, issue, **kwargs):
+        if self.issue_fields is None:
+            return self.get_issue_label(group, issue['id'])
+        return self.get_issue_label(group, issue)
+
+    def get_issue_url(self, group, issue, **kwargs):
         """
-        Given an issue_id (string) return an absolute URL to the issue's details
+        Given an issue context (issue_id string or issue dict) return an absolute URL to the issue's details
         page.
         """
         raise NotImplementedError
 
-    # TODO: should this return more than just title?
-    def get_issue_title_by_id(self, request, group, issue_id):
+    def get_issue_label(self, group, issue, **kwargs):
         """
-        Given an issue_id return the issue's title.
-        """
-        raise NotImplementedError
-
-    def get_issue_label(self, group, issue_id, **kwargs):
-        """
-        Given an issue_id (string) return a string representing the issue.
+        Given an issue context (issue_id string or issue dict) return a string representing the issue.
 
         e.g. GitHub represents issues as GH-XXX
         """
-        return '#%s' % issue_id
+        if isinstance(issue, dict):
+            return '#{}'.format(issue['id'])
+        return '#{}'.format(issue)
 
     def create_issue(self, request, group, form_data, **kwargs):
         """
         Creates the issue on the remote service and returns an issue ID.
+
+        Returns ``{'id': '1', 'title': issue_title}``
         """
         raise NotImplementedError
 
@@ -172,7 +185,7 @@ class IssueTrackingPlugin2(Plugin):
         Can be overridden for any actions needed when linking issues
         (like adding a comment to an existing issue).
 
-        Returns ``{'title': issue_title}``
+        Returns ``{'id': '1', 'title': issue_title}``
         """
         pass
 
@@ -191,12 +204,50 @@ class IssueTrackingPlugin2(Plugin):
                     errors[field['name']] = u'%s is a required field.' % field['label']
         return errors
 
+    def get_issue_field_map(self):
+        # XXX(dcramer): legacy support
+        conf_key = self.get_conf_key()
+        if self.issue_fields is None:
+            return {
+                'id': '{}:tid'.format(conf_key)
+            }
+        return {
+            key: '{}:issue_{}'.format(
+                conf_key,
+                key,
+            )
+            for key in self.issue_fields
+        }
+
+    def build_issue(self, group):
+        issue_field_map = self.get_issue_field_map()
+        issue = {}
+        for key, meta_name in six.iteritems(issue_field_map):
+            issue[key] = GroupMeta.objects.get_value(group, meta_name, None)
+        if not any(issue.values()):
+            return None
+        return issue
+
+    def has_linked_issue(self, group):
+        return bool(self.build_issue(group))
+
+    def unlink_issue(self, request, group, issue, **kwargs):
+        issue_field_map = self.get_issue_field_map()
+        for meta_name in six.itervalues(issue_field_map):
+            GroupMeta.objects.unset_value(group, meta_name)
+        return self.redirect(group.get_absolute_url())
+
     def view_create(self, request, group, **kwargs):
         auth_errors = self.check_config_and_auth(request, group)
         if auth_errors:
             return Response(auth_errors, status=400)
 
         event = group.get_latest_event()
+        if event is None:
+            return Response({
+                'message': 'Unable to create issues: there are '
+                           'no events associated with this group',
+            }, status=400)
         Event.objects.bind_nodes([event], 'data')
         try:
             fields = self.get_new_issue_fields(request, group, event, **kwargs)
@@ -210,20 +261,29 @@ class IssueTrackingPlugin2(Plugin):
             return Response({'error_type': 'validation', 'errors': errors}, status=400)
 
         try:
-            issue_id = self.create_issue(
+            issue = self.create_issue(
                 group=group,
                 form_data=request.DATA,
                 request=request,
             )
         except Exception as e:
             return self.handle_api_error(e)
-        GroupMeta.objects.set_value(group, '%s:tid' % self.get_conf_key(), issue_id)
+
+        if not isinstance(issue, dict):
+            issue = {'id': issue}
+
+        issue_field_map = self.get_issue_field_map()
+        for key, meta_name in six.iteritems(issue_field_map):
+            if key in issue:
+                GroupMeta.objects.set_value(group, meta_name, issue[key])
+            else:
+                GroupMeta.objects.unset_value(group, meta_name)
 
         issue_information = {
-            'title': request.DATA['title'],
+            'title': issue.get('title') or request.DATA.get('title') or self._get_issue_label_compat(group, issue),
             'provider': self.get_title(),
-            'location': self.get_issue_url(group, issue_id),
-            'label': self.get_issue_label(group=group, issue_id=issue_id),
+            'location': self._get_issue_url_compat(group, issue),
+            'label': self._get_issue_label_compat(group, issue),
         }
         Activity.objects.create(
             project=group.project,
@@ -234,26 +294,25 @@ class IssueTrackingPlugin2(Plugin):
         )
 
         issue_tracker_used.send(
-            plugin=self, project=group.project, user=request.user, sender=IssueTrackingPlugin2
+            plugin=self, project=group.project, user=request.user,
+            sender=type(self)
         )
-        return Response({'issue_url': self.get_issue_url(group=group, issue_id=issue_id)})
-
-    def view_unlink(self, request, group, **kwargs):
-        auth_errors = self.check_config_and_auth(request, group)
-        if auth_errors:
-            return Response(auth_errors, status=400)
-        if GroupMeta.objects.get_value(group, '%s:tid' % self.get_conf_key(), None):
-            if 'unlink' in self.allowed_actions:
-                GroupMeta.objects.unset_value(group, '%s:tid' % self.get_conf_key())
-                return Response({'message': 'Successfully unlinked issue.'})
-        return Response({'message': 'No issues to unlink.'}, status=400)
+        return Response({'issue_url': self.get_issue_url(group, issue)})
 
     def view_link(self, request, group, **kwargs):
         auth_errors = self.check_config_and_auth(request, group)
         if auth_errors:
             return Response(auth_errors, status=400)
+
         event = group.get_latest_event()
+        if event is None:
+            return Response({
+                'message': 'Unable to create issues: there are '
+                           'no events associated with this group',
+            }, status=400)
+
         Event.objects.bind_nodes([event], 'data')
+
         try:
             fields = self.get_link_existing_issue_fields(request, group, event, **kwargs)
         except Exception as e:
@@ -265,30 +324,30 @@ class IssueTrackingPlugin2(Plugin):
             return Response({'error_type': 'validation', 'errors': errors}, status=400)
 
         try:
-            issue_id = int(request.DATA['issue_id'])
-        except ValueError:
-            issue_id = request.DATA['issue_id']
-
-        try:
             issue = self.link_issue(
                 group=group,
                 form_data=request.DATA,
                 request=request,
-            )
-            if issue is None:
-                issue = {
-                    'title': self.get_issue_title_by_id(request, group, issue_id),
-                }
+            ) or {}
         except Exception as e:
             return self.handle_api_error(e)
 
-        GroupMeta.objects.set_value(group, '%s:tid' % self.get_conf_key(), issue_id)
+        # HACK(dcramer): maintain data for legacy issues
+        if 'id' not in issue and 'issue_id' in request.DATA:
+            issue['id'] = request.DATA['issue_id']
+
+        issue_field_map = self.get_issue_field_map()
+        for key, meta_name in six.iteritems(issue_field_map):
+            if key in issue:
+                GroupMeta.objects.set_value(group, meta_name, issue[key])
+            else:
+                GroupMeta.objects.unset_value(group, meta_name)
 
         issue_information = {
-            'title': issue['title'],
+            'title': issue.get('title') or self._get_issue_label_compat(group, issue),
             'provider': self.get_title(),
-            'location': self.get_issue_url(group, issue_id),
-            'label': self.get_issue_label(group=group, issue_id=issue_id),
+            'location': self._get_issue_url_compat(group, issue),
+            'label': self._get_issue_label_compat(group, issue),
         }
         Activity.objects.create(
             project=group.project,
@@ -299,6 +358,37 @@ class IssueTrackingPlugin2(Plugin):
         )
         return Response({'message': 'Successfully linked issue.'})
 
+    def view_unlink(self, request, group, **kwargs):
+        auth_errors = self.check_config_and_auth(request, group)
+        if auth_errors:
+            return Response(auth_errors, status=400)
+        issue = self.build_issue(group)
+        if issue and 'unlink' in self.allowed_actions:
+            self.unlink_issue(request, group, issue)
+            return Response({'message': 'Successfully unlinked issue.'})
+        return Response({'message': 'No issues to unlink.'}, status=400)
+
+    def plugin_issues(self, request, group, plugin_issues, **kwargs):
+        if not self.is_configured(request=request, project=group.project):
+            return plugin_issues
+
+        item = {
+            'slug': self.slug,
+            'allowed_actions': self.allowed_actions,
+            'title': self.get_title()
+        }
+        issue = self.build_issue(group)
+        if issue:
+            item['issue'] = {
+                'issue_id': issue.get('id'),
+                'url': self._get_issue_url_compat(group, issue),
+                'label': self._get_issue_label_compat(group, issue),
+            }
+
+        item.update(PluginSerializer(group.project).serialize(self, None, request.user))
+        plugin_issues.append(item)
+        return plugin_issues
+
     def get_config(self, *args, **kwargs):
         # TODO(dcramer): update existing plugins to just use get_config
         # TODO(dcramer): remove request kwarg after sentry-plugins has been
@@ -308,7 +398,8 @@ class IssueTrackingPlugin2(Plugin):
 
     def check_config_and_auth(self, request, group):
         has_auth_configured = self.has_auth_configured()
-        if not (has_auth_configured and self.is_configured(project=group.project, request=request)):
+        if not (has_auth_configured and self.is_configured(
+                project=group.project, request=request)):
             if self.auth_provider:
                 required_auth_settings = settings.AUTH_PROVIDERS[self.auth_provider]
             else:
@@ -316,8 +407,6 @@ class IssueTrackingPlugin2(Plugin):
 
             return {
                 'error_type': 'config',
-                'title': self.get_title(),
-                'slug': self.slug,
                 'has_auth_configured': has_auth_configured,
                 'auth_provider': self.auth_provider,
                 'required_auth_settings': required_auth_settings,
@@ -326,46 +415,23 @@ class IssueTrackingPlugin2(Plugin):
         if self.needs_auth(project=group.project, request=request):
             return {
                 'error_type': 'auth',
-                'title': self.get_title(),
                 'auth_url': reverse('socialauth_associate', args=[self.auth_provider])
             }
-
-    def plugin_issues(self, request, group, plugin_issues, **kwargs):
-        if not self.is_configured(request=request, project=group.project):
-            return plugin_issues
-        prefix = self.get_conf_key()
-        issue_id = GroupMeta.objects.get_value(group, '%s:tid' % prefix, None)
-        item = {
-            'slug': self.slug,
-            'allowed_actions': self.allowed_actions,
-            'title': self.get_title()
-        }
-        if issue_id:
-            item['issue'] = {
-                'issue_id': issue_id,
-                'url': self.get_issue_url(group=group, issue_id=issue_id),
-                'label': self.get_issue_label(group=group, issue_id=issue_id),
-            }
-
-        item.update(PluginSerializer(group.project).serialize(self, None, request.user))
-        plugin_issues.append(item)
-        return plugin_issues
 
     # TODO: should we get rid of this (move it to react?)
     def tags(self, request, group, tag_list, **kwargs):
         if not self.is_configured(request=request, project=group.project):
             return tag_list
 
-        prefix = self.get_conf_key()
-        issue_id = GroupMeta.objects.get_value(group, '%s:tid' % prefix)
-        if not issue_id:
+        issue = self.build_issue(group)
+        if not issue:
             return tag_list
 
         tag_list.append(
             format_html(
                 '<a href="{}">{}</a>',
-                self.get_issue_url(group=group, issue_id=issue_id),
-                self.get_issue_label(group=group, issue_id=issue_id),
+                self._get_issue_url_compat(group, issue),
+                self._get_issue_label_compat(group, issue),
             )
         )
 

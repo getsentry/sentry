@@ -1,6 +1,5 @@
 import React from 'react';
 import {shallow} from 'enzyme';
-import toJson from 'enzyme-to-json';
 
 import {MultipleCheckboxField} from 'app/components/forms';
 
@@ -14,7 +13,7 @@ describe('MultipleCheckboxField', function() {
           value={['1']}
         />
       );
-      expect(toJson(wrapper)).toMatchSnapshot();
+      expect(wrapper).toMatchSnapshot();
     });
 
     it('renders with form context', function() {
@@ -24,14 +23,14 @@ describe('MultipleCheckboxField', function() {
           context: {
             form: {
               data: {
-                fieldName: ['1']
+                fieldName: ['1'],
               },
-              errors: {}
-            }
-          }
+              errors: {},
+            },
+          },
         }
       );
-      expect(toJson(wrapper)).toMatchSnapshot();
+      expect(wrapper).toMatchSnapshot();
     });
   });
 });

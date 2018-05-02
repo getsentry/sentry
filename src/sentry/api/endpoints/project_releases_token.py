@@ -47,9 +47,11 @@ class ProjectReleasesTokenEndpoint(ProjectEndpoint):
         if token is None:
             token = self._regenerate_token(project)
 
-        return Response({'token': token, 'webhookUrl': _get_webhook_url(project, 'builtin', token)})
+        return Response(
+            {'token': token, 'webhookUrl': _get_webhook_url(project, 'builtin', token)})
 
     def post(self, request, project):
         token = self._regenerate_token(project)
 
-        return Response({'token': token, 'webhookUrl': _get_webhook_url(project, 'builtin', token)})
+        return Response(
+            {'token': token, 'webhookUrl': _get_webhook_url(project, 'builtin', token)})

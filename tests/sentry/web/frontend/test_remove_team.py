@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import Team, TeamStatus
+from sentry.models import Team, TeamStatus, DeletedTeam
 from sentry.testutils import TestCase, PermissionTestCase
 
 
@@ -45,3 +45,5 @@ class RemoveTeamTest(TestCase):
         team = Team.objects.get(id=self.team.id)
 
         assert team.status == TeamStatus.PENDING_DELETION
+        deleted_team = DeletedTeam.objects.get(slug=team.slug)
+        self.assert_valid_deleted_log(deleted_team, team)

@@ -4,6 +4,32 @@ from six.moves.urllib.parse import urlencode
 
 from sentry.testutils import AcceptanceTestCase
 
+EMAILS = (
+    ('/debug/mail/assigned/', 'assigned'),
+    ('/debug/mail/assigned/self/', 'assigned self'),
+    ('/debug/mail/note/', 'note'),
+    ('/debug/mail/regression/', 'regression'),
+    ('/debug/mail/regression/release/', 'regression with version'),
+    ('/debug/mail/new-release/', 'release'),
+    ('/debug/mail/resolved/', 'resolved'),
+    ('/debug/mail/resolved-in-release/', 'resolved in release'),
+    ('/debug/mail/resolved-in-release/upcoming/', 'resolved in release upcoming'),
+    ('/debug/mail/unassigned/', 'unassigned'),
+    ('/debug/mail/unable-to-fetch-commits/', 'unable to fetch commits'),
+    ('/debug/mail/unable-to-delete-repo/', 'unable to delete repo'),
+    ('/debug/mail/alert/', 'alert'),
+    ('/debug/mail/digest/', 'digest'),
+    ('/debug/mail/invalid-identity/', 'invalid identity'),
+    ('/debug/mail/invitation/', 'invitation'),
+    ('/debug/mail/report/', 'report'),
+    ('/debug/mail/mfa-added/', 'mfa added'),
+    ('/debug/mail/mfa-removed/', 'mfa removed'),
+    ('/debug/mail/password-changed/', 'password changed'),
+    ('/debug/mail/sso-linked', 'sso linked'),
+    ('/debug/mail/sso-unlinked', 'sso unlinked'),
+    ('/debug/mail/sso-unlinked/no-password', 'sso unlinked without password'),
+)
+
 
 class EmailTestCase(AcceptanceTestCase):
     def setUp(self):
@@ -20,157 +46,12 @@ class EmailTestCase(AcceptanceTestCase):
             }),
         )
 
-    def test_assigned_html(self):
-        self.browser.get(self.build_url('/debug/mail/assigned/'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('assigned email html')
+    def test_emails(self):
+        for url, name in EMAILS:
+            self.browser.get(self.build_url(url, 'html'))
+            self.browser.wait_until('#preview')
+            self.browser.snapshot('{} email html'.format(name))
 
-    def test_assigned_txt(self):
-        self.browser.get(self.build_url('/debug/mail/assigned/', 'txt'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('assigned email txt')
-
-    def test_assigned_self_html(self):
-        self.browser.get(self.build_url('/debug/mail/assigned/self/'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('assigned_self email html')
-
-    def test_assigned_self_txt(self):
-        self.browser.get(self.build_url('/debug/mail/assigned/self/', 'txt'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('assigned_self email txt')
-
-    def test_note_html(self):
-        self.browser.get(self.build_url('/debug/mail/note/'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('note email html')
-
-    def test_note_txt(self):
-        self.browser.get(self.build_url('/debug/mail/note/', 'txt'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('note email txt')
-
-    def test_regression_html(self):
-        self.browser.get(self.build_url('/debug/mail/regression/'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('regression email html')
-
-    def test_regression_txt(self):
-        self.browser.get(self.build_url('/debug/mail/regression/', 'txt'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('regression email txt')
-
-    def test_regression_with_version_html(self):
-        self.browser.get(self.build_url('/debug/mail/regression/release/'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('regression_with_version email html')
-
-    def test_regression_with_version_txt(self):
-        self.browser.get(self.build_url('/debug/mail/regression/release/', 'txt'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('regression_with_version email txt')
-
-    def test_release_html(self):
-        self.browser.get(self.build_url('/debug/mail/new-release/'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('release email html')
-
-    def test_release_txt(self):
-        self.browser.get(self.build_url('/debug/mail/new-release/', 'txt'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('release email txt')
-
-    def test_resolved_html(self):
-        self.browser.get(self.build_url('/debug/mail/resolved/'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('resolved email html')
-
-    def test_resolved_txt(self):
-        self.browser.get(self.build_url('/debug/mail/resolved/', 'txt'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('resolved email txt')
-
-    def test_resolved_in_release_html(self):
-        self.browser.get(self.build_url('/debug/mail/resolved-in-release/'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('resolved_in_release email html')
-
-    def test_resolved_in_release_txt(self):
-        self.browser.get(self.build_url('/debug/mail/resolved-in-release/', 'txt'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('resolved_in_release email txt')
-
-    def test_resolved_in_release_upcoming_html(self):
-        self.browser.get(self.build_url('/debug/mail/resolved-in-release/upcoming/'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('resolved_in_release_upcoming email html')
-
-    def test_resolved_in_release_upcoming_txt(self):
-        self.browser.get(self.build_url('/debug/mail/resolved-in-release/upcoming/', 'txt'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('resolved_in_release_upcoming email txt')
-
-    def test_unassigned_html(self):
-        self.browser.get(self.build_url('/debug/mail/unassigned/'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('unassigned email html')
-
-    def test_unassigned_txt(self):
-        self.browser.get(self.build_url('/debug/mail/unassigned/', 'txt'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('unassigned email txt')
-
-    def test_new_event_html(self):
-        self.browser.get(self.build_url('/debug/mail/alert/'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('new event email html')
-
-    def test_new_event_txt(self):
-        self.browser.get(self.build_url('/debug/mail/alert/', 'txt'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('new event email txt')
-
-    def test_digest_html(self):
-        self.browser.get(self.build_url('/debug/mail/digest/'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('digest email html')
-
-    def test_digest_txt(self):
-        self.browser.get(self.build_url('/debug/mail/digest/', 'txt'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('digest email txt')
-
-    def test_report_html(self):
-        self.browser.get(self.build_url('/debug/mail/report/'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('report email html')
-
-    def test_mfa_added_html(self):
-        self.browser.get(self.build_url('/debug/mail/mfa-added/'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('mfa added email html')
-
-    def test_mfa_added_txt(self):
-        self.browser.get(self.build_url('/debug/mail/mfa-added/', 'txt'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('mfa added email txt')
-
-    def test_mfa_removed_html(self):
-        self.browser.get(self.build_url('/debug/mail/mfa-removed/'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('mfa removed email html')
-
-    def test_mfa_removed_text(self):
-        self.browser.get(self.build_url('/debug/mail/mfa-removed/', 'txt'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('mfa removed email txt')
-
-    def test_password_changed_html(self):
-        self.browser.get(self.build_url('/debug/mail/password-changed/'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('password changed email html')
-
-    def test_password_changed_text(self):
-        self.browser.get(self.build_url('/debug/mail/password-changed/', 'txt'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('password changed email txt')
+            self.browser.get(self.build_url(url, 'txt'))
+            self.browser.wait_until('#preview')
+            self.browser.snapshot('{} email txt'.format(name))

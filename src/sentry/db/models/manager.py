@@ -15,7 +15,8 @@ import weakref
 
 from django.conf import settings
 from django.db import router
-from django.db.models import Manager, Model
+from django.db.models import Model
+from django.db.models.manager import Manager, QuerySet
 from django.db.models.signals import (post_save, post_delete, post_init, class_prepared)
 from django.utils.encoding import smart_text
 
@@ -55,11 +56,26 @@ def make_key(model, prefix, kwargs):
     return '%s:%s:%s' % (prefix, model.__name__, md5_text(kwargs_bits).hexdigest())
 
 
+class BaseQuerySet(QuerySet):
+    # XXX(dcramer): we prefer values_list, but we cant disable values as Django uses it
+    # internally
+    # def values(self, *args, **kwargs):
+    #     raise NotImplementedError('Use ``values_list`` instead [performance].')
+
+    def defer(self, *args, **kwargs):
+        raise NotImplementedError('Use ``values_list`` instead [performance].')
+
+    def only(self, *args, **kwargs):
+        raise NotImplementedError('Use ``values_list`` instead [performance].')
+
+
 class BaseManager(Manager):
     lookup_handlers = {
         'iexact': lambda x: x.upper(),
     }
     use_for_related_fields = True
+
+    _queryset_class = BaseQuerySet
 
     def __init__(self, *args, **kwargs):
         self.cache_fields = kwargs.pop('cache_fields', [])
@@ -304,3 +320,12 @@ class BaseManager(Manager):
         """
         Triggered when a model bound to this manager is deleted.
         """
+
+    def get_queryset(self):
+        """
+        Returns a new QuerySet object.  Subclasses can override this method to
+        easily customize the behavior of the Manager.
+        """
+        if hasattr(self, '_hints'):
+            return self._queryset_class(self.model, using=self._db, hints=self._hints)
+        return self._queryset_class(self.model, using=self._db)

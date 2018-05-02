@@ -1,4 +1,4 @@
-import _ from 'underscore';
+import _ from 'lodash';
 
 /**
  * Converts a stream query to an object representation, with
@@ -19,7 +19,7 @@ export function queryToObj(queryStr) {
   let text = [];
 
   let queryItems = queryStr.match(/\S+:"[^"]*"?|\S+/g);
-  let queryObj = _.inject(
+  let queryObj = _.reduce(
     queryItems,
     (obj, item) => {
       let index = item.indexOf(':');

@@ -2,27 +2,28 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
-from sentry.api.base import DocSection
+from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.group import StreamGroupSerializer
+from sentry.api.serializers.models.group import GroupSerializer
 from sentry.models import (
     Group,
-    GroupCommitResolution,
+    GroupLink,
+    GroupResolution,
     Release,
     ReleaseCommit,
 )
 
 
-class IssuesResolvedInReleaseEndpoint(ProjectEndpoint):
+class IssuesResolvedInReleaseEndpoint(ProjectEndpoint, EnvironmentMixin):
     doc_section = DocSection.RELEASES
     permission_classes = (ProjectPermission, )
 
     def get(self, request, project, version):
         """
         List issues to be resolved in a particular release
-        ````````````````````````
+        ``````````````````````````````````````````````````
 
         Retrieve a list of issues to be resolved in a given release.
 
@@ -37,14 +38,35 @@ class IssuesResolvedInReleaseEndpoint(ProjectEndpoint):
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
-        groups = Group.objects.filter(
-            project=project,
-            id__in=GroupCommitResolution.objects.filter(
-                commit_id__in=ReleaseCommit.objects.filter(
+        group_ids = set()
+        group_ids |= set(
+            GroupResolution.objects.filter(
+                release=release,
+            ).values_list('group_id', flat=True)
+        )
+        group_ids |= set(
+            GroupLink.objects.filter(
+                linked_type=GroupLink.LinkedType.commit,
+                linked_id__in=ReleaseCommit.objects.filter(
                     release=release,
-                ).values_list('commit_id', flat=True),
-            ).values_list('group_id', flat=True),
+                ).values_list(
+                    'commit_id',
+                    flat=True,
+                )
+            ).values_list(
+                'group_id',
+                flat=True,
+            )
         )
 
-        context = serialize(list(groups), request.user, StreamGroupSerializer(stats_period=None))
+        groups = Group.objects.filter(project=project, id__in=group_ids)
+
+        context = serialize(
+            list(groups),
+            request.user,
+            GroupSerializer(
+                environment_func=self._get_environment_func(request, project.organization_id)
+            )
+        )
+
         return Response(context)

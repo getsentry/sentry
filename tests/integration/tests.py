@@ -10,6 +10,7 @@ import mock
 import six
 import zlib
 
+from sentry import tagstore
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.test.utils import override_settings
@@ -19,7 +20,7 @@ from gzip import GzipFile
 from raven import Client
 from six import StringIO
 
-from sentry.models import (Group, GroupTagKey, GroupTagValue, Event, TagKey, TagValue)
+from sentry.models import (Group, Event)
 from sentry.testutils import TestCase, TransactionTestCase
 from sentry.testutils.helpers import get_auth_header
 from sentry.utils.settings import (validate_settings, ConfigurationError, import_string)
@@ -172,26 +173,16 @@ class SentryRemoteTest(TestCase):
 
         assert instance.message == 'hello'
 
-        assert TagKey.objects.filter(
-            key='foo',
-            project=self.project,
-        ).exists()
-        assert TagValue.objects.filter(
-            key='foo',
-            value='bar',
-            project=self.project,
-        ).exists()
-        assert GroupTagKey.objects.filter(
-            key='foo',
-            group=instance.group_id,
-            project=self.project,
-        ).exists()
-        assert GroupTagValue.objects.filter(
-            key='foo',
-            value='bar',
-            group_id=instance.group_id,
-            project_id=self.project.id,
-        ).exists()
+        assert tagstore.get_tag_key(self.project.id, None, 'foo') is not None
+        assert tagstore.get_tag_value(self.project.id, None, 'foo', 'bar') is not None
+        assert tagstore.get_group_tag_key(
+            self.project.id, instance.group_id, None, 'foo') is not None
+        assert tagstore.get_group_tag_value(
+            instance.project_id,
+            instance.group_id,
+            None,
+            'foo',
+            'bar') is not None
 
     def test_timestamp(self):
         timestamp = timezone.now().replace(
@@ -236,19 +227,12 @@ class SentryRemoteTest(TestCase):
         instance = Event.objects.get()
         assert instance.message == 'hello'
 
-    @override_settings(SENTRY_ALLOW_ORIGIN='sentry.io')
-    def test_get_without_referer(self):
-        self.project.update_option('sentry:origins', '')
-        kwargs = {'message': 'hello'}
-        resp = self._getWithReferer(kwargs, referer=None, protocol='4')
-        assert resp.status_code == 403, (resp.status_code, resp.get('X-Sentry-Error'))
-
     @override_settings(SENTRY_ALLOW_ORIGIN='*')
     def test_get_without_referer_allowed(self):
         self.project.update_option('sentry:origins', '')
         kwargs = {'message': 'hello'}
         resp = self._getWithReferer(kwargs, referer=None, protocol='4')
-        assert resp.status_code == 200, (resp.status_code, resp.get('X-Sentry-Error'))
+        assert resp.status_code == 200, resp.content
 
     @override_settings(SENTRY_ALLOW_ORIGIN='sentry.io')
     def test_correct_data_with_post_referer(self):
@@ -263,14 +247,25 @@ class SentryRemoteTest(TestCase):
         self.project.update_option('sentry:origins', '')
         kwargs = {'message': 'hello'}
         resp = self._postWithReferer(kwargs, referer=None, protocol='4')
-        assert resp.status_code == 403, (resp.status_code, resp.get('X-Sentry-Error'))
+        assert resp.status_code == 200, resp.content
 
     @override_settings(SENTRY_ALLOW_ORIGIN='*')
     def test_post_without_referer_allowed(self):
         self.project.update_option('sentry:origins', '')
         kwargs = {'message': 'hello'}
         resp = self._postWithReferer(kwargs, referer=None, protocol='4')
-        assert resp.status_code == 403, (resp.status_code, resp.get('X-Sentry-Error'))
+        assert resp.status_code == 200, resp.content
+
+    @override_settings(SENTRY_ALLOW_ORIGIN='google.com')
+    def test_post_with_invalid_origin(self):
+        self.project.update_option('sentry:origins', 'sentry.io')
+        kwargs = {'message': 'hello'}
+        resp = self._postWithReferer(
+            kwargs,
+            referer='https://getsentry.net',
+            protocol='4'
+        )
+        assert resp.status_code == 403, resp.content
 
     def test_signature(self):
         kwargs = {'message': 'hello'}
@@ -492,7 +487,7 @@ class CspReportTest(TestCase):
 
     def assertReportRejected(self, input):
         resp = self._postCspWithHeader(input)
-        assert resp.status_code == 403, resp.content
+        assert resp.status_code in (400, 403), resp.content
 
     def test_chrome_blocked_asset(self):
         self.assertReportCreated(*get_fixtures('chrome_blocked_asset'))

@@ -14,18 +14,17 @@ from sentry.http import is_valid_url, safe_urlopen
 from sentry.utils.safe import safe_execute
 
 
+def split_urls(value):
+    if not value:
+        return ()
+    return filter(bool, (url.strip() for url in value.splitlines()))
+
+
 def validate_urls(value, **kwargs):
-    output = []
-    for url in value.split('\n'):
-        url = url.strip()
-        if not url:
-            continue
-        if not url.startswith(('http://', 'https://')):
-            raise PluginError('Not a valid URL.')
-        if not is_valid_url(url):
-            raise PluginError('Not a valid URL.')
-        output.append(url)
-    return '\n'.join(output)
+    urls = split_urls(value)
+    if any((not u.startswith(('http://', 'https://')) or not is_valid_url(u)) for u in urls):
+        raise PluginError('Not a valid URL.')
+    return '\n'.join(urls)
 
 
 class WebHooksOptionsForm(notify.NotificationConfigurationForm):
@@ -37,10 +36,6 @@ class WebHooksOptionsForm(notify.NotificationConfigurationForm):
         ),
         help_text=_('Enter callback URLs to POST new events to (one per line).')
     )
-
-    def clean_url(self):
-        value = self.cleaned_data.get('url')
-        return validate_urls(value)
 
 
 class WebHooksPlugin(notify.NotificationPlugin):
@@ -84,6 +79,7 @@ class WebHooksPlugin(notify.NotificationPlugin):
             'id': six.text_type(group.id),
             'project': group.project.slug,
             'project_name': group.project.name,
+            'project_slug': group.project.slug,
             'logger': event.get_tag('logger'),
             'level': event.get_tag('level'),
             'culprit': group.culprit,
@@ -97,10 +93,7 @@ class WebHooksPlugin(notify.NotificationPlugin):
         return data
 
     def get_webhook_urls(self, project):
-        urls = self.get_option('urls', project)
-        if not urls:
-            return ()
-        return filter(bool, urls.strip().splitlines())
+        return split_urls(self.get_option('urls', project))
 
     def send_webhook(self, url, payload):
         return safe_urlopen(

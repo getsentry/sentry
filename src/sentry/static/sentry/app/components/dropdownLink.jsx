@@ -1,88 +1,110 @@
-import jQuery from 'jquery';
+import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
 
-require('bootstrap/js/dropdown');
+import DropdownMenu from './dropdownMenu';
 
-const DropdownLink = React.createClass({
-  propTypes: {
-    title: React.PropTypes.node,
-    caret: React.PropTypes.bool,
-    disabled: React.PropTypes.bool,
-    onOpen: React.PropTypes.func,
-    onClose: React.PropTypes.func,
-    topLevelClasses: React.PropTypes.string,
-    menuClasses: React.PropTypes.string
-  },
+class DropdownLink extends React.Component {
+  static propTypes = {
+    ...DropdownMenu.propTypes,
 
-  getDefaultProps() {
-    return {
-      disabled: false,
-      caret: true
-    };
-  },
-  getInitialState() {
-    return {
-      isOpen: false
-    };
-  },
+    title: PropTypes.node,
+    /** display dropdown caret */
+    caret: PropTypes.bool,
+    disabled: PropTypes.bool,
 
-  componentDidMount() {
-    jQuery(this.refs.dropdownToggle).dropdown();
-    jQuery(this.refs.dropdownToggle.parentNode)
-      .on('shown.bs.dropdown', e => {
-        this.setState({
-          isOpen: true
-        });
-        this.props.onOpen && this.props.onOpen(e);
-      })
-      .on('hidden.bs.dropdown', e => {
-        setTimeout(() => {
-          if (!this.isMounted()) {
-            return;
-          }
-          this.setState({
-            isOpen: false
-          });
-          this.props.onClose && this.props.onClose(e);
-        });
-      });
-  },
+    /** anchors menu to the right */
+    anchorRight: PropTypes.bool,
 
-  componentWillUnmount() {
-    jQuery(this.refs.dropdownToggle.parentNode).off();
-  },
+    /**
+     * Always render children of dropdown menu, this is included to support
+     * menu items that open a confirm modal. Otherwise when dropdown menu hides,
+     * the modal also gets unmounted
+     */
+    alwaysRenderMenu: PropTypes.bool,
 
-  close() {
-    this.setState({isOpen: false});
-  },
+    topLevelClasses: PropTypes.string,
+    menuClasses: PropTypes.string,
+  };
+
+  static defaultProps = {
+    alwaysRenderMenu: true,
+    disabled: false,
+    anchorRight: false,
+    caret: true,
+  };
+
+  constructor(...args) {
+    super(...args);
+  }
 
   render() {
-    let className = classNames({
-      'dropdown-toggle': true,
-      disabled: this.props.disabled
-    });
+    let {
+      anchorRight,
+      disabled,
+      title,
+      caret,
+      children,
+      menuClasses,
+      className,
+      alwaysRenderMenu,
+      topLevelClasses,
+      ...otherProps
+    } = this.props;
 
-    let topLevelClasses = classNames({
-      dropdown: true,
-      open: this.state.isOpen
-    });
+    // Default anchor = left
+    let isRight = anchorRight;
 
+    // .dropdown-actor-title = flexbox to fix vertical alignment on firefox
+    // Need the extra container because dropdown-menu alignment is off if `dropdown-actor` is a flexbox
     return (
-      <span className={classNames(this.props.topLevelClasses, topLevelClasses)}>
-        <a
-          className={classNames(this.props.className, className)}
-          data-toggle="dropdown"
-          ref="dropdownToggle">
-          {this.props.title}
-          {this.props.caret && <i className="icon-arrow-down" />}
-        </a>
-        <ul className={classNames(this.props.menuClasses, 'dropdown-menu')}>
-          {this.props.children}
-        </ul>
-      </span>
+      <DropdownMenu {...otherProps}>
+        {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
+          let shouldRenderMenu = alwaysRenderMenu || isOpen;
+          let cx = classNames('dropdown-actor', className, {
+            'dropdown-menu-right': isRight,
+            'dropdown-toggle': true,
+            hover: isOpen,
+            disabled,
+          });
+          let topLevelCx = classNames('dropdown', topLevelClasses, {
+            'pull-right': isRight,
+            'anchor-right': isRight,
+            open: isOpen,
+          });
+
+          return (
+            <span
+              {...getRootProps({
+                className: topLevelCx,
+              })}
+            >
+              <a
+                {...getActorProps({
+                  className: cx,
+                })}
+              >
+                <div className="dropdown-actor-title">
+                  <span>{title}</span>
+                  {caret && <i className="icon-arrow-down" />}
+                </div>
+              </a>
+
+              {shouldRenderMenu && (
+                <ul
+                  {...getMenuProps({
+                    className: classNames(menuClasses, 'dropdown-menu'),
+                  })}
+                >
+                  {children}
+                </ul>
+              )}
+            </span>
+          );
+        }}
+      </DropdownMenu>
     );
   }
-});
+}
 
 export default DropdownLink;

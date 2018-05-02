@@ -1,5 +1,7 @@
 filter_secrets: false
-sudo: false
+group: deprecated-2017Q4
+dist: trusty
+sudo: required
 language: python
 rvm:
   - 2.2
@@ -17,49 +19,71 @@ addons:
       - ubuntu-toolchain-r-test
     packages:
       - g++-4.8
+      - libxmlsec1-dev
+  chrome: stable
 env:
   global:
     - NODE_ENV=production
     - PIP_DISABLE_PIP_VERSION_CHECK=on
     - SENTRY_LIGHT_BUILD=1
     - SENTRY_SKIP_BACKEND_VALIDATION=1
-    - TRAVIS_NODE_VERSION=4
+    - TRAVIS_NODE_VERSION=8.9.1
     - CXX=g++-4.8
+    - SOUTH_TESTS_MIGRATE=1
+    - JEST_JUNIT_OUTPUT=jest.junit.xml
+    - DJANGO_VERSION=">=1.6,<1.7"
 install:
+  - 'export PATH=$PATH:~/.bin'
   - nvm install $TRAVIS_NODE_VERSION
+  - npm install -g yarn@1.3.2
   - make travis-install-$TEST_SUITE
 before_script:
   - pip freeze
 script:
   - make travis-lint-$TEST_SUITE
   - make travis-test-$TEST_SUITE
+  - make travis-scan-$TEST_SUITE
 after_success:
   - codecov -e TEST_SUITE
+  - npm install -g @zeus-ci/cli
+  - zeus upload -t "text/xml+xunit" junit.xml
+  - zeus upload -t "text/xml+xunit" jest.junit.xml
+  - zeus upload -t "text/xml+coverage" coverage.xml
+  - zeus upload -t "text/xml+coverage" coverage/cobertura-coverage.xml
+  - zeus upload -t "text/html+pytest" pytest.html
+  - zeus upload -t "text/plain+pycodestyle" flake8.pycodestyle.log
+  - zeus upload -t "text/xml+checkstyle" eslint.checkstyle.xml
+  - zeus upload -t "application/webpack-stats+json" webpack-stats.json
 after_failure:
   - dmesg | tail -n 100
+  - npm install -g @zeus-ci/cli
+  - zeus upload -t "text/xml+xunit" junit.xml
+  - zeus upload -t "text/xml+xunit" jest.junit.xml
+  - zeus upload -t "text/xml+coverage" coverage.xml
+  - zeus upload -t "text/xml+coverage" coverage/cobertura-coverage.xml
+  - zeus upload -t "text/html+pytest" pytest.html
+  - zeus upload -t "text/plain+pycodestyle" flake8.pycodestyle.log
+  - zeus upload -t "text/xml+checkstyle" eslint.checkstyle.xml
+  - zeus upload -t "application/webpack-stats+json" webpack-stats.json
 # each attribute in the matrix will override the global attribute
 matrix:
   fast_finish: true
-  allow_failures:
-    - python: 2.7
-      env: TEST_SUITE=django-18
   include:
-    - language: ruby
-      rvm: 2.2
-      env: TEST_SUITE=danger
-    # only the sqlite suite runs cassandra/riak tests
+    # only the sqlite suite runs riak tests
     - python: 2.7
       env: TEST_SUITE=sqlite DB=sqlite
       services:
         - memcached
         - riak
         - redis-server
-        - cassandra
-      before_script:
-        - make travis-setup-cassandra
-        - pip freeze
     - python: 2.7
       env: TEST_SUITE=postgres DB=postgres
+      services:
+        - memcached
+        - redis-server
+        - postgresql
+    - python: 2.7
+      env: TEST_SUITE=network DB=postgres
       services:
         - memcached
         - redis-server
@@ -82,11 +106,41 @@ matrix:
       env: TEST_SUITE=cli
       services:
         - postgresql
+        - redis-server
     - python: 2.7
       env: TEST_SUITE=dist
     - python: 2.7
-      env: TEST_SUITE=django-18
+      env: TEST_SUITE=postgres DJANGO_VERSION=">=1.8,<1.9"
       services:
         - memcached
         - redis-server
         - postgresql
+    - python: 2.7
+      env: SENTRY_TAGSTORE=sentry.tagstore.v2.V2TagStorage TEST_SUITE=postgres DB=postgres
+      services:
+        - memcached
+        - redis-server
+        - postgresql
+    - python: 2.7
+      env: TEST_SUITE=snuba SENTRY_TAGSTORE=sentry.tagstore.snuba.SnubaTagStorage
+      services:
+        - docker
+        - memcached
+        - redis-server
+        - postgresql
+      before_install:
+        - docker run -d --name clickhouse-server -p 9000:9000 -p 9009:9009 -p 8123:8123 --ulimit nofile=262144:262144 yandex/clickhouse-server
+        - docker run -d --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=clickhouse-server:9000 --name snuba -p 1218:1218 --link clickhouse-server:clickhouse-server getsentry/snuba
+        - docker ps -a
+  allow_failures:
+    - python: 2.7
+      env: TEST_SUITE=snuba SENTRY_TAGSTORE=sentry.tagstore.snuba.SnubaTagStorage
+notifications:
+  webhooks:
+    urls:
+      - https://zeus.ci/hooks/fa079cf6-8e6b-11e7-9155-0a580a28081c/public/provider/travis/webhook
+    on_success: always
+    on_failure: always
+    on_start: always
+    on_cancel: always
+    on_error: always

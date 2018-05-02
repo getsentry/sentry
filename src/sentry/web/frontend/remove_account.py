@@ -80,6 +80,7 @@ class RemoveAccountView(BaseView):
 
         context = {
             'form': form,
+            'page': 'remove_account',
             'organization_results': org_results,
         }
 

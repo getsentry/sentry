@@ -12,7 +12,7 @@
   left: 0;
   bottom: 0;
   width: @sidebar-width;
-  z-index: 1001;
+  z-index: @zindex-navbar-fixed;
   padding: 0 14px;
   .clearfix();
   display: flex;
@@ -23,7 +23,8 @@
     align-self: flex-start;
   }
 
-  .icon-sentry-logo, .icon-sentry-logo-full {
+  .icon-sentry-logo,
+  .icon-sentry-logo-full {
     line-height: 40px;
   }
 
@@ -84,7 +85,7 @@
       .hover-bar {
         width: 0;
         height: 3px;
-        background: rgba(255,255,255, .35);
+        background: rgba(255, 255, 255, 0.35);
         -webkit-transition: width 500ms ease;
       }
     }
@@ -98,17 +99,17 @@
       }
     }
 
-    &.active{
+    &.active {
       &:before {
         position: absolute;
         display: block;
-        content: "";
+        content: '';
         right: -14px;
         top: 50%;
         margin-top: -6px;
         border-top: 7px solid transparent;
         border-bottom: 7px solid transparent;
-        border-right: 7px solid #F7F8F9;
+        border-right: 7px solid #f7f8f9;
       }
       &:hover {
         .hover-bar-container {
@@ -132,7 +133,8 @@
           }
         }
 
-        h5, p {
+        h5,
+        p {
           margin: 0;
         }
 
@@ -157,15 +159,15 @@
         }
 
         &.active {
-          background: #F5FAFE;
-          border-top: 1px solid #B5D6ED;
-          border-bottom: 1px solid #B5D6ED;
+          background: #f5fafe;
+          border-top: 1px solid #b5d6ed;
+          border-bottom: 1px solid #b5d6ed;
           margin-top: -1px;
 
           a {
             color: desaturate(darken(@blue-dark, 25), 10);
-            opacity: .8;
-            .transition(.2s opacity);
+            opacity: 0.8;
+            .transition(0.2s opacity);
 
             &:hover {
               opacity: 1;
@@ -175,10 +177,10 @@
           p {
             a {
               color: desaturate(darken(@blue-dark, 25), 10);
-              opacity: .6;
+              opacity: 0.6;
 
               &:hover {
-                opacity: .8;
+                opacity: 0.8;
               }
             }
           }
@@ -209,7 +211,9 @@
         line-height: 36px;
         color: #fff;
 
-        &:hover, &:active, &:focus {
+        &:hover,
+        &:active,
+        &:focus {
           color: #fff;
         }
       }
@@ -221,7 +225,7 @@
       &:before {
         display: block;
         position: absolute;
-        content: "";
+        content: '';
         top: 0;
         left: -15px;
         right: -15px;
@@ -230,7 +234,7 @@
 
       img {
         border-radius: 3px;
-        box-shadow: 0 1px 1px rgba(0,0,0, .3);
+        box-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
       }
     }
   }
@@ -260,7 +264,9 @@
           line-height: 30px;
         }
 
-        &:hover, &:focus, &:active {
+        &:hover,
+        &:focus,
+        &:active {
           color: #fff;
         }
       }
@@ -273,13 +279,13 @@
         &:before {
           position: absolute;
           display: block;
-          content: "";
+          content: '';
           right: -14px;
           top: 50%;
           margin-top: -7px;
           border-top: 7px solid transparent;
           border-bottom: 7px solid transparent;
-          border-right: 7px solid #F7F8F9;
+          border-right: 7px solid #f7f8f9;
         }
       }
     }
@@ -289,7 +295,9 @@
       margin: 12px 0;
     }
 
-    .icon-home, .icon-user, .icon-star-solid {
+    .icon-home,
+    .icon-user,
+    .icon-star-solid {
       font-size: 18px;
     }
 
@@ -297,7 +305,9 @@
       font-size: 25px;
     }
 
-    .icon-globe, .icon-alert, .icon-support {
+    .icon-globe,
+    .icon-alert,
+    .icon-support {
       font-size: 20px;
     }
 
@@ -328,8 +338,7 @@
 
   .user-settings {
     .avatar {
-      .square(32px);
-      box-shadow: 0 1px 1px rggba(0,0,0, .3);
+      box-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
     }
 
     .dropdown-toggle {
@@ -343,7 +352,7 @@
       bottom: -4px;
       background: @90;
       border-color: transparent;
-      box-shadow: 0 1px 3px rgba(0,0,0, .25);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
       color: #fff;
       border-radius: 4px;
 
@@ -376,7 +385,7 @@
 
   .dropdown-toggle {
     .icon-arrow-down {
-      color: #83899D;
+      color: #83899d;
       font-size: 12px !important;
       top: 1px;
       margin-left: 4px;
@@ -391,7 +400,7 @@
   .dropdown.open {
     .dropdown-toggle {
       color: #fff;
-      background: rgba(0,0,0, .3);
+      background: rgba(0, 0, 0, 0.3);
     }
   }
 }
@@ -409,19 +418,18 @@
   left: @sidebar-width;
   bottom: 0;
   background: @white-darker;
-  z-index: 100;
+  z-index: @zindex-sidebar-panel;
   color: @gray-darker;
   border-right: 1px solid @trim;
-  box-shadow: 1px 0 2px rgba(0,0,0, .06);
+  box-shadow: 1px 0 2px rgba(0, 0, 0, 0.06);
   text-align: left;
   line-height: 24px;
-
 
   .sidebar-panel-header {
     border-bottom: 1px solid @trim;
     padding: 23px 20px 20px;
     background: #fff;
-    box-shadow: 0 1px 2px rgba(0,0,0, .06);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
     height: @sidebar-panel-header-height;
 
     .close {
@@ -471,7 +479,7 @@
       .issue {
         border-bottom: 1px solid #e2dee6;
         background: #fff;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06)
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
       }
     }
   }
@@ -481,7 +489,7 @@
     line-height: 1.2;
     border-bottom: 1px solid @trim;
     background: #fff;
-    box-shadow: 0 1px 2px rgba(0,0,0, .06);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
     font-size: 14px;
 
     h3 {
@@ -539,8 +547,10 @@
   padding: 20px 20px 0;
   font-size: 13px;
 
-  h4, p, h6  {
-     margin-bottom: 15px;
+  h4,
+  p,
+  h6 {
+    margin-bottom: 15px;
   }
 
   h4 {
@@ -586,7 +596,7 @@
 
 @media print {
   .navbar {
-      display: none;
+    display: none;
   }
 }
 
@@ -595,7 +605,7 @@
 * ============================================================================
 */
 
-@media(max-width:767px) {
+@media (max-width: 767px) {
   @sidebar-panel-offset: 54px;
 
   body {
@@ -609,7 +619,6 @@
     max-height: @sidebar-panel-offset;
     padding-top: 10px;
     padding-bottom: 10px;
-    margin-bottom: 30px;
 
     .navbar-nav {
       flex-direction: row;
@@ -624,7 +633,7 @@
           bottom: -11px;
           left: 50%;
           margin-left: -6px;
-          border-bottom: 7px solid #F7F8F9;
+          border-bottom: 7px solid #f7f8f9;
           border-right: 7px solid transparent;
           border-left: 7px solid transparent;
           border-top: 7px solid transparent;
@@ -658,7 +667,7 @@
           bottom: -10px;
           left: 50%;
           margin-left: -12px;
-          border-bottom: 7px solid #F7F8F9;
+          border-bottom: 7px solid #f7f8f9;
           border-right: 7px solid transparent;
           border-left: 7px solid transparent;
           border-top: 7px solid transparent;

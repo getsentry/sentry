@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import InputField from './inputField';
 import FormState from './state';
@@ -7,14 +8,14 @@ import FormState from './state';
 export default class PasswordField extends InputField {
   static propTypes = {
     ...InputField.propTypes,
-    hasSavedValue: React.PropTypes.bool,
-    prefix: React.PropTypes.string
+    hasSavedValue: PropTypes.bool,
+    prefix: PropTypes.string,
   };
 
   static defaultProps = {
     ...InputField.defaultProps,
     hasSavedValue: false,
-    prefix: ''
+    prefix: '',
   };
 
   constructor(props, context) {
@@ -32,7 +33,7 @@ export default class PasswordField extends InputField {
       nextProps.formState === FormState.READY
     ) {
       this.setState({
-        editing: false
+        editing: false,
       });
     }
   }
@@ -45,7 +46,7 @@ export default class PasswordField extends InputField {
     e.preventDefault();
     this.setState(
       {
-        editing: false
+        editing: false,
       },
       () => {
         this.setValue('');
@@ -56,7 +57,7 @@ export default class PasswordField extends InputField {
   startEdit = e => {
     e.preventDefault();
     this.setState({
-      editing: true
+      editing: true,
     });
   };
 
@@ -68,9 +69,7 @@ export default class PasswordField extends InputField {
     if (this.state.editing) {
       return (
         <div className="form-password editing">
-          <div>
-            {super.getField()}
-          </div>
+          <div>{super.getField()}</div>
           <div>
             <a onClick={this.cancelEdit}>Cancel</a>
           </div>

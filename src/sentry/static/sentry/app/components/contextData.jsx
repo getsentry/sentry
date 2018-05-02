@@ -1,7 +1,9 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import jQuery from 'jquery';
+import _ from 'lodash';
+
 import {isUrl} from '../utils';
-import _ from 'underscore';
 
 function looksLikeObjectRepr(value) {
   let a = value[0];
@@ -50,7 +52,7 @@ function analyzeStringForRepr(value) {
     repr: value,
     isString: true,
     isMultiLine: false,
-    isStripped: false
+    isStripped: false,
   };
 
   // stripped for security reasons
@@ -68,20 +70,20 @@ function analyzeStringForRepr(value) {
   return rv;
 }
 
-const ContextData = React.createClass({
-  propTypes: {
-    data: React.PropTypes.any
-  },
+class ContextData extends React.Component {
+  static propTypes = {
+    data: PropTypes.any,
+  };
 
-  getDefaultProps() {
-    return {
-      data: null
-    };
-  },
+  static defaultProps = {
+    data: null,
+  };
 
-  renderValue(value) {
+  renderValue = value => {
     function toggle(evt) {
-      jQuery(evt.target).parent().toggleClass('val-toggle-open');
+      jQuery(evt.target)
+        .parent()
+        .toggleClass('val-toggle-open');
       evt.preventDefault();
     }
 
@@ -102,7 +104,8 @@ const ContextData = React.createClass({
 
     /*eslint no-shadow:0*/
     function walk(value, depth) {
-      let i = 0, children = [];
+      let i = 0,
+        children = [];
       if (value === null) {
         return <span className="val-null">{'None'}</span>;
       } else if (value === true || value === false) {
@@ -115,11 +118,12 @@ const ContextData = React.createClass({
             key="value"
             className={
               (valueInfo.isString ? 'val-string' : 'val-repr') +
-                (valueInfo.isStripped ? ' val-stripped' : '') +
-                (valueInfo.isMultiLine ? ' val-string-multiline' : '')
-            }>
+              (valueInfo.isStripped ? ' val-stripped' : '') +
+              (valueInfo.isMultiLine ? ' val-string-multiline' : '')
+            }
+          >
             {valueInfo.repr}
-          </span>
+          </span>,
         ];
 
         if (valueInfo.isString && isUrl(value)) {
@@ -138,9 +142,9 @@ const ContextData = React.createClass({
           children.push(
             <span className="val-array-item" key={i}>
               {walk(value[i], depth + 1)}
-              {i < value.length - 1
-                ? <span className="val-array-sep">{', '}</span>
-                : null}
+              {i < value.length - 1 ? (
+                <span className="val-array-sep">{', '}</span>
+              ) : null}
             </span>
           );
         }
@@ -168,9 +172,9 @@ const ContextData = React.createClass({
               <span className="val-dict-col">{': '}</span>
               <span className="val-dict-value">
                 {walk(value[key], depth + 1)}
-                {i < keys.length - 1
-                  ? <span className="val-dict-sep">{', '}</span>
-                  : null}
+                {i < keys.length - 1 ? (
+                  <span className="val-dict-sep">{', '}</span>
+                ) : null}
               </span>
             </span>
           );
@@ -189,14 +193,14 @@ const ContextData = React.createClass({
       }
     }
     return walk(value, 0);
-  },
+  };
 
-  renderKeyPosValue(value) {
+  renderKeyPosValue = value => {
     if (_.isString(value)) {
       return <span className="val-string">{value}</span>;
     }
     return this.renderValue(value);
-  },
+  };
 
   render() {
     // XXX(dcramer): babel does not support this yet
@@ -213,6 +217,8 @@ const ContextData = React.createClass({
 
     return <pre {...other}>{this.renderValue(data)}</pre>;
   }
-});
+}
+
+ContextData.displayName = 'ContextData';
 
 export default ContextData;

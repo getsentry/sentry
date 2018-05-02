@@ -1,35 +1,42 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`TeamCreate render() renders correctly 1`] = `
-<DocumentTitle
-  title="Create Team"
+<SideEffect(DocumentTitle)
+  title="Create Team - Sentry"
 >
-  <NarryLayout>
+  <NarrowLayout>
     <h3>
       Create a New Team
     </h3>
-    <p>
-      Teams group members' access to a specific focus, e.g. a major product or application that may have sub-projects.
-    </p>
-    <ApiForm
-      apiEndpoint="/organizations/org/teams/"
-      apiMethod="POST"
-      cancelLabel="Cancel"
-      className="form-stacked"
-      footerClass="form-actions align-right"
-      onSubmitSuccess={[Function]}
-      requireChanges={true}
-      submitDisabled={false}
-      submitLabel="Save Changes"
-    >
-      <TextField
-        disabled={false}
-        label="Team Name"
-        name="name"
-        placeholder="e.g. Operations, Web, Desktop"
-        required={true}
-      />
-    </ApiForm>
-  </NarryLayout>
-</DocumentTitle>
+    <CreateTeamForm
+      onSuccess={[Function]}
+      organization={
+        Object {
+          "access": Array [
+            "org:read",
+            "org:write",
+            "org:admin",
+            "project:read",
+            "project:write",
+            "project:admin",
+            "team:read",
+            "team:write",
+            "team:admin",
+          ],
+          "features": Array [],
+          "id": "3",
+          "name": "Organization Name",
+          "onboardingTasks": Array [],
+          "projects": Array [],
+          "slug": "org-slug",
+          "status": Object {
+            "id": "active",
+            "name": "active",
+          },
+          "teams": Array [],
+        }
+      }
+    />
+  </NarrowLayout>
+</SideEffect(DocumentTitle)>
 `;

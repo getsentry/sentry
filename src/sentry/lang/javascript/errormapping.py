@@ -125,6 +125,7 @@ def rewrite_exception(data):
                     rv = True
                     break
             except Exception as e:
-                logger.error('Failed to run processor "%s": %s', processor.vendor, e, exc_info=True)
+                logger.error('Failed to run processor "%s": %s',
+                             processor.vendor, e, exc_info=True)
 
     return rv

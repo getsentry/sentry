@@ -7,7 +7,11 @@ from django.utils import timezone
 
 class UserActiveMiddleware(object):
     disallowed_paths = (
-        'sentry.web.frontend.generic.static_media', 'sentry.web.frontend.user_avatar',
+        'sentry.web.frontend.generic.static_media',
+        'sentry.web.frontend.organization_avatar',
+        'sentry.web.frontend.project_avatar',
+        'sentry.web.frontend.team_avatar',
+        'sentry.web.frontend.user_avatar',
     )
 
     def process_view(self, request, view_func, view_args, view_kwargs):

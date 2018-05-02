@@ -41,7 +41,6 @@ import posixpath
 import mimetypes
 import threading
 from gzip import GzipFile
-from tempfile import SpooledTemporaryFile
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured, SuspiciousOperation
@@ -156,11 +155,7 @@ class S3Boto3StorageFile(File):
 
     def _get_file(self):
         if self._file is None:
-            self._file = SpooledTemporaryFile(
-                max_size=self._storage.max_memory_size,
-                suffix=".S3Boto3StorageFile",
-                dir=None,
-            )
+            self._file = BytesIO()
             if 'r' in self._mode:
                 self._is_dirty = False
                 self._file.write(self.obj.get()['Body'].read())
@@ -245,6 +240,10 @@ class S3Boto3Storage(Storage):
     mode and supports streaming(buffering) data in chunks to S3
     when writing.
     """
+    # XXX: note that this file reads entirely into memory before the first
+    # read happens.  This means that it should only be used for small
+    # files (eg: see how sentry.models.file works with it through the
+    # ChunkedFileBlobIndexWrapper.
     connection_class = staticmethod(resource)
     connection_service_name = 's3'
     default_content_type = 'application/octet-stream'
@@ -286,10 +285,6 @@ class S3Boto3Storage(Storage):
     region_name = None
     use_ssl = True
 
-    # The max amount of memory a returned file can take up before being
-    # rolled over into a temporary file on disk. Default is 0: Do not roll over.
-    max_memory_size = 0
-
     def __init__(self, acl=None, bucket=None, **settings):
         # check if some of the settings we've provided as class attributes
         # need to be overwritten with values passed in here
@@ -330,14 +325,22 @@ class S3Boto3Storage(Storage):
         # urllib/requests libraries read. See https://github.com/boto/boto3/issues/338
         # and http://docs.python-requests.org/en/latest/user/advanced/#proxies
         if self._connection is None:
+
+            # If this is running on an ec2 instance, allow boto to connect using an IAM role
+            # instead of explicitly provided an access key and secret
+            # http://boto3.readthedocs.io/en/latest/guide/configuration.html#iam-role
+            kwargs = {}
+            if self.access_key and self.secret_key:
+                kwargs['aws_access_key_id'] = self.access_key
+                kwargs['aws_secret_access_key'] = self.secret_key
+
             self._connection = self.connection_class(
                 self.connection_service_name,
-                aws_access_key_id=self.access_key,
-                aws_secret_access_key=self.secret_key,
                 region_name=self.region_name,
                 use_ssl=self.use_ssl,
                 endpoint_url=self.endpoint_url,
-                config=self.config
+                config=self.config,
+                **kwargs
             )
         return self._connection
 

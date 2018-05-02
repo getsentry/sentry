@@ -11,9 +11,10 @@ from __future__ import absolute_import, print_function
 import logging
 import six
 
-from django.db import IntegrityError, router, transaction
 from raven.contrib.django.models import client as Raven
 
+from sentry import features
+from sentry.utils.cache import cache
 from sentry.plugins import plugins
 from sentry.signals import event_processed
 from sentry.tasks.base import instrumented_task
@@ -21,6 +22,17 @@ from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 
 logger = logging.getLogger('sentry')
+
+
+def _get_service_hooks(project_id):
+    from sentry.models import ServiceHook
+    cache_key = 'servicehooks:1:{}'.format(project_id)
+    result = cache.get(cache_key)
+    if result is None:
+        result = [(h.id, h.events) for h in
+                  ServiceHook.objects.filter(project_id=project_id)]
+        cache.set(cache_key, result, 60)
+    return result
 
 
 def _capture_stats(event, is_new):
@@ -40,7 +52,7 @@ def _capture_stats(event, is_new):
 
 
 @instrumented_task(name='sentry.tasks.post_process.post_process_group')
-def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
+def post_process_group(event, is_new, is_regression, is_sample, is_new_group_environment, **kwargs):
     """
     Fires post processing hooks for a group.
     """
@@ -50,6 +62,7 @@ def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
     from sentry.models import Project
     from sentry.models.group import get_group_with_redirect
     from sentry.rules.processor import RuleProcessor
+    from sentry.tasks.servicehooks import process_service_hook
 
     # Re-bind Group since we're pickling the whole Event object
     # which may contain a stale Group.
@@ -70,11 +83,29 @@ def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
     # we process snoozes before rules as it might create a regression
     process_snoozes(event.group)
 
-    rp = RuleProcessor(event, is_new, is_regression, is_sample)
+    rp = RuleProcessor(event, is_new, is_regression, is_new_group_environment)
+    has_alert = False
     # TODO(dcramer): ideally this would fanout, but serializing giant
     # objects back and forth isn't super efficient
     for callback, futures in rp.apply():
+        has_alert = True
         safe_execute(callback, event, futures)
+
+    if features.has(
+        'projects:servicehooks',
+        project=event.project,
+    ):
+        allowed_events = set(['event.created'])
+        if has_alert:
+            allowed_events.add('event.alert')
+
+        if allowed_events:
+            for servicehook_id, events in _get_service_hooks(project_id=event.project_id):
+                if any(e in allowed_events for e in events):
+                    process_service_hook.delay(
+                        servicehook_id=servicehook_id,
+                        event=event,
+                    )
 
     for plugin in plugins.for_project(event.project):
         plugin_post_process_group(
@@ -90,17 +121,8 @@ def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
         project=event.project,
         group=event.group,
         event=event,
+        primary_hash=kwargs.get('primary_hash'),
     )
-
-
-def record_additional_tags(event):
-    from sentry.models import Group
-
-    added_tags = []
-    for plugin in plugins.for_project(event.project, version=2):
-        added_tags.extend(safe_execute(plugin.get_tags, event, _with_transaction=False) or ())
-    if added_tags:
-        Group.objects.add_tags(event.group, added_tags)
 
 
 def process_snoozes(group):
@@ -133,72 +155,34 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
     safe_execute(plugin.post_process, event=event, group=event.group, **kwargs)
 
 
-@instrumented_task(name='sentry.tasks.post_process.record_affected_user')
-def record_affected_user(event, **kwargs):
-    from sentry.models import EventUser, Group
-
-    Raven.tags_context({
-        'project': event.project_id,
-    })
-
-    user_data = event.data.get('sentry.interfaces.User', event.data.get('user'))
-    if not user_data:
-        logger.info('No user data found for event_id=%s', event.event_id)
-        return
-
-    euser = EventUser(
-        project=event.project,
-        ident=user_data.get('id'),
-        email=user_data.get('email'),
-        username=user_data.get('username'),
-        ip_address=user_data.get('ip_address'),
-    )
-
-    if not euser.tag_value:
-        # no ident, bail
-        logger.info('No identifying value found for user on event_id=%s', event.event_id)
-        return
-
-    try:
-        with transaction.atomic(using=router.db_for_write(EventUser)):
-            euser.save()
-    except IntegrityError:
-        pass
-
-    Group.objects.add_tags(event.group, [('sentry:user', euser.tag_value)])
-
-
 @instrumented_task(
     name='sentry.tasks.index_event_tags', default_retry_delay=60 * 5, max_retries=None
 )
-def index_event_tags(organization_id, project_id, event_id, tags, group_id=None, **kwargs):
-    from sentry.models import EventTag, Project, TagKey, TagValue
+def index_event_tags(organization_id, project_id, event_id, tags,
+                     group_id, environment_id, date_added=None, **kwargs):
+    from sentry import tagstore
 
     Raven.tags_context({
         'project': project_id,
     })
 
-    for key, value in tags:
-        tagkey, _ = TagKey.objects.get_or_create(
-            project=Project(id=project_id),
-            key=key,
-        )
+    create_event_tags_kwargs = {}
+    if date_added is not None:
+        create_event_tags_kwargs['date_added'] = date_added
 
-        tagvalue, _ = TagValue.objects.get_or_create(
-            project=Project(id=project_id, organization_id=organization_id),
-            key=key,
-            value=value,
-        )
+    metrics.timing(
+        'tagstore.tags_per_event',
+        len(tags),
+        tags={
+            'organization_id': organization_id,
+        }
+    )
 
-        try:
-            # handle replaying of this task
-            with transaction.atomic():
-                EventTag.objects.create(
-                    project_id=project_id,
-                    group_id=group_id,
-                    event_id=event_id,
-                    key_id=tagkey.id,
-                    value_id=tagvalue.id,
-                )
-        except IntegrityError:
-            pass
+    tagstore.create_event_tags(
+        project_id=project_id,
+        group_id=group_id,
+        environment_id=environment_id,
+        event_id=event_id,
+        tags=tags,
+        **create_event_tags_kwargs
+    )

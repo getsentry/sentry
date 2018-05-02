@@ -1,25 +1,30 @@
+import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 
 import SelectedGroupStore from '../../stores/selectedGroupStore';
+import Checkbox from '../checkbox';
 
-const GroupCheckBox = React.createClass({
+const GroupCheckBox = createReactClass({
+  displayName: 'GroupCheckBox',
+
   propTypes: {
-    id: React.PropTypes.string.isRequired
+    id: PropTypes.string.isRequired,
   },
 
   mixins: [Reflux.listenTo(SelectedGroupStore, 'onSelectedGroupChange')],
 
   getInitialState() {
     return {
-      isSelected: SelectedGroupStore.isSelected(this.props.id)
+      isSelected: SelectedGroupStore.isSelected(this.props.id),
     };
   },
 
   componentWillReceiveProps(nextProps) {
     if (nextProps.id != this.props.id) {
       this.setState({
-        isSelected: SelectedGroupStore.isSelected(nextProps.id)
+        isSelected: SelectedGroupStore.isSelected(nextProps.id),
       });
     }
   },
@@ -32,7 +37,7 @@ const GroupCheckBox = React.createClass({
     let isSelected = SelectedGroupStore.isSelected(this.props.id);
     if (isSelected !== this.state.isSelected) {
       this.setState({
-        isSelected: isSelected
+        isSelected,
       });
     }
   },
@@ -44,15 +49,13 @@ const GroupCheckBox = React.createClass({
 
   render() {
     return (
-      <input
-        type="checkbox"
-        className="chk-select"
+      <Checkbox
         value={this.props.id}
         checked={this.state.isSelected}
         onChange={this.onSelect}
       />
     );
-  }
+  },
 });
 
 export default GroupCheckBox;

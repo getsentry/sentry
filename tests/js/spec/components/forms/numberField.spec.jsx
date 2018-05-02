@@ -1,24 +1,25 @@
 import React from 'react';
-import {shallow} from 'enzyme';
-import toJson from 'enzyme-to-json';
 
-import {NumberField} from 'app/components/forms';
+import {Form, NumberField} from 'app/components/forms';
+import {shallow, mount} from 'enzyme';
+
+jest.mock('jquery');
 
 describe('NumberField', function() {
   describe('render()', function() {
     it('renders', function() {
       let wrapper = shallow(<NumberField name="fieldName" />);
-      expect(toJson(wrapper)).toMatchSnapshot();
+      expect(wrapper).toMatchSnapshot();
     });
 
     it('renders with optional attributes', function() {
       let wrapper = shallow(<NumberField name="fieldName" min={0} max={100} />);
-      expect(toJson(wrapper)).toMatchSnapshot();
+      expect(wrapper).toMatchSnapshot();
     });
 
     it('renders with value', function() {
       let wrapper = shallow(<NumberField name="fieldName" value={5} />);
-      expect(toJson(wrapper)).toMatchSnapshot();
+      expect(wrapper).toMatchSnapshot();
     });
 
     it('renders with form context', function() {
@@ -26,13 +27,23 @@ describe('NumberField', function() {
         context: {
           form: {
             data: {
-              fieldName: 5
+              fieldName: 5,
             },
-            errors: {}
-          }
-        }
+            errors: {},
+          },
+        },
       });
-      expect(toJson(wrapper)).toMatchSnapshot();
+      expect(wrapper).toMatchSnapshot();
+    });
+
+    it('doesnt save `NaN` when new value is empty string', function() {
+      let wrapper = mount(
+        <Form onSubmit={() => {}}>
+          <NumberField name="fieldName" defaultValue="2" />
+        </Form>
+      );
+      wrapper.find('input').simulate('change', {target: {value: ''}});
+      expect(wrapper.state('data').fieldName).toBe('');
     });
   });
 });

@@ -5,7 +5,7 @@ import mock
 from datetime import datetime, timedelta
 from django.utils import timezone
 
-from sentry.models import EventUser, GroupStatus, Release
+from sentry.models import EventUser, GroupStatus
 from sentry.testutils import TestCase
 from sentry.search.base import ANY
 from sentry.search.utils import parse_query, get_numeric_field_value
@@ -287,19 +287,6 @@ class ParseQueryTest(TestCase):
         result = self.parse_query('first-release:bar')
         assert result == {'first_release': 'bar', 'tags': {}, 'query': ''}
 
-    def test_first_release_latest(self):
-        old = Release.objects.create(organization_id=self.project.organization_id, version='a')
-        old.add_project(self.project)
-        new = Release.objects.create(
-            version='b',
-            organization_id=self.project.organization_id,
-            date_released=old.date_added + timedelta(minutes=1),
-        )
-        new.add_project(self.project)
-
-        result = self.parse_query('first-release:latest')
-        assert result == {'tags': {}, 'first_release': new.version, 'query': ''}
-
     def test_release(self):
         result = self.parse_query('release:bar')
         assert result == {'tags': {'sentry:release': 'bar'}, 'query': ''}
@@ -307,19 +294,6 @@ class ParseQueryTest(TestCase):
     def test_dist(self):
         result = self.parse_query('dist:123')
         assert result == {'tags': {'sentry:dist': '123'}, 'query': ''}
-
-    def test_release_latest(self):
-        old = Release.objects.create(organization_id=self.project.organization_id, version='a')
-        old.add_project(self.project)
-        new = Release.objects.create(
-            version='b',
-            organization_id=self.project.organization_id,
-            date_released=old.date_added + timedelta(minutes=1),
-        )
-        new.add_project(self.project)
-
-        result = self.parse_query('release:latest')
-        assert result == {'tags': {'sentry:release': new.version}, 'query': ''}
 
     def test_padded_spacing(self):
         result = self.parse_query('release:bar  foo   bar')
@@ -335,7 +309,7 @@ class ParseQueryTest(TestCase):
 
     def test_user_lookup_with_dot_query(self):
         euser = EventUser.objects.create(
-            project=self.project,
+            project_id=self.project.id,
             ident='1',
             username='foobar',
         )
@@ -348,7 +322,7 @@ class ParseQueryTest(TestCase):
 
     def test_user_lookup_legacy_syntax(self):
         euser = EventUser.objects.create(
-            project=self.project,
+            project_id=self.project.id,
             ident='1',
             username='foobar',
         )

@@ -1,5 +1,6 @@
+import PropTypes from 'prop-types';
 import React from 'react';
-import PropTypes from '../../../proptypes';
+import SentryTypes from '../../../proptypes';
 
 import GroupEventDataSection from '../eventDataSection';
 import CSPContent from './cspContent';
@@ -19,30 +20,31 @@ function getView(view, data) {
   }
 }
 
-const CSPInterface = React.createClass({
-  propTypes: {
-    group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired,
-    type: React.PropTypes.string.isRequired,
-    data: React.PropTypes.object.isRequired
-  },
+class CSPInterface extends React.Component {
+  static propTypes = {
+    group: SentryTypes.Group.isRequired,
+    event: SentryTypes.Event.isRequired,
+    type: PropTypes.string.isRequired,
+    data: PropTypes.object.isRequired,
+  };
 
-  getInitialState() {
-    let {data} = this.props;
+  constructor(props) {
+    super(props);
+    let {data} = props;
     // hide the report-uri since this is redundant and silly
     data.original_policy = data.original_policy.replace(/(;\s+)?report-uri [^;]+/, '');
 
-    return {
+    this.state = {
       view: 'report',
-      data: data
+      data,
     };
-  },
+  }
 
-  toggleView(value) {
+  toggleView = value => {
     this.setState({
-      view: value
+      view: value,
     });
-  },
+  };
 
   render() {
     let {view, data} = this.state;
@@ -53,17 +55,20 @@ const CSPInterface = React.createClass({
         <div className="btn-group">
           <a
             className={(view === 'report' ? 'active' : '') + ' btn btn-default btn-sm'}
-            onClick={this.toggleView.bind(this, 'report')}>
+            onClick={this.toggleView.bind(this, 'report')}
+          >
             {t('Report')}
           </a>
           <a
             className={(view === 'raw' ? 'active' : '') + ' btn btn-default btn-sm'}
-            onClick={this.toggleView.bind(this, 'raw')}>
+            onClick={this.toggleView.bind(this, 'raw')}
+          >
             {t('Raw')}
           </a>
           <a
             className={(view === 'help' ? 'active' : '') + ' btn btn-default btn-sm'}
-            onClick={this.toggleView.bind(this, 'help')}>
+            onClick={this.toggleView.bind(this, 'help')}
+          >
             {t('Help')}
           </a>
         </div>
@@ -79,11 +84,12 @@ const CSPInterface = React.createClass({
         event={event}
         type="csp"
         title={title}
-        wrapTitle={false}>
+        wrapTitle={false}
+      >
         {children}
       </GroupEventDataSection>
     );
   }
-});
+}
 
 export default CSPInterface;

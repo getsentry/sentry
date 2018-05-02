@@ -1,16 +1,17 @@
+import PropTypes from 'prop-types';
 import React from 'react';
-import PropTypes from '../../../proptypes';
+import SentryTypes from '../../../proptypes';
 import EventDataSection from '../eventDataSection';
 import ClippedBox from '../../clippedBox';
 import KeyValueList from './keyValueList';
 import {t} from '../../../locale';
 
-const DebugMetaInterface = React.createClass({
-  propTypes: {
-    group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired,
-    data: React.PropTypes.object.isRequired
-  },
+class DebugMetaInterface extends React.Component {
+  static propTypes = {
+    group: SentryTypes.Group.isRequired,
+    event: SentryTypes.Event.isRequired,
+    data: PropTypes.object.isRequired,
+  };
 
   getImageDetail(img, evt) {
     // in particular proguard images do not have a name, skip them
@@ -18,12 +19,10 @@ const DebugMetaInterface = React.createClass({
       return null;
     }
 
-    let name = img.name.split('/').pop();
-
+    let name = img.name.split(/^[a-z]:\\/i.test(img.name) ? '\\' : '/').pop();
     if (name == 'dyld_sim') return null; // this is only for simulator builds
 
     let version = null;
-
     if (
       Number.isInteger(img.major_version) &&
       Number.isInteger(img.minor_version) &&
@@ -31,15 +30,15 @@ const DebugMetaInterface = React.createClass({
     ) {
       if (img.major_version == 0 && img.minor_version == 0 && img.revision_version == 0) {
         // we show the version
-        version = (evt.release && evt.release.version) || 'unknown';
+        version = (evt.release && evt.release.shortVersion) || 'unknown';
       } else
         version = `${img.major_version}.${img.minor_version}.${img.revision_version}`;
-    } else version = img.uuid;
+    } else version = img.id || img.uuid || '<none>';
 
     if (version) return [name, version];
 
     return null;
-  },
+  }
 
   render() {
     let data = this.props.data;
@@ -56,7 +55,8 @@ const DebugMetaInterface = React.createClass({
             group={this.props.group}
             event={this.props.event}
             type="packages"
-            title={t('Images Loaded')}>
+            title={t('Images Loaded')}
+          >
             <ClippedBox>
               <KeyValueList data={images} isSorted={false} />
             </ClippedBox>
@@ -67,6 +67,6 @@ const DebugMetaInterface = React.createClass({
 
     return result;
   }
-});
+}
 
 export default DebugMetaInterface;

@@ -1,0 +1,14 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+
+{% block main %}
+    <h3>Request for Project Transfer</h3>
+    <p>A project transfer request has been made:</p>
+    <p><pre>From Organization: <strong>{{ from_org }}</strong></pre></p>
+    <p><pre>Project: <strong>{{ project_name }}</strong></pre></p>
+    <p><pre>Requested by: {{ requester }}</pre></p>
+    <p><pre>Requested at: {{ request_time }}</pre></p>
+    <p>Approving the transfer for <strong>{{ project_name }}</strong> will take you to the finals steps for where you would like <strong>{{ project_name }}</strong> to be transferred to.</p>
+    <p><a href="{{ url }}" class="btn">Approve Transfer</a></p>
+{% endblock %}

@@ -10,6 +10,7 @@ from __future__ import absolute_import, print_function
 import logging
 import re
 import six
+import itertools
 
 from django.db import models, IntegrityError, transaction
 from django.db.models import F
@@ -32,6 +33,7 @@ logger = logging.getLogger(__name__)
 _sha1_re = re.compile(r'^[a-f0-9]{40}$')
 _dotted_path_prefix_re = re.compile(r'^([a-zA-Z][a-zA-Z0-9-]+)(\.[a-zA-Z][a-zA-Z0-9-]+)+-')
 BAD_RELEASE_CHARS = '\n\f\t/'
+DB_VERSION_LENGTH = 250
 
 
 class ReleaseProject(Model):
@@ -60,9 +62,9 @@ class Release(Model):
     )
     # DEPRECATED
     project_id = BoundedPositiveIntegerField(null=True)
-    version = models.CharField(max_length=64)
+    version = models.CharField(max_length=DB_VERSION_LENGTH)
     # ref might be the branch name being released
-    ref = models.CharField(max_length=64, null=True, blank=True)
+    ref = models.CharField(max_length=DB_VERSION_LENGTH, null=True, blank=True)
     url = models.URLField(null=True, blank=True)
     date_added = models.DateTimeField(default=timezone.now)
     # DEPRECATED - not available in UI or editable from API
@@ -86,11 +88,12 @@ class Release(Model):
         db_table = 'sentry_release'
         unique_together = (('organization', 'version'), )
 
-    __repr__ = sane_repr('organization', 'version')
+    __repr__ = sane_repr('organization_id', 'version')
 
     @staticmethod
     def is_valid_version(value):
-        return not (any(c in value for c in BAD_RELEASE_CHARS) or value in ('.', '..') or not value)
+        return not (any(c in value for c in BAD_RELEASE_CHARS)
+                    or value in ('.', '..') or not value)
 
     @classmethod
     def get_cache_key(cls, organization_id, version):
@@ -134,7 +137,7 @@ class Release(Model):
         if release in (None, -1):
             # TODO(dcramer): if the cache result is -1 we could attempt a
             # default create here instead of default get
-            project_version = ('%s-%s' % (project.slug, version))[:64]
+            project_version = ('%s-%s' % (project.slug, version))[:DB_VERSION_LENGTH]
             releases = list(
                 cls.objects.filter(
                     organization_id=project.organization_id,
@@ -183,12 +186,12 @@ class Release(Model):
         # ReleaseFile.release
 
         from sentry.models import (
-            ReleaseCommit, ReleaseEnvironment, ReleaseFile, ReleaseProject, Group, GroupRelease,
+            ReleaseCommit, ReleaseEnvironment, ReleaseFile, ReleaseProject, ReleaseProjectEnvironment, Group, GroupRelease,
             GroupResolution
         )
 
         model_list = (
-            ReleaseCommit, ReleaseEnvironment, ReleaseFile, ReleaseProject, GroupRelease,
+            ReleaseCommit, ReleaseEnvironment, ReleaseFile, ReleaseProject, ReleaseProjectEnvironment, GroupRelease,
             GroupResolution
         )
         for release in from_releases:
@@ -214,7 +217,10 @@ class Release(Model):
 
     @property
     def short_version(self):
-        version = self.version
+        return Release.get_display_version(self.version)
+
+    @staticmethod
+    def get_display_version(version):
         match = _dotted_path_prefix_re.match(version)
         if match is not None:
             version = version[match.end():]
@@ -272,7 +278,9 @@ class Release(Model):
         prev_release = type(self).objects.filter(
             organization_id=self.organization_id,
             projects__in=self.projects.all(),
-        ).exclude(version=self.version).order_by('-date_added').first()
+        ).extra(select={
+            'sort': 'COALESCE(date_released, date_added)',
+        }).exclude(version=self.version).order_by('-sort').first()
 
         names = {r['repository'] for r in refs}
         repos = list(
@@ -322,9 +330,10 @@ class Release(Model):
         This will clear any existing commit log and replace it with the given
         commits.
         """
+        # TODO(dcramer): this function could use some cleanup/refactoring as its a bit unwieldly
         from sentry.models import (
-            Commit, CommitAuthor, Group, GroupCommitResolution, GroupResolution, GroupStatus,
-            ReleaseCommit, Repository
+            Commit, CommitAuthor, Group, GroupLink, GroupResolution, GroupStatus,
+            ReleaseCommit, ReleaseHeadCommit, Repository, PullRequest
         )
         from sentry.plugins.providers.repository import RepositoryProvider
 
@@ -346,6 +355,7 @@ class Release(Model):
                 authors = {}
                 repos = {}
                 commit_author_by_commit = {}
+                head_commit_by_repo = {}
                 latest_commit = None
                 for idx, data in enumerate(commit_list):
                     repo_name = data.get('repository'
@@ -424,6 +434,8 @@ class Release(Model):
                     if latest_commit is None:
                         latest_commit = commit
 
+                    head_commit_by_repo.setdefault(repo.id, commit.id)
+
                 self.update(
                     commit_count=len(commit_list),
                     authors=[
@@ -436,15 +448,59 @@ class Release(Model):
                     last_commit_id=latest_commit.id if latest_commit else None,
                 )
 
+        # fill any missing ReleaseHeadCommit entries
+        for repo_id, commit_id in six.iteritems(head_commit_by_repo):
+            try:
+                with transaction.atomic():
+                    ReleaseHeadCommit.objects.create(
+                        organization_id=self.organization_id,
+                        release_id=self.id,
+                        repository_id=repo_id,
+                        commit_id=commit_id,
+                    )
+            except IntegrityError:
+                pass
+
+        release_commits = list(ReleaseCommit.objects.filter(release=self)
+                               .select_related('commit').values('commit_id', 'commit__key'))
+
         commit_resolutions = list(
-            GroupCommitResolution.objects.filter(
-                commit_id__in=ReleaseCommit.objects.filter(release=self)
-                .values_list('commit_id', flat=True),
-            ).values_list('group_id', 'commit_id')
+            GroupLink.objects.filter(
+                linked_type=GroupLink.LinkedType.commit,
+                linked_id__in=[rc['commit_id'] for rc in release_commits],
+            ).values_list('group_id', 'linked_id')
         )
+
+        commit_group_authors = [
+            (cr[0],  # group_id
+             commit_author_by_commit.get(cr[1])) for cr in commit_resolutions]
+
+        pr_ids_by_merge_commit = list(PullRequest.objects.filter(
+            merge_commit_sha__in=[rc['commit__key'] for rc in release_commits],
+        ).values_list('id', flat=True))
+
+        pull_request_resolutions = list(
+            GroupLink.objects.filter(
+                relationship=GroupLink.Relationship.resolves,
+                linked_type=GroupLink.LinkedType.pull_request,
+                linked_id__in=pr_ids_by_merge_commit,
+            ).values_list('group_id', 'linked_id')
+        )
+
+        pr_authors = list(PullRequest.objects.filter(
+            id__in=[prr[1] for prr in pull_request_resolutions],
+        ).select_related('author'))
+
+        pr_authors_dict = {
+            pra.id: pra.author for pra in pr_authors
+        }
+
+        pull_request_group_authors = [(prr[0], pr_authors_dict.get(prr[1]))
+                                      for prr in pull_request_resolutions]
+
         user_by_author = {None: None}
-        for group_id, commit_id in commit_resolutions:
-            author = commit_author_by_commit.get(commit_id)
+
+        for group_id, author in itertools.chain(commit_group_authors, pull_request_group_authors):
             if author not in user_by_author:
                 try:
                     user_by_author[author] = author.find_users()[0]

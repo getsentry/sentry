@@ -1,6 +1,7 @@
+import $ from 'jquery';
+
 import ConfigStore from '../stores/configStore';
 import IncidentActions from '../actions/incidentActions';
-import $ from 'jquery';
 
 function getIncidentsFromIncidentResponse(incidents) {
   if (incidents === null || incidents.length == 0) {
@@ -19,7 +20,7 @@ function getIncidentsFromIncidentResponse(incidents) {
         return update.body;
       }),
       url: item.shortlink,
-      status: item.status
+      status: item.status,
     });
   });
 
@@ -40,17 +41,17 @@ export function load() {
         let [incidents, indicator] = getIncidentsFromIncidentResponse(data.incidents);
         IncidentActions.updateSuccess({
           status: {
-            incidents: incidents,
-            indicator: indicator,
-            url: data.page.url
-          }
+            incidents,
+            indicator,
+            url: data.page.url,
+          },
         });
       },
       error: () => {
         IncidentActions.updateError({
-          status: null
+          status: null,
         });
-      }
+      },
     });
   }
 }

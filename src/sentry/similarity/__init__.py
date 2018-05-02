@@ -1,15 +1,19 @@
 from __future__ import absolute_import
 
 import itertools
+import logging
 
 from django.conf import settings
 
 from sentry.interfaces.stacktrace import Frame
+from sentry.similarity.backends.dummy import DummyIndexBackend
+from sentry.similarity.backends.metrics import MetricsWrapper
+from sentry.similarity.backends.redis import RedisScriptMinHashIndexBackend
 from sentry.similarity.encoder import Encoder
-from sentry.similarity.index import MinHashIndex
 from sentry.similarity.features import (
-    FeatureSet,
     ExceptionFeature,
+    FeatureSet,
+    InterfaceDoesNotExist,
     MessageFeature,
     get_application_chunks,
 )
@@ -17,6 +21,8 @@ from sentry.similarity.signatures import MinHashSignatureBuilder
 from sentry.utils import redis
 from sentry.utils.datastructures import BidirectionalMapping
 from sentry.utils.iterators import shingle
+
+logger = logging.getLogger(__name__)
 
 
 def text_shingle(n, value):
@@ -56,21 +62,37 @@ def get_frame_attributes(frame):
     return attributes
 
 
-features = FeatureSet(
-    MinHashIndex(
-        redis.clusters.get(
-            getattr(
-                settings,
-                'SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER',
-                'default',
-            ),
+def _make_index_backend(cluster=None):
+    if not cluster:
+        cluster_id = getattr(
+            settings,
+            'SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER',
+            'similarity',
+        )
+
+        try:
+            cluster = redis.redis_clusters.get(cluster_id)
+        except KeyError:
+            index = DummyIndexBackend()
+            logger.info('No redis cluster provided for similarity, using {!r}.'.format(index))
+            return index
+
+    return MetricsWrapper(
+        RedisScriptMinHashIndexBackend(
+            cluster,
+            'sim:1',
+            MinHashSignatureBuilder(16, 0xFFFF),
+            8,
+            60 * 60 * 24 * 30,
+            3,
+            5000,
         ),
-        'sim:1',
-        MinHashSignatureBuilder(16, 0xFFFF),
-        8,
-        60 * 60 * 24 * 30,
-        3,
-    ),
+        scope_tag_name='project_id',
+    )
+
+
+features = FeatureSet(
+    _make_index_backend(),
     Encoder({
         Frame: get_frame_attributes,
     }),
@@ -83,7 +105,7 @@ features = FeatureSet(
     {
         'exception:message:character-shingles': ExceptionFeature(
             lambda exception: text_shingle(
-                13,
+                5,
                 exception.value,
             ),
         ),
@@ -98,11 +120,14 @@ features = FeatureSet(
         ),
         'message:message:character-shingles': MessageFeature(
             lambda message: text_shingle(
-                13,
+                5,
                 message.message,
             ),
         ),
     },
+    expected_extraction_errors=(
+        InterfaceDoesNotExist,
+    ),
     expected_encoding_errors=(
         FrameEncodingError,
     ),

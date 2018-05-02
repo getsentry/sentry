@@ -8,6 +8,8 @@ from contextlib import contextmanager
 from django.conf import settings
 from random import random
 from time import time
+from threading import Thread
+from six.moves.queue import Queue
 
 
 def get_default_backend():
@@ -41,26 +43,50 @@ def _sampled_value(value):
     return value
 
 
-def _incr_internal(key, instance=None, tags=None, amount=1):
-    from sentry import tsdb
+class InternalMetrics(object):
+    def __init__(self):
+        self._started = False
 
-    if _should_sample():
-        amount = _sampled_value(amount)
-        if instance:
-            full_key = '{}.{}'.format(key, instance)
-        else:
-            full_key = key
+    def _start(self):
+        self.q = q = Queue()
 
-        try:
-            tsdb.incr(tsdb.models.internal, full_key, count=amount)
-        except Exception:
-            logger = logging.getLogger('sentry.errors')
-            logger.exception('Unable to incr internal metric')
+        def worker():
+            from sentry import tsdb
+
+            while True:
+                key, instance, tags, amount = q.get()
+                amount = _sampled_value(amount)
+                if instance:
+                    full_key = '{}.{}'.format(key, instance)
+                else:
+                    full_key = key
+                try:
+                    tsdb.incr(tsdb.models.internal, full_key, count=amount)
+                except Exception:
+                    logger = logging.getLogger('sentry.errors')
+                    logger.exception('Unable to incr internal metric')
+                finally:
+                    q.task_done()
+
+        t = Thread(target=worker)
+        t.setDaemon(True)
+        t.start()
+
+        self._started = True
+
+    def incr(self, key, instance=None, tags=None, amount=1):
+        if not self._started:
+            self._start()
+        self.q.put((key, instance, tags, amount))
 
 
-def incr(key, amount=1, instance=None, tags=None):
+internal = InternalMetrics()
+
+
+def incr(key, amount=1, instance=None, tags=None, skip_internal=False):
     sample_rate = settings.SENTRY_METRICS_SAMPLE_RATE
-    _incr_internal(key, instance, tags, amount)
+    if not skip_internal and _should_sample():
+        internal.incr(key, instance, tags, amount)
     try:
         backend.incr(key, instance, tags, amount, sample_rate)
     except Exception:

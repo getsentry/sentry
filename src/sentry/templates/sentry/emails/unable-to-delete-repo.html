@@ -1,0 +1,10 @@
+{% extends "sentry/emails/base.html" %}
+
+{% block main %}
+  <h3>Unable to Delete Repository Webhooks</h3>
+  <p>We were unable to delete webhooks in {{ provider_name }} for your repository (<em>{{ repo.name }}</em>) due to the following error:</p>
+  <p>{{ error_message }}</p>
+  <p>You will need to remove these webhooks manually in {{ provider_name }} in order to stop sending commit data to Sentry.</p>
+{% endblock %}
+
+{% block footer %}{% endblock %}

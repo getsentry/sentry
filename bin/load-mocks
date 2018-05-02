@@ -17,17 +17,17 @@ from django.utils import timezone
 from loremipsum import Generator
 from pytz import utc
 
-from sentry import buffer, roles
+from sentry import buffer, roles, tsdb
+from sentry.event_manager import HashDiscarded
 from sentry.models import (
     Activity, Broadcast, Commit, CommitAuthor, CommitFileChange, Deploy,
-    Environment, File, GroupMeta, GroupRelease, Organization,
+    Environment, File, Group, GroupMeta, GroupRelease, GroupTombstone, Organization,
     OrganizationAccessRequest, OrganizationMember, Project, Release,
-    ReleaseCommit, ReleaseEnvironment, ReleaseFile, Repository, Team, User,
-    UserReport
+    ReleaseCommit, ReleaseEnvironment, ReleaseFile, Repository, Team,
+    TOMBSTONE_FIELDS_FROM_GROUP, User, UserReport
 )
 from sentry.signals import mocks_loaded
 from sentry.similarity import features
-from sentry.tsdb import backend as tsdb
 from sentry.utils.hashlib import md5_text
 from sentry.utils.samples import create_sample_event as _create_sample_event
 from sentry.utils.samples import generate_user
@@ -56,6 +56,7 @@ ENVIRONMENTS = itertools.cycle([
     'staging',
     'alpha',
     'beta',
+    ''
 ])
 
 
@@ -66,15 +67,23 @@ def make_sentence(words=None):
 
 
 def create_sample_event(*args, **kwargs):
-    event = _create_sample_event(*args, **kwargs)
-    features.record(event)
-    return event
+    try:
+        event = _create_sample_event(*args, **kwargs)
+    except HashDiscarded as e:
+        print "> Skipping Event: {}".format(e.message)
+    else:
+        if event is not None:
+            features.record([event])
+            return event
 
 
 def generate_commits(user):
     commits = []
     for i in range(random.randint(0, 20)):
-        filename = random.choice(loremipsum.words)
+        if i == 1:
+            filename = 'raven/base.py'
+        else:
+            filename = random.choice(loremipsum.words) + '.js'
         if random.randint(0, 5) == 1:
             author = (user.name, user.email)
         else:
@@ -90,13 +99,34 @@ def generate_commits(user):
 
         commits.append({
             'key': sha1(uuid4().hex).hexdigest(),
-            'message': 'modified {}.js}',
+            'message': 'feat: Do something to {}\n{}'.format(filename, make_sentence()),
             'author': author,
             'files': [
                 (filename, 'M'),
             ],
         })
     return commits
+
+
+def generate_tombstones(project, user):
+    # attempt to create a high enough previous_group_id
+    # that it won't conflict with any group ids
+    prev_group_id = 100000
+    try:
+        prev_group_id = max(
+            GroupTombstone.objects.order_by('-previous_group_id')[0].previous_group_id,
+            prev_group_id
+        ) + 1
+    except IndexError:
+        pass
+
+    for group in Group.objects.filter(project=project)[:5]:
+        GroupTombstone.objects.create(
+            previous_group_id=prev_group_id,
+            actor_id=user.id,
+            **{name: getattr(group, name) for name in TOMBSTONE_FIELDS_FROM_GROUP}
+        )
+        prev_group_id += 1
 
 
 def create_system_time_series():
@@ -132,7 +162,11 @@ def create_system_time_series():
 
 
 def create_sample_time_series(event, release=None):
+    if event is None:
+        return
+
     group = event.group
+
     project = group.project
 
     key = project.key_set.all()[0]
@@ -141,7 +175,7 @@ def create_sample_time_series(event, release=None):
 
     environment = Environment.get_or_create(
         project=project,
-        name=event.get_tag('environment') or ''
+        name=Environment.get_name_or_default(event.get_tag('environment')),
     )
 
     if release:
@@ -164,7 +198,7 @@ def create_sample_time_series(event, release=None):
         tsdb.incr_multi((
             (tsdb.models.project, project.id),
             (tsdb.models.group, group.id),
-        ), now, count)
+        ), now, count, environment_id=environment.id)
         tsdb.incr_multi((
             (tsdb.models.organization_total_received, project.organization_id),
             (tsdb.models.project_total_forwarded, project.id),
@@ -212,7 +246,7 @@ def create_sample_time_series(event, release=None):
         tsdb.incr_multi((
             (tsdb.models.project, group.project.id),
             (tsdb.models.group, group.id),
-        ), now, count)
+        ), now, count, environment_id=environment.id)
         tsdb.incr_multi((
             (tsdb.models.organization_total_received, project.organization_id),
             (tsdb.models.project_total_received, project.id),
@@ -313,7 +347,6 @@ def main(num_events=1, extra_events=False):
         for project_name in project_names:
             print('  > Mocking project {}'.format(project_name))
             project, _ = Project.objects.get_or_create(
-                team=team,
                 name=project_name,
                 defaults={
                     'organization': org,
@@ -321,6 +354,7 @@ def main(num_events=1, extra_events=False):
                     'flags': Project.flags.has_releases,
                 }
             )
+            project.add_team(team)
             if not project.first_event:
                 project.update(
                     first_event=project.date_added,
@@ -347,6 +381,8 @@ def main(num_events=1, extra_events=False):
                             organization_id=project.organization_id
                         )
                     release.add_project(project)
+
+            generate_tombstones(project, user)
 
             raw_commits = generate_commits(user)
 
@@ -406,6 +442,21 @@ def main(num_events=1, extra_events=False):
                     commit=commit,
                     order=commit_index,
                 )
+
+            # create an unreleased commit
+            Commit.objects.get_or_create(
+                organization_id=org.id,
+                repository_id=repo[0].id,
+                key=sha1(uuid4().hex).hexdigest(),
+                defaults={
+                    'author': CommitAuthor.objects.get_or_create(
+                        organization_id=org.id,
+                        email=user.email,
+                        defaults={'name': user.name}
+                    )[0],
+                    'message': 'feat: Do something to {}\n{}'.format(random.choice(loremipsum.words) + '.js', make_sentence()),
+                },
+            )[0]
 
             Activity.objects.create(
                 type=Activity.RELEASE,
@@ -518,20 +569,21 @@ def main(num_events=1, extra_events=False):
                     environment=ENVIRONMENTS.next(),
                     user=generate_user(),
                 )
+            if event5:
+                Commit.objects.get_or_create(
+                    organization_id=org.id,
+                    repository_id=repo[0].id,
+                    key=sha1(uuid4().hex).hexdigest(),
+                    defaults={
+                        'author': CommitAuthor.objects.get_or_create(
+                            organization_id=org.id,
+                            email=user.email,
+                            defaults={'name': user.name}
+                        )[0],
+                        'message': 'Ooops!\nFixes {}'.format(event5.group.qualified_short_id),
+                    },
+                )[0]
 
-            Commit.objects.get_or_create(
-                organization_id=org.id,
-                repository_id=repo[0].id,
-                key=sha1(uuid4().hex).hexdigest(),
-                defaults={
-                    'author': CommitAuthor.objects.get_or_create(
-                        organization_id=org.id,
-                        email=user.email,
-                        defaults={'name': user.name}
-                    )[0],
-                    'message': 'Ooops!\nFixes {}'.format(event5.group.qualified_short_id),
-                },
-            )[0]
 
             create_sample_event(
                 project=project,
@@ -540,23 +592,24 @@ def main(num_events=1, extra_events=False):
             )
 
             with transaction.atomic():
-                try:
-                    GroupMeta.objects.create(
-                        group=event1.group,
-                        key='github:tid',
-                        value='134',
-                    )
-                except IntegrityError:
-                    pass
-
-            UserReport.objects.create(
-                project=project,
-                event_id=event3.event_id,
-                group=event3.group,
-                name='Jane Doe',
-                email='jane@example.com',
-                comments=make_sentence(),
-            )
+                if event1:
+                    try:
+                        GroupMeta.objects.create(
+                            group=event1.group,
+                            key='github:tid',
+                            value='134',
+                        )
+                    except IntegrityError:
+                        pass
+            if event3:
+                UserReport.objects.create(
+                    project=project,
+                    event_id=event3.event_id,
+                    group=event3.group,
+                    name='Jane Doe',
+                    email='jane@example.com',
+                    comments=make_sentence(),
+                )
 
             print('    > Loading time series data'.format(project_name))
 

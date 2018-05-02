@@ -10,10 +10,10 @@
 //custom mixin for .form-control-validation
 .typeahead-form-control(@border-color: #ccc;) {
   border-color: @border-color;
-  .box-shadow(inset 0 1px 1px rgba(0,0,0,.075)); // Redeclare so transitions work
+  .box-shadow(inset 0 1px 1px rgba(0,0,0,0.075)); // Redeclare so transitions work
   &:focus {
     border-color: darken(@border-color, 10%);
-    @shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 6px lighten(@border-color, 20%);
+    @shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px lighten(@border-color, 20%);
     .box-shadow(@shadow);
   }
 }
@@ -21,55 +21,55 @@
 //main styles for control
 .tt-input,
 .tt-hint {
-  .twitter-typeahead &{
+  .twitter-typeahead & {
     //validation states
-    .has-warning &{
+    .has-warning & {
       .typeahead-form-control(@state-warning-text);
     }
-    .has-error &{
+    .has-error & {
       .typeahead-form-control(@state-danger-text);
     }
-    .has-success &{
+    .has-success & {
       .typeahead-form-control(@state-success-text);
     }
   }
 
   //border
-  .input-group .twitter-typeahead:first-child &{
+  .input-group .twitter-typeahead:first-child & {
     .border-left-radius(@border-radius-base);
   }
-  .input-group .twitter-typeahead:last-child &{
+  .input-group .twitter-typeahead:last-child & {
     .border-right-radius(@border-radius-base);
   }
 
   //sizing - small:size and border
-  .input-group.input-group-sm .twitter-typeahead &{
+  .input-group.input-group-sm .twitter-typeahead & {
     .input-size(@input-height-small; @padding-small-vertical; @padding-small-horizontal; @font-size-small; @line-height-small; @border-radius-small);
   }
-  .input-group.input-group-sm .twitter-typeahead:not(:first-child):not(:last-child) &{
+  .input-group.input-group-sm .twitter-typeahead:not(:first-child):not(:last-child) & {
     border-radius: 0;
   }
-  .input-group.input-group-sm .twitter-typeahead:first-child &{
+  .input-group.input-group-sm .twitter-typeahead:first-child & {
     .border-left-radius(@border-radius-small);
     .border-right-radius(0);
   }
-  .input-group.input-group-sm .twitter-typeahead:last-child &{
+  .input-group.input-group-sm .twitter-typeahead:last-child & {
     .border-left-radius(0);
     .border-right-radius(@border-radius-small);
   }
 
   //sizing - large:size and border
-  .input-group.input-group-lg .twitter-typeahead &{
+  .input-group.input-group-lg .twitter-typeahead & {
     .input-size(@input-height-large; @padding-large-vertical; @padding-large-horizontal; @font-size-large; @line-height-large; @border-radius-large);
   }
-  .input-group.input-group-lg .twitter-typeahead:not(:first-child):not(:last-child) &{
+  .input-group.input-group-lg .twitter-typeahead:not(:first-child):not(:last-child) & {
     border-radius: 0;
   }
-  .input-group.input-group-lg .twitter-typeahead:first-child &{
+  .input-group.input-group-lg .twitter-typeahead:first-child & {
     .border-left-radius(@border-radius-large);
     .border-right-radius(0);
   }
-  .input-group.input-group-lg .twitter-typeahead:last-child &{
+  .input-group.input-group-lg .twitter-typeahead:last-child & {
     .border-left-radius(0);
     .border-right-radius(@border-radius-large);
   }
@@ -78,16 +78,16 @@
 //for wrapper
 .twitter-typeahead {
   width: 100%;
-  .input-group &{
+  .input-group & {
     //overwrite `display:inline-block` style
-    display: table-cell!important;
+    display: table-cell !important;
     float: left;
   }
 }
 
 //particular style for each other
 .twitter-typeahead .tt-hint {
-  color: @text-muted;//color - hint
+  color: @text-muted; //color - hint
 }
 .twitter-typeahead .tt-input {
   z-index: 2;
@@ -119,7 +119,7 @@
   border: 1px solid @dropdown-fallback-border;
   border: 1px solid @dropdown-border;
   border-radius: @border-radius-base;
-  .box-shadow(0 6px 12px rgba(0,0,0,.175));
+  .box-shadow(0 6px 12px rgba(0,0,0,0.175));
   background-clip: padding-box;
   *border-right-width: 2px;
   *border-bottom-width: 2px;

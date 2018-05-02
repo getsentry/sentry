@@ -7,5 +7,10 @@ export default Reflux.createActions([
   'updateSuccess',
   'loadStats',
   'loadStatsError',
-  'loadStatsSuccess'
+  'loadStatsSuccess',
+  'removeProject',
+  'removeProjectError',
+  'removeProjectSuccess',
+  'setActive',
+  'changeSlug',
 ]);

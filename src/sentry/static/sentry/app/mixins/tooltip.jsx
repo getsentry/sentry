@@ -27,6 +27,6 @@ export default function(options) {
         .tooltip('destroy') // destroy tooltips on parent ...
         .find(options.selector)
         .tooltip('destroy'); // ... and descendents
-    }
+    },
   };
 }

@@ -9,6 +9,7 @@ from south.migration import Migrations
 from south.exceptions import NoMigrations
 from south.hacks import hacks
 
+
 class Command(BaseCommand):
     help = "Runs migrations for each app in turn, detecting missing depends_on values."
     usage_str = "Usage: ./manage.py migrationcheck"
@@ -55,7 +56,7 @@ class Command(BaseCommand):
             raise CommandError("Missing depends_on found in %s app(s)." % failures)
         self.stderr.write("No missing depends_on found.\n")
 #
-#for each app:
+# for each app:
 #    start with blank db.
 #    syncdb only south (and contrib?)
 #

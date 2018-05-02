@@ -8,8 +8,8 @@ from django.db import DataError
 from django.utils import timezone
 
 from sentry.constants import STATUS_CHOICES
-from sentry.models import EventUser, Release, User
-from sentry.search.base import ANY, EMPTY
+from sentry.models import EventUser, User
+from sentry.search.base import ANY
 from sentry.utils.auth import find_users
 
 
@@ -17,27 +17,12 @@ class InvalidQuery(Exception):
     pass
 
 
-def parse_release(project, value):
-    # TODO(dcramer): add environment support
-    if value == 'latest':
-        value = Release.objects.filter(
-            organization_id=project.organization_id,
-            projects=project,
-        ).extra(select={
-            'sort': 'COALESCE(date_released, date_added)',
-        }).order_by('-sort').values_list(
-            'version', flat=True
-        ).first()
-        if value is None:
-            return EMPTY
-    return value
-
-
 def get_user_tag(project, key, value):
     # TODO(dcramer): do something with case of multiple matches
     try:
         lookup = EventUser.attr_from_keyword(key)
-        euser = EventUser.objects.filter(project=project, **{lookup: value})[0]
+        euser = EventUser.objects.filter(
+            project_id=project.id, **{lookup: value})[0]
     except (KeyError, IndexError):
         return u'{}:{}'.format(key, value)
     except DataError:
@@ -363,9 +348,9 @@ def parse_query(project, query, user):
             elif key == 'subscribed':
                 results['subscribed_by'] = parse_user_value(value, user)
             elif key in ('first-release', 'firstRelease'):
-                results['first_release'] = parse_release(project, value)
+                results['first_release'] = value
             elif key == 'release':
-                results['tags']['sentry:release'] = parse_release(project, value)
+                results['tags']['sentry:release'] = value
             elif key == 'dist':
                 results['tags']['sentry:dist'] = value
             elif key == 'user':

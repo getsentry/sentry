@@ -14,7 +14,7 @@ import logging
 import os.path
 import six
 
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 from operator import attrgetter
@@ -37,9 +37,13 @@ def get_all_languages():
 MODULE_ROOT = os.path.dirname(__import__('sentry').__file__)
 DATA_ROOT = os.path.join(MODULE_ROOT, 'data')
 
+VERSION_LENGTH = 200
+
 SORT_OPTIONS = OrderedDict(
     (
-        ('priority', _('Priority')), ('date', _('Last Seen')), ('new', _('First Seen')),
+        ('priority', _('Priority')),
+        ('date', _('Last Seen')),
+        ('new', _('First Seen')),
         ('freq', _('Frequency')),
     )
 )
@@ -81,11 +85,14 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         'remote', 'get-cli', 'blog', 'welcome', 'features', 'customers', 'integrations', 'signup',
         'pricing', 'subscribe', 'enterprise', 'about', 'jobs', 'thanks', 'guide', 'privacy',
         'security', 'terms', 'from', 'sponsorship', 'for', 'at', 'platforms', 'branding', 'vs',
-        'answers', '_admin', 'support', 'contact', 'onboarding',
+        'answers', '_admin', 'support', 'contact', 'onboarding', 'ext', 'extension', 'extensions',
+        'plugins', 'themonitor', 'settings', 'legal', 'avatar', 'organization-avatar',
+        'project-avatar', 'team-avatar',
     )
 )
 
 LOG_LEVELS = {
+    logging.NOTSET: 'sample',
     logging.DEBUG: 'debug',
     logging.INFO: 'info',
     logging.WARNING: 'warning',
@@ -100,28 +107,30 @@ LOG_LEVELS_MAP = {v: k for k, v in six.iteritems(LOG_LEVELS)}
 DEFAULT_ALERT_PROJECT_THRESHOLD = (500, 25)  # 500%, 25 events
 DEFAULT_ALERT_GROUP_THRESHOLD = (1000, 25)  # 1000%, 25 events
 
-# Default paginator value
-EVENTS_PER_PAGE = 15
-
 # Default sort option for the group stream
 DEFAULT_SORT_OPTION = 'date'
 
 # Setup languages for only available locales
 LANGUAGE_MAP = dict(settings.LANGUAGES)
-LANGUAGES = [(k, LANGUAGE_MAP[k]) for k in get_all_languages() if k in LANGUAGE_MAP]
+LANGUAGES = [(k, LANGUAGE_MAP[k])
+             for k in get_all_languages() if k in LANGUAGE_MAP]
 
 # TODO(dcramer): We eventually want to make this user-editable
 TAG_LABELS = {
     'exc_type': 'Exception Type',
     'sentry:user': 'User',
-    'sentry:filename': 'File',
-    'sentry:function': 'Function',
     'sentry:release': 'Release',
     'sentry:dist': 'Distribution',
     'os': 'OS',
     'url': 'URL',
     'server_name': 'Server',
 }
+
+PROTECTED_TAG_KEYS = frozenset([
+    'environment',
+    'release',
+    'sentry:release',
+])
 
 # TODO(dcramer): once this is more flushed out we want this to be extendable
 SENTRY_RULES = (
@@ -138,17 +147,19 @@ SENTRY_RULES = (
 )
 
 # methods as defined by http://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html + PATCH
-HTTP_METHODS = ('GET', 'POST', 'PUT', 'OPTIONS', 'HEAD', 'DELETE', 'TRACE', 'CONNECT', 'PATCH')
+HTTP_METHODS = ('GET', 'POST', 'PUT', 'OPTIONS', 'HEAD',
+                'DELETE', 'TRACE', 'CONNECT', 'PATCH')
 
 CLIENT_RESERVED_ATTRS = (
     'project', 'errors', 'event_id', 'message', 'checksum', 'culprit', 'fingerprint', 'level',
     'time_spent', 'logger', 'server_name', 'site', 'received', 'timestamp', 'extra', 'modules',
-    'tags', 'platform', 'release', 'dist', 'environment',
+    'tags', 'platform', 'release', 'dist', 'environment', 'transaction', 'key_id',
 )
 
+# XXX: Must be all lowercase
 DEFAULT_SCRUBBED_FIELDS = (
     'password', 'secret', 'passwd', 'api_key', 'apikey', 'access_token', 'auth', 'credentials',
-    'mysql_pwd', 'stripeToken',
+    'mysql_pwd', 'stripetoken', 'card[number]',
 )
 
 NOT_SCRUBBED_VALUES = set([
@@ -180,6 +191,7 @@ VALID_PLATFORMS = set(
         'elixir',
         'haskell',
         'groovy',
+        'native',
     ]
 )
 
@@ -201,7 +213,9 @@ MAX_SYM = 256
 
 # Known dsym mimetypes
 KNOWN_DSYM_TYPES = {
+    'text/x-breakpad': 'breakpad',
     'application/x-mach-binary': 'macho',
+    'application/x-elf-binary': 'elf',
     'text/x-proguard+plain': 'proguard',
 }
 
@@ -228,6 +242,8 @@ def _load_platform_data():
         if integrations:
             for integration in integrations:
                 integration_id = integration.pop('id')
+                if integration['type'] != 'language':
+                    integration['language'] = platform['id']
                 INTEGRATION_ID_TO_PLATFORM_DATA[integration_id] = integration
 
 
@@ -240,6 +256,7 @@ _load_platform_data()
 MARKETING_SLUG_TO_INTEGRATION_ID = {
     "kotlin": "java",
     "scala": "java",
+    "spring": "java",
     "android": "java-android",
     "react": "javascript-react",
     "angular": "javascript-angular",
@@ -261,6 +278,7 @@ MARKETING_SLUG_TO_INTEGRATION_ID = {
     "symfony": "php-symfony2",
     "rails": "ruby-rails",
     "sinatra": "ruby-sinatra",
+    "dotnet": "csharp",
 }
 
 
@@ -305,7 +323,8 @@ def get_integration_id_for_event(platform, sdk_name, integrations):
                 return integration_id
 
     # try sdk name, for example "sentry-java" -> "java" or "raven-java:log4j" -> "java-log4j"
-    sdk_name = sdk_name.lower().replace("sentry-", "").replace("raven-", "").replace(":", "-")
+    sdk_name = sdk_name.lower().replace(
+        "sentry-", "").replace("raven-", "").replace(":", "-")
     if sdk_name in INTEGRATION_ID_TO_PLATFORM_DATA:
         return sdk_name
 
@@ -320,10 +339,17 @@ class ObjectStatus(object):
     PENDING_DELETION = 2
     DELETION_IN_PROGRESS = 3
 
+    ACTIVE = 0
+    DISABLED = 1
+
     @classmethod
     def as_choices(cls):
         return (
-            (cls.VISIBLE, 'visible'), (cls.HIDDEN,
-                                       'hidden'), (cls.PENDING_DELETION, 'pending_deletion'),
+            (cls.ACTIVE, 'active'),
+            (cls.DISABLED, 'disabled'),
+            (cls.PENDING_DELETION, 'pending_deletion'),
             (cls.DELETION_IN_PROGRESS, 'deletion_in_progress'),
         )
+
+
+StatsPeriod = namedtuple('StatsPeriod', ('segments', 'interval'))

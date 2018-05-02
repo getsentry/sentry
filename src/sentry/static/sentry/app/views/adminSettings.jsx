@@ -1,5 +1,5 @@
 import React from 'react';
-import _ from 'underscore';
+import _ from 'lodash';
 
 import AsyncView from './asyncView';
 import {t} from '../locale';
@@ -15,10 +15,15 @@ const optionsAvailable = [
   'auth.allow-registration',
   'auth.ip-rate-limit',
   'auth.user-rate-limit',
-  'api.rate-limit.org-create'
+  'api.rate-limit.org-create',
+  'beacon.anonymous',
 ];
 
 export default class AdminSettings extends AsyncView {
+  getEndpoints() {
+    return [['data', this.getEndpoint()]];
+  }
+
   getEndpoint() {
     return '/internal/options/';
   }
@@ -49,7 +54,8 @@ export default class AdminSettings extends AsyncView {
           apiEndpoint={this.getEndpoint()}
           onSubmit={this.onSubmit}
           initialData={initialData}
-          requireChanges={true}>
+          requireChanges={true}
+        >
           <h4>General</h4>
           {fields['system.url-prefix']}
           {fields['system.admin-email']}
@@ -62,6 +68,9 @@ export default class AdminSettings extends AsyncView {
           {fields['auth.ip-rate-limit']}
           {fields['auth.user-rate-limit']}
           {fields['api.rate-limit.org-create']}
+
+          <h4>Beacon</h4>
+          {fields['beacon.anonymous']}
         </ApiForm>
       </div>
     );

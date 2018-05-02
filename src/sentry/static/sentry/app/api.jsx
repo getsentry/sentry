@@ -1,7 +1,9 @@
 import $ from 'jquery';
+import {isUndefined} from 'lodash';
+import idx from 'idx';
+
+import {openSudo} from './actionCreators/modal';
 import GroupActions from './actions/groupActions';
-import TeamActions from './actions/teamActions';
-import _ from 'underscore';
 
 export class Request {
   constructor(xhr) {
@@ -23,13 +25,13 @@ export function paramsToQueryArgs(params) {
   return params.itemIds
     ? {id: params.itemIds} // items matching array of itemids
     : params.query
-        ? {query: params.query} // items matching search query
-        : undefined; // all items
+      ? {query: params.query} // items matching search query
+      : undefined; // all items
 }
 
 export class Client {
   constructor(options) {
-    if (_.isUndefined(options)) {
+    if (isUndefined(options)) {
       options = {};
     }
     this.baseUrl = options.baseUrl || '/api/0';
@@ -38,14 +40,16 @@ export class Client {
 
   uniqueId() {
     let s4 = () => {
-      return Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
+      return Math.floor((1 + Math.random()) * 0x10000)
+        .toString(16)
+        .substring(1);
     };
     return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
   }
 
   wrapCallback(id, func, cleanup) {
     /*eslint consistent-return:0*/
-    if (_.isUndefined(func)) {
+    if (isUndefined(func)) {
       return;
     }
 
@@ -66,13 +70,48 @@ export class Client {
     }
   }
 
+  handleRequestError({id, path, requestOptions}, response, ...responseArgs) {
+    let code = response && idx(response, _ => _.responseJSON.detail.code);
+    let isSudoRequired = code === 'sudo-required' || code === 'superuser-required';
+
+    if (isSudoRequired) {
+      openSudo({
+        superuser: code === 'superuser-required',
+        sudo: code === 'sudo-required',
+        retryRequest: () => {
+          return this.requestPromise(path, requestOptions)
+            .then((...args) => {
+              if (typeof requestOptions.success !== 'function') return;
+
+              requestOptions.success(...args);
+            })
+            .catch((...args) => {
+              if (typeof requestOptions.error !== 'function') return;
+              requestOptions.error(...args);
+            });
+        },
+        onClose: () => {
+          if (typeof requestOptions.error !== 'function') return;
+          // If modal was closed, then forward the original response
+          requestOptions.error(response);
+        },
+      });
+      return;
+    }
+
+    // Call normal error callback
+    let errorCb = this.wrapCallback(id, requestOptions.error);
+    if (typeof errorCb !== 'function') return;
+    errorCb(response, ...responseArgs);
+  }
+
   request(path, options = {}) {
     let query = $.param(options.query || '', true);
     let method = options.method || (options.data ? 'POST' : 'GET');
     let data = options.data;
     let id = this.uniqueId();
 
-    if (!_.isUndefined(data) && method !== 'GET') {
+    if (!isUndefined(data) && method !== 'GET') {
       data = JSON.stringify(data);
     }
 
@@ -93,23 +132,46 @@ export class Client {
     this.activeRequests[id] = new Request(
       $.ajax({
         url: fullUrl,
-        method: method,
-        data: data,
+        method,
+        data,
         contentType: 'application/json',
         headers: {
-          Accept: 'application/json; charset=utf-8'
+          Accept: 'application/json; charset=utf-8',
         },
         success: this.wrapCallback(id, options.success),
-        error: this.wrapCallback(id, options.error),
-        complete: this.wrapCallback(id, options.complete, true)
+        error: (...args) =>
+          this.handleRequestError(
+            {
+              id,
+              path,
+              requestOptions: options,
+            },
+            ...args
+          ),
+        complete: this.wrapCallback(id, options.complete, true),
       })
     );
 
     return this.activeRequests[id];
   }
 
+  requestPromise(path, options = {}) {
+    return new Promise((resolve, reject) => {
+      this.request(path, {
+        ...options,
+        success: (data, ...args) => {
+          // This fails if we need jqXhr :(
+          resolve(data);
+        },
+        error: (error, ...args) => {
+          reject(error);
+        },
+      });
+    });
+  }
+
   _chain(...funcs) {
-    funcs = funcs.filter(f => !_.isUndefined(f) && f);
+    funcs = funcs.filter(f => !isUndefined(f) && f);
     return (...args) => {
       funcs.forEach(func => {
         func.apply(funcs, args);
@@ -118,7 +180,7 @@ export class Client {
   }
 
   _wrapRequest(path, options, extraParams) {
-    if (_.isUndefined(extraParams)) {
+    if (isUndefined(extraParams)) {
       extraParams = {};
     }
 
@@ -139,14 +201,14 @@ export class Client {
     return this._wrapRequest(
       path,
       {
-        query: query,
+        query,
         method: 'DELETE',
         success: response => {
           GroupActions.deleteSuccess(id, params.itemIds, response);
         },
         error: error => {
           GroupActions.deleteError(id, params.itemIds, error);
-        }
+        },
       },
       options
     );
@@ -162,7 +224,7 @@ export class Client {
     return this._wrapRequest(
       path,
       {
-        query: query,
+        query,
         method: 'PUT',
         data: params.data,
         success: response => {
@@ -170,7 +232,7 @@ export class Client {
         },
         error: error => {
           GroupActions.updateError(id, params.itemIds, error, params.failSilently);
-        }
+        },
       },
       options
     );
@@ -186,7 +248,7 @@ export class Client {
     return this._wrapRequest(
       path,
       {
-        query: query,
+        query,
         method: 'PUT',
         data: {merge: 1},
         success: response => {
@@ -194,90 +256,7 @@ export class Client {
         },
         error: error => {
           GroupActions.mergeError(id, params.itemIds, error);
-        }
-      },
-      options
-    );
-  }
-
-  assignTo(params, options) {
-    let path = '/issues/' + params.id + '/';
-    let id = this.uniqueId();
-
-    GroupActions.assignTo(id, params.id, {
-      email: (params.member && params.member.email) || ''
-    });
-
-    return this._wrapRequest(
-      path,
-      {
-        method: 'PUT',
-        // Sending an empty value to assignedTo is the same as "clear",
-        // so if no member exists, that implies that we want to clear the
-        // current assignee.
-        data: {assignedTo: (params.member && params.member.id) || ''},
-        success: response => {
-          GroupActions.assignToSuccess(id, params.id, response);
         },
-        error: error => {
-          GroupActions.assignToError(id, params.id, error);
-        }
-      },
-      options
-    );
-  }
-
-  joinTeam(params, options) {
-    let path =
-      '/organizations/' +
-      params.orgId +
-      '/members/' +
-      (params.memberId || 'me') +
-      '/teams/' +
-      params.teamId +
-      '/';
-    let id = this.uniqueId();
-
-    TeamActions.update(id, params.teamId);
-
-    return this._wrapRequest(
-      path,
-      {
-        method: 'POST',
-        success: response => {
-          TeamActions.updateSuccess(id, params.teamId, response);
-        },
-        error: error => {
-          TeamActions.updateError(id, params.teamId, error);
-        }
-      },
-      options
-    );
-  }
-
-  leaveTeam(params, options) {
-    let path =
-      '/organizations/' +
-      params.orgId +
-      '/members/' +
-      (params.memberId || 'me') +
-      '/teams/' +
-      params.teamId +
-      '/';
-    let id = this.uniqueId();
-
-    TeamActions.update(id, params.teamId);
-
-    return this._wrapRequest(
-      path,
-      {
-        method: 'DELETE',
-        success: response => {
-          TeamActions.updateSuccess(id, params.teamId, response);
-        },
-        error: error => {
-          TeamActions.updateError(id, params.teamId, error);
-        }
       },
       options
     );

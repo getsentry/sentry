@@ -7,6 +7,8 @@ sentry.api.paginator
 """
 from __future__ import absolute_import
 
+import bisect
+import functools
 import math
 
 from datetime import datetime
@@ -19,8 +21,12 @@ from sentry.utils.cursors import build_cursor, Cursor, CursorResult
 quote_name = connections['default'].ops.quote_name
 
 
+MAX_LIMIT = 100
+MAX_HITS_LIMIT = 1000
+
+
 class BasePaginator(object):
-    def __init__(self, queryset, order_by=None, max_limit=100):
+    def __init__(self, queryset, order_by=None, max_limit=MAX_LIMIT):
         if order_by:
             if order_by.startswith('-'):
                 self.key, self.desc = order_by[1:], True
@@ -32,6 +38,9 @@ class BasePaginator(object):
         self.queryset = queryset
         self.max_limit = max_limit
 
+    def _is_asc(self, is_prev):
+        return (self.desc and is_prev) or not (self.desc or is_prev)
+
     def _build_queryset(self, value, is_prev):
         queryset = self.queryset
 
@@ -41,7 +50,7 @@ class BasePaginator(object):
         # list below (this is so we know how to get the before/after row).
         # If we're sorting ASC _AND_ we're not using a previous page cursor,
         # then we'll need to resume using ASC.
-        asc = (self.desc and is_prev) or not (self.desc or is_prev)
+        asc = self._is_asc(is_prev)
 
         # We need to reverse the ORDER BY if we're using a cursor for a
         # previous page so we know exactly where we ended last page.  The
@@ -50,7 +59,8 @@ class BasePaginator(object):
             if self.key in queryset.query.order_by:
                 if not asc:
                     index = queryset.query.order_by.index(self.key)
-                    queryset.query.order_by[index] = '-%s' % (queryset.query.order_by[index])
+                    queryset.query.order_by[index] = '-%s' % (
+                        queryset.query.order_by[index])
             elif ('-%s' % self.key) in queryset.query.order_by:
                 if asc:
                     index = queryset.query.order_by.index('-%s' % (self.key))
@@ -72,18 +82,20 @@ class BasePaginator(object):
 
             if asc:
                 queryset = queryset.extra(
-                    where=['%s.%s >= %%s' % (queryset.model._meta.db_table, col_query, )],
+                    where=['%s.%s >= %%s' %
+                           (queryset.model._meta.db_table, col_query, )],
                     params=col_params,
                 )
             else:
                 queryset = queryset.extra(
-                    where=['%s.%s <= %%s' % (queryset.model._meta.db_table, col_query, )],
+                    where=['%s.%s <= %%s' %
+                           (queryset.model._meta.db_table, col_query, )],
                     params=col_params,
                 )
 
         return queryset
 
-    def get_item_key(self, item):
+    def get_item_key(self, item, for_prev):
         raise NotImplementedError
 
     def value_from_cursor(self, cursor):
@@ -107,17 +119,19 @@ class BasePaginator(object):
         # TODO(dcramer): this does not yet work correctly for ``is_prev`` when
         # the key is not unique
         if count_hits:
-            max_hits = 1000
-            hits = self.count_hits(max_hits)
+            hits = self.count_hits(MAX_HITS_LIMIT)
         else:
             hits = None
-            max_hits = None
 
         offset = cursor.offset
         # this effectively gets us the before row, and the current (after) row
-        # every time
-        if cursor.is_prev:
+        # every time. Do not offset if the provided cursor value was empty since
+        # there is nothing to traverse past.
+        if cursor.is_prev and cursor.value:
             offset += 1
+
+        # The + 1 is needed so we can decide in the ResultCursor if there is
+        # more on the next page.
         stop = offset + limit + 1
         results = list(queryset[offset:stop])
         if cursor.is_prev:
@@ -127,8 +141,9 @@ class BasePaginator(object):
             results=results,
             limit=limit,
             hits=hits,
-            max_hits=max_hits,
+            max_hits=MAX_HITS_LIMIT if count_hits else None,
             cursor=cursor,
+            is_desc=self.desc,
             key=self.get_item_key,
         )
 
@@ -152,11 +167,9 @@ class BasePaginator(object):
 
 
 class Paginator(BasePaginator):
-    def get_item_key(self, item):
+    def get_item_key(self, item, for_prev=False):
         value = getattr(item, self.key)
-        if self.desc:
-            return math.ceil(value)
-        return math.floor(value)
+        return math.floor(value) if self._is_asc(for_prev) else math.ceil(value)
 
     def value_from_cursor(self, cursor):
         return cursor.value
@@ -165,12 +178,10 @@ class Paginator(BasePaginator):
 class DateTimePaginator(BasePaginator):
     multiplier = 1000
 
-    def get_item_key(self, item):
+    def get_item_key(self, item, for_prev=False):
         value = getattr(item, self.key)
         value = float(value.strftime('%s.%f')) * self.multiplier
-        if self.desc:
-            return math.ceil(value)
-        return math.floor(value)
+        return math.floor(value) if self._is_asc(for_prev) else math.ceil(value)
 
     def value_from_cursor(self, cursor):
         return datetime.fromtimestamp(float(cursor.value) / self.multiplier).replace(
@@ -212,4 +223,99 @@ class OffsetPaginator(BasePaginator):
             results=results[:limit],
             next=next_cursor,
             prev=prev_cursor,
+        )
+
+
+def reverse_bisect_left(a, x, lo=0, hi=None):
+    """\
+    Similar to ``bisect.bisect_left``, but expects the data in the array ``a``
+    to be provided in descending order, rather than the ascending order assumed
+    by ``bisect_left``.
+
+    The returned index ``i`` partitions the array ``a`` into two halves so that:
+
+    - left side: ``all(val > x for val in a[lo:i])``
+    - right side: ``all(val <= x for val in a[i:hi])``
+    """
+    if lo < 0:
+        raise ValueError('lo must be non-negative')
+
+    if hi is None:
+        hi = len(a)
+
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if a[mid] > x:
+            lo = mid + 1
+        else:
+            hi = mid
+
+    return lo
+
+
+class SequencePaginator(object):
+    def __init__(self, data, reverse=False, max_limit=MAX_LIMIT):
+        self.scores, self.values = map(
+            list,
+            zip(*sorted(data, reverse=reverse)),
+        ) if data else ([], [])
+        self.reverse = reverse
+        self.search = functools.partial(
+            reverse_bisect_left if reverse else bisect.bisect_left,
+            self.scores,
+        )
+        self.max_limit = max_limit
+
+    def get_result(self, limit, cursor=None, count_hits=False):
+        limit = min(limit, self.max_limit)
+
+        if cursor is None:
+            cursor = Cursor(0, 0, False)
+
+        assert cursor.offset > -1
+
+        if cursor.value == 0:
+            position = len(self.scores) if cursor.is_prev else 0
+        else:
+            position = self.search(cursor.value)
+
+        position = position + cursor.offset
+
+        if cursor.is_prev:
+            # TODO: It might make sense to ensure that this hi value is at
+            # least the length of the page + 1 if we want to ensure we return a
+            # full page of results when paginating backwards while data is
+            # being mutated.
+            hi = min(position, len(self.scores))
+            lo = max(hi - limit, 0)
+        else:
+            lo = max(position, 0)
+            hi = min(lo + limit, len(self.scores))
+
+        if self.scores:
+            prev_score = self.scores[min(lo, len(self.scores) - 1)]
+            prev_cursor = Cursor(
+                prev_score,
+                lo - self.search(prev_score, hi=lo),
+                True,
+                True if lo > 0 else False,
+            )
+
+            next_score = self.scores[min(hi, len(self.scores) - 1)]
+            next_cursor = Cursor(
+                next_score,
+                hi - self.search(next_score, hi=hi),
+                False,
+                True if hi < len(self.scores) else False,
+            )
+        else:
+            prev_cursor = Cursor(cursor.value, cursor.offset, True, False)
+            next_cursor = Cursor(cursor.value, cursor.offset, False, False)
+
+        return CursorResult(
+            self.values[lo:hi],
+            prev=prev_cursor,
+            next=next_cursor,
+            hits=min(len(self.scores), MAX_HITS_LIMIT) if count_hits else None,
+            max_hits=MAX_HITS_LIMIT if count_hits else None,
         )

@@ -47,13 +47,25 @@ def convert_on_delete_handler(value):
                     return "%s.SET_NULL" % (django_db_models_module)
                 # simple function we can perhaps cope with:
                 elif hasattr(closure_contents, '__call__'):
-                    raise ValueError("South does not support on_delete with SET(function) as values.")
+                    raise ValueError(
+                        "South does not support on_delete with SET(function) as values.")
                 else:
                     # Attempt to serialise the value
                     return "%s.SET(%s)" % (django_db_models_module, value_clean(closure_contents))
-        raise ValueError("%s was not recognized as a valid model deletion handler. Possible values: %s." % (value, ', '.join(f.__name__ for f in (models.CASCADE, models.PROTECT, models.SET, models.SET_NULL, models.SET_DEFAULT, models.DO_NOTHING))))
+        raise ValueError(
+            "%s was not recognized as a valid model deletion handler. Possible values: %s." %
+            (value,
+             ', '.join(
+                 f.__name__ for f in (
+                     models.CASCADE,
+                     models.PROTECT,
+                     models.SET,
+                     models.SET_NULL,
+                     models.SET_DEFAULT,
+                     models.DO_NOTHING))))
     else:
-        raise ValueError("on_delete argument encountered in Django version that does not support it")
+        raise ValueError(
+            "on_delete argument encountered in Django version that does not support it")
 
 # Gives information about how to introspect certain fields.
 # This is a list of triples; the first item is a list of fields it applies to,
@@ -66,14 +78,15 @@ def convert_on_delete_handler(value):
 # is an optional dict.
 #
 # The introspector uses the combination of all matching entries, in order.
-                                     
+
+
 introspection_details = [
     (
         (models.Field, ),
         [],
         {
             "null": ["null", {"default": False}],
-            "blank": ["blank", {"default": False, "ignore_if":"primary_key"}],
+            "blank": ["blank", {"default": False, "ignore_if": "primary_key"}],
             "primary_key": ["primary_key", {"default": False}],
             "max_length": ["max_length", {"default": None}],
             "unique": ["_unique", {"default": False}],
@@ -91,7 +104,14 @@ introspection_details = [
             ("to_field", ["rel.field_name", {"default_attr": "rel.to._meta.pk.name"}]),
             ("related_name", ["rel.related_name", {"default": None}]),
             ("db_index", ["db_index", {"default": True}]),
-            ("on_delete", ["rel.on_delete", {"default": getattr(models, "CASCADE", None), "is_django_function": True, "converter": convert_on_delete_handler, "ignore_missing": True}])
+            ("on_delete",
+             ["rel.on_delete",
+              {"default": getattr(models,
+                                  "CASCADE",
+                                  None),
+               "is_django_function": True,
+               "converter": convert_on_delete_handler,
+               "ignore_missing": True}])
         ])
     ),
     (
@@ -134,7 +154,7 @@ introspection_details = [
         [],
         {
             "default": ["default", {"default": NOT_PROVIDED, "converter": bool}],
-            "blank": ["blank", {"default": True, "ignore_if":"primary_key"}],
+            "blank": ["blank", {"default": True, "ignore_if": "primary_key"}],
         },
     ),
     (
@@ -196,7 +216,7 @@ def add_ignored_fields(patterns):
     "Allows you to add some ignore field patterns."
     assert isinstance(patterns, (list, tuple))
     ignored_fields.extend(patterns)
-    
+
 
 def can_ignore(field):
     """
@@ -262,7 +282,7 @@ def get_value(field, descriptor):
                 raise IsDefault
             else:
                 raise
-            
+
     # Lazy-eval functions get eval'd.
     if isinstance(value, Promise):
         value = text_type(value)
@@ -298,7 +318,8 @@ def value_clean(value, options={}):
     if isinstance(value, Promise):
         value = text_type(value)
     # Callables get called.
-    if not options.get('is_django_function', False) and callable(value) and not isinstance(value, ModelBase):
+    if not options.get('is_django_function', False) and callable(
+            value) and not isinstance(value, ModelBase):
         # Datetime.datetime.now is special, as we can access it from the eval
         # context (and because it changes all the time; people will file bugs otherwise).
         if value == datetime.datetime.now:
@@ -323,7 +344,8 @@ def value_clean(value, options={}):
     if isinstance(value, Model):
         if options.get("ignore_dynamics", False):
             raise IsDefault
-        return "orm['%s.%s'].objects.get(pk=%r)" % (value.__class__._meta.app_label, value.__class__._meta.object_name, value.pk)
+        return "orm['%s.%s'].objects.get(pk=%r)" % (
+            value.__class__._meta.app_label, value.__class__._meta.object_name, value.pk)
     # Make sure Decimal is converted down into a string
     if isinstance(value, decimal.Decimal):
         value = str(value)
@@ -380,22 +402,22 @@ def get_model_fields(model, m2m=False):
     """
     Given a model class, returns a dict of {field_name: field_triple} defs.
     """
-    
+
     field_defs = SortedDict()
     inherited_fields = {}
-    
+
     # Go through all bases (that are themselves models, but not Model)
     for base in model.__bases__:
         if hasattr(base, '_meta') and issubclass(base, models.Model):
             if not base._meta.abstract:
                 # Looks like we need their fields, Ma.
                 inherited_fields.update(get_model_fields(base))
-    
+
     # Now, go through all the fields and try to get their definition
     source = model._meta.local_fields[:]
     if m2m:
         source += model._meta.local_many_to_many
-    
+
     for field in source:
         # Can we ignore it completely?
         if can_ignore(field):
@@ -421,12 +443,12 @@ def get_model_fields(model, m2m=False):
             if NOISY:
                 print(" ( Nodefing field: %s" % field.name)
             field_defs[field.name] = None
-    
+
     # If they've used the horrific hack that is order_with_respect_to, deal with
     # it.
     if model._meta.order_with_respect_to:
         field_defs['_order'] = ("django.db.models.fields.IntegerField", [], {"default": "0"})
-    
+
     return field_defs
 
 
@@ -434,7 +456,7 @@ def get_model_meta(model):
     """
     Given a model class, will return the dict representing the Meta class.
     """
-    
+
     # Get the introspected attributes
     meta_def = {}
     for kwd, defn in meta_details.items():
@@ -442,7 +464,7 @@ def get_model_meta(model):
             meta_def[kwd] = get_value(model._meta, defn)
         except IsDefault:
             pass
-    
+
     # Also, add on any non-abstract model base classes.
     # This is called _ormbases as the _bases variable was previously used
     # for a list of full class paths to bases, so we can't conflict.
@@ -456,7 +478,7 @@ def get_model_meta(model):
                     base._meta.app_label,
                     base._meta.object_name,
                 ))
-    
+
     return meta_def
 
 

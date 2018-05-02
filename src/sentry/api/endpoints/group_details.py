@@ -1,25 +1,26 @@
 from __future__ import absolute_import
 
 from datetime import timedelta
+import functools
 import logging
 from uuid import uuid4
 
 from django.utils import timezone
 from rest_framework.response import Response
 
-from sentry import tsdb
+from sentry import tsdb, tagstore
 from sentry.api import client
-from sentry.api.base import DocSection
+from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
-from sentry.api.serializers import serialize
+from sentry.api.serializers import serialize, GroupSerializer
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.models import (
     Activity,
+    Environment,
     Group,
     GroupHash,
     GroupSeen,
     GroupStatus,
-    GroupTagKey,
     Release,
     User,
     UserReport,
@@ -67,7 +68,7 @@ STATUS_CHOICES = {
 }
 
 
-class GroupDetailsEndpoint(GroupEndpoint):
+class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
     doc_section = DocSection.EVENTS
 
     def _get_activity(self, request, group, num):
@@ -173,7 +174,14 @@ class GroupDetailsEndpoint(GroupEndpoint):
         :auth: required
         """
         # TODO(dcramer): handle unauthenticated/public response
-        data = serialize(group, request.user)
+        data = serialize(
+            group,
+            request.user,
+            GroupSerializer(
+                environment_func=self._get_environment_func(
+                    request, group.project.organization_id)
+            )
+        )
 
         # TODO: these probably should be another endpoint
         activity = self._get_activity(request, group, num=100)
@@ -188,9 +196,32 @@ class GroupDetailsEndpoint(GroupEndpoint):
 
         action_list = self._get_actions(request, group)
 
+        if first_release:
+            first_release = self._get_release_info(request, group, first_release)
+        if last_release:
+            last_release = self._get_release_info(request, group, last_release)
+
+        try:
+            environment_id = self._get_environment_id_from_request(
+                request, group.project.organization_id)
+        except Environment.DoesNotExist:
+            get_range = lambda model, keys, start, end, **kwargs: \
+                {k: tsdb.make_series(0, start, end) for k in keys}
+            tags = []
+            user_reports = UserReport.objects.none()
+
+        else:
+            get_range = functools.partial(tsdb.get_range, environment_id=environment_id)
+            tags = tagstore.get_group_tag_keys(
+                group.project_id, group.id, environment_id, limit=100)
+            if environment_id is None:
+                user_reports = UserReport.objects.filter(group=group)
+            else:
+                user_reports = UserReport.objects.filter(group=group, environment_id=environment_id)
+
         now = timezone.now()
         hourly_stats = tsdb.rollup(
-            tsdb.get_range(
+            get_range(
                 model=tsdb.models.group,
                 keys=[group.id],
                 end=now,
@@ -198,22 +229,13 @@ class GroupDetailsEndpoint(GroupEndpoint):
             ), 3600
         )[group.id]
         daily_stats = tsdb.rollup(
-            tsdb.get_range(
+            get_range(
                 model=tsdb.models.group,
                 keys=[group.id],
                 end=now,
                 start=now - timedelta(days=30),
             ), 3600 * 24
         )[group.id]
-
-        if first_release:
-            first_release = self._get_release_info(request, group, first_release)
-        if last_release:
-            last_release = self._get_release_info(request, group, last_release)
-
-        tags = list(GroupTagKey.objects.filter(
-            group=group,
-        )[:100])
 
         participants = list(
             User.objects.filter(
@@ -232,7 +254,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 'pluginActions': action_list,
                 'pluginIssues': self._get_available_issue_plugins(request, group),
                 'pluginContexts': self._get_context_plugins(request, group),
-                'userReportCount': UserReport.objects.filter(group=group).count(),
+                'userReportCount': user_reports.count(),
                 'tags': sorted(serialize(tags, request.user), key=lambda x: x['name']),
                 'stats': {
                     '24h': hourly_stats,
@@ -256,8 +278,8 @@ class GroupDetailsEndpoint(GroupEndpoint):
         :param string status: the new status for the issue.  Valid values
                               are ``"resolved"``, ``resolvedInNextRelease``,
                               ``"unresolved"``, and ``"ignored"``.
-        :param string assignedTo: the username of the user that should be
-                               assigned to this issue.
+        :param string assignedTo: the actor id (or username) of the user or team that should be
+                                  assigned to this issue.
         :param boolean hasSeen: in case this API call is invoked with a user
                                 context this allows changing of the flag
                                 that indicates if the user has seen the
@@ -266,23 +288,27 @@ class GroupDetailsEndpoint(GroupEndpoint):
                                      user context this allows changing of
                                      the bookmark flag.
         :param boolean isSubscribed:
+        :param boolean isPublic: sets the issue to public or private.
         :auth: required
         """
         discard = request.DATA.get('discard')
 
         # TODO(dcramer): we need to implement assignedTo in the bulk mutation
         # endpoint
-        response = client.put(
-            path='/projects/{}/{}/issues/'.format(
-                group.project.organization.slug,
-                group.project.slug,
-            ),
-            params={
-                'id': group.id,
-            },
-            data=request.DATA,
-            request=request,
-        )
+        try:
+            response = client.put(
+                path='/projects/{}/{}/issues/'.format(
+                    group.project.organization.slug,
+                    group.project.slug,
+                ),
+                params={
+                    'id': group.id,
+                },
+                data=request.DATA,
+                request=request,
+            )
+        except client.ApiError as e:
+            return Response(e.body, status=e.status_code)
 
         # if action was discard, there isn't a group to serialize anymore
         if discard:
@@ -296,7 +322,16 @@ class GroupDetailsEndpoint(GroupEndpoint):
         # for mutation.
         group = Group.objects.get(id=group.id)
 
-        return Response(serialize(group, request.user), status=response.status_code)
+        serialized = serialize(
+            group,
+            request.user,
+            GroupSerializer(
+                environment_func=self._get_environment_func(
+                    request, group.project.organization_id)
+            )
+        )
+
+        return Response(serialized, status=response.status_code)
 
     @attach_scenarios([delete_aggregate_scenario])
     def delete(self, request, group):

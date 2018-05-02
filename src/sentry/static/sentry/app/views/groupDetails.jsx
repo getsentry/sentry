@@ -1,45 +1,58 @@
+import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import {browserHistory} from 'react-router';
-import ApiMixin from '../mixins/apiMixin';
 import DocumentTitle from 'react-document-title';
+
+import ApiMixin from '../mixins/apiMixin';
 import GroupHeader from './groupDetails/header';
 import GroupStore from '../stores/groupStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
-import PropTypes from '../proptypes';
+import SentryTypes from '../proptypes';
 import {t} from '../locale';
+import withEnvironment from '../utils/withEnvironment';
 
 let ERROR_TYPES = {
-  GROUP_NOT_FOUND: 'GROUP_NOT_FOUND'
+  GROUP_NOT_FOUND: 'GROUP_NOT_FOUND',
 };
 
-const GroupDetails = React.createClass({
+const GroupDetails = createReactClass({
+  displayName: 'GroupDetails',
+
   propTypes: {
-    setProjectNavSection: React.PropTypes.func,
-    memberList: React.PropTypes.array
+    setProjectNavSection: PropTypes.func,
+    memberList: PropTypes.array,
+    environment: SentryTypes.Environment,
   },
 
   childContextTypes: {
-    group: PropTypes.Group,
-    location: React.PropTypes.object
+    group: SentryTypes.Group,
+    location: PropTypes.object,
   },
 
   mixins: [ApiMixin, Reflux.listenTo(GroupStore, 'onGroupChange')],
+
+  getDefaultProps() {
+    return {
+      memberList: [],
+    };
+  },
 
   getInitialState() {
     return {
       group: null,
       loading: true,
       error: false,
-      errorType: null
+      errorType: null,
     };
   },
 
   getChildContext() {
     return {
       group: this.state.group,
-      location: this.props.location
+      location: this.props.location,
     };
   },
 
@@ -55,7 +68,10 @@ const GroupDetails = React.createClass({
   },
 
   componentDidUpdate(prevProps, prevState) {
-    if (prevProps.params.groupId !== this.props.params.groupId) {
+    if (
+      prevProps.params.groupId !== this.props.params.groupId ||
+      prevProps.environment !== this.props.environment
+    ) {
       this.fetchData();
     }
   },
@@ -65,7 +81,14 @@ const GroupDetails = React.createClass({
   },
 
   fetchData() {
+    const query = {};
+
+    if (this.props.environment) {
+      query.environment = this.props.environment.name;
+    }
+
     this.api.request(this.getGroupDetailsEndpoint(), {
+      query,
       success: data => {
         // TODO: Ideally, this would rebuild the route before parameter
         // interpolation, replace the `groupId` field of `this.routeParams`,
@@ -75,8 +98,7 @@ const GroupDetails = React.createClass({
         // https://github.com/reactjs/react-router/blob/v2.0.1/modules/index.js#L25
         if (this.props.params.groupId != data.id) {
           let location = this.props.location;
-          return void browserHistory.pushState(
-            null,
+          return void browserHistory.push(
             location.pathname.replace(
               `/issues/${this.props.params.groupId}/`,
               `/issues/${data.id}/`
@@ -89,7 +111,7 @@ const GroupDetails = React.createClass({
         this.setState({
           loading: false,
           error: false,
-          errorType: null
+          errorType: null,
         });
 
         return void GroupStore.loadInitialData([data]);
@@ -105,9 +127,9 @@ const GroupDetails = React.createClass({
         this.setState({
           loading: false,
           error: true,
-          errorType: errorType
+          errorType,
         });
-      }
+      },
     });
   },
 
@@ -115,13 +137,15 @@ const GroupDetails = React.createClass({
     let id = this.props.params.groupId;
     if (itemIds.has(id)) {
       let group = GroupStore.get(id);
-      if (group.stale) {
-        this.fetchData();
-        return;
+      if (group) {
+        if (group.stale) {
+          this.fetchData();
+          return;
+        }
+        this.setState({
+          group,
+        });
       }
-      this.setState({
-        group: group
-      });
     }
   },
 
@@ -178,12 +202,12 @@ const GroupDetails = React.createClass({
           />
           {React.cloneElement(this.props.children, {
             memberList: this.props.memberList,
-            group: group
+            group,
           })}
         </div>
       </DocumentTitle>
     );
-  }
+  },
 });
 
-export default GroupDetails;
+export default withEnvironment(GroupDetails);

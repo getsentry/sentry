@@ -32,13 +32,28 @@ def register_plugins(settings):
         except Exception:
             import traceback
             click.echo(
-                "Failed to load plugin %r:\n%s" % (ep.name, traceback.format_exc()), err=True
+                "Failed to load plugin %r:\n%s" % (ep.name, traceback.format_exc()),
+                err=True
             )
         else:
             plugins.register(plugin)
 
     for plugin in plugins.all(version=None):
         init_plugin(plugin)
+
+    from sentry import integrations
+    from sentry.utils.imports import import_string
+    for integration_path in settings.SENTRY_DEFAULT_INTEGRATIONS:
+        try:
+            integration_cls = import_string(integration_path)
+        except Exception:
+            import traceback
+            click.echo(
+                "Failed to load integration %r:\n%s" % (integration_path, traceback.format_exc()),
+                err=True
+            )
+        else:
+            integrations.register(integration_cls)
 
 
 def init_plugin(plugin):
@@ -198,6 +213,7 @@ def configure_structlog():
             structlog.stdlib.PositionalArgumentsFormatter(),
             structlog.processors.format_exc_info,
             structlog.processors.StackInfoRenderer(),
+            structlog.processors.UnicodeDecoder(),
         ]
     }
 
@@ -250,8 +266,6 @@ def initialize_app(config, skip_service_validation=False):
 
     apply_legacy_settings(settings)
 
-    bind_cache_to_option_store()
-
     # Commonly setups don't correctly configure themselves for production envs
     # so lets try to provide a bit more guidance
     if settings.CELERY_ALWAYS_EAGER and not settings.DEBUG:
@@ -285,6 +299,13 @@ def initialize_app(config, skip_service_validation=False):
         version=settings.ASSET_VERSION,
     )
 
+    import django
+    if hasattr(django, 'setup'):
+        # support for Django 1.7+
+        django.setup()
+
+    bind_cache_to_option_store()
+
     register_plugins(settings)
 
     initialize_receivers()
@@ -302,13 +323,13 @@ def initialize_app(config, skip_service_validation=False):
 
 def setup_services(validate=True):
     from sentry import (
-        analytics, buffer, digests, newsletter, nodestore, quotas, ratelimits, search, tsdb
+        analytics, buffer, digests, newsletter, nodestore, quotas, ratelimits, search, tagstore, tsdb
     )
     from .importer import ConfigurationError
     from sentry.utils.settings import reraise_as
 
     service_list = (
-        analytics, buffer, digests, newsletter, nodestore, quotas, ratelimits, search, tsdb,
+        analytics, buffer, digests, newsletter, nodestore, quotas, ratelimits, search, tagstore, tsdb,
     )
 
     for service in service_list:

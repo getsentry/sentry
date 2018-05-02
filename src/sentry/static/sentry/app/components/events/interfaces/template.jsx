@@ -1,20 +1,17 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import GroupEventDataSection from '../eventDataSection';
-import PropTypes from '../../../proptypes';
+import SentryTypes from '../../../proptypes';
 import Frame from './frame';
 import {t} from '../../../locale';
 
-const TemplateInterface = React.createClass({
-  propTypes: {
-    group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired,
-    type: React.PropTypes.string.isRequired,
-    data: React.PropTypes.object.isRequired
-  },
-
-  getInitialState() {
-    return {};
-  },
+class TemplateInterface extends React.Component {
+  static propTypes = {
+    group: SentryTypes.Group.isRequired,
+    event: SentryTypes.Event.isRequired,
+    type: PropTypes.string.isRequired,
+    data: PropTypes.object.isRequired,
+  };
 
   render() {
     return (
@@ -22,7 +19,8 @@ const TemplateInterface = React.createClass({
         group={this.props.group}
         event={this.props.event}
         type={this.props.type}
-        title={<div>{t('Template')}</div>}>
+        title={<div>{t('Template')}</div>}
+      >
         <div className="traceback no-exception">
           <ul>
             <Frame data={this.props.data} isExpanded={true} />
@@ -31,6 +29,6 @@ const TemplateInterface = React.createClass({
       </GroupEventDataSection>
     );
   }
-});
+}
 
 export default TemplateInterface;

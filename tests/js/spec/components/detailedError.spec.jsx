@@ -1,6 +1,5 @@
 import React from 'react';
 import {shallow} from 'enzyme';
-import toJson from 'enzyme-to-json';
 
 import DetailedError from 'app/components/errors/detailedError';
 
@@ -10,7 +9,7 @@ describe('DetailedError', function() {
       <DetailedError heading="Error heading" message={<div>Message</div>} />
     );
 
-    expect(toJson(wrapper)).toMatchSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 
   it('renders with "Retry" button', function() {
@@ -22,7 +21,7 @@ describe('DetailedError', function() {
       />
     );
 
-    expect(toJson(wrapper)).toMatchSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 
   it('can hide support links', function() {
@@ -35,7 +34,7 @@ describe('DetailedError', function() {
       />
     );
 
-    expect(toJson(wrapper)).toMatchSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 
   it('hides footer when no "Retry" and no support links', function() {
@@ -47,6 +46,6 @@ describe('DetailedError', function() {
       />
     );
 
-    expect(toJson(wrapper)).toMatchSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 });

@@ -1,10 +1,10 @@
-import _ from 'underscore';
+import _ from 'lodash';
 
 let defaults = {
   limit: null,
   key: function(item) {
     return item.id;
-  }
+  },
 };
 
 function Collection(collection, options) {

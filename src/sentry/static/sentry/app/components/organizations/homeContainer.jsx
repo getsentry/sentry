@@ -1,57 +1,68 @@
 import React from 'react';
-import {Link} from 'react-router';
+
+import createReactClass from 'create-react-class';
 
 import OrganizationHomeSidebar from './homeSidebar';
 import OrganizationState from '../../mixins/organizationState';
 import ProjectSelector from '../projectHeader/projectSelector';
-import TooltipMixin from '../../mixins/tooltip';
+import Tooltip from '../../components/tooltip';
 import {t} from '../../locale';
 
-const HomeContainer = React.createClass({
-  mixins: [
-    OrganizationState,
-    TooltipMixin({
-      selector: '.tip'
-    })
-  ],
+import Button from '../../components/buttons/button';
+
+const HomeContainer = createReactClass({
+  displayName: 'HomeContainer',
+
+  mixins: [OrganizationState],
 
   render() {
     let org = this.getOrganization();
     let access = this.getAccess();
 
     return (
-      <div className="organization-home">
+      <div className={`${this.props.className || ''} organization-home`}>
         <div className="sub-header flex flex-container flex-vertically-centered">
           <div>
             <ProjectSelector organization={org} />
           </div>
           <div className="align-right hidden-xs">
-            {access.has('project:write')
-              ? <a
-                  href={`/organizations/${org.slug}/projects/new/`}
-                  className="btn btn-primary"
-                  style={{marginRight: 5}}>
-                  {t('New Project')}
-                </a>
-              : <a
-                  className="btn btn-primary btn-disabled tip"
+            {access.has('project:write') ? (
+              <Button
+                to={`/organizations/${org.slug}/projects/new/`}
+                priority="primary"
+                style={{marginRight: 5}}
+              >
+                {t('New Project')}
+              </Button>
+            ) : (
+              <Tooltip
+                title={t('You do not have enough permission to create new projects')}
+                tooltipOptions={{placement: 'bottom'}}
+              >
+                <Button
+                  priority="primary"
+                  disabled
                   data-placement="bottom"
-                  title={t('You do not have enough permission to create new projects')}
-                  style={{marginRight: 5}}>
+                  style={{marginRight: 5}}
+                >
                   {t('New Project')}
-                </a>}
-            {access.has('team:write')
-              ? <Link
-                  to={`/organizations/${org.slug}/teams/new/`}
-                  className="btn btn-primary">
+                </Button>
+              </Tooltip>
+            )}
+            {access.has('team:write') ? (
+              <Button to={`/organizations/${org.slug}/teams/new/`} priority="primary">
+                {t('New Team')}
+              </Button>
+            ) : (
+              <Tooltip
+                title={t('You do not have enough permission to create new teams')}
+                tooltipOptions={{placement: 'bottom'}}
+              >
+                <Button priority="primary" disabled>
                   {t('New Team')}
-                </Link>
-              : <a
-                  className="btn btn-primary btn-disabled tip"
-                  data-placement="bottom"
-                  title={t('You do not have enough permission to create new teams')}>
-                  {t('New Team')}
-                </a>}
+                </Button>
+              </Tooltip>
+            )}
           </div>
         </div>
         <div className="container">
@@ -59,14 +70,12 @@ const HomeContainer = React.createClass({
             <div className="col-md-2 org-sidebar">
               <OrganizationHomeSidebar />
             </div>
-            <div className="col-md-10">
-              {this.props.children}
-            </div>
+            <div className="col-md-10">{this.props.children}</div>
           </div>
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default HomeContainer;

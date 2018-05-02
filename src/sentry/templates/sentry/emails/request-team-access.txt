@@ -1,5 +1,7 @@
-{{ name }} is requesting access to {{ team.name }}.
+{{ name }} is requesting access to #{{ team.slug }}.
 
 You can accept or decline this request in via the pending requests panel:
 
     {{ url }}
+
+You are receiving this email because you're listed as an administrator of the #{{ team.slug }} team.

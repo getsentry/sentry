@@ -13,7 +13,8 @@ from datetime import datetime, timedelta
 
 import six
 
-from sentry.constants import DATA_ROOT
+from sentry.constants import DATA_ROOT, INTEGRATION_ID_TO_PLATFORM_DATA
+from sentry.coreapi import ClientApiHelper
 from sentry.event_manager import EventManager
 from sentry.interfaces.user import User as UserInterface
 from sentry.utils import json
@@ -100,14 +101,23 @@ def load_data(platform, default=None, timestamp=None, sample_name=None):
     #     event so it's not an empty project.
     #   * When a user clicks Test Configuration from notification plugin settings page,
     #     a fake event is generated to go through the pipeline.
-    sample_name = sample_name or platform
-
     data = None
-    for platform in (platform, default):
-        if platform is None:
+    language = None
+    platform_data = INTEGRATION_ID_TO_PLATFORM_DATA.get(platform)
+
+    if platform_data is not None and platform_data['type'] != 'language':
+        language = platform_data['language']
+
+    for platform in (platform, language, default):
+        if not platform:
             continue
 
-        json_path = os.path.join(DATA_ROOT, 'samples', '%s.json' % (sample_name.encode('utf-8'), ))
+        try:
+            sample_name = sample_name or INTEGRATION_ID_TO_PLATFORM_DATA[platform]['name']
+        except KeyError:
+            continue
+
+        json_path = os.path.join(DATA_ROOT, 'samples', '%s.json' % (platform.encode('utf-8'), ))
 
         if not os.path.exists(json_path):
             continue
@@ -184,7 +194,8 @@ def load_data(platform, default=None, timestamp=None, sample_name=None):
     return data
 
 
-def create_sample_event(project, platform=None, default=None, raw=True, sample_name=None, **kwargs):
+def create_sample_event(project, platform=None, default=None,
+                        raw=True, sample_name=None, **kwargs):
     if not platform and not default:
         return
 
@@ -197,6 +208,7 @@ def create_sample_event(project, platform=None, default=None, raw=True, sample_n
 
     data.update(kwargs)
 
+    data = ClientApiHelper().validate_data(data)
     manager = EventManager(data)
     manager.normalize()
     return manager.save(project.id, raw=raw)

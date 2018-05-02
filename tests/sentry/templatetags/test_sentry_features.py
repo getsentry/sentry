@@ -27,7 +27,7 @@ class FeaturesTest(TestCase):
         assert '<span>register</span>' in result
 
     def test_disabled(self):
-        with self.feature('auth:register', False):
+        with self.feature({'auth:register': False}):
             result = self.TEMPLATE.render(Context({
                 'request': Mock(),
             }))

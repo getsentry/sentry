@@ -1,70 +1,36 @@
 import jQuery from 'jquery';
+import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
-import {Link} from 'react-router';
+import styled from 'react-emotion';
+import {Flex, Box} from 'grid-emotion';
 
 import AssigneeSelector from '../assigneeSelector';
 import Count from '../count';
 import GroupChart from './groupChart';
 import GroupCheckBox from './groupCheckBox';
 import ProjectState from '../../mixins/projectState';
-import TimeSince from '../timeSince';
-import GroupTitle from '../group/title';
 import GroupStore from '../../stores/groupStore';
+import GuideAnchor from '../../components/assistant/guideAnchor';
 import SelectedGroupStore from '../../stores/selectedGroupStore';
-import ShortId from '../shortId';
+import EventOrGroupHeader from '../eventOrGroupHeader';
+import EventOrGroupExtraDetails from '../eventOrGroupExtraDetails';
+import {PanelItem} from '../panels';
 
 import {valueIsEqual} from '../../utils';
 
-const StreamGroupHeader = React.createClass({
+const StreamGroup = createReactClass({
+  displayName: 'StreamGroup',
+
   propTypes: {
-    data: React.PropTypes.object.isRequired,
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired
-  },
-
-  getMessage() {
-    let data = this.props.data;
-    let metadata = data.metadata;
-    switch (data.type) {
-      case 'error':
-        return metadata.value;
-      case 'csp':
-        return metadata.message;
-      default:
-        return this.props.data.culprit || '';
-    }
-  },
-
-  render() {
-    let {orgId, projectId, data} = this.props;
-    let message = this.getMessage();
-    return (
-      <div>
-        <h3 className="truncate">
-          <Link to={`/${orgId}/${projectId}/issues/${data.id}/`}>
-            <span className="error-level truncate">{data.level}</span>
-            <span className="icon icon-soundoff" />
-            <span className="icon icon-star-solid" />
-            <GroupTitle data={data} />
-          </Link>
-        </h3>
-        {message &&
-          <div className="event-message truncate">
-            <span className="message">{this.getMessage()}</span>
-          </div>}
-      </div>
-    );
-  }
-});
-
-const StreamGroup = React.createClass({
-  propTypes: {
-    id: React.PropTypes.string.isRequired,
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-    statsPeriod: React.PropTypes.string.isRequired,
-    canSelect: React.PropTypes.bool
+    id: PropTypes.string.isRequired,
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    statsPeriod: PropTypes.string.isRequired,
+    canSelect: PropTypes.bool,
+    query: PropTypes.string,
+    hasGuideAnchor: PropTypes.bool,
   },
 
   mixins: [Reflux.listenTo(GroupStore, 'onGroupChange'), ProjectState],
@@ -73,20 +39,20 @@ const StreamGroup = React.createClass({
     return {
       canSelect: true,
       id: '',
-      statsPeriod: '24h'
+      statsPeriod: '24h',
     };
   },
 
   getInitialState() {
     return {
-      data: GroupStore.get(this.props.id)
+      data: GroupStore.get(this.props.id),
     };
   },
 
   componentWillReceiveProps(nextProps) {
     if (nextProps.id != this.props.id) {
       this.setState({
-        data: GroupStore.get(this.props.id)
+        data: GroupStore.get(this.props.id),
       });
     }
   },
@@ -108,7 +74,7 @@ const StreamGroup = React.createClass({
     let id = this.props.id;
     let data = GroupStore.get(id);
     this.setState({
-      data: data
+      data,
     });
   },
 
@@ -121,100 +87,70 @@ const StreamGroup = React.createClass({
   },
 
   render() {
-    let data = this.state.data;
-    let userCount = data.userCount;
-
-    let className = 'group row';
-    if (data.isBookmarked) {
-      className += ' isBookmarked';
-    }
-    if (data.hasSeen) {
-      className += ' hasSeen';
-    }
-    if (data.status === 'resolved') {
-      className += ' isResolved';
-    }
-    if (data.status === 'ignored') {
-      className += ' isIgnored';
-    }
-
-    className += ' type-' + data.type;
-    className += ' level-' + data.level;
-
-    let {id, orgId, projectId} = this.props;
-
-    let styles = {};
-    if (data.subscriptionDetails && data.subscriptionDetails.reason === 'mentioned') {
-      styles = {color: '#57be8c'};
-    }
+    const {data} = this.state;
+    const {id, orgId, projectId, query, hasGuideAnchor, canSelect} = this.props;
 
     return (
-      <li className={className} onClick={this.toggleSelect}>
-        <div className="col-md-7 col-xs-8 event-details">
-          {this.props.canSelect &&
-            <div className="checkbox">
-              <GroupCheckBox id={data.id} />
-            </div>}
-          <StreamGroupHeader orgId={orgId} projectId={projectId} data={data} />
-          <div className="event-extra">
-            <ul>
-              {this.getFeatures().has('callsigns') &&
-                data.shortId &&
-                <li>
-                  <ShortId shortId={data.shortId} />
-                </li>}
-              <li>
-                <span className="icon icon-clock" />
-                <TimeSince date={data.lastSeen} />
-                &nbsp;—&nbsp;
-                <TimeSince date={data.firstSeen} suffix="old" />
-              </li>
-              {data.numComments !== 0 &&
-                <li>
-                  <Link
-                    to={`/${orgId}/${projectId}/issues/${id}/activity/`}
-                    className="comments">
-                    <span className="icon icon-comments" style={styles} />
-                    <span className="tag-count">{data.numComments}</span>
-                  </Link>
-                </li>}
-              {data.logger &&
-                <li className="event-annotation">
-                  <Link
-                    to={{
-                      pathname: `/${orgId}/${projectId}/`,
-                      query: {query: 'logger:' + data.logger}
-                    }}>
-                    {data.logger}
-                  </Link>
-                </li>}
-              {data.annotations.map((annotation, key) => {
-                return (
-                  <li
-                    className="event-annotation"
-                    dangerouslySetInnerHTML={{__html: annotation}}
-                    key={key}
-                  />
-                );
-              })}
-            </ul>
-          </div>
-        </div>
-        <div className="event-assignee col-md-1 hidden-sm hidden-xs">
-          <AssigneeSelector id={data.id} />
-        </div>
-        <div className="col-md-2 hidden-sm hidden-xs event-graph align-right">
+      <Group onClick={this.toggleSelect} py={1} px={0} align="center">
+        {canSelect && (
+          <GroupCheckbox ml={2}>
+            {hasGuideAnchor && <GuideAnchor target="issues" type="text" />}
+            <GroupCheckBox id={data.id} />
+          </GroupCheckbox>
+        )}
+        <GroupSummary w={[8 / 12, 8 / 12, 6 / 12]} ml={canSelect ? 1 : 2} mr={1} flex="1">
+          <EventOrGroupHeader
+            data={data}
+            orgId={orgId}
+            projectId={projectId}
+            query={query}
+          />
+          <EventOrGroupExtraDetails
+            group
+            {...data}
+            groupId={id}
+            orgId={orgId}
+            projectId={projectId}
+          />
+        </GroupSummary>
+        <Box w={160} mx={2} className="hidden-xs hidden-sm">
           <GroupChart id={data.id} statsPeriod={this.props.statsPeriod} data={data} />
-        </div>
-        <div className="col-md-1 col-xs-2 event-count align-right">
-          <Count value={data.count} />
-        </div>
-        <div className="col-md-1 col-xs-2 event-users align-right">
-          <Count value={userCount} />
-        </div>
-      </li>
+        </Box>
+        <Flex w={[40, 60, 80, 80]} mx={2} justify="flex-end">
+          {hasGuideAnchor && <GuideAnchor target="events" type="text" />}
+          <StyledCount value={data.count} />
+        </Flex>
+        <Flex w={[40, 60, 80, 80]} mx={2} justify="flex-end">
+          {hasGuideAnchor && <GuideAnchor target="users" type="text" />}
+          <StyledCount value={data.userCount} />
+        </Flex>
+        <Box w={80} mx={2} className="hidden-xs hidden-sm">
+          <AssigneeSelector id={data.id} />
+        </Box>
+      </Group>
     );
-  }
+  },
 });
+
+const Group = styled(PanelItem)`
+  line-height: 1.1;
+`;
+
+const GroupSummary = styled(Box)`
+  overflow: hidden;
+`;
+
+const GroupCheckbox = styled(Box)`
+  align-self: flex-start;
+  & input[type='checkbox'] {
+    margin: 0;
+    display: block;
+  }
+`;
+
+const StyledCount = styled(Count)`
+  font-size: 18px;
+  color: ${p => p.theme.gray3};
+`;
 
 export default StreamGroup;

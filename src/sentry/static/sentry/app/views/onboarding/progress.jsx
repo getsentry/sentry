@@ -1,10 +1,19 @@
+import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import classNames from 'classnames';
 import {onboardingSteps, stepDescriptions} from './utils';
+import ConfigStore from '../../stores/configStore';
 
-const ProgressNodes = React.createClass({
+const ProgressNodes = createReactClass({
+  displayName: 'ProgressNodes',
+
   propTypes: {
-    params: React.PropTypes.object
+    params: PropTypes.object,
+  },
+
+  contextTypes: {
+    organization: PropTypes.object,
   },
 
   steps: Object.keys(onboardingSteps),
@@ -18,7 +27,7 @@ const ProgressNodes = React.createClass({
   node(stepKey, stepIndex) {
     let nodeClass = classNames('node', {
       done: stepIndex < this.inferStep(),
-      active: stepIndex === this.inferStep()
+      active: stepIndex === this.inferStep(),
     });
 
     return (
@@ -30,23 +39,30 @@ const ProgressNodes = React.createClass({
   },
 
   render() {
+    let config = ConfigStore.getConfig();
+    let {slug} = this.context.organization;
+
     return (
       <div className="onboarding-sidebar">
         <div className="sentry-flag">
           <span href="/" className="icon-sentry-logo-full" />
         </div>
-        <div className="progress-nodes">
-          {this.steps.map(this.node)}
-        </div>
+        <div className="progress-nodes">{this.steps.map(this.node)}</div>
         <div className="stuck">
-          {/*
-          <p> Stuck?</p>
-          <p> Chat with a real person</p>
-        */}
+          <a
+            href={
+              !config.isOnPremise
+                ? `/organizations/${slug}/support/`
+                : 'https://forum.sentry.io/'
+            }
+          >
+            <p> Stuck?</p>
+            <p> Ask for help</p>
+          </a>
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default ProgressNodes;

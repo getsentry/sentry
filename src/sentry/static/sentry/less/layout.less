@@ -11,7 +11,7 @@ body {
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
   padding-left: @sidebar-width;
-  padding-top: 30px;
+  min-height: 100vh;
 
   // Fake sidebar rendering until actual sidebar is loaded
 
@@ -19,6 +19,27 @@ body {
   background-size: @sidebar-width;
   background-repeat: repeat-y;
 
+  &.new-settings {
+    overflow-y: scroll;
+    background-image: none;
+    background-color: #fcfcfc;
+    padding: 0;
+
+    .messages-container {
+      margin: 0;
+    }
+    .sentry-error-embed-wrapper {
+      z-index: 1000;
+    }
+  }
+
+  &.org-dashboard {
+    background-color: #fcfcfc;
+  }
+}
+
+#blk_router {
+  min-height: 100vh;
 }
 
 /**
@@ -28,20 +49,30 @@ body {
 
 body.narrow {
   zoom: 1;
-  padding: 30px 0 0;
+  padding: 0;
 
   background: #fff;
 
-  h3, h4 {
+  &.dialog {
+    padding-top: 0;
+  }
+
+  h3,
+  h4 {
     line-height: 1.2;
   }
 
   .app > .container {
-    padding-top: 10px;
+    padding-top: 40px;
     max-width: 860px;
 
     .box-header {
-      padding: 15px 30px 10px;
+      padding: 15px 30px 12px;
+
+      .logo-with-action {
+        display: flex;
+        align-items: center;
+      }
 
       a {
         font-size: 20px;
@@ -51,7 +82,8 @@ body.narrow {
         }
       }
 
-      .back-to, .pull-right a {
+      .back-to,
+      .pull-right a {
         font-size: 16px;
       }
 
@@ -103,14 +135,27 @@ body.auth {
 .app {
   display: flex;
   flex-direction: column;
+  min-height: 100vh;
 }
-
 
 .container {
   position: relative;
   padding-left: 30px;
   padding-right: 30px;
   width: 100% !important;
+  flex: 1;
+}
+
+// Container around content in app.jsx
+.main-container {
+  min-height: 100vh;
+}
+
+// So loader can take up full height so that footer is fixed to bottom of screen
+.loading-full-layout {
+  flex: 1;
+  display: flex;
+  align-items: center;
 }
 
 /**
@@ -122,11 +167,11 @@ body.auth {
   color: @gray-dark;
   border-bottom: 1px solid darken(@trim, 5);
   position: relative;
-  margin: -30px 0 20px; // Offset body padding-top
+  margin: 0 0 20px;
   line-height: 1;
   font-size: 16px;
   min-height: 62px;
-  box-shadow: 0 2px 0 rgba(0,0,0, .03);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.03);
 
   .btn {
     padding: 6px 12px;
@@ -147,6 +192,47 @@ body.auth {
       &:hover {
         color: @gray-darkest;
       }
+    }
+  }
+
+  .project-header {
+    display: flex;
+    &-main {
+      flex-grow: 1;
+    }
+    &-toggle {
+      text-align: right;
+      label {
+        color: @gray-lighter;
+        font-size: 14px;
+        font-weight: normal;
+        display: block;
+        margin-top: 8px;
+      }
+    }
+  }
+
+  .project-select-wrapper {
+    display: flex;
+    align-items: center;
+  }
+
+  .project-select-bookmark {
+    border-left: 1px solid @gray-lightest;
+    padding-left: 10px;
+    margin-left: 10px;
+    color: @40;
+    &.active {
+      color: @yellow-orange;
+    }
+  }
+
+  .environment-selector-toggle {
+    color: @gray-darkest;
+    font-weight: 600;
+
+    + .dropdown-menu {
+      z-index: @zindex-sticky-bar + 2;
     }
   }
 
@@ -202,12 +288,13 @@ body.auth {
     }
   }
 
-  .project-select + .nav-tabs, #blk_projectselect + .nav-tabs {
+  .project-select-wrapper + .nav-tabs,
+  #blk_projectselect + .nav-tabs {
     margin-top: 10px;
   }
 
   .align-right {
-    .nav-tabs{
+    .nav-tabs {
       margin-top: 4px; // balance active border-bottom
 
       > li {
@@ -223,7 +310,6 @@ body.auth {
   }
 }
 
-
 /**
 * Content sidebar
 * ============================================================================
@@ -232,7 +318,6 @@ body.auth {
 .content .sidebar {
   float: right;
 }
-
 
 /**
 * Footer
@@ -268,48 +353,6 @@ footer {
     display: block;
   }
 }
-
-
-/**
-* Project action menu
-* ============================================================================
-*/
-
-.project-actions {
-  .btn-sm {
-    font-size: 13px;
-    margin-left: 7px;
-    line-height: 21px;
-    padding: 4px 9px;
-  }
-
-  .icon {
-    font-size: 14px;
-    padding-right: 5px;
-    color: @40;
-    position: relative;
-
-    &.icon-star-solid {
-      top: 0;
-      margin: 0;
-    }
-
-    &.icon-signal  {
-      font-size: 18px;
-      top: 1px;
-    }
-
-    &.icon-settings  {
-      top: 2px;
-      font-size: 15px;
-    }
-
-    &.active {
-      color: @yellow-orange;
-    }
-  }
-}
-
 
 /**
 * Windowed
@@ -347,7 +390,7 @@ footer {
   right: 0;
   bottom: 0;
   z-index: -1;
-  opacity: .4;
+  opacity: 0.4;
 }
 
 /**
@@ -356,19 +399,23 @@ footer {
 */
 
 @media print {
-    body {
-        color: @gray-darkest;
-    }
-    header {
-        display: none;
-    }
-    .org-sidebar, .toolbar {
-      display: none;
-    }
-    .content {
-      padding: 0 !important;
-    }
-    #CModal, footer { display: none; }
+  body {
+    color: @gray-darkest;
+  }
+  header {
+    display: none;
+  }
+  .org-sidebar,
+  .toolbar {
+    display: none;
+  }
+  .content {
+    padding: 0 !important;
+  }
+  #CModal,
+  footer {
+    display: none;
+  }
 }
 
 /**
@@ -376,7 +423,7 @@ footer {
 * ============================================================================
 */
 
-@media(max-width:1200px) {
+@media (max-width: 1200px) {
   .container {
     width: 100% !important;
   }
@@ -387,10 +434,9 @@ footer {
 * ============================================================================
 */
 
-
-@media(max-width:767px) {
+@media (max-width: 767px) {
   body {
-    zoom: .85;
+    zoom: 0.85;
     padding-top: 0;
 
     // Hide fake sidebar on mobile
@@ -417,8 +463,14 @@ footer {
     display: none;
   }
 
-  .narrow .app > .container, .narrow.windowed-small .app > .container {
+  .narrow .app > .container,
+  .narrow.windowed-small .app > .container {
     padding-top: 30px !important;
+  }
+
+  .narrow.dialog .app > .container,
+  .narrow.dialog.windowed-small .app > .container {
+    padding-top: 10px !important;
   }
 
   .nav-tabs {

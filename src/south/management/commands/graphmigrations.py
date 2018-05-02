@@ -13,22 +13,23 @@ from django.core.management.color import no_style
 
 from south.migration import Migrations, all_migrations
 
+
 class Command(BaseCommand):
 
     help = "Outputs a GraphViz dot file of all migration dependencies to stdout."
-    
+
     def handle(self, **options):
-        
+
         # Resolve dependencies
         Migrations.calculate_dependencies()
 
-        colors = [ 'crimson', 'darkgreen', 'darkgoldenrod', 'navy',
-                'brown', 'darkorange', 'aquamarine' , 'blueviolet' ]
+        colors = ['crimson', 'darkgreen', 'darkgoldenrod', 'navy',
+                  'brown', 'darkorange', 'aquamarine', 'blueviolet']
         color_index = 0
         wrapper = textwrap.TextWrapper(width=40)
-        
+
         print("digraph G {")
-        
+
         # Group each app in a subgraph
         for migrations in all_migrations():
             print("  subgraph %s {" % migrations.app_label())
@@ -38,9 +39,9 @@ class Command(BaseCommand):
                 label = "%s - %s" % (
                         migration.app_label(), migration.name())
                 label = re.sub(r"_+", " ", label)
-                label=  "\\n".join(wrapper.wrap(label))
+                label = "\\n".join(wrapper.wrap(label))
                 print('    "%s.%s" [label="%s"];' % (
-                        migration.app_label(), migration.name(), label))
+                    migration.app_label(), migration.name(), label))
             print("  }")
             color_index = (color_index + 1) % len(colors)
 
@@ -59,5 +60,5 @@ class Command(BaseCommand):
                         migration.app_label(), migration.name(),
                         attrs
                     ))
-            
+
         print("}");

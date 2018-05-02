@@ -22,13 +22,15 @@ logger = logging.getLogger('sentry.merge')
 delete_logger = logging.getLogger('sentry.deletions.async')
 
 
+EXTRA_MERGE_MODELS = []
+
+
 @instrumented_task(
     name='sentry.tasks.merge.merge_group',
     queue='merge',
     default_retry_delay=60 * 5,
     max_retries=None
 )
-@retry
 def merge_group(
     from_object_id=None, to_object_id=None, transaction_id=None, recursed=False, **kwargs
 ):
@@ -37,11 +39,11 @@ def merge_group(
         Activity,
         Group,
         GroupAssignee,
+        GroupEnvironment,
         GroupHash,
         GroupRuleStatus,
         GroupSubscription,
-        GroupTagKey,
-        GroupTagValue,
+        Environment,
         EventMapping,
         Event,
         UserReport,
@@ -96,9 +98,10 @@ def merge_group(
             }
         )
 
-    model_list = (
-        Activity, GroupAssignee, GroupHash, GroupRuleStatus, GroupSubscription, GroupTagValue,
-        GroupTagKey, EventMapping, Event, UserReport, GroupRedirect, GroupMeta,
+    model_list = tuple(EXTRA_MERGE_MODELS) + (
+        Activity, GroupAssignee, GroupEnvironment, GroupHash, GroupRuleStatus,
+        GroupSubscription, EventMapping, Event, UserReport, GroupRedirect,
+        GroupMeta,
     )
 
     has_more = merge_objects(
@@ -120,16 +123,37 @@ def merge_group(
 
     features.merge(new_group, [group], allow_unsafe=True)
 
+    environment_ids = list(
+        Environment.objects.filter(
+            projects=group.project
+        ).values_list('id', flat=True)
+    )
+
     for model in [tsdb.models.group]:
-        tsdb.merge(model, new_group.id, [group.id])
+        tsdb.merge(
+            model,
+            new_group.id,
+            [group.id],
+            environment_ids=environment_ids if model in tsdb.models_with_environment_support else None
+        )
 
     for model in [tsdb.models.users_affected_by_group]:
-        tsdb.merge_distinct_counts(model, new_group.id, [group.id])
+        tsdb.merge_distinct_counts(
+            model,
+            new_group.id,
+            [group.id],
+            environment_ids=environment_ids if model in tsdb.models_with_environment_support else None,
+        )
 
     for model in [
         tsdb.models.frequent_releases_by_group, tsdb.models.frequent_environments_by_group
     ]:
-        tsdb.merge_frequencies(model, new_group.id, [group.id])
+        tsdb.merge_frequencies(
+            model,
+            new_group.id,
+            [group.id],
+            environment_ids=environment_ids if model in tsdb.models_with_environment_support else None,
+        )
 
     previous_group_id = group.id
 
@@ -204,12 +228,38 @@ def rehash_group_events(group_id, transaction_id=None, **kwargs):
     delete_group.delay(group.id)
 
 
+def _get_event_environment(event, project, cache):
+    from sentry.models import Environment
+
+    environment_name = event.get_tag('environment')
+
+    if environment_name not in cache:
+        try:
+            environment = Environment.get_for_organization_id(
+                project.organization_id, environment_name)
+        except Environment.DoesNotExist:
+            logger.warn(
+                'event.environment.does_not_exist',
+                extra={
+                    'project_id': project.id,
+                    'environment_name': environment_name,
+                }
+            )
+            environment = Environment.get_or_create(project, environment_name)
+
+        cache[environment_name] = environment
+
+    return cache[environment_name]
+
+
 def _rehash_group_events(group, limit=100):
     from sentry.event_manager import (
         EventManager, get_hashes_from_fingerprint, generate_culprit, md5_from_hash
     )
     from sentry.models import Event, Group
 
+    environment_cache = {}
+    project = group.project
     event_list = list(Event.objects.filter(group_id=group.id)[:limit])
     Event.objects.bind_nodes(event_list, 'data')
 
@@ -241,28 +291,40 @@ def _rehash_group_events(group, limit=100):
             )
             event.update(group_id=new_group.id)
             if event.data.get('tags'):
-                Group.objects.add_tags(new_group, event.data['tags'])
+                Group.objects.add_tags(
+                    new_group,
+                    _get_event_environment(event, project, environment_cache),
+                    event.data['tags'])
+
     return bool(event_list)
 
 
 def merge_objects(models, group, new_group, limit=1000, logger=None, transaction_id=None):
-    from sentry.models import GroupTagKey, GroupTagValue
-
     has_more = False
     for model in models:
         all_fields = model._meta.get_all_field_names()
+
+        # not all models have a 'project' or 'project_id' field, but we make a best effort
+        # to filter on one if it is available
+        has_project = 'project_id' in all_fields or 'project' in all_fields
+        if has_project:
+            project_qs = model.objects.filter(project_id=group.project_id)
+        else:
+            project_qs = model.objects.all()
+
         has_group = 'group' in all_fields
         if has_group:
-            queryset = model.objects.filter(group=group)
+            queryset = project_qs.filter(group=group)
         else:
-            queryset = model.objects.filter(group_id=group.id)
+            queryset = project_qs.filter(group_id=group.id)
+
         for obj in queryset[:limit]:
             try:
                 with transaction.atomic(using=router.db_for_write(model)):
                     if has_group:
-                        model.objects.filter(id=obj.id).update(group=new_group)
+                        project_qs.filter(id=obj.id).update(group=new_group)
                     else:
-                        model.objects.filter(id=obj.id).update(group_id=new_group.id)
+                        project_qs.filter(id=obj.id).update(group_id=new_group.id)
             except IntegrityError:
                 delete = True
             else:
@@ -270,35 +332,12 @@ def merge_objects(models, group, new_group, limit=1000, logger=None, transaction
 
             if delete:
                 # Before deleting, we want to merge in counts
-                try:
-                    if model == GroupTagKey:
-                        with transaction.atomic(using=router.db_for_write(model)):
-                            model.objects.filter(
-                                group=new_group,
-                                key=obj.key,
-                            ).update(
-                                values_seen=GroupTagValue.objects.filter(
-                                    group_id=new_group.id,
-                                    key=obj.key,
-                                ).count()
-                            )
-                    elif model == GroupTagValue:
-                        with transaction.atomic(using=router.db_for_write(model)):
-                            new_obj = model.objects.get(
-                                group_id=new_group.id,
-                                key=obj.key,
-                                value=obj.value,
-                            )
-                            new_obj.update(
-                                first_seen=min(new_obj.first_seen, obj.first_seen),
-                                last_seen=max(new_obj.last_seen, obj.last_seen),
-                                times_seen=new_obj.times_seen + obj.times_seen,
-                            )
-                except DataError:
-                    # it's possible to hit an out of range value for counters
-                    pass
+                if hasattr(model, 'merge_counts'):
+                    obj.merge_counts(new_group)
+
                 obj_id = obj.id
                 obj.delete()
+
                 if logger is not None:
                     delete_logger.debug(
                         'object.delete.executed',

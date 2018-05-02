@@ -1,0 +1,64 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ProjectPluginRow renders 1`] = `
+<Flex
+  align="center"
+  className="amazon-sqs"
+  flex="1"
+  key="amazon-sqs"
+>
+  <PluginInfo>
+    <StyledPluginIcon
+      pluginId="amazon-sqs"
+      size={48}
+    />
+    <Flex
+      direction="column"
+      justify="center"
+    >
+      <PluginName>
+        Amazon SQS 
+        <DynamicWrapper
+          fixed={
+            <Version>
+              v10
+            </Version>
+          }
+          value={
+            <Version>
+              v8.23.0.dev0
+            </Version>
+          }
+        />
+      </PluginName>
+      <div>
+        <ExternalLink
+          className="css-9nrxy7"
+          href="https://github.com/getsentry/sentry"
+          rel="noreferrer noopener"
+          target="_blank"
+        >
+          Sentry Team
+        </ExternalLink>
+        <span>
+           
+          ·
+           
+          <Link
+            className="css-9nrxy7"
+            onlyActiveOnIndex={false}
+            style={Object {}}
+          >
+            Configure plugin
+          </Link>
+        </span>
+      </div>
+    </Flex>
+  </PluginInfo>
+  <Switch
+    isActive={false}
+    size="lg"
+    toggle={[Function]}
+  />
+</Flex>
+`;

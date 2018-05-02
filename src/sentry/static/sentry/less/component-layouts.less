@@ -1,0 +1,27 @@
+@media (max-width: 629px) {
+  .split-layout,
+  .spread-layout {
+    &.allow-responsive {
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: center;
+
+      .split-layout-child {
+        flex: 1 0 auto;
+      }
+    }
+  }
+}
+
+.split-layout-child {
+  flex: 1 0 0;
+  overflow: hidden;
+}
+.spread-layout {
+  display: flex;
+  justify-content: space-between;
+
+  &.center {
+    align-items: center;
+  }
+}

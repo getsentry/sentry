@@ -1,11 +1,18 @@
 from __future__ import absolute_import
 
 import functools
+import logging
+import mock
 import pytest
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.testutils.cases import TestCase
-from sentry.utils.redis import (ClusterManager, _shared_pool, get_cluster_from_options)
+from sentry.utils.redis import (
+    ClusterManager, _shared_pool, get_cluster_from_options, _RedisCluster, logger
+)
+
+# Silence connection warnings
+logger.setLevel(logging.ERROR)
 
 make_manager = functools.partial(
     ClusterManager,
@@ -28,6 +35,12 @@ make_manager = functools.partial(
                     },
                 }
             },
+            'baz': {
+                'is_redis_cluster': True,
+                'hosts': {
+                    0: {},
+                },
+            },
         },
     },
 )
@@ -41,6 +54,18 @@ class ClusterManagerTestCase(TestCase):
         assert manager.get('foo').pool_cls is _shared_pool
         with pytest.raises(KeyError):
             manager.get('invalid')
+
+    @mock.patch('sentry.utils.redis.RetryingStrictRedisCluster')
+    def test_specific_cluster(self, cluster):
+        manager = make_manager(cluster_type=_RedisCluster)
+        slo = manager.get('baz')
+
+        # We wrap the cluster in a Simple Lazy Object, force creation of the
+        # object to verify it's correct.
+        assert slo._setupfunc() is cluster.return_value
+
+        with pytest.raises(KeyError):
+            manager.get('foo')
 
 
 def test_get_cluster_from_options():

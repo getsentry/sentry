@@ -1,43 +1,49 @@
-{% extends "sentry/bases/organization.html" %}
+{% extends "sentry/bases/modal.html" %}
 
 {% load crispy_forms_tags %}
 {% load i18n %}
 
-{% block org_auth_settings_nav %}active{% endblock %}
+{% block title %}{% trans "Auth" %} | {{ block.super }}{% endblock %}
+
+{% block modal_header_extra %}
+<span style="font-size: 16px;margin-left: 6px;"> Back to Organization</span>
+{% endblock %}
 
 {% block main %}
   <h3>{{ provider_name }} Authentication</h3>
 
-  <div class="box">
-    <div class="box-content with-padding">
-      <form method="POST">
-        {% csrf_token %}
+  <form method="POST">
+    {% csrf_token %}
+    <div class="box">
+      <div class="box-content with-padding">
+        <legend style="margin-top: 0;">Login URL</legend>
 
-        <h4>Login URL</h4>
-
-        <p>While Sentry will try to be clever about directing members to the appropriate login form, you're safest just to hit up your organization-specific login when visiting the app:</p>
+        <p>
+          While Sentry will try to be clever about directing members to the
+          appropriate login form, you're safest just to hit up your
+          organization-specific login when visiting the app:
+        </p>
 
         <pre><a href="{{ login_url }}">{{ login_url }}</a></pre>
 
         {% if pending_links_count %}
-          <hr>
-          <h4>Unlinked Members</h4>
+          <legend>Unlinked Members</legend>
 
-          <button class="btn btn-primary pull-right" name="op"
-                  value="reinvite" style="margin-left: 20px">Send Reminders</button>
+          <p>
+            There are currently {{ pending_links_count }} member(s) who have
+            not yet linked their account with {{ provider_name }}. Until this
+            is done they will be unable to access the organization.
 
-          <p>There are currently {{ pending_links_count }} member(s) who have not yet linked their account with {{ provider_name }}. Until this is done they will be unable to access the organization.</p>
+          </p>
 
+          <p>
+            <button class="btn btn-primary" name="op" value="reinvite">Send Reminders</button>
+          </p>
         {% endif %}
 
-        {% if content %}
-          <hr>
-          {{ content }}
-        {% endif %}
+        {{ content|default_if_none:'' }}
 
-        <hr>
-
-        <h3>General Settings</h3>
+        <legend>General Settings</legend>
 
         {{ form|as_crispy_errors }}
 
@@ -45,22 +51,29 @@
           {{ field|as_crispy_field }}
           {% if forloop.last %}
             <fieldset class="form-actions">
-              <button class="btn btn-primary pull-right" name="op"
-                value="settings" style="margin-left: 20px">Save Settings</button>
+              <button class="btn btn-primary" name="op" value="settings">Save Settings</button>
             </fieldset>
           {% endif %}
         {% endfor %}
-
-        <hr>
-
-        <h3>Disable {{ provider_name }} Authentication</h3>
-
-        <button class="btn btn-danger pull-right" name="op"
-                value="disable" style="margin-left: 20px">Disable {{ provider_name }} Auth</button>
-
-        <p>Your organization will no longer being able to authenticate with their existing accounts. This will prevent any existing users from logging in unless they have access outside of SSO.</p>
-
-      </form>
+      </div>
     </div>
-  </div>
+
+    <div class="box">
+      <div class="box-header">
+        <h3>Disable {{ provider_name }} Authentication</h3>
+      </div>
+
+      <div class="box-content with-padding">
+        <p>
+          Your organization will no longer be able to authenticate with their
+          existing accounts. This will prevent any existing users from logging in
+          unless they have access outside of SSO.
+        </p>
+
+        <fieldset class="form-actions">
+          <button class="btn btn-danger" name="op" value="disable">Disable {{ provider_name }} Auth</button>
+        </fieldset>
+      </div>
+    </div>
+  </form>
 {% endblock %}

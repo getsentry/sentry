@@ -1,7 +1,7 @@
 import React from 'react';
 import {shallow} from 'enzyme';
-import toJson from 'enzyme-to-json';
 
+import {Client} from 'app/api';
 import AdminSettings from 'app/views/adminSettings';
 
 // TODO(dcramer): this doesnt really test anything as we need to
@@ -9,7 +9,7 @@ import AdminSettings from 'app/views/adminSettings';
 describe('AdminSettings', function() {
   describe('render()', function() {
     beforeEach(() => {
-      MockApiClient.addMockResponse({
+      Client.addMockResponse({
         url: '/internal/options/',
         body: {
           'system.url-prefix': {
@@ -19,9 +19,9 @@ describe('AdminSettings', function() {
               required: true,
               disabled: true,
               allowEmpty: true,
-              isSet: true
+              isSet: true,
             },
-            value: 'https://sentry.example.com'
+            value: 'https://sentry.example.com',
           },
           'system.admin-email': {
             field: {
@@ -30,9 +30,9 @@ describe('AdminSettings', function() {
               required: true,
               disabled: true,
               allowEmpty: false,
-              isSet: true
+              isSet: true,
             },
-            value: 'foo@example.com'
+            value: 'foo@example.com',
           },
           'system.support-email': {
             field: {
@@ -41,9 +41,9 @@ describe('AdminSettings', function() {
               required: true,
               disabled: true,
               allowEmpty: false,
-              isSet: true
+              isSet: true,
             },
-            value: 'foo@example.com'
+            value: 'foo@example.com',
           },
           'system.security-email': {
             field: {
@@ -52,9 +52,9 @@ describe('AdminSettings', function() {
               required: true,
               disabled: true,
               allowEmpty: false,
-              isSet: true
+              isSet: true,
             },
-            value: 'foo@example.com'
+            value: 'foo@example.com',
           },
           'system.rate-limit': {
             field: {
@@ -63,9 +63,9 @@ describe('AdminSettings', function() {
               required: true,
               disabled: true,
               allowEmpty: false,
-              isSet: true
+              isSet: true,
             },
-            value: 25
+            value: 25,
           },
           'auth.allow-registration': {
             field: {
@@ -74,9 +74,9 @@ describe('AdminSettings', function() {
               required: true,
               disabled: true,
               allowEmpty: false,
-              isSet: true
+              isSet: true,
             },
-            value: true
+            value: true,
           },
           'auth.ip-rate-limit': {
             field: {
@@ -85,9 +85,9 @@ describe('AdminSettings', function() {
               required: true,
               disabled: true,
               allowEmpty: false,
-              isSet: true
+              isSet: true,
             },
-            value: 25
+            value: 25,
           },
           'auth.user-rate-limit': {
             field: {
@@ -96,9 +96,9 @@ describe('AdminSettings', function() {
               required: true,
               disabled: true,
               allowEmpty: false,
-              isSet: true
+              isSet: true,
             },
-            value: 25
+            value: 25,
           },
           'api.rate-limit.org-create': {
             field: {
@@ -107,21 +107,21 @@ describe('AdminSettings', function() {
               required: true,
               disabled: true,
               allowEmpty: false,
-              isSet: true
+              isSet: true,
             },
-            value: 25
-          }
-        }
+            value: 25,
+          },
+        },
       });
     });
 
     it('renders', function() {
       let wrapper = shallow(<AdminSettings params={{}} />, {
         context: {
-          router: TestStubs.router()
-        }
+          router: TestStubs.router(),
+        },
       });
-      expect(toJson(wrapper)).toMatchSnapshot();
+      expect(wrapper).toMatchSnapshot();
     });
   });
 });

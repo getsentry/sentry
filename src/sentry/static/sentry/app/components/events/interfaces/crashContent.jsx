@@ -1,63 +1,69 @@
+import PropTypes from 'prop-types';
 import React from 'react';
-import PropTypes from '../../../proptypes';
-import rawStacktraceContent from './rawStacktraceContent';
-import StacktraceContent from './stacktraceContent';
+
+import ErrorBoundary from '../../errorBoundary';
 import ExceptionContent from './exceptionContent';
 import RawExceptionContent from './rawExceptionContent';
+import SentryTypes from '../../../proptypes';
+import StacktraceContent from './stacktraceContent';
+import rawStacktraceContent from './rawStacktraceContent';
 
-const CrashContent = React.createClass({
-  propTypes: {
-    group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired,
-    stackView: React.PropTypes.string.isRequired,
-    stackType: React.PropTypes.string,
-    newestFirst: React.PropTypes.bool.isRequired,
-    exception: React.PropTypes.object,
-    stacktrace: React.PropTypes.object
-  },
+class CrashContent extends React.Component {
+  static propTypes = {
+    event: SentryTypes.Event.isRequired,
+    stackView: PropTypes.string.isRequired,
+    stackType: PropTypes.string,
+    newestFirst: PropTypes.bool.isRequired,
+    exception: PropTypes.object,
+    stacktrace: PropTypes.object,
+  };
 
-  renderException() {
+  renderException = () => {
     const {event, stackView, stackType, newestFirst, exception} = this.props;
-    return stackView === 'raw'
-      ? <RawExceptionContent
-          eventId={event.id}
-          type={stackType}
-          values={exception.values}
-          platform={event.platform}
-        />
-      : <ExceptionContent
-          type={stackType}
-          view={stackView}
-          values={exception.values}
-          platform={event.platform}
-          newestFirst={newestFirst}
-        />;
-  },
+    return stackView === 'raw' ? (
+      <RawExceptionContent
+        eventId={event.id}
+        type={stackType}
+        values={exception.values}
+        platform={event.platform}
+      />
+    ) : (
+      <ExceptionContent
+        type={stackType}
+        view={stackView}
+        values={exception.values}
+        platform={event.platform}
+        newestFirst={newestFirst}
+      />
+    );
+  };
 
-  renderStacktrace() {
+  renderStacktrace = () => {
     const {event, stackView, newestFirst, stacktrace} = this.props;
-    return stackView === 'raw'
-      ? <pre className="traceback plain">
-          {rawStacktraceContent(stacktrace, event.platform)}
-        </pre>
-      : <StacktraceContent
-          data={stacktrace}
-          className="no-exception"
-          includeSystemFrames={stackView === 'full'}
-          platform={event.platform}
-          newestFirst={newestFirst}
-        />;
-  },
+    return stackView === 'raw' ? (
+      <pre className="traceback plain">
+        {rawStacktraceContent(stacktrace, event.platform)}
+      </pre>
+    ) : (
+      <StacktraceContent
+        data={stacktrace}
+        className="no-exception"
+        includeSystemFrames={stackView === 'full'}
+        platform={event.platform}
+        newestFirst={newestFirst}
+      />
+    );
+  };
 
   render() {
     if (this.props.exception) {
-      return this.renderException();
+      return <ErrorBoundary mini>{this.renderException()}</ErrorBoundary>;
     }
     if (this.props.stacktrace) {
-      return this.renderStacktrace();
+      return <ErrorBoundary mini>{this.renderStacktrace()}</ErrorBoundary>;
     }
     return null;
   }
-});
+}
 
 export default CrashContent;

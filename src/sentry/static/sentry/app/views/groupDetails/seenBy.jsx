@@ -1,22 +1,19 @@
 import React from 'react';
+import createReactClass from 'create-react-class';
 import moment from 'moment';
-import _ from 'underscore';
+import _ from 'lodash';
 
 import ConfigStore from '../../stores/configStore';
 import Avatar from '../../components/avatar';
 import GroupState from '../../mixins/groupState';
 import {userDisplayName} from '../../utils/formatters';
-import TooltipMixin from '../../mixins/tooltip';
+import Tooltip from '../../components/tooltip';
 import {t} from '../../locale';
 
-const GroupSeenBy = React.createClass({
-  mixins: [
-    GroupState,
-    TooltipMixin({
-      html: true,
-      selector: '.tip'
-    })
-  ],
+const GroupSeenBy = createReactClass({
+  displayName: 'GroupSeenBy',
+
+  mixins: [GroupState],
 
   render() {
     let activeUser = ConfigStore.get('user');
@@ -44,8 +41,10 @@ const GroupSeenBy = React.createClass({
           '<br/>' +
           _.escape(moment(user.lastSeen).format('LL'));
         return (
-          <li key={userIdx} className="tip" data-title={title}>
-            <Avatar size={52} user={user} />
+          <li key={userIdx}>
+            <Tooltip title={title} tooltipOptions={{html: true}}>
+              <Avatar size={28} user={user} />
+            </Tooltip>
           </li>
         );
       });
@@ -54,13 +53,15 @@ const GroupSeenBy = React.createClass({
       <div className="seen-by">
         <ul>
           <li>
-            <span className="icon-eye tip" title={t("People who've viewed this issue")} />
+            <Tooltip title={t("People who've viewed this issue")}>
+              <span className="icon-eye" />
+            </Tooltip>
           </li>
           {seenByNodes}
         </ul>
       </div>
     );
-  }
+  },
 });
 
 export default GroupSeenBy;

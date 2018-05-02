@@ -10,18 +10,16 @@ from __future__ import absolute_import, print_function
 import logging
 import math
 import re
-import six
 import time
 import warnings
 
-from base64 import b16decode, b16encode
 from datetime import timedelta
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from sentry import buffer, eventtypes
+from sentry import eventtypes, tagstore
 from sentry.constants import (
     DEFAULT_LOGGER_NAME, EVENT_ORDERING_KEY, LOG_LEVELS, MAX_CULPRIT_LENGTH
 )
@@ -85,8 +83,8 @@ class GroupManager(BaseManager):
         match = _short_id_re.match(short_id.strip())
         if match is None:
             raise Group.DoesNotExist()
-        callsign, id = match.groups()
-        callsign = callsign.lower()
+        slug, id = match.groups()
+        slug = slug.lower()
         try:
             short_id = base32_decode(id)
             # We need to make sure the short id is not overflowing the
@@ -98,7 +96,7 @@ class GroupManager(BaseManager):
             raise Group.DoesNotExist()
         return Group.objects.get(
             project__organization=organization_id,
-            project__slug=callsign,
+            project__slug=slug,
             short_id=short_id,
         )
 
@@ -119,9 +117,39 @@ class GroupManager(BaseManager):
                 }
             )
 
-    def add_tags(self, group, tags):
-        from sentry.models import TagValue, GroupTagValue
+    def from_event_id(self, project, event_id):
+        """
+        Resolves the 32 character event_id string into
+        a Group for which it is found.
+        """
+        from sentry.models import EventMapping, Event
+        group_id = None
 
+        # Look up event_id in both Event and EventMapping,
+        # and bail when it matches one of them, prioritizing
+        # Event since it contains more history.
+        for model in Event, EventMapping:
+            try:
+                group_id = model.objects.filter(
+                    project_id=project.id,
+                    event_id=event_id,
+                ).values_list('group_id', flat=True)[0]
+
+                # It's possible that group_id is NULL
+                if group_id is not None:
+                    break
+            except IndexError:
+                pass
+
+        if group_id is None:
+            # Raise a Group.DoesNotExist here since it makes
+            # more logical sense since this is intending to resolve
+            # a Group.
+            raise Group.DoesNotExist()
+
+        return Group.objects.get(id=group_id)
+
+    def add_tags(self, group, environment, tags):
         project_id = group.project_id
         date = group.last_seen
 
@@ -131,31 +159,15 @@ class GroupManager(BaseManager):
             else:
                 key, value, data = tag_item
 
-            buffer.incr(
-                TagValue, {
-                    'times_seen': 1,
-                }, {
-                    'project_id': project_id,
-                    'key': key,
-                    'value': value,
-                }, {
-                    'last_seen': date,
-                    'data': data,
-                }
-            )
+            tagstore.incr_tag_value_times_seen(project_id, environment.id, key, value, extra={
+                'last_seen': date,
+                'data': data,
+            })
 
-            buffer.incr(
-                GroupTagValue, {
-                    'times_seen': 1,
-                }, {
-                    'group_id': group.id,
-                    'key': key,
-                    'value': value,
-                }, {
-                    'project_id': project_id,
-                    'last_seen': date,
-                }
-            )
+            tagstore.incr_group_tag_value_times_seen(project_id, group.id, environment.id, key, value, extra={
+                'project_id': project_id,
+                'last_seen': date,
+            })
 
 
 class Group(Model):
@@ -165,7 +177,11 @@ class Group(Model):
     __core__ = False
 
     project = FlexibleForeignKey('sentry.Project', null=True)
-    logger = models.CharField(max_length=64, blank=True, default=DEFAULT_LOGGER_NAME, db_index=True)
+    logger = models.CharField(
+        max_length=64,
+        blank=True,
+        default=DEFAULT_LOGGER_NAME,
+        db_index=True)
     level = BoundedPositiveIntegerField(
         choices=LOG_LEVELS.items(), default=logging.ERROR, blank=True, db_index=True
     )
@@ -193,6 +209,7 @@ class Group(Model):
     time_spent_total = BoundedIntegerField(default=0)
     time_spent_count = BoundedIntegerField(default=0)
     score = BoundedIntegerField(default=0)
+    # deprecated, do not use. GroupShare has superseded
     is_public = models.NullBooleanField(default=False, null=True)
     data = GzippedDictField(blank=True, null=True)
     short_id = BoundedBigIntegerField(null=True)
@@ -276,23 +293,30 @@ class Group(Model):
         return status
 
     def get_share_id(self):
-        return b16encode(('{}.{}'.format(self.project_id,
-                                         self.id)).encode('utf-8')).lower().decode('utf-8')
+        from sentry.models import GroupShare
+        try:
+            return GroupShare.objects.filter(
+                group_id=self.id,
+            ).values_list('uuid', flat=True)[0]
+        except IndexError:
+            # Otherwise it has not been shared yet.
+            return None
 
     @classmethod
     def from_share_id(cls, share_id):
-        if not share_id:
+        if not share_id or len(share_id) != 32:
             raise cls.DoesNotExist
-        try:
-            project_id, group_id = b16decode(share_id.upper()).decode('utf-8').split('.')
-        except (ValueError, TypeError):
-            raise cls.DoesNotExist
-        if not (project_id.isdigit() and group_id.isdigit()):
-            raise cls.DoesNotExist
-        return cls.objects.get(project=project_id, id=group_id)
+
+        from sentry.models import GroupShare
+        return cls.objects.get(
+            id=GroupShare.objects.filter(
+                uuid=share_id,
+            ).values_list('group_id'),
+        )
 
     def get_score(self):
-        return int(math.log(self.times_seen) * 600 + float(time.mktime(self.last_seen.timetuple())))
+        return int(math.log(self.times_seen) * 600 +
+                   float(time.mktime(self.last_seen.timetuple())))
 
     def get_latest_event(self):
         from sentry.models import Event
@@ -327,83 +351,14 @@ class Group(Model):
                 self._oldest_event = None
         return self._oldest_event
 
-    def get_unique_tags(self, tag, since=None, order_by='-times_seen'):
-        # TODO(dcramer): this has zero test coverage and is a critical path
-        from sentry.models import GroupTagValue
-
-        queryset = GroupTagValue.objects.filter(
-            group=self,
-            key=tag,
-        )
-        if since:
-            queryset = queryset.filter(last_seen__gte=since)
-        return queryset.values_list(
-            'value',
-            'times_seen',
-            'first_seen',
-            'last_seen',
-        ).order_by(order_by)
-
-    def get_tags(self, with_internal=True):
-        from sentry.models import GroupTagKey, TagKey
-        if not hasattr(self, '_tag_cache'):
-            group_tags = GroupTagKey.objects.filter(
-                group=self,
-                project=self.project,
-            )
-            if not with_internal:
-                group_tags = group_tags.exclude(key__startswith='sentry:')
-
-            group_tags = list(group_tags.values_list('key', flat=True))
-
-            tag_keys = dict(
-                (t.key, t) for t in TagKey.objects.filter(project=self.project, key__in=group_tags)
-            )
-
-            results = []
-            for key in group_tags:
-                try:
-                    tag_key = tag_keys[key]
-                except KeyError:
-                    label = key.replace('_', ' ').title()
-                else:
-                    label = tag_key.get_label()
-
-                results.append({
-                    'key': key,
-                    'label': label,
-                })
-
-            self._tag_cache = sorted(results, key=lambda x: x['label'])
-
-        return self._tag_cache
-
     def get_first_release(self):
-        from sentry.models import GroupTagValue
         if self.first_release_id is None:
-            try:
-                first_release = GroupTagValue.objects.filter(
-                    group_id=self.id,
-                    key__in=('sentry:release', 'release'),
-                ).order_by('first_seen')[0]
-            except IndexError:
-                return None
-            else:
-                return first_release.value
+            return tagstore.get_first_release(self.project_id, self.id)
 
         return self.first_release.version
 
     def get_last_release(self):
-        from sentry.models import GroupTagValue
-        try:
-            last_release = GroupTagValue.objects.filter(
-                group_id=self.id,
-                key__in=('sentry:release', 'release'),
-            ).order_by('-last_seen')[0]
-        except IndexError:
-            return None
-
-        return last_release.value
+        return tagstore.get_last_release(self.project_id, self.id)
 
     def get_event_type(self):
         """
@@ -444,17 +399,9 @@ class Group(Model):
         warnings.warn('Group.message_short is deprecated, use Group.title', DeprecationWarning)
         return self.title
 
-    def has_two_part_message(self):
-        warnings.warn('Group.has_two_part_message is no longer used', DeprecationWarning)
-        return False
-
     @property
     def organization(self):
         return self.project.organization
-
-    @property
-    def team(self):
-        return self.project.team
 
     @property
     def checksum(self):
@@ -462,16 +409,11 @@ class Group(Model):
         return ''
 
     def get_email_subject(self):
-        return '[%s] %s: %s' % (
-            self.project.get_full_name().encode('utf-8'),
-            six.text_type(self.get_level_display()).upper().encode('utf-8'),
+        return '%s - %s' % (
+            self.qualified_short_id.encode('utf-8'),
             self.title.encode('utf-8')
         )
 
     def count_users_seen(self):
-        from sentry.models import GroupTagKey
-
-        return GroupTagKey.objects.filter(
-            group=self,
-            key='sentry:user',
-        ).aggregate(t=models.Sum('values_seen'))['t'] or 0
+        return tagstore.get_groups_user_counts(
+            self.project_id, [self.id], environment_id=None)[self.id]

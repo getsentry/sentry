@@ -7,8 +7,9 @@ from datetime import datetime
 from django.core.urlresolvers import reverse
 
 from sentry.models import (
-    Activity, ApiKey, ApiToken, Release, ReleaseCommit, ReleaseProject, Repository
+    Activity, ApiKey, ApiToken, Environment, Release, ReleaseCommit, ReleaseEnvironment, ReleaseProject, Repository
 )
+from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
 from sentry.testutils import APITestCase
 
 
@@ -23,9 +24,9 @@ class OrganizationReleaseListTest(APITestCase):
         team1 = self.create_team(organization=org)
         team2 = self.create_team(organization=org)
 
-        project1 = self.create_project(team=team1, organization=org)
-        project2 = self.create_project(team=team2, organization=org2)
-        project3 = self.create_project(team=team1, organization=org)
+        project1 = self.create_project(teams=[team1], organization=org)
+        project2 = self.create_project(teams=[team2], organization=org2)
+        project3 = self.create_project(teams=[team1], organization=org)
 
         self.create_member(teams=[team1], user=user, organization=org)
 
@@ -77,7 +78,7 @@ class OrganizationReleaseListTest(APITestCase):
 
         team = self.create_team(organization=org)
 
-        project = self.create_project(team=team, organization=org)
+        project = self.create_project(teams=[team], organization=org)
 
         self.create_member(teams=[team], user=user, organization=org)
 
@@ -118,8 +119,8 @@ class OrganizationReleaseListTest(APITestCase):
         team1 = self.create_team(organization=org)
         team2 = self.create_team(organization=org)
 
-        project1 = self.create_project(team=team1, organization=org)
-        project2 = self.create_project(team=team2, organization=org)
+        project1 = self.create_project(teams=[team1], organization=org)
+        project2 = self.create_project(teams=[team2], organization=org)
 
         self.create_member(teams=[team1], user=user, organization=org)
         self.login_as(user=user)
@@ -163,8 +164,8 @@ class OrganizationReleaseCreateTest(APITestCase):
         org.save()
 
         team = self.create_team(organization=org)
-        project = self.create_project(name='foo', organization=org, team=team)
-        project2 = self.create_project(name='bar', organization=org, team=team)
+        project = self.create_project(name='foo', organization=org, teams=[team])
+        project2 = self.create_project(name='bar', organization=org, teams=[team])
 
         self.create_member(teams=[team], user=user, organization=org)
         self.login_as(user=user)
@@ -195,9 +196,14 @@ class OrganizationReleaseCreateTest(APITestCase):
         org = self.create_organization()
         org.flags.allow_joinleave = False
         org.save()
+        repo = Repository.objects.create(
+            provider='dummy',
+            name='my-org/my-repository',
+            organization_id=org.id,
+        )
 
         team = self.create_team(organization=org)
-        project = self.create_project(name='foo', organization=org, team=team)
+        project = self.create_project(name='foo', organization=org, teams=[team])
 
         self.create_member(teams=[team], user=user, organization=org)
         self.login_as(user=user)
@@ -210,10 +216,79 @@ class OrganizationReleaseCreateTest(APITestCase):
             }
         )
 
-        response = self.client.post(url, data={'version': '1.2.1', 'projects': [project.slug]})
+        with self.tasks():
+            response = self.client.post(
+                url,
+                data={
+                    'version':
+                    '1.2.1',
+                    'projects': [project.slug],
+                    'refs': [
+                        {
+                            'repository': 'my-org/my-repository',
+                            'commit': 'a' * 40,
+                            'previousCommit': 'c' * 40,
+                        }
+                    ]
+                }
+            )
+
+        release_commits1 = list(
+            ReleaseCommit.objects.filter(release=release).values_list('commit__key', flat=True)
+        )
+
+        # check that commits are overwritten
+        assert release_commits1 == [
+            u'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+            u'62de626b7c7cfb8e77efb4273b1a3df4123e6216',
+            u'58de626b7c7cfb8e77efb4273b1a3df4123e6345',
+        ]
 
         # should be 201 because project was added
         assert response.status_code == 201, response.content
+
+        with self.tasks():
+            with patch.object(DummyRepositoryProvider, 'compare_commits') as mock_compare_commits:
+                mock_compare_commits.return_value = [
+                    {
+                        'id': 'c' * 40,
+                        'repository': repo.name,
+                    }, {
+                        'id': 'd' * 40,
+                        'repository': repo.name,
+                    }, {
+                        'id': 'a' * 40,
+                        'repository': repo.name,
+                    }
+                ]
+                response2 = self.client.post(
+                    url,
+                    data={
+                        'version':
+                        '1.2.1',
+                        'projects': [project.slug],
+                        'refs': [
+                            {
+                                'repository': 'my-org/my-repository',
+                                'commit': 'a' * 40,
+                                'previousCommit': 'b' * 40,
+                            }
+                        ]
+                    }
+                )
+
+        release_commits2 = list(
+            ReleaseCommit.objects.filter(release=release).values_list('commit__key', flat=True)
+        )
+
+        # check that commits are overwritten
+        assert release_commits2 == [
+            u'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+            u'cccccccccccccccccccccccccccccccccccccccc',
+            u'dddddddddddddddddddddddddddddddddddddddd',
+        ]
+
+        assert response2.status_code == 208, response.content
         assert Release.objects.filter(version='1.2.1', organization=org).count() == 1
         # make sure project was added
         assert ReleaseProject.objects.filter(release=release, project=project).exists()
@@ -225,8 +300,8 @@ class OrganizationReleaseCreateTest(APITestCase):
         org.save()
 
         team = self.create_team(organization=org)
-        project = self.create_project(name='foo', organization=org, team=team)
-        project2 = self.create_project(name='bar', organization=org, team=team)
+        project = self.create_project(name='foo', organization=org, teams=[team])
+        project2 = self.create_project(name='bar', organization=org, teams=[team])
 
         self.create_member(teams=[team], user=user, organization=org)
         self.login_as(user=user)
@@ -259,6 +334,47 @@ class OrganizationReleaseCreateTest(APITestCase):
             type=Activity.RELEASE, project=project2, ident=release.version
         ).exists()
 
+    def test_activity_with_long_release(self):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.create_organization()
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team = self.create_team(organization=org)
+        project = self.create_project(name='foo', organization=org, teams=[team])
+        project2 = self.create_project(name='bar', organization=org, teams=[team])
+
+        self.create_member(teams=[team], user=user, organization=org)
+        self.login_as(user=user)
+
+        release = Release.objects.create(
+            version='x' * 65, date_released=datetime.utcnow(), organization=org
+        )
+        release.add_project(project)
+
+        url = reverse(
+            'sentry-api-0-organization-releases', kwargs={
+                'organization_slug': org.slug,
+            }
+        )
+
+        response = self.client.post(url, data={'version': 'x' * 65, 'projects': [project.slug]})
+        assert response.status_code == 208, response.content
+
+        response = self.client.post(
+            url, data={'version': 'x' * 65,
+                       'projects': [project.slug, project2.slug]}
+        )
+
+        # should be 201 because 1 project was added
+        assert response.status_code == 201, response.content
+        assert not Activity.objects.filter(
+            type=Activity.RELEASE, project=project, ident=release.version[:64]
+        ).exists()
+        assert Activity.objects.filter(
+            type=Activity.RELEASE, project=project2, ident=release.version[:64]
+        ).exists()
+
     def test_version_whitespace(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
@@ -266,7 +382,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         org.save()
 
         team = self.create_team(organization=org)
-        project = self.create_project(name='foo', organization=org, team=team)
+        project = self.create_project(name='foo', organization=org, teams=[team])
 
         self.create_member(teams=[team], user=user, organization=org)
         self.login_as(user=user)
@@ -305,7 +421,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         org.save()
 
         team = self.create_team(organization=org)
-        project = self.create_project(name='foo', organization=org, team=team)
+        project = self.create_project(name='foo', organization=org, teams=[team])
 
         self.create_member(teams=[team], user=user, organization=org)
         self.login_as(user=user)
@@ -333,7 +449,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         org.save()
 
         team = self.create_team(organization=org)
-        project = self.create_project(name='foo', organization=org, team=team)
+        project = self.create_project(name='foo', organization=org, teams=[team])
 
         self.create_member(teams=[team], user=user, organization=org)
         self.login_as(user=user)
@@ -391,7 +507,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         )
 
         team = self.create_team(organization=org)
-        project = self.create_project(name='foo', organization=org, team=team)
+        project = self.create_project(name='foo', organization=org, teams=[team])
 
         self.create_member(teams=[team], user=user, organization=org)
         self.login_as(user=user)
@@ -475,7 +591,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         )
 
         team = self.create_team(organization=org)
-        project = self.create_project(name='foo', organization=org, team=team)
+        project = self.create_project(name='foo', organization=org, teams=[team])
 
         self.create_member(teams=[team], user=user, organization=org)
         self.login_as(user=user)
@@ -549,7 +665,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         org.save()
 
         team = self.create_team(organization=org)
-        project = self.create_project(name='foo', organization=org, team=team)
+        project = self.create_project(name='foo', organization=org, teams=[team])
 
         self.create_member(teams=[team], user=user, organization=org)
         self.login_as(user=user)
@@ -571,8 +687,8 @@ class OrganizationReleaseCreateTest(APITestCase):
         team1 = self.create_team(organization=org)
         team2 = self.create_team(organization=org)
 
-        project1 = self.create_project(team=team1, organization=org)
-        project2 = self.create_project(team=team2, organization=org)
+        project1 = self.create_project(teams=[team1], organization=org)
+        project2 = self.create_project(teams=[team2], organization=org)
 
         self.create_member(teams=[team1], user=user, organization=org)
         self.login_as(user=user)
@@ -620,7 +736,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         org2 = self.create_organization()
 
         team1 = self.create_team(organization=org)
-        project1 = self.create_project(team=team1, organization=org)
+        project1 = self.create_project(teams=[team1], organization=org)
         release1 = Release.objects.create(
             organization_id=org.id,
             version='1',
@@ -694,7 +810,7 @@ class OrganizationReleaseCreateTest(APITestCase):
 
         team1 = self.create_team(organization=org)
         self.create_member(teams=[team1], user=user, organization=org)
-        project1 = self.create_project(team=team1, organization=org)
+        project1 = self.create_project(teams=[team1], organization=org)
         release1 = Release.objects.create(
             organization_id=org.id,
             version='1',
@@ -756,7 +872,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         org.save()
 
         team = self.create_team(organization=org)
-        project = self.create_project(name='foo', organization=org, team=team)
+        project = self.create_project(name='foo', organization=org, teams=[team])
 
         self.create_member(teams=[team], user=user, organization=org)
         self.login_as(user=user)
@@ -775,3 +891,140 @@ class OrganizationReleaseCreateTest(APITestCase):
         )
         assert response.status_code == 400
         assert response.data == {'refs': [u'Invalid repository names: not_a_repo']}
+
+
+class OrganizationReleaseListEnvironmentsTest(APITestCase):
+    def setUp(self):
+        self.login_as(user=self.user)
+        org = self.create_organization(owner=self.user)
+        team = self.create_team(organization=org)
+        project1 = self.create_project(organization=org, teams=[team], name='foo')
+        project2 = self.create_project(organization=org, teams=[team], name='bar')
+
+        env1 = self.make_environment('prod', project1)
+        env2 = self.make_environment('staging', project2)
+
+        release1 = Release.objects.create(
+            organization_id=org.id,
+            version='1',
+            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386),
+        )
+        release1.add_project(project1)
+        ReleaseEnvironment.objects.create(
+            organization_id=org.id,
+            project_id=project1.id,
+            release_id=release1.id,
+            environment_id=env1.id,
+        )
+
+        release2 = Release.objects.create(
+            organization_id=org.id,
+            version='2',
+            date_added=datetime(2013, 8, 14, 3, 8, 24, 880386),
+        )
+        release2.add_project(project2)
+        ReleaseEnvironment.objects.create(
+            organization_id=org.id,
+            project_id=project2.id,
+            release_id=release2.id,
+            environment_id=env2.id,
+        )
+
+        release3 = Release.objects.create(
+            organization_id=org.id,
+            version='3',
+            date_added=datetime(2013, 8, 12, 3, 8, 24, 880386),
+            date_released=datetime(2013, 8, 15, 3, 8, 24, 880386),
+        )
+        release3.add_project(project1)
+        ReleaseEnvironment.objects.create(
+            organization_id=org.id,
+            project_id=project1.id,
+            release_id=release3.id,
+            environment_id=env2.id,
+        )
+
+        release4 = Release.objects.create(
+            organization_id=org.id,
+            version='4',
+        )
+        release4.add_project(project2)
+
+        self.project1 = project1
+        self.project2 = project2
+
+        self.release1 = release1
+        self.release2 = release2
+        self.release3 = release3
+        self.release4 = release4
+
+        self.env1 = env1
+        self.env2 = env2
+        self.org = org
+
+    def make_environment(self, name, project):
+        env = Environment.objects.create(
+            project_id=project.id,
+            organization_id=project.organization_id,
+            name=name,
+        )
+        env.add_project(project)
+        return env
+
+    def assert_releases(self, response, releases):
+        assert response.status_code == 200, response.content
+        assert len(response.data) == len(releases)
+
+        response_versions = sorted([r['version'] for r in response.data])
+        releases_versions = sorted([r.version for r in releases])
+        assert response_versions == releases_versions
+
+    def test_environments_filter(self):
+        url = reverse(
+            'sentry-api-0-organization-releases',
+            kwargs={
+                'organization_slug': self.org.slug,
+            }
+        )
+        response = self.client.get(url + '?environment=' + self.env1.name, format='json')
+        self.assert_releases(response, [self.release1])
+
+        response = self.client.get(url + '?environment=' + self.env2.name, format='json')
+        self.assert_releases(response, [self.release2, self.release3])
+
+    def test_empty_environment(self):
+        url = reverse(
+            'sentry-api-0-organization-releases',
+            kwargs={
+                'organization_slug': self.org.slug,
+            }
+        )
+        env = self.make_environment('', self.project2)
+        ReleaseEnvironment.objects.create(
+            organization_id=self.org.id,
+            project_id=self.project2.id,
+            release_id=self.release4.id,
+            environment_id=env.id,
+        )
+        response = self.client.get(url + '?environment=', format='json')
+        self.assert_releases(response, [self.release4])
+
+    def test_all_environments(self):
+        url = reverse(
+            'sentry-api-0-organization-releases',
+            kwargs={
+                'organization_slug': self.org.slug,
+            }
+        )
+        response = self.client.get(url, format='json')
+        self.assert_releases(response, [self.release1, self.release2, self.release3, self.release4])
+
+    def test_invalid_environment(self):
+        url = reverse(
+            'sentry-api-0-organization-releases',
+            kwargs={
+                'organization_slug': self.org.slug,
+            }
+        )
+        response = self.client.get(url + '?environment=' + 'invalid_environment', format='json')
+        self.assert_releases(response, [])

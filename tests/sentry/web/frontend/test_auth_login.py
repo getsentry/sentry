@@ -1,13 +1,15 @@
 from __future__ import absolute_import
 
-from django.utils.http import urlquote
+import pytest
 
+from django.conf import settings
 from django.core.urlresolvers import reverse
+from django.utils.http import urlquote
 from exam import fixture
 
-from sentry import options
+from sentry import options, newsletter
 from sentry.testutils import TestCase
-from sentry.models import User
+from sentry.models import OrganizationMember, User
 
 
 # TODO(dcramer): need tests for SSO behavior and single org behavior
@@ -61,7 +63,7 @@ class AuthLoginTest(TestCase):
 
     def test_registration_disabled(self):
         options.set('auth.allow-registration', True)
-        with self.feature('auth:register', False):
+        with self.feature({'auth:register': False}):
             resp = self.client.get(self.path)
             assert resp.context['register_form'] is None
 
@@ -76,11 +78,14 @@ class AuthLoginTest(TestCase):
                     'op': 'register',
                 }
             )
-        assert resp.status_code == 302
+        assert resp.status_code == 302, resp.context['register_form'].errors if resp.status_code == 200 else None
         user = User.objects.get(username='test-a-really-long-email-address@example.com')
         assert user.email == 'test-a-really-long-email-address@example.com'
         assert user.check_password('foobar')
         assert user.name == 'Foo Bar'
+        assert not OrganizationMember.objects.filter(
+            user=user,
+        ).exists()
 
     def test_register_renders_correct_template(self):
         options.set('auth.allow-registration', True)
@@ -90,14 +95,6 @@ class AuthLoginTest(TestCase):
         assert resp.status_code == 200
         assert resp.context['op'] == 'register'
         self.assertTemplateUsed('sentry/login.html')
-
-    def test_already_logged_in(self):
-        self.login_as(self.user)
-        with self.feature('organizations:create'):
-            resp = self.client.get(self.path)
-
-        assert resp.status_code == 302
-        assert resp['Location'] == 'http://testserver/organizations/new/'
 
     def test_register_prefills_invite_email(self):
         self.session['invite_email'] = 'foo@example.com'
@@ -140,3 +137,95 @@ class AuthLoginTest(TestCase):
         assert resp.status_code == 302
         assert next not in resp['Location']
         assert resp['Location'] == 'http://testserver/auth/login/'
+
+    def test_redirects_already_authed_non_superuser(self):
+        self.user.update(is_superuser=False)
+        self.login_as(self.user)
+        with self.feature('organizations:create'):
+            resp = self.client.get(self.path)
+
+        assert resp.status_code == 302
+        assert resp['Location'] == 'http://testserver/organizations/new/'
+
+    def test_doesnt_redirect_already_authed_superuser(self):
+        self.login_as(self.user, superuser=False)
+
+        resp = self.client.get(self.path)
+
+        assert resp.status_code == 200
+
+
+@pytest.mark.skipIf(lambda x: settings.SENTRY_NEWSLETTER != 'sentry.newsletter.dummy.DummyNewsletter')
+class AuthLoginNewsletterTest(TestCase):
+    @fixture
+    def path(self):
+        return reverse('sentry-login')
+
+    def setUp(self):
+        super(AuthLoginNewsletterTest, self).setUp()
+
+        def disable_newsletter():
+            newsletter.backend.disable()
+
+        self.addCleanup(disable_newsletter)
+        newsletter.backend.enable()
+
+    def test_registration_requires_subscribe_choice_with_newsletter(self):
+        options.set('auth.allow-registration', True)
+        with self.feature('auth:register'):
+            resp = self.client.post(
+                self.path, {
+                    'username': 'test-a-really-long-email-address@example.com',
+                    'password': 'foobar',
+                    'name': 'Foo Bar',
+                    'op': 'register',
+                }
+            )
+        assert resp.status_code == 200
+
+        with self.feature('auth:register'):
+            resp = self.client.post(
+                self.path, {
+                    'username': 'test-a-really-long-email-address@example.com',
+                    'password': 'foobar',
+                    'name': 'Foo Bar',
+                    'op': 'register',
+                    'subscribe': '0',
+                }
+            )
+        assert resp.status_code == 302
+
+        user = User.objects.get(username='test-a-really-long-email-address@example.com')
+        assert user.email == 'test-a-really-long-email-address@example.com'
+        assert user.check_password('foobar')
+        assert user.name == 'Foo Bar'
+        assert not OrganizationMember.objects.filter(
+            user=user,
+        ).exists()
+
+        assert newsletter.get_subscriptions(user) == {'subscriptions': []}
+
+    def test_registration_subscribe_to_newsletter(self):
+        options.set('auth.allow-registration', True)
+        with self.feature('auth:register'):
+            resp = self.client.post(
+                self.path, {
+                    'username': 'test-a-really-long-email-address@example.com',
+                    'password': 'foobar',
+                    'name': 'Foo Bar',
+                    'op': 'register',
+                    'subscribe': '1',
+                }
+            )
+        assert resp.status_code == 302
+
+        user = User.objects.get(username='test-a-really-long-email-address@example.com')
+        assert user.email == 'test-a-really-long-email-address@example.com'
+        assert user.check_password('foobar')
+        assert user.name == 'Foo Bar'
+
+        results = newsletter.get_subscriptions(user)['subscriptions']
+        assert len(results) == 1
+        assert results[0].list_id == newsletter.get_default_list_id()
+        assert results[0].subscribed
+        assert not results[0].verified

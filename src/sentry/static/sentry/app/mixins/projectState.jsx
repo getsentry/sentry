@@ -1,11 +1,11 @@
-import PropTypes from '../proptypes';
-import TeamState from './teamState';
+import SentryTypes from '../proptypes';
+import OrganizationState from './organizationState';
 
 let ProjectState = {
-  mixins: [TeamState],
+  mixins: [OrganizationState],
 
   contextTypes: {
-    project: PropTypes.Project
+    project: SentryTypes.Project,
   },
 
   getProjectFeatures() {
@@ -14,7 +14,7 @@ let ProjectState = {
 
   getProject() {
     return this.context.project;
-  }
+  },
 };
 
 export default ProjectState;

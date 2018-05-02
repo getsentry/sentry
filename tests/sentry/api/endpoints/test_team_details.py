@@ -5,7 +5,7 @@ import six
 from django.core.urlresolvers import reverse
 from mock import patch
 
-from sentry.models import Team, TeamStatus
+from sentry.models import Team, TeamStatus, DeletedTeam
 from sentry.testutils import APITestCase
 
 
@@ -59,7 +59,7 @@ class TeamDeleteTest(APITestCase):
 
         org = self.create_organization()
         team = self.create_team(organization=org)
-        project = self.create_project(team=team)  # NOQA
+        project = self.create_project(teams=[team])  # NOQA
 
         user = self.create_user(email='foo@example.com', is_superuser=False)
 
@@ -88,19 +88,20 @@ class TeamDeleteTest(APITestCase):
         assert response.status_code == 204, response.data
 
         assert team.status == TeamStatus.PENDING_DELETION
+        deleted_team = DeletedTeam.objects.get(slug=team.slug)
+        self.assert_valid_deleted_log(deleted_team, team)
 
         delete_team.apply_async.assert_called_once_with(
             kwargs={
                 'object_id': team.id,
                 'transaction_id': 'abc123',
             },
-            countdown=3600,
         )
 
     def test_cannot_remove_as_member(self):
         org = self.create_organization(owner=self.user)
         team = self.create_team(organization=org)
-        project = self.create_project(team=team)  # NOQA
+        project = self.create_project(teams=[team])  # NOQA
 
         user = self.create_user(email='foo@example.com', is_superuser=False)
 

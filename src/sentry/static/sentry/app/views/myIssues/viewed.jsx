@@ -3,14 +3,14 @@ import React from 'react';
 import OrganizationIssueList from '../../components/organizationIssueList';
 import {t} from '../../locale';
 
-const Viewed = React.createClass({
-  getEndpoint() {
+class Viewed extends React.Component {
+  getEndpoint = () => {
     return `/organizations/${this.props.params.orgId}/members/me/issues/viewed/`;
-  },
+  };
 
-  getTitle() {
+  getTitle = () => {
     return t('History');
-  },
+  };
 
   render() {
     return (
@@ -21,6 +21,6 @@ const Viewed = React.createClass({
       />
     );
   }
-});
+}
 
 export default Viewed;

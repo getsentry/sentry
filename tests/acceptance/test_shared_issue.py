@@ -4,6 +4,7 @@ from datetime import datetime
 from django.utils import timezone
 
 from sentry.testutils import AcceptanceTestCase
+from sentry.models import GroupShare
 from sentry.utils.samples import create_sample_event
 
 
@@ -15,7 +16,7 @@ class SharedIssueTest(AcceptanceTestCase):
         self.team = self.create_team(organization=self.org, name='Mariachi Band')
         self.project = self.create_project(
             organization=self.org,
-            team=self.team,
+            teams=[self.team],
             name='Bengal',
         )
         self.login_as(self.user)
@@ -38,6 +39,13 @@ class SharedIssueTest(AcceptanceTestCase):
             platform='cocoa',
         )
 
-        self.browser.get('/share/issue/{}/'.format(event.group.get_share_id()))
+        group = event.group
+
+        GroupShare.objects.create(
+            project_id=group.project_id,
+            group=group,
+        )
+
+        self.browser.get('/share/issue/{}/'.format(group.get_share_id()))
         self.browser.wait_until('.entries')
         self.browser.snapshot('shared issue cocoa')

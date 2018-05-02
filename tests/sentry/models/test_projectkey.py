@@ -55,3 +55,4 @@ class ProjectKeyTest(TestCase):
         assert key.dsn_private == 'http://abc:xyz@testserver/1'
         assert key.dsn_public == 'http://abc@testserver/1'
         assert key.csp_endpoint == 'http://testserver/api/1/csp-report/?sentry_key=abc'
+        assert key.minidump_endpoint == 'http://testserver/api/1/minidump/?sentry_key=abc'

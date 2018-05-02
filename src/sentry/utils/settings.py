@@ -1,6 +1,6 @@
 """
-sentry.utils.imports
-~~~~~~~~~~~~~~~~~~~~
+sentry.utils.settings
+~~~~~~~~~~~~~~~~~~~~~
 
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
@@ -66,7 +66,8 @@ def validate_dependency(settings, dependency_type, dependency, package):
     try:
         import_string(package)
     except ImportError:
-        msg = ConfigurationError.get_error_message("%s %s" % (dependency_type, dependency), package)
+        msg = ConfigurationError.get_error_message(
+            "%s %s" % (dependency_type, dependency), package)
         reraise_as(ConfigurationError(msg))
 
 

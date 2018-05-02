@@ -9,6 +9,7 @@ from __future__ import absolute_import, print_function
 
 import click
 import six
+from six.moves.urllib.parse import urlparse
 
 from sentry.runner.decorators import configuration, log_options
 
@@ -24,11 +25,21 @@ from sentry.runner.decorators import configuration, log_options
     default=False,
     help='Automatic browser refreshing on webpack builds'
 )
+@click.option(
+    '--prefix/--no-prefix',
+    default=True,
+    help='Show the service name prefix and timestamp'
+)
+@click.option(
+    '--styleguide/--no-styleguide',
+    default=False,
+    help='Start local styleguide web server on port 9001'
+)
 @click.option('--environment', default='development', help='The environment name.')
 @click.argument('bind', default='127.0.0.1:8000', metavar='ADDRESS')
 @log_options()
 @configuration
-def devserver(reload, watchers, workers, browser_reload, environment, bind):
+def devserver(reload, watchers, workers, browser_reload, styleguide, prefix, environment, bind):
     "Starts a lightweight web server for development."
     if ':' in bind:
         host, port = bind.split(':', 1)
@@ -46,7 +57,12 @@ def devserver(reload, watchers, workers, browser_reload, environment, bind):
     from sentry.services.http import SentryHTTPServer
 
     url_prefix = options.get('system.url-prefix', '')
-    needs_https = url_prefix.startswith('https://')
+    parsed_url = urlparse(url_prefix)
+    # Make sure we're trying to use a port that we can actually bind to
+    needs_https = (
+        parsed_url.scheme == 'https' and
+        (parsed_url.port or 443) > 1024
+    )
     has_https = False
 
     if needs_https:
@@ -72,6 +88,10 @@ def devserver(reload, watchers, workers, browser_reload, environment, bind):
         'worker-reload-mercy': 2,
         # We need stdin to support pdb in devserver
         'honour-stdin': True,
+        # accept ridiculously large files
+        'limit-post': 1 << 30,
+        # do something with chunked
+        'http-chunked-input': True,
     }
 
     if reload:
@@ -79,8 +99,23 @@ def devserver(reload, watchers, workers, browser_reload, environment, bind):
 
     daemons = []
 
-    if watchers:
+    if watchers and not browser_reload:
         daemons += settings.SENTRY_WATCHERS
+
+    # For javascript dev, if browser reload and watchers, then:
+    # devserver listen on PORT + 1
+    # webpack dev server listen on PORT + 2
+    # proxy listen on PORT
+    if watchers and browser_reload:
+        new_port = port + 1
+        os.environ['WEBPACK_DEV_PROXY'] = '%s' % port
+        os.environ['WEBPACK_DEV_PORT'] = '%s' % (new_port + 1)
+        os.environ['SENTRY_DEVSERVER_PORT'] = '%s' % new_port
+        port = new_port
+
+        daemons += [
+            ('jsproxy', ['yarn', 'dev-proxy']), ('webpack', ['yarn', 'dev-server'])
+        ]
 
     if workers:
         if settings.CELERY_ALWAYS_EAGER:
@@ -94,9 +129,7 @@ def devserver(reload, watchers, workers, browser_reload, environment, bind):
         ]
 
     if needs_https and has_https:
-        from six.moves.urllib.parse import urlparse
-        parsed_url = urlparse(url_prefix)
-        https_port = six.text_type(parsed_url.port or 443)
+        https_port = six.text_type(parsed_url.port)
         https_host = parsed_url.hostname
 
         # Determine a random port for the backend http server
@@ -129,10 +162,9 @@ def devserver(reload, watchers, workers, browser_reload, environment, bind):
     import sys
     from subprocess import list2cmdline
     from honcho.manager import Manager
+    from honcho.printer import Printer
 
     os.environ['PYTHONUNBUFFERED'] = 'true'
-    if browser_reload:
-        os.environ['WEBPACK_LIVERELOAD'] = '1'
 
     # Make sure that the environment is prepared before honcho takes over
     # This sets all the appropriate uwsgi env vars, etc
@@ -141,9 +173,12 @@ def devserver(reload, watchers, workers, browser_reload, environment, bind):
         ('server', ['sentry', 'run', 'web']),
     ]
 
+    if styleguide:
+        daemons += [('storybook', ['yarn', 'storybook'])]
+
     cwd = os.path.realpath(os.path.join(settings.PROJECT_ROOT, os.pardir, os.pardir))
 
-    manager = Manager()
+    manager = Manager(Printer(prefix=prefix))
     for name, cmd in daemons:
         manager.add_process(
             name,

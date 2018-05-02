@@ -46,7 +46,7 @@
             {% endif %}
           </td>
           <td style="text-align: right">
-            {% if email != primary_email and email.is_verified and not user.is_managed %}
+            {% if email != primary_email and email.is_verified %}
             <form action="" method="post">
               {% csrf_token %}
               <input type='hidden' name='new_primary_email' value='{{ email.email }}'>

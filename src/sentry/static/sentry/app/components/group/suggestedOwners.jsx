@@ -1,31 +1,33 @@
+import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import ReactDOMServer from 'react-dom/server';
 import moment from 'moment';
 
 import Avatar from '../avatar';
-import TooltipMixin from '../../mixins/tooltip';
+import ActorAvatar from '../actorAvatar';
+import Tooltip from '../tooltip';
 import ApiMixin from '../../mixins/apiMixin';
 import GroupState from '../../mixins/groupState';
+import {assignToUser, assignToActor} from '../../actionCreators/group';
 import {t} from '../../locale';
+import {openCreateOwnershipRule} from '../../actionCreators/modal';
 
-const SuggestedOwners = React.createClass({
+const SuggestedOwners = createReactClass({
+  displayName: 'SuggestedOwners',
+
   propTypes: {
-    event: React.PropTypes.object
+    event: PropTypes.object,
   },
 
-  mixins: [
-    ApiMixin,
-    GroupState,
-    TooltipMixin({
-      selector: '.tip',
-      html: true,
-      container: 'body',
-      template: '<div class="tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner tooltip-owners"></div></div>'
-    })
-  ],
+  mixins: [ApiMixin, GroupState],
 
   getInitialState() {
-    return {owners: undefined};
+    return {
+      rule: null,
+      owners: [],
+      committers: [],
+    };
   },
 
   componentDidMount() {
@@ -44,14 +46,6 @@ const SuggestedOwners = React.createClass({
     }
   },
 
-  componentDidUpdate(_, nextState) {
-    //this shallow equality should be OK because it's being mutated fetchData as a new object
-    if (this.state.owners !== nextState.owners) {
-      this.removeTooltips();
-      this.attachTooltips();
-    }
-  },
-
   fetchData(event) {
     if (!event) return;
     let org = this.getOrganization();
@@ -61,81 +55,192 @@ const SuggestedOwners = React.createClass({
       {
         success: (data, _, jqXHR) => {
           this.setState({
-            owners: data.committers
+            committers: data.committers,
           });
         },
         error: error => {
           this.setState({
-            owners: undefined
+            committers: [],
           });
-        }
+        },
       }
     );
+    this.api.request(`/projects/${org.slug}/${project.slug}/events/${event.id}/owners/`, {
+      success: (data, _, jqXHR) => {
+        this.setState({
+          owners: data.owners,
+          rule: data.rule,
+        });
+      },
+      error: error => {
+        this.setState({
+          owners: [],
+        });
+      },
+    });
   },
 
-  assignTo(member) {
-    if (member.id !== undefined) {
-      this.api.assignTo({id: this.props.event.groupID, member: member});
+  assignTo(user) {
+    if (user.id !== undefined) {
+      assignToUser({id: this.props.event.groupID, user});
     }
   },
 
-  renderCommitter({author, commits}) {
+  assignToActor(actor) {
+    if (actor.id !== undefined) {
+      assignToActor({
+        actor,
+        id: this.props.event.groupID,
+      });
+    }
+  },
+
+  renderCommitter(committer) {
+    let {author, commits} = committer;
     return (
       <span
         key={author.id || author.email}
-        className="avatar-grid-item tip"
+        className="avatar-grid-item"
+        style={{cursor: 'pointer'}}
         onClick={() => this.assignTo(author)}
-        title={ReactDOMServer.renderToStaticMarkup(
-          <div>
-            {author.id
-              ? <div className="tooltip-owners-name">
-                  {author.name}
-                </div>
-              : <div className="tooltip-owners-unknown">
+      >
+        <Tooltip
+          tooltipOptions={{
+            html: true,
+            container: 'body',
+            template:
+              '<div class="tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner tooltip-owners"></div></div>',
+          }}
+          title={ReactDOMServer.renderToStaticMarkup(
+            <div>
+              {author.id ? (
+                <div className="tooltip-owners-name">{author.name}</div>
+              ) : (
+                <div className="tooltip-owners-unknown">
                   <p className="tooltip-owners-unknown-email">
                     <span className="icon icon-circle-cross" />
                     <strong>{author.email}</strong>
                   </p>
                   <p>
-                    Sorry, we don't recognize this member. Make sure to link alternative emails in Account Settings.
+                    {t(`Sorry, we don't recognize this member. Make sure to link alternative
+                    emails in Account Settings.`)}
                   </p>
                   <hr />
-                </div>}
-            <ul className="tooltip-owners-commits">
-              {commits.slice(0, 6).map(c => {
-                return (
-                  <li key={c.id} className="tooltip-owners-commit">
-                    {c.message}
-                    <span className="tooltip-owners-date">
-                      {' '}- {moment(c.dateCreated).fromNow()}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        )}>
-        <Avatar user={author} />
+                </div>
+              )}
+              <ul className="tooltip-owners-commits">
+                {commits.slice(0, 6).map(c => {
+                  return (
+                    <li key={c.id} className="tooltip-owners-commit">
+                      <div style={{whiteSpace: 'pre-line'}}>
+                        {c.message.replace(
+                          /\n\s*\n/g,
+                          '\n'
+                        ) /*repress repeated newlines*/}
+                      </div>
+                      <span className="tooltip-owners-date">
+                        {' '}
+                        - {moment(c.dateCreated).fromNow()}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+        >
+          <Avatar user={author} />
+        </Tooltip>
+      </span>
+    );
+  },
+
+  renderOwner(owner) {
+    let {rule} = this.state;
+    return (
+      <span
+        key={`${owner.id}:${owner.type}`}
+        className="avatar-grid-item"
+        style={{cursor: 'pointer'}}
+        onClick={() => this.assignToActor(owner)}
+      >
+        <Tooltip
+          tooltipOptions={{
+            html: true,
+            container: 'body',
+            template:
+              '<div class="tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner tooltip-owners"></div></div>',
+          }}
+          title={ReactDOMServer.renderToStaticMarkup(
+            <div>
+              <div className="tooltip-owners-name">{owner.name}</div>
+              <ul className="tooltip-owners-commits">
+                {t("Assigned based on your Project's Issue Ownership settings")}
+              </ul>
+              <ul className="tooltip-owners-commits">
+                {rule[0] + t(' matched: ') + rule[1]}
+              </ul>
+            </div>
+          )}
+        >
+          <ActorAvatar actor={owner} hasTooltip={false} />
+        </Tooltip>
       </span>
     );
   },
 
   render() {
-    if (!(this.state.owners && this.state.owners.length)) {
-      return null;
-    }
+    let {committers, owners} = this.state;
+
+    let group = this.getGroup();
+    let project = this.getProject();
+    let org = this.getOrganization();
+
+    let orgFeatures = new Set(org.features);
+    let showOwners = orgFeatures.has('code-owners');
+
+    let showCreateRule = showOwners && orgFeatures.has('internal-catchall');
+
+    let showSuggestedAssignees =
+      committers.length > 0 || (showOwners && owners.length > 0);
+
     return (
-      <div className="m-b-1">
-        <h6>
-          <span>{t('Suggested Owners')}</span>
-          <small style={{background: '#FFFFFF'}}>Click to assign</small>
-        </h6>
-        <div className="avatar-grid">
-          {this.state.owners.map(c => this.renderCommitter(c))}
-        </div>
-      </div>
+      <React.Fragment>
+        {showSuggestedAssignees && (
+          <div className="m-b-1">
+            <h6>
+              <span>{t('Suggested Assignees')}</span>
+              <small style={{background: '#FFFFFF'}}>{t('Click to assign')}</small>
+            </h6>
+
+            <div className="avatar-grid">
+              {committers.map(this.renderCommitter)}
+              {showOwners && owners.map(this.renderOwner)}
+            </div>
+          </div>
+        )}
+        {showCreateRule && (
+          <div className="m-b-1">
+            <h6>
+              <span>{t('Ownership Rules')}</span>
+            </h6>
+
+            <a
+              onClick={() =>
+                openCreateOwnershipRule({
+                  project,
+                  organization: org,
+                  issueId: group.id,
+                })}
+              className="btn btn-default btn-sm btn-create-ownership-rule"
+            >
+              {t('Create Ownership Rule')}
+            </a>
+          </div>
+        )}
+      </React.Fragment>
     );
-  }
+  },
 });
 
 export default SuggestedOwners;

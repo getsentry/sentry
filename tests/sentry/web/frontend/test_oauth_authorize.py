@@ -270,6 +270,53 @@ class OAuthAuthorizeCodeTest(TestCase):
             'Read, write, and admin access to organization members.'
         ]
 
+    def test_unauthenticated_basic_auth(self):
+        full_path = '{}?response_type=code&client_id={}'.format(
+            self.path,
+            self.application.client_id,
+        )
+
+        resp = self.client.get(full_path)
+
+        assert resp.status_code == 200
+        self.assertTemplateUsed('sentry/login.html')
+        assert resp.context['banner'] == 'Connect Sentry to {}'.format(self.application.name)
+
+        resp = self.client.post(
+            full_path,
+            {
+                'username': self.user.username,
+                'password': 'admin',
+                'op': 'login',
+            },
+        )
+        assert resp.status_code == 302
+        assert resp.get('Location') == 'http://testserver{}'.format(full_path)
+
+        resp = self.client.get(full_path)
+        self.assertTemplateUsed('sentry/oauth-authorize.html')
+        assert resp.context['application'] == self.application
+
+        resp = self.client.post(full_path, {
+            'op': 'approve',
+        })
+
+        grant = ApiGrant.objects.get(user=self.user)
+        assert grant.redirect_uri == self.application.get_default_redirect_uri()
+        assert grant.application == self.application
+        assert not grant.get_scopes()
+
+        assert resp.status_code == 302
+        assert resp['Location'] == 'https://example.com?code={}'.format(
+            grant.code,
+        )
+
+        authorization = ApiAuthorization.objects.get(
+            user=self.user,
+            application=self.application,
+        )
+        assert authorization.get_scopes() == grant.get_scopes()
+
 
 class OAuthAuthorizeTokenTest(TestCase):
     @fixture

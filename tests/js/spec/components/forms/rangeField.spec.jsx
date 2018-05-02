@@ -1,6 +1,5 @@
 import React from 'react';
 import {shallow} from 'enzyme';
-import toJson from 'enzyme-to-json';
 
 import {RangeField} from 'app/components/forms';
 
@@ -8,7 +7,7 @@ describe('RangeField', function() {
   describe('render()', function() {
     it('renders', function() {
       let wrapper = shallow(<RangeField name="fieldName" />);
-      expect(toJson(wrapper)).toMatchSnapshot();
+      expect(wrapper).toMatchSnapshot();
     });
 
     it('renders with optional attributes', function() {
@@ -22,12 +21,12 @@ describe('RangeField', function() {
           allowedValues={[1, 2, 3]}
         />
       );
-      expect(toJson(wrapper)).toMatchSnapshot();
+      expect(wrapper).toMatchSnapshot();
     });
 
     it('renders with value', function() {
       let wrapper = shallow(<RangeField name="fieldName" value={2} />);
-      expect(toJson(wrapper)).toMatchSnapshot();
+      expect(wrapper).toMatchSnapshot();
     });
 
     it('renders with form context', function() {
@@ -35,13 +34,28 @@ describe('RangeField', function() {
         context: {
           form: {
             data: {
-              fieldName: 2
+              fieldName: 2,
             },
-            errors: {}
-          }
-        }
+            errors: {},
+          },
+        },
       });
-      expect(toJson(wrapper)).toMatchSnapshot();
+      expect(wrapper).toMatchSnapshot();
+    });
+
+    it('renders with value=0 in form context', function() {
+      let wrapper = shallow(<RangeField name="fieldName" />, {
+        context: {
+          form: {
+            data: {
+              fieldName: 0,
+            },
+            errors: {},
+          },
+        },
+      });
+
+      expect(wrapper.find('input').prop('value')).toBe(0);
     });
   });
 });

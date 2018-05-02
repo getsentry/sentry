@@ -1,11 +1,10 @@
-# -*- coding: utf-8 -*-
-
 from __future__ import absolute_import
 
 import pytest
+import re
 import responses
 import six
-from libsourcemap import Token
+from symbolic import SourceMapTokenMatch
 
 from mock import patch
 from requests.exceptions import RequestException
@@ -19,6 +18,9 @@ from sentry.lang.javascript.processor import (
     trim_line,
     fetch_release_file,
     UnparseableSourcemap,
+    get_max_age,
+    CACHE_CONTROL_MAX,
+    CACHE_CONTROL_MIN,
 )
 from sentry.lang.javascript.errormapping import (rewrite_exception, REACT_MAPPING_URL)
 from sentry.models import File, Release, ReleaseFile, EventError
@@ -27,10 +29,10 @@ from sentry.utils.strings import truncatechars
 
 base64_sourcemap = 'data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiZ2VuZXJhdGVkLmpzIiwic291cmNlcyI6WyIvdGVzdC5qcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiO0FBQUEiLCJzb3VyY2VzQ29udGVudCI6WyJjb25zb2xlLmxvZyhcImhlbGxvLCBXb3JsZCFcIikiXX0='
 
-unicode_body = u"""function add(a, b) {
+unicode_body = b"""function add(a, b) {
     "use strict";
-    return a + b; // fôo
-}"""
+    return a + b; // f\xc3\xb4o
+}""".decode('utf-8')
 
 
 class FetchReleaseFileTest(TestCase):
@@ -130,6 +132,41 @@ class FetchReleaseFileTest(TestCase):
 
         assert result == new_result
 
+    def test_fallbacks(self):
+        project = self.project
+        release = Release.objects.create(
+            organization_id=project.organization_id,
+            version='abc',
+        )
+        release.add_project(project)
+
+        file = File.objects.create(
+            name='~/file.min.js',
+            type='release.file',
+            headers={'Content-Type': 'application/json; charset=utf-8'},
+        )
+
+        binary_body = unicode_body.encode('utf-8')
+        file.putfile(six.BytesIO(binary_body))
+
+        ReleaseFile.objects.create(
+            name='~/file.min.js',
+            release=release,
+            organization_id=project.organization_id,
+            file=file,
+        )
+
+        result = fetch_release_file('http://example.com/file.min.js?lol', release)
+
+        assert type(result.body) is six.binary_type
+        assert result == http.UrlResult(
+            'http://example.com/file.min.js?lol',
+            {'content-type': 'application/json; charset=utf-8'},
+            binary_body,
+            200,
+            'utf-8',
+        )
+
 
 class FetchFileTest(TestCase):
     @responses.activate
@@ -156,20 +193,34 @@ class FetchFileTest(TestCase):
     @responses.activate
     def test_with_token(self):
         responses.add(
-            responses.GET, 'http://example.com', body='foo bar', content_type='application/json'
+            responses.GET,
+            re.compile(r'http://example.com/\d+/'),
+            body='foo bar',
+            content_type='application/json'
         )
 
         self.project.update_option('sentry:token', 'foobar')
         self.project.update_option('sentry:origins', ['*'])
 
-        result = fetch_file('http://example.com', project=self.project)
+        default_header_name = 'X-Sentry-Token'
+        header_pairs = [
+            (None, default_header_name),
+            ('', default_header_name),
+            ('X-Custom-Token-Header', 'X-Custom-Token-Header'),
+        ]
 
-        assert len(responses.calls) == 1
-        assert responses.calls[0].request.headers['X-Sentry-Token'] == 'foobar'
+        for i, (header_name_option_value, expected_request_header_name) in enumerate(header_pairs):
+            self.project.update_option('sentry:token_header', header_name_option_value)
 
-        assert result.url == 'http://example.com'
-        assert result.body == 'foo bar'
-        assert result.headers == {'content-type': 'application/json'}
+            url = 'http://example.com/{}/'.format(i)
+            result = fetch_file(url, project=self.project)
+
+            assert result.url == url
+            assert result.body == 'foo bar'
+            assert result.headers == {'content-type': 'application/json'}
+
+            assert len(responses.calls) == i + 1
+            assert responses.calls[i].request.headers[expected_request_header_name] == 'foobar'
 
     @responses.activate
     def test_connection_failure(self):
@@ -217,7 +268,7 @@ class FetchFileTest(TestCase):
         responses.add(
             responses.GET,
             'http://example.com',
-            body=u'"fôo bar"'.encode('utf-8'),
+            body=b'"f\xc3\xb4o bar"'.decode('utf-8'),
             content_type='application/json; charset=utf-8'
         )
 
@@ -245,6 +296,48 @@ class FetchFileTest(TestCase):
 
         assert exc.value.data['type'] == EventError.JS_MISSING_SOURCE
         assert exc.value.data['url'] == url
+
+
+class CacheControlTest(TestCase):
+    def test_simple(self):
+        headers = {'content-type': 'application/json', 'cache-control': 'max-age=120'}
+        assert get_max_age(headers) == 120
+
+    def test_max_and_min(self):
+        headers = {'content-type': 'application/json',
+                   'cache-control': 'max-age=%s' % CACHE_CONTROL_MAX}
+        assert get_max_age(headers) == CACHE_CONTROL_MAX
+
+        headers = {'content-type': 'application/json',
+                   'cache-control': 'max-age=%s' % CACHE_CONTROL_MIN}
+        assert get_max_age(headers) == CACHE_CONTROL_MIN
+
+    def test_out_of_bounds(self):
+        greater_than_max = CACHE_CONTROL_MAX + 1
+        headers = {'content-type': 'application/json',
+                   'cache-control': 'max-age=%s' % greater_than_max}
+        assert get_max_age(headers) == CACHE_CONTROL_MAX
+
+        less_than_min = CACHE_CONTROL_MIN - 1
+        headers = {'content-type': 'application/json',
+                   'cache-control': 'max-age=%s' % less_than_min}
+        assert get_max_age(headers) == CACHE_CONTROL_MIN
+
+    def test_no_cache_control(self):
+        headers = {'content-type': 'application/json'}
+        assert get_max_age(headers) == CACHE_CONTROL_MIN
+
+    def test_additional_cache_control_values(self):
+        headers = {'content-type': 'application/json',
+                   'cache-control': 'private, s-maxage=60, max-age=120'}
+        assert get_max_age(headers) == 120
+
+    def test_valid_input(self):
+        headers = {'content-type': 'application/json', 'cache-control': 'max-age=12df0sdgfjhdgf'}
+        assert get_max_age(headers) == CACHE_CONTROL_MIN
+
+        headers = {'content-type': 'application/json', 'cache-control': 'max-age=df0sdgfjhdgf'}
+        assert get_max_age(headers) == CACHE_CONTROL_MIN
 
 
 class DiscoverSourcemapTest(TestCase):
@@ -333,7 +426,11 @@ class GenerateModuleTest(TestCase):
         assert generate_module('http://example.com/foo/bar.coffee') == 'foo/bar'
         assert generate_module('http://example.com/foo/bar.js?v=1234') == 'foo/bar'
         assert generate_module('/foo/bar.js') == 'foo/bar'
+        assert generate_module('/foo/bar.ts') == 'foo/bar'
         assert generate_module('../../foo/bar.js') == 'foo/bar'
+        assert generate_module('../../foo/bar.ts') == 'foo/bar'
+        assert generate_module('../../foo/bar.awesome') == 'foo/bar'
+        assert generate_module('../../foo/bar') == 'foo/bar'
         assert generate_module('/foo/bar-7d6d00eae0ceccdc7ee689659585d95f.js') == 'foo/bar'
         assert generate_module('/bower_components/foo/bar.js') == 'foo/bar'
         assert generate_module('/node_modules/foo/bar.js') == 'foo/bar'
@@ -364,18 +461,20 @@ class GenerateModuleTest(TestCase):
 class FetchSourcemapTest(TestCase):
     def test_simple_base64(self):
         smap_view = fetch_sourcemap(base64_sourcemap)
-        tokens = [Token(1, 0, '/test.js', 0, 0, 0, None)]
+        tokens = [SourceMapTokenMatch(0, 0, 1, 0, src='/test.js', src_id=0)]
 
         assert list(smap_view) == tokens
-        assert smap_view.get_source_contents(0) == 'console.log("hello, World!")'
+        sv = smap_view.get_sourceview(0)
+        assert sv.get_source() == u'console.log("hello, World!")'
         assert smap_view.get_source_name(0) == u'/test.js'
 
     def test_base64_without_padding(self):
         smap_view = fetch_sourcemap(base64_sourcemap.rstrip('='))
-        tokens = [Token(1, 0, '/test.js', 0, 0, 0, None)]
+        tokens = [SourceMapTokenMatch(0, 0, 1, 0, src='/test.js', src_id=0)]
 
         assert list(smap_view) == tokens
-        assert smap_view.get_source_contents(0) == 'console.log("hello, World!")'
+        sv = smap_view.get_sourceview(0)
+        assert sv.get_source() == u'console.log("hello, World!")'
         assert smap_view.get_source_name(0) == u'/test.js'
 
     def test_broken_base64(self):
@@ -617,7 +716,7 @@ class ErrorMappingTest(TestCase):
                         'InvariantViolation',
                         'value': (
                             u'Minified React error #108; visit http://facebook'
-                            u'.github.io/react/docs/error-decoder.html?…'
+                            u'.github.io/react/docs/error-decoder.html?\u2026'
                         ),
                         'stacktrace': {
                             'frames': [

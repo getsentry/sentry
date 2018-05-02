@@ -53,20 +53,13 @@ class Buffer(Service):
             }
         )
 
-    def process_pending(self):
+    def process_pending(self, partition=None):
         return []
 
     def process(self, model, columns, filters, extra=None):
         update_kwargs = dict((c, F(c) + v) for c, v in six.iteritems(columns))
         if extra:
             update_kwargs.update(extra)
-
-        # TODO(mattrobenolt): Remove in 8.18
-        if model.__name__ == 'GroupTagValue':
-            try:
-                update_kwargs['project_id'] = update_kwargs.pop('project')
-            except KeyError:
-                pass
 
         _, created = model.objects.create_or_update(values=update_kwargs, **filters)
 

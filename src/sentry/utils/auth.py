@@ -91,23 +91,14 @@ def get_login_url(reset=False):
 
 
 def initiate_login(request, next_url=None):
-    try:
-        del request.session['_after_2fa']
-    except KeyError:
-        pass
-
-    try:
-        del request.session['_pending_2fa']
-    except KeyError:
-        pass
+    for key in ('_next', '_after_2fa', '_pending_2fa'):
+        try:
+            del request.session[key]
+        except KeyError:
+            pass
 
     if next_url:
         request.session['_next'] = next_url
-    else:
-        try:
-            del request.session['_next']
-        except KeyError:
-            pass
 
 
 def get_login_redirect(request, default=None):
@@ -204,7 +195,8 @@ def login(request, user, passed_2fa=None, after_2fa=None, organization_id=None):
     """
     has_2fa = Authenticator.objects.user_has_2fa(user)
     if passed_2fa is None:
-        passed_2fa = (request.session.get(MFA_SESSION_KEY, '') == six.text_type(user.id))
+        passed_2fa = (request.session.get(MFA_SESSION_KEY, '')
+                      == six.text_type(user.id))
 
     if has_2fa and not passed_2fa:
         request.session['_pending_2fa'] = [user.id, time(), organization_id]
@@ -273,6 +265,16 @@ def has_user_registration():
     from sentry import features, options
 
     return features.has('auth:register') and options.get('auth.allow-registration')
+
+
+def is_user_signed_request(request):
+    """
+    This function returns True if the request is a signed valid link
+    """
+    try:
+        return request.user_from_signed_request
+    except AttributeError:
+        return False
 
 
 class EmailAuthBackend(ModelBackend):

@@ -1,22 +1,22 @@
+import PropTypes from 'prop-types';
 import React from 'react';
-import PureRenderMixin from 'react-addons-pure-render-mixin';
 
-const ProjectLabel = React.createClass({
-  propTypes: {
-    project: React.PropTypes.object,
-    organization: React.PropTypes.object
-  },
-
-  mixins: [PureRenderMixin],
+export default class ProjectLabel extends React.PureComponent {
+  static propTypes = {
+    project: PropTypes.object,
+    organization: PropTypes.object,
+  };
 
   render() {
-    let project = this.props.project;
+    let {project, organization} = this.props;
+    let features = organization && new Set(organization.features);
+
     return (
-      <span className="project-label">
-        <span className="project-name">{project.name}</span>
+      <span className="project-label" {...this.props}>
+        <span className="project-name">
+          {!features || features.has('new-teams') ? project.slug : project.name}
+        </span>
       </span>
     );
   }
-});
-
-export default ProjectLabel;
+}

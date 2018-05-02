@@ -1,4 +1,6 @@
+import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import $ from 'jquery';
 
 import ApiMixin from '../../mixins/apiMixin';
@@ -8,78 +10,78 @@ import {load as loadIncidents} from '../../actionCreators/incidents';
 import Broadcasts from './broadcasts';
 import Incidents from './incidents';
 import UserNav from './userNav';
-import requiredAdminActions from '../requiredAdminActions';
 import OrganizationSelector from './organizationSelector';
 import SidebarPanel from '../sidebarPanel';
-import TodoList from '../todos';
+import TodoList from '../onboardingWizard/todos';
 import IssueList from '../issueList';
 import ConfigStore from '../../stores/configStore';
 
 import {t} from '../../locale';
 
-const OnboardingStatus = React.createClass({
-  propTypes: {
-    org: React.PropTypes.object.isRequired,
-    currentPanel: React.PropTypes.string,
-    onShowPanel: React.PropTypes.func,
-    showPanel: React.PropTypes.bool,
-    hidePanel: React.PropTypes.func
-  },
+class OnboardingStatus extends React.Component {
+  static propTypes = {
+    org: PropTypes.object.isRequired,
+    currentPanel: PropTypes.string,
+    onShowPanel: PropTypes.func,
+    showPanel: PropTypes.bool,
+    hidePanel: PropTypes.func,
+  };
 
   render() {
     let org = this.props.org;
     if (org.features.indexOf('onboarding') === -1) return null;
 
+    let doneTasks = (org.onboardingTasks || []).filter(
+      task => task.status === 'complete' || task.status === 'skipped'
+    );
+
     let percentage = Math.round(
-      (org.onboardingTasks || [])
-        .filter(task => task.status === 'complete' || task.status === 'skipped').length /
-        TodoList.TASKS.length *
-        100
+      doneTasks.length / TodoList.TASKS.length * 100
     ).toString();
+
     let style = {
-      height: percentage + '%'
+      height: percentage + '%',
     };
+
+    if (doneTasks.length >= TodoList.TASKS.filter(task => task.display).length) {
+      return null;
+    }
 
     return (
       <li
         className={
           this.props.currentPanel == 'todos' ? 'onboarding active' : 'onboarding'
-        }>
+        }
+      >
         <div className="onboarding-progress-bar" onClick={this.props.onShowPanel}>
           <div className="slider" style={style} />
         </div>
         {this.props.showPanel &&
-          this.props.currentPanel == 'todos' &&
-          <SidebarPanel
-            title="Getting Started with Sentry"
-            hidePanel={this.props.hidePanel}>
-            <TodoList />
-          </SidebarPanel>}
+          this.props.currentPanel == 'todos' && (
+            <SidebarPanel
+              title="Getting Started with Sentry"
+              hidePanel={this.props.hidePanel}
+            >
+              <TodoList />
+            </SidebarPanel>
+          )}
       </li>
     );
   }
-});
-
-function getFirstRequiredAdminAction(org) {
-  for (let key in requiredAdminActions) {
-    let action = requiredAdminActions[key];
-    if (action.requiresAction(org)) {
-      return action;
-    }
-  }
-  return null;
 }
 
-const Sidebar = React.createClass({
+const Sidebar = createReactClass({
+  displayName: 'Sidebar',
+
   contextTypes: {
-    location: React.PropTypes.object
+    location: PropTypes.object,
   },
 
   mixins: [ApiMixin, OrganizationState],
 
   getInitialState: function() {
     return {
-      showTodos: location.hash === '#welcome'
+      showTodos: location.hash === '#welcome',
     };
   },
 
@@ -126,14 +128,14 @@ const Sidebar = React.createClass({
   hidePanel() {
     this.setState({
       showPanel: false,
-      currentPanel: ''
+      currentPanel: '',
     });
   },
 
   showPanel(panel) {
     this.setState({
       showPanel: true,
-      currentPanel: panel
+      currentPanel: panel,
     });
   },
 
@@ -150,7 +152,11 @@ const Sidebar = React.createClass({
       // When no organization, just render Sentry logo at top
       return (
         <ul className="navbar-nav">
-          <li><a className="logo" href="/"><span className="icon-sentry-logo" /></a></li>
+          <li>
+            <a className="logo" href="/">
+              <span className="icon-sentry-logo" />
+            </a>
+          </li>
         </ul>
       );
     }
@@ -212,7 +218,8 @@ const Sidebar = React.createClass({
                 !config.isOnPremise
                   ? `/organizations/${org.slug}/support/`
                   : 'https://forum.sentry.io/'
-              }>
+              }
+            >
               <span className="icon icon-support" />
             </a>
           </li>
@@ -220,90 +227,75 @@ const Sidebar = React.createClass({
 
         {/* Panel bodies */}
         {this.state.showPanel &&
-          this.state.currentPanel == 'assigned' &&
-          <SidebarPanel title={t('Assigned to me')} hidePanel={() => this.hidePanel()}>
-            <IssueList
-              endpoint={`/organizations/${org.slug}/members/me/issues/assigned/`}
-              query={{
-                statsPeriod: '24h',
-                per_page: 10,
-                status: 'unresolved'
-              }}
-              pagination={false}
-              renderEmpty={() => (
-                <div className="sidebar-panel-empty" key="none">
-                  {t('No issues have been assigned to you.')}
-                </div>
-              )}
-              ref="issueList"
-              showActions={false}
-              params={{orgId: org.slug}}
-            />
-          </SidebarPanel>}
+          this.state.currentPanel == 'assigned' && (
+            <SidebarPanel title={t('Assigned to me')} hidePanel={() => this.hidePanel()}>
+              <IssueList
+                endpoint={`/organizations/${org.slug}/members/me/issues/assigned/`}
+                query={{
+                  statsPeriod: '24h',
+                  per_page: 10,
+                  status: 'unresolved',
+                }}
+                pagination={false}
+                renderEmpty={() => (
+                  <div className="sidebar-panel-empty" key="none">
+                    {t('No issues have been assigned to you.')}
+                  </div>
+                )}
+                ref="issueList"
+                showActions={false}
+                params={{orgId: org.slug}}
+              />
+            </SidebarPanel>
+          )}
         {this.state.showPanel &&
-          this.state.currentPanel == 'bookmarks' &&
-          <SidebarPanel title={t('My Bookmarks')} hidePanel={() => this.hidePanel()}>
-            <IssueList
-              endpoint={`/organizations/${org.slug}/members/me/issues/bookmarked/`}
-              query={{
-                statsPeriod: '24h',
-                per_page: 10,
-                status: 'unresolved'
-              }}
-              pagination={false}
-              renderEmpty={() => (
-                <div className="sidebar-panel-empty" key="no">
-                  {t('You have no bookmarked issues.')}
-                </div>
-              )}
-              ref="issueList"
-              showActions={false}
-              params={{orgId: org.slug}}
-            />
-          </SidebarPanel>}
+          this.state.currentPanel == 'bookmarks' && (
+            <SidebarPanel title={t('My Bookmarks')} hidePanel={() => this.hidePanel()}>
+              <IssueList
+                endpoint={`/organizations/${org.slug}/members/me/issues/bookmarked/`}
+                query={{
+                  statsPeriod: '24h',
+                  per_page: 10,
+                  status: 'unresolved',
+                }}
+                pagination={false}
+                renderEmpty={() => (
+                  <div className="sidebar-panel-empty" key="no">
+                    {t('You have no bookmarked issues.')}
+                  </div>
+                )}
+                ref="issueList"
+                showActions={false}
+                params={{orgId: org.slug}}
+                noBorder
+              />
+            </SidebarPanel>
+          )}
         {this.state.showPanel &&
-          this.state.currentPanel == 'history' &&
-          <SidebarPanel title={t('Recently Viewed')} hidePanel={() => this.hidePanel()}>
-            <IssueList
-              endpoint={`/organizations/${org.slug}/members/me/issues/viewed/`}
-              query={{
-                statsPeriod: '24h',
-                per_page: 10,
-                status: 'unresolved'
-              }}
-              pagination={false}
-              renderEmpty={() => (
-                <div className="sidebar-panel-empty" key="none">
-                  {t('No recently viewed issues.')}
-                </div>
-              )}
-              ref="issueList"
-              showActions={false}
-              params={{orgId: org.slug}}
-            />
-          </SidebarPanel>}
+          this.state.currentPanel == 'history' && (
+            <SidebarPanel title={t('Recently Viewed')} hidePanel={() => this.hidePanel()}>
+              <IssueList
+                endpoint={`/organizations/${org.slug}/members/me/issues/viewed/`}
+                query={{
+                  statsPeriod: '24h',
+                  per_page: 10,
+                  status: 'unresolved',
+                }}
+                pagination={false}
+                renderEmpty={() => (
+                  <div className="sidebar-panel-empty" key="none">
+                    {t('No recently viewed issues.')}
+                  </div>
+                )}
+                ref="issueList"
+                showActions={false}
+                params={{orgId: org.slug}}
+                noBorder
+              />
+            </SidebarPanel>
+          )}
       </div>
     );
-  },
-
-  renderRequiredActions() {
-    // TODO: investigate if this is seriously deprecated
-    let org = this.getOrganization();
-    let requiredAction = org && getFirstRequiredAdminAction(org);
-
-    if (org && requiredAction !== null) {
-      let slugId = requiredAction.ID.toLowerCase().replace(/_/g, '-');
-      let url = `/organizations/${org.slug}/actions/${slugId}/`;
-      return (
-        <span className="admin-action-message">
-          <a href={url}>
-            {t('Required Action:')}{' '}{requiredAction.getActionLinkTitle()}
-          </a>
-        </span>
-      );
-    }
-
-    return null;
   },
 
   render() {
@@ -312,32 +304,29 @@ const Sidebar = React.createClass({
     // NOTE: this.props.orgId not guaranteed to be specified
     return (
       <nav className="navbar" role="navigation" ref="navbar">
-        <div className="anchor-top">
-          {this.renderBody()}
-        </div>
+        <div className="anchor-top">{this.renderBody()}</div>
 
         {/* Bottom nav links */}
         <div className="anchor-bottom">
           <ul className="navbar-nav">
-            {org &&
+            {org && (
               <OnboardingStatus
                 org={org}
                 showPanel={this.state.showPanel}
                 currentPanel={this.state.currentPanel}
                 onShowPanel={() => this.togglePanel('todos')}
                 hidePanel={() => this.hidePanel()}
-              />}
+              />
+            )}
 
             <li>
               <UserNav className="user-settings" />
             </li>
           </ul>
         </div>
-
-        {this.renderRequiredActions()}
       </nav>
     );
-  }
+  },
 });
 
 export default Sidebar;

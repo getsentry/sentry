@@ -23,14 +23,11 @@ class Migration(DataMigration):
 
     def _forwards(self, orm):
         "Write your forwards methods here."
-        dupe_envs = orm.Environment.objects.values('name', 'organization_id')\
+        dupe_envs = orm.Environment.objects.values_list('name', 'organization_id')\
                                            .annotate(ecount=models.Count('id'))\
                                            .filter(ecount__gt=1)
 
-        for env in dupe_envs:
-            name = env['name']
-            organization_id = env['organization_id']
-
+        for name, organization_id in dupe_envs:
             envs = list(
                 orm.Environment.objects.filter(
                     name=name,

@@ -1,23 +1,24 @@
+import PropTypes from 'prop-types';
 import React from 'react';
-import _ from 'underscore';
+import _ from 'lodash';
 
 import ContextData from '../../contextData';
 import {deviceNameMapper} from '../../../utils';
 
-const KeyValueList = React.createClass({
-  propTypes: {
-    data: React.PropTypes.any.isRequired,
-    isContextData: React.PropTypes.bool,
-    isSorted: React.PropTypes.bool,
-    onClick: React.PropTypes.func
-  },
+class KeyValueList extends React.Component {
+  static propTypes = {
+    data: PropTypes.any.isRequired,
+    isContextData: PropTypes.bool,
+    isSorted: PropTypes.bool,
+    onClick: PropTypes.func,
+    raw: PropTypes.bool,
+  };
 
-  getDefaultProps() {
-    return {
-      isContextData: false,
-      isSorted: true
-    };
-  },
+  static defaultProps = {
+    isContextData: false,
+    isSorted: true,
+    raw: false,
+  };
 
   render() {
     // TODO(dcramer): use non-string keys as reserved words ("unauthorized")
@@ -30,8 +31,8 @@ const KeyValueList = React.createClass({
       data = Object.keys(data).map(key => [key, data[key]]);
     }
 
-    data = this.props.isSorted ? _.sortBy(data, (key, value) => key) : data;
-
+    data = this.props.isSorted ? _.sortBy(data, [([key]) => key]) : data;
+    let raw = this.props.raw;
     const props = this.props.onClick ? {onClick: this.props.onClick} : {};
     return (
       <table className="table key-value" {...props}>
@@ -41,8 +42,10 @@ const KeyValueList = React.createClass({
               return [
                 <tr key={key}>
                   <td className="key">{key}</td>
-                  <td className="value"><ContextData data={value} /></td>
-                </tr>
+                  <td className="value">
+                    <ContextData data={!raw ? value : JSON.stringify(value)} />
+                  </td>
+                </tr>,
               ];
             } else {
               return [
@@ -51,7 +54,7 @@ const KeyValueList = React.createClass({
                   <td className="value">
                     <pre>{deviceNameMapper('' + value || ' ')}</pre>
                   </td>
-                </tr>
+                </tr>,
               ];
             }
           })}
@@ -59,6 +62,8 @@ const KeyValueList = React.createClass({
       </table>
     );
   }
-});
+}
+
+KeyValueList.displayName = 'KeyValueList';
 
 export default KeyValueList;

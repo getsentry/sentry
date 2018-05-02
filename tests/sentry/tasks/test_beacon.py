@@ -26,6 +26,7 @@ class SendBeaconTest(TestCase):
         })
 
         assert options.set('system.admin-email', 'foo@example.com')
+        assert options.set('beacon.anonymous', False)
         send_beacon()
 
         install_id = options.get('sentry:install-id')
@@ -44,7 +45,49 @@ class SendBeaconTest(TestCase):
                     'teams': 1,
                     'events.24h': 0,
                 },
+                'anonymous': False,
                 'admin_email': 'foo@example.com',
+                'packages': mock_get_all_package_versions.return_value,
+            },
+            timeout=5
+        )
+        safe_urlread.assert_called_once_with(safe_urlopen.return_value)
+
+        assert options.get('sentry:latest_version') == '1.0.0'
+
+    @patch('sentry.tasks.beacon.get_all_package_versions')
+    @patch('sentry.tasks.beacon.safe_urlopen')
+    @patch('sentry.tasks.beacon.safe_urlread')
+    def test_anonymous(self, safe_urlread, safe_urlopen, mock_get_all_package_versions):
+        mock_get_all_package_versions.return_value = {'foo': '1.0'}
+        safe_urlread.return_value = json.dumps({
+            'notices': [],
+            'version': {
+                'stable': '1.0.0'
+            },
+        })
+
+        assert options.set('system.admin-email', 'foo@example.com')
+        assert options.set('beacon.anonymous', True)
+        send_beacon()
+
+        install_id = options.get('sentry:install-id')
+        assert install_id and len(install_id) == 40
+
+        safe_urlopen.assert_called_once_with(
+            BEACON_URL,
+            json={
+                'install_id': install_id,
+                'version': sentry.get_version(),
+                'docker': sentry.is_docker(),
+                'data': {
+                    'organizations': 1,
+                    'users': 0,
+                    'projects': 1,
+                    'teams': 1,
+                    'events.24h': 0,
+                },
+                'anonymous': True,
                 'packages': mock_get_all_package_versions.return_value,
             },
             timeout=5

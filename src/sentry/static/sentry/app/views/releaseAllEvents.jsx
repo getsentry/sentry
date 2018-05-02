@@ -1,12 +1,20 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
+
+import SentryTypes from '../proptypes';
+import withEnvironmentInQueryString from '../utils/withEnvironmentInQueryString';
 import GroupList from '../components/groupList';
 import {t} from '../locale';
 
-const ReleaseAllEvents = React.createClass({
-  contextTypes: {
-    release: React.PropTypes.object
-  },
+class ReleaseAllEvents extends React.Component {
+  static propTypes = {
+    environment: SentryTypes.Environment,
+  };
+
+  static contextTypes = {
+    release: PropTypes.object,
+  };
 
   render() {
     let {orgId, projectId} = this.props.params;
@@ -16,8 +24,9 @@ const ReleaseAllEvents = React.createClass({
           <Link
             to={{
               pathname: `/${orgId}/${projectId}/`,
-              query: {query: 'release:' + this.context.release.version}
-            }}>
+              query: {query: 'release:' + this.context.release.version},
+            }}
+          >
             <span className="icon icon-open" />
             {t('View all events seen in this release in the stream')}
           </Link>
@@ -27,11 +36,11 @@ const ReleaseAllEvents = React.createClass({
           projectId={projectId}
           query={'release:"' + this.context.release.version + '"'}
           canSelectGroups={false}
-          bulkActions={false}
+          environment={this.props.environment}
         />
       </div>
     );
   }
-});
+}
 
-export default ReleaseAllEvents;
+export default withEnvironmentInQueryString(ReleaseAllEvents);

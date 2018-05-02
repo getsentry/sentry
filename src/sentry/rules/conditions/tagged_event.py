@@ -11,7 +11,7 @@ from __future__ import absolute_import
 from collections import OrderedDict
 from django import forms
 
-from sentry.models import TagKey
+from sentry import tagstore
 from sentry.rules.conditions.base import EventCondition
 
 
@@ -37,18 +37,31 @@ MATCH_CHOICES = OrderedDict(
 
 
 class TaggedEventForm(forms.Form):
-    key = forms.CharField(widget=forms.TextInput(attrs={'placeholder': 'key'}))
+    key = forms.CharField(widget=forms.TextInput())
     match = forms.ChoiceField(
-        MATCH_CHOICES.items(), widget=forms.Select(
-            attrs={'style': 'width:150px'},
-        )
+        MATCH_CHOICES.items(), widget=forms.Select()
     )
-    value = forms.CharField(widget=forms.TextInput(attrs={'placeholder': 'value'}))
+    value = forms.CharField(widget=forms.TextInput())
 
 
 class TaggedEventCondition(EventCondition):
     form_cls = TaggedEventForm
     label = u'An event\'s tags match {key} {match} {value}'
+
+    form_fields = {
+        'key': {
+            'type': 'string',
+            'placeholder': 'key'
+        },
+        'match': {
+            'type': 'choice',
+            'choices': MATCH_CHOICES.items()
+        },
+        'value': {
+            'type': 'string',
+            'placeholder': 'value',
+        }
+    }
 
     def passes(self, event, state, **kwargs):
         key = self.get_option('key')
@@ -63,7 +76,7 @@ class TaggedEventCondition(EventCondition):
 
         tags = (
             v.lower() for k, v in event.get_tags()
-            if k.lower() == key or TagKey.get_standardized_key(k) == key
+            if k.lower() == key or tagstore.get_standardized_key(k) == key
         )
 
         if match == MatchType.EQUAL:

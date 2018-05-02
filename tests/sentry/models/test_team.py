@@ -3,7 +3,8 @@
 from __future__ import absolute_import
 
 from sentry.models import (
-    OrganizationMember, OrganizationMemberTeam, Project, Release, ReleaseProject, Team
+    OrganizationMember, OrganizationMemberTeam, Project, ProjectTeam,
+    Release, ReleaseProject, ReleaseProjectEnvironment, Team
 )
 from sentry.testutils import TestCase
 
@@ -69,7 +70,7 @@ class TransferTest(TestCase):
         org = self.create_organization(name='foo', owner=user)
         org2 = self.create_organization(name='bar', owner=None)
         team = self.create_team(organization=org)
-        project = self.create_project(team=team)
+        project = self.create_project(teams=[team])
         user2 = self.create_user('foo@example.com')
         self.create_member(
             user=user2,
@@ -124,11 +125,11 @@ class TransferTest(TestCase):
         org2 = self.create_organization(name='bar')
         team = self.create_team(name='foo', organization=org)
         team2 = self.create_team(name='foo', organization=org2)
-        project = self.create_project(team=team)
+        project = self.create_project(teams=[team])
         team.transfer_to(org2)
 
         project = Project.objects.get(id=project.id)
-        assert project.team == team2
+        assert ProjectTeam.objects.filter(project=project, team=team2).exists()
 
         assert not Team.objects.filter(id=team.id).exists()
 
@@ -137,7 +138,7 @@ class TransferTest(TestCase):
         org = self.create_organization(name='foo', owner=user)
         org2 = self.create_organization(name='bar', owner=None)
         team = self.create_team(organization=org)
-        project = self.create_project(team=team)
+        project = self.create_project(teams=[team])
 
         release = Release.objects.create(
             version='a' * 7,
@@ -158,4 +159,43 @@ class TransferTest(TestCase):
         assert not ReleaseProject.objects.filter(
             release=release,
             project=project,
+        ).exists()
+
+    def test_release_project_envs(self):
+        user = self.create_user()
+        org = self.create_organization(name='foo', owner=user)
+        org2 = self.create_organization(name='bar', owner=None)
+        team = self.create_team(organization=org)
+        project = self.create_project(teams=[team])
+
+        release = Release.objects.create(
+            version='a' * 7,
+            organization=org,
+        )
+
+        release.add_project(project)
+        env = self.create_environment(
+            name='prod',
+            project=project,
+        )
+        ReleaseProjectEnvironment.objects.create(
+            release=release,
+            project=project,
+            environment=env,
+        )
+
+        assert ReleaseProjectEnvironment.objects.filter(
+            release=release,
+            project=project,
+            environment=env,
+        ).exists()
+
+        team.transfer_to(org2)
+
+        assert Release.objects.filter(id=release.id).exists()
+
+        assert not ReleaseProjectEnvironment.objects.filter(
+            release=release,
+            project=project,
+            environment=env,
         ).exists()

@@ -1,30 +1,45 @@
+import PropTypes from 'prop-types';
 import React from 'react';
+import _ from 'lodash';
+
+import createReactClass from 'create-react-class';
 
 import ApiMixin from '../../mixins/apiMixin';
 import SuggestedOwners from './suggestedOwners';
 import GroupParticipants from './participants';
 import GroupReleaseStats from './releaseStats';
 import GroupState from '../../mixins/groupState';
+import HookStore from '../../stores/hookStore';
 import IndicatorStore from '../../stores/indicatorStore';
 import TagDistributionMeter from './tagDistributionMeter';
 import LoadingError from '../../components/loadingError';
 import {t, tct} from '../../locale';
 
-const GroupSidebar = React.createClass({
+const GroupSidebar = createReactClass({
+  displayName: 'GroupSidebar',
+
   propTypes: {
-    group: React.PropTypes.object,
-    event: React.PropTypes.object
+    group: PropTypes.object,
+    event: PropTypes.object,
   },
 
   contextTypes: {
-    location: React.PropTypes.object
+    location: PropTypes.object,
   },
 
   mixins: [ApiMixin, GroupState],
 
   getInitialState() {
+    // Allow injection via getsentry et all
+    let hooks = HookStore.get('issue:secondary-column').map(cb => {
+      return cb({
+        params: this.props.params,
+      });
+    });
+
     return {
-      participants: []
+      participants: [],
+      hooks,
     };
   },
 
@@ -34,14 +49,28 @@ const GroupSidebar = React.createClass({
       success: data => {
         this.setState({
           participants: data,
-          error: false
+          error: false,
         });
       },
       error: () => {
         this.setState({
-          error: true
+          error: true,
         });
-      }
+      },
+    });
+    // Fetch group data for all environments since the one in GroupState is filtered for the selected environment
+    // The charts rely on having all environment data as well as the data for the selected env
+    this.api.request(`/issues/${group.id}/`, {
+      success: data => {
+        this.setState({
+          allEnvironmentsGroupData: data,
+        });
+      },
+      error: () => {
+        this.setState({
+          error: true,
+        });
+      },
     });
   },
 
@@ -54,7 +83,7 @@ const GroupSidebar = React.createClass({
     ),
     mentioned: t(
       "You're receiving updates because you have been mentioned in this issue."
-    )
+    ),
   },
 
   toggleSubscription() {
@@ -69,8 +98,8 @@ const GroupSidebar = React.createClass({
         projectId: project.slug,
         itemIds: [group.id],
         data: {
-          isSubscribed: !group.isSubscribed
-        }
+          isSubscribed: !group.isSubscribed,
+        },
       },
       {
         complete: () => {
@@ -78,18 +107,18 @@ const GroupSidebar = React.createClass({
             success: data => {
               this.setState({
                 participants: data,
-                error: false
+                error: false,
               });
               IndicatorStore.remove(loadingIndicator);
             },
             error: () => {
               this.setState({
-                error: true
+                error: true,
               });
               IndicatorStore.remove(loadingIndicator);
-            }
+            },
           });
-        }
+        },
       }
     );
   },
@@ -98,11 +127,16 @@ const GroupSidebar = React.createClass({
     let issues = [];
     (this.props.group.pluginIssues || []).forEach(plugin => {
       let issue = plugin.issue;
+      // # TODO(dcramer): remove plugin.title check in Sentry 8.22+
       if (issue) {
         issues.push(
           <dl key={plugin.slug}>
-            <dt>{plugin.title + ': '}</dt>
-            <dd><a href={issue.url}>{issue.label}</a></dd>
+            <dt>{`${plugin.shortName || plugin.name || plugin.title}: `}</dt>
+            <dd>
+              <a href={issue.url}>
+                {_.isObject(issue.label) ? issue.label.id : issue.label}
+              </a>
+            </dd>
           </dl>
         );
       }
@@ -110,12 +144,18 @@ const GroupSidebar = React.createClass({
     if (issues.length) {
       return (
         <div>
-          <h6><span>{t('External Issues')}</span></h6>
+          <h6>
+            <span>{t('External Issues')}</span>
+          </h6>
           {issues}
         </div>
       );
     }
     return null;
+  },
+
+  canChangeSubscriptionState() {
+    return !(this.getGroup().subscriptionDetails || {disabled: false}).disabled;
   },
 
   getNotificationText() {
@@ -134,13 +174,19 @@ const GroupSidebar = React.createClass({
         result = tct(
           "You're receiving updates because you are [link:subscribed to workflow notifications] for this project.",
           {
-            link: <a href="/account/settings/notifications/" />
+            link: <a href="/account/settings/notifications/" />,
           }
         );
       }
       return result;
     } else {
-      return t("You're not subscribed to this issue.");
+      if (group.subscriptionDetails && group.subscriptionDetails.disabled) {
+        return tct('You have [link:disabled workflow notifications] for this project.', {
+          link: <a href="/account/settings/notifications/" />,
+        });
+      } else {
+        return t("You're not subscribed to this issue.");
+      }
     }
   },
 
@@ -165,22 +211,22 @@ const GroupSidebar = React.createClass({
     let project = this.getProject();
     let projectId = project.slug;
     let orgId = this.getOrganization().slug;
-    let defaultEnvironment = project.defaultEnvironment;
     let group = this.getGroup();
 
     return (
       <div className="group-stats">
         <SuggestedOwners event={this.props.event} />
-
-        <GroupReleaseStats
-          group={group}
-          location={this.context.location}
-          defaultEnvironment={defaultEnvironment}
-        />
+        {this.state.allEnvironmentsGroupData && (
+          <GroupReleaseStats group={this.state.allEnvironmentsGroupData} />
+        )}
 
         {this.renderPluginIssue()}
 
-        <h6><span>{t('Tags')}</span></h6>
+        {this.state.hooks}
+
+        <h6>
+          <span>{t('Tags')}</span>
+        </h6>
         {group.tags.map(data => {
           return (
             <TagDistributionMeter
@@ -196,18 +242,23 @@ const GroupSidebar = React.createClass({
 
         {this.renderParticipantData()}
 
-        <h6><span>{t('Notifications')}</span></h6>
+        <h6>
+          <span>{t('Notifications')}</span>
+        </h6>
         <p className="help-block">{this.getNotificationText()}</p>
-        <a
-          className={`btn btn-default btn-subscribe ${group.isSubscribed && 'subscribed'}`}
-          onClick={this.toggleSubscription}>
-          <span className="icon-signal" />
-          {' '}
-          {group.isSubscribed ? t('Unsubscribe') : t('Subscribe')}
-        </a>
+        {this.canChangeSubscriptionState() && (
+          <a
+            className={`btn btn-default btn-subscribe ${group.isSubscribed &&
+              'subscribed'}`}
+            onClick={this.toggleSubscription}
+          >
+            <span className="icon-signal" />{' '}
+            {group.isSubscribed ? t('Unsubscribe') : t('Subscribe')}
+          </a>
+        )}
       </div>
     );
-  }
+  },
 });
 
 export default GroupSidebar;

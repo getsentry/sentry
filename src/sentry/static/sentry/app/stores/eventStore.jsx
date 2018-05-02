@@ -1,6 +1,6 @@
 import jQuery from 'jquery';
 import Reflux from 'reflux';
-import _ from 'underscore';
+import _ from 'lodash';
 
 const EventStore = Reflux.createStore({
   init() {
@@ -74,7 +74,7 @@ const EventStore = Reflux.createStore({
 
   getAllItems() {
     return this.items;
-  }
+  },
 });
 
 export default EventStore;

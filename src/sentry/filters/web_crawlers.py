@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import re
 
 from .base import Filter
+from sentry.utils.data_filters import FilterStatKeys
 
 # not all of these agents are guaranteed to execute JavaScript, but to avoid
 # overhead of identifying which ones do, and which ones will over time we simply
@@ -18,6 +19,7 @@ CRAWLERS = re.compile(
             r'Google',
             # Bing search
             r'BingBot',
+            r'BingPreview',
             # Baidu search
             r'Baiduspider',
             # Yahoo
@@ -29,7 +31,7 @@ CRAWLERS = re.compile(
             # Alexa
             r'ia_archiver',
             # Generic bot
-            r'bot[\/\s\)\;]',
+            r'bots?[\/\s\)\;]',
             # Generic spider
             r'spider[\/\s\)\;]',
             # Slack - see https://api.slack.com/robots
@@ -41,7 +43,7 @@ CRAWLERS = re.compile(
 
 
 class WebCrawlersFilter(Filter):
-    id = 'web-crawlers'
+    id = FilterStatKeys.WEB_CRAWLER
     name = 'Filter out known web crawlers'
     description = 'Some crawlers may execute pages in incompatible ways which then cause errors that are unlikely to be seen by a normal user.'
     default = True

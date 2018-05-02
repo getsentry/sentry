@@ -1,27 +1,35 @@
 import React from 'react';
+import {Flex, Box} from 'grid-emotion';
 import {t} from '../locale';
+import {PanelHeader} from './panels';
 
-const GroupListHeader = React.createClass({
+class GroupListHeader extends React.Component {
   render() {
     return (
-      <div className="group-header">
-        <div className="stream-actions row">
-          <div className="stream-actions-left col-md-7 col-sm-8 col-xs-8 nav-header">
-            {t('Event')}
-          </div>
-          <div className="hidden-sm hidden-xs stream-actions-graph col-md-2 col-md-offset-1 align-right nav-header">
-            {t('Last 24 hours')}
-          </div>
-          <div className="stream-actions-count align-right col-md-1 col-sm-2 col-xs-2">
-            {t('events')}
-          </div>
-          <div className="stream-actions-users align-right col-md-1 col-sm-2 col-xs-2">
-            {t('users')}
-          </div>
-        </div>
-      </div>
+      <PanelHeader disablePadding>
+        <Box w={[8 / 12, 8 / 12, 6 / 12]} mx={2} flex="1" className="toolbar-header">
+          {t('Event')}
+        </Box>
+        <Box w={160} mx={2} className="toolbar-header hidden-xs hidden-sm">
+          {t('Last 24 hours')}
+        </Box>
+        <Flex w={80} mx={2} justify="flex-end" className="toolbar-header">
+          {t('events')}
+        </Flex>
+        <Flex w={80} mx={2} justify="flex-end" className="toolbar-header">
+          {t('users')}
+        </Flex>
+        <Flex
+          w={80}
+          mx={2}
+          justify="flex-end"
+          className="hidden-xs hidden-sm toolbar-header"
+        >
+          {t('Assignee')}
+        </Flex>
+      </PanelHeader>
     );
   }
-});
+}
 
 export default GroupListHeader;

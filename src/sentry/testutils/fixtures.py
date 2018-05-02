@@ -10,21 +10,40 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 import copy
 import json
+import os
 import petname
+import random
 import six
 import warnings
 
+from django.db import IntegrityError, transaction
+from django.utils import timezone
 from django.utils.text import slugify
 from exam import fixture
+from hashlib import sha1
+from loremipsum import Generator
 from uuid import uuid4
-import os
-from django.utils import timezone
 
 from sentry.models import (
-    Activity, Event, EventError, EventMapping, Group, Organization, OrganizationMember,
+    Activity, Environment, Event, EventError, EventMapping, Group, Organization, OrganizationMember,
     OrganizationMemberTeam, Project, Team, User, UserEmail, Release, Commit, ReleaseCommit,
-    CommitAuthor, Repository, CommitFileChange
+    CommitAuthor, Repository, CommitFileChange, ProjectDSymFile, File, UserPermission
 )
+
+loremipsum = Generator()
+
+
+def make_sentence(words=None):
+    if words is None:
+        words = int(random.weibullvariate(8, 3))
+    return ' '.join(random.choice(loremipsum.words) for _ in range(words))
+
+
+def make_word(words=None):
+    if words is None:
+        words = int(random.weibullvariate(8, 3))
+    return random.choice(loremipsum.words)
+
 
 DEFAULT_EVENT_DATA = {
     'extra': {
@@ -56,7 +75,7 @@ DEFAULT_EVENT_DATA = {
                 'context_line':
                 '                        string_max_length=self.string_max_length)',
                 'filename':
-                'raven/base.py',
+                'sentry/models/foo.py',
                 'function':
                 'build_msg',
                 'in_app':
@@ -143,6 +162,7 @@ DEFAULT_EVENT_DATA = {
         ],
     },
     'tags': [],
+    'platform': 'python',
 }
 
 
@@ -189,18 +209,25 @@ class Fixtures(object):
         return self.create_project(
             name='Bar',
             slug='bar',
-            team=self.team,
+            teams=[self.team],
+        )
+
+    @fixture
+    def environment(self):
+        return self.create_environment(
+            name='development',
+            project=self.project,
         )
 
     @fixture
     def group(self):
-        return self.create_group(message=u'こんにちは')
+        return self.create_group(message=u'\u3053\u3093\u306b\u3061\u306f')
 
     @fixture
     def event(self):
         return self.create_event(
             event_id='a' * 32,
-            message=u'こんにちは',
+            message=u'\u3053\u3093\u306b\u3061\u306f',
         )
 
     @fixture
@@ -209,15 +236,11 @@ class Fixtures(object):
             group=self.group, project=self.project, type=Activity.NOTE, user=self.user, data={}
         )
 
-    def create_organization(self, **kwargs):
-        if not kwargs.get('name'):
-            kwargs['name'] = petname.Generate(2, ' ', letters=10).title()
+    def create_organization(self, name=None, owner=None, **kwargs):
+        if not name:
+            name = petname.Generate(2, ' ', letters=10).title()
 
-        owner = kwargs.pop('owner', -1)
-        if owner is -1:
-            owner = self.user
-
-        org = Organization.objects.create(**kwargs)
+        org = Organization.objects.create(name=name, **kwargs)
         if owner:
             self.create_member(
                 organization=org,
@@ -232,12 +255,27 @@ class Fixtures(object):
         om = OrganizationMember.objects.create(**kwargs)
         if teams:
             for team in teams:
-                OrganizationMemberTeam.objects.create(
+                self.create_team_membership(
                     team=team,
-                    organizationmember=om,
-                    is_active=True,
+                    member=om,
                 )
         return om
+
+    def create_team_membership(self, team, member=None, user=None):
+        if member is None:
+            member, _ = OrganizationMember.objects.get_or_create(
+                user=user,
+                organization=team.organization,
+                defaults={
+                    'role': 'member',
+                }
+            )
+
+        return OrganizationMemberTeam.objects.create(
+            team=team,
+            organizationmember=member,
+            is_active=True,
+        )
 
     def create_team(self, **kwargs):
         if not kwargs.get('name'):
@@ -246,20 +284,42 @@ class Fixtures(object):
             kwargs['slug'] = slugify(six.text_type(kwargs['name']))
         if not kwargs.get('organization'):
             kwargs['organization'] = self.organization
+        members = kwargs.pop('members', None)
 
-        return Team.objects.create(**kwargs)
+        team = Team.objects.create(**kwargs)
+        if members:
+            for user in members:
+                self.create_team_membership(team=team, user=user)
+        return team
+
+    def create_environment(self, **kwargs):
+        project = kwargs.get('project', self.project)
+        name = kwargs.get('name', petname.Generate(3, ' ', letters=10)[:64])
+        env = Environment.objects.create(
+            organization_id=project.organization_id,
+            project_id=project.id,
+            name=name,
+        )
+        env.add_project(project)
+        return env
 
     def create_project(self, **kwargs):
+        teams = kwargs.pop('teams', None)
+
+        if teams is None:
+            teams = [self.team]
+
         if not kwargs.get('name'):
             kwargs['name'] = petname.Generate(2, ' ', letters=10).title()
         if not kwargs.get('slug'):
             kwargs['slug'] = slugify(six.text_type(kwargs['name']))
-        if not kwargs.get('team'):
-            kwargs['team'] = self.team
         if not kwargs.get('organization'):
-            kwargs['organization'] = kwargs['team'].organization
+            kwargs['organization'] = teams[0].organization
 
-        return Project.objects.create(**kwargs)
+        project = Project.objects.create(**kwargs)
+        for team in teams:
+            project.add_team(team)
+        return project
 
     def create_project_key(self, project):
         return project.key_set.get_or_create()[0]
@@ -279,7 +339,7 @@ class Fixtures(object):
         Activity.objects.create(
             type=Activity.RELEASE,
             project=project,
-            ident=version,
+            ident=Activity.get_version_ident(version),
             user=user,
             data={'version': version},
         )
@@ -287,8 +347,15 @@ class Fixtures(object):
         # add commits
         if user:
             author = self.create_commit_author(project, user)
-            repo = self.create_repo(project)
-            commit = self.create_commit(project, repo, author, release)
+            repo = self.create_repo(project, name='organization-{}'.format(project.slug))
+            commit = self.create_commit(
+                project=project,
+                repo=repo,
+                author=author,
+                release=release,
+                key='deadbeef',
+                message='placeholder commit message',
+            )
 
             release.update(
                 authors=[six.text_type(author.id)],
@@ -298,49 +365,52 @@ class Fixtures(object):
 
         return release
 
-    def create_repo(self, project):
+    def create_repo(self, project, name=None):
         repo = Repository.objects.create(
             organization_id=project.organization_id,
-            name='organization-{}'.format(project.name),
+            name=name or '{}-{}'.format(petname.Generate(2, '',
+                                                         letters=10), random.randint(1000, 9999)),
         )
         return repo
 
-    def create_commit(self, project, repo, author, release):
+    def create_commit(self, project, repo, author=None, release=None,
+                      message=None, key=None, date_added=None):
         commit = Commit.objects.get_or_create(
             organization_id=project.organization_id,
             repository_id=repo.id,
-            key='deadbeef',
+            key=key or sha1(uuid4().hex).hexdigest(),
             defaults={
-                'message': 'placeholder commit message',
-                'author': author,
-                'date_added': timezone.now(),
+                'message': message or make_sentence(),
+                'author': author or self.create_commit_author(project),
+                'date_added': date_added or timezone.now(),
             }
         )[0]
 
-        # add it to release
-        ReleaseCommit.objects.create(
-            organization_id=project.organization_id,
-            project_id=project.id,
-            release=release,
-            commit=commit,
-            order=1,
-        )
+        if release:
+            ReleaseCommit.objects.create(
+                organization_id=project.organization_id,
+                project_id=project.id,
+                release=release,
+                commit=commit,
+                order=1,
+            )
 
-        self.create_commit_file_change(commit, release, project, '/models/foo.py')
-        self.create_commit_file_change(commit, release, project, '/worsematch/foo.py')
-        self.create_commit_file_change(commit, release, project, '/models/other.py')
+        self.create_commit_file_change(commit, project, '/models/foo.py')
+        self.create_commit_file_change(commit, project, '/worsematch/foo.py')
+        self.create_commit_file_change(commit, project, '/models/other.py')
 
         return commit
 
-    def create_commit_author(self, project, user):
-        commit_author = CommitAuthor.objects.get_or_create(
-            organization_id=project.organization_id, email=user, defaults={
-                'name': user,
+    def create_commit_author(self, project, user=None):
+        return CommitAuthor.objects.get_or_create(
+            organization_id=project.organization_id,
+            email=user.email if user else '{}@example.com'.format(make_word()),
+            defaults={
+                'name': user.name if user else make_word(),
             }
         )[0]
-        return commit_author
 
-    def create_commit_file_change(self, commit, release, project, filename):
+    def create_commit_file_change(self, commit, project, filename):
         commit_file_change = CommitFileChange.objects.get_or_create(
             organization_id=project.organization_id,
             commit=commit,
@@ -363,12 +433,23 @@ class Fixtures(object):
         user.save()
 
         # UserEmail is created by a signal
-        UserEmail.objects.filter(
+        assert UserEmail.objects.filter(
             user=user,
             email=email,
         ).update(is_verified=True)
 
         return user
+
+    def create_useremail(self, user, email, **kwargs):
+        if not email:
+            email = uuid4().hex + '@example.com'
+
+        kwargs.setdefault('is_verified', True)
+
+        useremail = UserEmail(user=user, email=email, **kwargs)
+        useremail.save()
+
+        return useremail
 
     def create_event(self, event_id=None, **kwargs):
         if event_id is None:
@@ -377,11 +458,16 @@ class Fixtures(object):
             kwargs['group'] = self.group
         kwargs.setdefault('project', kwargs['group'].project)
         kwargs.setdefault('data', copy.deepcopy(DEFAULT_EVENT_DATA))
+        kwargs.setdefault('platform', kwargs['data'].get('platform', 'python'))
+        kwargs.setdefault('message', kwargs['data'].get('message', 'message'))
         if kwargs.get('tags'):
             tags = kwargs.pop('tags')
             if isinstance(tags, dict):
                 tags = list(tags.items())
             kwargs['data']['tags'] = tags
+        if kwargs.get('stacktrace'):
+            stacktrace = kwargs.pop('stacktrace')
+            kwargs['data']['sentry.interfaces.Stacktrace'] = stacktrace
 
         kwargs['data'].setdefault(
             'errors', [{
@@ -506,7 +592,8 @@ class Fixtures(object):
                 }
             }"""
 
-        return self.create_event(event_id=event_id, platform='javascript', data=json.loads(payload))
+        return self.create_event(event_id=event_id, platform='javascript',
+                                 data=json.loads(payload))
 
     def create_group(self, project=None, checksum=None, **kwargs):
         if checksum:
@@ -526,4 +613,20 @@ class Fixtures(object):
             )
         if 'short_id' not in kwargs:
             kwargs['short_id'] = project.next_short_id()
-        return Group.objects.create(project=project, **kwargs)
+        return Group.objects.create(project=project, ** kwargs)
+
+    def create_file(self, **kwargs):
+        return File.objects.create(**kwargs)
+
+    def create_dsym_file(self, project=None, **kwargs):
+        if project is None:
+            project = self.project
+
+        return ProjectDSymFile.objects.create(project=project, **kwargs)
+
+    def add_user_permission(self, user, permission):
+        try:
+            with transaction.atomic():
+                UserPermission.objects.create(user=user, permission=permission)
+        except IntegrityError:
+            raise
