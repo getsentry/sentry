@@ -57,6 +57,15 @@ class ExceptionMechanism extends React.Component {
           }
         });
       }
+      if (this.props.data.handled !== undefined) {
+        pills.push(
+          <Pill
+            key="generic-extra-handled"
+            name="handled"
+            value={this.props.data.handled}
+          />
+        );
+      }
     }
 
     if (pills.length === 0) {

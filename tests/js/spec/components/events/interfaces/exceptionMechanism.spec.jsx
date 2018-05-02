@@ -210,5 +210,41 @@ describe('ExceptionMechanism', function() {
       elem = mount(<ExceptionMechanism data={mechanism} platform={platform} />);
       expect(elem.find('li')).toHaveLength(3);
     });
+
+    it('should render generic mechanism with unhandled flag true', function() {
+      mechanism = {
+        type: 'promise',
+        description: 'unhandledPromiseRejection',
+        handled: false,
+      };
+      elem = mount(<ExceptionMechanism data={mechanism} platform={platform} />);
+      expect(elem.find('li')).toHaveLength(2);
+      expect(
+        elem
+          .find('li')
+          .last()
+          .find('span')
+          .last()
+          .text()
+      ).toEqual('no');
+    });
+
+    it('should render generic mechanism with unhandled flag false', function() {
+      mechanism = {
+        type: 'promise',
+        description: 'unhandledPromiseRejection',
+        handled: true,
+      };
+      elem = mount(<ExceptionMechanism data={mechanism} platform={platform} />);
+      expect(elem.find('li')).toHaveLength(2);
+      expect(
+        elem
+          .find('li')
+          .last()
+          .find('span')
+          .last()
+          .text()
+      ).toEqual('yes');
+    });
   });
 });
