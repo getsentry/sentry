@@ -282,175 +282,153 @@ exports[`ProjectCard renders 1`] = `
               </StyledBarChart>
             </div>
           </Chart>
-          <NoEvents
-            orgId="org-slug"
-            projectId="project-slug"
-          >
+          <NoEvents>
             <Container>
               <div
                 className="css-1m9okvh-Container eks1zeg0"
               >
-                <Background
+                <EmptyText
                   align="center"
                   justify="center"
                 >
                   <Base
                     align="center"
-                    className="css-yrqnia-Background eks1zeg1"
+                    className="css-1qof738-EmptyText eks1zeg1"
                     justify="center"
                   >
                     <div
-                      className="css-yrqnia-Background eks1zeg1"
+                      className="css-1qof738-EmptyText eks1zeg1"
                       is={null}
                     >
-                      <Button
-                        disabled={false}
-                        size="small"
-                        to="/org-slug/project-slug/getting-started/"
-                      >
-                        <StyledButton
-                          aria-label="Configure project"
-                          disabled={false}
-                          onClick={[Function]}
-                          role="button"
-                          size="small"
-                          to="/org-slug/project-slug/getting-started/"
-                        >
-                          <Component
-                            aria-label="Configure project"
-                            className="css-dvpz5-StyledButton-getColors e17811v30"
-                            disabled={false}
-                            onClick={[Function]}
-                            role="button"
-                            size="small"
-                            to="/org-slug/project-slug/getting-started/"
-                          >
-                            <Link
-                              aria-label="Configure project"
-                              className="css-dvpz5-StyledButton-getColors e17811v30"
-                              disabled={false}
-                              onClick={[Function]}
-                              onlyActiveOnIndex={false}
-                              role="button"
-                              size="small"
-                              style={Object {}}
-                              to="/org-slug/project-slug/getting-started/"
-                            >
-                              <a
-                                aria-label="Configure project"
-                                className="css-dvpz5-StyledButton-getColors e17811v30"
-                                disabled={false}
-                                onClick={[Function]}
-                                role="button"
-                                size="small"
-                                style={Object {}}
-                              >
-                                <ButtonLabel
-                                  size="small"
-                                >
-                                  <Component
-                                    className="css-179w01k-ButtonLabel e17811v31"
-                                    size="small"
-                                  >
-                                    <Flex
-                                      align="center"
-                                      className="css-179w01k-ButtonLabel e17811v31"
-                                      size="small"
-                                    >
-                                      <Base
-                                        align="center"
-                                        className="e17811v31 css-8mahft-ButtonLabel"
-                                        size="small"
-                                      >
-                                        <div
-                                          className="e17811v31 css-8mahft-ButtonLabel"
-                                          is={null}
-                                          size="small"
-                                        >
-                                          Configure project
-                                        </div>
-                                      </Base>
-                                    </Flex>
-                                  </Component>
-                                </ButtonLabel>
-                              </a>
-                            </Link>
-                          </Component>
-                        </StyledButton>
-                      </Button>
+                      No activity yet.
                     </div>
                   </Base>
-                </Background>
+                </EmptyText>
               </div>
             </Container>
           </NoEvents>
         </div>
       </ChartContainer>
-      <PlatformList
-        platforms={
-          Array [
-            "javascript",
-          ]
+      <withRouter(PlatformList)
+        orgId="org-slug"
+        project={
+          Object {
+            "hasAccess": true,
+            "id": "2",
+            "isBookmarked": false,
+            "isMember": true,
+            "name": "Project Name",
+            "platforms": Array [
+              "javascript",
+            ],
+            "slug": "project-slug",
+            "teams": Array [],
+          }
         }
       >
-        <Flex
-          align="center"
+        <PlatformList
+          location={
+            Object {
+              "query": Object {},
+            }
+          }
+          orgId="org-slug"
+          project={
+            Object {
+              "hasAccess": true,
+              "id": "2",
+              "isBookmarked": false,
+              "isMember": true,
+              "name": "Project Name",
+              "platforms": Array [
+                "javascript",
+              ],
+              "slug": "project-slug",
+              "teams": Array [],
+            }
+          }
+          router={
+            Object {
+              "createHref": [MockFunction] {
+                "calls": Array [
+                  Array [
+                    "/org-slug/project-slug/",
+                  ],
+                ],
+              },
+              "go": [MockFunction],
+              "goBack": [MockFunction],
+              "goForward": [MockFunction],
+              "isActive": [MockFunction],
+              "listen": [MockFunction],
+              "location": Object {
+                "query": Object {},
+              },
+              "push": [MockFunction],
+              "replace": [MockFunction],
+              "setRouteLeaveHook": [MockFunction],
+            }
+          }
         >
-          <Base
+          <Flex
             align="center"
-            className="css-5ipae5"
           >
-            <div
+            <Base
+              align="center"
               className="css-5ipae5"
-              is={null}
             >
               <div
-                className="org-dashboard-platform-list"
+                className="css-5ipae5"
+                is={null}
               >
-                <Flex
-                  direction="row-reverse"
-                  p={2}
+                <div
+                  className="org-dashboard-platform-list"
                 >
-                  <Base
-                    className="css-1tznizk"
+                  <Flex
                     direction="row-reverse"
                     p={2}
                   >
-                    <div
+                    <Base
                       className="css-1tznizk"
-                      is={null}
+                      direction="row-reverse"
+                      p={2}
                     >
-                      <StyledPlatformIconWrapper
-                        className="javascript"
-                        key="javascript"
+                      <div
+                        className="css-1tznizk"
+                        is={null}
                       >
-                        <span
-                          className="javascript css-128o7xp-StyledPlatformIconWrapper e1mca4c60"
+                        <StyledPlatformIconWrapper
+                          className="javascript"
+                          key="javascript"
                         >
-                          <StyledPlatformIcon
-                            className="platformicon platformicon-javascript"
+                          <span
+                            className="javascript css-128o7xp-StyledPlatformIconWrapper e1mca4c60"
                           >
-                            <span
-                              className="platformicon platformicon-javascript css-hf0kxf-StyledPlatformIcon e1mca4c61"
-                            />
-                          </StyledPlatformIcon>
-                        </span>
-                      </StyledPlatformIconWrapper>
-                    </div>
-                  </Base>
-                </Flex>
-              </div>
-              <PlatformText>
-                <div
-                  className="css-12aj0sd-PlatformText e1mca4c62"
-                >
-                  javascript
+                            <StyledPlatformIcon
+                              className="platformicon platformicon-javascript"
+                            >
+                              <span
+                                className="platformicon platformicon-javascript css-hf0kxf-StyledPlatformIcon e1mca4c61"
+                              />
+                            </StyledPlatformIcon>
+                          </span>
+                        </StyledPlatformIconWrapper>
+                      </div>
+                    </Base>
+                  </Flex>
                 </div>
-              </PlatformText>
-            </div>
-          </Base>
-        </Flex>
-      </PlatformList>
+                <PlatformText>
+                  <div
+                    className="css-12aj0sd-PlatformText e1mca4c62"
+                  >
+                    javascript
+                  </div>
+                </PlatformText>
+              </div>
+            </Base>
+          </Flex>
+        </PlatformList>
+      </withRouter(PlatformList)>
     </div>
   </StyledProjectCard>
 </ProjectCard>
