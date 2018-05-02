@@ -13,7 +13,7 @@ from sentry.testutils import IntegrationTestCase
 class SlackIntegrationTest(IntegrationTestCase):
     provider = SlackIntegration
 
-    def assert_setup_flow(self, team_id='TXXXXXXX1', installer_user_id='UXXXXXXX1'):
+    def assert_setup_flow(self, team_id='TXXXXXXX1', authorizing_user_id='UXXXXXXX1'):
         responses.reset()
 
         resp = self.client.get(self.init_path)
@@ -36,11 +36,10 @@ class SlackIntegrationTest(IntegrationTestCase):
             responses.POST, 'https://slack.com/api/oauth.token',
             json={
                 'ok': True,
-                'user_id': installer_user_id,
                 'access_token': 'xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx',
                 'team_id': team_id,
                 'team_name': 'Example',
-                'installer_user_id': installer_user_id,
+                'authorizing_user_id': authorizing_user_id,
             }
         )
 
@@ -107,7 +106,7 @@ class SlackIntegrationTest(IntegrationTestCase):
     @responses.activate
     def test_multiple_integrations(self):
         self.assert_setup_flow()
-        self.assert_setup_flow(team_id='TXXXXXXX2', installer_user_id='UXXXXXXX2')
+        self.assert_setup_flow(team_id='TXXXXXXX2', authorizing_user_id='UXXXXXXX2')
 
         integrations = Integration.objects.filter(provider=self.provider.key)
 
