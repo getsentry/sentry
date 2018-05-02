@@ -11,6 +11,7 @@ import DropdownLink from 'app/components/dropdownLink';
 import MenuItem from 'app/components/menuItem';
 import {t} from 'app/locale';
 import Button from 'app/components/buttons/button';
+import ProjectSelector from 'app/components/projectHeader/projectSelector';
 import Tooltip from 'app/components/tooltip';
 
 const ProjectNav = createReactClass({
@@ -81,7 +82,7 @@ const ProjectNav = createReactClass({
     return (
       <StyledNav justify="space-between" p={2} align="center">
         <Box>
-          <strong>{t('Projects')}</strong>
+          <ProjectSelector organization={org} />
         </Box>
         <StyledDropdown>
           <DropdownLink title={title} anchorRight={true} caret={false}>

@@ -1148,10 +1148,28 @@ table.integrations {
 * Project Dropdown
 * ============================================================================
 */
-
 .project-select {
+  position: relative;
+
   > a {
     color: @gray-darker;
+  }
+
+  h3 {
+    font-size: 20px;
+    margin: 0;
+
+    a {
+      color: @gray-dark;
+
+      &:hover {
+        color: @gray-darkest;
+      }
+    }
+  }
+
+  .project-selected {
+    background-color: lighten(@blue-light, 30);
   }
 
   .home-crumb {
