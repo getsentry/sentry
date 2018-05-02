@@ -79,18 +79,18 @@ exports[`ProjectCard renders 1`] = `
               </Link>
             </StyledLink>
             <Tooltip
-              title="Star this project"
+              title="Add to bookmarks"
             >
               <Star
                 active={false}
                 className="tip project-select-bookmark icon icon-star-solid"
                 onClick={[Function]}
-                title="Star this project"
+                title="Add to bookmarks"
               >
                 <a
                   className="tip project-select-bookmark icon icon-star-solid css-syj8e8-Star efesc7i2"
                   onClick={[Function]}
-                  title="Star this project"
+                  title="Add to bookmarks"
                 />
               </Star>
             </Tooltip>

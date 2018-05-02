@@ -38,8 +38,8 @@ class ProjectCard extends React.Component {
     const {project, stats, params} = this.props;
 
     const bookmarkText = project.isBookmarked
-      ? t('Unstar this project')
-      : t('Star this project');
+      ? t('Remove from bookmarks')
+      : t('Add to bookmarks');
 
     return (
       <StyledProjectCard>
