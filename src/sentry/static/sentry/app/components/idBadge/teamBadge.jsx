@@ -10,21 +10,29 @@ export default class TeamBadge extends React.Component {
     ...BaseBadge.propTypes,
     team: SentryTypes.Team.isRequired,
     avatarSize: PropTypes.number,
+    /**
+     * If true, will use default max-width, or specify one as a string
+     */
+    hideOverflow: PropTypes.oneOfType([PropTypes.bool, PropTypes.string]),
     hideAvatar: PropTypes.bool,
   };
 
   static defaultProps = {
     avatarSize: 24,
+    hideOverflow: true,
     hideAvatar: false,
   };
 
   render() {
-    let {team} = this.props;
+    let {hideOverflow, team, ...props} = this.props;
 
     return (
       <BaseBadge
-        displayName={<BadgeDisplayName>#{team.slug}</BadgeDisplayName>}
-        {...this.props}
+        displayName={
+          <BadgeDisplayName hideOverflow={hideOverflow}>#{team.slug}</BadgeDisplayName>
+        }
+        team={team}
+        {...props}
       />
     );
   }

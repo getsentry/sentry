@@ -10,21 +10,31 @@ export default class OrganizationBadge extends React.Component {
     ...BaseBadge.propTypes,
     organization: SentryTypes.Organization.isRequired,
     avatarSize: PropTypes.number,
+    /**
+     * If true, will use default max-width, or specify one as a string
+     */
+    hideOverflow: PropTypes.oneOfType([PropTypes.bool, PropTypes.string]),
     hideAvatar: PropTypes.bool,
   };
 
   static defaultProps = {
     avatarSize: 24,
     hideAvatar: false,
+    hideOverflow: true,
   };
 
   render() {
-    let {organization} = this.props;
+    let {hideOverflow, organization, ...props} = this.props;
 
     return (
       <BaseBadge
-        displayName={<BadgeDisplayName>{organization.slug}</BadgeDisplayName>}
-        {...this.props}
+        displayName={
+          <BadgeDisplayName hideOverflow={hideOverflow}>
+            {organization.slug}
+          </BadgeDisplayName>
+        }
+        organization={organization}
+        {...props}
       />
     );
   }

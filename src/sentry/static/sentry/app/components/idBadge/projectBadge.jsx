@@ -10,20 +10,28 @@ export default class ProjectBadge extends React.Component {
     ...BaseBadge.propTypes,
     project: SentryTypes.Project.isRequired,
     avatarSize: PropTypes.number,
+    /**
+     * If true, will use default max-width, or specify one as a string
+     */
+    hideOverflow: PropTypes.oneOfType([PropTypes.bool, PropTypes.string]),
     hideAvatar: PropTypes.bool,
   };
 
   static defaultProps = {
     hideAvatar: true,
+    hideOverflow: true,
   };
 
   render() {
-    let {project} = this.props;
+    let {hideOverflow, project, ...props} = this.props;
 
     return (
       <BaseBadge
-        displayName={<BadgeDisplayName>{project.slug}</BadgeDisplayName>}
-        {...this.props}
+        displayName={
+          <BadgeDisplayName hideOverflow={hideOverflow}>{project.slug}</BadgeDisplayName>
+        }
+        project={project}
+        {...props}
       />
     );
   }
