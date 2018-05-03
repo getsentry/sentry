@@ -1,11 +1,7 @@
 from __future__ import absolute_import
 
 from sentry import options
-from sentry.options.manager import FLAG_PRIORITIZE_DISK
 from sentry.identity.oauth2 import OAuth2Provider
-
-options.register('github.client-id', flags=FLAG_PRIORITIZE_DISK)
-options.register('github.client-secret', flags=FLAG_PRIORITIZE_DISK)
 
 
 class GitHubIdentityProvider(OAuth2Provider):

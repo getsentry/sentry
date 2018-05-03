@@ -1,15 +1,13 @@
 from __future__ import absolute_import
 
 from sentry import http, options
-from sentry.options.manager import FLAG_PRIORITIZE_DISK
-from sentry.integrations import Integration, IntegrationMetadata
-from sentry.utils.pipeline import NestedPipelineView, PipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
+from sentry.integrations import Integration, IntegrationMetadata
+from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.utils.http import absolute_uri
 
 from .utils import get_jwt
 
-options.register('github.app-name', flags=FLAG_PRIORITIZE_DISK)
 
 DESCRIPTION = """
     Install GitHub Apps
