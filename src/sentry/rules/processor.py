@@ -139,7 +139,7 @@ class RuleProcessor(object):
                 continue
 
             for future in results:
-                key = future.key is not None or future.callback
+                key = future.key if future.key is not None else future.callback
                 rule_future = RuleFuture(rule=rule, kwargs=future.kwargs)
 
                 if key not in self.grouped_futures:
