@@ -98,7 +98,7 @@ class SnubaTagStorage(TagStorage):
             ctor = functools.partial(GroupTagKey, group_id=group_id)
 
         return [ctor(key=key, values_seen=values_seen)
-                for key, values_seen in result.items() if values_seen]
+                for key, values_seen in six.iteritems(result) if values_seen]
 
     def __get_tag_value(self, project_id, group_id, environment_id, key, value):
         start, end = self.get_time_range()
