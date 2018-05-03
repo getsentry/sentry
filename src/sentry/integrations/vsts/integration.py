@@ -27,7 +27,6 @@ class ProjectConfigView(PipelineView):
             projects = pipeline.fetch_state(key='projects')
             project = self.get_project_from_id(project_id, projects)
             if project is not None:
-                pipeline.bind_state('project_id', project_id)
                 pipeline.bind_state('project', project)
                 return pipeline.next_step()
 
@@ -137,14 +136,14 @@ class VSTSIntegration(Integration):
             'external_id': project['id'],
             'metadata': {
                 'domain_name': instance,
-                'scopes': [],
+                'scopes': scopes,
                 # icon doesn't appear to be possible
             },
             'user_identity': {
                 'access_token': access_token,
                 'type': 'vsts',
                 'external_id': account['AccountId'],
-                'scopes': scopes,
+                'scopes': [],
                 'data': {},
             }
         }
