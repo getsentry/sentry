@@ -754,7 +754,7 @@ SENTRY_FEATURES = {
     'organizations:invite-members': True,
     'organizations:new-settings': False,
     'organizations:require-2fa': False,
-    'organizations:environments': True,
+    'organizations:environments': False,
     'organizations:internal-catchall': False,
     'organizations:new-teams': False,
     'organizations:code-owners': False,
