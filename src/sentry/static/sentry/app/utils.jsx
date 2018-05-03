@@ -212,7 +212,7 @@ function projectDisplayCompare(a, b) {
   if (a.isBookmarked !== b.isBookmarked) {
     return a.isBookmarked ? -1 : 1;
   }
-  return a.id < b.id;
+  return a.slug.localeCompare(b.slug);
 }
 
 // Sort a list of projects by bookmarkedness, then by id

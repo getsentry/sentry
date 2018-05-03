@@ -18,5 +18,6 @@ export default function getProjectsByTeams(teams, projects) {
       });
     }
   });
+
   return {projectsByTeam, teamlessProjects};
 }

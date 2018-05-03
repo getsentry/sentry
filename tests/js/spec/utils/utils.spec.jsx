@@ -1,4 +1,10 @@
-import {valueIsEqual, extractMultilineFields, parseRepo, explodeSlug} from 'app/utils';
+import {
+  valueIsEqual,
+  extractMultilineFields,
+  parseRepo,
+  explodeSlug,
+  sortProjects,
+} from 'app/utils';
 
 describe('utils.valueIsEqual', function() {
   it('should return true when objects are deeply equal', function() {
@@ -166,5 +172,65 @@ describe('utils.parseRepo', function() {
 describe('utils.explodeSlug', function() {
   it('replaces slug special chars with whitespace', function() {
     expect(explodeSlug('test--slug__replace-')).toEqual('test slug replace');
+  });
+});
+
+describe('utils.projectDisplayCompare', function() {
+  it('sorts by bookmark and project slug', function() {
+    const projects = [
+      {
+        isBookmarked: true,
+        slug: 'm',
+      },
+      {
+        isBookmarked: false,
+        slug: 'm',
+      },
+      {
+        isBookmarked: false,
+        slug: 'a',
+      },
+      {
+        isBookmarked: true,
+        slug: 'a',
+      },
+      {
+        isBookmarked: true,
+        slug: 'z',
+      },
+      {
+        isBookmarked: false,
+        slug: 'z',
+      },
+    ];
+
+    const sortedProjects = sortProjects(projects);
+
+    expect(sortedProjects).toEqual([
+      {
+        isBookmarked: true,
+        slug: 'a',
+      },
+      {
+        isBookmarked: true,
+        slug: 'm',
+      },
+      {
+        isBookmarked: true,
+        slug: 'z',
+      },
+      {
+        isBookmarked: false,
+        slug: 'a',
+      },
+      {
+        isBookmarked: false,
+        slug: 'm',
+      },
+      {
+        isBookmarked: false,
+        slug: 'z',
+      },
+    ]);
   });
 });

@@ -80,7 +80,7 @@ describe('OrganizationTeamProjects', function() {
     expect(putMock).toHaveBeenCalledTimes(1);
   });
 
-  it('Should allow adding and removing projects', function(done) {
+  it('Should allow adding and removing projects', async function() {
     let wrapper = mount(
       <OrganizationTeamProjects params={{orgId: 'org-slug', teamId: team.slug}} />,
       TestStubs.routerContext()
@@ -96,15 +96,13 @@ describe('OrganizationTeamProjects', function() {
 
     expect(postMock).toHaveBeenCalledTimes(1);
 
-    setTimeout(() => {
-      wrapper.update();
-      // find first project's remove button
-      let remove = wrapper.find('Button').at(1);
-      remove.simulate('click');
+    await tick();
+    wrapper.update();
 
-      expect(deleteMock).toHaveBeenCalledTimes(1);
+    // find second project's remove button
+    let remove = wrapper.find('PanelItem Button').at(1);
+    remove.simulate('click');
 
-      done();
-    }, 1);
+    expect(deleteMock).toHaveBeenCalledTimes(1);
   });
 });
