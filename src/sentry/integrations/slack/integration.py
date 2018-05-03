@@ -97,7 +97,7 @@ class SlackIntegration(Integration):
             },
             'user_identity': {
                 'type': 'slack',
-                'external_id': data['installer_user_id'],
+                'external_id': data['authorizing_user_id'],
                 'scopes': [],
                 'data': {},
             },

@@ -1,7 +1,9 @@
 const theme = {
-  white: '#FFFFFF',
+  breakpoints: ['768px', '992px', '1200px'],
+
   offWhite: '#FAF9FB',
   whiteDark: '#fbfbfc',
+  white: '#FFFFFF',
 
   gray1: '#BDB4C7',
   gray2: '#9585A3',
@@ -54,8 +56,10 @@ const theme = {
   dropShadowLight: '0 2px 0 rgba(37, 11, 54, 0.04)',
   dropShadowHeavy: '0 1px 4px 1px rgba(47,40,55,0.08), 0 4px 16px 0 rgba(47,40,55,0.12)',
 
+  background: '#fff',
+
   zIndex: {
-    sidebar: 100,
+    sidebar: 9999,
     header: 1000,
     dropdown: 1001,
     modal: 10000,
@@ -96,6 +100,22 @@ const theme = {
     containerWidth: '1140px',
     headerHeight: '115px',
     sidebarWidth: '210px',
+  },
+
+  sidebar: {
+    background: '#2f2936',
+    color: '#9586a5',
+    divider: '#493e54',
+    badgeSize: '22px',
+    smallBadgeSize: '11px',
+    collapsedWidth: '70px',
+    expandedWidth: '220px',
+    mobileHeight: '54px',
+    menuSpacing: '15px',
+    panel: {
+      width: '320px',
+      headerHeight: '62px',
+    },
   },
 
   text: {

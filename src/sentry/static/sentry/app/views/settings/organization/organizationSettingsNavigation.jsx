@@ -28,7 +28,7 @@ const OrganizationSettingsNavigation = createReactClass({
     let org = this.getOrganization();
     if (name !== 'settings:organization-navigation-config') return;
     this.setState(state => ({
-      hookConfigs: [...state.hookConfigs, ...hooks.map(cb => cb(org))],
+      hookConfigs: hooks.map(cb => cb(org)),
     }));
   },
 

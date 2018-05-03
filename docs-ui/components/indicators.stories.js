@@ -3,14 +3,14 @@ import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 import {select} from '@storybook/addon-knobs';
 
-import IndicatorContainer, {Indicators} from 'sentry-ui/indicators';
-import IndicatorStore from 'application-root/stores/indicatorStore';
+import IndicatorContainer, {Indicators} from 'app/components/indicators';
+import IndicatorStore from 'app/stores/indicatorStore';
 import {
   addSuccessMessage,
   addErrorMessage,
   addMessage,
-} from 'application-root/actionCreators/indicator';
-import Button from 'sentry-ui/buttons/button';
+} from 'app/actionCreators/indicator';
+import Button from 'app/components/buttons/button';
 
 const stories = storiesOf('Toast Indicators', module);
 stories

@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import SidebarPanelItem from 'app/components/sidebarPanelItem';
+import SidebarPanelItem from './sidebarPanelItem';
 
 class SidebarPanel extends React.Component {
   static propTypes = {

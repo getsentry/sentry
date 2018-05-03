@@ -40,7 +40,8 @@ describe('Helper', function() {
         ],
       },
       currentStep: 1,
-      currentOrg: 'test',
+      currentOrgSlug: 'testorg',
+      currentProjectSlug: 'testproj',
     });
     wrapper
       .find('.assistant-cue')

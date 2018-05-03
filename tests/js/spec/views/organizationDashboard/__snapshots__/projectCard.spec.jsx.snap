@@ -36,7 +36,7 @@ exports[`ProjectCard renders 1`] = `
 >
   <StyledProjectCard>
     <div
-      className="css-18be1td-StyledProjectCard efesc7i1"
+      className="css-18be1td-StyledProjectCard efesc7i2"
     >
       <Flex
         align="center"
@@ -57,17 +57,17 @@ exports[`ProjectCard renders 1`] = `
               to="/org-slug/project-slug/"
             >
               <Link
-                className="css-kor5al-StyledLink efesc7i0"
+                className="css-kor5al-StyledLink efesc7i1"
                 to="/org-slug/project-slug/"
               >
                 <Link
-                  className="css-kor5al-StyledLink efesc7i0"
+                  className="css-kor5al-StyledLink efesc7i1"
                   onlyActiveOnIndex={false}
                   style={Object {}}
                   to="/org-slug/project-slug/"
                 >
                   <a
-                    className="css-kor5al-StyledLink efesc7i0"
+                    className="css-kor5al-StyledLink efesc7i1"
                     onClick={[Function]}
                     style={Object {}}
                   >
@@ -78,264 +78,357 @@ exports[`ProjectCard renders 1`] = `
                 </Link>
               </Link>
             </StyledLink>
-            <Star
-              active={false}
-              className="project-select-bookmark icon icon-star-solid"
-              onClick={[Function]}
+            <Tooltip
+              title="Add to bookmarks"
             >
-              <a
-                className="project-select-bookmark icon icon-star-solid css-syj8e8-Star efesc7i2"
+              <Star
+                active={false}
+                className="tip project-select-bookmark icon icon-star-solid"
                 onClick={[Function]}
-              />
-            </Star>
+                title="Add to bookmarks"
+              >
+                <a
+                  className="tip project-select-bookmark icon icon-star-solid css-syj8e8-Star efesc7i3"
+                  onClick={[Function]}
+                  title="Add to bookmarks"
+                />
+              </Star>
+            </Tooltip>
           </div>
         </Base>
       </Flex>
-      <Chart
-        stats={
-          Array [
-            Array [
-              1525042800,
-              1,
-            ],
-            Array [
-              1525046400,
-              2,
-            ],
-          ]
-        }
-      >
-        <div>
-          <StyledBarChart
-            height={80}
-            label="events"
-            points={
+      <ChartContainer>
+        <div
+          className="css-l3ron9-ChartContainer efesc7i0"
+        >
+          <Chart
+            noEvents={true}
+            stats={
               Array [
-                Object {
-                  "x": 1525042800,
-                  "y": 1,
-                },
-                Object {
-                  "x": 1525046400,
-                  "y": 2,
-                },
+                Array [
+                  1525042800,
+                  1,
+                ],
+                Array [
+                  1525046400,
+                  2,
+                ],
               ]
             }
           >
-            <BarChart
-              className="css-fcxdqz-StyledBarChart e1wib7610"
-              height={80}
-              label="events"
-              points={
-                Array [
-                  Object {
-                    "x": 1525042800,
-                    "y": 1,
-                  },
-                  Object {
-                    "x": 1525046400,
-                    "y": 2,
-                  },
-                ]
-              }
-            >
-              <StackedBarChart
-                barClasses={
-                  Array [
-                    "chart-bar",
-                  ]
-                }
-                className="css-fcxdqz-StyledBarChart e1wib7610"
+            <div>
+              <StyledBarChart
                 height={80}
                 label="events"
-                markers={Array []}
                 points={
                   Array [
                     Object {
                       "x": 1525042800,
-                      "y": Array [
-                        1,
-                      ],
+                      "y": 1,
                     },
                     Object {
                       "x": 1525046400,
-                      "y": Array [
-                        2,
-                      ],
+                      "y": 2,
                     },
                   ]
                 }
-                series={Array []}
-                width={null}
               >
-                <figure
-                  className="css-fcxdqz-StyledBarChart e1wib7610 barchart"
-                  style={
-                    Object {
-                      "height": 80,
-                      "width": null,
-                    }
+                <BarChart
+                  className="css-fcxdqz-StyledBarChart e1wib7610"
+                  height={80}
+                  label="events"
+                  points={
+                    Array [
+                      Object {
+                        "x": 1525042800,
+                        "y": 1,
+                      },
+                      Object {
+                        "x": 1525046400,
+                        "y": 2,
+                      },
+                    ]
                   }
                 >
-                  <span
-                    className="max-y"
+                  <StackedBarChart
+                    barClasses={
+                      Array [
+                        "chart-bar",
+                      ]
+                    }
+                    className="css-fcxdqz-StyledBarChart e1wib7610"
+                    height={80}
+                    label="events"
+                    markers={Array []}
+                    points={
+                      Array [
+                        Object {
+                          "x": 1525042800,
+                          "y": Array [
+                            1,
+                          ],
+                        },
+                        Object {
+                          "x": 1525046400,
+                          "y": Array [
+                            2,
+                          ],
+                        },
+                      ]
+                    }
+                    series={Array []}
+                    width={null}
                   >
-                    <count
-                      value={10}
+                    <figure
+                      className="css-fcxdqz-StyledBarChart e1wib7610 barchart"
+                      style={
+                        Object {
+                          "height": 80,
+                          "width": null,
+                        }
+                      }
                     >
-                      <span>
-                        10
+                      <span
+                        className="max-y"
+                      >
+                        <count
+                          value={10}
+                        >
+                          <span>
+                            10
+                          </span>
+                        </count>
                       </span>
-                    </count>
-                  </span>
-                  <span
-                    className="min-y"
-                  >
-                    0
-                  </span>
-                  <span>
-                    <Tooltip
-                      key="1525042800"
-                      title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 29, 2018<br />11:00 PM  &#8594; 11:59 PM</span></div></div><div class=\\"value-label\\">1 events</div>"
-                      tooltipOptions={
-                        Object {
-                          "html": true,
-                          "placement": "bottom",
-                        }
-                      }
-                    >
-                      <a
-                        className="tip chart-column"
-                        style={
-                          Object {
-                            "height": "100%",
-                            "width": "50%",
-                          }
-                        }
-                        title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 29, 2018<br />11:00 PM  &#8594; 11:59 PM</span></div></div><div class=\\"value-label\\">1 events</div>"
+                      <span
+                        className="min-y"
                       >
-                        <span
-                          className="chart-bar"
-                          key="0"
-                          style={
+                        0
+                      </span>
+                      <span>
+                        <Tooltip
+                          key="1525042800"
+                          title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 29, 2018<br />11:00 PM  &#8594; 11:59 PM</span></div></div><div class=\\"value-label\\">1 events</div>"
+                          tooltipOptions={
                             Object {
-                              "backgroundColor": null,
-                              "bottom": "0%",
-                              "height": "9.9%",
+                              "html": true,
+                              "placement": "bottom",
                             }
                           }
                         >
-                          1
-                        </span>
-                      </a>
-                    </Tooltip>
-                    <Tooltip
-                      key="1525046400"
-                      title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 30, 2018<br />12:00 AM  &#8594; 12:59 AM</span></div></div><div class=\\"value-label\\">2 events</div>"
-                      tooltipOptions={
-                        Object {
-                          "html": true,
-                          "placement": "bottom",
-                        }
-                      }
-                    >
-                      <a
-                        className="tip chart-column"
-                        style={
-                          Object {
-                            "height": "100%",
-                            "width": "50%",
-                          }
-                        }
-                        title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 30, 2018<br />12:00 AM  &#8594; 12:59 AM</span></div></div><div class=\\"value-label\\">2 events</div>"
-                      >
-                        <span
-                          className="chart-bar"
-                          key="0"
-                          style={
+                          <a
+                            className="tip chart-column"
+                            style={
+                              Object {
+                                "height": "100%",
+                                "width": "50%",
+                              }
+                            }
+                            title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 29, 2018<br />11:00 PM  &#8594; 11:59 PM</span></div></div><div class=\\"value-label\\">1 events</div>"
+                          >
+                            <span
+                              className="chart-bar"
+                              key="0"
+                              style={
+                                Object {
+                                  "backgroundColor": null,
+                                  "bottom": "0%",
+                                  "height": "9.9%",
+                                }
+                              }
+                            >
+                              1
+                            </span>
+                          </a>
+                        </Tooltip>
+                        <Tooltip
+                          key="1525046400"
+                          title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 30, 2018<br />12:00 AM  &#8594; 12:59 AM</span></div></div><div class=\\"value-label\\">2 events</div>"
+                          tooltipOptions={
                             Object {
-                              "backgroundColor": null,
-                              "bottom": "0%",
-                              "height": "19.8%",
+                              "html": true,
+                              "placement": "bottom",
                             }
                           }
                         >
-                          2
-                        </span>
-                      </a>
-                    </Tooltip>
-                  </span>
-                </figure>
-              </StackedBarChart>
-            </BarChart>
-          </StyledBarChart>
-        </div>
-      </Chart>
-      <PlatformList
-        platforms={
-          Array [
-            "javascript",
-          ]
-        }
-      >
-        <Flex
-          align="center"
-        >
-          <Base
-            align="center"
-            className="css-5ipae5"
-          >
-            <div
-              className="css-5ipae5"
-              is={null}
-            >
+                          <a
+                            className="tip chart-column"
+                            style={
+                              Object {
+                                "height": "100%",
+                                "width": "50%",
+                              }
+                            }
+                            title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 30, 2018<br />12:00 AM  &#8594; 12:59 AM</span></div></div><div class=\\"value-label\\">2 events</div>"
+                          >
+                            <span
+                              className="chart-bar"
+                              key="0"
+                              style={
+                                Object {
+                                  "backgroundColor": null,
+                                  "bottom": "0%",
+                                  "height": "19.8%",
+                                }
+                              }
+                            >
+                              2
+                            </span>
+                          </a>
+                        </Tooltip>
+                      </span>
+                    </figure>
+                  </StackedBarChart>
+                </BarChart>
+              </StyledBarChart>
+            </div>
+          </Chart>
+          <NoEvents>
+            <Container>
               <div
-                className="org-dashboard-platform-list"
+                className="css-1m9okvh-Container eks1zeg0"
               >
-                <Flex
-                  direction="row-reverse"
-                  p={2}
+                <EmptyText
+                  align="center"
+                  justify="center"
                 >
                   <Base
-                    className="css-1tznizk"
+                    align="center"
+                    className="css-1qof738-EmptyText eks1zeg1"
+                    justify="center"
+                  >
+                    <div
+                      className="css-1qof738-EmptyText eks1zeg1"
+                      is={null}
+                    >
+                      No activity yet.
+                    </div>
+                  </Base>
+                </EmptyText>
+              </div>
+            </Container>
+          </NoEvents>
+        </div>
+      </ChartContainer>
+      <withRouter(PlatformList)
+        orgId="org-slug"
+        project={
+          Object {
+            "hasAccess": true,
+            "id": "2",
+            "isBookmarked": false,
+            "isMember": true,
+            "name": "Project Name",
+            "platforms": Array [
+              "javascript",
+            ],
+            "slug": "project-slug",
+            "teams": Array [],
+          }
+        }
+      >
+        <PlatformList
+          location={
+            Object {
+              "query": Object {},
+            }
+          }
+          orgId="org-slug"
+          project={
+            Object {
+              "hasAccess": true,
+              "id": "2",
+              "isBookmarked": false,
+              "isMember": true,
+              "name": "Project Name",
+              "platforms": Array [
+                "javascript",
+              ],
+              "slug": "project-slug",
+              "teams": Array [],
+            }
+          }
+          router={
+            Object {
+              "createHref": [MockFunction] {
+                "calls": Array [
+                  Array [
+                    "/org-slug/project-slug/",
+                  ],
+                ],
+              },
+              "go": [MockFunction],
+              "goBack": [MockFunction],
+              "goForward": [MockFunction],
+              "isActive": [MockFunction],
+              "listen": [MockFunction],
+              "location": Object {
+                "query": Object {},
+              },
+              "push": [MockFunction],
+              "replace": [MockFunction],
+              "setRouteLeaveHook": [MockFunction],
+            }
+          }
+        >
+          <Flex
+            align="center"
+          >
+            <Base
+              align="center"
+              className="css-5ipae5"
+            >
+              <div
+                className="css-5ipae5"
+                is={null}
+              >
+                <div
+                  className="org-dashboard-platform-list"
+                >
+                  <Flex
                     direction="row-reverse"
                     p={2}
                   >
-                    <div
+                    <Base
                       className="css-1tznizk"
-                      is={null}
+                      direction="row-reverse"
+                      p={2}
                     >
-                      <StyledPlatformIconWrapper
-                        className="javascript"
-                        key="javascript"
+                      <div
+                        className="css-1tznizk"
+                        is={null}
                       >
-                        <span
-                          className="javascript css-128o7xp-StyledPlatformIconWrapper e1mca4c60"
+                        <StyledPlatformIconWrapper
+                          className="javascript"
+                          key="javascript"
                         >
-                          <StyledPlatformIcon
-                            className="platformicon platformicon-javascript"
+                          <span
+                            className="javascript css-128o7xp-StyledPlatformIconWrapper e1mca4c60"
                           >
-                            <span
-                              className="platformicon platformicon-javascript css-hf0kxf-StyledPlatformIcon e1mca4c61"
-                            />
-                          </StyledPlatformIcon>
-                        </span>
-                      </StyledPlatformIconWrapper>
-                    </div>
-                  </Base>
-                </Flex>
-              </div>
-              <PlatformText>
-                <div
-                  className="css-12aj0sd-PlatformText e1mca4c62"
-                >
-                  javascript
+                            <StyledPlatformIcon
+                              className="platformicon platformicon-javascript"
+                            >
+                              <span
+                                className="platformicon platformicon-javascript css-hf0kxf-StyledPlatformIcon e1mca4c61"
+                              />
+                            </StyledPlatformIcon>
+                          </span>
+                        </StyledPlatformIconWrapper>
+                      </div>
+                    </Base>
+                  </Flex>
                 </div>
-              </PlatformText>
-            </div>
-          </Base>
-        </Flex>
-      </PlatformList>
+                <PlatformText>
+                  <div
+                    className="css-1oyd7ep-PlatformText e1mca4c62"
+                  >
+                    javascript
+                  </div>
+                </PlatformText>
+              </div>
+            </Base>
+          </Flex>
+        </PlatformList>
+      </withRouter(PlatformList)>
     </div>
   </StyledProjectCard>
 </ProjectCard>

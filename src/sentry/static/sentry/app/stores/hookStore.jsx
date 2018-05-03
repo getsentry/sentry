@@ -19,6 +19,7 @@ let validHookNames = new Set([
   'issue:secondary-column',
   'analytics:onboarding-complete',
   'analytics:event',
+  'sidebar:organization-dropdown-menu',
 ]);
 
 const HookStore = Reflux.createStore({
@@ -36,7 +37,7 @@ const HookStore = Reflux.createStore({
       this.hooks[hookName] = [];
     }
     this.hooks[hookName].push(callback);
-    this.trigger(hookName, [callback]);
+    this.trigger(hookName, this.hooks[hookName]);
   },
 
   remove(hookName, callback) {

@@ -1,12 +1,19 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import {withRouter} from 'react-router';
 import styled from 'react-emotion';
 import {Flex} from 'grid-emotion';
-import {t} from 'app/locale';
 
-export default class PlatformList extends React.Component {
+import SentryTypes from 'app/proptypes';
+import {t} from 'app/locale';
+import Button from 'app/components/buttons/button';
+
+const MAX_PLATFORMS = 5;
+
+class PlatformList extends React.Component {
   static propTypes = {
-    platforms: PropTypes.arrayOf(PropTypes.string),
+    project: SentryTypes.Project,
+    orgId: PropTypes.string,
   };
 
   getIcon(platform) {
@@ -20,29 +27,39 @@ export default class PlatformList extends React.Component {
   getIcons(platforms) {
     return (
       <Flex direction="row-reverse" p={2}>
-        {platforms.map(this.getIcon)}
+        {platforms
+          .slice()
+          .reverse()
+          .map(this.getIcon)}
       </Flex>
     );
   }
   render() {
-    const {platforms} = this.props;
+    const {project, orgId} = this.props;
+    const platforms = project.platforms.slice(0, MAX_PLATFORMS);
 
-    if (!platforms.length)
+    const link = `/${orgId}/${project.slug}/getting-started/${project.platform
+      ? project.platform + '/'
+      : ''}`;
+
+    if (!platforms.length) {
       return (
         <NoPlatforms align="center" p={2}>
-          {t('No platforms yet')}
+          {project.firstEvent ? (
+            t('No platforms yet')
+          ) : (
+            <Button size="small" to={link}>
+              {t('Install an SDK')}
+            </Button>
+          )}
         </NoPlatforms>
       );
+    }
 
     return (
       <Flex align="center">
         <div className="org-dashboard-platform-list">{this.getIcons(platforms)}</div>
-        <PlatformText>
-          {platforms
-            .slice()
-            .reverse()
-            .join(', ')}
-        </PlatformText>
+        <PlatformText>{platforms.join(', ')}</PlatformText>
       </Flex>
     );
   }
@@ -68,9 +85,12 @@ const StyledPlatformIcon = styled.span`
 const PlatformText = styled.div`
   color: ${p => p.theme.gray2};
   font-size: 13px;
+  line-height: 13px;
 `;
 
 const NoPlatforms = styled(Flex)`
   color: ${p => p.theme.gray2};
-  height: 70px;
+  height: 66px;
 `;
+
+export default withRouter(PlatformList);

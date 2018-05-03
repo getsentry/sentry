@@ -36,6 +36,29 @@ body {
   &.org-dashboard {
     background-color: #fcfcfc;
   }
+
+  &.body-sidebar {
+    padding-left: @sidebar-expanded-width;
+    font-family: 'Rubik', 'Avenir Next', 'Helvetica Neue', sans-serif;
+
+    &.collapsed {
+      padding-left: @sidebar-collapsed-width;
+    }
+
+    /* This accounts for the old home icon, can be removed when old-#sidebar is */
+    .project-dropdown {
+      .dropdown-menu {
+        left: 0;
+      }
+    }
+
+    /* This is for organization level views e.g. "Assigned to me" */
+    .organization-home {
+      .container {
+        margin-top: 16px;
+      }
+    }
+  }
 }
 
 #blk_router {
@@ -52,6 +75,14 @@ body.narrow {
   padding: 0;
 
   background: #fff;
+
+  &.body-sidebar {
+    padding-left: @sidebar-expanded-width;
+
+    &.collapsed {
+      padding-left: @sidebar-collapsed-width;
+    }
+  }
 
   &.dialog {
     padding-top: 0;
@@ -149,6 +180,7 @@ body.auth {
 // Container around content in app.jsx
 .main-container {
   min-height: 100vh;
+  outline: none;
 }
 
 // So loader can take up full height so that footer is fixed to bottom of screen
@@ -233,27 +265,6 @@ body.auth {
 
     + .dropdown-menu {
       z-index: @zindex-sticky-bar + 2;
-    }
-  }
-
-  .project-select {
-    position: relative;
-
-    h3 {
-      font-size: 20px;
-      margin: 0;
-
-      a {
-        color: @gray-dark;
-
-        &:hover {
-          color: @gray-darkest;
-        }
-      }
-    }
-
-    .project-selected {
-      background-color: lighten(@blue-light, 30);
     }
   }
 
@@ -444,6 +455,15 @@ footer {
 
     // Account for there being no footer on mobile
     padding-bottom: 20px;
+
+    &.body-sidebar {
+      padding-left: 0;
+      padding-top: @sidebar-mobile-height;
+
+      &.collapsed {
+        padding-left: 0;
+      }
+    }
   }
 
   .app {
@@ -502,7 +522,7 @@ footer {
       right: 0;
       top: 0;
       font-size: 20px;
-      background: @header-bg-color;
+      background: @sidebar-bg-color;
       padding-left: 30px;
     }
 
