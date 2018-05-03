@@ -89,6 +89,7 @@ const Percentage = styled(
   margin-top: ${space(0.25)};
   color: ${p => p.theme.gray2};
   font-size: 12px;
+  line-height: 1.2;
 `;
 
 export default ProjectTable;

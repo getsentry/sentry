@@ -7,6 +7,7 @@ import {Flex} from 'grid-emotion';
 import SentryTypes from 'app/proptypes';
 import {Client} from 'app/api';
 import Link from 'app/components/link';
+import space from 'app/styles/space';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
 import {update} from 'app/actionCreators/projects';
@@ -68,6 +69,8 @@ class ProjectCard extends React.Component {
 
 const ChartContainer = styled.div`
   position: relative;
+  background: ${p => p.theme.offWhite};
+  padding-top: ${space(1)};
 `;
 
 const StyledLink = styled(Link)`

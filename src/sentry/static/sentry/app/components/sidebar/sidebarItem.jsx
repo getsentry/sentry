@@ -115,7 +115,9 @@ const getActiveStyle = ({active, theme}) => {
   return css`
     color: ${theme.white};
 
-    &:focus {
+    &:active,
+    &:focus,
+    &:hover {
       color: ${theme.white};
     }
 
