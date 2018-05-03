@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
-import {Flex} from 'grid-emotion';
+import styled from 'react-emotion';
 
 import SentryTypes from 'app/proptypes';
 import ProjectLink from 'app/components/projectLink';
@@ -111,7 +111,7 @@ class ProjectHeader extends React.Component {
             </ul>
           </div>
           {showEnvironmentsToggle && (
-            <Flex>
+            <EnvironmentsToggle>
               <BackfillNotice project={project} />
               <div className="project-header-toggle">
                 <label>{t('Environment')}</label>
@@ -154,12 +154,17 @@ class ProjectHeader extends React.Component {
                   </div>
                 </DropdownLink>
               </div>
-            </Flex>
+            </EnvironmentsToggle>
           )}
         </div>
       </div>
     );
   }
 }
+
+const EnvironmentsToggle = styled('div')`
+  display: flex;
+  position: relative;
+`;
 
 export default ProjectHeader;
