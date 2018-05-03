@@ -7,7 +7,6 @@ from django.utils import timezone
 from mock import Mock, patch
 
 from sentry import tagstore
-from sentry.tagstore.models import EventTag
 from sentry.models import Group, GroupSnooze, GroupStatus, ServiceHook
 from sentry.testutils import TestCase
 from sentry.tasks.merge import merge_group
@@ -236,36 +235,12 @@ class IndexEventTagsTest(TestCase):
                 tags=[('foo', 'bar'), ('biz', 'baz')],
             )
 
-        tags = list(EventTag.objects.filter(
-            event_id=event.id,
-        ).values_list('key_id', 'value_id'))
-        assert len(tags) == 2
-
-        tagkey = tagstore.get_tag_key(
-            project_id=self.project.id,
-            environment_id=self.environment.id,
-            key='foo',
-        )
-        tagvalue = tagstore.get_tag_value(
-            project_id=self.project.id,
-            environment_id=self.environment.id,
-            key='foo',
-            value='bar',
-        )
-        assert (tagkey.id, tagvalue.id) in tags
-
-        tagkey = tagstore.get_tag_key(
-            project_id=self.project.id,
-            environment_id=self.environment.id,
-            key='biz',
-        )
-        tagvalue = tagstore.get_tag_value(
-            project_id=self.project.id,
-            environment_id=self.environment.id,
-            key='biz',
-            value='baz',
-        )
-        assert (tagkey.id, tagvalue.id) in tags
+        assert tagstore.get_group_event_ids(
+            self.project.id,
+            group.id,
+            self.environment.id,
+            {'foo': 'bar', 'biz': 'baz'},
+        ) == [event.id]
 
         # ensure it safely handles repeat runs
         with self.tasks():
@@ -278,7 +253,9 @@ class IndexEventTagsTest(TestCase):
                 tags=[('foo', 'bar'), ('biz', 'baz')],
             )
 
-        queryset = EventTag.objects.filter(
-            event_id=event.id,
-        )
-        assert queryset.count() == 2
+        assert tagstore.get_group_event_ids(
+            self.project.id,
+            group.id,
+            self.environment.id,
+            {'foo': 'bar', 'biz': 'baz'},
+        ) == [event.id]

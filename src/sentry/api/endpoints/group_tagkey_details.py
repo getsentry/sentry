@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import six
-
 from rest_framework.response import Response
 
 from sentry import tagstore
@@ -64,7 +62,6 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             group.project_id, group.id, environment_id, lookup_key, limit=9)
 
         data = {
-            'id': six.text_type(tag_key.id),
             'key': key,
             'name': tagstore.get_tag_key_label(tag_key.key),
             'uniqueValues': group_tag_key.values_seen,
