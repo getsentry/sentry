@@ -293,11 +293,11 @@ exports[`ProjectCard renders 1`] = `
                 >
                   <Base
                     align="center"
-                    className="css-1qof738-EmptyText eks1zeg1"
+                    className="css-k1bbsy-EmptyText eks1zeg1"
                     justify="center"
                   >
                     <div
-                      className="css-1qof738-EmptyText eks1zeg1"
+                      className="css-k1bbsy-EmptyText eks1zeg1"
                       is={null}
                     >
                       No activity yet.

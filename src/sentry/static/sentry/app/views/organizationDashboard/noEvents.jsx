@@ -24,9 +24,8 @@ const Container = styled.div`
 `;
 
 const EmptyText = styled(Flex)`
-  background-color: rgba(175, 163, 187, 0.2);
   margin-left: 4px;
   margin-right: 4px;
-  height: 80px;
+  height: 68px;
   color: ${p => p.theme.gray2};
 `;
