@@ -255,40 +255,6 @@ class SnubaTagStorage(TagStorage):
             ) for value, data in six.iteritems(result)
         ]
 
-    # TODO: Coming back to this later
-    """
-    def get_group_tag_keys_and_top_values(self, project_id, group_id, environment_id, user=None):
-        start, end = self.get_time_range()
-        filters = {
-            'project_id': [project_id],
-            'environment': [environment_id],
-            'issue': [group_id],
-        }
-        aggregations = [
-            ['count()', '', 'count'],
-            ['topK(10)', 'tags_value', 'top'],
-            ['uniq', 'tags_value', 'uniq'],
-        ]
-        conditions = [
-            ['tags_value', 'IS NOT NULL', None],
-        ]
-        results = snuba.query(start, end, ['tags_key'], conditions, filters, aggregations)
-
-        return [{
-            'id': key,
-            'name': self.get_tag_key_label(key),
-            'key': self.get_standardized_key(key),
-            'uniqueValues': res['uniq'],
-            'totalValues': res['count'],
-            'topValues': [{
-                'id': val,
-                'name': self.get_tag_value_label(key, val),
-                'key': self.get_standardized_key(key),
-                'value': val,
-            } for val in res['top']],
-        } for key, res in six.iteritems(results)]
-    """
-
     def __get_release(self, project_id, group_id, first=True):
         start, end = self.get_time_range()
         filters = {
