@@ -133,6 +133,13 @@ class AsyncComponent extends React.Component {
   };
 
   handleError(error, [stateKey]) {
+    if (error && error.responseText) {
+      Raven.captureBreadcrumb({
+        message: error.responseText,
+        category: 'xhr',
+        level: 'error',
+      });
+    }
     this.setState(prevState => {
       return {
         [stateKey]: null,
