@@ -8,7 +8,7 @@ import DropdownMenu from 'app/components/dropdownMenu';
 import Hook from 'app/components/hook';
 import SentryTypes from 'app/proptypes';
 import TextOverflow from 'app/components/textOverflow';
-import UserBadge from 'app/components/userBadge';
+import IdBadge from 'app/components/idBadge';
 
 import SwitchOrganization from './switchOrganization';
 import SidebarOrgSummary from './sidebarOrgSummary';
@@ -143,7 +143,7 @@ const UserSummary = styled('div')`
   padding: 10px 15px;
 `;
 
-const UserBadgeNoOverflow = styled(UserBadge)`
+const UserBadgeNoOverflow = styled(IdBadge)`
   overflow: hidden;
 `;
 
