@@ -27,8 +27,9 @@ class Tooltip extends React.Component {
   componentDidUpdate = prevProps => {
     // Reattach tooltip if options or tooltip message changes
     if (
-      !isEqual(prevProps.tooltipOptions, this.props.tooltipOptions) ||
-      prevProps.title != this.props.title
+      !this.props.disabled &&
+      (!isEqual(prevProps.tooltipOptions, this.props.tooltipOptions) ||
+        prevProps.title != this.props.title)
     ) {
       this.removeTooltips(this.ref);
       this.attachTooltips(this.ref);
