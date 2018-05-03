@@ -16,6 +16,7 @@ import {t, tct} from 'app/locale';
 import withProjects from 'app/utils/withProjects';
 import withTeams from 'app/utils/withTeams';
 import getProjectsByTeams from 'app/utils/getProjectsByTeams';
+import {sortProjects} from 'app/utils';
 
 class OrganizationTeamsProjectsView extends React.Component {
   static propTypes = {
@@ -140,11 +141,7 @@ class OrganizationTeamsProjectsView extends React.Component {
               .map(teamSlug => {
                 return this.renderTeamNode(
                   teamSlug,
-                  projectsByTeam[teamSlug].sort((a, b) => {
-                    if (a.slug > b.slug) return 1;
-                    if (a.slug < b.slug) return -1;
-                    return 0;
-                  })
+                  sortProjects(projectsByTeam[teamSlug])
                 );
               })}
             {!!teamlessProjects.length && this.renderTeamNode(null, teamlessProjects)}

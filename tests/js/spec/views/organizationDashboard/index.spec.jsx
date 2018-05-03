@@ -70,5 +70,72 @@ describe('OrganizationDashboard', function() {
       const projectCard = favorites.find('ProjectCardWrapper');
       expect(projectCard).toHaveLength(1);
     });
+
+    it('renders bookmarked projects first in team list', function() {
+      const teams = [TestStubs.Team()];
+      const projects = [
+        TestStubs.Project({
+          id: '1',
+          slug: 'm',
+          teams,
+          isBookmarked: false,
+          stats: [],
+        }),
+        TestStubs.Project({
+          id: '2',
+          slug: 'm-fave',
+          teams,
+          isBookmarked: true,
+          stats: [],
+        }),
+        TestStubs.Project({
+          id: '3',
+          slug: 'a-fave',
+          teams,
+          isBookmarked: true,
+          stats: [],
+        }),
+        TestStubs.Project({
+          id: '4',
+          slug: 'z-fave',
+          teams,
+          isBookmarked: true,
+          stats: [],
+        }),
+        TestStubs.Project({
+          id: '5',
+          slug: 'a',
+          teams,
+          isBookmarked: false,
+          stats: [],
+        }),
+        TestStubs.Project({
+          id: '6',
+          slug: 'z',
+          teams,
+          isBookmarked: false,
+          stats: [],
+        }),
+      ];
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/projects/?statsPeriod=24h',
+        body: projects,
+      });
+
+      const wrapper = shallow(
+        <Dashboard teams={teams} projects={projects} params={{orgId: 'org-slug'}} />,
+        TestStubs.routerContext()
+      );
+
+      const projectCards = wrapper.find(
+        'TeamSection[data-test-id="team"] ProjectCardWrapper'
+      );
+      expect(projectCards.at(1).prop('data-test-id')).toBe('m-fave');
+      expect(projectCards.at(2).prop('data-test-id')).toBe('z-fave');
+      expect(projectCards.at(3).prop('data-test-id')).toBe('a');
+      expect(projectCards.at(4).prop('data-test-id')).toBe('m');
+      expect(projectCards.at(5).prop('data-test-id')).toBe('z');
+    });
   });
 });
