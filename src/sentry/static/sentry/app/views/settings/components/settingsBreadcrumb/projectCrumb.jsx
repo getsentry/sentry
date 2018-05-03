@@ -13,6 +13,7 @@ import recreateRoute from 'app/utils/recreateRoute';
 import replaceRouterParams from 'app/utils/replaceRouterParams';
 import withLatestContext from 'app/utils/withLatestContext';
 import withProjects from 'app/utils/withProjects';
+import space from 'app/styles/space';
 
 class ProjectCrumb extends React.Component {
   static propTypes = {
@@ -90,14 +91,14 @@ export {ProjectCrumb};
 export default withProjects(withLatestContext(ProjectCrumb));
 
 // Set height of crumb because of spinner
-const HEIGHT = '24px';
+const SPINNER_SIZE = '24px';
 
 const ProjectName = styled.div`
   display: flex;
 
   .loading {
-    width: 26px;
-    height: ${HEIGHT};
-    margin: 0;
+    width: ${SPINNER_SIZE};
+    height: ${SPINNER_SIZE};
+    margin: 0 ${space(0.25)} 0 0;
   }
 `;
