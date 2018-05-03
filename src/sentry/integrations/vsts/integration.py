@@ -23,30 +23,44 @@ metadata = IntegrationMetadata(
 class ProjectConfigView(PipelineView):
     def dispatch(self, request, pipeline):
         if 'project' in request.POST:
-            pipeline.bind_state('project', request.POST.get('project'))
-            return pipeline.next_step()
-        project_form = ProjectForm()
-        project_form.add_project_choices(pipeline)
+            project_id = request.POST.get('project')
+            projects = pipeline.fetch_state(key='projects')
+            project = self.get_project_from_id(project_id, projects)
+            if project is not None:
+                pipeline.bind_state('project_id', project_id)
+                pipeline.bind_state('project', project)
+                return pipeline.next_step()
+
+        identity_data = pipeline.fetch_state(key='identity')
+        instance = identity_data['instance']
+        access_token = identity_data['data']['access_token']
+        projects = get_projects(instance, access_token)['value']
+        pipeline.bind_state('projects', projects)
+        project_form = ProjectForm(projects)
+
         return render_to_response(
-            template='templates/vsts-account.html',
+            template='sentry/integrations/vsts-config.html',
             context={
                 'form': project_form,
             },
             request=request,
         )
 
+    def get_project_from_id(self, project_id, projects):
+        for project in projects:
+            if project['id'] == project_id:
+                return project
+        return None
+
 
 class ProjectForm(forms.Form):
-    project = forms.ChoiceField(
-        choices=[],
-        label='Project',
-        help_text='Enter the Visual Studio Team Services project name that you wish to use as a default for new work items'
-    )
-
-    def add_project_choices(self, pipeline):
-        instance = pipeline.state['identity']['instance']
-        access_token = pipeline.state['identity']['data']['access_token']
-        self.project.choices = get_projects(instance, access_token)
+    def __init__(self, projects, *args, **kwargs):
+        super(ProjectForm, self).__init__(*args, **kwargs)
+        self.fields['project'] = forms.ChoiceField(
+            choices=[(project['id'], project['name']) for project in projects],
+            label='Project',
+            help_text='Enter the Visual Studio Team Services project name that you wish to use as a default for new work items'
+        )
 
 
 class VSTSIntegration(Integration):
@@ -62,9 +76,34 @@ class VSTSIntegration(Integration):
     }
 
     identity_oauth_scopes = frozenset([
+        'vso.build_execute',
         'vso.code_full',
+        'vso.codesearch',
+        'vso.connected_server',
+        'vso.dashboards_manage',
+        'vso.entitlements',
+        'vso.extension.data_write',
+        'vso.extension_manage',
+        'vso.gallery_manage',
+        'vso.graph_manage',
         'vso.identity_manage',
+        'vso.loadtest',
+        'vso.machinegroup_manage',
+        'vso.memberentitlementmanagement_write',
+        'vso.notification_diagnostics',
+        'vso.notification_manage',
+        'vso.packaging_manage',
+        'vso.profile_write',
+        'vso.project_manage',
+        'vso.release_manage',
+        'vso.security_manage',
+        'vso.serviceendpoint_manage',
+        'vso.symbols_manage',
+        'vso.taskgroups_manage',
+        'vso.test_write',
+        'vso.wiki_write',
         'vso.work_full',
+        'vso.workitemsearch',
     ])
 
     def get_pipeline_views(self):
@@ -85,47 +124,26 @@ class VSTSIntegration(Integration):
             ProjectConfigView(),
         ]
 
-    def get_account_info(self, instance, access_token):
-        session = http.build_session()
-        url = 'https://%s/_apis/accounts?api-version=4.1' % instance
-        response = session.get(
-            url,
-            headers={
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer %s' % access_token,
-            }
-        )
-        response.raise_for_status()
-        response_json = response.json()
-        return response_json
-
-    def get_default_project(self, name, projects):
-        for project in projects:
-            if project['name'] == name:
-                return project
-
     def build_integration(self, state):
         data = state['identity']['data']
         access_token = data['access_token']
         instance = state['identity']['instance']
-        default_project_name = state['identity']['default_project']
+        project = state['project']
 
         scopes = sorted(self.identity_oauth_scopes)
-        projects = self.get_projects(instance, access_token)['value']
-        default_project = self.get_default_project(default_project_name, projects)
         return {
-            'name': default_project['name'],
-            'external_id': default_project['id'],
+            'name': project['name'],
+            'external_id': project['id'],
             'metadata': {
-                'scopes': scopes,
                 'domain_name': instance,
+                'scopes': [],
                 # icon doesn't appear to be possible
             },
             'user_identity': {
                 'access_token': access_token,
                 'type': 'vsts',
                 'external_id': instance,
-                'scopes': [],
+                'scopes': scopes,
                 'data': {},
             }
         }
@@ -133,8 +151,9 @@ class VSTSIntegration(Integration):
 
 def get_projects(instance, access_token):
     session = http.build_session()
+    url = 'https://%s/DefaultCollection/_apis/projects' % instance
     response = session.get(
-        'https://%s/DefaultCollection/_apis/projects' % instance,
+        url,
         headers={
             'Content-Type': 'application/json',
             'Authorization': 'Bearer %s' % access_token,

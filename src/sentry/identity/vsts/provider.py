@@ -17,15 +17,40 @@ options.register('vsts.verification-token', flags=FLAG_PRIORITIZE_DISK)
 
 class VSTSIdentityProvider(OAuth2Provider):
     key = 'vsts'
-    name = 'VSTS'
+    name = 'Visual Studio Team Services'
 
     oauth_access_token_url = 'https://app.vssps.visualstudio.com/oauth2/token'
     oauth_authorize_url = 'https://app.vssps.visualstudio.com/oauth2/authorize'
 
     oauth_scopes = (
+        'vso.build_execute',
         'vso.code_full',
+        'vso.codesearch',
+        'vso.connected_server',
+        'vso.dashboards_manage',
+        'vso.entitlements',
+        'vso.extension.data_write',
+        'vso.extension_manage',
+        'vso.gallery_manage',
+        'vso.graph_manage',
         'vso.identity_manage',
+        'vso.loadtest',
+        'vso.machinegroup_manage',
+        'vso.memberentitlementmanagement_write',
+        'vso.notification_diagnostics',
+        'vso.notification_manage',
+        'vso.packaging_manage',
+        'vso.profile_write',
+        'vso.project_manage',
+        'vso.release_manage',
+        'vso.security_manage',
+        'vso.serviceendpoint_manage',
+        'vso.symbols_manage',
+        'vso.taskgroups_manage',
+        'vso.test_write',
+        'vso.wiki_write',
         'vso.work_full',
+        'vso.workitemsearch',
     )
 
     def get_oauth_client_id(self):
@@ -78,53 +103,55 @@ class VSTSOAuth2CallbackView(OAuth2CallbackView):
 
 
 class AccountForm(forms.Form):
-    instance = forms.CharField(
-        label='Instance',
-        widget=forms.TextInput(attrs={'placeholder': 'eg. example.visualstudio.com'}),
-        help_text='VS Team Services account (account.visualstudio.com).',
-    )
+    def __init__(self, accounts, *args, **kwargs):
+        super(AccountForm, self).__init__(*args, **kwargs)
+        self.fields['account'] = forms.ChoiceField(
+            choices=[(acct['AccountId'], acct['AccountName']) for acct in accounts],
+            label='Account',
+            help_text='VS Team Services account (account.visualstudio.com).',
+        )
 
 
 class AccountConfigView(PipelineView):
     def dispatch(self, request, pipeline):
-        if 'instance' in request.POST:
-            instance = request.POST.get('instance')
-            account = self.get_account_info(instance, pipeline)
+        if 'account' in request.POST:
+            account_id = request.POST.get('account')
+            accounts = pipeline.fetch_state(key='accounts')
+            account = self.get_account_from_id(account_id, accounts)
             if account is not None:
-                pipeline.bind_state('instance', instance)
                 pipeline.bind_state('account', account)
+                pipeline.bind_state('account_id', account_id)
+                pipeline.bind_state('instance', account['AccountName'] + '.visualstudio.com')
                 return pipeline.next_step()
+
+        access_token = pipeline.fetch_state(key='data')['access_token']
+        accounts = self.get_accounts(access_token)
+        pipeline.bind_state('accounts', accounts)
+        account_form = AccountForm(accounts)
         return render_to_response(
-            template='templates/vsts-account.html',
+            template='sentry/integrations/vsts-config.html',
             context={
-                'form': AccountForm(),
+                'form': account_form,
             },
             request=request,
         )
 
-    def get_accounts(self, instance, pipeline):
+    def get_account_from_id(self, account_id, accounts):
+        for account in accounts:
+            if account['AccountId'] == account_id:
+                return account
+        return None
+
+    def get_accounts(self, access_token):
         session = http.build_session()
-        url = 'https://%s/_apis/accounts?api-version=4.1' % instance
-        access_token = pipeline.state['identity']['data']['access_token']
+        url = 'https://app.vssps.visualstudio.com/_apis/accounts'
         response = session.get(
             url,
             headers={
                 'Content-Type': 'application/json',
                 'Authorization': 'Bearer %s' % access_token,
-            }
+            },
         )
-        if response.status_code == 203:
+        if response.status_code == 200:
             return response.json()
         return None
-
-    def get_account_info(self, instance, pipeline):
-        accounts = self.get_accounts(instance, pipeline)
-        if accounts is None:
-            return accounts
-
-        if accounts['count'] > 1:
-            account_name = instance.split('.', maxsplit=1)[0].lower()
-            for account in accounts['value']:
-                if account_name in account['accountName'].lower():
-                    return account
-        return accounts['value'][0]
