@@ -61,7 +61,7 @@ const StyledNameAndEmail = styled('div')`
 
 const StyledEmail = styled('div')`
   font-size: 0.875em;
-  margin-top: ${space(0.5)};
+  margin-top: ${space(0.25)};
   color: ${p => p.theme.gray2};
   ${overflowEllipsis};
 `;
@@ -71,7 +71,7 @@ const StyledName = styled(
     useLink ? <Link to={to} {...props} /> : <span {...props} />
 )`
   font-weight: bold;
-  margin-bottom: ${p => (!p.hideEmail ? space(0.5) : 0)};
+  line-height: 1.15em;
   ${overflowEllipsis};
 `;
 
