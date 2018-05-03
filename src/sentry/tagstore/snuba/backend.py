@@ -332,17 +332,20 @@ class SnubaTagStorage(TagStorage):
             ['max', SEEN_COLUMN, 'last_seen'],
         ]
 
-        # XXX: This doesn't group by project ID so isn't a 1:1 translation of
-        # the existing implementation
-        result = snuba.query(start, end, [key], conditions, filters, aggregations)
+        result = snuba.query(start, end, ['project_id', key], conditions, filters, aggregations)
 
-        return [
-            TagValue(
-                key=key,
-                value=value,
-                **fix_tag_value_data(data)
-            ) for value, data in six.iteritems(result)
-        ]
+        values = []
+        for project_data in six.itervalues(result):
+            for value, data in six.iteritems(project_data):
+                values.append(
+                    TagValue(
+                        key=key,
+                        value=value,
+                        **fix_tag_value_data(data)
+                    )
+                )
+
+        return values
 
     def get_group_event_ids(self, project_id, group_id, environment_id, tags):
         start, end = self.get_time_range()
