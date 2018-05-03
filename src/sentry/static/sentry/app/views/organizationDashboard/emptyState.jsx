@@ -22,7 +22,7 @@ export default class EmptyState extends React.Component {
             <h2>{t('Remain calm.')}</h2>
             <p>{t("Sentry's got you covered.")}</p>
             <div>
-              <Button priority="primary" to={`organizations/${orgId}/projects/new/`}>
+              <Button priority="primary" to={`/organizations/${orgId}/projects/new/`}>
                 {t('Create project')}
               </Button>
             </div>
