@@ -26,6 +26,10 @@ class AutoComplete extends React.Component {
     defaultHighlightedIndex: PropTypes.number,
     defaultInputValue: PropTypes.string,
     /**
+     * Resets autocomplete input when menu closes
+     */
+    resetInputOnClose: PropTypes.bool,
+    /**
      * Currently, this does not act as a "controlled" prop, only for initial state of dropdown
      */
     isOpen: PropTypes.bool,
@@ -197,14 +201,17 @@ class AutoComplete extends React.Component {
    * This is exposed to render function
    */
   closeMenu = (...args) => {
-    let {onClose} = this.props;
+    let {onClose, resetInputOnClose} = this.props;
     if (this.isControlled() && typeof onClose === 'function') {
       onClose(...args);
       return;
     }
 
-    this.setState({
-      isOpen: false,
+    this.setState(state => {
+      return {
+        isOpen: false,
+        inputValue: resetInputOnClose ? '' : state.inputValue,
+      };
     });
   };
 
