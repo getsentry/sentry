@@ -194,7 +194,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                             >
                               <Component
                                 aria-label="Enable Plugin"
-                                className="css-133e1g3-StyledButton-getColors e17811v30"
+                                className="css-1w79b6l-StyledButton-getColors e17811v30"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"
@@ -206,7 +206,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                               >
                                 <button
                                   aria-label="Enable Plugin"
-                                  className="css-133e1g3-StyledButton-getColors e17811v30"
+                                  className="css-1w79b6l-StyledButton-getColors e17811v30"
                                   disabled={false}
                                   onClick={[Function]}
                                   role="button"
@@ -254,14 +254,14 @@ exports[`ProjectPluginDetails renders 1`] = `
                             >
                               <Component
                                 aria-label="Reset Configuration"
-                                className="css-133e1g3-StyledButton-getColors e17811v30"
+                                className="css-1w79b6l-StyledButton-getColors e17811v30"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"
                               >
                                 <button
                                   aria-label="Reset Configuration"
-                                  className="css-133e1g3-StyledButton-getColors e17811v30"
+                                  className="css-1w79b6l-StyledButton-getColors e17811v30"
                                   disabled={false}
                                   onClick={[Function]}
                                   role="button"

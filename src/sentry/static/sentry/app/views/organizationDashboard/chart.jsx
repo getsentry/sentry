@@ -18,7 +18,7 @@ export default class Chart extends React.Component {
 
     return (
       <div>
-        <StyledBarChart points={data} label="events" height={80} />
+        <StyledBarChart points={data} label="events" height={60} />
       </div>
     );
   }
@@ -26,12 +26,11 @@ export default class Chart extends React.Component {
 
 const StyledBarChart = styled(BarChart)`
   a {
-    background-color: rgba(175, 163, 187, 0.2);
     &:not(:first-child) {
-      border-left: 2px solid white;
+      border-left: 2px solid transparent;
     }
     &:not(:last-child) {
-      border-right: 2px solid white;
+      border-right: 2px solid transparent;
     }
     > span {
       left: 0;

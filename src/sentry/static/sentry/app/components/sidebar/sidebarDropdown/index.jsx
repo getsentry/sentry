@@ -157,6 +157,7 @@ const NameAndOrgWrapper = styled('div')`
 `;
 const DropdownOrgName = styled(TextOverflow)`
   font-size: 16px;
+  line-height: 1.2;
   font-weight: bold;
   color: ${p => p.theme.white};
   text-shadow: 0 0 6px rgba(255, 255, 255, 0);
@@ -179,7 +180,7 @@ const SidebarDropdownActor = styled('div')`
     }
     /* stylelint-disable-next-line no-duplicate-selectors */
     ${DropdownUserName} {
-      color: ${p => p.theme.gray3};
+      color: ${p => p.theme.gray1};
     }
   }
 `;

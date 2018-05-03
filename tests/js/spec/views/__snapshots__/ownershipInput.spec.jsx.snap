@@ -694,7 +694,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
               size="zero"
             >
               <Component
-                className="e1hyuoc79 css-11tjqo2-StyledButton-getColors-RuleAddButton e17811v30"
+                className="e1hyuoc79 css-nbmdxi-StyledButton-getColors-RuleAddButton e17811v30"
                 disabled={false}
                 onClick={[Function]}
                 priority="primary"
@@ -702,7 +702,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                 size="zero"
               >
                 <button
-                  className="e1hyuoc79 css-11tjqo2-StyledButton-getColors-RuleAddButton e17811v30"
+                  className="e1hyuoc79 css-nbmdxi-StyledButton-getColors-RuleAddButton e17811v30"
                   disabled={false}
                   onClick={[Function]}
                   priority="primary"
@@ -867,7 +867,7 @@ url:http://example.com/settings/* #product"
           >
             <Component
               aria-label="Save Changes"
-              className="css-1ri5bky-StyledButton-getColors e17811v30"
+              className="css-1oc9q3a-StyledButton-getColors e17811v30"
               disabled={false}
               onClick={[Function]}
               priority="primary"
@@ -876,7 +876,7 @@ url:http://example.com/settings/* #product"
             >
               <button
                 aria-label="Save Changes"
-                className="css-1ri5bky-StyledButton-getColors e17811v30"
+                className="css-1oc9q3a-StyledButton-getColors e17811v30"
                 disabled={false}
                 onClick={[Function]}
                 priority="primary"
