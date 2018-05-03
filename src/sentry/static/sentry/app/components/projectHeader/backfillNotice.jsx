@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from 'react-emotion';
 import moment from 'moment';
+import Cookies from 'js-cookie';
 
 import {tct} from 'app/locale';
 import SentryTypes from 'app/proptypes';
@@ -15,10 +16,24 @@ export default class BackfillNotice extends React.Component {
     project: SentryTypes.Project,
   };
 
+  constructor(...args) {
+    super(...args);
+
+    this.state = {
+      isDismissed: false,
+    };
+  }
+
+  onClose = () => {
+    Cookies.set('backfill_notification_closed', 'true');
+    this.setState({isDismissed: true});
+  };
+
   render() {
-    const shouldDisplayWarning = moment(BACKFILL_DATE).isAfter(
-      moment(this.props.project.dateCreated)
-    );
+    const shouldDisplayWarning =
+      moment(BACKFILL_DATE).isAfter(moment(this.props.project.dateCreated)) &&
+      Cookies.get('backfill_notification_closed') !== 'true' &&
+      this.state.isDismissed == false;
 
     return (
       shouldDisplayWarning && (
@@ -31,7 +46,7 @@ export default class BackfillNotice extends React.Component {
               backfillDate: moment(BACKFILL_DATE).format('MMM d'),
             }
           )}
-          <CloseButton src="icon-close-lg" />
+          <CloseButton src="icon-close-lg" onClick={this.onClose} />
         </StyledCallout>
       )
     );
@@ -50,6 +65,7 @@ const StyledCallout = styled.div`
   right: calc(100% + ${space(2)});
   display: flex;
   align-items: center;
+  z-index: ${p => p.theme.zIndex.dropdown};
   &:before {
     content: '';
     border-style: solid;
@@ -76,4 +92,5 @@ const CloseButton = styled(InlineSvg)`
   width: 16px;
   height: 16px;
   margin: 0 ${space(0.5)} 0 ${space(1)};
+  cursor: pointer;
 `;
