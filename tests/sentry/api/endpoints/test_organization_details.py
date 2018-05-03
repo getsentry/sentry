@@ -398,7 +398,7 @@ class OrganizationDeleteTest(APITestCase):
 
         org = Organization.objects.get(id=org.id)
 
-        assert response.status_code == 204, response.data
+        assert response.status_code == 202, response.data
 
         assert org.status == OrganizationStatus.PENDING_DELETION
 
