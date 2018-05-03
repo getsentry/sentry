@@ -126,6 +126,7 @@ class VSTSIntegration(Integration):
 
     def build_integration(self, state):
         data = state['identity']['data']
+        account = state['identity']['account']
         access_token = data['access_token']
         instance = state['identity']['instance']
         project = state['project']
@@ -142,7 +143,7 @@ class VSTSIntegration(Integration):
             'user_identity': {
                 'access_token': access_token,
                 'type': 'vsts',
-                'external_id': instance,
+                'external_id': account['AccountId'],
                 'scopes': scopes,
                 'data': {},
             }
