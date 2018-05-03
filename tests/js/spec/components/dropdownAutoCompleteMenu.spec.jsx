@@ -99,6 +99,10 @@ describe('DropdownAutoCompleteMenu', function() {
 
     expect(wrapper.find('EmptyMessage')).toHaveLength(1);
     expect(wrapper.find('EmptyMessage').text()).toBe('No items!');
+
+    // Should still be "no items" empty message even if search results return an empty set
+    wrapper.find('StyledInput').simulate('change', {target: {value: 'U-S-A'}});
+    expect(wrapper.find('EmptyMessage').text()).toBe('No items!');
   });
 
   it('shows default empty results message when there are no items found in search', function() {
