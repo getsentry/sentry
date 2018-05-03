@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from django.utils.translation import ugettext_lazy as _
+
 from sentry import http
 from sentry.integrations import Integration, IntegrationMetadata
 from sentry.pipeline import NestedPipelineView
@@ -24,6 +26,7 @@ alert_link = {
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
     author='The Sentry Team',
+    noun=_('Workspace'),
     issue_url='https://github.com/getsentry/sentry/issues/new?title=Slack%20Integration:%20&labels=Component%3A%20Integrations',
     source_url='https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/slack',
     aspects={
