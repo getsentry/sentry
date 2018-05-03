@@ -243,7 +243,7 @@ const TeamMembers = createReactClass({
         {this.state.teamMemberList.length ? (
           this.state.teamMemberList.map((member, i) => (
             <StyledMemberContainer key={i}>
-              <IdBadge avatarSize={36} user={member} orgId={params.orgId} />
+              <IdBadge avatarSize={36} user={member} useLink orgId={params.orgId} />
               {access.has('org:write') && this.removeButton(member)}
             </StyledMemberContainer>
           ))

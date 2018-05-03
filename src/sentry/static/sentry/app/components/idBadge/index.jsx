@@ -30,7 +30,7 @@ export default class IdBadge extends React.Component {
     } else if (team) {
       return <TeamBadge {...this.props} />;
     } else if (user) {
-      return <UserBadge {...this.props} />;
+      return <UserBadge useLink={false} {...this.props} />;
     }
 
     throw new Error(

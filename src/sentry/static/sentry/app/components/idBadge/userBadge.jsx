@@ -21,9 +21,9 @@ const UserBadge = ({
       <StyledAvatar user={user} size={avatarSize} />
       <StyledNameAndEmail>
         <StyledName
-          useLink={useLink}
+          useLink={useLink && orgId}
           hideEmail={hideEmail}
-          to={`/settings/${orgId}/members/${user.id}`}
+          to={`/settings/${orgId}/members/${user.id}/`}
         >
           {displayName || user.name || user.email}
         </StyledName>
