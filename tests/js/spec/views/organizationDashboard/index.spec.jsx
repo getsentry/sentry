@@ -73,25 +73,54 @@ describe('OrganizationDashboard', function() {
 
     it('renders bookmarked projects first in team list', function() {
       const teams = [TestStubs.Team()];
-      const proj1 = TestStubs.Project({
-        id: '1',
-        slug: 'proj-1',
-        teams,
-        isBookmarked: false,
-        stats: [],
-      });
-      const proj2 = TestStubs.Project({
-        id: '2',
-        slug: 'proj-2',
-        teams,
-        isBookmarked: true,
-        stats: [],
-      });
-      const projects = [proj1, proj2];
+      const projects = [
+        TestStubs.Project({
+          id: '1',
+          slug: 'm',
+          teams,
+          isBookmarked: false,
+          stats: [],
+        }),
+        TestStubs.Project({
+          id: '2',
+          slug: 'm-fave',
+          teams,
+          isBookmarked: true,
+          stats: [],
+        }),
+        TestStubs.Project({
+          id: '3',
+          slug: 'a-fave',
+          teams,
+          isBookmarked: true,
+          stats: [],
+        }),
+        TestStubs.Project({
+          id: '4',
+          slug: 'z-fave',
+          teams,
+          isBookmarked: true,
+          stats: [],
+        }),
+        TestStubs.Project({
+          id: '5',
+          slug: 'a',
+          teams,
+          isBookmarked: false,
+          stats: [],
+        }),
+        TestStubs.Project({
+          id: '6',
+          slug: 'z',
+          teams,
+          isBookmarked: false,
+          stats: [],
+        }),
+      ];
 
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/?statsPeriod=24h',
-        body: [proj1, proj2],
+        body: projects,
       });
 
       const wrapper = shallow(
@@ -99,8 +128,12 @@ describe('OrganizationDashboard', function() {
         TestStubs.routerContext()
       );
       const projectCards = wrapper.find('ProjectCardWrapper');
-      expect(projectCards.first().prop('data-test-id')).toBe('proj-2');
-      expect(projectCards.last().prop('data-test-id')).toBe('proj-1');
+      expect(projectCards.at(0).prop('data-test-id')).toBe('a-fave');
+      expect(projectCards.at(1).prop('data-test-id')).toBe('m-fave');
+      expect(projectCards.at(2).prop('data-test-id')).toBe('z-fave');
+      expect(projectCards.at(3).prop('data-test-id')).toBe('a');
+      expect(projectCards.at(4).prop('data-test-id')).toBe('m');
+      expect(projectCards.at(5).prop('data-test-id')).toBe('z');
     });
   });
 });
