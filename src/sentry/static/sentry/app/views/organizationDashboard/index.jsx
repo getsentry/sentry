@@ -44,7 +44,11 @@ class Dashboard extends AsyncComponent {
     const getStats = id => projectsWithStats.find(p => id === p.id).stats;
 
     return (
-      <ProjectCardWrapper key={project.id} width={['100%', '50%', '33%', '25%']}>
+      <ProjectCardWrapper
+        data-test-id={project.slug}
+        key={project.id}
+        width={['100%', '50%', '33%', '25%']}
+      >
         <ProjectCard project={project} stats={getStats(project.id)} />
       </ProjectCardWrapper>
     );
@@ -76,7 +80,7 @@ class Dashboard extends AsyncComponent {
         {projectKeys.map((slug, index) => {
           const showBorder = index !== projectKeys.length - 1;
           return (
-            <TeamSection key={slug} showBorder={showBorder}>
+            <TeamSection data-test-id="team" key={slug} showBorder={showBorder}>
               <TeamTitleBar justify="space-between" align="center">
                 <TeamName>{`#${slug}`}</TeamName>
                 <TeamMembers teamId={slug} orgId={params.orgId} />

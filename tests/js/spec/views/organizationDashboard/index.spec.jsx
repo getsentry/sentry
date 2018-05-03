@@ -127,8 +127,10 @@ describe('OrganizationDashboard', function() {
         <Dashboard teams={teams} projects={projects} params={{orgId: 'org-slug'}} />,
         TestStubs.routerContext()
       );
-      const projectCards = wrapper.find('ProjectCardWrapper');
-      expect(projectCards.at(0).prop('data-test-id')).toBe('a-fave');
+
+      const projectCards = wrapper.find(
+        'TeamSection[data-test-id="team"] ProjectCardWrapper'
+      );
       expect(projectCards.at(1).prop('data-test-id')).toBe('m-fave');
       expect(projectCards.at(2).prop('data-test-id')).toBe('z-fave');
       expect(projectCards.at(3).prop('data-test-id')).toBe('a');
