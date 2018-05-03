@@ -4,7 +4,6 @@ import logging
 import six
 
 from rest_framework import serializers, status
-from rest_framework.response import Response
 from uuid import uuid4
 
 from sentry import roles
@@ -24,6 +23,8 @@ from sentry.tasks.deletion import delete_organization
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 ERR_DEFAULT_ORG = 'You cannot remove the default organization.'
+
+ERR_NO_USER = 'This request requires an authenticated user.'
 
 ORG_OPTIONS = (
     # serializer field name, option key name, type
@@ -260,7 +261,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             request.user,
             DetailedOrganizationSerializer(),
         )
-        return Response(context)
+        return self.respond(context)
 
     @attach_scenarios([update_organization_scenario])
     def put(self, request, organization):
@@ -317,14 +318,14 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     data=changed_data
                 )
 
-            return Response(
+            return self.respond(
                 serialize(
                     organization,
                     request.user,
                     DetailedOrganizationSerializer(),
                 )
             )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @sudo_required
     def delete(self, request, organization):
@@ -346,10 +347,10 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         :auth: required, user-context-needed
         """
         if not request.user.is_authenticated():
-            return Response({'detail': 'This request requires a user.'}, status=401)
+            return self.respond({'detail': ERR_NO_USER}, status=401)
 
         if organization.is_default:
-            return Response({'detail': ERR_DEFAULT_ORG}, status=400)
+            return self.respond({'detail': ERR_DEFAULT_ORG}, status=400)
 
         updated = Organization.objects.filter(
             id=organization.id,
@@ -388,4 +389,9 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 }
             )
 
-        return Response(status=204)
+        context = serialize(
+            organization,
+            request.user,
+            DetailedOrganizationSerializer(),
+        )
+        return self.respond(context, status=202)
