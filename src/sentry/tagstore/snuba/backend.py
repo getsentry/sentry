@@ -89,15 +89,8 @@ class SnubaTagStorage(TagStorage):
             filters['issue'] = [group_id]
         aggregations = [['uniq', 'tags_value', 'values_seen']]
 
-        result = snuba.query(
-            start,
-            end,
-            ['tags_key'],
-            [],
-            filters,
-            aggregations,
-            limit=limit,
-            orderby='-values_seen')
+        result = snuba.query(start, end, ['tags_key'], [], filters,
+                             aggregations, limit=limit, orderby='-values_seen')
 
         if group_id is None:
             ctor = TagKey
