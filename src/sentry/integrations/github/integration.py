@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from django.utils.translation import ugettext_lazy as _
+
 from sentry import http, options
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations import Integration, IntegrationMetadata
@@ -17,6 +19,7 @@ DESCRIPTION = """
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
     author='The Sentry Team',
+    noun=_('Installation'),
     issue_url='',
     source_url='https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/github',
     aspects={}
