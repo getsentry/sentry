@@ -80,7 +80,7 @@ const ProjectNav = createReactClass({
     );
 
     return (
-      <StyledNav justify="space-between" p={2} align="center">
+      <StyledNav justify="space-between" align="center">
         <Box>
           <ProjectSelector organization={org} />
         </Box>
@@ -99,6 +99,7 @@ const StyledNav = styled(Flex)`
   border-bottom: 1px solid ${p => p.theme.borderLight};
   box-shadow: ${p => p.theme.dropShadowLight};
   background-color: white;
+  padding: ${space(2)} 24px;
 `;
 
 const StyledDropdown = styled.div`
