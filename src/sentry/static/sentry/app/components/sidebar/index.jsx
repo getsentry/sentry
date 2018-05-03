@@ -56,6 +56,7 @@ class Sidebar extends React.Component {
     this.routerListener = this.props.router.listen(() => {
       $('.tooltip').tooltip('hide');
     });
+    this.doCollapse(this.props.collapsed);
   }
 
   componentWillReceiveProps(nextProps) {
@@ -69,11 +70,7 @@ class Sidebar extends React.Component {
 
     if (collapsed === nextProps.collapsed) return;
 
-    if (nextProps.collapsed) {
-      jQuery(document.body).addClass('collapsed');
-    } else {
-      jQuery(document.body).removeClass('collapsed');
-    }
+    this.doCollapse(nextProps.collapsed);
   }
 
   componentWillUnmount() {
@@ -88,6 +85,14 @@ class Sidebar extends React.Component {
     // Unlisten to router changes
     if (this.routerListener) {
       this.routerListener();
+    }
+  }
+
+  doCollapse(collapsed) {
+    if (collapsed) {
+      jQuery(document.body).addClass('collapsed');
+    } else {
+      jQuery(document.body).removeClass('collapsed');
     }
   }
 
