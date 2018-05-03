@@ -120,7 +120,6 @@ class AccountConfigView(PipelineView):
             account = self.get_account_from_id(account_id, accounts)
             if account is not None:
                 pipeline.bind_state('account', account)
-                pipeline.bind_state('account_id', account_id)
                 pipeline.bind_state('instance', account['AccountName'] + '.visualstudio.com')
                 return pipeline.next_step()
 

@@ -2,44 +2,10 @@
 from __future__ import absolute_import
 from mock import Mock
 import responses
-from sentry.identity.vsts.provider import ConfigView, VSTSOAuth2CallbackView
+from django.http import HttpRequest
+from sentry.identity.vsts.provider import VSTSOAuth2CallbackView, AccountConfigView, AccountForm
 from sentry.testutils import TestCase
 from six.moves.urllib.parse import parse_qs
-
-
-class TestConfigView(TestCase):
-    def setUp(self):
-        self.instance = 'example.visualstudio.com'
-        self.default_project = 'MyFirstProject'
-        self.config_view = ConfigView()
-        self.request = Mock()
-        self.pipeline = Mock()
-
-    def test_instance_only(self):
-        self.request.POST = {
-            'instance': self.instance,
-        }
-        self.config_view.dispatch(self.request, self.pipeline)
-
-        assert self.pipeline.bind_state.call_count == 1
-        assert self.pipeline.next_step.call_count == 0
-
-    def test_no_instance(self):
-        self.request.POST = {
-            'default_project': self.instance,
-        }
-        self.config_view.dispatch(self.request, self.pipeline)
-        assert self.pipeline.bind_state.call_count == 0
-        assert self.pipeline.next_step.call_count == 0
-
-    def test_completed_form(self):
-        self.request.POST = {
-            'instance': self.instance,
-            'default_project': self.instance,
-        }
-        self.config_view.dispatch(self.request, self.pipeline)
-        assert self.pipeline.bind_state.call_count == 2
-        assert self.pipeline.next_step.call_count == 1
 
 
 class TestVSTSOAuthCallbackView(TestCase):
@@ -83,3 +49,74 @@ class TestVSTSOAuthCallbackView(TestCase):
         assert result['token_type'] == 'jwt-bearer'
         assert result['expires_in'] == '3599'
         assert result['refresh_token'] == 'zzzzzzzzzz'
+
+
+class TestAccountConfigView(TestCase):
+    def setUp(self):
+        self.accounts = [
+            {
+                'AccountId': '1234567-89',
+                'NamespaceId': '00000000-0000-0000-0000-000000000000',
+                'AccountName': 'sentry',
+                'OrganizationName': None,
+                'AccountType': 0,
+                'AccountOwner': '00000000-0000-0000-0000-000000000000',
+                'CreatedBy': '00000000-0000-0000-0000-000000000000',
+                'CreatedDate': '0001-01-01T00:00:00',
+                'AccountStatus': 0,
+                'StatusReason': None,
+                'LastUpdatedBy': '00000000-0000-0000-0000-000000000000',
+                'Properties': {},
+            },
+            {
+                'AccountId': '1234567-8910',
+                'NamespaceId': '00000000-0000-0000-0000-000000000000',
+                'AccountName': 'sentry2',
+                'OrganizationName': None,
+                'AccountType': 0,
+                'AccountOwner': '00000000-0000-0000-0000-000000000000',
+                'CreatedBy': '00000000-0000-0000-0000-000000000000',
+                'CreatedDate': '0001-01-01T00:00:00',
+                'AccountStatus': 0,
+                'StatusReason': None,
+                'LastUpdatedBy': '00000000-0000-0000-0000-000000000000',
+                'Properties': {},
+            },
+
+        ]
+        responses.add(
+            responses.GET,
+            'https://app.vssps.visualstudio.com/_apis/accounts',
+            json=self.accounts,
+            status=200,
+
+        )
+
+    @responses.activate
+    def test_dispatch(self):
+        view = AccountConfigView()
+        request = HttpRequest()
+        request.POST = {'account': '1234567-8910'}
+
+        pipeline = Mock()
+        pipeline.state = {'accounts': self.accounts}
+        pipeline.fetch_state = lambda key: pipeline.state[key]
+        pipeline.bind_state = lambda name, value: pipeline.state.update({name: value})
+
+        view.dispatch(request, pipeline)
+
+        assert pipeline.fetch_state(key='instance') == 'sentry2.visualstudio.com'
+        assert pipeline.fetch_state(key='account') == self.accounts[1]
+        assert pipeline.next_step.call_count == 1
+
+    @responses.activate
+    def test_get_accounts(self):
+        view = AccountConfigView()
+        accounts = view.get_accounts('access-token')
+        assert accounts[0]['AccountName'] == 'sentry'
+        assert accounts[1]['AccountName'] == 'sentry2'
+
+    def test_account_form(self):
+        account_form = AccountForm(self.accounts)
+        assert account_form.fields['account'].choices == [
+            ('1234567-89', 'sentry'), ('1234567-8910', 'sentry2')]
