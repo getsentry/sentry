@@ -105,6 +105,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
         is={null}
       >
         <StyledAvatar
+          hasTooltip={true}
           key="1"
           size={28}
           user={
@@ -126,6 +127,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
         >
           <Component
             className="css-5o5its-StyledAvatar e1axh4r50"
+            hasTooltip={true}
             size={28}
             user={
               Object {
@@ -146,7 +148,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
           >
             <Avatar
               className="css-5o5its-StyledAvatar e1axh4r50"
-              hasTooltip={false}
+              hasTooltip={true}
               size={28}
               user={
                 Object {
@@ -168,7 +170,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
               <UserAvatar
                 className="css-5o5its-StyledAvatar e1axh4r50"
                 gravatar={true}
-                hasTooltip={false}
+                hasTooltip={true}
                 size={28}
                 user={
                   Object {
@@ -190,7 +192,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 <BaseAvatar
                   className="css-5o5its-StyledAvatar e1axh4r50"
                   gravatarId="foo@example.com"
-                  hasTooltip={false}
+                  hasTooltip={true}
                   letterId="foo@example.com"
                   size={28}
                   style={Object {}}
@@ -199,26 +201,28 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                   type="gravatar"
                 >
                   <Tooltip
-                    disabled={true}
+                    disabled={false}
                     title="Foo Bar (foo@example.com)"
                   >
                     <StyledBaseAvatar
-                      className="avatar css-5o5its-StyledAvatar e1axh4r50"
+                      className="tip avatar css-5o5its-StyledAvatar e1axh4r50"
                       style={
                         Object {
                           "height": "28px",
                           "width": "28px",
                         }
                       }
+                      title="Foo Bar (foo@example.com)"
                     >
                       <span
-                        className="avatar e1axh4r50 css-dnah9z-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
+                        className="tip avatar e1axh4r50 css-dnah9z-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
                         style={
                           Object {
                             "height": "28px",
                             "width": "28px",
                           }
                         }
+                        title="Foo Bar (foo@example.com)"
                       >
                         <img
                           onError={[Function]}
@@ -234,6 +238,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
           </Component>
         </StyledAvatar>
         <StyledAvatar
+          hasTooltip={true}
           key="2"
           size={28}
           user={
@@ -255,6 +260,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
         >
           <Component
             className="css-5o5its-StyledAvatar e1axh4r50"
+            hasTooltip={true}
             size={28}
             user={
               Object {
@@ -275,7 +281,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
           >
             <Avatar
               className="css-5o5its-StyledAvatar e1axh4r50"
-              hasTooltip={false}
+              hasTooltip={true}
               size={28}
               user={
                 Object {
@@ -297,7 +303,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
               <UserAvatar
                 className="css-5o5its-StyledAvatar e1axh4r50"
                 gravatar={true}
-                hasTooltip={false}
+                hasTooltip={true}
                 size={28}
                 user={
                   Object {
@@ -319,7 +325,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 <BaseAvatar
                   className="css-5o5its-StyledAvatar e1axh4r50"
                   gravatarId="foo@example.com"
-                  hasTooltip={false}
+                  hasTooltip={true}
                   letterId="foo@example.com"
                   size={28}
                   style={Object {}}
@@ -328,26 +334,28 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                   type="gravatar"
                 >
                   <Tooltip
-                    disabled={true}
+                    disabled={false}
                     title="Foo Bar (foo@example.com)"
                   >
                     <StyledBaseAvatar
-                      className="avatar css-5o5its-StyledAvatar e1axh4r50"
+                      className="tip avatar css-5o5its-StyledAvatar e1axh4r50"
                       style={
                         Object {
                           "height": "28px",
                           "width": "28px",
                         }
                       }
+                      title="Foo Bar (foo@example.com)"
                     >
                       <span
-                        className="avatar e1axh4r50 css-dnah9z-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
+                        className="tip avatar e1axh4r50 css-dnah9z-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
                         style={
                           Object {
                             "height": "28px",
                             "width": "28px",
                           }
                         }
+                        title="Foo Bar (foo@example.com)"
                       >
                         <img
                           onError={[Function]}
@@ -363,6 +371,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
           </Component>
         </StyledAvatar>
         <StyledAvatar
+          hasTooltip={true}
           key="3"
           size={28}
           user={
@@ -384,6 +393,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
         >
           <Component
             className="css-5o5its-StyledAvatar e1axh4r50"
+            hasTooltip={true}
             size={28}
             user={
               Object {
@@ -404,7 +414,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
           >
             <Avatar
               className="css-5o5its-StyledAvatar e1axh4r50"
-              hasTooltip={false}
+              hasTooltip={true}
               size={28}
               user={
                 Object {
@@ -426,7 +436,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
               <UserAvatar
                 className="css-5o5its-StyledAvatar e1axh4r50"
                 gravatar={true}
-                hasTooltip={false}
+                hasTooltip={true}
                 size={28}
                 user={
                   Object {
@@ -448,7 +458,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 <BaseAvatar
                   className="css-5o5its-StyledAvatar e1axh4r50"
                   gravatarId="foo@example.com"
-                  hasTooltip={false}
+                  hasTooltip={true}
                   letterId="foo@example.com"
                   size={28}
                   style={Object {}}
@@ -457,26 +467,28 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                   type="gravatar"
                 >
                   <Tooltip
-                    disabled={true}
+                    disabled={false}
                     title="Foo Bar (foo@example.com)"
                   >
                     <StyledBaseAvatar
-                      className="avatar css-5o5its-StyledAvatar e1axh4r50"
+                      className="tip avatar css-5o5its-StyledAvatar e1axh4r50"
                       style={
                         Object {
                           "height": "28px",
                           "width": "28px",
                         }
                       }
+                      title="Foo Bar (foo@example.com)"
                     >
                       <span
-                        className="avatar e1axh4r50 css-dnah9z-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
+                        className="tip avatar e1axh4r50 css-dnah9z-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
                         style={
                           Object {
                             "height": "28px",
                             "width": "28px",
                           }
                         }
+                        title="Foo Bar (foo@example.com)"
                       >
                         <img
                           onError={[Function]}
@@ -492,6 +504,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
           </Component>
         </StyledAvatar>
         <StyledAvatar
+          hasTooltip={true}
           key="4"
           size={28}
           user={
@@ -513,6 +526,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
         >
           <Component
             className="css-5o5its-StyledAvatar e1axh4r50"
+            hasTooltip={true}
             size={28}
             user={
               Object {
@@ -533,7 +547,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
           >
             <Avatar
               className="css-5o5its-StyledAvatar e1axh4r50"
-              hasTooltip={false}
+              hasTooltip={true}
               size={28}
               user={
                 Object {
@@ -555,7 +569,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
               <UserAvatar
                 className="css-5o5its-StyledAvatar e1axh4r50"
                 gravatar={true}
-                hasTooltip={false}
+                hasTooltip={true}
                 size={28}
                 user={
                   Object {
@@ -577,7 +591,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 <BaseAvatar
                   className="css-5o5its-StyledAvatar e1axh4r50"
                   gravatarId="foo@example.com"
-                  hasTooltip={false}
+                  hasTooltip={true}
                   letterId="foo@example.com"
                   size={28}
                   style={Object {}}
@@ -586,26 +600,28 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                   type="gravatar"
                 >
                   <Tooltip
-                    disabled={true}
+                    disabled={false}
                     title="Foo Bar (foo@example.com)"
                   >
                     <StyledBaseAvatar
-                      className="avatar css-5o5its-StyledAvatar e1axh4r50"
+                      className="tip avatar css-5o5its-StyledAvatar e1axh4r50"
                       style={
                         Object {
                           "height": "28px",
                           "width": "28px",
                         }
                       }
+                      title="Foo Bar (foo@example.com)"
                     >
                       <span
-                        className="avatar e1axh4r50 css-dnah9z-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
+                        className="tip avatar e1axh4r50 css-dnah9z-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
                         style={
                           Object {
                             "height": "28px",
                             "width": "28px",
                           }
                         }
+                        title="Foo Bar (foo@example.com)"
                       >
                         <img
                           onError={[Function]}
@@ -621,6 +637,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
           </Component>
         </StyledAvatar>
         <StyledAvatar
+          hasTooltip={true}
           key="5"
           size={28}
           user={
@@ -642,6 +659,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
         >
           <Component
             className="css-5o5its-StyledAvatar e1axh4r50"
+            hasTooltip={true}
             size={28}
             user={
               Object {
@@ -662,7 +680,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
           >
             <Avatar
               className="css-5o5its-StyledAvatar e1axh4r50"
-              hasTooltip={false}
+              hasTooltip={true}
               size={28}
               user={
                 Object {
@@ -684,7 +702,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
               <UserAvatar
                 className="css-5o5its-StyledAvatar e1axh4r50"
                 gravatar={true}
-                hasTooltip={false}
+                hasTooltip={true}
                 size={28}
                 user={
                   Object {
@@ -706,7 +724,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 <BaseAvatar
                   className="css-5o5its-StyledAvatar e1axh4r50"
                   gravatarId="foo@example.com"
-                  hasTooltip={false}
+                  hasTooltip={true}
                   letterId="foo@example.com"
                   size={28}
                   style={Object {}}
@@ -715,26 +733,28 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                   type="gravatar"
                 >
                   <Tooltip
-                    disabled={true}
+                    disabled={false}
                     title="Foo Bar (foo@example.com)"
                   >
                     <StyledBaseAvatar
-                      className="avatar css-5o5its-StyledAvatar e1axh4r50"
+                      className="tip avatar css-5o5its-StyledAvatar e1axh4r50"
                       style={
                         Object {
                           "height": "28px",
                           "width": "28px",
                         }
                       }
+                      title="Foo Bar (foo@example.com)"
                     >
                       <span
-                        className="avatar e1axh4r50 css-dnah9z-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
+                        className="tip avatar e1axh4r50 css-dnah9z-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
                         style={
                           Object {
                             "height": "28px",
                             "width": "28px",
                           }
                         }
+                        title="Foo Bar (foo@example.com)"
                       >
                         <img
                           onError={[Function]}
@@ -814,6 +834,7 @@ exports[`AvatarList renders with user avatars 1`] = `
         is={null}
       >
         <StyledAvatar
+          hasTooltip={true}
           key="1"
           size={28}
           user={
@@ -835,6 +856,7 @@ exports[`AvatarList renders with user avatars 1`] = `
         >
           <Component
             className="css-5o5its-StyledAvatar e1axh4r50"
+            hasTooltip={true}
             size={28}
             user={
               Object {
@@ -855,7 +877,7 @@ exports[`AvatarList renders with user avatars 1`] = `
           >
             <Avatar
               className="css-5o5its-StyledAvatar e1axh4r50"
-              hasTooltip={false}
+              hasTooltip={true}
               size={28}
               user={
                 Object {
@@ -877,7 +899,7 @@ exports[`AvatarList renders with user avatars 1`] = `
               <UserAvatar
                 className="css-5o5its-StyledAvatar e1axh4r50"
                 gravatar={true}
-                hasTooltip={false}
+                hasTooltip={true}
                 size={28}
                 user={
                   Object {
@@ -899,7 +921,7 @@ exports[`AvatarList renders with user avatars 1`] = `
                 <BaseAvatar
                   className="css-5o5its-StyledAvatar e1axh4r50"
                   gravatarId="foo@example.com"
-                  hasTooltip={false}
+                  hasTooltip={true}
                   letterId="foo@example.com"
                   size={28}
                   style={Object {}}
@@ -908,26 +930,28 @@ exports[`AvatarList renders with user avatars 1`] = `
                   type="gravatar"
                 >
                   <Tooltip
-                    disabled={true}
+                    disabled={false}
                     title="Foo Bar (foo@example.com)"
                   >
                     <StyledBaseAvatar
-                      className="avatar css-5o5its-StyledAvatar e1axh4r50"
+                      className="tip avatar css-5o5its-StyledAvatar e1axh4r50"
                       style={
                         Object {
                           "height": "28px",
                           "width": "28px",
                         }
                       }
+                      title="Foo Bar (foo@example.com)"
                     >
                       <span
-                        className="avatar e1axh4r50 css-dnah9z-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
+                        className="tip avatar e1axh4r50 css-dnah9z-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
                         style={
                           Object {
                             "height": "28px",
                             "width": "28px",
                           }
                         }
+                        title="Foo Bar (foo@example.com)"
                       >
                         <img
                           onError={[Function]}
@@ -943,6 +967,7 @@ exports[`AvatarList renders with user avatars 1`] = `
           </Component>
         </StyledAvatar>
         <StyledAvatar
+          hasTooltip={true}
           key="2"
           size={28}
           user={
@@ -964,6 +989,7 @@ exports[`AvatarList renders with user avatars 1`] = `
         >
           <Component
             className="css-5o5its-StyledAvatar e1axh4r50"
+            hasTooltip={true}
             size={28}
             user={
               Object {
@@ -984,7 +1010,7 @@ exports[`AvatarList renders with user avatars 1`] = `
           >
             <Avatar
               className="css-5o5its-StyledAvatar e1axh4r50"
-              hasTooltip={false}
+              hasTooltip={true}
               size={28}
               user={
                 Object {
@@ -1006,7 +1032,7 @@ exports[`AvatarList renders with user avatars 1`] = `
               <UserAvatar
                 className="css-5o5its-StyledAvatar e1axh4r50"
                 gravatar={true}
-                hasTooltip={false}
+                hasTooltip={true}
                 size={28}
                 user={
                   Object {
@@ -1028,7 +1054,7 @@ exports[`AvatarList renders with user avatars 1`] = `
                 <BaseAvatar
                   className="css-5o5its-StyledAvatar e1axh4r50"
                   gravatarId="foo@example.com"
-                  hasTooltip={false}
+                  hasTooltip={true}
                   letterId="foo@example.com"
                   size={28}
                   style={Object {}}
@@ -1037,26 +1063,28 @@ exports[`AvatarList renders with user avatars 1`] = `
                   type="gravatar"
                 >
                   <Tooltip
-                    disabled={true}
+                    disabled={false}
                     title="Foo Bar (foo@example.com)"
                   >
                     <StyledBaseAvatar
-                      className="avatar css-5o5its-StyledAvatar e1axh4r50"
+                      className="tip avatar css-5o5its-StyledAvatar e1axh4r50"
                       style={
                         Object {
                           "height": "28px",
                           "width": "28px",
                         }
                       }
+                      title="Foo Bar (foo@example.com)"
                     >
                       <span
-                        className="avatar e1axh4r50 css-dnah9z-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
+                        className="tip avatar e1axh4r50 css-dnah9z-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
                         style={
                           Object {
                             "height": "28px",
                             "width": "28px",
                           }
                         }
+                        title="Foo Bar (foo@example.com)"
                       >
                         <img
                           onError={[Function]}
