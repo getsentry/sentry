@@ -99,7 +99,7 @@ exports[`ProjectCard renders 1`] = `
       </Flex>
       <ChartContainer>
         <div
-          className="css-l3ron9-ChartContainer efesc7i0"
+          className="css-1s8o1vf-ChartContainer efesc7i0"
         >
           <Chart
             noEvents={true}
@@ -118,7 +118,7 @@ exports[`ProjectCard renders 1`] = `
           >
             <div>
               <StyledBarChart
-                height={80}
+                height={60}
                 label="events"
                 points={
                   Array [
@@ -134,8 +134,8 @@ exports[`ProjectCard renders 1`] = `
                 }
               >
                 <BarChart
-                  className="css-fcxdqz-StyledBarChart e1wib7610"
-                  height={80}
+                  className="css-h6aoq0-StyledBarChart e1wib7610"
+                  height={60}
                   label="events"
                   points={
                     Array [
@@ -156,8 +156,8 @@ exports[`ProjectCard renders 1`] = `
                         "chart-bar",
                       ]
                     }
-                    className="css-fcxdqz-StyledBarChart e1wib7610"
-                    height={80}
+                    className="css-h6aoq0-StyledBarChart e1wib7610"
+                    height={60}
                     label="events"
                     markers={Array []}
                     points={
@@ -180,10 +180,10 @@ exports[`ProjectCard renders 1`] = `
                     width={null}
                   >
                     <figure
-                      className="css-fcxdqz-StyledBarChart e1wib7610 barchart"
+                      className="css-h6aoq0-StyledBarChart e1wib7610 barchart"
                       style={
                         Object {
-                          "height": 80,
+                          "height": 60,
                           "width": null,
                         }
                       }
