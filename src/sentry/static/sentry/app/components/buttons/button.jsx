@@ -162,6 +162,10 @@ const getColors = ({priority, disabled, theme}) => {
     background-color: ${background};
     border: 1px solid ${border || 'transparent'};
 
+    &:hover {
+      color: ${color};
+    }
+
     &:hover,
     &:focus,
     &:active {
