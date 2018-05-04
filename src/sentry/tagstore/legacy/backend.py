@@ -304,7 +304,7 @@ class LegacyTagStorage(TagStorage):
         if status is not None:
             qs = qs.filter(status=status)
 
-        return list(map(transformers[models.TagKey], qs))
+        return set(map(transformers[models.TagKey], qs))
 
     def get_tag_value(self, project_id, environment_id, key, value):
         from sentry.tagstore.exceptions import TagValueNotFound
@@ -326,7 +326,7 @@ class LegacyTagStorage(TagStorage):
             key=key,
         )
 
-        return list(map(transformers[models.TagValue], qs))
+        return set(map(transformers[models.TagValue], qs))
 
     def get_group_tag_key(self, project_id, group_id, environment_id, key):
         from sentry.tagstore.exceptions import GroupTagKeyNotFound
@@ -347,7 +347,7 @@ class LegacyTagStorage(TagStorage):
         if limit is not None:
             qs = qs[:limit]
 
-        return list(map(transformers[models.GroupTagKey], qs))
+        return set(map(transformers[models.GroupTagKey], qs))
 
     def get_group_tag_value(self, project_id, group_id, environment_id, key, value):
         from sentry.tagstore.exceptions import GroupTagValueNotFound
@@ -371,7 +371,7 @@ class LegacyTagStorage(TagStorage):
             key=key,
         )
 
-        return list(map(transformers[models.GroupTagValue], qs))
+        return set(map(transformers[models.GroupTagValue], qs))
 
     def get_group_list_tag_value(self, project_id, group_id_list, environment_id, key, value):
         qs = models.GroupTagValue.objects.filter(
@@ -464,7 +464,7 @@ class LegacyTagStorage(TagStorage):
         except KeyError:
             # one or more tags were invalid, thus the result should be an empty
             # set
-            return []
+            return set()
 
         # Django doesnt support union, so we limit results and try to find
         # reasonable matches
@@ -491,9 +491,9 @@ class LegacyTagStorage(TagStorage):
                 ).values_list('event_id', flat=True)[:1000]
             )
             if not matches:
-                return []
+                return set()
 
-        return matches
+        return set(matches)
 
     def get_groups_user_counts(self, project_id, group_ids, environment_id):
         qs = models.GroupTagKey.objects.filter(
@@ -667,7 +667,7 @@ class LegacyTagStorage(TagStorage):
             if not matches:
                 return []
 
-        return matches
+        return set(matches)
 
     def update_group_tag_key_values_seen(self, project_id, group_ids):
         gtk_qs = models.GroupTagKey.objects.filter(
