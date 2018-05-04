@@ -4,11 +4,24 @@ from sentry.testutils import TestCase
 
 
 class NormalizeRuntimeTests(TestCase):
-    def test_dotnet_framework(self):
-        data = {'raw_description': '.NET Framework 4.7.1'}
+    def test_dotnet_framework_472(self):
+        data = {'raw_description': '.NET Framework 4.7.3056.0', 'build': "461814"}
         normalize_runtime(data)
         assert data['name'] == '.NET Framework'
-        assert data['version'] == '4.7.1'
+        assert data['version'] == '4.7.2'
+
+    def test_dotnet_framework_future_version(self):
+        # Unmapped build number doesn't override version
+        data = {'raw_description': '.NET Framework 200.0', 'build': "999999"}
+        normalize_runtime(data)
+        assert data['name'] == '.NET Framework'
+        assert data['version'] == '200.0'
+
+    def test_dotnet_native(self):
+        data = {'raw_description': '.NET Native 2.0'}
+        normalize_runtime(data)
+        assert data['name'] == '.NET Native'
+        assert data['version'] == '2.0'
 
     def test_dotnet_core(self):
         data = {'raw_description': '.NET Core 2.0'}

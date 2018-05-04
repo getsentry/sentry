@@ -74,8 +74,9 @@ class ContextsTest(TestCase):
     def test_runtime_normalization(self):
         ctx = Contexts.to_python({
             'runtime': {
-                'raw_description': '.NET Framework 4.7.2'
-            },
+                'raw_description': '.NET Framework 4.0.30319.42000',
+                'build': '461808',
+            }
         })
         assert sorted(ctx.iter_tags()) == [
             ('runtime', '.NET Framework 4.7.2'),
@@ -84,7 +85,8 @@ class ContextsTest(TestCase):
         assert ctx.to_json() == {
             'runtime': {
                 'type': 'runtime',
-                'raw_description': '.NET Framework 4.7.2',
+                'raw_description': '.NET Framework 4.0.30319.42000',
+                'build': '461808',
                 'name': '.NET Framework',
                 'version': '4.7.2'
             }
