@@ -2,6 +2,7 @@ from __future__ import absolute_import, print_function
 
 __all__ = ['IntegrationPipeline']
 
+from django.db import transaction
 from django.http import HttpResponse
 from django.utils import timezone
 
@@ -36,6 +37,7 @@ class IntegrationPipeline(Pipeline):
         self.clear_session()
         return response
 
+    @transaction.atomic
     def _finish_pipeline(self, data):
         # Create the new integration
         defaults = {
