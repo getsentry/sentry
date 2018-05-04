@@ -147,7 +147,9 @@ class RuleBuilder extends React.Component {
             controlled
             value={text}
             onChange={this.handleChangeValue}
-            placeholder={type === 'path' ? 'src/example/*' : 'example.com/settings/*'}
+            placeholder={
+              type === 'path' ? 'src/example/*' : 'https://example.com/settings/*'
+            }
           />
           <Divider src="icon-chevron-right" />
           <Flex flex="1" align="center" mr={1}>
