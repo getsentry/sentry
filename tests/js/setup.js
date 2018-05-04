@@ -472,6 +472,7 @@ window.TestStubs = {
       metadata: {
         description: '*markdown* formatted _description_',
         author: 'Morty',
+        noun: 'Installation',
         issue_url: 'http://example.com/integration_issue_url',
         source_url: 'http://example.com/integration_source_url',
         aspects: {

@@ -123,7 +123,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                               className="css-17pfgr6"
                               is={null}
                             >
-                              Workspaces
+                              Installation
                             </div>
                           </Base>
                         </Box>
@@ -189,7 +189,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                                                   className="icon icon-add"
                                                 />
                                                  
-                                                Add Workspace
+                                                Add Installation
                                               </div>
                                             </Base>
                                           </Flex>
