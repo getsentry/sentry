@@ -144,6 +144,10 @@ def pytest_configure(config):
             'slack.client-id': 'slack-client-id',
             'slack.client-secret': 'slack-client-secret',
             'slack.verification-token': 'slack-verification-token',
+
+            'github.app-name': 'sentry-test-app',
+            'github.client-id': 'github-client-id',
+            'github.client-secret': 'github-client-secret',
         }
     )
 
@@ -192,8 +196,10 @@ def register_extensions():
     from sentry import integrations
     from sentry.integrations.example import ExampleIntegration
     from sentry.integrations.slack import SlackIntegration
+    from sentry.integrations.github import GitHubIntegration
     integrations.register(ExampleIntegration)
     integrations.register(SlackIntegration)
+    integrations.register(GitHubIntegration)
 
     from sentry.plugins import bindings
     from sentry.plugins.providers.dummy import DummyRepositoryProvider

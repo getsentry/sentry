@@ -121,3 +121,11 @@ register('tagstore.multi-sampling', default=0.0)
 register('slack.client-id', flags=FLAG_PRIORITIZE_DISK)
 register('slack.client-secret', flags=FLAG_PRIORITIZE_DISK)
 register('slack.verification-token', flags=FLAG_PRIORITIZE_DISK)
+
+# Github Integration
+register('github.app-id', default=0)
+register('github.app-name', default='')
+register('github.webhook-secret', default='')
+register('github.private-key', default='')
+register('github.client-id', flags=FLAG_PRIORITIZE_DISK)
+register('github.client-secret', flags=FLAG_PRIORITIZE_DISK)

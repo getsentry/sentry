@@ -21,7 +21,7 @@ describe('PluginNavigation Integration', function() {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/`,
       method: 'GET',
-      body: org,
+      body: {organization: org},
     });
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/plugins/`,
