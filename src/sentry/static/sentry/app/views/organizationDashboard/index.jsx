@@ -41,7 +41,8 @@ class Dashboard extends AsyncComponent {
   renderProjectCard(project) {
     const {projectsWithStats} = this.state;
 
-    const getStats = id => projectsWithStats.find(p => id === p.id).stats;
+    const projectDetails = projectsWithStats.find(p => project.id === p.id) || {};
+    const stats = projectDetails.stats || null;
 
     return (
       <ProjectCardWrapper
@@ -49,7 +50,7 @@ class Dashboard extends AsyncComponent {
         key={project.id}
         width={['100%', '50%', '33%', '25%']}
       >
-        <ProjectCard project={project} stats={getStats(project.id)} />
+        <ProjectCard project={project} stats={stats} />
       </ProjectCardWrapper>
     );
   }

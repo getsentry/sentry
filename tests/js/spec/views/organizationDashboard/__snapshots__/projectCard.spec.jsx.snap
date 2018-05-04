@@ -36,7 +36,7 @@ exports[`ProjectCard renders 1`] = `
 >
   <StyledProjectCard>
     <div
-      className="css-18be1td-StyledProjectCard efesc7i2"
+      className="css-18be1td-StyledProjectCard efesc7i3"
     >
       <Flex
         align="center"
@@ -57,17 +57,17 @@ exports[`ProjectCard renders 1`] = `
               to="/org-slug/project-slug/"
             >
               <Link
-                className="css-kor5al-StyledLink efesc7i1"
+                className="css-kor5al-StyledLink efesc7i2"
                 to="/org-slug/project-slug/"
               >
                 <Link
-                  className="css-kor5al-StyledLink efesc7i1"
+                  className="css-kor5al-StyledLink efesc7i2"
                   onlyActiveOnIndex={false}
                   style={Object {}}
                   to="/org-slug/project-slug/"
                 >
                   <a
-                    className="css-kor5al-StyledLink efesc7i1"
+                    className="css-kor5al-StyledLink efesc7i2"
                     onClick={[Function]}
                     style={Object {}}
                   >
@@ -88,7 +88,7 @@ exports[`ProjectCard renders 1`] = `
                 title="Add to bookmarks"
               >
                 <a
-                  className="tip project-select-bookmark icon icon-star-solid css-syj8e8-Star efesc7i3"
+                  className="tip project-select-bookmark icon icon-star-solid css-syj8e8-Star efesc7i4"
                   onClick={[Function]}
                   title="Add to bookmarks"
                 />
@@ -99,7 +99,7 @@ exports[`ProjectCard renders 1`] = `
       </Flex>
       <ChartContainer>
         <div
-          className="css-1s8o1vf-ChartContainer efesc7i0"
+          className="css-1s8o1vf-ChartContainer efesc7i1"
         >
           <Chart
             noEvents={true}
