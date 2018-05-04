@@ -445,7 +445,7 @@ class V2TagStorage(TagStorage):
         if status is not None:
             qs = qs.filter(status=status)
 
-        return list(
+        return set(
             map(
                 transformers[models.TagKey],
                 qs,
@@ -480,7 +480,7 @@ class V2TagStorage(TagStorage):
 
         qs = self._add_environment_filter(qs, environment_id)
 
-        return list(
+        return set(
             map(
                 transformers[models.TagValue],
                 qs,
@@ -518,7 +518,7 @@ class V2TagStorage(TagStorage):
         if limit is not None:
             qs = qs[:limit]
 
-        return list(
+        return set(
             map(
                 transformers[models.GroupTagKey],
                 qs,
@@ -691,7 +691,7 @@ class V2TagStorage(TagStorage):
         except KeyError:
             # one or more tags were invalid, thus the result should be an empty
             # set
-            return []
+            return set()
 
         # Django doesnt support union, so we limit results and try to find
         # reasonable matches
@@ -720,9 +720,9 @@ class V2TagStorage(TagStorage):
                 ).values_list('event_id', flat=True)[:1000]
             )
             if not matches:
-                return []
+                return set()
 
-        return matches
+        return set(matches)
 
     def get_groups_user_counts(self, project_id, group_ids, environment_id):
         qs = models.GroupTagKey.objects.filter(
