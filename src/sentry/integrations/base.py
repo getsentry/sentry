@@ -11,6 +11,7 @@ from sentry.pipeline import PipelineProvider
 IntegrationMetadata = namedtuple('IntegrationMetadata', [
     'description',  # A markdown description of the integration
     'author',       # The integration author's name
+    'noun',         # The noun used to identify the integration
     'issue_url',    # URL where issues should be opened
     'source_url',   # URL to view the source
     'aspects',      # A map of integration specific 'aspects' to the aspect config.
