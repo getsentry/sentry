@@ -18,7 +18,7 @@ def get_jwt():
         # JWT expiration time (10 minute maximum)
         'exp': exp,
         # Integration's GitHub identifier
-        'iss': options.get('github.app-id'),
+        'iss': options.get('github-app.id'),
     }
 
-    return jwt.encode(payload, options.get('github.private-key'), algorithm='RS256')
+    return jwt.encode(payload, options.get('github-app.private-key'), algorithm='RS256')

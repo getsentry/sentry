@@ -27,7 +27,7 @@ class GitHubAppsEndpoint(Endpoint):
         return super(GitHubAppsEndpoint, self).dispatch(request, *args, **kwargs)
 
     def get_secret(self):
-        return options.get('github.webhook-secret')
+        return options.get('github-app.webhook-secret')
 
     def is_valid_signature(self, method, body, secret, signature):
         if method != 'sha1':
