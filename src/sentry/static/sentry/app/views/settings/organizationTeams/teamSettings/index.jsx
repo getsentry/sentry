@@ -89,7 +89,7 @@ export default class TeamSettings extends AsyncView {
 
         <AvatarChooser
           allowGravatar={false}
-          endpoint={`/teams/${organization.slug}/${team.slug}/`}
+          endpoint={`/teams/${organization.slug}/${team.slug}/avatar/`}
           model={team}
         />
 

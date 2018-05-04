@@ -89,17 +89,17 @@ const AvatarChooser = createReactClass({
     let avatarPhoto = dataUrl ? dataUrl.split(',')[1] : null;
 
     // User avatars have different keys than org/team/project
-    if (isUser) {
-      data = {
-        avatar_photo: avatarPhoto,
-        avatar_type: avatarType,
-      };
-    } else {
-      data = {
-        avatar: avatarPhoto,
-        avatarType,
-      };
-    }
+    // if (isUser) {
+    data = {
+      avatar_photo: avatarPhoto,
+      avatar_type: avatarType,
+    };
+    // } else {
+    //   data = {
+    //     avatar: avatarPhoto,
+    //     avatarType,
+    //   };
+    // }
 
     this.api.request(endpoint, {
       method: 'PUT',
