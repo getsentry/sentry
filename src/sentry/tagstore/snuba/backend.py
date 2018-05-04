@@ -97,8 +97,8 @@ class SnubaTagStorage(TagStorage):
         else:
             ctor = functools.partial(GroupTagKey, group_id=group_id)
 
-        return [ctor(key=key, values_seen=values_seen)
-                for key, values_seen in six.iteritems(result) if values_seen]
+        return set([ctor(key=key, values_seen=values_seen)
+                    for key, values_seen in six.iteritems(result) if values_seen])
 
     def __get_tag_value(self, project_id, group_id, environment_id, key, value):
         start, end = self.get_time_range()
@@ -152,8 +152,8 @@ class SnubaTagStorage(TagStorage):
         else:
             ctor = functools.partial(GroupTagValue, group_id=group_id)
 
-        return [ctor(key=key, value=value, **fix_tag_value_data(data))
-                for value, data in result.items()]
+        return set([ctor(key=key, value=value, **fix_tag_value_data(data))
+                    for value, data in result.items()])
 
     def get_tag_key(self, project_id, environment_id, key, status=TagKeyStatus.VISIBLE):
         assert status is TagKeyStatus.VISIBLE
@@ -304,7 +304,7 @@ class SnubaTagStorage(TagStorage):
                     )
                 )
 
-        return values
+        return set(values)
 
     def get_group_event_ids(self, project_id, group_id, environment_id, tags):
         start, end = self.get_time_range()
@@ -320,7 +320,7 @@ class SnubaTagStorage(TagStorage):
         conditions = [or_conditions]
 
         events = snuba.query(start, end, ['event_id'], conditions, filters)
-        return events.keys()
+        return set(events.keys())
 
     def get_group_ids_for_users(self, project_ids, event_users, limit=100):
         start, end = self.get_time_range()
