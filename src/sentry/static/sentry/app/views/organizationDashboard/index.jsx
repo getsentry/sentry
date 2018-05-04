@@ -58,7 +58,7 @@ class Dashboard extends AsyncComponent {
     const {teams, projects, params} = this.props;
     const sortedProjects = sortProjects(projects);
     const {projectsByTeam} = getProjectsByTeams(teams, sortedProjects);
-    const projectKeys = Object.keys(projectsByTeam);
+    const projectKeys = Object.keys(projectsByTeam).sort();
 
     const favorites = projects.filter(project => project.isBookmarked);
 
