@@ -141,8 +141,8 @@ class AppleCrashReport(object):
                 )
             symbol = '%s%s' % (frame.get('function')
                                or NATIVE_UNKNOWN_STRING, file)
-            if next and parse_addr(frame['instruction_addr']) == \
-               parse_addr(next['instruction_addr']):
+            if next and parse_addr(frame.get('instruction_addr')) == \
+               parse_addr(next.get('instruction_addr')):
                 symbol = '[inlined] ' + symbol
         return '%s%s%s%s%s' % (
             str(number).ljust(4, ' '),
