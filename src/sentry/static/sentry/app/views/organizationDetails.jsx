@@ -2,6 +2,7 @@ import React, {Component} from 'react';
 import PropTypes from 'prop-types';
 
 import AlertActions from 'app/actions/alertActions';
+import ErrorBoundary from 'app/components/errorBoundary';
 import Button from 'app/components/buttons/button';
 import {Client} from 'app/api';
 import OrganizationContext from 'app/views/organizationContext';
@@ -149,7 +150,7 @@ class OrganizationDetailsBody extends Component {
         ) : (
           <OldSidebar />
         )}
-        {this.props.children}
+        <ErrorBoundary>{this.props.children}</ErrorBoundary>
         <Footer />
       </React.Fragment>
     );
