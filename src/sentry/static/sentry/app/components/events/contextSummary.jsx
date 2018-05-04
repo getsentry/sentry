@@ -56,6 +56,51 @@ class GenericSummary extends React.Component {
   }
 }
 
+export class OsSummary extends React.Component {
+  static propTypes = {
+    data: PropTypes.object.isRequired,
+  };
+
+  render() {
+    let data = this.props.data;
+
+    if (objectIsEmpty(data) || !data.name) {
+      return <NoSummary title={t('Unknown OS')} />;
+    }
+
+    let className = generateClassName(data.name);
+    let versionElement = null;
+
+    if (data.version) {
+      versionElement = (
+        <p>
+          <strong>{t('Version:')}</strong> {data.version}
+        </p>
+      );
+    } else if (data.kernel_version) {
+      versionElement = (
+        <p>
+          <strong>{t('Kernel:')}</strong> {data.kernel_version}
+        </p>
+      );
+    } else {
+      versionElement = (
+        <p>
+          <strong>{t('Version:')}</strong> {t('Unknown')}
+        </p>
+      );
+    }
+
+    return (
+      <div className={`context-item ${className}`}>
+        <span className="context-item-icon" />
+        <h3>{data.name}</h3>
+        {versionElement}
+      </div>
+    );
+  }
+}
+
 class UserSummary extends React.Component {
   static propTypes = {
     data: PropTypes.object.isRequired,
@@ -146,7 +191,7 @@ const KNOWN_CONTEXTS = [
   {key: 'user', Component: UserSummary},
   {key: 'browser', Component: GenericSummary, unknownTitle: t('Unknown Browser')},
   {key: 'runtime', Component: GenericSummary, unknownTitle: t('Unknown Runtime')},
-  {key: 'os', Component: GenericSummary, unknownTitle: t('Unknown OS')},
+  {key: 'os', Component: OsSummary},
   {key: 'device', Component: DeviceSummary},
 ];
 
