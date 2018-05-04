@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from sentry import http
 from time import time
 from django import forms
+from django.utils.translation import ugettext_lazy as _
 from sentry.web.helpers import render_to_response
 from sentry.integrations import Integration, IntegrationMetadata
 from sentry.pipeline import NestedPipelineView, PipelineView
@@ -15,6 +16,7 @@ VSTS
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
     author='The Sentry Team',
+    noun=_('Account'),
     issue_url='https://github.com/getsentry/sentry/issues/new?title=VSTS%20Integration:%20&labels=Component%3A%20Integrations',
     source_url='https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/vsts',
     aspects={},
