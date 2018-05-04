@@ -464,7 +464,7 @@ class LegacyTagStorage(TagStorage):
         except KeyError:
             # one or more tags were invalid, thus the result should be an empty
             # set
-            return []
+            return set()
 
         # Django doesnt support union, so we limit results and try to find
         # reasonable matches
@@ -491,7 +491,7 @@ class LegacyTagStorage(TagStorage):
                 ).values_list('event_id', flat=True)[:1000]
             )
             if not matches:
-                return []
+                return set()
 
         return set(matches)
 
