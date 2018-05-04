@@ -1,13 +1,14 @@
-import {css} from 'emotion';
+import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
-import styled from 'react-emotion';
+import styled, {css} from 'react-emotion';
 
 import {t} from 'app/locale';
 import AutoComplete from 'app/components/autoComplete';
 import Input from 'app/views/settings/components/forms/controls/input';
 import space from 'app/styles/space';
+import LoadingIndicator from 'app/components/loadingIndicator';
 
 class DropdownAutoCompleteMenu extends React.Component {
   static propTypes = {
@@ -35,7 +36,17 @@ class DropdownAutoCompleteMenu extends React.Component {
       ),
     ]),
     isOpen: PropTypes.bool,
+
+    /**
+     * Show loading indicator next to input
+     */
+    busy: PropTypes.bool,
+
     onSelect: PropTypes.func,
+    /**
+     * When AutoComplete input changes
+     */
+    onChange: PropTypes.func,
 
     /**
      * Message to display when there are no items initially
@@ -66,6 +77,7 @@ class DropdownAutoCompleteMenu extends React.Component {
      * Props to pass to menu component
      */
     menuProps: PropTypes.object,
+
     css: PropTypes.object,
     style: PropTypes.object,
   };
@@ -114,6 +126,7 @@ class DropdownAutoCompleteMenu extends React.Component {
   render() {
     let {
       onSelect,
+      onChange,
       children,
       items,
       menuProps,
@@ -124,6 +137,7 @@ class DropdownAutoCompleteMenu extends React.Component {
       style,
       menuHeader,
       menuFooter,
+      busy,
       ...props
     } = this.props;
 
@@ -132,6 +146,7 @@ class DropdownAutoCompleteMenu extends React.Component {
         resetInputOnClose
         itemToString={item => ''}
         onSelect={onSelect}
+        inputIsActor={false}
         {...props}
       >
         {({
@@ -167,16 +182,22 @@ class DropdownAutoCompleteMenu extends React.Component {
                   {...getMenuProps({
                     ...menuProps,
                     style,
+                    isStyled: true,
                     css: this.props.css,
                     blendCorner,
                     alignMenu,
                   })}
                 >
-                  <StyledInput
-                    autoFocus
-                    placeholder="Filter search"
-                    {...getInputProps()}
-                  />
+                  <Flex>
+                    <StyledInput
+                      autoFocus
+                      placeholder="Filter search"
+                      {...getInputProps({onChange})}
+                    />
+                    <InputLoadingWrapper>
+                      {busy && <LoadingIndicator size={16} mini />}
+                    </InputLoadingWrapper>
+                  </Flex>
                   <div>
                     {menuHeader && <StyledLabel>{menuHeader}</StyledLabel>}
 
@@ -240,10 +261,21 @@ const AutoCompleteRoot = styled(({isOpen, ...props}) => <div {...props} />)`
   display: inline-block;
 `;
 
+const InputLoadingWrapper = styled(Flex)`
+  align-items: center;
+  border-bottom: 1px solid ${p => p.theme.borderLight};
+  flex-shrink: 0;
+  width: 30px;
+`;
+
 const StyledInput = styled(Input)`
+  flex: 1;
+
   &,
-  &:focus {
-    border: none;
+  &:focus,
+  &:active,
+  &:hover {
+    border: 1px solid transparent;
     border-bottom: 1px solid ${p => p.theme.borderLight};
     border-radius: 0;
     box-shadow: none;
@@ -281,9 +313,7 @@ const StyledLabel = styled('div')`
   }
 `;
 
-const StyledMenu = styled(({isOpen, blendCorner, alignMenu, ...props}) => (
-  <div {...props} />
-))`
+const StyledMenu = styled('div')`
   background: #fff;
   border: 1px solid ${p => p.theme.borderLight};
   position: absolute;

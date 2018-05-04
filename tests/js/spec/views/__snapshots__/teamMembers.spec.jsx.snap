@@ -17,6 +17,7 @@ exports[`TeamMembers renders 1`] = `
     >
       <DropdownAutoComplete
         alignMenu="right"
+        busy={false}
         emptyMessage="No members"
         items={Array []}
         menuHeader={
@@ -29,6 +30,7 @@ exports[`TeamMembers renders 1`] = `
             </StyledCreateMemberLink>
           </StyledMembersLabel>
         }
+        onChange={[Function]}
         onSelect={[Function]}
       />
     </div>

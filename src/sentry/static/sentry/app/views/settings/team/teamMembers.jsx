@@ -1,3 +1,4 @@
+import {debounce} from 'lodash';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
@@ -29,6 +30,7 @@ const TeamMembers = createReactClass({
     return {
       loading: true,
       error: false,
+      dropdownBusy: false,
       teamMemberList: null,
       orgMemberList: null,
     };
@@ -53,6 +55,15 @@ const TeamMembers = createReactClass({
       );
     }
   },
+
+  debouncedFetchMembersRequest: debounce(function(query) {
+    this.setState(
+      {
+        dropdownBusy: true,
+      },
+      () => this.fetchMembersRequest(query)
+    );
+  }, 200),
 
   removeMember(member) {
     let {params} = this.props;
@@ -85,6 +96,29 @@ const TeamMembers = createReactClass({
     );
   },
 
+  fetchMembersRequest(query) {
+    let {orgId} = this.props.params;
+    return this.api.request(`/organizations/${orgId}/members/`, {
+      query: {
+        query,
+      },
+      success: data => {
+        this.setState({
+          orgMemberList: data,
+          dropdownBusy: false,
+        });
+      },
+      error: () => {
+        IndicatorStore.add(t('Unable to load organization members.'), 'error', {
+          duration: 2000,
+        });
+        this.setState({
+          dropdownBusy: false,
+        });
+      },
+    });
+  },
+
   fetchData() {
     let params = this.props.params;
 
@@ -104,18 +138,7 @@ const TeamMembers = createReactClass({
       },
     });
 
-    this.api.request(`/organizations/${params.orgId}/members/`, {
-      success: data => {
-        this.setState({
-          orgMemberList: data,
-        });
-      },
-      error: () => {
-        IndicatorStore.add(t('Unable to load organization members.'), 'error', {
-          duration: 2000,
-        });
-      },
-    });
+    this.fetchMembersRequest('');
   },
 
   addTeamMember(selection) {
@@ -124,6 +147,9 @@ const TeamMembers = createReactClass({
     this.setState({
       loading: true,
     });
+
+    // Reset members list after adding member to team
+    this.debouncedFetchMembersRequest('');
 
     joinTeam(
       this.api,
@@ -154,6 +180,15 @@ const TeamMembers = createReactClass({
         },
       }
     );
+  },
+
+  /**
+ * We perform an API request to support orgs with > 100 members (since that's the max API returns)
+ *
+ * @param {Event} e React Event when member filter input changes
+ */
+  handleMemberFilterChange(e) {
+    this.debouncedFetchMembersRequest(e.target.value);
   },
 
   renderDropdown(access) {
@@ -204,6 +239,8 @@ const TeamMembers = createReactClass({
         onSelect={this.addTeamMember}
         menuHeader={menuHeader}
         emptyMessage={t('No members')}
+        onChange={this.handleMemberFilterChange}
+        busy={this.state.dropdownBusy}
       >
         {({isOpen, selectedItem}) => (
           <DropdownButton isOpen={isOpen} size="xsmall">
