@@ -1242,6 +1242,8 @@ SENTRY_DEFAULT_INTEGRATIONS = (
 )
 
 SENTRY_INTERNAL_INTEGRATIONS = (
+    'github',
+    'jira',
     'vsts',
 )
 

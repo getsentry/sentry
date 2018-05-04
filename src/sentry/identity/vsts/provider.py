@@ -6,13 +6,8 @@ from sentry import http
 from sentry import options
 
 from sentry.web.helpers import render_to_response
-from sentry.options.manager import FLAG_PRIORITIZE_DISK
 from sentry.identity.oauth2 import OAuth2Provider, OAuth2LoginView, OAuth2CallbackView
 from sentry.pipeline import PipelineView
-
-options.register('vsts.client-id', flags=FLAG_PRIORITIZE_DISK)
-options.register('vsts.client-secret', flags=FLAG_PRIORITIZE_DISK)
-options.register('vsts.verification-token', flags=FLAG_PRIORITIZE_DISK)
 
 
 class VSTSIdentityProvider(OAuth2Provider):

@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 from sentry import http
-
+from time import time
 from django import forms
 from sentry.web.helpers import render_to_response
 from sentry.integrations import Integration, IntegrationMetadata
@@ -126,7 +126,6 @@ class VSTSIntegration(Integration):
     def build_integration(self, state):
         data = state['identity']['data']
         account = state['identity']['account']
-        access_token = data['access_token']
         instance = state['identity']['instance']
         project = state['project']
 
@@ -140,13 +139,24 @@ class VSTSIntegration(Integration):
                 # icon doesn't appear to be possible
             },
             'user_identity': {
-                'access_token': access_token,
                 'type': 'vsts',
                 'external_id': account['AccountId'],
                 'scopes': [],
-                'data': {},
+                'data': self.get_oauth_data(data),
             }
         }
+
+    def get_oauth_data(self, payload):
+        data = {'access_token': payload['access_token']}
+
+        if 'expires_in' in payload:
+            data['expires'] = int(time()) + int(payload['expires_in'])
+        if 'refresh_token' in payload:
+            data['refresh_token'] = payload['refresh_token']
+        if 'token_type' in payload:
+            data['token_type'] = payload['token_type']
+
+        return data
 
 
 def get_projects(instance, access_token):

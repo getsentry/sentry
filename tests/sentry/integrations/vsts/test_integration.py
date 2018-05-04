@@ -70,7 +70,12 @@ class VSTSIntegrationTest(TestCase):
     def test_build_integration(self):
         state = {
             'identity': {
-                'data': {'access_token': 'xxxxxxxxxxxxxxx', },
+                'data': {
+                    'access_token': 'xxx-xxxx',
+                    'expires_in': '3600',
+                    'refresh_token': 'rxxx-xxxx',
+                    'token_type': 'jwt-bearer',
+                },
                 'account': {'AccountName': 'sentry', 'AccountId': '123435'},
                 'instance': 'sentry.visualstudio.com',
             },
@@ -84,10 +89,11 @@ class VSTSIntegrationTest(TestCase):
             self.integration.identity_oauth_scopes)
         assert integration_dict['metadata']['domain_name'] == 'sentry.visualstudio.com'
 
-        assert integration_dict['user_identity'] == {
-            'access_token': state['identity']['data']['access_token'],
-            'type': 'vsts',
-            'external_id': '123435',
-            'scopes': [],
-            'data': {},
-        }
+        assert integration_dict['user_identity']['type'] == 'vsts'
+        assert integration_dict['user_identity']['external_id'] == '123435'
+        assert integration_dict['user_identity']['scopes'] == []
+
+        assert integration_dict['user_identity']['data']['access_token'] == 'xxx-xxxx'
+        assert isinstance(integration_dict['user_identity']['data']['expires'], int)
+        assert integration_dict['user_identity']['data']['refresh_token'] == 'rxxx-xxxx'
+        assert integration_dict['user_identity']['data']['token_type'] == 'jwt-bearer'
