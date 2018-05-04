@@ -240,7 +240,7 @@ class IndexEventTagsTest(TestCase):
             group.id,
             self.environment.id,
             {'foo': 'bar', 'biz': 'baz'},
-        ) == [event.id]
+        ) == set([event.id])
 
         # ensure it safely handles repeat runs
         with self.tasks():
@@ -258,4 +258,4 @@ class IndexEventTagsTest(TestCase):
             group.id,
             self.environment.id,
             {'foo': 'bar', 'biz': 'baz'},
-        ) == [event.id]
+        ) == set([event.id])

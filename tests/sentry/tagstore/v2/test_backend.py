@@ -52,7 +52,7 @@ class TagStorage(TestCase):
         assert self.ts.get_tag_keys(
             project_id=self.proj1.id,
             environment_id=self.proj1env1.id,
-        ) == []
+        ) == set()
 
         tk = self.ts.create_tag_key(
             project_id=self.proj1.id,
@@ -69,7 +69,7 @@ class TagStorage(TestCase):
         assert self.ts.get_tag_keys(
             project_id=self.proj1.id,
             environment_id=self.proj1env1.id,
-        ) == [transformers[models.TagKey](tk)]
+        ) == set([transformers[models.TagKey](tk)])
 
         assert models.TagKey.objects.all().count() == 1
 
@@ -108,7 +108,7 @@ class TagStorage(TestCase):
             project_id=self.proj1.id,
             environment_id=self.proj1env1.id,
             key=self.key1,
-        ) == []
+        ) == set()
 
         tv = self.ts.create_tag_value(
             project_id=self.proj1.id,
@@ -128,7 +128,7 @@ class TagStorage(TestCase):
             project_id=self.proj1.id,
             environment_id=self.proj1env1.id,
             key=self.key1,
-        ) == [transformers[models.TagValue](tv)]
+        ) == set([transformers[models.TagValue](tv)])
 
         assert models.TagKey.objects.all().count() == 1
         assert models.TagValue.objects.all().count() == 1
@@ -179,7 +179,7 @@ class TagStorage(TestCase):
             project_id=self.proj1.id,
             group_id=self.proj1group1.id,
             environment_id=self.proj1env1.id,
-        ) == []
+        ) == set()
 
         gtk = self.ts.create_group_tag_key(
             project_id=self.proj1.id,
