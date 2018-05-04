@@ -43,14 +43,14 @@ class SidebarDropdown extends React.Component {
     let hasOrgWrite = org && org.access && org.access.indexOf('org:write') > -1;
     let hasMemberRead = org && org.access && org.access.indexOf('member:read') > -1;
 
-    // Avatar to use (Sentry avatar if no org exists)
+    // Avatar to use: Organization --> user --> Sentry
     const avatar =
       hasOrganization || hasUser ? (
         <StyledAvatar
           onClick={onClick}
           collapsed={collapsed}
           organization={org}
-          user={user}
+          user={!org ? user : null}
           size={32}
         />
       ) : (
