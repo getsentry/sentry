@@ -146,9 +146,9 @@ def pytest_configure(config):
             'slack.client-secret': 'slack-client-secret',
             'slack.verification-token': 'slack-verification-token',
 
-            'github.app-name': 'sentry-test-app',
-            'github.client-id': 'github-client-id',
-            'github.client-secret': 'github-client-secret',
+            'github-app.name': 'sentry-test-app',
+            'github-app.client-id': 'github-client-id',
+            'github-app.client-secret': 'github-client-secret',
 
             'vsts.client-id': 'vsts-client-id',
             'vsts.client-secret': 'vsts-client-secret',
