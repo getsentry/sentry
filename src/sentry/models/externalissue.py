@@ -9,8 +9,8 @@ from sentry.db.models import BoundedPositiveIntegerField, Model, sane_repr
 class ExternalIssue(Model):
     __core__ = False
 
-    organization_id = BoundedPositiveIntegerField(db_index=True)
-    integration_id = BoundedPositiveIntegerField(db_index=True)
+    organization_id = BoundedPositiveIntegerField()
+    integration_id = BoundedPositiveIntegerField()
     key = models.CharField(max_length=64)  # example APP-123 in jira
     date_added = models.DateTimeField(default=timezone.now)
     title = models.TextField(null=True)
