@@ -36,7 +36,12 @@ from sentry.runner.decorators import configuration, log_options
     help='Start local styleguide web server on port 9001'
 )
 @click.option('--environment', default='development', help='The environment name.')
-@click.argument('bind', default='127.0.0.1:8000', metavar='ADDRESS')
+@click.argument(
+    'bind',
+    default='127.0.0.1:8000',
+    metavar='ADDRESS',
+    envvar='SENTRY_DEVSERVER_BIND',
+)
 @log_options()
 @configuration
 def devserver(reload, watchers, workers, browser_reload, styleguide, prefix, environment, bind):
