@@ -14,6 +14,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import SentryTypes from 'app/proptypes';
 import Tooltip from 'app/components/tooltip';
 import recreateRoute from 'app/utils/recreateRoute';
+import {conditionalGuideAnchor} from 'app/components/assistant/guideAnchor';
 
 const UserName = styled(Link)`
   font-size: 16px;
@@ -39,6 +40,7 @@ export default class OrganizationMemberRow extends React.PureComponent {
     canAddMembers: PropTypes.bool,
     currentUser: SentryTypes.User,
     status: PropTypes.oneOf(['', 'loading', 'success', 'error']),
+    firstRow: PropTypes.bool,
   };
 
   constructor(...args) {
@@ -115,50 +117,55 @@ export default class OrganizationMemberRow extends React.PureComponent {
         </Box>
 
         <Box px={2} w={180}>
-          {needsSso || pending ? (
-            <div>
+          {conditionalGuideAnchor(
+            this.props.firstRow,
+            'member_status',
+            'text',
+            needsSso || pending ? (
               <div>
-                {pending ? (
-                  <strong>{t('Invited')}</strong>
+                <div>
+                  {pending ? (
+                    <strong>{t('Invited')}</strong>
+                  ) : (
+                    <strong>{t('Missing SSO Link')}</strong>
+                  )}
+                </div>
+
+                {isInviting && (
+                  <div style={{padding: '4px 0 3px'}}>
+                    <LoadingIndicator mini />
+                  </div>
+                )}
+                {isInviteSuccessful && <span>Sent!</span>}
+                {!isInviting &&
+                  !isInviteSuccessful &&
+                  canAddMembers &&
+                  (pending || needsSso) && (
+                    <ResendInviteButton
+                      priority="primary"
+                      size="xsmall"
+                      onClick={this.handleSendInvite}
+                    >
+                      {t('Resend invite')}
+                    </ResendInviteButton>
+                  )}
+              </div>
+            ) : (
+              <div>
+                {!has2fa ? (
+                  <Tooltip title={t('Two-factor auth not enabled')}>
+                    <NoTwoFactorIcon />
+                  </Tooltip>
                 ) : (
-                  <strong>{t('Missing SSO Link')}</strong>
+                  <HasTwoFactorIcon />
                 )}
               </div>
-
-              {isInviting && (
-                <div style={{padding: '4px 0 3px'}}>
-                  <LoadingIndicator mini />
-                </div>
-              )}
-              {isInviteSuccessful && <span>Sent!</span>}
-              {!isInviting &&
-                !isInviteSuccessful &&
-                canAddMembers &&
-                (pending || needsSso) && (
-                  <ResendInviteButton
-                    priority="primary"
-                    size="xsmall"
-                    onClick={this.handleSendInvite}
-                  >
-                    {t('Resend invite')}
-                  </ResendInviteButton>
-                )}
-            </div>
-          ) : (
-            <div>
-              {!has2fa ? (
-                <Tooltip title={t('Two-factor auth not enabled')}>
-                  <NoTwoFactorIcon />
-                </Tooltip>
-              ) : (
-                <HasTwoFactorIcon />
-              )}
-            </div>
+            )
           )}
         </Box>
 
         <Box px={2} w={140}>
-          {roleName}
+          {conditionalGuideAnchor(this.props.firstRow, 'member_role', 'text', roleName)}
         </Box>
 
         {showRemoveButton || showLeaveButton ? (
