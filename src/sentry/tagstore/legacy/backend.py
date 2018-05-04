@@ -594,7 +594,7 @@ class LegacyTagStorage(TagStorage):
         return last_release.value
 
     def get_release_tags(self, project_ids, environment_id, versions):
-        return list(
+        return set(
             map(
                 transformers[models.TagValue],
                 models.TagValue.objects.filter(
