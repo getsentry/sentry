@@ -145,7 +145,7 @@ class ProjectTeams extends AsyncView {
       project,
       organization,
       onClose: data => {
-        addTeamToProject(this.api, organization.slug, project.slug, data.slug).then(
+        addTeamToProject(this.api, organization.slug, project.slug, data).then(
           this.remountComponent,
           this.remountComponent
         );
@@ -154,7 +154,11 @@ class ProjectTeams extends AsyncView {
   };
 
   renderAddTeamToProject() {
+    let {organization} = this.props;
     let projectTeams = new Set(this.state.projectTeams.map(team => team.slug));
+    let canCreateTeams = getOrganizationState(organization)
+      .getAccess()
+      .has('project:admin');
     let teamsToAdd = this.state.allTeams
       .filter(team => {
         return team.hasAccess && !projectTeams.has(team.slug);
@@ -168,9 +172,11 @@ class ProjectTeams extends AsyncView {
     let menuHeader = (
       <StyledTeamsLabel>
         {t('Teams')}
-        <StyledCreateTeamLink onClick={this.handleCreateTeam}>
-          {t('Create Team')}
-        </StyledCreateTeamLink>
+        {canCreateTeams && (
+          <StyledCreateTeamLink onClick={this.handleCreateTeam}>
+            {t('Create Team')}
+          </StyledCreateTeamLink>
+        )}
       </StyledTeamsLabel>
     );
 
@@ -220,31 +226,12 @@ class ProjectTeams extends AsyncView {
     if (this.state.projectTeams.length > 0) body = this.renderResults();
     else body = this.renderEmpty();
 
-    let {organization, params} = this.props;
-    let canCreateTeams = getOrganizationState(organization)
-      .getAccess()
-      .has('project:admin');
+    let {params} = this.props;
 
     return (
       <div>
         <SettingsPageHeader
           title={tct('[projectId] Teams', {projectId: params.projectId})}
-          action={
-            <Button
-              priority="primary"
-              size="small"
-              disabled={!canCreateTeams}
-              title={
-                !canCreateTeams
-                  ? t('You do not have permission to create teams')
-                  : undefined
-              }
-              onClick={this.handleCreateTeam}
-              icon="icon-circle-add"
-            >
-              {t('Create Team')}
-            </Button>
-          }
         />
         <Panel>
           <PanelHeader hasButtons={true}>
