@@ -9,7 +9,7 @@ from sentry.search.base import ANY
 from sentry.testutils import TestCase
 from sentry.tagstore import TagKeyStatus
 from sentry.tagstore.v2 import models
-from sentry.tagstore.v2.backend import V2TagStorage
+from sentry.tagstore.v2.backend import V2TagStorage, transformers
 from sentry.tagstore.exceptions import TagKeyNotFound, TagValueNotFound, GroupTagKeyNotFound, GroupTagValueNotFound
 
 
@@ -56,12 +56,12 @@ class TagStorage(TestCase):
             project_id=self.proj1.id,
             environment_id=self.proj1env1.id,
             key=self.key1,
-        ).id == tk.id
+        ) == transformers[models.TagKey](tk)
 
         assert self.ts.get_tag_keys(
             project_id=self.proj1.id,
             environment_id=self.proj1env1.id,
-        ) == [tk]
+        ) == [transformers[models.TagKey](tk)]
 
         assert models.TagKey.objects.all().count() == 1
 
@@ -108,18 +108,19 @@ class TagStorage(TestCase):
             value=self.value1,
         )
 
-        assert self.ts.get_tag_values(
-            project_id=self.proj1.id,
-            environment_id=self.proj1env1.id,
-            key=self.key1,
-        ) == [tv]
-
         assert self.ts.get_tag_value(
             project_id=self.proj1.id,
             environment_id=self.proj1env1.id,
             key=self.key1,
             value=self.value1,
-        ).id == tv.id
+        ) == transformers[models.TagValue](tv)
+
+        assert self.ts.get_tag_values(
+            project_id=self.proj1.id,
+            environment_id=self.proj1env1.id,
+            key=self.key1,
+        ) == [transformers[models.TagValue](tv)]
+
         assert models.TagKey.objects.all().count() == 1
         assert models.TagValue.objects.all().count() == 1
 
@@ -182,7 +183,7 @@ class TagStorage(TestCase):
             project_id=self.proj1.id,
             group_id=self.proj1group1.id,
             environment_id=self.proj1env1.id,
-        ) == [gtk]
+        ) == [transformers[models.GroupTagKey](gtk)]
 
         models.TagKey.objects.get(
             project_id=self.proj1.id,
@@ -196,7 +197,8 @@ class TagStorage(TestCase):
             group_id=self.proj1group1.id,
             environment_id=self.proj1env1.id,
             key=self.key1,
-        ).id == gtk.id
+        ) == transformers[models.GroupTagKey](gtk)
+
         assert models.GroupTagKey.objects.all().count() == 1
 
     def test_get_or_create_group_tag_key(self):
@@ -256,23 +258,23 @@ class TagStorage(TestCase):
             value=self.value1,
         )
 
-        assert self.ts.get_group_tag_values(
-            project_id=self.proj1.id,
-            group_id=self.proj1group1.id,
-            environment_id=self.proj1env1.id,
-            key=self.key1,
-        ) == [gtv]
-
-        assert models.TagKey.objects.all().count() == 1
-        assert models.TagValue.objects.all().count() == 1
-
         assert self.ts.get_group_tag_value(
             project_id=self.proj1.id,
             group_id=self.proj1group1.id,
             environment_id=self.proj1env1.id,
             key=self.key1,
             value=self.value1,
-        ).id == gtv.id
+        ) == transformers[models.GroupTagValue](gtv)
+
+        assert self.ts.get_group_tag_values(
+            project_id=self.proj1.id,
+            group_id=self.proj1group1.id,
+            environment_id=self.proj1env1.id,
+            key=self.key1,
+        ) == [transformers[models.GroupTagValue](gtv)]
+
+        assert models.TagKey.objects.all().count() == 1
+        assert models.TagValue.objects.all().count() == 1
         assert models.GroupTagValue.objects.all().count() == 1
 
     def test_get_or_create_group_tag_value(self):
@@ -589,7 +591,11 @@ class TagStorage(TestCase):
             '1.0'
         )
 
-        assert self.ts.get_release_tags([self.proj1.id], self.proj1env1.id, ['1.0']) == [tv]
+        assert self.ts.get_release_tags(
+            [self.proj1.id],
+            self.proj1env1.id,
+            ['1.0'],
+        ) == [transformers[models.TagValue](tv)]
 
     def test_get_group_ids_for_users(self):
         from sentry.models import EventUser
@@ -619,7 +625,9 @@ class TagStorage(TestCase):
 
         eu = EventUser(project_id=self.proj1.id, email='user@sentry.io')
 
-        assert self.ts.get_group_tag_values_for_users([eu]) == [v1]
+        assert self.ts.get_group_tag_values_for_users([eu]) == [
+            transformers[models.GroupTagValue](v1)
+        ]
 
     def test_get_group_ids_for_search_filter(self):
         tags = {
