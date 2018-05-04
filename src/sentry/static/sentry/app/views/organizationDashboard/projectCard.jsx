@@ -58,7 +58,11 @@ class ProjectCard extends React.Component {
           </Tooltip>
         </Flex>
         <ChartContainer>
-          <Chart stats={stats} noEvents={!project.firstEvent} />
+          {!stats ? (
+            <NoStats>{t('Project stats are not available at the moment.')}</NoStats>
+          ) : (
+            <Chart stats={stats} noEvents={!project.firstEvent} />
+          )}
           {!project.firstEvent && <NoEvents />}
         </ChartContainer>
         <PlatformList project={project} orgId={params.orgId} />
@@ -66,6 +70,15 @@ class ProjectCard extends React.Component {
     );
   }
 }
+
+const NoStats = styled('div')`
+  background-color: rgba(255, 255, 255);
+  font-weight: bold;
+  font-size: 0.8em;
+  text-align: center;
+  opacity: 0.4;
+  padding: 18px 0;
+`;
 
 const ChartContainer = styled.div`
   position: relative;
