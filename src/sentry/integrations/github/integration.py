@@ -4,6 +4,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry import http, options
 from sentry.identity.pipeline import IdentityProviderPipeline
+from sentry.identity.github import get_user_info
 from sentry.integrations import Integration, IntegrationMetadata
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.utils.http import absolute_uri
@@ -51,23 +52,7 @@ class GitHubIntegration(Integration):
 
         return [GitHubInstallationRedirect(), identity_pipeline_view]
 
-    def get_user_info(self, access_token):
-        payload = {
-            'access_token': access_token,
-        }
-
-        session = http.build_session()
-        resp = session.get(
-            'https://api.github.com/user',
-            params=payload,
-            headers={'Accept': 'application/vnd.github.machine-man-preview+json'}
-        )
-        resp.raise_for_status()
-        resp = resp.json()
-
-        return resp
-
-    def get_installation_info(self, installation_id, access_token):
+    def get_installation_info(self, access_token, installation_id):
         session = http.build_session()
         resp = session.get(
             'https://api.github.com/app/installations/%s' % installation_id,
@@ -95,23 +80,26 @@ class GitHubIntegration(Integration):
         return None
 
     def build_integration(self, state):
-        data = state['identity']['data']
-        user = self.get_user_info(data['access_token'])
-        installation = self.get_installation_info(state['installation_id'], data['access_token'])
+        identity = state['identity']['data']
+
+        user = get_user_info(identity['access_token'])
+        installation = self.get_installation_info(identity['access_token'], state['installation_id'])
+
         return {
             'name': installation['account']['login'],
             'external_id': installation['id'],
             'metadata': {
+                # The access token will be populated upon API usage
                 'access_token': None,
                 'expires_at': None,
                 'icon': installation['account']['avatar_url'],
-                'domain_name': 'github.com/%s' % installation['account']['login'],
+                'domain_name': installation['account']['html_url'].replace('https://', ''),
             },
             'user_identity': {
                 'type': 'github',
                 'external_id': user['id'],
-                'scopes': [],
-                'data': {'access_token': data['access_token']},
+                'scopes': [],  # GitHub apps do not have user scopes
+                'data': {'access_token': identity['access_token']},
             },
         }
 
