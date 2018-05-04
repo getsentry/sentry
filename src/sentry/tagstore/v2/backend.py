@@ -867,7 +867,7 @@ class V2TagStorage(TagStorage):
 
         qs = self._add_environment_filter(qs, environment_id)
 
-        return list(
+        return set(
             map(
                 transformers[models.TagValue],
                 qs,

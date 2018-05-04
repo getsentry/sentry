@@ -606,7 +606,7 @@ class TagStorage(TestCase):
             [self.proj1.id],
             self.proj1env1.id,
             ['1.0'],
-        ) == [transformers[models.TagValue](tv)]
+        ) == set([transformers[models.TagValue](tv)])
 
     def test_get_group_ids_for_users(self):
         from sentry.models import EventUser
