@@ -106,7 +106,7 @@ class GitHubIntegration(Integration):
 
 class GitHubInstallationRedirect(PipelineView):
     def get_app_url(self):
-        name = options.get('github.app-name')
+        name = options.get('github-app.name')
         return 'https://github.com/apps/%s' % name
 
     def dispatch(self, request, pipeline):
