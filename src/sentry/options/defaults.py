@@ -132,4 +132,3 @@ register('github.client-secret', flags=FLAG_PRIORITIZE_DISK)
 # VSTS Integration
 register('vsts.client-id', flags=FLAG_PRIORITIZE_DISK)
 register('vsts.client-secret', flags=FLAG_PRIORITIZE_DISK)
-register('vsts.verification-token', flags=FLAG_PRIORITIZE_DISK)
