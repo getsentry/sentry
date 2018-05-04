@@ -2,6 +2,7 @@ const theme = {
   breakpoints: ['768px', '992px', '1200px'],
 
   offWhite: '#FAF9FB',
+  offWhite2: '#E7E1EC',
   whiteDark: '#fbfbfc',
   white: '#FFFFFF',
 

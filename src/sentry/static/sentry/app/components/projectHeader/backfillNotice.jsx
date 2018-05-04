@@ -9,7 +9,7 @@ import space from '../../styles/space';
 import InlineSvg from '../inlineSvg';
 import {slideInRight} from '../../styles/animations';
 
-const BACKFILL_DATE = '2018-05-01';
+const BACKFILL_DATE = '2018-04-02';
 
 export default class BackfillNotice extends React.Component {
   static propTypes = {
@@ -41,7 +41,7 @@ export default class BackfillNotice extends React.Component {
           <InfoIcon src="icon-circle-info" />
           {tct(
             `You can now filter by environment!
-          Data before [backfillDate] may be temporarily unavailable.`,
+          Some data before [backfillDate] may be temporarily unavailable.`,
             {
               backfillDate: moment(BACKFILL_DATE).format('MMM d'),
             }
@@ -56,13 +56,14 @@ export default class BackfillNotice extends React.Component {
 const StyledCallout = styled.div`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.textColor};
-  background-color: ${p => p.theme.alert.warning.background};
+  background-color: ${p => p.theme.offWhite2};
   border-radius: ${p => p.theme.borderRadius};
   animation: 0.5s ${slideInRight};
   width: 305px;
   padding: ${space(1)};
   position: absolute;
   right: calc(100% + ${space(2)});
+  top: ${space(2)};
   display: flex;
   align-items: center;
   z-index: ${p => p.theme.zIndex.dropdown};
@@ -70,8 +71,7 @@ const StyledCallout = styled.div`
     content: '';
     border-style: solid;
     border-width: ${space(1)} 0 ${space(1)} ${space(1)};
-    border-color: transparent transparent transparent
-      ${p => p.theme.alert.warning.background};
+    border-color: transparent transparent transparent ${p => p.theme.offWhite2};
     position: absolute;
     left: 100%;
     top: 50%;
