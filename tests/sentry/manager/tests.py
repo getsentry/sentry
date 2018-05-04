@@ -54,7 +54,7 @@ class SentryManagerTest(TestCase):
             key='biz'
         )
         assert len(results) == 1
-        res = results[0]
+        res = list(results)[0]
         self.assertEquals(res.value, 'boz')
         self.assertEquals(res.times_seen, 1)
 
