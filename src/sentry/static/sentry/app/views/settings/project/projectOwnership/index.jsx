@@ -56,11 +56,7 @@ class ProjectOwnership extends AsyncView {
               )}
             </p>
             <p>{t('Rules follow the pattern type:glob owner owner')}</p>
-            <p>
-              {t(
-                'Owners can be team identifiers starting with #, or user emails (use @ to input from list)'
-              )}
-            </p>
+            <p>{t('Owners can be team identifiers starting with #, or user emails')}</p>
             <p>
               {t('Globbing Syntax:')}
               <CodeBlock>
