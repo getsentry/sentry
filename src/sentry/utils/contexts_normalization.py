@@ -7,7 +7,7 @@ _windows_re = re.compile('^(Microsoft )?Windows (NT )?(?P<version>\d+\.\d+\.\d+)
 # on Mono and CoreCLR on macOS, iOS, Linux, etc
 _uname_re = re.compile('^(?P<name>[a-zA-Z]+) (?P<version>\d+\.\d+\.\d+(\.[1-9]+)?).*$')
 # .NET Framework 4.7.1, Mono 5.4, .NET Core 2.0
-_runtime_re = re.compile('^(?P<name>.*) (?P<version>\d+\.\d+.*)$')
+_runtime_re = re.compile('^(?P<name>.*) (?P<version>\d+\.\d+(\.\d+){0,2}).*$')
 
 
 def normalize_os(data):
