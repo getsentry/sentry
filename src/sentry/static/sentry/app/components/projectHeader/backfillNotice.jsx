@@ -35,21 +35,19 @@ export default class BackfillNotice extends React.Component {
       Cookies.get('backfill_notification_closed') !== 'true' &&
       this.state.isDismissed == false;
 
-    return (
-      shouldDisplayWarning && (
-        <StyledCallout>
-          <InfoIcon src="icon-circle-info" />
-          {tct(
-            `You can now filter by environment!
+    return shouldDisplayWarning ? (
+      <StyledCallout>
+        <InfoIcon src="icon-circle-info" />
+        {tct(
+          `You can now filter by environment!
           Some data before [backfillDate] may be temporarily unavailable.`,
-            {
-              backfillDate: moment(BACKFILL_DATE).format('MMM d'),
-            }
-          )}
-          <CloseButton src="icon-close-lg" onClick={this.onClose} />
-        </StyledCallout>
-      )
-    );
+          {
+            backfillDate: moment(BACKFILL_DATE).format('MMM d'),
+          }
+        )}
+        <CloseButton src="icon-close-lg" onClick={this.onClose} />
+      </StyledCallout>
+    ) : null;
   }
 }
 
