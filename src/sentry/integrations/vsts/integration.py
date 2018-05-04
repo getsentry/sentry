@@ -6,6 +6,7 @@ from sentry.web.helpers import render_to_response
 from sentry.integrations import Integration, IntegrationMetadata
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
+from sentry.identity.vsts import VSTSIdentityProvider
 from sentry.utils.http import absolute_uri
 DESCRIPTION = """
 VSTS
@@ -74,40 +75,8 @@ class VSTSIntegration(Integration):
         'height': 800,
     }
 
-    identity_oauth_scopes = frozenset([
-        'vso.build_execute',
-        'vso.code_full',
-        'vso.codesearch',
-        'vso.connected_server',
-        'vso.dashboards_manage',
-        'vso.entitlements',
-        'vso.extension.data_write',
-        'vso.extension_manage',
-        'vso.gallery_manage',
-        'vso.graph_manage',
-        'vso.identity_manage',
-        'vso.loadtest',
-        'vso.machinegroup_manage',
-        'vso.memberentitlementmanagement_write',
-        'vso.notification_diagnostics',
-        'vso.notification_manage',
-        'vso.packaging_manage',
-        'vso.profile_write',
-        'vso.project_manage',
-        'vso.release_manage',
-        'vso.security_manage',
-        'vso.serviceendpoint_manage',
-        'vso.symbols_manage',
-        'vso.taskgroups_manage',
-        'vso.test_write',
-        'vso.wiki_write',
-        'vso.work_full',
-        'vso.workitemsearch',
-    ])
-
     def get_pipeline_views(self):
         identity_pipeline_config = {
-            'oauth_scopes': self.identity_oauth_scopes,
             'redirect_url': absolute_uri('/extensions/vsts/setup/'),
         }
 
@@ -129,7 +98,7 @@ class VSTSIntegration(Integration):
         instance = state['identity']['instance']
         project = state['project']
 
-        scopes = sorted(self.identity_oauth_scopes)
+        scopes = sorted(VSTSIdentityProvider.oauth_scopes)
         return {
             'name': project['name'],
             'external_id': project['id'],

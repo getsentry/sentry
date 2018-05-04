@@ -6,6 +6,7 @@ from mock import Mock
 from django.http import HttpRequest
 
 from sentry.integrations.vsts import VSTSIntegration, ProjectConfigView, ProjectForm, get_projects
+from sentry.identity.vsts import VSTSIdentityProvider
 from sentry.testutils import TestCase
 
 
@@ -84,9 +85,7 @@ class VSTSIntegrationTest(TestCase):
         integration_dict = self.integration.build_integration(state)
         assert integration_dict['name'] == 'My Project'
         assert integration_dict['external_id'] == 'my-project-id'
-        assert set(
-            integration_dict['metadata']['scopes']) == set(
-            self.integration.identity_oauth_scopes)
+        assert integration_dict['metadata']['scopes'] == list(VSTSIdentityProvider.oauth_scopes)
         assert integration_dict['metadata']['domain_name'] == 'sentry.visualstudio.com'
 
         assert integration_dict['user_identity']['type'] == 'vsts'
