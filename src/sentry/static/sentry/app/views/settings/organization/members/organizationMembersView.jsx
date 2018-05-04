@@ -310,6 +310,7 @@ class OrganizationMembersView extends AsyncView {
                   onSendInvite={this.handleSendInvite}
                   onRemove={this.handleRemove}
                   onLeave={this.handleLeave}
+                  firstRow={members.indexOf(member) === 0}
                 />
               );
             })}
