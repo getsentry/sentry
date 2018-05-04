@@ -12,7 +12,7 @@ from .utils import get_jwt
 
 
 DESCRIPTION = """
-    Install GitHub Apps
+    Fill me out
 """
 
 
@@ -20,7 +20,7 @@ metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
     author='The Sentry Team',
     noun=_('Installation'),
-    issue_url='',
+    issue_url='https://github.com/getsentry/sentry/issues/new?title=GitHub%20Integration:%20&labels=Component%3A%20Integrations',
     source_url='https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/github',
     aspects={}
 )
@@ -32,8 +32,8 @@ class GitHubIntegration(Integration):
     metadata = metadata
 
     setup_dialog_config = {
-        'width': 600,
-        'height': 900,
+        'width': 1030,
+        'height': 1000,
     }
 
     def get_pipeline_views(self):
@@ -73,20 +73,15 @@ class GitHubIntegration(Integration):
             'https://api.github.com/app/installations/%s' % installation_id,
             headers={
                 'Authorization': 'Bearer %s' % get_jwt(),
-                # TODO(jess): remove this whenever it's out of preview
                 'Accept': 'application/vnd.github.machine-man-preview+json',
             }
         )
         resp.raise_for_status()
         installation_resp = resp.json()
 
-        payload = {
-            'access_token': access_token,
-        }
-
         resp = session.get(
             'https://api.github.com/user/installations',
-            params=payload,
+            params={'access_token': access_token},
             headers={'Accept': 'application/vnd.github.machine-man-preview+json'}
         )
         resp.raise_for_status()
