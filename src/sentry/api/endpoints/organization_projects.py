@@ -89,6 +89,8 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                 if key == 'query':
                     value = ' '.join(value)
                     queryset = queryset.filter(Q(name__icontains=value) | Q(slug__icontains=value))
+                elif key == 'id':
+                    queryset = queryset.filter(id__in=value)
                 else:
                     queryset = queryset.none()
 

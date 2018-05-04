@@ -32,7 +32,7 @@ describe('OrganizationDashboard', function() {
   describe('with projects', function() {
     beforeEach(function() {
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/projects/?statsPeriod=24h',
+        url: '/organizations/org-slug/projects/?statsPeriod=24h&query=id:2',
         body: [
           TestStubs.Project({
             teams: [TestStubs.Team()],
@@ -119,7 +119,8 @@ describe('OrganizationDashboard', function() {
       ];
 
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/projects/?statsPeriod=24h',
+        url:
+          '/organizations/org-slug/projects/?statsPeriod=24h&query=id:3 id:2 id:4 id:5 id:1 id:6',
         body: projects,
       });
 

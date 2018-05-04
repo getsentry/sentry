@@ -1,3 +1,4 @@
+import {flatten} from 'lodash';
 import React from 'react';
 import PropTypes from 'prop-types';
 import createReactClass from 'create-react-class';
@@ -34,8 +35,32 @@ class Dashboard extends AsyncComponent {
   }
 
   getEndpoints() {
-    const {orgId} = this.props.params;
-    return [['projectsWithStats', `/organizations/${orgId}/projects/?statsPeriod=24h`]];
+    const {projects, teams, params} = this.props;
+    const {orgId} = params;
+
+    // TODO(billy): Optimize this so we're not running the same sorts multiple times during a render
+    const sortedProjects = sortProjects(projects);
+    const {projectsByTeam} = getProjectsByTeams(teams, sortedProjects);
+
+    // Fetch list of projectIds to get stats for
+    const projectIds =
+      (projectsByTeam &&
+        flatten(
+          Object.keys(projectsByTeam).map(teamSlug =>
+            projectsByTeam[teamSlug].map(({id}) => id)
+          )
+        )) ||
+      [];
+
+    const idQueries = projectIds.map(id => `id:${id}`).join(' ');
+    const idQueryString = (idQueries && `&query=${idQueries}`) || '';
+
+    return [
+      [
+        'projectsWithStats',
+        `/organizations/${orgId}/projects/?statsPeriod=24h${idQueryString}`,
+      ],
+    ];
   }
 
   renderProjectCard(project) {
