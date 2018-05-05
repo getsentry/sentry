@@ -88,7 +88,7 @@ const PlatformText = styled.div`
 
 const NoPlatforms = styled(Flex)`
   color: ${p => p.theme.gray2};
-  height: 66px;
+  height: 56px;
 `;
 
 export default withRouter(PlatformList);
