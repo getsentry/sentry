@@ -15,7 +15,7 @@ const PLATFORM_TO_ICON = {
   'java-logback': 'java',
   'java-logging': 'java',
   javascript: 'javascript',
-  'javascript-angular': 'angular',
+  'javascript-angular': 'angularjs',
   'javascript-backbone': 'javascript',
   'javascript-ember': 'ember',
   'javascript-react': 'react',
