@@ -50,7 +50,6 @@ import OrganizationHomeContainer from 'app/components/organizations/homeContaine
 import OrganizationMemberDetail from 'app/views/settings/organization/members/organizationMemberDetail';
 import OrganizationMembersView from 'app/views/settings/organization/members/organizationMembersView';
 import OrganizationProjectsView from 'app/views/settings/organization/projects/organizationProjectsView';
-import OrganizationRateLimits from 'app/views/organizationRateLimits';
 import OrganizationRoot from 'app/views/organizationRoot';
 import OrganizationRepositoriesView from 'app/views/organizationRepositoriesView';
 import OrganizationGeneralSettingsView from 'app/views/settings/organization/general/organizationGeneralSettingsView';
@@ -506,7 +505,9 @@ function routes() {
       <Route
         path="rate-limits/"
         name="Rate Limits"
-        component={errorHandler(OrganizationRateLimits)}
+        componentPromise={() =>
+          import(/*webpackChunkName: OrganizationRateLimits*/ 'app/views/settings/organizationRateLimits')}
+        component={errorHandler(LazyLoad)}
       />
 
       <Route
