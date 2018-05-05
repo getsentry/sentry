@@ -68,7 +68,6 @@ import ProjectDebugSymbols from 'app/views/projectDebugSymbols';
 import ProjectDetails from 'app/views/projectDetails';
 import ProjectDocsContext from 'app/views/projectInstall/docsContext';
 import ProjectEvents from 'app/views/projectEvents';
-import ProjectGeneralSettings from 'app/views/projectGeneralSettings';
 import ProjectGettingStarted from 'app/views/projectInstall/gettingStarted';
 import ProjectInstallOverview from 'app/views/projectInstall/overview';
 import ProjectInstallPlatform from 'app/views/projectInstall/platform';
@@ -239,7 +238,12 @@ const accountSettingsRoutes = (
 
 const projectSettingsRoutes = (
   <React.Fragment>
-    <IndexRoute name="General" component={errorHandler(ProjectGeneralSettings)} />
+    <IndexRoute
+      name="General"
+      componentPromise={() =>
+        import(/*webpackChunkName: "ProjectGeneralSettings"*/ 'app/views/settings/projectGeneralSettings')}
+      component={errorHandler(LazyLoad)}
+    />
     <Route
       path="teams/"
       name="Teams"
