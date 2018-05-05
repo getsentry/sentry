@@ -1,8 +1,9 @@
 import {Link} from 'react-router';
 import React from 'react';
+import PropTypes from 'prop-types';
 import styled from 'react-emotion';
-import {t} from 'app/locale';
 
+import {t} from 'app/locale';
 import InlineSvg from 'app/components/inlineSvg';
 import SentryTypes from 'app/proptypes';
 import replaceRouterParams from 'app/utils/replaceRouterParams';
@@ -30,10 +31,11 @@ class BackButton extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization,
     project: SentryTypes.Project,
+    lastRoute: PropTypes.string,
   };
 
   render() {
-    let {params, organization, project} = this.props;
+    let {params, organization, project, lastRoute} = this.props;
 
     let projectId = params.projectId || (project && project.slug);
     let orgId = params.orgId || (organization && organization.slug);
@@ -42,10 +44,13 @@ class BackButton extends React.Component {
 
     return (
       <BackButtonWrapper
-        to={replaceRouterParams(url, {
-          orgId,
-          projectId,
-        })}
+        to={
+          lastRoute ||
+          replaceRouterParams(url, {
+            orgId,
+            projectId,
+          })
+        }
       >
         <Icon src="icon-chevron-left" size="10px" /> Back to {label}
       </BackButtonWrapper>

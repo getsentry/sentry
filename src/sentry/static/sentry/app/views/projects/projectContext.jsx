@@ -7,6 +7,7 @@ import createReactClass from 'create-react-class';
 
 import {loadEnvironments} from 'app/actionCreators/environments';
 import {setActiveProject} from 'app/actionCreators/projects';
+import {setLastRoute} from 'app/actionCreators/navigation';
 import {t} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
 import LoadingError from 'app/components/loadingError';
@@ -109,6 +110,11 @@ const ProjectContext = createReactClass({
       let docTitle = this.docTitleRef.docTitle;
       if (docTitle) docTitle.forceUpdate();
     }
+  },
+
+  componentWillUnmount() {
+    // Save last route so that we can jump back to view from settings
+    setLastRoute(this.props.location.pathname);
   },
 
   remountComponent() {
