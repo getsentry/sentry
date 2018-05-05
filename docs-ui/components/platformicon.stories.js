@@ -27,6 +27,7 @@ storiesOf('Platformicon', module).add(
       <StyledPlatformicon platform="java" size="24" />
       <StyledPlatformicon platform="node" size="24" />
       <StyledPlatformicon platform="php" size="24" />
+      <StyledPlatformicon platform="perl" size="24" />
       <StyledPlatformicon platform="python" size="24" />
       <StyledPlatformicon platform="ruby-rails" size="24" />
       <StyledPlatformicon platform="javascript-react" size="24" />

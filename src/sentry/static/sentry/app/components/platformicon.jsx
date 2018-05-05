@@ -25,6 +25,7 @@ const PLATFORM_TO_ICON = {
   'node-express': 'nodejs',
   'node-koa': 'nodejs',
   'objective-c': 'apple',
+  perl: 'perl',
   php: 'php',
   'php-laravel': 'laravel',
   'php-monolog': 'php',
