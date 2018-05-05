@@ -398,18 +398,35 @@ exports[`ProjectCard renders 1`] = `
                         is={null}
                       >
                         <StyledPlatformIconWrapper
-                          className="javascript"
                           key="javascript"
                         >
                           <span
-                            className="javascript css-128o7xp-StyledPlatformIconWrapper e1mca4c60"
+                            className="css-1hxw8qp-StyledPlatformIconWrapper e1mca4c60"
                           >
                             <StyledPlatformIcon
-                              className="platformicon platformicon-javascript"
+                              className="javascript"
+                              platform="javascript"
+                              size="24"
                             >
-                              <span
-                                className="platformicon platformicon-javascript css-hf0kxf-StyledPlatformIcon e1mca4c61"
-                              />
+                              <Platformicon
+                                className="javascript css-5d6zcx-StyledPlatformIcon e1mca4c61"
+                                platform="javascript"
+                                size="24"
+                              >
+                                <img
+                                  className="javascript css-5d6zcx-StyledPlatformIcon e1mca4c61"
+                                  height="24"
+                                  src={
+                                    Object {
+                                      "default": Object {
+                                        "id": "test",
+                                        "viewBox": Object {},
+                                      },
+                                    }
+                                  }
+                                  width="24"
+                                />
+                              </Platformicon>
                             </StyledPlatformIcon>
                           </span>
                         </StyledPlatformIconWrapper>
