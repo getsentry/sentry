@@ -1,7 +1,6 @@
 import {Redirect, Route, IndexRoute, IndexRedirect} from 'react-router';
 import React from 'react';
 
-import AcceptProjectTransfer from 'app/views/acceptProjectTransfer';
 import AccountAuthorizations from 'app/views/accountAuthorizations';
 import AccountLayout from 'app/views/accountLayout';
 import AdminBuffer from 'app/views/adminBuffer';
@@ -88,7 +87,6 @@ import RouteNotFound from 'app/views/routeNotFound';
 import SettingsProjectProvider from 'app/views/settings/components/settingsProjectProvider';
 import SettingsWrapper from 'app/views/settings/components/settingsWrapper';
 import Stream from 'app/views/stream';
-import TeamCreate from 'app/views/teamCreate';
 import TeamDetails from 'app/views/teamDetails';
 import TeamMembers from 'app/views/teamMembers';
 import TeamSettings from 'app/views/teamSettings';
@@ -558,7 +556,12 @@ function routes() {
 
   return (
     <Route path="/" component={errorHandler(App)}>
-      <Route path="/accept-transfer/" component={errorHandler(AcceptProjectTransfer)} />
+      <Route
+        path="/accept-transfer/"
+        componentPromise={() =>
+          import(/*webpackChunkName:"AcceptProjectTransfer"*/ 'app/views/acceptProjectTransfer')}
+        component={errorHandler(LazyLoad)}
+      />
       <Route path="/account/" component={errorHandler(AccountLayout)}>
         <Route path="authorizations/" component={errorHandler(AccountAuthorizations)} />
       </Route>
@@ -666,7 +669,9 @@ function routes() {
 
           <Route
             path="/organizations/:orgId/teams/new/"
-            component={errorHandler(TeamCreate)}
+            componentPromise={() =>
+              import(/*webpackChunkName:"TeamCreate"*/ './views/teamCreate')}
+            component={errorHandler(LazyLoad)}
           />
 
           <Route path="/organizations/:orgId/" component={OrganizationHomeContainer}>
