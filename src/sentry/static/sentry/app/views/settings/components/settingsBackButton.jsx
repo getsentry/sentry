@@ -3,7 +3,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import InlineSvg from 'app/components/inlineSvg';
 import SentryTypes from 'app/proptypes';
 import replaceRouterParams from 'app/utils/replaceRouterParams';
@@ -52,7 +52,8 @@ class BackButton extends React.Component {
           })
         }
       >
-        <Icon src="icon-chevron-left" size="10px" /> Back to {label}
+        <Icon src="icon-chevron-left" size="10px" />
+        {tct(' Back to [label]', {label})}
       </BackButtonWrapper>
     );
   }
