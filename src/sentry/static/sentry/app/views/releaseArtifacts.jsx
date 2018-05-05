@@ -126,7 +126,7 @@ const ReleaseArtifacts = createReactClass({
       <div>
         <Panel>
           <PanelHeader>
-            <Flex flex="7" pr="2">
+            <Flex flex="7" pr={2}>
               {t('Name')}
             </Flex>
             <Flex flex="2">{t('Distribution')}</Flex>
@@ -138,7 +138,7 @@ const ReleaseArtifacts = createReactClass({
                 <PanelItem key={file.id}>
                   <Flex
                     flex="7"
-                    pr="2"
+                    pr={2}
                     style={{wordWrap: 'break-word', wordBreak: 'break-all'}}
                   >
                     <strong>{file.name || '(empty)'}</strong>
