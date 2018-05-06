@@ -4,8 +4,10 @@ import React from 'react';
 const PLATFORM_TO_ICON = {
   apple: 'apple',
   cocoa: 'apple',
+  cordova: 'cordova',
   csharp: 'csharp',
   elixir: 'elixir',
+  electron: 'electron',
   go: 'go',
   java: 'java',
   'java-android': 'java',
@@ -19,7 +21,7 @@ const PLATFORM_TO_ICON = {
   'javascript-backbone': 'javascript',
   'javascript-ember': 'ember',
   'javascript-react': 'react',
-  'javascript-vue': 'javascript',
+  'javascript-vue': 'vue',
   node: 'nodejs',
   'node-connect': 'nodejs',
   'node-express': 'nodejs',
@@ -43,6 +45,7 @@ const PLATFORM_TO_ICON = {
   ruby: 'ruby',
   'ruby-rack': 'ruby',
   'ruby-rails': 'rails',
+  rust: 'rust',
   swift: 'swift',
 };
 

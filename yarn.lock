@@ -7122,9 +7122,9 @@ pkg-dir@^2.0.0:
   dependencies:
     find-up "^2.1.0"
 
-platformicons@2.0.2:
-  version "2.0.2"
-  resolved "https://registry.yarnpkg.com/platformicons/-/platformicons-2.0.2.tgz#2b1914dd6f318e5fc26d550f546ed874003fb532"
+platformicons@2.0.3:
+  version "2.0.3"
+  resolved "https://registry.yarnpkg.com/platformicons/-/platformicons-2.0.3.tgz#a7cf8074059639373061a4c00cf69d49800e7d01"
 
 pluralize@^4.0.0:
   version "4.0.0"
