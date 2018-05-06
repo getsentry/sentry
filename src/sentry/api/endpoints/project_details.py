@@ -354,11 +354,14 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if project.update_option('sentry:scrub_ip_address', result['scrubIPAddresses']):
                 changed_proj_settings['sentry:scrub_ip_address'] = result['scrubIPAddresses']
         if result.get('securityToken') is not None:
-            project.update_option('sentry:token', result['securityToken'])
+            if project.update_option('sentry:token', result['securityToken']):
+                changed_proj_settings['sentry:token'] = result['securityToken']
         if result.get('securityTokenHeader') is not None:
-            project.update_option('sentry:token_header', result['securityTokenHeader'])
+            if project.update_option('sentry:token_header', result['securityTokenHeader']):
+                changed_proj_settings['sentry:token_header'] = result['securityTokenHeader']
         if result.get('verifySSL') is not None:
-            project.update_option('sentry:verify_ssl', result['verifySSL'])
+            if project.update_option('sentry:verify_ssl', result['verifySSL']):
+                changed_proj_settings['sentry:verify_ssl'] = result['verifySSL']
         if result.get('dataScrubber') is not None:
             if project.update_option('sentry:scrub_data', result['dataScrubber']):
                 changed_proj_settings['sentry:scrub_data'] = result['dataScrubber']
@@ -384,9 +387,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     result['resolveAge'])):
                 changed_proj_settings['sentry:resolve_age'] = result['resolveAge']
         if result.get('scrapeJavaScript') is not None:
-            project.update_option('sentry:scrape_javascript', result['scrapeJavaScript'])
+            if project.update_option('sentry:scrape_javascript', result['scrapeJavaScript']):
+                changed_proj_settings['sentry:scrape_javascript'] = result['scrapeJavaScript']
         if result.get('allowedDomains'):
-            project.update_option('sentry:origins', result['allowedDomains'])
+            if project.update_option('sentry:origins', result['allowedDomains']):
+                changed_proj_settings['sentry:origins'] = result['allowedDomains']
 
         if result.get('isSubscribed'):
             UserOption.objects.set_value(
