@@ -17,6 +17,7 @@ class Viewed extends React.Component {
       <OrganizationIssueList
         title={this.getTitle()}
         endpoint={this.getEndpoint()}
+        emptyText={t('No recently viewed issues.')}
         {...this.props}
       />
     );

@@ -11,6 +11,7 @@ class OrganizationIssueList extends React.Component {
   static propTypes = {
     title: PropTypes.string,
     endpoint: PropTypes.string.isRequired,
+    emptyText: PropTypes.string,
     pageSize: PropTypes.number,
   };
 
@@ -63,6 +64,7 @@ class OrganizationIssueList extends React.Component {
         <h3>{this.props.title}</h3>
         <IssueList
           endpoint={this.props.endpoint}
+          emptyText={this.props.emptyText}
           query={{
             status: this.state.status,
             statsPeriod: '24h',
