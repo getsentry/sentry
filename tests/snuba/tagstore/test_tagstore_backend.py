@@ -137,19 +137,19 @@ class TagStorage(TestCase):
             key='foo',
         ).key == 'foo'
 
-        keys = sorted(
-            self.ts.get_group_tag_keys(
+        keys = {
+            k.key: k for k in self.ts.get_group_tag_keys(
                 project_id=self.proj1.id,
                 group_id=self.proj1group1.id,
                 environment_id=self.proj1env1.id,
-            ),
-            key=lambda x: x.key,
-        )
-        assert len(keys) == 2
-        assert keys[0].key == 'baz'
-        assert keys[0].times_seen == 2
-        assert keys[1].key == 'foo'
-        assert keys[1].times_seen == 2
+            )
+        }
+        assert len(keys) == 4
+        assert set(keys) == set(['baz', 'environment', 'foo', 'sentry:release'])
+        for k in keys.values():
+            if k.key != 'sentry:release':
+                assert k.values_seen == 1, 'expected {!r} to have 1 unique value'.format(k.key)
+        assert keys['sentry:release'].values_seen == 2
 
     def test_get_group_tag_value(self):
         with pytest.raises(GroupTagValueNotFound):
