@@ -23,6 +23,7 @@ from .endpoints.group_events import GroupEventsEndpoint
 from .endpoints.group_events_latest import GroupEventsLatestEndpoint
 from .endpoints.group_events_oldest import GroupEventsOldestEndpoint
 from .endpoints.group_hashes import GroupHashesEndpoint
+from .endpoints.group_integration_details import GroupIntegrationDetails
 from .endpoints.group_notes import GroupNotesEndpoint
 from .endpoints.group_notes_details import GroupNotesDetailsEndpoint
 from .endpoints.group_participants import GroupParticipantsEndpoint
@@ -911,6 +912,11 @@ urlpatterns = patterns(
         r'^(?:issues|groups)/(?P<issue_id>\d+)/similar/$',
         GroupSimilarIssuesEndpoint.as_view(),
         name='sentry-api-0-group-similar-issues'
+    ),
+    url(
+        r'^(?:issues|groups)/(?P<issue_id>\d+)/integrations/(?P<integration_id>[^\/]+)/$',
+        GroupIntegrationDetails.as_view(),
+        name='sentry-api-0-group-integration-details'
     ),
     # Load plugin group urls
     url(
