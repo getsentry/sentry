@@ -155,32 +155,6 @@ describe('ProjectTeams', function() {
     );
   });
 
-  it('opens "create team modal" when creating a new team from header', function() {
-    let wrapper = mount(
-      <ProjectTeams
-        params={{orgId: org.slug, projectId: project.slug}}
-        project={project}
-        organization={org}
-      />,
-      TestStubs.routerContext()
-    );
-
-    // Click "Create Team" in Panel Header
-    wrapper.find('SettingsPageHeading Button').simulate('click');
-
-    // action creator to open "create team modal" is called
-    expect(openCreateTeamModal).toHaveBeenCalledWith(
-      expect.objectContaining({
-        project: expect.objectContaining({
-          slug: project.slug,
-        }),
-        organization: expect.objectContaining({
-          slug: org.slug,
-        }),
-      })
-    );
-  });
-
   it('opens "create team modal" when creating a new team from dropdown', function() {
     let wrapper = mount(
       <ProjectTeams
