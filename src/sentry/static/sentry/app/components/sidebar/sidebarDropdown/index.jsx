@@ -6,6 +6,7 @@ import {t} from 'app/locale';
 import Avatar from 'app/components/avatar';
 import DropdownMenu from 'app/components/dropdownMenu';
 import Hook from 'app/components/hook';
+import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/link';
 import SentryTypes from 'app/proptypes';
 import TextOverflow from 'app/components/textOverflow';
@@ -33,8 +34,30 @@ class SidebarDropdown extends React.Component {
 
   render() {
     let {org, orientation, collapsed, config, user, onClick} = this.props;
+    let hasOrganization = !!org;
+    let hasUser = !!user;
+
+    // If there is no org in context, we use an org from `withLatestContext`
+    // (which uses an org from organizations index endpoint versus details endpoint)
+    // and does not have `access`
     let hasOrgWrite = org && org.access && org.access.indexOf('org:write') > -1;
     let hasMemberRead = org && org.access && org.access.indexOf('member:read') > -1;
+
+    // Avatar to use: Organization --> user --> Sentry
+    const avatar =
+      hasOrganization || hasUser ? (
+        <StyledAvatar
+          onClick={onClick}
+          collapsed={collapsed}
+          organization={org}
+          user={!org ? user : null}
+          size={32}
+        />
+      ) : (
+        <SentryLink to="/">
+          <InlineSvg css={{fontSize: 32}} src="icon-sentry" />
+        </SentryLink>
+      );
 
     return (
       <DropdownMenu>
@@ -46,13 +69,9 @@ class SidebarDropdown extends React.Component {
                 {...getActorProps({isStyled: true})}
               >
                 <div style={{display: 'flex', alignItems: 'flex-start'}}>
-                  <StyledAvatar
-                    onClick={onClick}
-                    collapsed={collapsed}
-                    organization={org}
-                    size={32}
-                  />
-                  {!collapsed &&
+                  {avatar}
+                  {hasOrganization &&
+                    !collapsed &&
                     orientation !== 'top' && (
                       <NameAndOrgWrapper>
                         <DropdownOrgName>
@@ -66,54 +85,62 @@ class SidebarDropdown extends React.Component {
 
               {isOpen && (
                 <OrgAndUserMenu {...getMenuProps({isStyled: true, org})}>
-                  <SidebarOrgSummary organization={org} />
-                  {hasOrgWrite && (
-                    <SidebarMenuItem to={`/settings/${org.slug}/`}>
-                      {t('Organization settings')}
-                    </SidebarMenuItem>
+                  {hasOrganization && (
+                    <React.Fragment>
+                      <SidebarOrgSummary organization={org} />
+                      {hasOrgWrite && (
+                        <SidebarMenuItem to={`/settings/${org.slug}/`}>
+                          {t('Organization settings')}
+                        </SidebarMenuItem>
+                      )}
+                      {hasMemberRead && (
+                        <SidebarMenuItem to={`/settings/${org.slug}/members/`}>
+                          {t('Members')}
+                        </SidebarMenuItem>
+                      )}
+
+                      <Hook
+                        name="sidebar:organization-dropdown-menu"
+                        organization={org}
+                        Components={{SidebarMenuItem}}
+                      />
+
+                      {config.isOnPremise && (
+                        <SidebarMenuItem href="https://forum.sentry.io/">
+                          {t('Support forum')}
+                        </SidebarMenuItem>
+                      )}
+
+                      <SidebarMenuItem>
+                        <SwitchOrganization canCreateOrganization={hasOrgWrite} />
+                      </SidebarMenuItem>
+
+                      <Divider />
+                    </React.Fragment>
                   )}
-                  {hasMemberRead && (
-                    <SidebarMenuItem to={`/settings/${org.slug}/members/`}>
-                      {t('Members')}
-                    </SidebarMenuItem>
+
+                  {!!user && (
+                    <React.Fragment>
+                      <UserSummary to="/settings/account/details/">
+                        <UserBadgeNoOverflow user={user} avatarSize={32} />
+                      </UserSummary>
+
+                      <div>
+                        <SidebarMenuItem to="/settings/account/">
+                          {t('User settings')}
+                        </SidebarMenuItem>
+                        <SidebarMenuItem to={'/settings/account/api/'}>
+                          {t('API keys')}
+                        </SidebarMenuItem>
+                        {user.isSuperuser && (
+                          <SidebarMenuItem to={'/manage/'}>{t('Admin')}</SidebarMenuItem>
+                        )}
+                        <SidebarMenuItem href="/auth/logout/">
+                          {t('Sign out')}
+                        </SidebarMenuItem>
+                      </div>
+                    </React.Fragment>
                   )}
-
-                  <Hook
-                    name="sidebar:organization-dropdown-menu"
-                    organization={org}
-                    Components={{SidebarMenuItem}}
-                  />
-
-                  {config.isOnPremise && (
-                    <SidebarMenuItem href="https://forum.sentry.io/">
-                      {t('Support forum')}
-                    </SidebarMenuItem>
-                  )}
-
-                  <SidebarMenuItem>
-                    <SwitchOrganization canCreateOrganization={hasOrgWrite} />
-                  </SidebarMenuItem>
-
-                  <Divider />
-
-                  <UserSummary to="/settings/account/details/">
-                    <UserBadgeNoOverflow user={user} avatarSize={32} />
-                  </UserSummary>
-
-                  <div>
-                    <SidebarMenuItem to="/settings/account/">
-                      {t('User settings')}
-                    </SidebarMenuItem>
-                    <SidebarMenuItem to={'/settings/account/api/'}>
-                      {t('API keys')}
-                    </SidebarMenuItem>
-                    {user.isSuperuser && (
-                      <SidebarMenuItem to={'/manage/'}>{t('Admin')}</SidebarMenuItem>
-                    )}
-                    <SidebarMenuItem href="/auth/logout/">
-                      {t('Sign out')}
-                    </SidebarMenuItem>
-                  </div>
                 </OrgAndUserMenu>
               )}
             </SidebarDropdownRoot>
@@ -125,6 +152,13 @@ class SidebarDropdown extends React.Component {
 }
 
 export default SidebarDropdown;
+
+const SentryLink = styled(Link)`
+  color: ${p => p.theme.white};
+  &:hover {
+    color: ${p => p.theme.white};
+  }
+`;
 
 const UserSummary = styled(Link)`
   display: flex;
