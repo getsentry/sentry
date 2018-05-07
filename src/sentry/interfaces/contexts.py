@@ -15,7 +15,7 @@ from django.utils.encoding import force_text
 
 from sentry.utils.safe import trim
 from sentry.interfaces.base import Interface
-from sentry.utils.os_normalization import normalize
+from sentry.utils.contexts_normalization import normalize_os, normalize_runtime
 
 __all__ = ('Contexts', )
 
@@ -122,6 +122,10 @@ class RuntimeContextType(ContextType):
         'name': u'{name}',
     }
 
+    def __init__(self, alias, data):
+        normalize_runtime(data)
+        super(RuntimeContextType, self).__init__(alias, data)
+
 
 @contexttype
 class BrowserContextType(ContextType):
@@ -144,7 +148,7 @@ class OsContextType(ContextType):
     # build, rooted
 
     def __init__(self, alias, data):
-        normalize(data)
+        normalize_os(data)
         super(OsContextType, self).__init__(alias, data)
 
 
