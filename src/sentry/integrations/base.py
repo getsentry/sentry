@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-__all__ = ['IntegrationProvider', 'IntegrationMetadata']
+__all__ = ['Integration', 'IntegrationProvider', 'IntegrationMetadata']
 
 import logging
 from collections import namedtuple
@@ -20,7 +20,7 @@ IntegrationMetadata = namedtuple('IntegrationMetadata', [
 
 class IntegrationProvider(PipelineProvider):
     """
-    An integration describes a third party that can be registered within Sentry.
+    An integration provider describes a third party that can be registered within Sentry.
 
     The core behavior is simply how to add the integration (the setup
     pipeline), which will likely use a nested pipeline for identity
@@ -42,6 +42,9 @@ class IntegrationProvider(PipelineProvider):
     # configuration interface of the integration.
     metadata = None
 
+    # an Integration class that will manage the functionality once installed
+    integration_cls = None
+
     # configuration for the setup dialog
     setup_dialog_config = {
         'width': 600,
@@ -50,6 +53,13 @@ class IntegrationProvider(PipelineProvider):
 
     # whether or not the integration installation be initiated from Sentry
     can_add = True
+
+    @classmethod
+    def get_integration(cls, model, **kwargs):
+        if cls.integration_cls is None:
+            raise NotImplementedError
+
+        return cls.integration_cls(model, **kwargs)
 
     def get_logger(self):
         return logging.getLogger('sentry.integration.%s' % (self.key, ))
@@ -120,3 +130,17 @@ class IntegrationProvider(PipelineProvider):
         >>> def setup(self):
         >>>     bindings.add('repository.provider', GitHubRepositoryProvider, key='github')
         """
+
+
+class Integration(object):
+    """
+    An integration represents an installed integration and manages the
+    core functionality of the integration.
+    """
+
+    def __init__(self, model):
+        self.model = model
+
+    def get_client(self):
+        # Return the api client for a given provider
+        raise NotImplementedError
