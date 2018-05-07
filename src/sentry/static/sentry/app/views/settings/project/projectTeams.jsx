@@ -104,10 +104,7 @@ class ProjectTeams extends AsyncView {
     let {organization} = this.props;
     let access = getOrganizationState(organization).getAccess();
     return (
-      access.has('org:write') &&
-      access.has('team:write') &&
-      access.has('project:write') &&
-      false
+      access.has('org:write') && access.has('team:write') && access.has('project:write')
     );
   };
 

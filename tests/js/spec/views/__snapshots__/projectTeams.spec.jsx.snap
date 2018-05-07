@@ -42,11 +42,22 @@ exports[`ProjectTeams renders 1`] = `
             menuHeader={
               <StyledTeamsLabel>
                 Teams
-                <StyledCreateTeamLink
-                  onClick={[Function]}
+                <Tooltip
+                  disabled={true}
+                  title="You do not have access to create teams."
+                  tooltipOptions={
+                    Object {
+                      "placement": "top",
+                    }
+                  }
                 >
-                  Create Team
-                </StyledCreateTeamLink>
+                  <StyledCreateTeamLink
+                    disabled={false}
+                    onClick={[Function]}
+                  >
+                    Create Team
+                  </StyledCreateTeamLink>
+                </Tooltip>
               </StyledTeamsLabel>
             }
             onSelect={[Function]}
