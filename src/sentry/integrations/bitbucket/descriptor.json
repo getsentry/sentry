@@ -1,0 +1,19 @@
+{
+    "key": "sentry-bitbucket",
+    "name": "Sentry Bitbucket",
+    "description": "A sentry integration",
+    "vendor":{
+        "name": "Sentry.io",
+        "url": "https://sentry.io/"
+    },
+    "baseUrl": "https://sentry.io/",
+    "authentication":{
+        "type": "jwt"
+    },
+    "lifecycle": {
+        "installed": "/installed",
+        "uninstalled": "/uninstalled"
+    },
+    "scopes": ["account", "repository"],
+    "contexts": ["account"]
+}
