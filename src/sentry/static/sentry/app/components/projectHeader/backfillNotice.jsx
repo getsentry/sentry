@@ -9,7 +9,7 @@ import space from '../../styles/space';
 import InlineSvg from '../inlineSvg';
 import {slideInRight} from '../../styles/animations';
 
-const BACKFILL_DATE = '2018-04-02';
+const BACKFILL_DATE = '2018-03-20';
 
 export default class BackfillNotice extends React.Component {
   static propTypes = {
