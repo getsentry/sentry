@@ -63,8 +63,8 @@ class Integration(Model):
         from sentry import integrations
         return integrations.get(self.provider)
 
-    def get_integration(self):
-        return self.get_provider().get_integration(self)
+    def get_installation(self):
+        return self.get_provider().get_installation(self)
 
     def add_organization(self, organization_id, default_auth_id=None, config=None):
         """
