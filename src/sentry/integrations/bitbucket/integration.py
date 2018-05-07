@@ -4,7 +4,7 @@ from sentry.integrations import Integration, IntegrationMetadata
 DESCRIPTION = """
 BitBucket
 """
-
+# TODO(LB): Put something real in here
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
     author='The Sentry Team',
