@@ -26,7 +26,8 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from symbolic import FatObject, SymbolicError, ObjectErrorUnsupportedObject, \
-    SymCache, SYMCACHE_LATEST_VERSION
+    SYMCACHE_LATEST_VERSION, SymCache, SymCacheErrorMissingDebugInfo, \
+    SymCacheErrorMissingDebugSection
 
 from sentry import options
 from sentry.cache import default_cache
@@ -40,7 +41,6 @@ from sentry.reprocessing import resolve_processing_issue, \
 
 
 logger = logging.getLogger(__name__)
-
 
 ONE_DAY = 60 * 60 * 24
 ONE_DAY_AND_A_HALF = int(ONE_DAY * 1.5)
@@ -620,8 +620,11 @@ class DSymCache(object):
             default_cache.set('scbe:%s:%s' % (
                 debug_file.debug_id, debug_file.file.checksum), e.message,
                 CONVERSION_ERROR_TTL)
-            logger.error('dsymfile.symcache-build-error',
-                         exc_info=True, extra=dict(debug_id=debug_file.debug_id))
+
+            if not isinstance(e, (SymCacheErrorMissingDebugSection, SymCacheErrorMissingDebugInfo)):
+                logger.error('dsymfile.symcache-build-error',
+                             exc_info=True, extra=dict(debug_id=debug_file.debug_id))
+
             return None, e.message
 
         # We seem to have this task running onconcurrently or some
