@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from django.core.cache import cache as default_cache
 from django.utils import timezone
 
+from sentry.utils import json
 from sentry.api.base import Endpoint
 from sentry.api.serializers import serialize
 from sentry.models import Relay
@@ -35,7 +36,14 @@ class RelayRegisterChallengeEndpoint(Endpoint):
         Registers the relay with the sentry installation.  If a relay boots
         it will always attempt to invoke this endpoint.
         """
-        serializer = RelaySerializer(data=request.DATA, partial=True)
+        try:
+            json_data = json.loads(request.body)
+        except ValueError:
+            return Response({
+                'detail': 'No valid json body',
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = RelaySerializer(data=json_data, partial=True)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

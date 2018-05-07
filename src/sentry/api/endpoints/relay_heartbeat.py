@@ -8,8 +8,7 @@ from sentry.api.permissions import RelayPermission
 from sentry.relay import change_set, query
 
 
-# XXX: rename to heartbeat
-class RelayAortaEndpoint(Endpoint):
+class RelayHeartbeatEndpoint(Endpoint):
     authentication_classes = (RelayAuthentication, )
     permission_classes = (RelayPermission, )
 
