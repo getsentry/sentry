@@ -8,6 +8,7 @@ import requests
 import six
 
 from django.conf import settings
+from django.utils import timezone
 
 from sentry.models import GroupHash, EventUser
 from sentry.tagstore.exceptions import (
@@ -37,7 +38,7 @@ class TagStorage(TestCase):
         GroupHash.objects.create(project=self.proj1, group=self.proj1group1, hash=hash1)
         GroupHash.objects.create(project=self.proj1, group=self.proj1group2, hash=hash2)
 
-        self.now = datetime.utcnow().replace(microsecond=0)
+        self.now = timezone.now().replace(microsecond=0)
         data = json.dumps([{
             'event_id': six.text_type(r) * 32,
             'primary_hash': hash1,
@@ -274,14 +275,16 @@ class TagStorage(TestCase):
         assert result[1].last_seen == two_seconds_ago
 
     def test_get_release_tags(self):
-        tags = self.ts.get_release_tags(
-            [self.proj1.id],
-            None,
-            ['100']
+        tags = list(
+            self.ts.get_release_tags(
+                [self.proj1.id],
+                None,
+                ['100']
+            )
         )
 
         assert len(tags) == 1
-        one_second_ago = (self.now - timedelta(seconds=1)).strftime('%Y-%m-%dT%H:%M:%S+00:00')
+        one_second_ago = self.now - timedelta(seconds=1)
         assert tags[0].last_seen == one_second_ago
         assert tags[0].first_seen == one_second_ago
         assert tags[0].times_seen == 1
