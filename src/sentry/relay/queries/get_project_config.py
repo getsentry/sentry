@@ -5,6 +5,7 @@ import uuid
 from datetime import datetime
 from pytz import utc
 from sentry.models import Project, ProjectKey
+from sentry.relay.config import Config
 
 
 def execute(relay, project_id, query):
@@ -28,6 +29,8 @@ def execute(relay, project_id, query):
 
     # TODO(hazat): not use now
     now = datetime.utcnow().replace(tzinfo=utc)
+    config = Config(project)
+
     return {
         'disabled': project.status > 0,
         'slug': project.slug,
@@ -35,7 +38,5 @@ def execute(relay, project_id, query):
         'lastChange': now,
         'rev': uuid.uuid4().hex,
         'publicKeys': public_keys,
-        'config': {
-            'allowedDomains': project.get_option('sentry:origins', [])
-        }
+        'config': config.get_project_options(),
     }
