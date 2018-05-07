@@ -2,7 +2,10 @@ from __future__ import absolute_import
 
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.integrations import IntegrationProvider, IntegrationMetadata
+from sentry.integrations import Integration, IntegrationProvider, IntegrationMetadata
+
+from .client import JiraApiClient
+
 
 alert_link = {
     'text': 'Visit the **Atlassian Marketplace** to install this integration.',
@@ -23,10 +26,28 @@ metadata = IntegrationMetadata(
 )
 
 
+class JiraIntegration(Integration):
+
+    def get_client(self):
+        return JiraApiClient(
+            self.model.metadata['base_url'],
+            self.model.metadata['shared_secret'],
+        )
+
+    def get_issue(self, issue_id):
+        client = self.get_client()
+        issue = client.get_issue(issue_id)
+        return {
+            'title': issue['fields']['summary'],
+            'description': issue['fields']['description'],
+        }
+
+
 class JiraIntegrationProvider(IntegrationProvider):
     key = 'jira'
     name = 'JIRA'
     metadata = metadata
+    integration_cls = JiraIntegration
 
     can_add = False
 
