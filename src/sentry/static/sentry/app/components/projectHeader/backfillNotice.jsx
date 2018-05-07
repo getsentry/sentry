@@ -42,7 +42,7 @@ export default class BackfillNotice extends React.Component {
           `You can now filter by environment!
           Some data before [backfillDate] may be temporarily unavailable.`,
           {
-            backfillDate: moment(BACKFILL_DATE).format('MMM d'),
+            backfillDate: moment(BACKFILL_DATE).format('MMM D'),
           }
         )}
         <CloseButton src="icon-close-lg" onClick={this.onClose} />
