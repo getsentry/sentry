@@ -127,7 +127,7 @@ class SnubaTagStorage(TagStorage):
             if group_id is None:
                 return TagValue(**fix_tag_value_data(data))
             else:
-                return GroupTagKey(group_id=group_id, **fix_tag_value_data(data))
+                return GroupTagValue(group_id=group_id, **fix_tag_value_data(data))
 
     def __get_tag_values(self, project_id, group_id, environment_id, key):
         start, end = self.get_time_range()

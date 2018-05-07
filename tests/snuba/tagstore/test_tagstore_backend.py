@@ -167,14 +167,14 @@ class TagStorage(TestCase):
             group_id=self.proj1group1.id,
             environment_id=self.proj1env1.id,
             key='notreal',
-        ) == []
+        ) == set([])
 
-        assert self.ts.get_group_tag_values(
+        assert list(self.ts.get_group_tag_values(
             project_id=self.proj1.id,
             group_id=self.proj1group1.id,
             environment_id=self.proj1env1.id,
             key='foo',
-        )[0].value == 'bar'
+        ))[0].value == 'bar'
 
         assert self.ts.get_group_tag_value(
             project_id=self.proj1.id,
