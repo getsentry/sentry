@@ -1,12 +1,12 @@
 from __future__ import absolute_import
 
-from sentry.integrations.example import ExampleIntegration, ExampleSetupView
+from sentry.integrations.example import ExampleIntegrationProvider, ExampleSetupView
 from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import IntegrationTestCase
 
 
 class ExampleIntegrationTest(IntegrationTestCase):
-    provider = ExampleIntegration
+    provider = ExampleIntegrationProvider
 
     def test_basic_flow(self):
         resp = self.client.get(self.init_path)

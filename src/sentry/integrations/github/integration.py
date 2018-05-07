@@ -5,7 +5,7 @@ from django.utils.translation import ugettext_lazy as _
 from sentry import http, options
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.identity.github import get_user_info
-from sentry.integrations import Integration, IntegrationMetadata
+from sentry.integrations import IntegrationProvider, IntegrationMetadata
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.utils.http import absolute_uri
 
@@ -27,7 +27,7 @@ metadata = IntegrationMetadata(
 )
 
 
-class GitHubIntegration(Integration):
+class GitHubIntegrationProvider(IntegrationProvider):
     key = 'github'
     name = 'GitHub'
     metadata = metadata
@@ -83,7 +83,8 @@ class GitHubIntegration(Integration):
         identity = state['identity']['data']
 
         user = get_user_info(identity['access_token'])
-        installation = self.get_installation_info(identity['access_token'], state['installation_id'])
+        installation = self.get_installation_info(
+            identity['access_token'], state['installation_id'])
 
         return {
             'name': installation['account']['login'],

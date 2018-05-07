@@ -6,13 +6,13 @@ from mock import patch
 
 from six.moves.urllib.parse import parse_qs, urlencode, urlparse
 
-from sentry.integrations.github import GitHubIntegration
+from sentry.integrations.github import GitHubIntegrationProvider
 from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration, OrganizationIntegration
 from sentry.testutils import IntegrationTestCase
 
 
 class GitHubIntegrationTest(IntegrationTestCase):
-    provider = GitHubIntegration
+    provider = GitHubIntegrationProvider
 
     @patch('sentry.integrations.github.integration.get_jwt', return_value='jwt_token_1')
     def assert_setup_flow(self, get_jwt, installation_id='install_id_1', user_id='user_id_1'):

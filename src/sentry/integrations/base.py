@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-__all__ = ['Integration', 'IntegrationMetadata']
+__all__ = ['IntegrationProvider', 'IntegrationMetadata']
 
 import logging
 from collections import namedtuple
@@ -18,7 +18,7 @@ IntegrationMetadata = namedtuple('IntegrationMetadata', [
 ])
 
 
-class Integration(PipelineProvider):
+class IntegrationProvider(PipelineProvider):
     """
     An integration describes a third party that can be registered within Sentry.
 
@@ -27,7 +27,7 @@ class Integration(PipelineProvider):
     authentication, and what kind of configuration is stored.
 
     This is similar to Sentry's legacy 'plugin' information, except that an
-    integration is lives as an instance in the database, and the ``Integration``
+    integration is lives as an instance in the database, and the ``IntegrationProvider``
     class is just a descriptor for how that object functions, and what behavior
     it provides (such as extensions provided).
     """

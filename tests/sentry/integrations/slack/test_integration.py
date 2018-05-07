@@ -5,13 +5,13 @@ import six
 
 from six.moves.urllib.parse import parse_qs, urlencode, urlparse
 
-from sentry.integrations.slack import SlackIntegration
+from sentry.integrations.slack import SlackIntegrationProvider
 from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration, OrganizationIntegration
 from sentry.testutils import IntegrationTestCase
 
 
 class SlackIntegrationTest(IntegrationTestCase):
-    provider = SlackIntegration
+    provider = SlackIntegrationProvider
 
     def assert_setup_flow(self, team_id='TXXXXXXX1', authorizing_user_id='UXXXXXXX1'):
         responses.reset()
