@@ -198,17 +198,14 @@ def register_extensions():
     plugins.register(TestIssuePlugin2)
 
     from sentry import integrations
-    from sentry.integrations.example import ExampleIntegration
-    from sentry.integrations.slack import SlackIntegration
-    from sentry.integrations.github import GitHubIntegration
-    integrations.register(ExampleIntegration)
-    integrations.register(SlackIntegration)
-    integrations.register(GitHubIntegration)
-
-    from sentry.integrations.vsts import VSTSIntegration
-    integrations.register(ExampleIntegration)
-    integrations.register(SlackIntegration)
-    integrations.register(VSTSIntegration)
+    from sentry.integrations.example import ExampleIntegrationProvider
+    from sentry.integrations.github import GitHubIntegrationProvider
+    from sentry.integrations.slack import SlackIntegrationProvider
+    from sentry.integrations.vsts import VSTSIntegrationProvider
+    integrations.register(ExampleIntegrationProvider)
+    integrations.register(SlackIntegrationProvider)
+    integrations.register(GitHubIntegrationProvider)
+    integrations.register(VSTSIntegrationProvider)
 
     from sentry.plugins import bindings
     from sentry.plugins.providers.dummy import DummyRepositoryProvider

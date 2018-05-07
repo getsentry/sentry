@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import http
-from sentry.integrations import Integration, IntegrationMetadata
+from sentry.integrations import IntegrationProvider, IntegrationMetadata
 from sentry.pipeline import NestedPipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.utils.http import absolute_uri
@@ -35,7 +35,7 @@ metadata = IntegrationMetadata(
 )
 
 
-class SlackIntegration(Integration):
+class SlackIntegrationProvider(IntegrationProvider):
     key = 'slack'
     name = 'Slack'
     metadata = metadata
