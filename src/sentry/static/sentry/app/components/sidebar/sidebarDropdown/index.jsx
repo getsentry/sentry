@@ -6,9 +6,10 @@ import {t} from 'app/locale';
 import Avatar from 'app/components/avatar';
 import DropdownMenu from 'app/components/dropdownMenu';
 import Hook from 'app/components/hook';
+import Link from 'app/components/link';
 import SentryTypes from 'app/proptypes';
 import TextOverflow from 'app/components/textOverflow';
-import UserBadge from 'app/components/userBadge';
+import IdBadge from 'app/components/idBadge';
 
 import SwitchOrganization from './switchOrganization';
 import SidebarOrgSummary from './sidebarOrgSummary';
@@ -95,7 +96,9 @@ class SidebarDropdown extends React.Component {
 
                   <Divider />
 
-                  <SidebarUserSummary user={user} />
+                  <UserSummary to="/settings/account/details/">
+                    <UserBadgeNoOverflow user={user} avatarSize={32} />
+                  </UserSummary>
 
                   <div>
                     <SidebarMenuItem to="/settings/account/">
@@ -123,27 +126,12 @@ class SidebarDropdown extends React.Component {
 
 export default SidebarDropdown;
 
-class SidebarUserSummary extends React.Component {
-  static propTypes = {
-    user: SentryTypes.User,
-  };
-
-  render() {
-    let {user} = this.props;
-
-    return (
-      <UserSummary>
-        <UserBadgeNoOverflow user={user} avatarSize={24} />
-      </UserSummary>
-    );
-  }
-}
-const UserSummary = styled('div')`
+const UserSummary = styled(Link)`
   display: flex;
   padding: 10px 15px;
 `;
 
-const UserBadgeNoOverflow = styled(UserBadge)`
+const UserBadgeNoOverflow = styled(IdBadge)`
   overflow: hidden;
 `;
 

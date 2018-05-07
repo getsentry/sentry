@@ -1,6 +1,7 @@
 const theme = {
   breakpoints: ['768px', '992px', '1200px'],
 
+  // Colors
   offWhite: '#FAF9FB',
   offWhite2: '#E7E1EC',
   whiteDark: '#fbfbfc',
@@ -98,6 +99,10 @@ const theme = {
   fontSizeExtraLarge: '18px',
 
   settings: {
+    // Max-width for settings breadcrumbs
+    // i.e. organization, project, or team
+    maxCrumbWidth: '240px',
+
     containerWidth: '1140px',
     headerHeight: '115px',
     sidebarWidth: '210px',

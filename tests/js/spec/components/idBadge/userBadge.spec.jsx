@@ -1,13 +1,13 @@
 import React from 'react';
 import {mount, shallow} from 'enzyme';
 
-import UserBadge from 'app/components/userBadge';
+import UserBadge from 'app/components/idBadge/userBadge';
 
 describe('UserBadge', function() {
   let user = TestStubs.User();
 
   it('renders', function() {
-    let wrapper = mount(<UserBadge user={user} />);
+    let wrapper = mount(<UserBadge user={user} orgId="orgId" />);
 
     expect(wrapper.find('StyledUserBadge')).toHaveLength(1);
     expect(wrapper.find('StyledName').prop('children')).toBe('Foo Bar');
