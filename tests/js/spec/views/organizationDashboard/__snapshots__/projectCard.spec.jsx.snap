@@ -381,9 +381,7 @@ exports[`ProjectCard renders 1`] = `
                 className="css-5ipae5"
                 is={null}
               >
-                <div
-                  className="org-dashboard-platform-list"
-                >
+                <div>
                   <Flex
                     direction="row-reverse"
                     p={2}
@@ -405,11 +403,27 @@ exports[`ProjectCard renders 1`] = `
                             className="javascript css-128o7xp-StyledPlatformIconWrapper e1mca4c60"
                           >
                             <StyledPlatformIcon
-                              className="platformicon platformicon-javascript"
+                              name="javascript"
                             >
-                              <span
-                                className="platformicon platformicon-javascript css-hf0kxf-StyledPlatformIcon e1mca4c61"
-                              />
+                              <PlatformIcon
+                                className="css-1tsh9x6-StyledPlatformIcon e1mca4c61"
+                                name="javascript"
+                                size={34}
+                              >
+                                <img
+                                  className="css-1tsh9x6-StyledPlatformIcon e1mca4c61"
+                                  height={34}
+                                  src={
+                                    Object {
+                                      "default": Object {
+                                        "id": "test",
+                                        "viewBox": Object {},
+                                      },
+                                    }
+                                  }
+                                  width={34}
+                                />
+                              </PlatformIcon>
                             </StyledPlatformIcon>
                           </span>
                         </StyledPlatformIconWrapper>
