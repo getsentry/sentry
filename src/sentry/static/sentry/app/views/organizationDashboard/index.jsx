@@ -63,7 +63,7 @@ class Dashboard extends AsyncComponent {
     ];
   }
 
-  renderProjectCard(project) {
+  renderProjectCard = project => {
     const {projectsWithStats} = this.state;
 
     const projectDetails = projectsWithStats.find(p => project.id === p.id) || {};
@@ -78,13 +78,13 @@ class Dashboard extends AsyncComponent {
         <ProjectCard project={project} stats={stats} />
       </ProjectCardWrapper>
     );
-  }
+  };
 
   renderBody() {
     const {teams, projects, params} = this.props;
     const sortedProjects = sortProjects(projects);
     const {projectsByTeam} = getProjectsByTeams(teams, sortedProjects);
-    const projectKeys = Object.keys(projectsByTeam);
+    const teamSlugs = Object.keys(projectsByTeam).sort();
 
     const favorites = projects.filter(project => project.isBookmarked);
 
@@ -96,15 +96,13 @@ class Dashboard extends AsyncComponent {
               <TeamTitleBar>
                 <TeamName>{t('Favorites')}</TeamName>
               </TeamTitleBar>
-              <ProjectCards>
-                {favorites.map(project => this.renderProjectCard(project))}
-              </ProjectCards>
+              <ProjectCards>{favorites.map(this.renderProjectCard)}</ProjectCards>
             </TeamSection>
           </div>
         )}
 
-        {projectKeys.map((slug, index) => {
-          const showBorder = index !== projectKeys.length - 1;
+        {teamSlugs.map((slug, index) => {
+          const showBorder = index !== teamSlugs.length - 1;
           return (
             <TeamSection data-test-id="team" key={slug} showBorder={showBorder}>
               <TeamTitleBar justify="space-between" align="center">
@@ -112,12 +110,12 @@ class Dashboard extends AsyncComponent {
                 <TeamMembers teamId={slug} orgId={params.orgId} />
               </TeamTitleBar>
               <ProjectCards>
-                {projectsByTeam[slug].map(project => this.renderProjectCard(project))}
+                {projectsByTeam[slug].map(this.renderProjectCard)}
               </ProjectCards>
             </TeamSection>
           );
         })}
-        {!projectKeys.length && <EmptyState orgId={params.orgId} />}
+        {!teamSlugs.length && <EmptyState orgId={params.orgId} />}
       </React.Fragment>
     );
   }
