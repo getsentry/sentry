@@ -31,6 +31,7 @@ This is an example integration
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
     author='The Sentry Team',
+    noun='example',
     issue_url='https://github.com/getsentry/sentry/issues/new',
     source_url='https://github.com/getsentry/sentry',
     aspects={},

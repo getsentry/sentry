@@ -30,7 +30,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
           Rules follow the pattern type:glob owner owner
         </p>
         <p>
-          Owners can be team identifiers starting with #, or user emails (use @ to input from list)
+          Owners can be team identifiers starting with #, or user emails
         </p>
         <p>
           Globbing Syntax:

@@ -7,6 +7,7 @@ import {Flex} from 'grid-emotion';
 import SentryTypes from 'app/proptypes';
 import {Client} from 'app/api';
 import Link from 'app/components/link';
+import space from 'app/styles/space';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
 import {update} from 'app/actionCreators/projects';
@@ -57,7 +58,11 @@ class ProjectCard extends React.Component {
           </Tooltip>
         </Flex>
         <ChartContainer>
-          <Chart stats={stats} noEvents={!project.firstEvent} />
+          {!stats ? (
+            <NoStats>{t('Project stats are not available at the moment.')}</NoStats>
+          ) : (
+            <Chart stats={stats} noEvents={!project.firstEvent} />
+          )}
           {!project.firstEvent && <NoEvents />}
         </ChartContainer>
         <PlatformList project={project} orgId={params.orgId} />
@@ -66,8 +71,19 @@ class ProjectCard extends React.Component {
   }
 }
 
+const NoStats = styled('div')`
+  background-color: rgba(255, 255, 255);
+  font-weight: bold;
+  font-size: 0.8em;
+  text-align: center;
+  opacity: 0.4;
+  padding: 18px 0;
+`;
+
 const ChartContainer = styled.div`
   position: relative;
+  background: ${p => p.theme.offWhite};
+  padding-top: ${space(1)};
 `;
 
 const StyledLink = styled(Link)`

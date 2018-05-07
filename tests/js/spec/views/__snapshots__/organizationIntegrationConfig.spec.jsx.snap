@@ -123,7 +123,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                               className="css-17pfgr6"
                               is={null}
                             >
-                              Workspaces
+                              Installation
                             </div>
                           </Base>
                         </Box>
@@ -150,14 +150,14 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                                   size="xsmall"
                                 >
                                   <Component
-                                    className="css-dvpz5-StyledButton-getColors e17811v30"
+                                    className="css-o6814l-StyledButton-getColors e17811v30"
                                     disabled={false}
                                     onClick={[Function]}
                                     role="button"
                                     size="xsmall"
                                   >
                                     <button
-                                      className="css-dvpz5-StyledButton-getColors e17811v30"
+                                      className="css-o6814l-StyledButton-getColors e17811v30"
                                       disabled={false}
                                       onClick={[Function]}
                                       role="button"
@@ -189,7 +189,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                                                   className="icon icon-add"
                                                 />
                                                  
-                                                Add Workspace
+                                                Add Installation
                                               </div>
                                             </Base>
                                           </Flex>
@@ -318,14 +318,14 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                                     size="small"
                                   >
                                     <Component
-                                      className="css-dvpz5-StyledButton-getColors e17811v30"
+                                      className="css-o6814l-StyledButton-getColors e17811v30"
                                       disabled={false}
                                       onClick={[Function]}
                                       role="button"
                                       size="small"
                                     >
                                       <button
-                                        className="css-dvpz5-StyledButton-getColors e17811v30"
+                                        className="css-o6814l-StyledButton-getColors e17811v30"
                                         disabled={false}
                                         onClick={[Function]}
                                         role="button"

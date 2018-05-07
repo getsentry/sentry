@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from django.utils.translation import ugettext_lazy as _
 
 from sentry.integrations import Integration, IntegrationMetadata
 
@@ -13,6 +14,7 @@ alert_link = {
 metadata = IntegrationMetadata(
     description='Sync Sentry and JIRA issues.',
     author='The Sentry Team',
+    noun=_('Instance'),
     issue_url='https://github.com/getsentry/sentry/issues/new?title=JIRA%20Integration:%20&labels=Component%3A%20Integrations',
     source_url='https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/jira',
     aspects={

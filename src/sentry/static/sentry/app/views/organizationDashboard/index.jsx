@@ -1,3 +1,4 @@
+import {flatten} from 'lodash';
 import React from 'react';
 import PropTypes from 'prop-types';
 import createReactClass from 'create-react-class';
@@ -7,6 +8,7 @@ import styled from 'react-emotion';
 import AsyncComponent from 'app/components/asyncComponent';
 import OrganizationState from 'app/mixins/organizationState';
 import getProjectsByTeams from 'app/utils/getProjectsByTeams';
+import {sortProjects} from 'app/utils';
 import withTeams from 'app/utils/withTeams';
 import withProjects from 'app/utils/withProjects';
 import {t} from 'app/locale';
@@ -33,25 +35,55 @@ class Dashboard extends AsyncComponent {
   }
 
   getEndpoints() {
-    const {orgId} = this.props.params;
-    return [['projectsWithStats', `/organizations/${orgId}/projects/?statsPeriod=24h`]];
+    const {projects, teams, params} = this.props;
+    const {orgId} = params;
+
+    // TODO(billy): Optimize this so we're not running the same sorts multiple times during a render
+    const sortedProjects = sortProjects(projects);
+    const {projectsByTeam} = getProjectsByTeams(teams, sortedProjects);
+
+    // Fetch list of projectIds to get stats for
+    const projectIds =
+      (projectsByTeam &&
+        flatten(
+          Object.keys(projectsByTeam).map(teamSlug =>
+            projectsByTeam[teamSlug].map(({id}) => id)
+          )
+        )) ||
+      [];
+
+    const idQueries = projectIds.map(id => `id:${id}`).join(' ');
+    const idQueryString = (idQueries && `&query=${idQueries}`) || '';
+
+    return [
+      [
+        'projectsWithStats',
+        `/organizations/${orgId}/projects/?statsPeriod=24h${idQueryString}`,
+      ],
+    ];
   }
 
   renderProjectCard(project) {
     const {projectsWithStats} = this.state;
 
-    const getStats = id => projectsWithStats.find(p => id === p.id).stats;
+    const projectDetails = projectsWithStats.find(p => project.id === p.id) || {};
+    const stats = projectDetails.stats || null;
 
     return (
-      <ProjectCardWrapper key={project.id} width={['100%', '50%', '33%', '25%']}>
-        <ProjectCard project={project} stats={getStats(project.id)} />
+      <ProjectCardWrapper
+        data-test-id={project.slug}
+        key={project.id}
+        width={['100%', '50%', '33%', '25%']}
+      >
+        <ProjectCard project={project} stats={stats} />
       </ProjectCardWrapper>
     );
   }
 
   renderBody() {
     const {teams, projects, params} = this.props;
-    const {projectsByTeam} = getProjectsByTeams(teams, projects);
+    const sortedProjects = sortProjects(projects);
+    const {projectsByTeam} = getProjectsByTeams(teams, sortedProjects);
     const projectKeys = Object.keys(projectsByTeam);
 
     const favorites = projects.filter(project => project.isBookmarked);
@@ -60,21 +92,21 @@ class Dashboard extends AsyncComponent {
       <React.Fragment>
         {favorites.length > 0 && (
           <div data-test-id="favorites">
-            <TeamSection>
+            <TeamSection showBorder>
               <TeamTitleBar>
                 <TeamName>{t('Favorites')}</TeamName>
               </TeamTitleBar>
+              <ProjectCards>
+                {favorites.map(project => this.renderProjectCard(project))}
+              </ProjectCards>
             </TeamSection>
-            <ProjectCards>
-              {favorites.map(project => this.renderProjectCard(project))}
-            </ProjectCards>
           </div>
         )}
 
         {projectKeys.map((slug, index) => {
           const showBorder = index !== projectKeys.length - 1;
           return (
-            <TeamSection key={slug} showBorder={showBorder}>
+            <TeamSection data-test-id="team" key={slug} showBorder={showBorder}>
               <TeamTitleBar justify="space-between" align="center">
                 <TeamName>{`#${slug}`}</TeamName>
                 <TeamMembers teamId={slug} orgId={params.orgId} />

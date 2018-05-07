@@ -66,3 +66,25 @@ class OrganizationProjectsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
+
+    def test_search_by_ids(self):
+        self.login_as(user=self.user)
+
+        org = self.create_organization(owner=self.user, name='baz')
+        team = self.create_team(organization=org)
+        project_bar = self.create_project(teams=[team], name='bar', slug='bar')
+        project_foo = self.create_project(teams=[team], name='foo', slug='foo')
+        self.create_project(teams=[team], name='baz', slug='baz')
+
+        path = '/api/0/organizations/{}/projects/?query=id:{}'.format(org.slug, project_foo.id)
+        response = self.client.get(path)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]['id'] == six.text_type(project_foo.id)
+
+        path = '/api/0/organizations/{}/projects/?query=id:{} id:{}'.format(org.slug, project_bar.id, project_foo.id)
+        response = self.client.get(path)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2

@@ -72,7 +72,7 @@ exports[`ContextSummary render() should render up to four contexts 1`] = `
     key="runtime"
     unknownTitle="Unknown Runtime"
   />
-  <GenericSummary
+  <OsSummary
     data={
       Object {
         "build": "17E199",
@@ -83,7 +83,6 @@ exports[`ContextSummary render() should render up to four contexts 1`] = `
       }
     }
     key="os"
-    unknownTitle="Unknown OS"
   />
 </div>
 `;
@@ -103,7 +102,7 @@ exports[`ContextSummary render() should skip a missing user context 1`] = `
     key="runtime"
     unknownTitle="Unknown Runtime"
   />
-  <GenericSummary
+  <OsSummary
     data={
       Object {
         "build": "17E199",
@@ -114,7 +113,6 @@ exports[`ContextSummary render() should skip a missing user context 1`] = `
       }
     }
     key="os"
-    unknownTitle="Unknown OS"
   />
   <DeviceSummary
     data={
@@ -154,7 +152,7 @@ exports[`ContextSummary render() should skip non-default named contexts 1`] = `
     key="runtime"
     unknownTitle="Unknown Runtime"
   />
-  <GenericSummary
+  <OsSummary
     data={
       Object {
         "build": "17E199",
@@ -165,7 +163,6 @@ exports[`ContextSummary render() should skip non-default named contexts 1`] = `
       }
     }
     key="os"
-    unknownTitle="Unknown OS"
   />
   <DeviceSummary
     data={
@@ -178,5 +175,65 @@ exports[`ContextSummary render() should skip non-default named contexts 1`] = `
     }
     key="device"
   />
+</div>
+`;
+
+exports[`OsSummary render() should render the kernel version when no version 1`] = `
+<div
+  className="context-item mac-os-x"
+>
+  <span
+    className="context-item-icon"
+  />
+  <h3>
+    Mac OS X
+  </h3>
+  <p>
+    <strong>
+      Kernel:
+    </strong>
+     
+    17.5.0
+  </p>
+</div>
+`;
+
+exports[`OsSummary render() should render the version string 1`] = `
+<div
+  className="context-item mac-os-x"
+>
+  <span
+    className="context-item-icon"
+  />
+  <h3>
+    Mac OS X
+  </h3>
+  <p>
+    <strong>
+      Version:
+    </strong>
+     
+    10.13.4
+  </p>
+</div>
+`;
+
+exports[`OsSummary render() should render unknown when no version 1`] = `
+<div
+  className="context-item mac-os-x"
+>
+  <span
+    className="context-item-icon"
+  />
+  <h3>
+    Mac OS X
+  </h3>
+  <p>
+    <strong>
+      Version:
+    </strong>
+     
+    Unknown
+  </p>
 </div>
 `;

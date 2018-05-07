@@ -15,9 +15,12 @@ class EnvironmentTagValueSerializer(Serializer):
 
 
 class UserTagValueSerializer(Serializer):
+    def __init__(self, project_id):
+        self.project_id = project_id
+
     def get_attrs(self, item_list, user):
         users = EventUser.for_tags(
-            project_id=item_list[0].project_id,
+            project_id=self.project_id,
             values=[t.value for t in item_list],
         )
 

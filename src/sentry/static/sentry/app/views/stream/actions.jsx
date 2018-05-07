@@ -54,6 +54,18 @@ const getConfirm = (numIssues, allInQuerySelected, query, queryCount) => {
           numIssues
         );
 
+    let message =
+      action == 'delete'
+        ? tct(
+            'Bulk deletion is only recommended for junk data. To clear your stream, consider resolving or ignoring. [link:When should I delete events?]',
+            {
+              link: (
+                <Link to="https://help.sentry.io/hc/en-us/articles/360003443113-When-should-I-delete-events-" />
+              ),
+            }
+          )
+        : t('This action cannot be undone.');
+
     return (
       <div>
         <p style={{marginBottom: '20px'}}>
@@ -64,18 +76,7 @@ const getConfirm = (numIssues, allInQuerySelected, query, queryCount) => {
           query={query}
           queryCount={queryCount}
         />
-        {!canBeUndone && (
-          <p>
-            {tct(
-              'Bulk deletion is only recommended for junk data. To clear your stream, consider resolving or ignoring. [link:When should I delete events?]',
-              {
-                link: (
-                  <Link to="https://help.sentry.io/hc/en-us/articles/360003443113-When-should-I-delete-events-" />
-                ),
-              }
-            )}
-          </p>
-        )}
+        {!canBeUndone && <p>{message}</p>}
       </div>
     );
   };

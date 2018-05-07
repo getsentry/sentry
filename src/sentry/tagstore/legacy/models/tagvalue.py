@@ -7,12 +7,9 @@ sentry.tagstore.legacy.models.tagvalue
 """
 from __future__ import absolute_import, print_function
 
-import six
-
 from django.db import models
 from django.utils import timezone
 
-from sentry.api.serializers import Serializer, register
 from sentry.constants import MAX_TAG_KEY_LENGTH, MAX_TAG_VALUE_LENGTH
 from sentry.db.models import (
     Model, BoundedPositiveIntegerField, GzippedDictField, BaseManager, sane_repr
@@ -49,29 +46,3 @@ class TagValue(Model):
         from sentry import tagstore
 
         return tagstore.get_tag_value_label(self.key, self.value)
-
-
-@register(TagValue)
-class TagValueSerializer(Serializer):
-    def get_attrs(self, item_list, user):
-        from sentry import tagstore
-
-        result = {}
-        for item in item_list:
-            result[item] = {
-                'name': tagstore.get_tag_value_label(item.key, item.value),
-            }
-        return result
-
-    def serialize(self, obj, attrs, user):
-        from sentry import tagstore
-
-        return {
-            'id': six.text_type(obj.id),
-            'key': tagstore.get_standardized_key(obj.key),
-            'name': attrs['name'],
-            'value': obj.value,
-            'count': obj.times_seen,
-            'lastSeen': obj.last_seen,
-            'firstSeen': obj.first_seen,
-        }
