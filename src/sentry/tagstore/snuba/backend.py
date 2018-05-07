@@ -358,16 +358,21 @@ class SnubaTagStorage(TagStorage):
             ['max', SEEN_COLUMN, 'last_seen'],
         ]
 
-        result = snuba.query(start, end, ['user_id'], conditions, filters,
+        result = snuba.query(start, end, ['issue', 'user_id'], conditions, filters,
                              aggregations, orderby='-last_seen', limit=limit)
 
-        return [
-            GroupTagValue(
-                key='sentry:user',
-                value=name,
-                **fix_tag_value_data(data)
-            ) for name, data in six.iteritems(result)
-        ]
+        values = []
+        for issue, users in six.iteritems(result):
+            for name, data in six.iteritems(users):
+                values.append(
+                    GroupTagValue(
+                        group_id=issue,
+                        key='sentry:user',
+                        value=name,
+                        **fix_tag_value_data(data)
+                    )
+                )
+        return values
 
     def get_groups_user_counts(self, project_id, group_ids, environment_id):
         start, end = self.get_time_range()

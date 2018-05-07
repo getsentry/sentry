@@ -247,18 +247,22 @@ class TagStorage(TestCase):
         result = self.ts.get_group_tag_values_for_users(
             [EventUser(project_id=self.proj1.id, ident='user1')]
         )
-        one_second_ago = (self.now - timedelta(seconds=1)).strftime('%Y-%m-%dT%H:%M:%S+00:00')
-        assert len(result) == 1
-        assert result[0].value == 'user1'
-        assert result[0].last_seen == one_second_ago
+        assert len(result) == 2
+        assert set(v.group_id for v in result) == set([
+            self.proj1group1.id,
+            self.proj1group2.id,
+        ])
+        assert result[0].last_seen == self.now - timedelta(seconds=1)
+        assert result[1].last_seen == self.now - timedelta(seconds=2)
+        for v in result:
+            assert v.value == 'user1'
 
         result = self.ts.get_group_tag_values_for_users(
             [EventUser(project_id=self.proj1.id, ident='user2')]
         )
-        two_seconds_ago = (self.now - timedelta(seconds=2)).strftime('%Y-%m-%dT%H:%M:%S+00:00')
         assert len(result) == 1
         assert result[0].value == 'user2'
-        assert result[0].last_seen == two_seconds_ago
+        assert result[0].last_seen == self.now - timedelta(seconds=2)
 
         # Test that users identified by different means are collected.
         # (effectively tests OR conditions in snuba API)
@@ -266,13 +270,13 @@ class TagStorage(TestCase):
             EventUser(project_id=self.proj1.id, email='user1@sentry.io'),
             EventUser(project_id=self.proj1.id, ident='user2')
         ])
-        two_seconds_ago = (self.now - timedelta(seconds=2)).strftime('%Y-%m-%dT%H:%M:%S+00:00')
+        two_seconds_ago = self.now - timedelta(seconds=2)
         assert len(result) == 2
         result.sort(key=lambda x: x.value)
         assert result[0].value == 'user1'
-        assert result[0].last_seen == one_second_ago
+        assert result[0].last_seen == self.now - timedelta(seconds=1)
         assert result[1].value == 'user2'
-        assert result[1].last_seen == two_seconds_ago
+        assert result[1].last_seen == self.now - timedelta(seconds=2)
 
     def test_get_release_tags(self):
         tags = list(
