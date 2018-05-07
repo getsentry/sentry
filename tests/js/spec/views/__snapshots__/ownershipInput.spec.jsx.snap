@@ -500,6 +500,7 @@ exports[`Project Ownership Input renders 1`] = `
                   filterOptions={[Function]}
                   loadOptions={[Function]}
                   onChange={[Function]}
+                  onInputChange={[Function]}
                   placeholder="Add Owners"
                   value={Array []}
                   valueComponent={[Function]}
@@ -513,6 +514,7 @@ exports[`Project Ownership Input renders 1`] = `
                     loadOptions={[Function]}
                     multi={true}
                     onChange={[Function]}
+                    onInputChange={[Function]}
                     placeholder="Add Owners"
                     value={Array []}
                     valueComponent={[Function]}
@@ -527,6 +529,7 @@ exports[`Project Ownership Input renders 1`] = `
                       loadOptions={[Function]}
                       multi={true}
                       onChange={[Function]}
+                      onInputChange={[Function]}
                       placeholder="Add Owners"
                       value={Array []}
                       valueComponent={[Function]}
@@ -541,6 +544,7 @@ exports[`Project Ownership Input renders 1`] = `
                         loadOptions={[Function]}
                         multi={true}
                         onChange={[Function]}
+                        onInputChange={[Function]}
                         placeholder="Add Owners"
                         value={Array []}
                         valueComponent={[Function]}
@@ -558,6 +562,7 @@ exports[`Project Ownership Input renders 1`] = `
                           loadingPlaceholder="Loading..."
                           multi={true}
                           onChange={[Function]}
+                          onInputChange={[Function]}
                           options={Array []}
                           placeholder="Add Owners"
                           searchPromptText="Type to search"
@@ -748,7 +753,7 @@ exports[`Project Ownership Input renders 1`] = `
               size="zero"
             >
               <Component
-                className="e1hyuoc79 css-nbmdxi-StyledButton-getColors-RuleAddButton e17811v30"
+                className="e1hyuoc79 css-1gabw8k-StyledButton-getColors-RuleAddButton e17811v30"
                 disabled={false}
                 onClick={[Function]}
                 priority="primary"
@@ -756,7 +761,7 @@ exports[`Project Ownership Input renders 1`] = `
                 size="zero"
               >
                 <button
-                  className="e1hyuoc79 css-nbmdxi-StyledButton-getColors-RuleAddButton e17811v30"
+                  className="e1hyuoc79 css-1gabw8k-StyledButton-getColors-RuleAddButton e17811v30"
                   disabled={false}
                   onClick={[Function]}
                   priority="primary"
@@ -921,7 +926,7 @@ url:http://example.com/settings/* #product"
           >
             <Component
               aria-label="Save Changes"
-              className="css-1oc9q3a-StyledButton-getColors e17811v30"
+              className="css-zvpqlo-StyledButton-getColors e17811v30"
               disabled={false}
               onClick={[Function]}
               priority="primary"
@@ -930,7 +935,7 @@ url:http://example.com/settings/* #product"
             >
               <button
                 aria-label="Save Changes"
-                className="css-1oc9q3a-StyledButton-getColors e17811v30"
+                className="css-zvpqlo-StyledButton-getColors e17811v30"
                 disabled={false}
                 onClick={[Function]}
                 priority="primary"

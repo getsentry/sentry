@@ -127,14 +127,14 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                 size="xsmall"
                                               >
                                                 <Component
-                                                  className="e1yghndz1 css-a0wrx4-StyledButton-getColors-StyledButton e17811v30"
+                                                  className="e1yghndz1 css-108zzii-StyledButton-getColors-StyledButton e17811v30"
                                                   disabled={false}
                                                   onClick={[Function]}
                                                   role="button"
                                                   size="xsmall"
                                                 >
                                                   <button
-                                                    className="e1yghndz1 css-a0wrx4-StyledButton-getColors-StyledButton e17811v30"
+                                                    className="e1yghndz1 css-108zzii-StyledButton-getColors-StyledButton e17811v30"
                                                     disabled={false}
                                                     onClick={[Function]}
                                                     role="button"
@@ -495,14 +495,14 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                           size="small"
                         >
                           <Component
-                            className="css-o6814l-StyledButton-getColors e17811v30"
+                            className="css-dkprmi-StyledButton-getColors e17811v30"
                             disabled={false}
                             onClick={[Function]}
                             role="button"
                             size="small"
                           >
                             <button
-                              className="css-o6814l-StyledButton-getColors e17811v30"
+                              className="css-dkprmi-StyledButton-getColors e17811v30"
                               disabled={false}
                               onClick={[Function]}
                               role="button"

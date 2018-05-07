@@ -462,6 +462,7 @@ exports[`RuleBuilder renders 1`] = `
                 filterOptions={[Function]}
                 loadOptions={[Function]}
                 onChange={[Function]}
+                onInputChange={[Function]}
                 placeholder="Add Owners"
                 value={Array []}
                 valueComponent={[Function]}
@@ -475,6 +476,7 @@ exports[`RuleBuilder renders 1`] = `
                   loadOptions={[Function]}
                   multi={true}
                   onChange={[Function]}
+                  onInputChange={[Function]}
                   placeholder="Add Owners"
                   value={Array []}
                   valueComponent={[Function]}
@@ -489,6 +491,7 @@ exports[`RuleBuilder renders 1`] = `
                     loadOptions={[Function]}
                     multi={true}
                     onChange={[Function]}
+                    onInputChange={[Function]}
                     placeholder="Add Owners"
                     value={Array []}
                     valueComponent={[Function]}
@@ -503,6 +506,7 @@ exports[`RuleBuilder renders 1`] = `
                       loadOptions={[Function]}
                       multi={true}
                       onChange={[Function]}
+                      onInputChange={[Function]}
                       placeholder="Add Owners"
                       value={Array []}
                       valueComponent={[Function]}
@@ -520,6 +524,7 @@ exports[`RuleBuilder renders 1`] = `
                         loadingPlaceholder="Loading..."
                         multi={true}
                         onChange={[Function]}
+                        onInputChange={[Function]}
                         options={Array []}
                         placeholder="Add Owners"
                         searchPromptText="Type to search"
@@ -710,7 +715,7 @@ exports[`RuleBuilder renders 1`] = `
             size="zero"
           >
             <Component
-              className="e1hyuoc79 css-nbmdxi-StyledButton-getColors-RuleAddButton e17811v30"
+              className="e1hyuoc79 css-1gabw8k-StyledButton-getColors-RuleAddButton e17811v30"
               disabled={false}
               onClick={[Function]}
               priority="primary"
@@ -718,7 +723,7 @@ exports[`RuleBuilder renders 1`] = `
               size="zero"
             >
               <button
-                className="e1hyuoc79 css-nbmdxi-StyledButton-getColors-RuleAddButton e17811v30"
+                className="e1hyuoc79 css-1gabw8k-StyledButton-getColors-RuleAddButton e17811v30"
                 disabled={false}
                 onClick={[Function]}
                 priority="primary"
@@ -1493,6 +1498,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                       "type": "user",
                     },
                     "label": <IdBadge
+                      avatarSize={24}
                       hideEmail={true}
                       useLink={false}
                       user={
@@ -1512,7 +1518,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                         }
                       }
                     />,
-                    "searchKey": "janedoe@example.com  Jane Doe",
+                    "searchKey": "janedoe@example.com jane doe",
                     "value": "user:1",
                   },
                 ]
@@ -1526,6 +1532,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                 filterOptions={[Function]}
                 loadOptions={[Function]}
                 onChange={[Function]}
+                onInputChange={[Function]}
                 placeholder="Add Owners"
                 value={
                   Array [
@@ -1536,6 +1543,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                         "type": "user",
                       },
                       "label": <IdBadge
+                        avatarSize={24}
                         hideEmail={true}
                         useLink={false}
                         user={
@@ -1555,7 +1563,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                           }
                         }
                       />,
-                      "searchKey": "janedoe@example.com  Jane Doe",
+                      "searchKey": "janedoe@example.com jane doe",
                       "value": "user:1",
                     },
                   ]
@@ -1571,6 +1579,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                   loadOptions={[Function]}
                   multi={true}
                   onChange={[Function]}
+                  onInputChange={[Function]}
                   placeholder="Add Owners"
                   value={
                     Array [
@@ -1581,6 +1590,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                           "type": "user",
                         },
                         "label": <IdBadge
+                          avatarSize={24}
                           hideEmail={true}
                           useLink={false}
                           user={
@@ -1600,7 +1610,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                             }
                           }
                         />,
-                        "searchKey": "janedoe@example.com  Jane Doe",
+                        "searchKey": "janedoe@example.com jane doe",
                         "value": "user:1",
                       },
                     ]
@@ -1617,6 +1627,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                     loadOptions={[Function]}
                     multi={true}
                     onChange={[Function]}
+                    onInputChange={[Function]}
                     placeholder="Add Owners"
                     value={
                       Array [
@@ -1627,6 +1638,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                             "type": "user",
                           },
                           "label": <IdBadge
+                            avatarSize={24}
                             hideEmail={true}
                             useLink={false}
                             user={
@@ -1646,7 +1658,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                               }
                             }
                           />,
-                          "searchKey": "janedoe@example.com  Jane Doe",
+                          "searchKey": "janedoe@example.com jane doe",
                           "value": "user:1",
                         },
                       ]
@@ -1663,6 +1675,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                       loadOptions={[Function]}
                       multi={true}
                       onChange={[Function]}
+                      onInputChange={[Function]}
                       placeholder="Add Owners"
                       value={
                         Array [
@@ -1673,6 +1686,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                               "type": "user",
                             },
                             "label": <IdBadge
+                              avatarSize={24}
                               hideEmail={true}
                               useLink={false}
                               user={
@@ -1692,7 +1706,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                 }
                               }
                             />,
-                            "searchKey": "janedoe@example.com  Jane Doe",
+                            "searchKey": "janedoe@example.com jane doe",
                             "value": "user:1",
                           },
                         ]
@@ -1712,6 +1726,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                         loadingPlaceholder="Loading..."
                         multi={true}
                         onChange={[Function]}
+                        onInputChange={[Function]}
                         options={Array []}
                         placeholder="Add Owners"
                         searchPromptText="Type to search"
@@ -1724,6 +1739,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                 "type": "user",
                               },
                               "label": <IdBadge
+                                avatarSize={24}
                                 hideEmail={true}
                                 useLink={false}
                                 user={
@@ -1743,7 +1759,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                   }
                                 }
                               />,
-                              "searchKey": "janedoe@example.com  Jane Doe",
+                              "searchKey": "janedoe@example.com jane doe",
                               "value": "user:1",
                             },
                           ]
@@ -1811,6 +1827,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                   "type": "user",
                                 },
                                 "label": <IdBadge
+                                  avatarSize={24}
                                   hideEmail={true}
                                   useLink={false}
                                   user={
@@ -1830,7 +1847,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                     }
                                   }
                                 />,
-                                "searchKey": "janedoe@example.com  Jane Doe",
+                                "searchKey": "janedoe@example.com jane doe",
                                 "value": "user:1",
                               },
                             ]
@@ -1869,6 +1886,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                         "type": "user",
                                       },
                                       "label": <IdBadge
+                                        avatarSize={24}
                                         hideEmail={true}
                                         useLink={false}
                                         user={
@@ -1888,7 +1906,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                           }
                                         }
                                       />,
-                                      "searchKey": "janedoe@example.com  Jane Doe",
+                                      "searchKey": "janedoe@example.com jane doe",
                                       "value": "user:1",
                                     }
                                   }
@@ -2103,7 +2121,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
             size="zero"
           >
             <Component
-              className="e1hyuoc79 css-nbmdxi-StyledButton-getColors-RuleAddButton e17811v30"
+              className="e1hyuoc79 css-1gabw8k-StyledButton-getColors-RuleAddButton e17811v30"
               disabled={false}
               onClick={[Function]}
               priority="primary"
@@ -2111,7 +2129,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
               size="zero"
             >
               <button
-                className="e1hyuoc79 css-nbmdxi-StyledButton-getColors-RuleAddButton e17811v30"
+                className="e1hyuoc79 css-1gabw8k-StyledButton-getColors-RuleAddButton e17811v30"
                 disabled={false}
                 onClick={[Function]}
                 priority="primary"
