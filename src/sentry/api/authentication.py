@@ -6,6 +6,7 @@ from rest_framework.exceptions import AuthenticationFailed
 
 from sentry.app import raven
 from sentry.models import ApiKey, ApiToken, Relay
+from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
 
 import smith
 
@@ -17,8 +18,8 @@ class QuietBasicAuthentication(BasicAuthentication):
 
 class RelayAuthentication(QuietBasicAuthentication):
     def authenticate(self, request):
-        relay_id = request.META.get('HTTP_X_SENTRY_RELAY_ID', '')
-        relay_sig = request.META.get('HTTP_X_SENTRY_RELAY_SIGNATURE', '')
+        relay_id = get_header_relay_id(request)
+        relay_sig = get_header_relay_signature(request)
         if not relay_id:
             raise AuthenticationFailed('Invalid relay ID')
         if not relay_sig:

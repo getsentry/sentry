@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
 import six
-import uuid
 
+from rest_framework import serializers, status
 from rest_framework.response import Response
 
 from django.core.cache import cache as default_cache
@@ -11,16 +11,16 @@ from django.utils import timezone
 from sentry.api.base import Endpoint
 from sentry.api.serializers import serialize
 from sentry.models import Relay
+from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
+
 
 from smith import create_register_challenge, validate_register_response, \
     get_register_response_relay_id, PublicKey
 
 
-def get_header_relay_id(request):
-    try:
-        return six.text_type(uuid.UUID(request.META['HTTP_X_SENTRY_RELAY_ID']))
-    except (LookupError, ValueError, TypeError):
-        pass
+class RelaySerializer(serializers.Serializer):
+    relay_id = serializers.CharField(max_length=64, required=True)
+    public_key = serializers.CharField(max_length=64, required=True)
 
 
 class RelayRegisterChallengeEndpoint(Endpoint):
@@ -35,19 +35,29 @@ class RelayRegisterChallengeEndpoint(Endpoint):
         Registers the relay with the sentry installation.  If a relay boots
         it will always attempt to invoke this endpoint.
         """
+        serializer = RelaySerializer(data=request.DATA, partial=True)
 
-        sig = request.META.get('HTTP_X_SENTRY_RELAY_SIGNATURE')
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        sig = get_header_relay_signature(request)
         if not sig:
             return Response({
                 'detail': 'Missing relay signature',
-            }, status=400)
+            }, status=status.HTTP_400_BAD_REQUEST)
 
-        challenge = create_register_challenge(request.body, sig)
+        try:
+            challenge = create_register_challenge(request.body, sig)
+        except Exception as exc:
+            return Response({
+                'detail': str(exc).splitlines()[0],
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         relay_id = six.text_type(challenge['relay_id'])
         if relay_id != get_header_relay_id(request):
             return Response({
                 'detail': 'relay_id in payload did not match header',
-            }, status=400)
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             relay = Relay.objects.get(relay_id=relay_id)
@@ -57,7 +67,7 @@ class RelayRegisterChallengeEndpoint(Endpoint):
             if relay.public_key != six.text_type(challenge['public_key']):
                 return Response({
                     'detail': 'Attempted to register agent with a different public key',
-                }, status=400)
+                }, status=status.HTTP_400_BAD_REQUEST)
 
         default_cache.set('relay-auth:%s' % relay_id, {
             'token': challenge['token'],
@@ -82,17 +92,17 @@ class RelayRegisterResponseEndpoint(Endpoint):
         it will always attempt to invoke this endpoint.
         """
 
-        sig = request.META.get('HTTP_X_SENTRY_RELAY_SIGNATURE')
+        sig = sig = get_header_relay_signature(request)
         if not sig:
             return Response({
                 'detail': 'Missing relay signature',
-            }, status=400)
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         relay_id = six.text_type(get_register_response_relay_id(request.body))
         if relay_id != get_header_relay_id(request):
             return Response({
                 'detail': 'relay_id in payload did not match header',
-            }, status=400)
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         params = default_cache.get('relay-auth:%s' % relay_id)
         if params is None:
@@ -118,7 +128,7 @@ class RelayRegisterResponseEndpoint(Endpoint):
             if relay.public_key != params['public_key']:
                 return Response({
                     'detail': 'Attempted to register agent with a different public key',
-                }, status=400)
+                }, status=status.HTTP_400_BAD_REQUEST)
             relay.last_seen = timezone.now()
             relay.save()
         default_cache.delete('relay-auth:%s' % relay_id)
