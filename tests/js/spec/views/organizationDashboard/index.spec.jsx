@@ -21,7 +21,12 @@ describe('OrganizationDashboard', function() {
       const projects = [];
 
       const wrapper = shallow(
-        <Dashboard teams={teams} projects={projects} params={{orgId: 'org-slug'}} />,
+        <Dashboard
+          teams={teams}
+          projects={projects}
+          organization={TestStubs.Organization()}
+          params={{orgId: 'org-slug'}}
+        />,
         TestStubs.routerContext()
       );
       const emptyState = wrapper.find('EmptyState');
@@ -47,7 +52,12 @@ describe('OrganizationDashboard', function() {
       const projects = [TestStubs.Project({teams})];
 
       const wrapper = shallow(
-        <Dashboard teams={teams} projects={projects} params={{orgId: 'org-slug'}} />,
+        <Dashboard
+          teams={teams}
+          projects={projects}
+          organization={TestStubs.Organization()}
+          params={{orgId: 'org-slug'}}
+        />,
         TestStubs.routerContext()
       );
       const emptyState = wrapper.find('EmptyState');
@@ -63,7 +73,12 @@ describe('OrganizationDashboard', function() {
       const projects = [TestStubs.Project({teams, isBookmarked: true})];
 
       const wrapper = shallow(
-        <Dashboard teams={teams} projects={projects} params={{orgId: 'org-slug'}} />,
+        <Dashboard
+          teams={teams}
+          projects={projects}
+          organization={TestStubs.Organization()}
+          params={{orgId: 'org-slug'}}
+        />,
         TestStubs.routerContext()
       );
       const favorites = wrapper.find('[data-test-id="favorites"]');
@@ -125,7 +140,12 @@ describe('OrganizationDashboard', function() {
       });
 
       const wrapper = shallow(
-        <Dashboard teams={teams} projects={projects} params={{orgId: 'org-slug'}} />,
+        <Dashboard
+          teams={teams}
+          projects={projects}
+          organization={TestStubs.Organization()}
+          params={{orgId: 'org-slug'}}
+        />,
         TestStubs.routerContext()
       );
 

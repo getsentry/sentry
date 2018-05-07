@@ -5,6 +5,7 @@ import createReactClass from 'create-react-class';
 import {Flex, Box} from 'grid-emotion';
 import styled from 'react-emotion';
 
+import SentryTypes from 'app/proptypes';
 import AsyncComponent from 'app/components/asyncComponent';
 import OrganizationState from 'app/mixins/organizationState';
 import getProjectsByTeams from 'app/utils/getProjectsByTeams';
@@ -23,6 +24,7 @@ class Dashboard extends AsyncComponent {
   static propTypes = {
     teams: PropTypes.array,
     projects: PropTypes.array,
+    organization: SentryTypes.Organization,
   };
 
   componentWillMount() {
@@ -81,12 +83,14 @@ class Dashboard extends AsyncComponent {
   };
 
   renderBody() {
-    const {teams, projects, params} = this.props;
+    const {teams, projects, params, organization} = this.props;
     const sortedProjects = sortProjects(projects);
     const {projectsByTeam} = getProjectsByTeams(teams, sortedProjects);
     const teamSlugs = Object.keys(projectsByTeam).sort();
 
     const favorites = projects.filter(project => project.isBookmarked);
+
+    const hasTeamAccess = new Set(organization.access).has('team:read');
 
     return (
       <React.Fragment>
@@ -107,7 +111,7 @@ class Dashboard extends AsyncComponent {
             <TeamSection data-test-id="team" key={slug} showBorder={showBorder}>
               <TeamTitleBar justify="space-between" align="center">
                 <TeamName>{`#${slug}`}</TeamName>
-                <TeamMembers teamId={slug} orgId={params.orgId} />
+                {hasTeamAccess && <TeamMembers teamId={slug} orgId={params.orgId} />}
               </TeamTitleBar>
               <ProjectCards>
                 {projectsByTeam[slug].map(this.renderProjectCard)}
@@ -155,7 +159,7 @@ const OrganizationDashboard = createReactClass({
       return (
         <Flex flex="1" direction="column">
           <ProjectNav />
-          <Dashboard {...this.props} />
+          <Dashboard organization={this.context.organization} {...this.props} />
         </Flex>
       );
     } else {
