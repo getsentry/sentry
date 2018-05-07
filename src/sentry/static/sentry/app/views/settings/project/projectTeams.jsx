@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import styled from 'react-emotion';
+import styled, {css} from 'react-emotion';
 
 import {removeTeamFromProject, addTeamToProject} from 'app/actionCreators/projects';
 import {getOrganizationState} from 'app/mixins/organizationState';
@@ -19,6 +19,7 @@ import Link from 'app/components/link';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import space from 'app/styles/space';
+import Tooltip from 'app/components/tooltip';
 
 const TeamRow = createReactClass({
   displayName: 'TeamRow',
@@ -99,6 +100,14 @@ class ProjectTeams extends AsyncView {
     ];
   }
 
+  canCreateTeam = () => {
+    let {organization} = this.props;
+    let access = getOrganizationState(organization).getAccess();
+    return (
+      access.has('org:write') && access.has('team:write') && access.has('project:write')
+    );
+  };
+
   handleRemovedTeam = removedTeam => {
     this.setState(prevState => {
       return {
@@ -139,13 +148,17 @@ class ProjectTeams extends AsyncView {
 
   handleCreateTeam = e => {
     let {project, organization} = this.props;
+
+    if (!this.canCreateTeam()) return;
+
     e.stopPropagation();
     e.preventDefault();
+
     openCreateTeamModal({
       project,
       organization,
       onClose: data => {
-        addTeamToProject(this.api, organization.slug, project.slug, data.slug).then(
+        addTeamToProject(this.api, organization.slug, project.slug, data).then(
           this.remountComponent,
           this.remountComponent
         );
@@ -155,6 +168,8 @@ class ProjectTeams extends AsyncView {
 
   renderAddTeamToProject() {
     let projectTeams = new Set(this.state.projectTeams.map(team => team.slug));
+    let canCreateTeam = this.canCreateTeam();
+
     let teamsToAdd = this.state.allTeams
       .filter(team => {
         return team.hasAccess && !projectTeams.has(team.slug);
@@ -168,9 +183,15 @@ class ProjectTeams extends AsyncView {
     let menuHeader = (
       <StyledTeamsLabel>
         {t('Teams')}
-        <StyledCreateTeamLink onClick={this.handleCreateTeam}>
-          {t('Create Team')}
-        </StyledCreateTeamLink>
+        <Tooltip
+          disabled={canCreateTeam}
+          title={t('You do not have access to create teams.')}
+          tooltipOptions={{placement: 'top'}}
+        >
+          <StyledCreateTeamLink disabled={!canCreateTeam} onClick={this.handleCreateTeam}>
+            {t('Create Team')}
+          </StyledCreateTeamLink>
+        </Tooltip>
       </StyledTeamsLabel>
     );
 
@@ -220,31 +241,12 @@ class ProjectTeams extends AsyncView {
     if (this.state.projectTeams.length > 0) body = this.renderResults();
     else body = this.renderEmpty();
 
-    let {organization, params} = this.props;
-    let canCreateTeams = getOrganizationState(organization)
-      .getAccess()
-      .has('project:admin');
+    let {params} = this.props;
 
     return (
       <div>
         <SettingsPageHeader
           title={tct('[projectId] Teams', {projectId: params.projectId})}
-          action={
-            <Button
-              priority="primary"
-              size="small"
-              disabled={!canCreateTeams}
-              title={
-                !canCreateTeams
-                  ? t('You do not have permission to create teams')
-                  : undefined
-              }
-              onClick={this.handleCreateTeam}
-              icon="icon-circle-add"
-            >
-              {t('Create Team')}
-            </Button>
-          }
         />
         <Panel>
           <PanelHeader hasButtons={true}>
@@ -289,6 +291,13 @@ const StyledTeamsLabel = styled('div')`
 const StyledCreateTeamLink = styled(Link)`
   float: right;
   text-transform: none;
+  ${p =>
+    p.disabled &&
+    css`
+      cursor: not-allowed;
+      color: ${p.theme.gray2};
+      opacity: 0.6;
+    `};
 `;
 
 export default ProjectTeams;
