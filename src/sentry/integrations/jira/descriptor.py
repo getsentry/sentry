@@ -1,12 +1,9 @@
 from __future__ import absolute_import
 
-from six.moves.urllib.parse import urlparse
-
 from sentry.api.base import Endpoint
 from sentry.utils.http import absolute_uri
 
-
-JIRA_KEY = '%s.jira' % (urlparse(absolute_uri()).hostname, )
+from .client import JIRA_KEY
 
 
 class JiraDescriptorEndpoint(Endpoint):
