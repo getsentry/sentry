@@ -24,4 +24,5 @@ class OrganizationRoot extends React.Component {
   }
 }
 
+export {OrganizationRoot};
 export default withRouter(OrganizationRoot);

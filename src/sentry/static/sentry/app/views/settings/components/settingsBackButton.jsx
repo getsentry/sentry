@@ -61,4 +61,5 @@ class BackButton extends React.Component {
 
 const SettingsBackButton = withLatestContext(BackButton);
 
+export {BackButton};
 export default SettingsBackButton;
