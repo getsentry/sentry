@@ -7,7 +7,7 @@ import styled from 'react-emotion';
 import Avatar from 'app/components/avatar';
 import InlineSvg from 'app/components/inlineSvg';
 import SentryTypes from 'app/proptypes';
-import UserBadge from 'app/components/userBadge';
+import IdBadge from 'app/components/idBadge';
 import highlightFuseMatches from 'app/utils/highlightFuseMatches';
 
 class SearchResult extends React.Component {
@@ -56,7 +56,7 @@ class SearchResult extends React.Component {
 
     if (sourceType === 'member') {
       return (
-        <UserBadge
+        <IdBadge
           displayName={highlightedTitle}
           displayEmail={highlightedDescription}
           userLink={false}
