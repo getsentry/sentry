@@ -253,6 +253,10 @@ export const ProjectKey = PropTypes.shape({
   id: PropTypes.string,
   isActive: PropTypes.bool,
   label: PropTypes.string,
+  relay: PropTypes.shape({
+    url: PropTypes.string,
+  }),
+  cdnSdkUrl: PropTypes.string,
 });
 
 let SentryTypes = {
