@@ -43,6 +43,16 @@ describe('Sidebar', function() {
     expect(wrapper.find('StyledSidebar')).toHaveLength(1);
   });
 
+  it('renders without org and router', function() {
+    wrapper = createWrapper({
+      organization: null,
+      router: null,
+    });
+
+    wrapper.find('SidebarDropdownActor').simulate('click');
+    expect(wrapper.find('OrgAndUserMenu')).toMatchSnapshot();
+  });
+
   it('can toggle collapsed state', async function() {
     wrapper = mount(
       <SidebarContainer organization={organization} user={user} router={router} />,

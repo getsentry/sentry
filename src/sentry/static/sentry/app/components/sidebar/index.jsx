@@ -1,4 +1,4 @@
-import {withRouter, Link} from 'react-router';
+import {withRouter} from 'react-router';
 import $ from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -45,17 +45,21 @@ class Sidebar extends React.Component {
   }
 
   componentDidMount() {
+    let {router} = this.props;
     jQuery(document.body).addClass('body-sidebar');
     jQuery(document).on('click', this.documentClickHandler);
 
     loadIncidents();
     loadSidebarState();
 
+    // router can potentially not exist in server side (django) views
     // Otherwise when we change routes using collapsed sidebar, the tooltips will remain after
     // route changes.
-    this.routerListener = this.props.router.listen(() => {
-      $('.tooltip').tooltip('hide');
-    });
+    this.routerListener =
+      router &&
+      router.listen(() => {
+        $('.tooltip').tooltip('hide');
+      });
     this.doCollapse(this.props.collapsed);
   }
 
@@ -160,23 +164,13 @@ class Sidebar extends React.Component {
       collapsed,
       hasPanel,
     };
-
-    if (!organization) {
-      return (
-        <StyledSidebar innerRef={ref => (this.sidebar = ref)} collapsed>
-          <SidebarSectionGroup>
-            <SidebarSection>
-              <Link to="/">
-                <InlineSvg css={{fontSize: 32}} src="icon-sentry" />
-              </Link>
-            </SidebarSection>
-          </SidebarSectionGroup>
-        </StyledSidebar>
-      );
-    }
+    let hasOrganization = !!organization;
 
     return (
-      <StyledSidebar innerRef={ref => (this.sidebar = ref)} collapsed={collapsed}>
+      <StyledSidebar
+        innerRef={ref => (this.sidebar = ref)}
+        collapsed={hasOrganization ? collapsed : true}
+      >
         <SidebarSectionGroup>
           <SidebarSection>
             <SidebarDropdown
@@ -189,104 +183,110 @@ class Sidebar extends React.Component {
             />
           </SidebarSection>
 
-          <SidebarSection>
-            <SidebarItem
-              {...sidebarItemProps}
-              index
-              onClick={this.hidePanel}
-              icon={<InlineSvg src="icon-projects" />}
-              label={t('Projects')}
-              to={`/${organization.slug}/`}
-            />
-          </SidebarSection>
+          {hasOrganization && (
+            <React.Fragment>
+              <SidebarSection>
+                <SidebarItem
+                  {...sidebarItemProps}
+                  index
+                  onClick={this.hidePanel}
+                  icon={<InlineSvg src="icon-projects" />}
+                  label={t('Projects')}
+                  to={`/${organization.slug}/`}
+                />
+              </SidebarSection>
 
-          <SidebarSection>
-            <SidebarItem
-              {...sidebarItemProps}
-              onClick={this.hidePanel}
-              icon={<InlineSvg src="icon-user" />}
-              label={t('Assigned to me')}
-              to={`/organizations/${organization.slug}/issues/assigned/`}
-            />
-            <SidebarItem
-              {...sidebarItemProps}
-              onClick={this.hidePanel}
-              icon={<InlineSvg src="icon-star" />}
-              label={t('Starred issues')}
-              to={`/organizations/${organization.slug}/issues/bookmarks/`}
-            />
-            <SidebarItem
-              {...sidebarItemProps}
-              onClick={this.hidePanel}
-              icon={<InlineSvg src="icon-history" />}
-              label={t('Recently viewed')}
-              to={`/organizations/${organization.slug}/issues/history/`}
-            />
-          </SidebarSection>
+              <SidebarSection>
+                <SidebarItem
+                  {...sidebarItemProps}
+                  onClick={this.hidePanel}
+                  icon={<InlineSvg src="icon-user" />}
+                  label={t('Assigned to me')}
+                  to={`/organizations/${organization.slug}/issues/assigned/`}
+                />
+                <SidebarItem
+                  {...sidebarItemProps}
+                  onClick={this.hidePanel}
+                  icon={<InlineSvg src="icon-star" />}
+                  label={t('Starred issues')}
+                  to={`/organizations/${organization.slug}/issues/bookmarks/`}
+                />
+                <SidebarItem
+                  {...sidebarItemProps}
+                  onClick={this.hidePanel}
+                  icon={<InlineSvg src="icon-history" />}
+                  label={t('Recently viewed')}
+                  to={`/organizations/${organization.slug}/issues/history/`}
+                />
+              </SidebarSection>
 
-          <SidebarSection>
-            <SidebarItem
-              {...sidebarItemProps}
-              onClick={this.hidePanel}
-              icon={<InlineSvg src="icon-activity" />}
-              label={t('Activity')}
-              to={`/organizations/${organization.slug}/activity/`}
-            />
-            <SidebarItem
-              {...sidebarItemProps}
-              onClick={this.hidePanel}
-              icon={<InlineSvg src="icon-stats" />}
-              label={t('Stats')}
-              to={`/organizations/${organization.slug}/stats/`}
-            />
-          </SidebarSection>
+              <SidebarSection>
+                <SidebarItem
+                  {...sidebarItemProps}
+                  onClick={this.hidePanel}
+                  icon={<InlineSvg src="icon-activity" />}
+                  label={t('Activity')}
+                  to={`/organizations/${organization.slug}/activity/`}
+                />
+                <SidebarItem
+                  {...sidebarItemProps}
+                  onClick={this.hidePanel}
+                  icon={<InlineSvg src="icon-stats" />}
+                  label={t('Stats')}
+                  to={`/organizations/${organization.slug}/stats/`}
+                />
+              </SidebarSection>
+            </React.Fragment>
+          )}
         </SidebarSectionGroup>
 
-        <SidebarSectionGroup>
-          <SidebarSection>
-            <Broadcasts
-              orientation={orientation}
-              collapsed={collapsed}
-              showPanel={showPanel}
-              currentPanel={currentPanel}
-              onShowPanel={() => this.togglePanel('broadcasts')}
-              hidePanel={this.hidePanel}
-            />
-            <Incidents
-              orientation={orientation}
-              collapsed={collapsed}
-              showPanel={showPanel}
-              currentPanel={currentPanel}
-              onShowPanel={() => this.togglePanel('statusupdate')}
-              hidePanel={this.hidePanel}
-            />
-          </SidebarSection>
-
-          {!horizontal && (
-            <SidebarSection noMargin>
-              <OnboardingStatus
-                org={organization}
-                currentPanel={currentPanel}
-                onShowPanel={() => this.togglePanel('todos')}
-                showPanel={showPanel}
-                hidePanel={this.hidePanel}
-                collapsed={collapsed}
-              />
-            </SidebarSection>
-          )}
-
-          {!horizontal && (
+        {hasOrganization && (
+          <SidebarSectionGroup>
             <SidebarSection>
-              <SidebarCollapseItem
-                data-test-id="sidebar-collapse"
-                {...sidebarItemProps}
-                icon={<StyledInlineSvg src="icon-collapse" collapsed={collapsed} />}
-                label={collapsed ? t('Expand') : t('Collapse')}
-                onClick={this.toggleSidebar}
+              <Broadcasts
+                orientation={orientation}
+                collapsed={collapsed}
+                showPanel={showPanel}
+                currentPanel={currentPanel}
+                onShowPanel={() => this.togglePanel('broadcasts')}
+                hidePanel={this.hidePanel}
+              />
+              <Incidents
+                orientation={orientation}
+                collapsed={collapsed}
+                showPanel={showPanel}
+                currentPanel={currentPanel}
+                onShowPanel={() => this.togglePanel('statusupdate')}
+                hidePanel={this.hidePanel}
               />
             </SidebarSection>
-          )}
-        </SidebarSectionGroup>
+
+            {!horizontal && (
+              <SidebarSection noMargin>
+                <OnboardingStatus
+                  org={organization}
+                  currentPanel={currentPanel}
+                  onShowPanel={() => this.togglePanel('todos')}
+                  showPanel={showPanel}
+                  hidePanel={this.hidePanel}
+                  collapsed={collapsed}
+                />
+              </SidebarSection>
+            )}
+
+            {!horizontal && (
+              <SidebarSection>
+                <SidebarCollapseItem
+                  data-test-id="sidebar-collapse"
+                  {...sidebarItemProps}
+                  icon={<StyledInlineSvg src="icon-collapse" collapsed={collapsed} />}
+                  label={collapsed ? t('Expand') : t('Collapse')}
+                  onClick={this.toggleSidebar}
+                />
+              </SidebarSection>
+            )}
+          </SidebarSectionGroup>
+        )}
       </StyledSidebar>
     );
   }
