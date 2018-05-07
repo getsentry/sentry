@@ -11,7 +11,7 @@ class ExternalIssue(Model):
 
     organization_id = BoundedPositiveIntegerField()
     integration_id = BoundedPositiveIntegerField()
-    key = models.CharField(max_length=64)  # example APP-123 in jira
+    key = models.CharField(max_length=128)  # example APP-123 in jira
     date_added = models.DateTimeField(default=timezone.now)
     title = models.TextField(null=True)
     description = models.TextField(null=True)

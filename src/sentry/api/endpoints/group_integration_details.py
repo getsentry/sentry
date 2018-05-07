@@ -11,6 +11,10 @@ from sentry.models import ExternalIssue, GroupLink, OrganizationIntegration
 class GroupIntegrationDetails(GroupEndpoint):
     # was thinking put for link an existing issue, post for create new issue?
     def put(self, request, group, integration_id):
+        external_issue_id = request.DATA.get('externalIssue')
+        if not external_issue_id:
+            return Response({'detail': 'External ID required'}, status=400)
+
         organization_id = group.project.organization_id
         try:
             # check org permissions
@@ -21,11 +25,6 @@ class GroupIntegrationDetails(GroupEndpoint):
             ).select_related('integration').get().integration
         except OrganizationIntegration.DoesNotExist:
             return Response(status=404)
-
-        external_issue_id = request.DATA.get('externalIssue')
-
-        if not external_issue_id:
-            return Response({'detail': 'External ID required'}, status=400)
 
         # TODO(jess): some validation from provider to ensure this
         # issue id is valid and also maybe to fetch the title/description
