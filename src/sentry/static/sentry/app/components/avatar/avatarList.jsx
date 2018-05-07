@@ -43,7 +43,7 @@ const StyledAvatar = styled(props => <Avatar {...props} />)`
   margin-left: -${p => p.size / 2}px;
 `;
 
-const CollapsedUsers = styled(({size}) => <div />)`
+const CollapsedUsers = styled(props => <div {...props} />)`
   position: relative;
   text-align: center;
   font-weight: 600;

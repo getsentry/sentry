@@ -776,7 +776,12 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
             className="css-n3i1n8-CollapsedUsers e1axh4r51"
             size={28}
           >
-            <div />
+            <div
+              className="css-n3i1n8-CollapsedUsers e1axh4r51"
+              size={28}
+            >
+              1
+            </div>
           </Component>
         </CollapsedUsers>
       </div>
