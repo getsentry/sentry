@@ -110,15 +110,7 @@ class AsyncComponent extends React.Component {
         ...params,
         query,
         success: (data, _, jqXHR) => {
-          this.setState(prevState => {
-            return {
-              [stateKey]: data,
-              // TODO(billy): This currently fails if this request is retried by SudoModal
-              [`${stateKey}PageLinks`]: jqXHR && jqXHR.getResponseHeader('Link'),
-              remainingRequests: prevState.remainingRequests - 1,
-              loading: prevState.remainingRequests > 1,
-            };
-          });
+          this.handleRequestSuccess({stateKey, data, jqXHR}, true);
         },
         error: error => {
           // Allow endpoints to fail
@@ -129,6 +121,23 @@ class AsyncComponent extends React.Component {
           this.handleError(error, [stateKey, endpoint, params, options]);
         },
       });
+    });
+  };
+
+  handleRequestSuccess = ({stateKey, data, jqXHR}, initialRequest) => {
+    this.setState(prevState => {
+      let state = {
+        [stateKey]: data,
+        // TODO(billy): This currently fails if this request is retried by SudoModal
+        [`${stateKey}PageLinks`]: jqXHR && jqXHR.getResponseHeader('Link'),
+      };
+
+      if (initialRequest) {
+        state.remainingRequests = prevState.remainingRequests - 1;
+        state.loading = prevState.remainingRequests > 1;
+      }
+
+      return state;
     });
   };
 

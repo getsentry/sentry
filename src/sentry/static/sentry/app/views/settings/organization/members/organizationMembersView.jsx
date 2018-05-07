@@ -221,8 +221,8 @@ class OrganizationMembersView extends AsyncView {
 
     this.api.request(`/organizations/${orgId}/members/?query=${searchQuery}`, {
       method: 'GET',
-      success: data => {
-        this.setState({members: data});
+      success: (data, _, jqXHR) => {
+        this.handleRequestSuccess({stateKey: 'members', data, jqXHR});
       },
     });
   }, 200);
