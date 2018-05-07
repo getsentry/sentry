@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.integrations import Integration, IntegrationMetadata
+from sentry.integrations import IntegrationProvider, IntegrationMetadata
 
 alert_link = {
     'text': 'Visit the **Atlassian Marketplace** to install this integration.',
@@ -23,7 +23,7 @@ metadata = IntegrationMetadata(
 )
 
 
-class JiraIntegration(Integration):
+class JiraIntegrationProvider(IntegrationProvider):
     key = 'jira'
     name = 'JIRA'
     metadata = metadata
