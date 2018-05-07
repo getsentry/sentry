@@ -82,8 +82,8 @@ export default class OrganizationProjectsView extends AsyncView {
 
     this.api.request(`/organizations/${orgId}/projects/?query=${searchQuery}`, {
       method: 'GET',
-      success: data => {
-        this.setState({projectList: data});
+      success: (data, _, jqXHR) => {
+        this.handleRequestSuccess({stateKey: 'projectList', data, jqXHR});
       },
     });
   }, 200);

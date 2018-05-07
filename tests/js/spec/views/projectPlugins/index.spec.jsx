@@ -24,6 +24,11 @@ describe('ProjectPluginsContainer', function() {
     };
 
     MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/`,
+      method: 'GET',
+      body: org,
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/config/integrations/`,
       method: 'GET',
       body: {providers: [TestStubs.GitHubIntegrationProvider()]},
