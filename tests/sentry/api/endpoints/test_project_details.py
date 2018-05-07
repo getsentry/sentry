@@ -245,7 +245,12 @@ class ProjectUpdateTest(APITestCase):
             'filters:releases': '1.*\n2.1.*',
             'filters:error_messages': 'TypeError*\n*: integer division by modulo or zero',
             'mail:subject_prefix': '[Sentry]',
-            'sentry:scrub_ip_address': False
+            'sentry:scrub_ip_address': False,
+            'sentry:origins': '*',
+            'sentry:scrape_javascript': False,
+            'sentry:token': '*',
+            'sentry:token_header': '*',
+            'sentry:verify_ssl': False
         }
         with self.feature('projects:custom-inbound-filters'):
             resp = self.client.put(self.path, data={'options': options})
@@ -296,6 +301,35 @@ class ProjectUpdateTest(APITestCase):
         assert project.get_option(
             'sentry:scrub_ip_address',
             True) == options['sentry:scrub_ip_address']
+        assert AuditLogEntry.objects.filter(
+            organization=project.organization,
+            event=AuditLogEntryEvent.PROJECT_EDIT,
+        ).exists()
+        assert project.get_option('sentry:origins', '*')
+        assert AuditLogEntry.objects.filter(
+            organization=project.organization,
+            event=AuditLogEntryEvent.PROJECT_EDIT,
+        ).exists()
+        assert project.get_option(
+            'sentry:scrape_javascript',
+            False) == options['sentry:scrape_javascript']
+        assert AuditLogEntry.objects.filter(
+            organization=project.organization,
+            event=AuditLogEntryEvent.PROJECT_EDIT,
+        ).exists()
+        assert project.get_option('sentry:token', '*')
+        assert AuditLogEntry.objects.filter(
+            organization=project.organization,
+            event=AuditLogEntryEvent.PROJECT_EDIT,
+        ).exists()
+        assert project.get_option('sentry:token_header', '*')
+        assert AuditLogEntry.objects.filter(
+            organization=project.organization,
+            event=AuditLogEntryEvent.PROJECT_EDIT,
+        ).exists()
+        assert project.get_option(
+            'sentry:verify_ssl',
+            False) == options['sentry:verify_ssl']
         assert AuditLogEntry.objects.filter(
             organization=project.organization,
             event=AuditLogEntryEvent.PROJECT_EDIT,
