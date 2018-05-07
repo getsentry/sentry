@@ -285,16 +285,16 @@ class TagStorage(TestCase):
         assert tags[0].times_seen == 1
 
     def test_get_group_event_ids(self):
-        assert sorted(self.ts.get_group_event_ids(
+        assert set(self.ts.get_group_event_ids(
             self.proj1.id,
             self.proj1group1.id,
             self.proj1env1.id,
             {
                 'foo': 'bar',
             }
-        )) == ["1" * 32, "2" * 32]
+        )) == set(["1" * 32, "2" * 32])
 
-        assert sorted(self.ts.get_group_event_ids(
+        assert set(self.ts.get_group_event_ids(
             self.proj1.id,
             self.proj1group1.id,
             self.proj1env1.id,
@@ -302,22 +302,22 @@ class TagStorage(TestCase):
                 'foo': 'bar',  # OR
                 'release': '200'
             }
-        )) == ["1" * 32, "2" * 32]
+        )) == set(["1" * 32, "2" * 32])
 
-        assert self.ts.get_group_event_ids(
+        assert set(self.ts.get_group_event_ids(
             self.proj1.id,
             self.proj1group2.id,
             self.proj1env1.id,
             {
                 'browser': 'chrome'
             }
-        ) == ["3" * 32]
+        )) == set(["3" * 32])
 
-        assert self.ts.get_group_event_ids(
+        assert set(self.ts.get_group_event_ids(
             self.proj1.id,
             self.proj1group2.id,
             self.proj1env1.id,
             {
                 'browser': 'ie'
             }
-        ) == []
+        )) == set([])
