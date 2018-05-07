@@ -7,6 +7,7 @@ from .oauth2 import *  # NOQA
 from .slack import *  # NOQA
 from .github import *  # NOQA
 from .vsts import *  # NOQA
+from .bitbucket import *  # NOQA
 
 
 default_manager = IdentityManager()
@@ -21,3 +22,4 @@ unregister = default_manager.unregister
 register(SlackIdentityProvider)  # NOQA
 register(GitHubIdentityProvider)  # NOQA
 register(VSTSIdentityProvider)  # NOQA
+register(BitBucketIdentityProvider)  # NOQA
