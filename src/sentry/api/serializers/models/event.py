@@ -105,7 +105,7 @@ class EventSerializer(Serializer):
                 received = None
 
         from sentry.event_manager import (
-            get_hashes_for_event,
+            get_hashes_from_fingerprint,
             md5_from_hash,
         )
 
@@ -132,7 +132,10 @@ class EventSerializer(Serializer):
             'dateCreated': obj.datetime,
             'dateReceived': received,
             'errors': errors,
-            'fingerprints': [md5_from_hash(h) for h in get_hashes_for_event(obj)],
+            'fingerprints': [
+                md5_from_hash(h)
+                for h in get_hashes_from_fingerprint(obj, obj.data.get('fingerprint', ['{{ default }}']))
+            ],
         }
         return d
 
