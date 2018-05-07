@@ -117,7 +117,7 @@ class SnubaTagStorage(TagStorage):
         ]
 
         data = snuba.query(start, end, [], conditions, filters, aggregations)
-        if not data:
+        if not data['times_seen'] > 0:
             raise TagValueNotFound if group_id is None else GroupTagValueNotFound
         else:
             data.update({
