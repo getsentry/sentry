@@ -35,6 +35,7 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import StackedBarChart from 'app/components/stackedBarChart';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import TextField from 'app/views/settings/components/forms/textField';
+import TextCopyInput from '../../components/forms/textCopyInput';
 
 const RATE_LIMIT_FORMAT_MAP = new Map([
   [0, 'None'],
@@ -291,6 +292,7 @@ const KeySettings = createReactClass({
     data: SentryTypes.ProjectKey.isRequired,
     onRemove: PropTypes.func.isRequired,
     rateLimitsEnabled: PropTypes.bool,
+    relayEnabled: PropTypes.bool,
   },
 
   mixins: [ApiMixin],
@@ -326,7 +328,14 @@ const KeySettings = createReactClass({
 
   render() {
     let {keyId, orgId, projectId} = this.props.params;
-    let {access, data, rateLimitsEnabled, organization, project} = this.props;
+    let {
+      access,
+      data,
+      rateLimitsEnabled,
+      relayEnabled,
+      organization,
+      project,
+    } = this.props;
     let apiEndpoint = `/projects/${orgId}/${projectId}/keys/${keyId}/`;
 
     return (
@@ -369,6 +378,40 @@ const KeySettings = createReactClass({
           enabled={rateLimitsEnabled}
           hooksDisabled={this.state.hooksDisabled}
         />
+
+        {relayEnabled && (
+          <Form
+            saveOnBlur
+            allowUndo
+            apiEndpoint={apiEndpoint}
+            apiMethod="PUT"
+            initialData={data}
+          >
+            <Panel>
+              <PanelHeader>{t('CDN')}</PanelHeader>
+              <PanelBody>
+                <TextField
+                  name="jsSdkUrl"
+                  help={t(
+                    'Change this to the URL of the SDK of your choice. By default this is the latest SDK version. If you set an URL here you need to update it manually.'
+                  )}
+                  label={t('Url of SDK to be loaded')}
+                  placeholder={t('Leave empty to use default')}
+                  required={false}
+                />
+
+                <Field
+                  help={t('Copy this into your website and you are good to go')}
+                  inline={false}
+                  flexibleControlStateSize
+                >
+                  <TextCopyInput>{`<script src='${data.relay
+                    .url}'></script>`}</TextCopyInput>
+                </Field>
+              </PanelBody>
+            </Panel>
+          </Form>
+        )}
 
         <Panel>
           <PanelHeader>{t('Credentials')}</PanelHeader>
@@ -447,6 +490,8 @@ export default class ProjectKeyDetails extends AsyncView {
     let access = getOrganizationState(organization).getAccess();
     let features = new Set(project.features);
     let hasRateLimitsEnabled = features.has('rate-limits');
+    let orgFeatures = new Set(organization.features);
+    let hasRelayEnabled = orgFeatures.has('relay');
 
     return (
       <div className="ref-key-details">
@@ -460,6 +505,7 @@ export default class ProjectKeyDetails extends AsyncView {
           access={access}
           params={params}
           rateLimitsEnabled={hasRateLimitsEnabled}
+          relayEnabled={hasRelayEnabled}
           data={data}
           onRemove={this.handleRemove}
         />
