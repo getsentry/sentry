@@ -39,12 +39,16 @@ class ValueComponent extends React.Component {
   }
 }
 
+const getSearchKeyForUser = user =>
+  `${user.email && user.email.toLowerCase()} ${user.name && user.name.toLowerCase()}`;
+
 export default class SelectOwners extends React.Component {
   static propTypes = {
     project: SentryTypes.Project,
     organization: SentryTypes.Organization,
     value: PropTypes.array,
     onChange: PropTypes.func,
+    onInputChange: PropTypes.func,
   };
 
   constructor(...args) {
@@ -76,20 +80,41 @@ export default class SelectOwners extends React.Component {
     }
   }
 
-  createMentionableUser(member) {
+  renderUserBadge = user => (
+    <IdBadge avatarSize={24} user={user} hideEmail useLink={false} />
+  );
+
+  createMentionableUser = user => {
     return {
-      value: buildUserId(member.id),
-      label: <IdBadge user={member} hideEmail useLink={false} />,
-      searchKey: `${member.email}  ${member.name}`,
+      value: buildUserId(user.id),
+      label: this.renderUserBadge(user),
+      searchKey: getSearchKeyForUser(user),
       actor: {
         type: 'user',
-        id: member.id,
-        name: member.name,
+        id: user.id,
+        name: user.name,
       },
     };
-  }
+  };
 
-  createMentionableTeam(team) {
+  createUnmentionableUser = ({user}) => {
+    return {
+      ...this.createMentionableUser(user),
+      disabled: true,
+      label: (
+        <DisabledLabel>
+          <Tooltip
+            tooltipOptions={{container: 'body', placement: 'left'}}
+            title={t('%s is not a member of project', user.name || user.email)}
+          >
+            {this.renderUserBadge(user)}
+          </Tooltip>
+        </DisabledLabel>
+      ),
+    };
+  };
+
+  createMentionableTeam = team => {
     return {
       value: buildTeamId(team.id),
       label: <IdBadge team={team} />,
@@ -100,7 +125,35 @@ export default class SelectOwners extends React.Component {
         name: team.slug,
       },
     };
-  }
+  };
+
+  createUnmentionableTeam = team => {
+    return {
+      ...this.createMentionableTeam(team),
+      disabled: true,
+      label: (
+        <Flex justify="space-between">
+          <DisabledLabel>
+            <Tooltip
+              tooltipOptions={{container: 'body', placement: 'left'}}
+              title={t('%s is not a member of project', `#${team.slug}`)}
+            >
+              <IdBadge team={team} />
+            </Tooltip>
+          </DisabledLabel>
+          <Tooltip title={t(`Add #${team.slug} to project`)}>
+            <AddToProjectButton
+              size="zero"
+              borderless
+              onClick={this.handleAddTeamToProject.bind(this, team)}
+            >
+              <InlineSvg src="icon-circle-add" />
+            </AddToProjectButton>
+          </Tooltip>
+        </Flex>
+      ),
+    };
+  };
 
   getMentionableUsers() {
     return MemberListStore.getAll().map(this.createMentionableUser);
@@ -126,32 +179,9 @@ export default class SelectOwners extends React.Component {
     let teams = TeamStore.getAll() || [];
     let excludedTeamIds = teamsInProject.map(({actor}) => actor.id);
 
-    return teams.filter(team => excludedTeamIds.indexOf(team.id) === -1).map(team => ({
-      value: buildTeamId(team.id),
-      label: (
-        <Flex justify="space-between">
-          <DisabledLabel>
-            <IdBadge team={team} />
-          </DisabledLabel>
-          <Tooltip title={t(`Add #${team.slug} to project`)}>
-            <Button
-              size="zero"
-              borderless
-              onClick={this.handleAddTeamToProject.bind(this, team)}
-            >
-              <InlineSvg src="icon-circle-add" />
-            </Button>
-          </Tooltip>
-        </Flex>
-      ),
-      disabled: true,
-      searchKey: `#${team.slug}`,
-      actor: {
-        type: 'team',
-        id: team.id,
-        name: team.slug,
-      },
-    }));
+    return teams
+      .filter(team => excludedTeamIds.indexOf(team.id) === -1)
+      .map(this.createUnmentionableTeam);
   }
 
   /**
@@ -194,9 +224,16 @@ export default class SelectOwners extends React.Component {
     }
   }
 
-  handleInputChange = newValue => {
-    this.setState({inputValue: ''});
+  handleChange = newValue => {
     this.props.onChange(newValue);
+  };
+
+  handleInputChange = inputValue => {
+    this.setState({inputValue});
+
+    if (this.props.onInputChange) {
+      this.props.onInputChange(inputValue);
+    }
   };
 
   handleLoadOptions = () => {
@@ -209,28 +246,15 @@ export default class SelectOwners extends React.Component {
     // Return a promise for `react-select`
     return this.api
       .requestPromise(`/organizations/${organization.slug}/members/`, {
-        query: this.state.inputValue,
+        query: {query: this.state.inputValue},
       })
       .then(members => {
-        // Be careful here as we actually want the `users` object
+        // Be careful here as we actually want the `users` object, otherwise it means user
+        // has not registered for sentry yet, but has been invited
         return members
           ? members
               .filter(({user}) => user && usersInProjectById.indexOf(user.id) === -1)
-              .map(({user}) => ({
-                value: buildUserId(user.id),
-                disabled: true,
-                label: (
-                  <DisabledLabel>
-                    <IdBadge user={user} hideEmail useLink={false} />
-                  </DisabledLabel>
-                ),
-                searchKey: `${user.email}  ${user.name}`,
-                actor: {
-                  type: 'user',
-                  id: user.id,
-                  name: user.name,
-                },
-              }))
+              .map(this.createUnmentionableUser)
           : [];
       })
       .then(members => {
@@ -258,7 +282,8 @@ export default class SelectOwners extends React.Component {
         cache={false}
         valueComponent={ValueComponent}
         placeholder={t('Add Owners')}
-        onChange={this.handleInputChange}
+        onInputChange={this.handleInputChange}
+        onChange={this.handleChange}
         value={this.props.value}
         css={{width: 200}}
       />
@@ -268,4 +293,9 @@ export default class SelectOwners extends React.Component {
 
 const DisabledLabel = styled('div')`
   opacity: 0.5;
+  overflow: hidden; /* Needed so that "Add to team" button can fit */
+`;
+
+const AddToProjectButton = styled(Button)`
+  flex-shrink: 0;
 `;
