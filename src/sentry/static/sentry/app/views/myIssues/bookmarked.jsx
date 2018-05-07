@@ -17,6 +17,7 @@ class Bookmarked extends React.Component {
       <OrganizationIssueList
         title={this.getTitle()}
         endpoint={this.getEndpoint()}
+        emptyText={t('You have not bookmarked any issues.')}
         {...this.props}
       />
     );

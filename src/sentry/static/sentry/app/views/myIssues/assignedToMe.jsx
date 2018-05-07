@@ -17,6 +17,7 @@ class AssignedToMe extends React.Component {
       <OrganizationIssueList
         title={this.getTitle()}
         endpoint={this.getEndpoint()}
+        emptyText={t('No issues currently assigned to you.')}
         {...this.props}
       />
     );
