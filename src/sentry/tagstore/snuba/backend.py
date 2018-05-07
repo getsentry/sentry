@@ -125,7 +125,7 @@ class SnubaTagStorage(TagStorage):
                 'value': value,
             })
             if group_id is None:
-                return TagKey(**fix_tag_value_data(data))
+                return TagValue(**fix_tag_value_data(data))
             else:
                 return GroupTagKey(group_id=group_id, **fix_tag_value_data(data))
 
