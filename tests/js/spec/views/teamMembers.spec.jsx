@@ -24,44 +24,40 @@ describe('TeamMembers', function() {
     });
   });
 
-  describe('render()', function() {
-    it('renders', function() {
-      let wrapper = shallow(
-        <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
-        routerContext
-      );
-      expect(wrapper).toMatchSnapshot();
-    });
+  it('renders', function() {
+    let wrapper = shallow(
+      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
+      routerContext
+    );
+    expect(wrapper).toMatchSnapshot();
   });
 
-  describe('TeamMembers.removeMember()', function() {
-    it('can remove a team', function() {
-      let endpoint = `/organizations/${org.slug}/members/${members[0]
-        .id}/teams/${team.slug}/`;
-      let mock = Client.addMockResponse({
-        url: endpoint,
-        method: 'DELETE',
-        statusCode: 200,
-      });
-
-      let wrapper = mount(
-        <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
-        routerContext
-      );
-
-      expect(mock).not.toHaveBeenCalled();
-
-      wrapper
-        .find('Button')
-        .at(1)
-        .simulate('click');
-
-      expect(mock).toHaveBeenCalledWith(
-        endpoint,
-        expect.objectContaining({
-          method: 'DELETE',
-        })
-      );
+  it('can remove a team', function() {
+    let endpoint = `/organizations/${org.slug}/members/${members[0]
+      .id}/teams/${team.slug}/`;
+    let mock = Client.addMockResponse({
+      url: endpoint,
+      method: 'DELETE',
+      statusCode: 200,
     });
+
+    let wrapper = mount(
+      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
+      routerContext
+    );
+
+    expect(mock).not.toHaveBeenCalled();
+
+    wrapper
+      .find('Button')
+      .at(1)
+      .simulate('click');
+
+    expect(mock).toHaveBeenCalledWith(
+      endpoint,
+      expect.objectContaining({
+        method: 'DELETE',
+      })
+    );
   });
 });
