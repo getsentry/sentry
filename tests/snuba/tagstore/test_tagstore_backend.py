@@ -85,16 +85,16 @@ class TagStorage(TestCase):
             self.proj1group1.id,
             self.proj1env1.id,
         )
-        tags = [r['id'] for r in result]
+        tags = [r['key'] for r in result]
         assert set(tags) == set(['foo', 'baz', 'environment', 'release'])
 
-        result.sort(key=lambda r: r['id'])
-        assert result[0]['id'] == 'baz'
+        result.sort(key=lambda r: r['key'])
+        assert result[0]['key'] == 'baz'
         assert result[0]['uniqueValues'] == 1
         assert result[0]['totalValues'] == 2
         assert result[0]['topValues'][0]['value'] == 'quux'
 
-        assert result[3]['id'] == 'release'
+        assert result[3]['key'] == 'release'
         assert result[3]['uniqueValues'] == 2
         assert result[3]['totalValues'] == 2
         assert result[3]['topValues'][0]['value'] == '100'
