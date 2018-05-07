@@ -10,11 +10,11 @@ const prettyDate = function(x) {
   return moment(x).format('ll LTS');
 };
 
-class AdminAgents extends React.Component {
+class AdminRelays extends React.Component {
   getRow = row => {
     return [
       <td>
-        <strong>{row.agentId}</strong>
+        <strong>{row.relayId}</strong>
       </td>,
       <td>{row.publicKey}</td>,
       <td style={{textAlign: 'right'}}>{prettyDate(row.firstSeen)}</td>,
@@ -24,7 +24,7 @@ class AdminAgents extends React.Component {
 
   render() {
     let columns = [
-      <th style={{width: 350, textAlign: 'left'}}>Agent</th>,
+      <th style={{width: 350, textAlign: 'left'}}>Relay</th>,
       <th>Public Key</th>,
       <th style={{width: 150, textAlign: 'right'}}>First seen</th>,
       <th style={{width: 150, textAlign: 'right'}}>Last seen</th>,
@@ -32,10 +32,10 @@ class AdminAgents extends React.Component {
 
     return (
       <div>
-        <h3>{t('Agents')}</h3>
+        <h3>{t('Relays')}</h3>
         <ResultGrid
-          path="/manage/agents/"
-          endpoint={'/agents/'}
+          path="/manage/relays/"
+          endpoint={'/relays/'}
           method="GET"
           columns={columns}
           columnsForRow={this.getRow}
@@ -43,7 +43,7 @@ class AdminAgents extends React.Component {
           sortOptions={[
             ['firstSeen', 'First seen'],
             ['lastSeen', 'Last seen'],
-            ['agentId', 'Agent ID'],
+            ['relayId', 'Relay ID'],
           ]}
           defaultSort="firstSeen"
           {...this.props}
@@ -53,4 +53,4 @@ class AdminAgents extends React.Component {
   }
 }
 
-export default AdminAgents;
+export default AdminRelays;

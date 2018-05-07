@@ -4,7 +4,6 @@ import React from 'react';
 import AcceptProjectTransfer from 'app/views/acceptProjectTransfer';
 import AccountAuthorizations from 'app/views/accountAuthorizations';
 import AccountLayout from 'app/views/accountLayout';
-import AdminAgents from 'app/views/adminAgents';
 import AdminBuffer from 'app/views/adminBuffer';
 import AdminLayout from 'app/views/adminLayout';
 import AdminOrganizations from 'app/views/adminOrganizations';
@@ -12,6 +11,7 @@ import AdminOverview from 'app/views/adminOverview';
 import AdminProjects from 'app/views/adminProjects';
 import AdminQueue from 'app/views/adminQueue';
 import AdminQuotas from 'app/views/adminQuotas';
+import AdminRelays from 'app/views/adminRelays';
 import AdminSettings from 'app/views/adminSettings';
 import AdminUsers from 'app/views/adminUsers';
 import ApiApplicationDetails from 'app/views/apiApplicationDetails';
@@ -621,7 +621,7 @@ function routes() {
       <Route path="/manage/" component={errorHandler(AdminLayout)}>
         <IndexRoute component={errorHandler(AdminOverview)} />
         <Route path="buffer/" component={errorHandler(AdminBuffer)} />
-        <Route path="agents/" component={errorHandler(AdminAgents)} />
+        <Route path="relays/" component={errorHandler(AdminRelays)} />
         <Route path="organizations/" component={errorHandler(AdminOrganizations)} />
         <Route path="projects/" component={errorHandler(AdminProjects)} />
         <Route path="queue/" component={errorHandler(AdminQueue)} />
