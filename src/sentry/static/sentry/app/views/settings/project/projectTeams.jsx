@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import styled from 'react-emotion';
+import styled, {css} from 'react-emotion';
 
 import {removeTeamFromProject, addTeamToProject} from 'app/actionCreators/projects';
 import {getOrganizationState} from 'app/mixins/organizationState';
@@ -19,6 +19,7 @@ import Link from 'app/components/link';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import space from 'app/styles/space';
+import Tooltip from 'app/components/tooltip';
 
 const TeamRow = createReactClass({
   displayName: 'TeamRow',
@@ -99,6 +100,17 @@ class ProjectTeams extends AsyncView {
     ];
   }
 
+  canCreateTeam = () => {
+    let {organization} = this.props;
+    let access = getOrganizationState(organization).getAccess();
+    return (
+      access.has('org:write') &&
+      access.has('team:write') &&
+      access.has('project:write') &&
+      false
+    );
+  };
+
   handleRemovedTeam = removedTeam => {
     this.setState(prevState => {
       return {
@@ -139,8 +151,12 @@ class ProjectTeams extends AsyncView {
 
   handleCreateTeam = e => {
     let {project, organization} = this.props;
+
+    if (!this.canCreateTeam()) return;
+
     e.stopPropagation();
     e.preventDefault();
+
     openCreateTeamModal({
       project,
       organization,
@@ -154,11 +170,9 @@ class ProjectTeams extends AsyncView {
   };
 
   renderAddTeamToProject() {
-    let {organization} = this.props;
     let projectTeams = new Set(this.state.projectTeams.map(team => team.slug));
-    let canCreateTeams = getOrganizationState(organization)
-      .getAccess()
-      .has('project:admin');
+    let canCreateTeam = this.canCreateTeam();
+
     let teamsToAdd = this.state.allTeams
       .filter(team => {
         return team.hasAccess && !projectTeams.has(team.slug);
@@ -172,11 +186,15 @@ class ProjectTeams extends AsyncView {
     let menuHeader = (
       <StyledTeamsLabel>
         {t('Teams')}
-        {canCreateTeams && (
-          <StyledCreateTeamLink onClick={this.handleCreateTeam}>
+        <Tooltip
+          disabled={canCreateTeam}
+          title={t('You do not have access to create teams.')}
+          tooltipOptions={{placement: 'top'}}
+        >
+          <StyledCreateTeamLink disabled={!canCreateTeam} onClick={this.handleCreateTeam}>
             {t('Create Team')}
           </StyledCreateTeamLink>
-        )}
+        </Tooltip>
       </StyledTeamsLabel>
     );
 
@@ -276,6 +294,13 @@ const StyledTeamsLabel = styled('div')`
 const StyledCreateTeamLink = styled(Link)`
   float: right;
   text-transform: none;
+  ${p =>
+    p.disabled &&
+    css`
+      cursor: not-allowed;
+      color: ${p.theme.gray2};
+      opacity: 0.6;
+    `};
 `;
 
 export default ProjectTeams;
