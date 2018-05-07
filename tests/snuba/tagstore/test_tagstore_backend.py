@@ -137,12 +137,14 @@ class TagStorage(TestCase):
             key='foo',
         ).key == 'foo'
 
-        keys = self.ts.get_group_tag_keys(
-            project_id=self.proj1.id,
-            group_id=self.proj1group1.id,
-            environment_id=self.proj1env1.id,
+        keys = sorted(
+            self.ts.get_group_tag_keys(
+                project_id=self.proj1.id,
+                group_id=self.proj1group1.id,
+                environment_id=self.proj1env1.id,
+            ),
+            key=lambda x: x.key,
         )
-        keys.sort(key=lambda x: x.key)
         assert len(keys) == 2
         assert keys[0].key == 'baz'
         assert keys[0].times_seen == 2
