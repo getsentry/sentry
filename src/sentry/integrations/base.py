@@ -55,7 +55,7 @@ class IntegrationProvider(PipelineProvider):
     can_add = True
 
     @classmethod
-    def get_integration(cls, model, **kwargs):
+    def get_installation(cls, model, **kwargs):
         if cls.integration_cls is None:
             raise NotImplementedError
 
