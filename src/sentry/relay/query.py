@@ -2,15 +2,12 @@ from __future__ import absolute_import
 
 import six
 
-from rest_framework import status
+from sentry.relay.queries.base import InvalidQuery
 
 
-class InvalidQuery(Exception):
-    # TODO(hazat): maybe create all possible errors and exceptions in one place
-    message = 'Unsupported query type'
-    code = 1001
-    response = {'error': message, 'code': code}
-    status_code = status.HTTP_400_BAD_REQUEST
+def to_class_name(snake_str):
+    components = snake_str.split('_')
+    return ''.join(x.title() for x in components[0:])
 
 
 def execute_queries(relay, queries):
@@ -18,7 +15,6 @@ def execute_queries(relay, queries):
 
     query_results = {}
     for query_id, query in six.iteritems(queries):
-        # TODO(hazat): check security not all imports allowed
         try:
             relay_query = import_module('sentry.relay.queries.%s' % query.get('type', None))
         except ImportError:
@@ -27,12 +23,22 @@ def execute_queries(relay, queries):
                 'error': 'unknown query'
             }
         else:
-            execute = getattr(relay_query, 'execute')
-            # TODO(mitsuhiko): support for pending or failing queries
-            result = {
-                'status': 'ok',
-                'result': execute(relay, query.get('project_id'), query.get('data')),
-            }
+            query_class = getattr(relay_query, to_class_name(query.get('type', None)))
+            query_inst = query_class(relay)
+
+            try:
+                query_inst.preprocess(query)
+            except InvalidQuery as exc:
+                result = {
+                    'status': 'error',
+                    'error': six.binary_type(exc),
+                }
+            else:
+                # TODO(mitsuhiko): support for pending or failing queries
+                result = {
+                    'status': 'ok',
+                    'result': query_inst.execute(),
+                }
         query_results[query_id] = result
 
     return query_results

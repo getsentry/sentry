@@ -133,7 +133,6 @@ class Project(Model):
         return Counter.increment(self)
 
     def save(self, *args, **kwargs):
-        self.update_rev_for_option()
         if not self.slug:
             lock = locks.get('slug:project', duration=5)
             with TimedRetryPolicy(10)(lock.acquire):
@@ -145,6 +144,7 @@ class Project(Model):
             super(Project, self).save(*args, **kwargs)
         else:
             super(Project, self).save(*args, **kwargs)
+        self.update_rev_for_option()
 
     def get_absolute_url(self):
         return absolute_uri('/{}/{}/'.format(self.organization.slug, self.slug))
