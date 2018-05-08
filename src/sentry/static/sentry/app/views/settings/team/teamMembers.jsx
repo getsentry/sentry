@@ -241,15 +241,20 @@ const TeamMembers = createReactClass({
           <div style={{textTransform: 'none'}}>{this.renderDropdown(access)}</div>
         </PanelHeader>
         {this.state.teamMemberList.length ? (
-          this.state.teamMemberList.map((member, i) => (
-            <StyledMemberContainer key={i}>
-              <IdBadge avatarSize={36} user={member} useLink orgId={params.orgId} />
+          this.state.teamMemberList.map(member => (
+            <StyledMemberContainer key={member.id}>
+              <IdBadge
+                avatarSize={36}
+                user={member.user || member}
+                useLink
+                orgId={params.orgId}
+              />
               {access.has('org:write') && this.removeButton(member)}
             </StyledMemberContainer>
           ))
         ) : (
           <EmptyMessage icon="icon-user" size="large">
-            Your Team is Empty
+            {t('Your Team is Empty')}
           </EmptyMessage>
         )}
       </Panel>
