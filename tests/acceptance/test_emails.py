@@ -51,7 +51,3 @@ class EmailTestCase(AcceptanceTestCase):
             self.browser.get(self.build_url(url, 'html'))
             self.browser.wait_until('#preview')
             self.browser.snapshot('{} email html'.format(name))
-
-            self.browser.get(self.build_url(url, 'txt'))
-            self.browser.wait_until('#preview')
-            self.browser.snapshot('{} email txt'.format(name))
