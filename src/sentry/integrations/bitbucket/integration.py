@@ -4,23 +4,19 @@ from sentry.integrations import Integration, IntegrationMetadata
 from sentry.pipeline import NestedPipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
 DESCRIPTION = """
-BitBucket
+BitBucket for Sentry.io
 """
-# TODO(LB): Put something real in here
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
     author='The Sentry Team',
-    noun='bitbucket?',
-    issue_url='',
-    source_url='',
+    noun='repository',
+    issue_url='https://github.com/getsentry/sentry/issues/new?title=Bitbucket%20Integration:%20&labels=Component%3A%20Integrations',
+    source_url='https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/bitbucket',
     aspects={},
 )
 
 
 class BitBucketIntegration(Integration):
-    """
-    Description
-    """
     key = 'bitbucket'
     name = 'BitBucket'
     metadata = metadata
