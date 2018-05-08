@@ -1,6 +1,9 @@
 from __future__ import absolute_import
 
+import os.path
+
 from six.moves.urllib.parse import urlencode
+from os.path import join, dirname
 
 from sentry.testutils import AcceptanceTestCase
 
@@ -31,6 +34,18 @@ EMAILS = (
 )
 
 
+def read_txt_email_fixture(name):
+    # "sso unlinked without password"
+    # => "sso_unlinked_without_password.txt"
+    filename = name.replace(' ', '_') + '.txt'
+    path = join(dirname(__file__), os.pardir, 'fixtures', 'emails', filename)
+
+    fixture = None
+    with open(path, 'r') as f:
+        fixture = f.read()
+    return fixture
+
+
 class EmailTestCase(AcceptanceTestCase):
     def setUp(self):
         super(EmailTestCase, self).setUp()
@@ -48,6 +63,16 @@ class EmailTestCase(AcceptanceTestCase):
 
     def test_emails(self):
         for url, name in EMAILS:
+            # HTML output is captured as a snapshot
             self.browser.get(self.build_url(url, 'html'))
             self.browser.wait_until('#preview')
             self.browser.snapshot('{} email html'.format(name))
+
+            # Text output is asserted against static fixture files
+            self.browser.get(self.build_url(url, 'txt'))
+            self.browser.wait_until('#preview')
+            elem = self.browser.find_element_by_css_selector('#preview pre')
+            text_src = elem.get_attribute('innerHTML')
+
+            fixture_src = read_txt_email_fixture(name)
+            assert fixture_src == text_src
