@@ -79,7 +79,7 @@ def create_sample_event(*args, **kwargs):
 
 def generate_commits(user):
     commits = []
-    for i in range(random.randint(0, 20)):
+    for i in range(random.randint(1, 20)):
         if i == 1:
             filename = 'raven/base.py'
         else:
