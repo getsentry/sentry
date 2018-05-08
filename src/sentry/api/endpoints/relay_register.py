@@ -19,9 +19,18 @@ from smith import create_register_challenge, validate_register_response, \
     get_register_response_relay_id, PublicKey
 
 
-class RelaySerializer(serializers.Serializer):
-    relay_id = serializers.CharField(max_length=64, required=True)
+class RelayIdSerializer(serializers.Serializer):
+    relay_id = serializers.RegexField(
+        r'^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$',
+        required=True)
+
+
+class RelayRegisterChallengeSerializer(RelayIdSerializer):
     public_key = serializers.CharField(max_length=64, required=True)
+
+
+class RelayRegisterResponseSerializer(RelayIdSerializer):
+    token = serializers.CharField(required=True)
 
 
 class RelayRegisterChallengeEndpoint(Endpoint):
@@ -43,7 +52,7 @@ class RelayRegisterChallengeEndpoint(Endpoint):
                 'detail': 'No valid json body',
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        serializer = RelaySerializer(data=json_data, partial=True)
+        serializer = RelayRegisterChallengeSerializer(data=json_data)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -73,6 +82,7 @@ class RelayRegisterChallengeEndpoint(Endpoint):
             pass
         else:
             if relay.public_key != six.text_type(challenge['public_key']):
+                # This happens if we have an ID collision or someone copies an existing id
                 return Response({
                     'detail': 'Attempted to register agent with a different public key',
                 }, status=status.HTTP_400_BAD_REQUEST)
@@ -100,7 +110,19 @@ class RelayRegisterResponseEndpoint(Endpoint):
         it will always attempt to invoke this endpoint.
         """
 
-        sig = sig = get_header_relay_signature(request)
+        try:
+            json_data = json.loads(request.body)
+        except ValueError:
+            return Response({
+                'detail': 'No valid json body',
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = RelayRegisterResponseSerializer(data=json_data)
+
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        sig = get_header_relay_signature(request)
         if not sig:
             return Response({
                 'detail': 'Missing relay signature',
@@ -116,14 +138,16 @@ class RelayRegisterResponseEndpoint(Endpoint):
         if params is None:
             return Response({
                 'detail': 'Challenge expired'
-            }, status=401)
+            }, status=status.HTTP_401_UNAUTHORIZED)
 
         key = PublicKey.parse(params['public_key'])
-        data = validate_register_response(key, request.body, sig)
-        if data['token'] != params['token']:
+
+        try:
+            validate_register_response(key, request.body, sig)
+        except Exception as exc:
             return Response({
-                'detail': 'Token mismatch'
-            }, status=401)
+                'detail': str(exc).splitlines()[0],
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             relay = Relay.objects.get(relay_id=relay_id)
@@ -133,10 +157,6 @@ class RelayRegisterResponseEndpoint(Endpoint):
                 public_key=params['public_key'],
             )
         else:
-            if relay.public_key != params['public_key']:
-                return Response({
-                    'detail': 'Attempted to register agent with a different public key',
-                }, status=status.HTTP_400_BAD_REQUEST)
             relay.last_seen = timezone.now()
             relay.save()
         default_cache.delete('relay-auth:%s' % relay_id)
