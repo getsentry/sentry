@@ -426,8 +426,8 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                     "name": "__all_environments__",
                   }
                 }
-                hideName={true}
                 isDefault={false}
+                isSystemRow={true}
                 name="__all_environments__"
                 onSetAsDefault={[Function]}
                 shouldShowSetDefault={true}
@@ -464,7 +464,6 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                               is={null}
                             >
                               All Environments
-                               
                             </div>
                           </Base>
                         </Flex>
@@ -592,11 +591,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                               className="css-5ipae5"
                               is={null}
                             >
-                              Production
-                               
-                              <code>
-                                production
-                              </code>
+                              production
                             </div>
                           </Base>
                         </Flex>
@@ -791,11 +786,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                               className="css-5ipae5"
                               is={null}
                             >
-                              Staging
-                               
-                              <code>
-                                staging
-                              </code>
+                              staging
                               <Tag
                                 priority="success"
                               >
@@ -1363,11 +1354,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                               className="css-5ipae5"
                               is={null}
                             >
-                              Zzz
-                               
-                              <code>
-                                zzz
-                              </code>
+                              zzz
                             </div>
                           </Base>
                         </Flex>
