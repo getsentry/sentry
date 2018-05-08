@@ -8,8 +8,8 @@ const Crumb = styled('div')`
   position: relative;
   font-size: 18px;
   color: ${p => p.theme.gray3};
-  margin-right: ${space(1)};
-  margin-bottom: ${space(0.5)};
+  padding-right: ${space(1)};
+  padding-bottom: ${space(0.5)};
   cursor: pointer;
   > span {
     transition: 0.1s all ease;
