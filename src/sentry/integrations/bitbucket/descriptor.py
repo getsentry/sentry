@@ -9,7 +9,7 @@ class BitBucketDescriptorEndpoint(Endpoint):
     permission_classes = ()
 
     def get(self, request):
-        response = self.respond(
+        return self.respond(
             {
                 'key': 'sentry-bitbucket',
                 'name': 'Sentry Bitbucket',
@@ -30,4 +30,3 @@ class BitBucketDescriptorEndpoint(Endpoint):
                 'contexts': ['account']
             }
         )
-        return response
