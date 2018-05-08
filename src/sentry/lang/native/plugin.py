@@ -186,7 +186,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             # similar we need to skip.
             try:
                 uuid.UUID(obj.id)
-            except ValueError:
+            except (ValueError, TypeError):
                 continue
 
             to_lookup.append(
