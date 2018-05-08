@@ -129,6 +129,9 @@ export default class SelectOwners extends React.Component {
   };
 
   createUnmentionableTeam = team => {
+    let {organization} = this.props;
+    let canAddTeam = organization.access.includes('project:write');
+
     return {
       ...this.createMentionableTeam(team),
       disabled: true,
@@ -142,10 +145,17 @@ export default class SelectOwners extends React.Component {
               <IdBadge team={team} />
             </Tooltip>
           </DisabledLabel>
-          <Tooltip title={t(`Add #${team.slug} to project`)}>
+          <Tooltip
+            title={
+              canAddTeam
+                ? t('Add %s to project', `#${team.slug}`)
+                : t('You do not have permission to add team to project.')
+            }
+          >
             <AddToProjectButton
               size="zero"
               borderless
+              disabled={!canAddTeam}
               onClick={this.handleAddTeamToProject.bind(this, team)}
             >
               <InlineSvg src="icon-circle-add" />
