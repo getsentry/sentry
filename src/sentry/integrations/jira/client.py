@@ -13,6 +13,7 @@ JIRA_KEY = '%s.jira' % (urlparse(absolute_uri()).hostname, )
 
 
 class JiraApiClient(object):
+    COMMENT_URL = '/rest/api/2/issue/%s/comment'
     ISSUE_URL = '/rest/api/2/issue/%s'
 
     def __init__(self, base_url, shared_secret):
@@ -46,3 +47,6 @@ class JiraApiClient(object):
 
     def get_issue(self, issue_id):
         return self.request('GET', self.ISSUE_URL % (issue_id,))
+
+    def create_comment(self, issue_key, comment):
+        return self.request('POST', self.COMMENT_URL % issue_key, data={'body': comment})

@@ -5,6 +5,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.base import DocSection
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
@@ -12,7 +13,10 @@ from sentry.api.serializers.rest_framework.group_notes import NoteSerializer, se
 
 from sentry.api.fields.actor import Actor
 
-from sentry.models import Activity, GroupSubscription, GroupSubscriptionReason, User
+from sentry.models import (
+    Activity, GroupLink, GroupSubscription, GroupSubscriptionReason,
+    ExternalIssue, Integration, User
+)
 from sentry.utils.functional import extract_lazy_object
 
 
@@ -96,6 +100,29 @@ class GroupNotesEndpoint(GroupEndpoint):
             user=extract_lazy_object(request.user),
             data=data,
         )
+
+        # sync Sentry comments to external issues
+        if features.has('organizations:internal-catchall', group.organization, actor=request.user):
+            external_issues = list(
+                ExternalIssue.objects.filter(
+                    id__in=GroupLink.objects.filter(
+                        project_id=group.project_id,
+                        group_id=group.id,
+                        linked_type=GroupLink.LinkedType.issue,
+                    ).values_list('linked_id', flat=True)
+                )
+            )
+
+            if external_issues:
+                integrations = {
+                    i.id: i for i in Integration.objects.filter(
+                        id__in=[external_issue.integration_id for external_issue in external_issues]
+                    )
+                }
+
+                for external_issue in external_issues:
+                    integration = integrations[external_issue.integration_id]
+                    integration.get_installation().create_comment(external_issue.key, data['text'])
 
         activity.send_notification()
         return Response(serialize(activity, request.user), status=201)

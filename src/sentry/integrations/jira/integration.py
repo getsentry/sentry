@@ -42,6 +42,9 @@ class JiraIntegration(Integration):
             'description': issue['fields']['description'],
         }
 
+    def create_comment(self, issue_id, comment):
+        return self.get_client().create_comment(issue_id, comment)
+
 
 class JiraIntegrationProvider(IntegrationProvider):
     key = 'jira'
