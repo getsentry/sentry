@@ -81,6 +81,7 @@ class TagStorage(TestCase):
         assert requests.post(settings.SENTRY_SNUBA + '/tests/insert', data=data).status_code == 200
 
     def test_get_group_tag_keys_and_top_values(self):
+        # TODO: `release` should be `sentry:release`
         result = self.ts.get_group_tag_keys_and_top_values(
             self.proj1.id,
             self.proj1group1.id,
@@ -98,7 +99,10 @@ class TagStorage(TestCase):
         assert result[3]['key'] == 'release'
         assert result[3]['uniqueValues'] == 2
         assert result[3]['totalValues'] == 2
-        assert result[3]['topValues'][0]['value'] == '100'
+        top_release_values = result[3]['topValues']
+        assert len(top_release_values) == 2
+        assert set(v['value'] for v in top_release_values) == set(['100', '200'])
+        assert all(v['count'] == 1 for v in top_release_values)
 
     def test_get_top_group_tag_values(self):
         resp = self.ts.get_top_group_tag_values(
