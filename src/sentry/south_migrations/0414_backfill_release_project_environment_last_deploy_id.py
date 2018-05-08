@@ -26,7 +26,8 @@ class Migration(DataMigration):
         # Note: Don't use "from appname.models import ModelName".
         # Use orm.ModelName to refer to models in this application,
         # and orm['appname.ModelName'] for models in other applications.
-        release_project_environments = orm.ReleaseProjectEnvironment.objects.all()
+        release_project_environments = orm.ReleaseProjectEnvironment.objects.filter(
+            last_deploy_id__isnull=True)
         for rpe in RangeQuerySetWrapperWithProgressBar(release_project_environments):
             try:
                 last_deploy_id = orm.Deploy.objects.filter(
@@ -38,6 +39,7 @@ class Migration(DataMigration):
             else:
                 orm.ReleaseProjectEnvironment.objects.filter(
                     id=rpe.id,
+                    last_deploy_id__isnull=True,
                 ).update(
                     last_deploy_id=last_deploy_id,
                 )
