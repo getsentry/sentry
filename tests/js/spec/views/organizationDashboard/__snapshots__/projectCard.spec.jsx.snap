@@ -397,22 +397,38 @@ exports[`ProjectCard renders 1`] = `
                         className="css-1tznizk"
                         is={null}
                       >
-                        <StyledPlatformIconWrapper
-                          className="javascript"
+                        <StyledPlatformiconWrapper
                           key="javascript"
                         >
                           <span
-                            className="javascript css-128o7xp-StyledPlatformIconWrapper e1mca4c60"
+                            className="css-sxusd0-StyledPlatformiconWrapper e1mca4c60"
                           >
-                            <StyledPlatformIcon
-                              className="platformicon platformicon-javascript"
+                            <StyledPlatformicon
+                              platform="javascript"
+                              size="24"
                             >
-                              <span
-                                className="platformicon platformicon-javascript css-hf0kxf-StyledPlatformIcon e1mca4c61"
-                              />
-                            </StyledPlatformIcon>
+                              <Platformicon
+                                className="css-950w8s-StyledPlatformicon e1mca4c61"
+                                platform="javascript"
+                                size="24"
+                              >
+                                <img
+                                  className="css-950w8s-StyledPlatformicon e1mca4c61"
+                                  height="24"
+                                  src={
+                                    Object {
+                                      "default": Object {
+                                        "id": "test",
+                                        "viewBox": Object {},
+                                      },
+                                    }
+                                  }
+                                  width="24"
+                                />
+                              </Platformicon>
+                            </StyledPlatformicon>
                           </span>
-                        </StyledPlatformIconWrapper>
+                        </StyledPlatformiconWrapper>
                       </div>
                     </Base>
                   </Flex>
