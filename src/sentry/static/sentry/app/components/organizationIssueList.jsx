@@ -61,7 +61,7 @@ class OrganizationIssueList extends React.Component {
             </Link>
           </div>
         </div>
-        <h3>{this.props.title}</h3>
+        <h4>{this.props.title}</h4>
         <IssueList
           endpoint={this.props.endpoint}
           emptyText={this.props.emptyText}
