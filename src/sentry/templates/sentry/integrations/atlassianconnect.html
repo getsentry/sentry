@@ -11,25 +11,20 @@
 {% block main %}
 <h3>{{ app_name }} Setup</h3>
 
-<form action="" method="post" class="form-stacked">
-  {% csrf_token %}
-  <input type="hidden" name="provider" value="{{ app_key }}" />
-
   <p>
-    Configure  {{ app_name }} to use with Sentry.io.
+    Configure {{ app_name }} to use with Sentry.io.
   </p>
+  <a href="{{ url }}">
+        <button
+        type="submit"
+        class="btn btn-primary"
+        name="save_mappings"
+        value="{{ url }}">{% trans "Connect to Bitbucket" %}</button>
 
-  {{ form|as_crispy_errors }}
+   </a>
 
-  {% for field in form %}
-      {{ field|as_crispy_field }}
-  {% endfor %}
+   <!--   <a href="{{ url }}">
+        <button type="button" class="ak-button ak-button__appearance-primary">Connect to Bitbucket</button>
+      </a> -->
 
-  <fieldset class="form-actions">
-    <button
-      type="submit"
-      class="btn btn-primary"
-      name="save_mappings" value="url">{% trans "Submit" %}</button>
-  </fieldset>
-</form>
-{% endblock %
+{% endblock %}

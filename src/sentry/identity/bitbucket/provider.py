@@ -11,9 +11,3 @@ class BitBucketIdentityProvider(AtlassianConnectProvider):
 class BitBucketLoginView(AtlassianConnectLoginView):
     def __init__(self, *args, **kwargs):
         super(AtlassianConnectLoginView, self).__init__('BitBucket', 'bitbucket', *args, **kwargs)
-
-    def get_descriptor_uri(self):
-        return ''
-
-    def get_redirect_uri(self):
-        return ''
