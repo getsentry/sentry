@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from django.http import HttpResponse
-from sentry.integrations import IntegrationProvider, IntegrationMetadata
+from sentry.integrations import Integration, IntegrationProvider, IntegrationMetadata
 from sentry.pipeline import PipelineView
 
 
@@ -38,6 +38,11 @@ metadata = IntegrationMetadata(
 )
 
 
+class ExampleIntegration(Integration):
+    def create_comment(self):
+        pass
+
+
 class ExampleIntegrationProvider(IntegrationProvider):
     """
     An example integration, generally used for testing.
@@ -45,6 +50,8 @@ class ExampleIntegrationProvider(IntegrationProvider):
     key = 'example'
     name = 'Example'
     metadata = metadata
+
+    integration_cls = ExampleIntegration
 
     def get_pipeline_views(self):
         return [
