@@ -1,11 +1,15 @@
+import {isEqual} from 'lodash';
+import createReactClass from 'create-react-class';
 import React from 'react';
+import Reflux from 'reflux';
 import PropTypes from 'prop-types';
 
 import BaseBadge from 'app/components/idBadge/baseBadge';
-import SentryTypes from 'app/proptypes';
 import BadgeDisplayName from 'app/components/idBadge/badgeDisplayName';
+import SentryTypes from 'app/proptypes';
+import TeamStore from 'app/stores/teamStore';
 
-export default class TeamBadge extends React.Component {
+class TeamBadge extends React.Component {
   static propTypes = {
     ...BaseBadge.propTypes,
     team: SentryTypes.Team.isRequired,
@@ -37,3 +41,32 @@ export default class TeamBadge extends React.Component {
     );
   }
 }
+
+const TeamBadgeContainer = createReactClass({
+  displayName: 'TeamBadgeContainer',
+  propTypes: {
+    team: SentryTypes.Team.isRequired,
+  },
+  mixins: [Reflux.listenTo(TeamStore, 'onTeamStoreUpdate')],
+  getInitialState() {
+    return {
+      team: this.props.team,
+    };
+  },
+
+  onTeamStoreUpdate(updatedTeam) {
+    if (!updatedTeam.has(this.state.team.id)) return;
+
+    let team = TeamStore.getById(this.state.team.id);
+    if (isEqual(team.avatar, this.state.team.avatar)) return;
+
+    this.setState({
+      team: TeamStore.getById(this.state.team.id),
+    });
+  },
+
+  render() {
+    return <TeamBadge {...this.props} team={this.state.team} />;
+  },
+});
+export default TeamBadgeContainer;
