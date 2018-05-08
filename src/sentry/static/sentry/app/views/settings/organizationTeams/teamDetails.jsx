@@ -8,6 +8,7 @@ import {fetchTeamDetails} from 'app/actionCreators/teams';
 import {t} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
 import DropdownLink from 'app/components/dropdownLink';
+import IdBadge from 'app/components/idBadge';
 import ListLink from 'app/components/listLink';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -97,7 +98,13 @@ const TeamDetails = createReactClass({
     const features = new Set(this.context.organization.features);
     return (
       <div>
-        <h3>{features.has('new-teams') ? `#${team.slug}` : team.name}</h3>
+        <h3>
+          {features.has('new-teams') ? (
+            <IdBadge team={team} avatarSize={36} />
+          ) : (
+            team.name
+          )}
+        </h3>
 
         {!features.has('new-settings') &&
           access.has('team:admin') && (
