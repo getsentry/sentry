@@ -1,13 +1,14 @@
 from __future__ import absolute_import
 
 import calendar
-from datetime import datetime, timedelta
+from datetime import timedelta
 import json
 import pytest
 import requests
 import six
 
 from django.conf import settings
+from django.utils import timezone
 
 from sentry.models import GroupHash, EventUser
 from sentry.tagstore.exceptions import (
@@ -37,7 +38,7 @@ class TagStorage(TestCase):
         GroupHash.objects.create(project=self.proj1, group=self.proj1group1, hash=hash1)
         GroupHash.objects.create(project=self.proj1, group=self.proj1group2, hash=hash2)
 
-        self.now = datetime.utcnow().replace(microsecond=0)
+        self.now = timezone.now().replace(microsecond=0)
         data = json.dumps([{
             'event_id': six.text_type(r) * 32,
             'primary_hash': hash1,
@@ -80,24 +81,28 @@ class TagStorage(TestCase):
         assert requests.post(settings.SENTRY_SNUBA + '/tests/insert', data=data).status_code == 200
 
     def test_get_group_tag_keys_and_top_values(self):
+        # TODO: `release` should be `sentry:release`
         result = self.ts.get_group_tag_keys_and_top_values(
             self.proj1.id,
             self.proj1group1.id,
             self.proj1env1.id,
         )
-        tags = [r['id'] for r in result]
+        tags = [r['key'] for r in result]
         assert set(tags) == set(['foo', 'baz', 'environment', 'release'])
 
-        result.sort(key=lambda r: r['id'])
-        assert result[0]['id'] == 'baz'
+        result.sort(key=lambda r: r['key'])
+        assert result[0]['key'] == 'baz'
         assert result[0]['uniqueValues'] == 1
         assert result[0]['totalValues'] == 2
         assert result[0]['topValues'][0]['value'] == 'quux'
 
-        assert result[3]['id'] == 'release'
+        assert result[3]['key'] == 'release'
         assert result[3]['uniqueValues'] == 2
         assert result[3]['totalValues'] == 2
-        assert result[3]['topValues'][0]['value'] == '100'
+        top_release_values = result[3]['topValues']
+        assert len(top_release_values) == 2
+        assert set(v['value'] for v in top_release_values) == set(['100', '200'])
+        assert all(v['count'] == 1 for v in top_release_values)
 
     def test_get_top_group_tag_values(self):
         resp = self.ts.get_top_group_tag_values(
@@ -137,17 +142,19 @@ class TagStorage(TestCase):
             key='foo',
         ).key == 'foo'
 
-        keys = self.ts.get_group_tag_keys(
-            project_id=self.proj1.id,
-            group_id=self.proj1group1.id,
-            environment_id=self.proj1env1.id,
-        )
-        keys.sort(key=lambda x: x.key)
-        assert len(keys) == 2
-        assert keys[0].key == 'baz'
-        assert keys[0].times_seen == 2
-        assert keys[1].key == 'foo'
-        assert keys[1].times_seen == 2
+        keys = {
+            k.key: k for k in self.ts.get_group_tag_keys(
+                project_id=self.proj1.id,
+                group_id=self.proj1group1.id,
+                environment_id=self.proj1env1.id,
+            )
+        }
+        assert len(keys) == 4
+        assert set(keys) == set(['baz', 'environment', 'foo', 'sentry:release'])
+        for k in keys.values():
+            if k.key != 'sentry:release':
+                assert k.values_seen == 1, 'expected {!r} to have 1 unique value'.format(k.key)
+        assert keys['sentry:release'].values_seen == 2
 
     def test_get_group_tag_value(self):
         with pytest.raises(GroupTagValueNotFound):
@@ -164,14 +171,14 @@ class TagStorage(TestCase):
             group_id=self.proj1group1.id,
             environment_id=self.proj1env1.id,
             key='notreal',
-        ) == []
+        ) == set([])
 
-        assert self.ts.get_group_tag_values(
+        assert list(self.ts.get_group_tag_values(
             project_id=self.proj1.id,
             group_id=self.proj1group1.id,
             environment_id=self.proj1env1.id,
             key='foo',
-        )[0].value == 'bar'
+        ))[0].value == 'bar'
 
         assert self.ts.get_group_tag_value(
             project_id=self.proj1.id,
@@ -244,18 +251,22 @@ class TagStorage(TestCase):
         result = self.ts.get_group_tag_values_for_users(
             [EventUser(project_id=self.proj1.id, ident='user1')]
         )
-        one_second_ago = (self.now - timedelta(seconds=1)).strftime('%Y-%m-%dT%H:%M:%S+00:00')
-        assert len(result) == 1
-        assert result[0].value == 'user1'
-        assert result[0].last_seen == one_second_ago
+        assert len(result) == 2
+        assert set(v.group_id for v in result) == set([
+            self.proj1group1.id,
+            self.proj1group2.id,
+        ])
+        assert result[0].last_seen == self.now - timedelta(seconds=1)
+        assert result[1].last_seen == self.now - timedelta(seconds=2)
+        for v in result:
+            assert v.value == 'user1'
 
         result = self.ts.get_group_tag_values_for_users(
             [EventUser(project_id=self.proj1.id, ident='user2')]
         )
-        two_seconds_ago = (self.now - timedelta(seconds=2)).strftime('%Y-%m-%dT%H:%M:%S+00:00')
         assert len(result) == 1
         assert result[0].value == 'user2'
-        assert result[0].last_seen == two_seconds_ago
+        assert result[0].last_seen == self.now - timedelta(seconds=2)
 
         # Test that users identified by different means are collected.
         # (effectively tests OR conditions in snuba API)
@@ -263,38 +274,39 @@ class TagStorage(TestCase):
             EventUser(project_id=self.proj1.id, email='user1@sentry.io'),
             EventUser(project_id=self.proj1.id, ident='user2')
         ])
-        two_seconds_ago = (self.now - timedelta(seconds=2)).strftime('%Y-%m-%dT%H:%M:%S+00:00')
         assert len(result) == 2
         result.sort(key=lambda x: x.value)
         assert result[0].value == 'user1'
-        assert result[0].last_seen == one_second_ago
+        assert result[0].last_seen == self.now - timedelta(seconds=1)
         assert result[1].value == 'user2'
-        assert result[1].last_seen == two_seconds_ago
+        assert result[1].last_seen == self.now - timedelta(seconds=2)
 
     def test_get_release_tags(self):
-        tags = self.ts.get_release_tags(
-            [self.proj1.id],
-            None,
-            ['100']
+        tags = list(
+            self.ts.get_release_tags(
+                [self.proj1.id],
+                None,
+                ['100']
+            )
         )
 
         assert len(tags) == 1
-        one_second_ago = (self.now - timedelta(seconds=1)).strftime('%Y-%m-%dT%H:%M:%S+00:00')
+        one_second_ago = self.now - timedelta(seconds=1)
         assert tags[0].last_seen == one_second_ago
         assert tags[0].first_seen == one_second_ago
         assert tags[0].times_seen == 1
 
     def test_get_group_event_ids(self):
-        assert sorted(self.ts.get_group_event_ids(
+        assert set(self.ts.get_group_event_ids(
             self.proj1.id,
             self.proj1group1.id,
             self.proj1env1.id,
             {
                 'foo': 'bar',
             }
-        )) == ["1" * 32, "2" * 32]
+        )) == set(["1" * 32, "2" * 32])
 
-        assert sorted(self.ts.get_group_event_ids(
+        assert set(self.ts.get_group_event_ids(
             self.proj1.id,
             self.proj1group1.id,
             self.proj1env1.id,
@@ -302,22 +314,22 @@ class TagStorage(TestCase):
                 'foo': 'bar',  # OR
                 'release': '200'
             }
-        )) == ["1" * 32, "2" * 32]
+        )) == set(["1" * 32, "2" * 32])
 
-        assert self.ts.get_group_event_ids(
+        assert set(self.ts.get_group_event_ids(
             self.proj1.id,
             self.proj1group2.id,
             self.proj1env1.id,
             {
                 'browser': 'chrome'
             }
-        ) == ["3" * 32]
+        )) == set(["3" * 32])
 
-        assert self.ts.get_group_event_ids(
+        assert set(self.ts.get_group_event_ids(
             self.proj1.id,
             self.proj1group2.id,
             self.proj1env1.id,
             {
                 'browser': 'ie'
             }
-        ) == []
+        )) == set([])
