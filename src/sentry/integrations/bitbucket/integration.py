@@ -34,18 +34,4 @@ class BitBucketIntegrationProvider(IntegrationProvider):
         ]
 
     def build_integration(self, state):
-        return {
-            'name': None,
-            'external_id': state['name'],
-            'metadata': {
-                'domain_name': None,
-                'scopes': None,
-                'icon': None,
-            },
-            'user_identity': {
-                'type': 'bitbucket',
-                'external_id': None,
-                'scopes': [],
-                'data': None,
-            }
-        }
+        raise NotImplementedError
