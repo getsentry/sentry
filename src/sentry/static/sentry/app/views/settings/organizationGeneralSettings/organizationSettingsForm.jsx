@@ -4,6 +4,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
+import {updateOrganization} from 'app/actionCreators/organizations';
 import ApiMixin from 'app/mixins/apiMixin';
 import AvatarChooser from 'app/components/avatarChooser';
 import Form from 'app/views/settings/components/forms/form';
@@ -57,7 +58,13 @@ const OrganizationSettingsForm = createReactClass({
             location={this.props.location}
             forms={organizationSettingsFields}
           />
-          <AvatarChooser allowGravatar={false} endpoint={endpoint} model={initialData} />
+          <AvatarChooser
+            type="organization"
+            allowGravatar={false}
+            endpoint={`${endpoint}avatar/`}
+            model={initialData}
+            onSave={updateOrganization}
+          />
         </Box>
       </Form>
     );

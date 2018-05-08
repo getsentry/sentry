@@ -21,6 +21,7 @@ class TeamAvatar extends React.Component {
       <BaseAvatar
         {...props}
         type={(team.avatar && team.avatar.avatarType) || 'letter_avatar'}
+        uploadPath="team-avatar"
         uploadId={team.avatar && team.avatar.avatarUuid}
         letterId={slug}
         tooltip={tooltip}

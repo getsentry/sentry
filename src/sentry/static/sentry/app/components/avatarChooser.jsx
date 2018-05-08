@@ -23,6 +23,7 @@ const AvatarChooser = createReactClass({
     allowGravatar: PropTypes.bool,
     allowLetter: PropTypes.bool,
     allowUpload: PropTypes.bool,
+    type: PropTypes.oneOf(['user', 'team', 'organization', 'project']),
     model: PropTypes.shape({
       avatar: PropTypes.shape({
         avatarType: PropTypes.oneOf(['upload', 'letter_avatar', 'gravatar']),
@@ -81,25 +82,17 @@ const AvatarChooser = createReactClass({
   },
 
   handleSaveSettings(ev) {
-    let {endpoint, isUser} = this.props;
+    let {endpoint} = this.props;
     let {model, dataUrl} = this.state;
     ev.preventDefault();
     let data = {};
     let avatarType = model && model.avatar ? model.avatar.avatarType : undefined;
     let avatarPhoto = dataUrl ? dataUrl.split(',')[1] : null;
 
-    // User avatars have different keys than org/team/project
-    // if (isUser) {
     data = {
       avatar_photo: avatarPhoto,
       avatar_type: avatarType,
     };
-    // } else {
-    //   data = {
-    //     avatar: avatarPhoto,
-    //     avatarType,
-    //   };
-    // }
 
     this.api.request(endpoint, {
       method: 'PUT',
@@ -119,7 +112,14 @@ const AvatarChooser = createReactClass({
   },
 
   render() {
-    let {allowGravatar, allowUpload, allowLetter, savedDataUrl, isUser} = this.props;
+    let {
+      allowGravatar,
+      allowUpload,
+      allowLetter,
+      savedDataUrl,
+      type,
+      isUser,
+    } = this.props;
     let {hasError, model} = this.state;
 
     if (hasError) {
@@ -131,6 +131,10 @@ const AvatarChooser = createReactClass({
 
     let avatarType = (model.avatar && model.avatar.avatarType) || 'letter_avatar';
     let isLetter = avatarType === 'letter_avatar';
+    // let isUpload = avatarType === 'upload';
+    let isTeam = type === 'team';
+    let isOrganization = type === 'organization';
+    let isProject = type === 'project';
     let choices = [];
 
     if (allowLetter) {
@@ -162,7 +166,9 @@ const AvatarChooser = createReactClass({
                   gravatar={false}
                   style={{width: 90, height: 90}}
                   user={isUser ? model : null}
-                  model={isUser ? null : model}
+                  organization={isOrganization ? model : null}
+                  project={isProject ? model : null}
+                  team={isTeam ? model : null}
                 />
               )}
             </AvatarGroup>

@@ -199,6 +199,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                   title="Foo Bar"
                   tooltip="Foo Bar (foo@example.com)"
                   type="gravatar"
+                  uploadPath="avatar"
                 >
                   <Tooltip
                     disabled={false}
@@ -332,6 +333,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                   title="Foo Bar"
                   tooltip="Foo Bar (foo@example.com)"
                   type="gravatar"
+                  uploadPath="avatar"
                 >
                   <Tooltip
                     disabled={false}
@@ -465,6 +467,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                   title="Foo Bar"
                   tooltip="Foo Bar (foo@example.com)"
                   type="gravatar"
+                  uploadPath="avatar"
                 >
                   <Tooltip
                     disabled={false}
@@ -598,6 +601,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                   title="Foo Bar"
                   tooltip="Foo Bar (foo@example.com)"
                   type="gravatar"
+                  uploadPath="avatar"
                 >
                   <Tooltip
                     disabled={false}
@@ -731,6 +735,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                   title="Foo Bar"
                   tooltip="Foo Bar (foo@example.com)"
                   type="gravatar"
+                  uploadPath="avatar"
                 >
                   <Tooltip
                     disabled={false}
@@ -933,6 +938,7 @@ exports[`AvatarList renders with user avatars 1`] = `
                   title="Foo Bar"
                   tooltip="Foo Bar (foo@example.com)"
                   type="gravatar"
+                  uploadPath="avatar"
                 >
                   <Tooltip
                     disabled={false}
@@ -1066,6 +1072,7 @@ exports[`AvatarList renders with user avatars 1`] = `
                   title="Foo Bar"
                   tooltip="Foo Bar (foo@example.com)"
                   type="gravatar"
+                  uploadPath="avatar"
                 >
                   <Tooltip
                     disabled={false}

@@ -22,6 +22,15 @@ class BaseAvatar extends React.Component {
     default: PropTypes.string,
     hasTooltip: PropTypes.bool,
     type: PropTypes.string,
+    /**
+     * Path to uploaded avatar (differs based on model type)
+     */
+    uploadPath: PropTypes.oneOf([
+      'avatar',
+      'team-avatar',
+      'organization-avatar',
+      'project-avatar',
+    ]),
     uploadId: PropTypes.string,
     gravatarId: PropTypes.string,
     letterId: PropTypes.string,
@@ -35,6 +44,7 @@ class BaseAvatar extends React.Component {
     style: {},
     hasTooltip: false,
     type: 'letter_avatar',
+    uploadPath: 'avatar',
   };
 
   constructor(...args) {
@@ -74,9 +84,11 @@ class BaseAvatar extends React.Component {
   };
 
   buildUploadUrl = () => {
-    let {uploadId} = this.props;
+    let {uploadPath, uploadId} = this.props;
 
-    return `/avatar/${uploadId}/?${qs.stringify({s: this.getRemoteImageSize()})}`;
+    return `/${uploadPath || 'avatar'}/${uploadId}/?${qs.stringify({
+      s: this.getRemoteImageSize(),
+    })}`;
   };
 
   handleLoad = () => {
