@@ -404,17 +404,16 @@ exports[`ProjectCard renders 1`] = `
                             className="css-1hxw8qp-StyledPlatformIconWrapper e1mca4c60"
                           >
                             <StyledPlatformIcon
-                              className="javascript"
                               platform="javascript"
                               size="24"
                             >
                               <Platformicon
-                                className="javascript css-5d6zcx-StyledPlatformIcon e1mca4c61"
+                                className="css-5d6zcx-StyledPlatformIcon e1mca4c61"
                                 platform="javascript"
                                 size="24"
                               >
                                 <img
-                                  className="javascript css-5d6zcx-StyledPlatformIcon e1mca4c61"
+                                  className="css-5d6zcx-StyledPlatformIcon e1mca4c61"
                                   height="24"
                                   src={
                                     Object {

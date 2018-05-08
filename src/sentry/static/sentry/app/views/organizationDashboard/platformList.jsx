@@ -20,7 +20,7 @@ class PlatformList extends React.Component {
   getIcon(platform) {
     return (
       <StyledPlatformIconWrapper key={platform}>
-        <StyledPlatformIcon platform={platform} size="24" className={platform} />
+        <StyledPlatformIcon platform={platform} size="24" />
       </StyledPlatformIconWrapper>
     );
   }

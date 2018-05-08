@@ -48,7 +48,9 @@ describe('ProjectCard', function() {
 
   it('renders with one platform', function() {
     const platformList = wrapper.find('PlatformList');
-    expect(platformList.find('StyledPlatformIcon.javascript')).toHaveLength(1);
+    expect(platformList.find('StyledPlatformIcon[platform="javascript"]')).toHaveLength(
+      1
+    );
   });
 
   it('renders empty state if no event has ever been sent', function() {
