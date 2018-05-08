@@ -55,7 +55,7 @@
     "moment": "2.22.0",
     "moment-timezone": "0.5.4",
     "node-libs-browser": "0.5.3",
-    "platformicons": "2.0.1",
+    "platformicons": "2.0.3",
     "po-catalog-loader": "^1.2.0",
     "prop-types": "^15.6.0",
     "query-string": "2.4.2",
@@ -96,14 +96,12 @@
     "test-ci": "yarn test --runInBand --ci --coverage --testResultsProcessor=jest-junit",
     "test-debug": "node --inspect-brk scripts/test.js --runInBand",
     "test-staged": "yarn test --findRelatedTests $(git diff --name-only --cached)",
-    "lint":
-      "node_modules/.bin/eslint tests/js src/sentry/static/sentry/app --ext .js,.jsx",
+    "lint": "node_modules/.bin/eslint tests/js src/sentry/static/sentry/app --ext .js,.jsx",
     "lint:css": "stylelint 'src/sentry/static/sentry/app/**/*.jsx'",
     "dev-proxy": "node scripts/devproxy.js",
     "dev-server": "webpack-dev-server",
     "storybook": "start-storybook -p 9001 -c .storybook",
-    "snapshot":
-      "build-storybook && PERCY_TOKEN=$STORYBOOK_PERCY_TOKEN PERCY_PROJECT=$STORYBOOK_PERCY_PROJECT percy-storybook --widths=1280",
+    "snapshot": "build-storybook && PERCY_TOKEN=$STORYBOOK_PERCY_TOKEN PERCY_PROJECT=$STORYBOOK_PERCY_PROJECT percy-storybook --widths=1280",
     "webpack-profile": "yarn -s webpack --profile --json > stats.json"
   },
   "jest": {
@@ -111,20 +109,33 @@
       "tests/js/spec/**/*.{js,jsx}",
       "src/sentry/static/sentry/app/**/*.{js,jsx}"
     ],
-    "coverageReporters": ["html", "lcov", "cobertura"],
-    "snapshotSerializers": ["enzyme-to-json/serializer"],
+    "coverageReporters": [
+      "html",
+      "lcov",
+      "cobertura"
+    ],
+    "snapshotSerializers": [
+      "enzyme-to-json/serializer"
+    ],
     "moduleNameMapper": {
       "\\.(css|less|png)$": "<rootDir>/tests/js/helpers/importStyleMock.js",
       "\\.(svg)$": "<rootDir>/tests/js/helpers/svgMock.js",
       "jquery": "<rootDir>/src/sentry/static/sentry/__mocks__/jquery.jsx",
-      "integration-docs-platforms":
-        "<rootDir>/tests/fixtures/integration-docs/_platforms.json"
+      "integration-docs-platforms": "<rootDir>/tests/fixtures/integration-docs/_platforms.json"
     },
-    "modulePaths": ["<rootDir>/src/sentry/static/sentry"],
-    "setupFiles": ["<rootDir>/tests/js/setup.js"],
+    "modulePaths": [
+      "<rootDir>/src/sentry/static/sentry"
+    ],
+    "setupFiles": [
+      "<rootDir>/tests/js/setup.js"
+    ],
     "setupTestFrameworkScriptFile": "<rootDir>/tests/js/setupFramework.js",
-    "testMatch": ["<rootDir>/tests/js/**/?(*.)(spec|test).js?(x)"],
-    "testPathIgnorePatterns": ["<rootDir>/tests/sentry/lang/javascript/"],
+    "testMatch": [
+      "<rootDir>/tests/js/**/?(*.)(spec|test).js?(x)"
+    ],
+    "testPathIgnorePatterns": [
+      "<rootDir>/tests/sentry/lang/javascript/"
+    ],
     "unmockedModulePathPatterns": [
       "<rootDir>/node_modules/react",
       "<rootDir>/node_modules/reflux"
