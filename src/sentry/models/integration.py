@@ -72,6 +72,7 @@ class Integration(Model):
 
         Returns True if the OrganizationIntegration was created
         """
+
         try:
             with transaction.atomic():
                 OrganizationIntegration.objects.create(
