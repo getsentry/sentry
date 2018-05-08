@@ -45,7 +45,14 @@ exports[`RuleBuilder renders 1`] = `
       "isMember": true,
       "name": "Project Name",
       "slug": "project-slug",
-      "teams": Array [],
+      "teams": Array [
+        Object {
+          "id": "3",
+          "isMember": true,
+          "name": "COOL TEAM",
+          "slug": "cool-team",
+        },
+      ],
     }
   }
 >
@@ -449,7 +456,14 @@ exports[`RuleBuilder renders 1`] = `
                   "isMember": true,
                   "name": "Project Name",
                   "slug": "project-slug",
-                  "teams": Array [],
+                  "teams": Array [
+                    Object {
+                      "id": "3",
+                      "isMember": true,
+                      "name": "COOL TEAM",
+                      "slug": "cool-team",
+                    },
+                  ],
                 }
               }
               value={Array []}
@@ -866,7 +880,14 @@ exports[`RuleBuilder renders with suggestions 1`] = `
       "isMember": true,
       "name": "Project Name",
       "slug": "project-slug",
-      "teams": Array [],
+      "teams": Array [
+        Object {
+          "id": "3",
+          "isMember": true,
+          "name": "COOL TEAM",
+          "slug": "cool-team",
+        },
+      ],
     }
   }
   urls={
@@ -1486,7 +1507,14 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                   "isMember": true,
                   "name": "Project Name",
                   "slug": "project-slug",
-                  "teams": Array [],
+                  "teams": Array [
+                    Object {
+                      "id": "3",
+                      "isMember": true,
+                      "name": "COOL TEAM",
+                      "slug": "cool-team",
+                    },
+                  ],
                 }
               }
               value={
@@ -1513,6 +1541,11 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                           "name": "Jane Doe",
                           "options": Object {
                             "timezone": "UTC",
+                          },
+                          "user": Object {
+                            "email": "janedoe@example.com",
+                            "id": "1",
+                            "name": "Jane Doe",
                           },
                           "username": "foo@example.com",
                         }
@@ -1558,6 +1591,11 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                             "name": "Jane Doe",
                             "options": Object {
                               "timezone": "UTC",
+                            },
+                            "user": Object {
+                              "email": "janedoe@example.com",
+                              "id": "1",
+                              "name": "Jane Doe",
                             },
                             "username": "foo@example.com",
                           }
@@ -1605,6 +1643,11 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                               "name": "Jane Doe",
                               "options": Object {
                                 "timezone": "UTC",
+                              },
+                              "user": Object {
+                                "email": "janedoe@example.com",
+                                "id": "1",
+                                "name": "Jane Doe",
                               },
                               "username": "foo@example.com",
                             }
@@ -1654,6 +1697,11 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                 "options": Object {
                                   "timezone": "UTC",
                                 },
+                                "user": Object {
+                                  "email": "janedoe@example.com",
+                                  "id": "1",
+                                  "name": "Jane Doe",
+                                },
                                 "username": "foo@example.com",
                               }
                             }
@@ -1701,6 +1749,11 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                   "name": "Jane Doe",
                                   "options": Object {
                                     "timezone": "UTC",
+                                  },
+                                  "user": Object {
+                                    "email": "janedoe@example.com",
+                                    "id": "1",
+                                    "name": "Jane Doe",
                                   },
                                   "username": "foo@example.com",
                                 }
@@ -1754,6 +1807,11 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                     "name": "Jane Doe",
                                     "options": Object {
                                       "timezone": "UTC",
+                                    },
+                                    "user": Object {
+                                      "email": "janedoe@example.com",
+                                      "id": "1",
+                                      "name": "Jane Doe",
                                     },
                                     "username": "foo@example.com",
                                   }
@@ -1843,6 +1901,11 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                       "options": Object {
                                         "timezone": "UTC",
                                       },
+                                      "user": Object {
+                                        "email": "janedoe@example.com",
+                                        "id": "1",
+                                        "name": "Jane Doe",
+                                      },
                                       "username": "foo@example.com",
                                     }
                                   }
@@ -1856,7 +1919,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                           valueKey="value"
                         >
                           <div
-                            className="Select css-11osmt1-StyledSelect eho28m20 has-value is-clearable is-loading is-searchable Select--multi"
+                            className="Select css-11osmt1-StyledSelect eho28m20 has-value is-clearable is-focused is-loading is-searchable Select--multi"
                           >
                             <div
                               className="Select-control"
@@ -1902,6 +1965,11 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                             "options": Object {
                                               "timezone": "UTC",
                                             },
+                                            "user": Object {
+                                              "email": "janedoe@example.com",
+                                              "id": "1",
+                                              "name": "Jane Doe",
+                                            },
                                             "username": "foo@example.com",
                                           }
                                         }
@@ -1940,6 +2008,11 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                             "options": Object {
                                               "timezone": "UTC",
                                             },
+                                            "user": Object {
+                                              "email": "janedoe@example.com",
+                                              "id": "1",
+                                              "name": "Jane Doe",
+                                            },
                                             "username": "foo@example.com",
                                           }
                                         }
@@ -1960,6 +2033,11 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                               "name": "Jane Doe",
                                               "options": Object {
                                                 "timezone": "UTC",
+                                              },
+                                              "user": Object {
+                                                "email": "janedoe@example.com",
+                                                "id": "1",
+                                                "name": "Jane Doe",
                                               },
                                               "username": "foo@example.com",
                                             }
@@ -2017,7 +2095,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                   aria-activedescendant="react-select-5--value"
                                   aria-expanded="false"
                                   aria-haspopup="false"
-                                  aria-owns=""
+                                  aria-owns="react-select-5--backspace-remove-message"
                                   className="Select-input"
                                   injectStyles={true}
                                   minWidth="5"
@@ -2040,7 +2118,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                       aria-activedescendant="react-select-5--value"
                                       aria-expanded="false"
                                       aria-haspopup="false"
-                                      aria-owns=""
+                                      aria-owns="react-select-5--backspace-remove-message"
                                       onBlur={[Function]}
                                       onChange={[Function]}
                                       onFocus={[Function]}
@@ -2069,6 +2147,13 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                     />
                                   </div>
                                 </AutosizeInput>
+                              </span>
+                              <span
+                                aria-live="assertive"
+                                className="Select-aria-only"
+                                id="react-select-5--backspace-remove-message"
+                              >
+                                Press backspace to remove [object Object]
                               </span>
                               <span
                                 aria-hidden="true"

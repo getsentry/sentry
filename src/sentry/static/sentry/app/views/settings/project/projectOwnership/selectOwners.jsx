@@ -1,3 +1,4 @@
+import {debounce} from 'lodash';
 import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -236,18 +237,31 @@ export default class SelectOwners extends React.Component {
     }
   };
 
-  handleLoadOptions = () => {
+  queryMembers = debounce((query, cb) => {
     let {organization} = this.props;
+    return this.api
+      .requestPromise(`/organizations/${organization.slug}/members/`, {
+        query: {query},
+      })
+      .then(data => cb(null, data), err => cb(err));
+  }, 250);
+
+  handleLoadOptions = () => {
     let usersInProject = this.getMentionableUsers();
     let teamsInProject = this.getMentionableTeams();
     let teamsNotInProject = this.getTeamsNotInProject(teamsInProject);
     let usersInProjectById = usersInProject.map(({actor}) => actor.id);
 
     // Return a promise for `react-select`
-    return this.api
-      .requestPromise(`/organizations/${organization.slug}/members/`, {
-        query: {query: this.state.inputValue},
-      })
+    return new Promise((resolve, reject) => {
+      this.queryMembers(this.state.inputValue, (err, result) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(result);
+        }
+      });
+    })
       .then(members => {
         // Be careful here as we actually want the `users` object, otherwise it means user
         // has not registered for sentry yet, but has been invited
