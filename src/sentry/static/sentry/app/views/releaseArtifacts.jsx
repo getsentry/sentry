@@ -126,7 +126,9 @@ const ReleaseArtifacts = createReactClass({
       <div>
         <Panel>
           <PanelHeader>
-            <Flex flex="7">{t('Name')}</Flex>
+            <Flex flex="7" pr={2}>
+              {t('Name')}
+            </Flex>
             <Flex flex="2">{t('Distribution')}</Flex>
             <Flex flex="3">{t('Size')}</Flex>
           </PanelHeader>
@@ -134,7 +136,11 @@ const ReleaseArtifacts = createReactClass({
             {this.state.fileList.map(file => {
               return (
                 <PanelItem key={file.id}>
-                  <Flex flex="7" style={{wordWrap: 'break-word'}}>
+                  <Flex
+                    flex="7"
+                    pr={2}
+                    style={{wordWrap: 'break-word', wordBreak: 'break-all'}}
+                  >
                     <strong>{file.name || '(empty)'}</strong>
                   </Flex>
                   <Flex flex="2">
