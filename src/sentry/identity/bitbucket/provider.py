@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.identity.jwt import AtlassianConnectProvider, AtlassianConnectLoginView
+from sentry.identity.atlassian_connect import AtlassianConnectProvider, AtlassianConnectLoginView
 
 
 class BitBucketIdentityProvider(AtlassianConnectProvider):
