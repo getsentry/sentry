@@ -208,8 +208,8 @@ const SidebarDropdownActor = styled('div')`
 `;
 
 const StyledAvatar = styled(Avatar)`
-  margin-top: 1px;
-  margin-bottom: 1px;
+  margin-top: 2px;
+  margin-bottom: 2px;
   margin-right: ${p => (p.collapsed ? '0' : '12px')};
 `;
 
