@@ -225,7 +225,7 @@ const ProjectEnvironments = createReactClass({
           displayName: t('All Environments'),
           name: ALL_ENVIRONMENTS_KEY,
         }}
-        hideName
+        isSystemRow
         isDefault={isAllEnvironmentsDefault}
         shouldShowSetDefault={!isAllEnvironmentsDefault && !!project}
         onSetAsDefault={this.handleSetAsDefault}
@@ -269,7 +269,7 @@ const ProjectEnvironments = createReactClass({
           ),
           name: project.defaultEnvironment,
         }}
-        hideName
+        isSystemRow
         isDefault
         shouldShowSetDefault={false}
         onSetAsDefault={this.handleSetAsDefault}
@@ -362,7 +362,7 @@ class EnvironmentRow extends React.Component {
     environment: SentryTypes.Environment,
     isDefault: PropTypes.bool,
     isHidden: PropTypes.bool,
-    hideName: PropTypes.bool,
+    isSystemRow: PropTypes.bool,
     shouldShowSetDefault: PropTypes.bool,
     shouldShowAction: PropTypes.bool,
     actionText: PropTypes.string,
@@ -375,7 +375,7 @@ class EnvironmentRow extends React.Component {
       environment,
       shouldShowSetDefault,
       shouldShowAction,
-      hideName,
+      isSystemRow,
       isDefault,
       isHidden,
       actionText,
@@ -384,8 +384,7 @@ class EnvironmentRow extends React.Component {
     return (
       <PanelItem align="center" justify="space-between">
         <Flex align="center">
-          {environment.displayName}{' '}
-          {!hideName && environment.name && <code>{environment.name}</code>}
+          {isSystemRow ? environment.displayName : environment.name}
           {isDefault && <Tag priority="success">{t('Default')}</Tag>}
         </Flex>
         <div>
