@@ -397,23 +397,23 @@ exports[`ProjectCard renders 1`] = `
                         className="css-1tznizk"
                         is={null}
                       >
-                        <StyledPlatformIconWrapper
+                        <StyledPlatformiconWrapper
                           key="javascript"
                         >
                           <span
-                            className="css-1hxw8qp-StyledPlatformIconWrapper e1mca4c60"
+                            className="css-sxusd0-StyledPlatformiconWrapper e1mca4c60"
                           >
-                            <StyledPlatformIcon
+                            <StyledPlatformicon
                               platform="javascript"
                               size="24"
                             >
                               <Platformicon
-                                className="css-5d6zcx-StyledPlatformIcon e1mca4c61"
+                                className="css-950w8s-StyledPlatformicon e1mca4c61"
                                 platform="javascript"
                                 size="24"
                               >
                                 <img
-                                  className="css-5d6zcx-StyledPlatformIcon e1mca4c61"
+                                  className="css-950w8s-StyledPlatformicon e1mca4c61"
                                   height="24"
                                   src={
                                     Object {
@@ -426,9 +426,9 @@ exports[`ProjectCard renders 1`] = `
                                   width="24"
                                 />
                               </Platformicon>
-                            </StyledPlatformIcon>
+                            </StyledPlatformicon>
                           </span>
-                        </StyledPlatformIconWrapper>
+                        </StyledPlatformiconWrapper>
                       </div>
                     </Base>
                   </Flex>

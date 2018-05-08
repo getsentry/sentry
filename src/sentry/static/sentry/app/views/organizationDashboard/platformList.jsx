@@ -19,9 +19,9 @@ class PlatformList extends React.Component {
 
   getIcon(platform) {
     return (
-      <StyledPlatformIconWrapper key={platform}>
-        <StyledPlatformIcon platform={platform} size="24" />
-      </StyledPlatformIconWrapper>
+      <StyledPlatformiconWrapper key={platform}>
+        <StyledPlatformicon platform={platform} size="24" />
+      </StyledPlatformiconWrapper>
     );
   }
 
@@ -66,12 +66,12 @@ class PlatformList extends React.Component {
   }
 }
 
-const StyledPlatformIconWrapper = styled.span`
+const StyledPlatformiconWrapper = styled.span`
   display: block;
   margin-right: -8px;
 `;
 
-const StyledPlatformIcon = styled(Platformicon)`
+const StyledPlatformicon = styled(Platformicon)`
   display: block;
   color: white;
   font-size: 22px;
