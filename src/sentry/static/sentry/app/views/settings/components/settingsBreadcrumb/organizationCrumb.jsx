@@ -3,7 +3,6 @@ import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import Avatar from 'app/components/avatar';
 import BreadcrumbDropdown from 'app/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
 import IdBadge from 'app/components/idBadge';
 import MenuItem from 'app/views/settings/components/settingsBreadcrumb/menuItem';
