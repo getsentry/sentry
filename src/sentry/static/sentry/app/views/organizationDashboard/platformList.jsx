@@ -7,6 +7,7 @@ import {Flex} from 'grid-emotion';
 import SentryTypes from 'app/proptypes';
 import {t} from 'app/locale';
 import Button from 'app/components/buttons/button';
+import PlatformIcon from 'app/components/platformIcon';
 
 const MAX_PLATFORMS = 5;
 
@@ -19,7 +20,7 @@ class PlatformList extends React.Component {
   getIcon(platform) {
     return (
       <StyledPlatformIconWrapper key={platform} className={platform}>
-        <StyledPlatformIcon className={`platformicon platformicon-${platform}`} />
+        <StyledPlatformIcon name={platform} />
       </StyledPlatformIconWrapper>
     );
   }
@@ -58,7 +59,7 @@ class PlatformList extends React.Component {
 
     return (
       <Flex align="center">
-        <div className="org-dashboard-platform-list">{this.getIcons(platforms)}</div>
+        <div>{this.getIcons(platforms)}</div>
         <PlatformText>{platforms.join(', ')}</PlatformText>
       </Flex>
     );
@@ -71,15 +72,9 @@ const StyledPlatformIconWrapper = styled.span`
   margin-left: -2px;
 `;
 
-const StyledPlatformIcon = styled.span`
-  display: block;
-  color: white;
-  height: 34px;
-  width: 34px;
-  font-size: 22px;
+const StyledPlatformIcon = styled(PlatformIcon)`
   border-radius: 4px;
   border: 2px solid white;
-  padding: 4px;
 `;
 
 const PlatformText = styled.div`
