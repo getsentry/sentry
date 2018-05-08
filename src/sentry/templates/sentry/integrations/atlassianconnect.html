@@ -11,20 +11,14 @@
 {% block main %}
 <h3>{{ app_name }} Setup</h3>
 
-  <p>
-    Configure {{ app_name }} to use with Sentry.io.
-  </p>
-  <a href="{{ url }}">
-        <button
-        type="submit"
-        class="btn btn-primary"
-        name="save_mappings"
-        value="{{ url }}">{% trans "Connect to Bitbucket" %}</button>
-
-   </a>
-
-   <!--   <a href="{{ url }}">
-        <button type="button" class="ak-button ak-button__appearance-primary">Connect to Bitbucket</button>
-      </a> -->
-
+<p>
+Configure {{ app_name }} to use with Sentry.io.
+</p>
+<a href="{{ url }}">
+    <button
+    type="submit"
+    class="btn btn-primary"
+    name="save_mappings"
+    value="{{ url }}">{% trans "Connect to Bitbucket" %}</button>
+</a>
 {% endblock %}
