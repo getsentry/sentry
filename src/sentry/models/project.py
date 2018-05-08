@@ -12,6 +12,8 @@ import warnings
 from collections import defaultdict
 
 import six
+from pytz import utc
+from datetime import datetime
 from bitfield import BitField
 from django.conf import settings
 from django.db import IntegrityError, models, transaction
@@ -131,6 +133,7 @@ class Project(Model):
         return Counter.increment(self)
 
     def save(self, *args, **kwargs):
+        self.update_rev_for_option()
         if not self.slug:
             lock = locks.get('slug:project', duration=5)
             with TimedRetryPolicy(10)(lock.acquire):
@@ -157,18 +160,27 @@ class Project(Model):
     # TODO: Make these a mixin
     def update_option(self, *args, **kwargs):
         from sentry.models import ProjectOption
-
+        self.update_rev_for_option()
         return ProjectOption.objects.set_value(self, *args, **kwargs)
 
     def get_option(self, *args, **kwargs):
         from sentry.models import ProjectOption
-
+        self.update_rev_for_option()
         return ProjectOption.objects.get_value(self, *args, **kwargs)
 
     def delete_option(self, *args, **kwargs):
         from sentry.models import ProjectOption
-
+        self.update_rev_for_option()
         return ProjectOption.objects.unset_value(self, *args, **kwargs)
+
+    def update_rev_for_option(self):
+        from sentry.models import ProjectOption
+        ProjectOption.objects.set_value(self, 'sentry:relay-rev', uuid1().hex)
+        ProjectOption.objects.set_value(
+            self,
+            'sentry:relay-rev-lastchange',
+            datetime.utcnow().replace(
+                tzinfo=utc))
 
     @property
     def callsign(self):
