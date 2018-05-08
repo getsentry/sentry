@@ -33,11 +33,14 @@ class ObjectWrapper(object):
         dictionary['id'] = 0
         self.__dict__ = dictionary
 
+    def __repr__(self):
+        return '<ObjectWrapper: {!r}>'.format(vars(self))
+
 
 @register(ObjectWrapper)
 class ObjectWrapperSerializer(Serializer):
     def serialize(self, obj, attrs, user):
-        return self.__dict__
+        return obj.__dict__
 
 
 class SnubaTagStorage(TagStorage):
