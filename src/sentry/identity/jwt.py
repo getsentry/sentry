@@ -2,26 +2,21 @@ from __future__ import absolute_import, print_function
 
 from sentry.pipeline import PipelineView
 from sentry.web.helpers import render_to_response
+from sentry.utils.http import absolute_uri
 from .base import Provider
-# from django import forms
 
-
-class JSONWebTokenProvider(Provider):
-    """
-    The JSONWebTokenProvider is a way to implement an identity provider
-    that uses JSON Web Tokens (JWT) https://jwt.io/ to authenticate apps.
-    """
-    pass
-
-
-class JWTLoginView(PipelineView):
-
-    def __init__(self, *args, **kwargs):
-        super(JWTLoginView, self).__init__(*args, **kwargs)
+__all__ = ['AtlassianConnectProvider', 'AtlassianConnectLoginView']
 
 
 class AtlassianConnectProvider(Provider):
-    pass
+
+    def get_pipeline_views(self):
+        return [
+            AtlassianConnectLoginView(
+                app_name=self.name,
+                app_key=self.key,
+            )
+        ]
 
 
 class AtlassianConnectLoginView(PipelineView):
@@ -31,10 +26,10 @@ class AtlassianConnectLoginView(PipelineView):
         self.app_key = app_key
 
     def get_descriptor_uri(self):
-        raise NotImplementedError
+        return '/extensions/%s/descriptor/' % self.app_key
 
     def get_redirect_uri(self):
-        raise NotImplementedError
+        return '/extensions/%s/' % self.app_key
 
     def dispatch(self, request, pipeline):
         return render_to_response(
@@ -43,8 +38,8 @@ class AtlassianConnectLoginView(PipelineView):
                 'app_name': self.app_name,
                 'app_key': self.app_key,
                 'url': 'https://bitbucket.org/site/addons/authorize?descriptor_uri=%s&redirect_uri=%s' % (
-                    self.get_descriptor_uri(),
-                    self.get_redirect_uri(),
+                    absolute_uri(self.get_descriptor_uri()),
+                    absolute_uri(self.get_redirect_uri()),
                 )
             },
             request=request,
