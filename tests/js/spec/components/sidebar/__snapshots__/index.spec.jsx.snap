@@ -235,10 +235,10 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
             }
             size={36}
           >
-            <SlugAvatar
+            <OrganizationAvatar
               className="css-6su6fj"
               hasTooltip={false}
-              model={
+              organization={
                 Object {
                   "access": Array [
                     "org:read",
@@ -275,6 +275,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                 title="org slug"
                 tooltip="org-slug"
                 type="letter_avatar"
+                uploadPath="organization-avatar"
               >
                 <Tooltip
                   disabled={true}
@@ -334,7 +335,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                   </StyledBaseAvatar>
                 </Tooltip>
               </BaseAvatar>
-            </SlugAvatar>
+            </OrganizationAvatar>
           </Avatar>
           <Details>
             <div
@@ -722,6 +723,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                                     title="Foo Bar"
                                     tooltip="Foo Bar (foo@example.com)"
                                     type="gravatar"
+                                    uploadPath="avatar"
                                   >
                                     <Tooltip
                                       disabled={true}
@@ -1739,6 +1741,7 @@ exports[`Sidebar renders without org and router 1`] = `
                                     title="Foo Bar"
                                     tooltip="Foo Bar (foo@example.com)"
                                     type="gravatar"
+                                    uploadPath="avatar"
                                   >
                                     <Tooltip
                                       disabled={true}
