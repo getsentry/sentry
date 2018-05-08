@@ -23,8 +23,8 @@ from sentry.models import (
     Activity, Broadcast, Commit, CommitAuthor, CommitFileChange, Deploy, Event,
     Environment, File, Group, GroupMeta, GroupRelease, GroupTombstone, Organization,
     OrganizationAccessRequest, OrganizationMember, Project, Release,
-    ReleaseCommit, ReleaseEnvironment, ReleaseFile, Repository, Team,
-    TOMBSTONE_FIELDS_FROM_GROUP, User, UserReport
+    ReleaseCommit, ReleaseEnvironment, ReleaseProjectEnvironment, ReleaseFile, Repository,
+    Team, TOMBSTONE_FIELDS_FROM_GROUP, User, UserReport
 )
 from sentry.signals import mocks_loaded
 from sentry.similarity import features
@@ -485,6 +485,13 @@ def main(num_events=1, extra_events=False):
                 total_deploys=Deploy.objects.filter(release=release).count(),
                 last_deploy_id=deploy.id,
                 authors=[six.text_type(a.id) for a in authors],
+            )
+
+            ReleaseProjectEnvironment.objects.create_or_update(
+                project=project,
+                environment=environment,
+                release=release,
+                defaults={'last_deploy_id': deploy.id}
             )
 
             Activity.objects.create(
