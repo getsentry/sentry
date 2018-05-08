@@ -306,22 +306,6 @@ class SnubaTagStorage(TagStorage):
 
         return set(values)
 
-    def get_group_event_ids(self, project_id, group_id, environment_id, tags):
-        start, end = self.get_time_range()
-        filters = {
-            'environment': [environment_id],
-            'project_id': [project_id],
-        }
-        # TODO implement environment_id exclusion, its a little bit more complex
-        # than adding a != condition because environment_ids need to be translated
-        # to filters in snuba.
-
-        or_conditions = [['tags[{}]'.format(tag), '=', val] for tag, val in six.iteritems(tags)]
-        conditions = [or_conditions]
-
-        events = snuba.query(start, end, ['event_id'], conditions, filters)
-        return set(events.keys())
-
     def get_group_ids_for_users(self, project_ids, event_users, limit=100):
         start, end = self.get_time_range()
         filters = {
@@ -386,6 +370,14 @@ class SnubaTagStorage(TagStorage):
         result = snuba.query(start, end, ['issue'], None, filters, aggregations)
         return defaultdict(int, {k: v for k, v in result.items() if v})
 
+    def get_group_event_ids(self, project_id, group_id, environment_id, tags):
+        # This method is not implemented since the `event.id` column doesn't
+        # exist in Snuba.
+        raise NotImplementedError
+
     def get_group_ids_for_search_filter(
             self, project_id, environment_id, tags, candidates=None, limit=1000):
+        # This method is not implemented since the `group.id` column doesn't
+        # exist in Snuba. This logic is implemented in the search backend
+        # instead.
         raise NotImplementedError
