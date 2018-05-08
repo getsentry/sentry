@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`TeamMembers render() renders 1`] = `
+exports[`TeamMembers renders 1`] = `
 <Panel>
   <PanelHeader
     hasButtons={true}
@@ -33,51 +33,6 @@ exports[`TeamMembers render() renders 1`] = `
     </div>
   </PanelHeader>
   <StyledMemberContainer
-    key="0"
-  >
-    <IdBadge
-      avatarSize={36}
-      orgId="org-slug"
-      useLink={true}
-      user={
-        Object {
-          "email": "sentry1@test.com",
-          "flags": Object {
-            "sso:linked": false,
-          },
-          "id": "1",
-          "name": "Sentry 1 Name",
-          "pending": false,
-          "role": "",
-          "roleName": "",
-          "user": Object {
-            "email": "sentry1@test.com",
-            "has2fa": false,
-            "id": "1",
-            "name": "Sentry 1 Name",
-            "username": "Sentry 1 Username",
-          },
-        }
-      }
-    />
-    <Button
-      disabled={false}
-      onClick={[Function]}
-      size="small"
-    >
-      <InlineSvg
-        size="1.25em"
-        src="icon-circle-subtract"
-        style={
-          Object {
-            "marginRight": "8px",
-          }
-        }
-      />
-      Remove
-    </Button>
-  </StyledMemberContainer>
-  <StyledMemberContainer
     key="1"
   >
     <IdBadge
@@ -86,22 +41,11 @@ exports[`TeamMembers render() renders 1`] = `
       useLink={true}
       user={
         Object {
-          "email": "sentry2@test.com",
-          "flags": Object {
-            "sso:linked": false,
-          },
-          "id": "2",
-          "name": "Sentry 2 Name",
-          "pending": true,
-          "role": "",
-          "roleName": "",
-          "user": Object {
-            "email": "sentry2@test.com",
-            "has2fa": false,
-            "id": "2",
-            "name": "Sentry 2 Name",
-            "username": "Sentry 2 Username",
-          },
+          "email": "sentry1@test.com",
+          "has2fa": false,
+          "id": "1",
+          "name": "Sentry 1 Name",
+          "username": "Sentry 1 Username",
         }
       }
     />
@@ -131,22 +75,11 @@ exports[`TeamMembers render() renders 1`] = `
       useLink={true}
       user={
         Object {
-          "email": "sentry3@test.com",
-          "flags": Object {
-            "sso:linked": true,
-          },
-          "id": "3",
-          "name": "Sentry 3 Name",
-          "pending": false,
-          "role": "owner",
-          "roleName": "Owner",
-          "user": Object {
-            "email": "sentry3@test.com",
-            "has2fa": true,
-            "id": "3",
-            "name": "Sentry 3 Name",
-            "username": "Sentry 3 Username",
-          },
+          "email": "sentry2@test.com",
+          "has2fa": false,
+          "id": "2",
+          "name": "Sentry 2 Name",
+          "username": "Sentry 2 Username",
         }
       }
     />
@@ -176,22 +109,45 @@ exports[`TeamMembers render() renders 1`] = `
       useLink={true}
       user={
         Object {
+          "email": "sentry3@test.com",
+          "has2fa": true,
+          "id": "3",
+          "name": "Sentry 3 Name",
+          "username": "Sentry 3 Username",
+        }
+      }
+    />
+    <Button
+      disabled={false}
+      onClick={[Function]}
+      size="small"
+    >
+      <InlineSvg
+        size="1.25em"
+        src="icon-circle-subtract"
+        style={
+          Object {
+            "marginRight": "8px",
+          }
+        }
+      />
+      Remove
+    </Button>
+  </StyledMemberContainer>
+  <StyledMemberContainer
+    key="4"
+  >
+    <IdBadge
+      avatarSize={36}
+      orgId="org-slug"
+      useLink={true}
+      user={
+        Object {
           "email": "sentry4@test.com",
-          "flags": Object {
-            "sso:linked": true,
-          },
+          "has2fa": true,
           "id": "4",
           "name": "Sentry 4 Name",
-          "pending": false,
-          "role": "owner",
-          "roleName": "Owner",
-          "user": Object {
-            "email": "sentry4@test.com",
-            "has2fa": true,
-            "id": "4",
-            "name": "Sentry 4 Name",
-            "username": "Sentry 4 Username",
-          },
+          "username": "Sentry 4 Username",
         }
       }
     />
