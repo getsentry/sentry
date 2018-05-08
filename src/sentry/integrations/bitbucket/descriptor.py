@@ -5,8 +5,11 @@ from sentry.utils.http import absolute_uri
 
 
 class BitBucketDescriptorEndpoint(Endpoint):
+    authentication_classes = ()
+    permission_classes = ()
+
     def get(self, request):
-        self.respond(
+        response = self.respond(
             {
                 'key': 'sentry-bitbucket',
                 'name': 'Sentry Bitbucket',
@@ -27,3 +30,4 @@ class BitBucketDescriptorEndpoint(Endpoint):
                 'contexts': ['account']
             }
         )
+        return response
