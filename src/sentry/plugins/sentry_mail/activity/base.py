@@ -64,11 +64,10 @@ class ActivityEmail(object):
 
     def get_group_link(self):
         return absolute_uri(
-            '/{}/{}/issues/{}/?environment={}'.format(
+            '/{}/{}/issues/{}/'.format(
                 self.organization.slug,
                 self.project.slug,
                 self.group.id,
-                self.group.get_latest_event().get_tag('environment')
             )
         )
 

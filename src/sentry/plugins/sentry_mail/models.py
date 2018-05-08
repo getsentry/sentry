@@ -19,7 +19,7 @@ from django.utils.encoding import force_text
 from django.utils.safestring import mark_safe
 
 from sentry import features, options
-from sentry.models import ProjectOwnership, User
+from sentry.models import ProjectOwnership, User, Event
 
 from sentry.digests.utilities import get_digest_metadata, get_personalized_digests
 from sentry.plugins import register
@@ -33,6 +33,8 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.linksign import generate_signed_link
 
 from .activity import emails
+
+from six.moves.urllib.parse import urlencode
 
 NOTSET = object()
 
@@ -195,6 +197,10 @@ class MailPlugin(NotificationPlugin):
 
         event = notification.event
 
+        Event.objects.bind_nodes([event], 'data')
+
+        environment = event.get_tag('environment')
+
         group = event.group
         project = group.project
         org = group.organization
@@ -202,6 +208,9 @@ class MailPlugin(NotificationPlugin):
         subject = event.get_email_subject()
 
         link = group.get_absolute_url()
+
+        if environment:
+            link = link + '?' + urlencode({'environment': environment})
 
         template = 'sentry/emails/error.txt'
         html_template = 'sentry/emails/error.html'
@@ -241,6 +250,7 @@ class MailPlugin(NotificationPlugin):
             'rules': rules,
             'enhanced_privacy': enhanced_privacy,
             'commits': sorted(commits.values(), key=lambda x: x['score'], reverse=True),
+            'environment': environment
         }
 
         # if the organization has enabled enhanced privacy controls we dont send
