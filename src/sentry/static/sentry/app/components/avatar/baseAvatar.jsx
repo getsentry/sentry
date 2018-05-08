@@ -87,7 +87,7 @@ class BaseAvatar extends React.Component {
     let {uploadPath, uploadId} = this.props;
 
     return `/${uploadPath || 'avatar'}/${uploadId}/?${qs.stringify({
-      s: this.getRemoteImageSize(),
+      s: 120,
     })}`;
   };
 
