@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import pytest
 
-from sentry.utils.datastructures import BidirectionalMapping
+from sentry.utils.datastructures import BidirectionalMapping, LayeredMapping
 
 
 def test_bidirectional_mapping():
@@ -38,3 +38,44 @@ def test_bidirectional_mapping():
     del value['c']
 
     assert len(value) == len(value.inverse()) == 2
+
+
+def test_layered_mapping():
+    value = LayeredMapping([
+        {'a': 1, 'b': 2},
+        {'a': 2, 'c': 2},
+    ])
+
+    assert len(value) == 3
+    assert dict(value) == {
+        'a': 2,
+        'b': 2,
+        'c': 2,
+    }
+
+    value.push({'a': 3, 'c': 1})
+    assert dict(value) == {
+        'a': 3,
+        'b': 2,
+        'c': 1,
+    }
+
+    value.pop()
+    assert dict(value) == {
+        'a': 2,
+        'b': 2,
+        'c': 2,
+    }
+
+    copy = value.copy()
+    copy.pop()
+    assert value != copy
+    assert dict(copy) == {
+        'a': 1,
+        'b': 2,
+    }
+    assert dict(value) == {
+        'a': 2,
+        'b': 2,
+        'c': 2,
+    }
