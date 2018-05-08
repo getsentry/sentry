@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import calendar
-from datetime import datetime, timedelta
+from datetime import timedelta
 import json
 import pytest
 import requests
@@ -270,7 +270,6 @@ class TagStorage(TestCase):
             EventUser(project_id=self.proj1.id, email='user1@sentry.io'),
             EventUser(project_id=self.proj1.id, ident='user2')
         ])
-        two_seconds_ago = self.now - timedelta(seconds=2)
         assert len(result) == 2
         result.sort(key=lambda x: x.value)
         assert result[0].value == 'user1'
