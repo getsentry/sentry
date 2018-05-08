@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.integrations import Integration, IntegrationMetadata
+from sentry.integrations import IntegrationProvider, IntegrationMetadata
 from sentry.pipeline import NestedPipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from django.utils.translation import ugettext_lazy as _
@@ -17,7 +17,7 @@ metadata = IntegrationMetadata(
 )
 
 
-class BitBucketIntegration(Integration):
+class BitBucketIntegrationProvider(IntegrationProvider):
     key = 'bitbucket'
     name = 'BitBucket'
     metadata = metadata

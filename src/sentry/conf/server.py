@@ -1236,11 +1236,11 @@ SENTRY_ONPREMISE = True
 SENTRY_USE_X_FORWARDED_FOR = True
 
 SENTRY_DEFAULT_INTEGRATIONS = (
-    'sentry.integrations.slack.SlackIntegration',
-    'sentry.integrations.github.GitHubIntegration',
-    'sentry.integrations.jira.JiraIntegration',
-    'sentry.integrations.vsts.VSTSIntegration',
-    'sentry.integrations.bitbucket.BitBucketIntegration',
+    'sentry.integrations.bitbucket.BitBucketIntegrationProvider',
+    'sentry.integrations.slack.SlackIntegrationProvider',
+    'sentry.integrations.github.GitHubIntegrationProvider',
+    'sentry.integrations.jira.JiraIntegrationProvider',
+    'sentry.integrations.vsts.VSTSIntegrationProvider',
 )
 
 SENTRY_INTERNAL_INTEGRATIONS = (
