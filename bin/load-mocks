@@ -20,7 +20,7 @@ from pytz import utc
 from sentry import buffer, roles, tsdb
 from sentry.event_manager import HashDiscarded
 from sentry.models import (
-    Activity, Broadcast, Commit, CommitAuthor, CommitFileChange, Deploy,
+    Activity, Broadcast, Commit, CommitAuthor, CommitFileChange, Deploy, Event,
     Environment, File, Group, GroupMeta, GroupRelease, GroupTombstone, Organization,
     OrganizationAccessRequest, OrganizationMember, Project, Release,
     ReleaseCommit, ReleaseEnvironment, ReleaseFile, Repository, Team,
@@ -164,6 +164,8 @@ def create_system_time_series():
 def create_sample_time_series(event, release=None):
     if event is None:
         return
+
+    Event.objects.bind_nodes([event], 'data')
 
     group = event.group
 
