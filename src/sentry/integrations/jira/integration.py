@@ -53,3 +53,22 @@ class JiraIntegrationProvider(IntegrationProvider):
 
     def get_pipeline_views(self):
         return []
+
+    def build_integration(self, state):
+        # Most information is not availabe during integration install time,
+        # since the integration won't have been fully configired on JIRA's side
+        # yet, we can't make API calls for more details like the server name or
+        # Icon.
+        return {
+            'provider': 'jira',
+            'external_id': state['clientKey'],
+            'name': 'JIRA',
+            'metadata': {
+                'oauth_client_id': state['oauthClientId'],
+                # public key is possibly deprecated, so we can maybe remove this
+                'public_key': state['publicKey'],
+                'shared_secret': state['sharedSecret'],
+                'base_url': state['baseUrl'],
+                'domain_name': state['baseUrl'].replace('https://', ''),
+            },
+        }

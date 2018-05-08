@@ -1,11 +1,12 @@
 from __future__ import absolute_import
 
 
-from django.db import IntegrityError, transaction
 from django.views.decorators.csrf import csrf_exempt
 
 from sentry.api.base import Endpoint
-from sentry.models import Integration
+from sentry.integrations.pipeline import ensure_integration
+
+from .integration import JiraIntegrationProvider
 
 
 class JiraInstalledEndpoint(Endpoint):
@@ -17,23 +18,8 @@ class JiraInstalledEndpoint(Endpoint):
         return super(JiraInstalledEndpoint, self).dispatch(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
-        data = request.DATA
-        # TODO(jess): Handle updating existing integration
-        try:
-            with transaction.atomic():
-                Integration.objects.create(
-                    provider='jira',
-                    external_id=data['clientKey'],
-                    name=data['baseUrl'],
-                    metadata={
-                        'oauth_client_id': data['oauthClientId'],
-                        # public key is possibly deprecated, so we can maybe remove this
-                        'public_key': data['publicKey'],
-                        'shared_secret': data['sharedSecret'],
-                        'base_url': data['baseUrl'],
-                    }
-                )
-        except IntegrityError:
-            pass
+        state = request.DATA
+        data = JiraIntegrationProvider().build_integration(state)
+        ensure_integration('jira', data)
 
         return self.respond()

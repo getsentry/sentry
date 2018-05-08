@@ -26,6 +26,22 @@ window.close();
 """
 
 
+def ensure_integration(key, data):
+    defaults = {
+        'metadata': data.get('metadata', {}),
+        'name': data.get('name', data['external_id']),
+    }
+    integration, created = Integration.objects.get_or_create(
+        provider=key,
+        external_id=data['external_id'],
+        defaults=defaults
+    )
+    if not created:
+        integration.update(**defaults)
+
+    return integration
+
+
 class IntegrationPipeline(Pipeline):
     pipeline_name = 'integration_pipeline'
     provider_manager = default_manager
@@ -37,18 +53,7 @@ class IntegrationPipeline(Pipeline):
         return response
 
     def _finish_pipeline(self, data):
-        # Create the new integration
-        defaults = {
-            'metadata': data.get('metadata', {}),
-            'name': data.get('name', data['external_id']),
-        }
-        integration, created = Integration.objects.get_or_create(
-            provider=self.provider.key,
-            external_id=data['external_id'],
-            defaults=defaults
-        )
-        if not created:
-            integration.update(**defaults)
+        integration = ensure_integration(self.provider.key, data)
         integration.add_organization(self.organization.id)
 
         # Does this integration provide a user identity for the user setting up
