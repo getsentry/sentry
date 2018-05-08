@@ -54,6 +54,15 @@ const TeamBadgeContainer = createReactClass({
     };
   },
 
+  componentWillReceiveProps(nextProps) {
+    if (this.state.team === nextProps.team) return;
+    if (isEqual(this.state.team, nextProps.team)) return;
+
+    this.setState({
+      team: nextProps.team,
+    });
+  },
+
   onTeamStoreUpdate(updatedTeam) {
     if (!updatedTeam.has(this.state.team.id)) return;
 
