@@ -11,7 +11,9 @@ import AssistantContainer from 'app/components/assistant/assistantContainer';
 // GuideDrawer is what slides up when the user clicks on a guide cue.
 export default class GuideDrawer extends React.Component {
   static propTypes = {
+    // `guide` must be a valid guide.
     guide: PropTypes.object.isRequired,
+    // `step` must be > 0.
     step: PropTypes.number.isRequired,
     onFinish: PropTypes.func.isRequired,
     onDismiss: PropTypes.func.isRequired,
@@ -42,13 +44,15 @@ export default class GuideDrawer extends React.Component {
         <StyledAssistantInputRow>
           <CueIcon hasGuide={true} />
           <StyledTitle>{this.props.guide.steps[this.props.step - 1].title}</StyledTitle>
-          <div
-            className="close-button"
-            style={{display: 'flex'}}
-            onClick={this.props.onDismiss}
-          >
-            <CloseIcon />
-          </div>
+          {this.props.step < this.props.guide.steps.length && (
+            <div
+              className="close-button"
+              style={{display: 'flex'}}
+              onClick={this.props.onDismiss}
+            >
+              <CloseIcon />
+            </div>
+          )}
         </StyledAssistantInputRow>
         <StyledContent>
           <div
