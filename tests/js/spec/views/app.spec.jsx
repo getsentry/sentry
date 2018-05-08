@@ -5,7 +5,6 @@ import App from 'app/views/app';
 import ConfigStore from 'app/stores/configStore';
 
 jest.mock('jquery');
-jest.mock('lodash/debounce', () => jest.fn(fn => fn));
 
 describe('App', function() {
   beforeEach(function() {
