@@ -757,4 +757,4 @@ class APIViewTest(TestCase):
     @mock.patch('sentry.web.api.APIView._dispatch', new=rate_limited_dispatch)
     def test_retry_after_int(self):
         resp = self._postWithHeader({})
-        assert resp['Retry-After'] == '42'
+        assert resp['Retry-After'] == '43'
