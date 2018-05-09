@@ -300,10 +300,11 @@ const StyledMenu = styled(({isOpen, blendCorner, alignMenu, ...props}) => (
 `;
 
 const EmptyMessage = styled('div')`
-  opacity: 0.4;
+  color: ${p => p.theme.gray1};
   padding: ${space(1)} ${space(2)};
   text-align: center;
   font-size: 1.2em;
+  text-transform: none;
 `;
 
 export default DropdownAutoCompleteMenu;
