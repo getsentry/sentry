@@ -1,12 +1,13 @@
 from __future__ import absolute_import
 
+from six.moves.urllib.parse import urlparse
 from django.utils.translation import ugettext_lazy as _
 from django import forms
 
 # from sentry import http, options
 from sentry.web.helpers import render_to_response
 from sentry.identity.pipeline import IdentityProviderPipeline
-# from sentry.identity.github import get_user_info
+from sentry.identity.github import get_user_info
 from sentry.integrations import IntegrationMetadata
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.pipeline import NestedPipelineView, PipelineView
@@ -70,12 +71,18 @@ class InstallationForm(forms.Form):
                 'placeholder': _('XXXXXXXXXXXXXXXXXXXXXXXXXXX'),
             }
         ))
-        self.fields['private-key'] = forms.CharField(widget=forms.TextInput(
-            attrs={
-                'label': "Github App Private Key",
-                'placeholder': _('XXXXXXXXXXXXXXXXXXXXXXXXXXX'),
-            }
-        ))
+        self.fields['private-key'] = forms.CharField(
+            widget=forms.Textarea(attrs={'rows': '60',
+                                         'label': "Github App Private Key",
+                                         'placeholder': _("""-----BEGIN RSA PRIVATE KEY-----
+XXXXXXXXXXXXXXXXXXXXXXXXXXX
+XXXXXXXXXXXXXXXXXXXXXXXXXXX
+XXXXXXXXXXXXXXXXXXXXXXXXXXX
+XXXXXXXXXXXXXXXXXXXXXXXXXXX
+XXXXXXXXXXXXXXXXXXXXXXXXXXX
+-----END RSA PRIVATE KEY-----
+"""), })
+        )
 
 
 class InstallationConfigView(PipelineView):
@@ -83,16 +90,19 @@ class InstallationConfigView(PipelineView):
         form = InstallationForm(request.POST)
         # TODO(maxbittker) handle errors
         if form.is_valid():
-            installation_data = {
-                "url": request.POST.get('url'),
-                "id": request.POST.get('id'),
-                "name": request.POST.get('name'),
-                "client-id": request.POST.get('client-id'),
-                "client-secret": request.POST.get('client-secret'),
-                "webhook-secret": request.POST.get('webhook-secret'),
-                "private-key": request.POST.get('private-key'),
-            }
-            pipeline.bind_state('installation_data', installation_data)
+
+            form_data = form.cleaned_data
+            form_data['url'] = urlparse(form_data['url']).netloc
+
+            pipeline.bind_state('installation_data', form_data)
+
+            pipeline.bind_state('oauth_config_information', {
+                "access_token_url": "https://{}/login/oauth/access_token".format(form_data.get('url')),
+                "authorize_url": "https://{}/login/oauth/authorize".format(form_data.get('url')),
+                "id": form_data.get('client-id'),
+                "secret": form_data.get('client-secret'),
+            })
+
             return pipeline.next_step()
 
         project_form = InstallationForm()
@@ -106,7 +116,7 @@ class InstallationConfigView(PipelineView):
         )
 
 
-class GitHubEnterpriseIntegration(GitHubIntegration):
+class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
     key = 'github-enterprise'
     name = 'GitHub Enterprise'
     metadata = metadata
@@ -114,7 +124,7 @@ class GitHubEnterpriseIntegration(GitHubIntegration):
     def get_pipeline_views(self):
         identity_pipeline_config = {
             'oauth_scopes': (),
-            'redirect_url': absolute_uri('/extensions/github/setup/'),
+            'redirect_url': absolute_uri('/extensions/github-enterprise/setup/'),
         }
 
         identity_pipeline_view = NestedPipelineView(
@@ -128,16 +138,42 @@ class GitHubEnterpriseIntegration(GitHubIntegration):
                 GitHubEnterpriseInstallationRedirect(),
                 identity_pipeline_view]
 
+    def build_integration(self, state):
+        identity = state['identity']['data']
+        installation_data = state['installation_data']
+
+        user = get_user_info(identity['access_token'])
+        installation = self.get_installation_info(
+            identity['access_token'], state['installation_id'])
+
+        return {
+            'name': installation['account']['login'],
+            'external_id': installation['id'],
+            'metadata': {
+                # The access token will be populated upon API usage
+                'access_token': None,
+                'expires_at': None,
+                'icon': installation['account']['avatar_url'],
+                'domain_name': installation['account']['html_url'].replace('https://', ''),
+                'installation': installation_data
+            },
+            'user_identity': {
+                'type': 'github-enterprise',
+                'external_id': user['id'],
+                'scopes': [],  # GitHub apps do not have user scopes
+                'data': {'access_token': identity['access_token']},
+            },
+        }
+
 
 class GitHubEnterpriseInstallationRedirect(PipelineView):
     def get_app_url(self, installation_data):
         url = installation_data.get('url')
         name = installation_data.get('name')
-        return '{}apps/{}'.format(url, name)
+        return 'https://{}/github-apps/{}'.format(url, name)
 
     def dispatch(self, request, pipeline):
         installation_data = pipeline.fetch_state(key='installation_data')
-
         if 'installation_id' in request.GET:
             pipeline.bind_state('installation_id', request.GET['installation_id'])
             return pipeline.next_step()

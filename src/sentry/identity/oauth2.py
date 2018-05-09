@@ -30,10 +30,80 @@ class OAuth2Provider(Provider):
 
     oauth_scopes = ()
 
+    def get_oauth_access_token_url(self):
+        # for most cloud-based providers, take this off of the class
+
+        if self.oauth_access_token_url is not '':
+            return self.oauth_access_token_url
+
+        # # check the model for instalation information
+        # if self.provider_model.config and self.provider_model.config.get('XXXXX'):
+        #     # todo(maxbittker) get the name of this key
+        #     return self.provider_model.config.get('XXXXX')
+
+        # otherwise try the pipeline state
+        pipeline_token_url = self.pipeline.get_state('_parent') \
+            .get('oauth_config_information') \
+            .get('access_token_url')
+
+        if pipeline_token_url:
+            return pipeline_token_url
+
+        raise NotImplementedError
+
+    def get_oauth_authorize_url(self):
+        # for most cloud-based providers, take this off of the class
+
+        if self.oauth_authorize_url is not '':
+            return self.oauth_authorize_url
+
+        # # check the model for instalation information
+        # if self.provider_model.config and self.provider_model.config.get('XXXXX'):
+        #     # todo(maxbittker) get the name of this key
+        #     return self.provider_model.config.get('XXXXX')
+
+        # otherwise try the pipeline state
+        import ipdb;
+        ipdb.set_trace()
+        pipeline_authorize_url = self.pipeline.get_state('_parent') \
+            .get('oauth_config_information') \
+            .get('authorize_url')
+
+        if pipeline_authorize_url:
+            return pipeline_authorize_url
+
+        raise NotImplementedError
+
     def get_oauth_client_id(self):
+        # # check the model for instalation information
+        # if self.provider_model.config and self.provider_model.config.get('XXXXX'):
+        #     # todo(maxbittker) get the name of this key
+        #     return self.provider_model.config.get('XXXXX')
+
+        # otherwise try the pipeline state
+        client_id = self.pipeline.get_state('_parent') \
+            .get('oauth_config_information') \
+            .get('id')
+
+        if client_id:
+            return client_id
+
         raise NotImplementedError
 
     def get_oauth_client_secret(self):
+        # # check the model for instalation information
+        # if self.provider_model.config and self.provider_model.config.get('XXXXX'):
+        #     # todo(maxbittker) get the name of this key
+        #     return self.provider_model.config.get('XXXXX')
+
+        # otherwise try the pipeline state
+        client_id = self.pipeline.get_state('_parent') \
+            .get('oauth_config_information') \
+            .get('secret')
+
+        if client_id:
+            return client_id
+
         raise NotImplementedError
 
     def get_oauth_scopes(self):
@@ -42,12 +112,12 @@ class OAuth2Provider(Provider):
     def get_pipeline_views(self):
         return [
             OAuth2LoginView(
-                authorize_url=self.oauth_authorize_url,
+                authorize_url=self.get_oauth_authorize_url(),
                 client_id=self.get_oauth_client_id(),
                 scope=' '.join(self.get_oauth_scopes()),
             ),
             OAuth2CallbackView(
-                access_token_url=self.oauth_access_token_url,
+                access_token_url=self.get_oauth_access_token_url(),
                 client_id=self.get_oauth_client_id(),
                 client_secret=self.get_oauth_client_secret(),
             ),
@@ -96,7 +166,9 @@ class OAuth2LoginView(PipelineView):
         }
 
     def dispatch(self, request, pipeline):
-        if 'code' in request.GET:
+        import ipdb;
+        ipdb.set_trace()
+        if 'code' in request.GET or request.GET.get("response_type"):
             return pipeline.next_step()
 
         state = uuid4().hex
