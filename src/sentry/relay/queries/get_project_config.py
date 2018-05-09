@@ -18,12 +18,14 @@ class GetProjectConfig(BaseQuery):
         if not serializer.is_valid():
             raise InvalidQuery(str(serializer.errors).splitlines()[0])
 
+        result = serializer.object
+
         try:
             project = Project.objects.filter(
-                id=query.get('project_id'),
+                id=result.get('project_id'),
             ).get()
         except Project.DoesNotExist:
-            raise InvalidQuery('project does not exist')
+            raise InvalidQuery('Project does not exist')
 
         self.project = project
 

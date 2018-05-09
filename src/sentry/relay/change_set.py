@@ -2,17 +2,14 @@ from __future__ import absolute_import
 
 import logging
 
+from sentry.relay.utils import type_to_class_name
+from sentry.relay.changesets.base import ChangesetError
 
 logger = logging.getLogger(__name__)
 
 
-class ChangesetError(Exception):
-    pass
-
-
 def execute_changesets(relay, changesets):
     from django.utils.importlib import import_module
-    # TODO(hazat): check security not all imports allowed
 
     for changeset in changesets:
         try:
@@ -22,8 +19,15 @@ def execute_changesets(relay, changesets):
         except ImportError:
             return
 
-        execute = getattr(relay_changeset, 'execute')
+        change_set_class = getattr(relay_changeset, type_to_class_name(changeset.get('type', None)))
+        change_set_inst = change_set_class(relay)
+
         try:
-            execute(relay, changeset.get('project_id'), changeset.get('data'))
+            change_set_inst.preprocess(changeset)
+        except ChangesetError:
+            logger.error('Changeset failed', exc_info=True)
+
+        try:
+            change_set_inst.execute()
         except ChangesetError:
             logger.error('Changeset failed', exc_info=True)

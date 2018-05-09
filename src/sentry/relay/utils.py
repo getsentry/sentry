@@ -16,3 +16,8 @@ def get_header_relay_signature(request):
         return six.text_type(request.META['HTTP_X_SENTRY_RELAY_SIGNATURE'])
     except (LookupError, ValueError, TypeError):
         pass
+
+
+def type_to_class_name(snake_str):
+    components = snake_str.split('_')
+    return ''.join(x.title() for x in components[0:])

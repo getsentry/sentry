@@ -3,11 +3,7 @@ from __future__ import absolute_import
 import six
 
 from sentry.relay.queries.base import InvalidQuery
-
-
-def to_class_name(snake_str):
-    components = snake_str.split('_')
-    return ''.join(x.title() for x in components[0:])
+from sentry.relay.utils import type_to_class_name
 
 
 def execute_queries(relay, queries):
@@ -23,7 +19,7 @@ def execute_queries(relay, queries):
                 'error': 'unknown query'
             }
         else:
-            query_class = getattr(relay_query, to_class_name(query.get('type', None)))
+            query_class = getattr(relay_query, type_to_class_name(query.get('type', None)))
             query_inst = query_class(relay)
 
             try:
