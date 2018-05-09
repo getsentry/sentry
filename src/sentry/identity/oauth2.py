@@ -42,9 +42,8 @@ class OAuth2Provider(Provider):
         #     return self.provider_model.config.get('XXXXX')
 
         # otherwise try the pipeline state
-        pipeline_token_url = self.pipeline.get_state('_parent') \
-            .get('oauth_config_information') \
-            .get('access_token_url')
+        pipeline_token_url = self.pipeline.parent_pipeline.fetch_state(
+            'oauth_config_information').get('access_token_url')
 
         if pipeline_token_url:
             return pipeline_token_url
@@ -65,9 +64,9 @@ class OAuth2Provider(Provider):
         # otherwise try the pipeline state
         import ipdb;
         ipdb.set_trace()
-        pipeline_authorize_url = self.pipeline.get_state('_parent') \
-            .get('oauth_config_information') \
-            .get('authorize_url')
+
+        pipeline_authorize_url = self.pipeline.parent_pipeline.fetch_state(
+            'oauth_config_information').get('authorize_url')
 
         if pipeline_authorize_url:
             return pipeline_authorize_url
@@ -81,9 +80,7 @@ class OAuth2Provider(Provider):
         #     return self.provider_model.config.get('XXXXX')
 
         # otherwise try the pipeline state
-        client_id = self.pipeline.get_state('_parent') \
-            .get('oauth_config_information') \
-            .get('id')
+        client_id = self.pipeline.parent_pipeline.fetch_state('oauth_config_information').get('id')
 
         if client_id:
             return client_id
@@ -97,12 +94,11 @@ class OAuth2Provider(Provider):
         #     return self.provider_model.config.get('XXXXX')
 
         # otherwise try the pipeline state
-        client_id = self.pipeline.get_state('_parent') \
-            .get('oauth_config_information') \
+        client_secret = self.pipeline.parent_pipeline.fetch_state('oauth_config_information') \
             .get('secret')
 
-        if client_id:
-            return client_id
+        if client_secret:
+            return client_secret
 
         raise NotImplementedError
 
@@ -111,12 +107,12 @@ class OAuth2Provider(Provider):
 
     def get_pipeline_views(self):
         return [
-            OAuth2LoginView(
+            lambda: OAuth2LoginView(
                 authorize_url=self.get_oauth_authorize_url(),
                 client_id=self.get_oauth_client_id(),
                 scope=' '.join(self.get_oauth_scopes()),
             ),
-            OAuth2CallbackView(
+            lambda: OAuth2CallbackView(
                 access_token_url=self.get_oauth_access_token_url(),
                 client_id=self.get_oauth_client_id(),
                 client_secret=self.get_oauth_client_secret(),

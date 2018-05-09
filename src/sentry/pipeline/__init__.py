@@ -1,5 +1,7 @@
 from __future__ import absolute_import, print_function
 
+from types import LambdaType
+
 from sentry.models import Organization
 from sentry.web.frontend.base import BaseView
 from sentry.utils.session_store import RedisSessionStore
@@ -28,6 +30,12 @@ class PipelineProvider(object):
         pipelines and the provider needs to be configured differently.
         """
         self.config = config
+
+    def set_pipeline(self, pipeline):
+        """
+        todo(maxbittker)
+        """
+        self.pipeline = pipeline
 
 
 class PipelineView(BaseView):
@@ -79,6 +87,7 @@ class NestedPipelineView(PipelineView):
         )
 
         nested_pipeline.set_parent_pipeline(pipeline)
+        # nested_pipeline.bind_state('_parent', pipeline.fetch_state())
 
         if not nested_pipeline.is_valid():
             nested_pipeline.initialize()
@@ -146,6 +155,7 @@ class Pipeline(object):
         self.provider_model = provider_model
 
         self.config = config
+        self.provider.set_pipeline(self)
         self.provider.set_config(config)
 
         self.pipeline = self.get_pipeline_views()
@@ -193,7 +203,13 @@ class Pipeline(object):
         if step_index == len(self.pipeline):
             return self.finish_pipeline()
 
-        return self.pipeline[step_index].dispatch(
+        step = self.pipeline[step_index]
+
+        # support late binding steps
+        if isinstance(step, LambdaType):
+            step = step()
+
+        return step.dispatch(
             request=self.request,
             pipeline=self,
         )
