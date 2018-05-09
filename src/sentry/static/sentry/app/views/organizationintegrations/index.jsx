@@ -1,58 +1,22 @@
-import {Flex, Box} from 'grid-emotion';
+import {Box} from 'grid-emotion';
 import {keyBy} from 'lodash';
 import React from 'react';
-import styled from 'react-emotion';
 
 import {sortArray} from 'app/utils';
 import {t} from 'app/locale';
 import AlertLink from 'app/components/alertLink';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/buttons/button';
-import Confirm from 'app/components/confirm';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import IndicatorStore from 'app/stores/indicatorStore';
 import LoadingError from 'app/components/loadingError';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import marked from 'app/utils/marked';
 
-const IntegrationIcon = styled.img`
-  height: 32px;
-  width: 32px;
-  border-radius: 3px;
-  display: block;
-`;
-
-const IntegrationName = styled.div`
-  font-size: 1.6rem;
-  margin-bottom: 3px;
-`;
-
-const DomainName = styled.div`
-  color: ${p => p.theme.gray3};
-  font-size: 1.4rem;
-`;
-
-const Details = styled(Flex)`
-  font-size: 1.5rem;
-  line-height: 2.1rem;
-`;
-
-const Description = styled.div`
-  li {
-    margin-bottom: 6px;
-  }
-`;
-
-const AuthorName = styled.div`
-  color: ${p => p.theme.gray2};
-`;
-
-const MetadataLink = styled.a`
-  display: block;
-  margin-bottom: 6px;
-`;
+import IntegrationDetails from './integrationDetails';
+import InstalledIntegration from './installedIntegration';
 
 const alertLinkMarkedRenderer = new marked.Renderer();
 alertLinkMarkedRenderer.paragraph = s => s;
@@ -78,7 +42,7 @@ function computeCenteredWindow(width, height) {
   return {left, top};
 }
 
-export default class OrganizationIntegrationConfig extends AsyncView {
+export default class OrganizationIntegration extends AsyncView {
   componentDidMount() {
     this.dialog = null;
     window.addEventListener('message', this.receiveMessage, false);
@@ -237,37 +201,19 @@ export default class OrganizationIntegrationConfig extends AsyncView {
       </PanelHeader>
     );
 
-    let integrationList = integrations.map(integration => {
-      return (
-        <PanelItem p={0} py={2} key={integration.id}>
-          <Box pl={2}>
-            <IntegrationIcon src={integration.icon} />
-          </Box>
-          <Box px={2} flex={1}>
-            <IntegrationName>{integration.name}</IntegrationName>
-            <DomainName>{integration.domain_name}</DomainName>
-          </Box>
-          <Box mr={1} pr={2}>
-            <Confirm
-              message={t(
-                'Removing this inegration will disable the integration for all projects. Are you sure you want to remove this integration?'
-              )}
-              onConfirm={() => this.handleDeleteIntegration(integration)}
-            >
-              <Button size="small">
-                <span className="icon icon-trash" style={{margin: 0}} />
-              </Button>
-            </Confirm>
-          </Box>
-        </PanelItem>
-      );
-    });
-
-    if (integrationList.length === 0) {
-      integrationList = (
+    const integrationList =
+      integrations.length === 0 ? (
         <EmptyMessage>{t('No %s integrations configured.', provider.name)}</EmptyMessage>
+      ) : (
+        integrations.map(integration => (
+          <InstalledIntegration
+            key={integration.id}
+            provider={provider}
+            integration={integration}
+            onRemove={() => this.handleDeleteIntegration(integration)}
+          />
+        ))
       );
-    }
 
     return (
       <React.Fragment>
@@ -283,22 +229,14 @@ export default class OrganizationIntegrationConfig extends AsyncView {
         <hr />
 
         <h5>{t('%s Integration', provider.name)}</h5>
-        <Details>
-          <Box width={5 / 8}>
-            <Description
-              dangerouslySetInnerHTML={{__html: marked(provider.metadata.description)}}
-            />
-            <AuthorName>{t('By %s', provider.metadata.author)}</AuthorName>
-          </Box>
-          <Box ml={60}>
-            <MetadataLink href={provider.metadata.issue_url}>
-              {t('Report an Issue')}
-            </MetadataLink>
-            <MetadataLink href={provider.metadata.source_url}>
-              {t('View Source')}
-            </MetadataLink>
-          </Box>
-        </Details>
+        <IntegrationDetails
+          markdownDescription={provider.metadata.description}
+          author={provider.metadata.author}
+          links={[
+            {href: provider.metadata.issue_url, title: t('Report an Issue')},
+            {href: provider.metadata.source_url, title: t('View Source')},
+          ]}
+        />
       </React.Fragment>
     );
   }
