@@ -200,10 +200,8 @@ travis-noop:
 
 travis-install-sqlite: travis-install-sentry-dev
 travis-install-postgres: travis-install-sentry-dev
-	psql -c 'create database sentry;' -U postgres
 travis-install-mysql: travis-install-sentry-dev
 	pip install -q mysqlclient
-	echo 'create database sentry;' | mysql -uroot
 travis-install-acceptance: travis-install-postgres
 travis-install-network: travis-install-postgres
 travis-install-snuba: travis-install-postgres

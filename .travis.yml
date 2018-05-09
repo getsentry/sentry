@@ -52,6 +52,8 @@ install:
 
 before_script:
   - pip freeze
+  - psql -c 'create database sentry;' -U postgres
+  - mysql -u root -e 'create database sentry;'
 script:
   - make travis-lint-$TEST_SUITE
   - make travis-test-$TEST_SUITE
