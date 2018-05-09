@@ -206,11 +206,9 @@ travis-install-mysql: travis-install-sentry-dev
 travis-install-acceptance: install-yarn travis-install-postgres
 travis-install-network: travis-install-postgres
 travis-install-snuba: travis-install-postgres
-travis-install-js:
-	$(MAKE) travis-install-sentry-dev install-yarn
+travis-install-js: travis-install-sentry-dev install-yarn
 travis-install-cli: travis-install-postgres
-travis-install-dist:
-	$(MAKE) travis-install-sentry-dev install-yarn
+travis-install-dist: travis-install-sentry-dev install-yarn
 travis-install-django-18: travis-install-postgres
 
 .PHONY: travis-install-sqlite travis-install-postgres travis-install-js travis-install-cli travis-install-dist
