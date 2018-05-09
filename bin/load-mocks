@@ -22,7 +22,7 @@ from sentry.event_manager import HashDiscarded
 from sentry.models import (
     Activity, Broadcast, Commit, CommitAuthor, CommitFileChange, Deploy, Event,
     Environment, File, Group, GroupMeta, GroupRelease, GroupTombstone, Organization,
-    OrganizationAccessRequest, OrganizationMember, Project, Release,
+    OrganizationAccessRequest, OrganizationMember, OrganizationMemberTeam, Project, Release,
     ReleaseCommit, ReleaseEnvironment, ReleaseProjectEnvironment, ReleaseFile, Repository,
     Team, TOMBSTONE_FIELDS_FROM_GROUP, User, UserReport
 )
@@ -31,6 +31,7 @@ from sentry.similarity import features
 from sentry.utils.hashlib import md5_text
 from sentry.utils.samples import create_sample_event as _create_sample_event
 from sentry.utils.samples import generate_user
+from sample_data import mocks, user_names
 
 loremipsum = Generator()
 
@@ -291,6 +292,28 @@ def create_sample_time_series(event, release=None):
         now = now - timedelta(hours=1)
 
 
+def create_user(name, org, team):
+    user, _ = User.objects.get_or_create(
+        username=name,
+        defaults={
+            'email': '{}@example.com'.format(name.replace('_', ' ')),
+        }
+    )
+    user.set_password('dummy')
+    user.save()
+    om, _ = OrganizationMember.objects.get_or_create(
+        user=user,
+        organization=org,
+        defaults={
+            'role': roles.get_default().id,
+        }
+    )
+    OrganizationMemberTeam.objects.get_or_create(
+        team=team,
+        organizationmember=om,
+    )
+
+
 def main(num_events=1, extra_events=False):
     user = User.objects.filter(is_superuser=True)[0]
 
@@ -302,11 +325,6 @@ def main(num_events=1, extra_events=False):
     )
     dummy_user.set_password('dummy')
     dummy_user.save()
-
-    mocks = (
-        ('Massive Dynamic', ('Ludic Science',)),
-        ('Captain Planet', ('Earth', 'Fire', 'Wind', 'Water', 'Heart')),
-    )
 
     Broadcast.objects.create(
         title="Learn about Source Maps",
@@ -504,7 +522,7 @@ def main(num_events=1, extra_events=False):
                     'environment': environment.name
                 },
                 datetime=deploy.date_finished,
-             )
+            )
 
             # Add a bunch of additional dummy events to support pagination
             if extra_events:
@@ -637,6 +655,12 @@ def main(num_events=1, extra_events=False):
             member=dummy_member,
             team=team,
         )
+        element_team =  Team.objects.get(
+            name="Elements",
+        )
+        for user_name in user_names:
+            create_user(user_name, org, element_team)
+
 
     Activity.objects.create(
         type=Activity.RELEASE,
