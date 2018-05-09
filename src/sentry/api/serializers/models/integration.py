@@ -20,3 +20,18 @@ class IntegrationSerializer(Serializer):
                 'name': provider.name,
             }
         }
+
+
+class IntegrationIssueSerializer(IntegrationSerializer):
+    def __init__(self, group, action):
+        self.group = group
+        self.action = action
+
+    def serialize(self, obj, attrs, user):
+        data = super(IntegrationIssueSerializer, self).serialize(obj, attrs, user)
+        installation = obj.get_installation()
+
+        if self.action == 'link':
+            data['linkIssueConfig'] = installation.get_link_issue_config(self.group)
+
+        return data
