@@ -5,8 +5,11 @@ import styled from 'react-emotion';
 
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tct} from 'app/locale';
+import analytics from 'app/utils/analytics';
 import ApiMixin from 'app/mixins/apiMixin';
 import Button from 'app/components/buttons/button';
+import ConfigStore from 'app/stores/configStore';
+import InstallReactTest from 'app/views/planout/installReact';
 import LanguageNav from 'app/views/projectInstall/languageNav';
 import Link from 'app/components/link';
 import LoadingError from 'app/components/loadingError';
@@ -56,11 +59,13 @@ const ProjectInstallPlatform = createReactClass({
       integration,
       platform,
       html: null,
+      installExperiment: false,
     };
   },
 
   componentDidMount() {
     this.fetchData();
+    this.inInstallExperiment();
     $(window).scrollTop(0);
   },
 
@@ -73,6 +78,17 @@ const ProjectInstallPlatform = createReactClass({
 
   isGettingStarted() {
     return location.href.indexOf('getting-started') > 0;
+  },
+
+  inInstallExperiment() {
+    let experimentPlatforms = new Set(['javascript-react']);
+    let currentPlatform = this.state.integration.id;
+    let installExperiment =
+      ConfigStore.get('features').has('install-experiment') &&
+      experimentPlatforms.has(currentPlatform);
+    this.setState({
+      installExperiment,
+    });
   },
 
   fetchData() {
@@ -182,10 +198,50 @@ const ProjectInstallPlatform = createReactClass({
     );
   },
 
+  renderTestBody() {
+    let {integration, platform} = this.state;
+    let {dsnPublic} = this.props.platformData;
+
+    if (!integration || !platform) {
+      return <NotFound />;
+    }
+
+    analytics('experiment.installation_instructions', {
+      integration: integration.id,
+    });
+
+    return (
+      <Panel>
+        <PanelHeader hasButtons>
+          {t('Configure %(integration)s', {integration: integration.name})}
+          <Button size="small" href={integration.link} external>
+            {t('Full Documentation')}
+          </Button>
+        </PanelHeader>
+
+        <PanelBody disablePadding={false}>
+          {this.state.loading ? (
+            <LoadingIndicator />
+          ) : this.state.error ? (
+            <LoadingError onRetry={this.fetchData} />
+          ) : (
+            <InstallReactTest dsn={dsnPublic} />
+          )}
+        </PanelBody>
+      </Panel>
+    );
+  },
+
   render() {
+    let {installExperiment} = this.state;
+
     return (
       <div className="install row">
-        <div className="install-content col-md-10">{this.renderBody()}</div>
+        {installExperiment ? (
+          <div className="install-content col-md-10">{this.renderTestBody()}</div>
+        ) : (
+          <div className="install-content col-md-10">{this.renderBody()}</div>
+        )}
         {this.renderSidebar()}
       </div>
     );
