@@ -40,8 +40,10 @@ class SidebarDropdown extends React.Component {
     // If there is no org in context, we use an org from `withLatestContext`
     // (which uses an org from organizations index endpoint versus details endpoint)
     // and does not have `access`
+    let hasOrgRead = org && org.access && org.access.indexOf('org:read') > -1;
     let hasOrgWrite = org && org.access && org.access.indexOf('org:write') > -1;
     let hasMemberRead = org && org.access && org.access.indexOf('member:read') > -1;
+    let hasTeamRead = org && org.access && org.access.indexOf('team:read') > -1;
 
     // Avatar to use: Organization --> user --> Sentry
     const avatar =
@@ -88,7 +90,7 @@ class SidebarDropdown extends React.Component {
                   {hasOrganization && (
                     <React.Fragment>
                       <SidebarOrgSummary organization={org} />
-                      {hasOrgWrite && (
+                      {hasOrgRead && (
                         <SidebarMenuItem to={`/settings/${org.slug}/`}>
                           {t('Organization settings')}
                         </SidebarMenuItem>
@@ -96,6 +98,12 @@ class SidebarDropdown extends React.Component {
                       {hasMemberRead && (
                         <SidebarMenuItem to={`/settings/${org.slug}/members/`}>
                           {t('Members')}
+                        </SidebarMenuItem>
+                      )}
+
+                      {hasTeamRead && (
+                        <SidebarMenuItem to={`/settings/${org.slug}/teams/`}>
+                          {t('Teams')}
                         </SidebarMenuItem>
                       )}
 
