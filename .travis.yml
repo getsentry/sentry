@@ -5,8 +5,6 @@ sudo: required
 group: deprecated-2017Q4
 language: python
 python: 2.7
-rvm:
-  - 2.2
 
 branches:
   only:
@@ -64,8 +62,8 @@ after_success:
 #  - zeus upload -t "text/plain+pycodestyle" flake8.pycodestyle.log
 #  - zeus upload -t "text/xml+checkstyle" eslint.checkstyle.xml
 #  - zeus upload -t "application/webpack-stats+json" webpack-stats.json
-after_failure:
-  - dmesg | tail -n 100
+#after_failure:
+#  - dmesg | tail -n 100
 #  - npm install -g @zeus-ci/cli
 #  - zeus upload -t "text/xml+xunit" junit.xml
 #  - zeus upload -t "text/xml+xunit" jest.junit.xml
