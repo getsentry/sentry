@@ -229,7 +229,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
             query_kwargs.update(extra_query_kwargs)
 
         try:
-            if features.has('organizations:environments', project, actor=request.user):
+            if features.has('organizations:environments', project.organization, actor=request.user):
                 query_kwargs['environment'] = self._get_environment_from_request(
                     request,
                     project.organization_id,
