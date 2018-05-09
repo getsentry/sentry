@@ -9,7 +9,7 @@ from sentry.web.helpers import render_to_response
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.identity.github import get_user_info
 from sentry.integrations import IntegrationMetadata
-from sentry.integrations.github.integration import GitHubIntegration
+from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.utils.http import absolute_uri
 
