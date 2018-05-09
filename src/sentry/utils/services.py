@@ -95,6 +95,18 @@ def resolve_callable(value):
         raise TypeError('Expected callable or string')
 
 
+class Context(object):
+    def __init__(self, request, backends):
+        self.request = request
+        self.backends = backends
+
+    def copy(self):
+        return Context(
+            self.request,
+            self.backends.copy(),
+        )
+
+
 class ServiceDelegator(Service):
     """\
     This is backend that coordinates and delegates method execution to multiple
@@ -190,11 +202,11 @@ class ServiceDelegator(Service):
         function.
         """
 
-    class ServiceState(threading.local):
+    class State(threading.local):
         def __init__(self):
-            self.backends = {}
+            self.context = None
 
-    state = ServiceState()
+    __state = State()
 
     def __init__(self, backend_base, backends, selector_func, callback_func=None):
         self.__backend_base = import_string(backend_base)
@@ -247,10 +259,19 @@ class ServiceDelegator(Service):
             return base_value
 
         def execute(*args, **kwargs):
+            context = type(self).__state.context
+
+            # If there is no context object already set in the thread local
+            # state, we are entering the delegator for the first time and need
+            # to create a new context.
+            if context is None:
+                from sentry.app import env  # avoids a circular import
+                context = Context(env.request, {})
+
             # If this thread already has an active backend for this base class,
             # we can safely call that backend synchronously without delegating.
-            if self.__backend_base in self.state.backends:
-                backend = type(self).state.backends[self.__backend_base]
+            if self.__backend_base in context.backends:
+                backend = context.backends[self.__backend_base]
                 return getattr(backend, attribute_name)(*args, **kwargs)
 
             # Binding the call arguments to named arguments has two benefits:
@@ -263,7 +284,7 @@ class ServiceDelegator(Service):
             #    arguments that are supported by all backends.
             callargs = inspect.getcallargs(base_value, None, *args, **kwargs)
 
-            selected_backend_names = list(self.__selector_func(attribute_name, callargs))
+            selected_backend_names = list(self.__selector_func(context, attribute_name, callargs))
             if not len(selected_backend_names) > 0:
                 raise self.InvalidBackend('No backends returned by selector!')
 
@@ -275,23 +296,25 @@ class ServiceDelegator(Service):
                     '{!r} is not a registered backend.'.format(
                         selected_backend_names[0]))
 
-            def call_backend_method(backend):
-                base = self.__backend_base
-                active_backends = type(self).state.backends
+            def call_backend_method(context, backend):
+                # Update the thread local state in the executor to the provided
+                # context object. This allows the context to be propagated
+                # across different threads.
+                assert type(self).__state.context is None
+                type(self).__state.context = context
 
                 # Ensure that we haven't somehow accidentally entered a context
                 # where the backend we're calling has already been marked as
                 # active (or worse, some other backend is already active.)
-                assert base not in active_backends
+                base = self.__backend_base
+                assert base not in context.backends
 
                 # Mark the backend as active.
-                active_backends[base] = backend
+                context.backends[base] = backend
                 try:
                     return getattr(backend, attribute_name)(*args, **kwargs)
                 finally:
-                    # Unmark the backend as active.
-                    assert active_backends[base] is backend
-                    del active_backends[base]
+                    type(self).__state.context = None
 
             # Enqueue all of the secondary backend requests first since these
             # are non-blocking queue insertions. (Since the primary backend
@@ -315,7 +338,11 @@ class ServiceDelegator(Service):
                         exc_info=True)
                 else:
                     results[i] = executor.submit(
-                        functools.partial(call_backend_method, backend),
+                        functools.partial(
+                            call_backend_method,
+                            context.copy(),
+                            backend,
+                        ),
                         priority=1,
                         block=False,
                     )
@@ -325,7 +352,11 @@ class ServiceDelegator(Service):
             # since we already ensured that the primary backend exists.)
             backend, executor = self.__backends[selected_backend_names[0]]
             results[0] = executor.submit(
-                functools.partial(call_backend_method, backend),
+                functools.partial(
+                    call_backend_method,
+                    context.copy(),
+                    backend,
+                ),
                 priority=0,
                 block=True,
             )
@@ -333,6 +364,7 @@ class ServiceDelegator(Service):
             if self.__callback_func is not None:
                 FutureSet(filter(None, results)).add_done_callback(
                     lambda *a, **k: self.__callback_func(
+                        context,
                         attribute_name,
                         callargs,
                         selected_backend_names,
