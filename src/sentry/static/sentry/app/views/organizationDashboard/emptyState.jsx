@@ -28,38 +28,39 @@ export default class EmptyState extends React.Component {
           <img src={img} height={350} alt="Nothing to see" />
           <Content direction="column" justify="center">
             <h2>{t('Remain calm.')}</h2>
-            <p>{t("Sentry's got you covered.")}</p>
-            {!hasProjects && (
+            <p>{t("Sentry's got you covered. To get started:")}</p>
+            <Flex align="center">
               <CallToAction>
                 <Tooltip
-                  disabled={canCreateProject}
-                  title={t('You do not have permission to create a project.')}
+                  disabled={canJoinTeam}
+                  title={t('You do not have permission to join a team.')}
                 >
                   <Button
-                    disabled={!canCreateProject}
+                    disabled={!canJoinTeam}
                     priority="primary"
-                    to={`/organizations/${orgId}/projects/new/`}
+                    to={`/settings/${orgId}/teams/`}
                   >
-                    {t('Create project')}
+                    {t('Join a Team')}
                   </Button>
                 </Tooltip>
               </CallToAction>
-            )}
 
-            <CallToAction>
-              <Tooltip
-                disabled={canJoinTeam}
-                title={t('You do not have permission to join a team.')}
-              >
-                <Button
-                  disabled={!canJoinTeam}
-                  priority="primary"
-                  to={`/settings/${orgId}/teams/`}
-                >
-                  {t('Join a Team')}
-                </Button>
-              </Tooltip>
-            </CallToAction>
+              {!hasProjects && (
+                <CallToAction>
+                  <Tooltip
+                    disabled={canCreateProject}
+                    title={t('You do not have permission to create a project.')}
+                  >
+                    <Button
+                      disabled={!canCreateProject}
+                      to={`/organizations/${orgId}/projects/new/`}
+                    >
+                      {t('Create project')}
+                    </Button>
+                  </Tooltip>
+                </CallToAction>
+              )}
+            </Flex>
           </Content>
         </Wrapper>
       </Flex>
@@ -68,9 +69,9 @@ export default class EmptyState extends React.Component {
 }
 
 const CallToAction = styled('div')`
-  margin-bottom: 24px;
+  margin-right: 8px;
   &:last-child {
-    margin-bottom: 0;
+    margin-right: 0;
   }
 `;
 
