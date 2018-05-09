@@ -123,6 +123,7 @@ class ProjectHeader extends React.Component {
                   <MenuItem
                     onClick={clearActiveEnvironment}
                     className={activeEnvironment === null && 'active'}
+                    linkClassName="truncate"
                   >
                     {allEnvironmentsLabel}
                   </MenuItem>
@@ -135,6 +136,7 @@ class ProjectHeader extends React.Component {
                         activeEnvironment.name === env.name &&
                         'active'
                       }
+                      linkClassName="truncate"
                     >
                       {env.displayName}
                     </MenuItem>
