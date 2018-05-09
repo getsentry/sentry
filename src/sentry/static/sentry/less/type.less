@@ -6,6 +6,9 @@
 @baseFontSize: 13px;
 @font-family-base: 'Lato', 'Avenir Next', 'Helvetica Neue', sans-serif;
 @font-family-code: Monaco, Consolas, 'Courier New', monospace;
+@script-blue: #2eb0f7;
+@attribute-purple: #a47ac6;
+@link-red: #e8535a;
 
 /**
  * Links
@@ -181,6 +184,16 @@ pre {
   word-break: keep-all;
   word-wrap: normal;
   padding: 10px;
+
+  .script {
+    color: @script-blue;
+  }
+  .attribute {
+    color: @attribute-purple;
+  }
+  .value-text {
+    color: @link-red;
+  }
 }
 
 /**
