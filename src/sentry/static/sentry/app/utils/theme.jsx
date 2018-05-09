@@ -61,7 +61,7 @@ const theme = {
   background: '#fff',
 
   zIndex: {
-    sidebar: 9999,
+    sidebar: 1002,
     header: 1000,
     dropdown: 1001,
     modal: 10000,
