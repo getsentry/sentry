@@ -192,7 +192,6 @@ travis-setup-cassandra:
 travis-install-sentry-dev:
 	pip install -q Django${DJANGO_VERSION}
 	$(MAKE) install-sentry-dev
-	python -m pip install -q codecov
 travis-noop:
 	@echo "nothing to do here."
 

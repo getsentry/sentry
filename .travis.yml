@@ -41,6 +41,7 @@ env:
     - DJANGO_VERSION=">=1.6,<1.7"
 
 install:
+  - pip install -q codecov
   - nvm install $TRAVIS_NODE_VERSION
   - npm install -g yarn@1.3.2
   - yarn install --pure-lockfile
