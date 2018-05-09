@@ -3,17 +3,25 @@ import PropTypes from 'prop-types';
 import {Flex} from 'grid-emotion';
 import styled from 'react-emotion';
 
-import {t} from '../../locale';
+import {t} from 'app/locale';
+import Button from 'app/components/buttons/button';
+import Tooltip from 'app/components/tooltip';
+import SentryTypes from 'app/proptypes';
 import img from '../../../images/dashboard/hair-on-fire.svg';
-import Button from '../../components/buttons/button';
 
 export default class EmptyState extends React.Component {
   static propTypes = {
-    orgId: PropTypes.string,
+    organization: SentryTypes.Organization,
+    projects: PropTypes.arrayOf(SentryTypes.Project),
   };
 
   render() {
-    const {orgId} = this.props;
+    const {organization, projects} = this.props;
+    const orgId = organization.slug;
+    const canCreateProject = organization.access.includes('project:write');
+    const canJoinTeam = organization.access.includes('team:read');
+    const hasProjects = !!projects.length;
+
     return (
       <Flex flex="1" align="center" justify="center">
         <Wrapper>
@@ -21,17 +29,50 @@ export default class EmptyState extends React.Component {
           <Content direction="column" justify="center">
             <h2>{t('Remain calm.')}</h2>
             <p>{t("Sentry's got you covered.")}</p>
-            <div>
-              <Button priority="primary" to={`/organizations/${orgId}/projects/new/`}>
-                {t('Create project')}
-              </Button>
-            </div>
+            {!hasProjects && (
+              <CallToAction>
+                <Tooltip
+                  disabled={canCreateProject}
+                  title={t('You do not have permission to create a project.')}
+                >
+                  <Button
+                    disabled={!canCreateProject}
+                    priority="primary"
+                    to={`/organizations/${orgId}/projects/new/`}
+                  >
+                    {t('Create project')}
+                  </Button>
+                </Tooltip>
+              </CallToAction>
+            )}
+
+            <CallToAction>
+              <Tooltip
+                disabled={canJoinTeam}
+                title={t('You do not have permission to join a team.')}
+              >
+                <Button
+                  disabled={!canJoinTeam}
+                  priority="primary"
+                  to={`/settings/${orgId}/teams/`}
+                >
+                  {t('Join a Team')}
+                </Button>
+              </Tooltip>
+            </CallToAction>
           </Content>
         </Wrapper>
       </Flex>
     );
   }
 }
+
+const CallToAction = styled('div')`
+  margin-bottom: 16px;
+  &:last-child {
+    margin-bottom: 0;
+  }
+`;
 
 const Wrapper = styled(Flex)`
   height: 350px;
