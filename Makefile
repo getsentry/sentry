@@ -11,10 +11,9 @@ endif
 
 PIP = LDFLAGS="$(LDFLAGS)" pip -q
 
-develop-only: update-submodules install-brew install-python install-yarn
-
+# TODO all: install-system-pkgs intall-yarn-pkgs install-sentry
 develop: setup-git develop-only
-	@echo ""
+develop-only: update-submodules install-brew install-yarn install-sentry-dev
 
 install-yarn:
 	@echo "--> Installing Node dependencies"
@@ -25,24 +24,14 @@ install-yarn:
 install-brew:
 	@hash brew 2> /dev/null && brew bundle || (echo '! Homebrew not found, skipping system dependencies.')
 
-install-python:
-	# must be executed serially
-	$(MAKE) install-python-base
-	$(MAKE) install-python-develop
-
-install-python-base:
-	@echo "--> Installing Python dependencies"
-	# order matters here, base package must install first
-	$(PIP) install -e .
+install-sentry:
+	@echo "--> Installing Sentry"
+	# TODO merge dev dependnecies into sentry if they are needed for a non-development install
 	$(PIP) install -e ".[dev]"
 
-install-python-develop:
-	$(PIP) install -e ".[dev,tests]"
-
-install-python-tests:
+install-sentry-dev:
+	@echo "--> Installing Sentry (dev)"
 	$(PIP) install -e ".[dev,tests,optional]"
-
-dev-postgres: install-python
 
 dev-docs:
 	$(PIP) install -r doc-requirements.txt
@@ -188,7 +177,7 @@ extract-api-docs:
 	cd api-docs; python generator.py
 
 
-.PHONY: develop dev-postgres dev-docs setup-git build clean locale update-transifex update-submodules test testloop test-cli test-js test-styleguide test-python test-acceptance lint lint-python lint-js coverage publish scan-python
+.PHONY: develop dev-docs setup-git build clean locale update-transifex update-submodules test testloop test-cli test-js test-styleguide test-python test-acceptance lint lint-python lint-js coverage publish scan-python
 
 
 ############################
@@ -199,20 +188,19 @@ extract-api-docs:
 travis-setup-cassandra:
 	echo "create keyspace sentry with replication = {'class' : 'SimpleStrategy', 'replication_factor': 1};" | cqlsh --cqlversion=3.1.7
 	echo 'create table nodestore (key text primary key, value blob, flags int);' | cqlsh -k sentry --cqlversion=3.1.7
-travis-install-python:
+travis-install-sentry-dev:
 	pip install -q Django${DJANGO_VERSION}
-	$(MAKE) install-python-base
-	$(MAKE) install-python-tests
+	$(MAKE) install-sentry-dev
 	python -m pip install -q codecov
 travis-noop:
 	@echo "nothing to do here."
 
-.PHONY: travis-setup-cassandra travis-install-python travis-noop
+.PHONY: travis-setup-cassandra travis-install-sentry-dev travis-noop
 
-travis-install-sqlite: travis-install-python
-travis-install-postgres: travis-install-python dev-postgres
+travis-install-sqlite: travis-install-sentry-dev
+travis-install-postgres: travis-install-sentry-dev
 	psql -c 'create database sentry;' -U postgres
-travis-install-mysql: travis-install-python
+travis-install-mysql: travis-install-sentry-dev
 	pip install -q mysqlclient
 	echo 'create database sentry;' | mysql -uroot
 travis-install-acceptance: install-yarn travis-install-postgres
@@ -225,10 +213,10 @@ travis-install-acceptance: install-yarn travis-install-postgres
 travis-install-network: travis-install-postgres
 travis-install-snuba: travis-install-postgres
 travis-install-js:
-	$(MAKE) travis-install-python install-yarn
+	$(MAKE) travis-install-sentry-dev install-yarn
 travis-install-cli: travis-install-postgres
 travis-install-dist:
-	$(MAKE) travis-install-python install-yarn
+	$(MAKE) travis-install-sentry-dev install-yarn
 travis-install-django-18: travis-install-postgres
 
 .PHONY: travis-install-sqlite travis-install-postgres travis-install-js travis-install-cli travis-install-dist
