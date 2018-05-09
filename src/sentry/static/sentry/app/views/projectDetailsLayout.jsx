@@ -1,7 +1,9 @@
+import {withRouter} from 'react-router';
 import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 
+import {setLastRoute} from 'app/actionCreators/navigation';
 import SentryTypes from 'app/proptypes';
 import EnvironmentStore from 'app/stores/environmentStore';
 import ProjectHeader from 'app/components/projectHeader';
@@ -22,6 +24,11 @@ const ProjectDetailsLayout = createReactClass({
       environments: EnvironmentStore.getActive() || [],
       projectNavSection: null,
     };
+  },
+
+  componentWillUnmount() {
+    // Save last route so that we can jump back to view from settings
+    setLastRoute(this.props.location.pathname);
   },
 
   /**
@@ -60,4 +67,5 @@ const ProjectDetailsLayout = createReactClass({
   },
 });
 
-export default withEnvironment(ProjectDetailsLayout);
+export {ProjectDetailsLayout};
+export default withRouter(withEnvironment(ProjectDetailsLayout));
