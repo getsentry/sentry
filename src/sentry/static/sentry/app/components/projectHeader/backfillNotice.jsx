@@ -57,7 +57,7 @@ const StyledCallout = styled.div`
   background-color: ${p => p.theme.offWhite2};
   border-radius: ${p => p.theme.borderRadius};
   animation: 0.5s ${slideInRight};
-  width: 305px;
+  width: 325px;
   padding: ${space(1)};
   position: absolute;
   right: calc(100% + ${space(2)});
