@@ -62,8 +62,8 @@ class OAuth2Provider(Provider):
         #     return self.provider_model.config.get('XXXXX')
 
         # otherwise try the pipeline state
-        import ipdb;
-        ipdb.set_trace()
+        # import ipdb;
+        # ipdb.set_trace()
 
         pipeline_authorize_url = self.pipeline.parent_pipeline.fetch_state(
             'oauth_config_information').get('authorize_url')
@@ -162,8 +162,8 @@ class OAuth2LoginView(PipelineView):
         }
 
     def dispatch(self, request, pipeline):
-        import ipdb;
-        ipdb.set_trace()
+        # import ipdb;
+        # ipdb.set_trace()
         if 'code' in request.GET or request.GET.get("response_type"):
             return pipeline.next_step()
 

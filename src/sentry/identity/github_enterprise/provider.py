@@ -27,15 +27,13 @@ class GitHubEnterpriseIdentityProvider(OAuth2Provider):
 
     oauth_scopes = ()
 
-    def get_oauth_client_id(self):
-        return options.get('github-app.client-id')
+    # def get_oauth_client_id(self):
+    #     return options.get('github-app.client-id')
 
-    def get_oauth_client_secret(self):
-        return options.get('github-app.client-secret')
+    # def get_oauth_client_secret(self):
+    #     return options.get('github-app.client-secret')
 
     def build_identity(self, data):
-        import ipdb;
-        ipdb.set_trace()
         data = data['data']
         user = get_user_info(data['access_token'])
 
