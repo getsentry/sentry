@@ -5,7 +5,7 @@ from sentry.pipeline import NestedPipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from django.utils.translation import ugettext_lazy as _
 DESCRIPTION = """
-BitBucket for Sentry.io
+Bitbucket for Sentry.io
 """
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
@@ -17,9 +17,9 @@ metadata = IntegrationMetadata(
 )
 
 
-class BitBucketIntegrationProvider(IntegrationProvider):
+class BitbucketIntegrationProvider(IntegrationProvider):
     key = 'bitbucket'
-    name = 'BitBucket'
+    name = 'Bitbucket'
     metadata = metadata
 
     def get_pipeline_views(self):
@@ -34,4 +34,23 @@ class BitBucketIntegrationProvider(IntegrationProvider):
         ]
 
     def build_integration(self, state):
-        raise NotImplementedError
+        user_data = state['user']
+        user_links = user_data['links']['self']
+        return {
+            'provider': 'bitbucket',
+            'external_id': state['clientKey'],
+            'name': 'Bitbucket',
+            'metadata': {
+                'public_key': state['publicKey'],
+                'shared_secret': state['sharedSecret'],
+                'base_url': state['baseUrl'],
+                'domain_name': state['baseUrl'].replace('https://', ''),
+            },
+            'user_identity': {
+                'type': 'bitbucket',
+                'name': user_data['username'],
+                'display_name': user_data['display_name'],
+                'account_id': user_data['account_id'],
+                'icon': user_links['avatar'],
+            }
+        }

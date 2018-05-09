@@ -28,8 +28,8 @@ class AtlassianConnectLoginView(PipelineView):
     def get_descriptor_uri(self):
         return '/extensions/%s/descriptor/' % self.app_key
 
-    def get_redirect_uri(self):
-        return '/extensions/%s/' % self.app_key
+    def get_redirect_uri(self, request):
+        return request.build_absolute_uri()
 
     def dispatch(self, request, pipeline):
         return render_to_response(
@@ -39,7 +39,7 @@ class AtlassianConnectLoginView(PipelineView):
                 'app_key': self.app_key,
                 'url': 'https://bitbucket.org/site/addons/authorize?descriptor_uri=%s&redirect_uri=%s' % (
                     absolute_uri(self.get_descriptor_uri()),
-                    absolute_uri(self.get_redirect_uri()),
+                    absolute_uri(self.get_redirect_uri(request)),
                 )
             },
             request=request,
