@@ -19,7 +19,7 @@ from django.utils.encoding import force_text
 from django.utils.safestring import mark_safe
 
 from sentry import features, options
-from sentry.models import ProjectOwnership, User, Event
+from sentry.models import ProjectOwnership, User
 
 from sentry.digests.utilities import get_digest_metadata, get_personalized_digests
 from sentry.plugins import register
@@ -196,8 +196,6 @@ class MailPlugin(NotificationPlugin):
         from sentry.models import Commit, Release
 
         event = notification.event
-
-        Event.objects.bind_nodes([event], 'data')
 
         environment = event.get_tag('environment')
 
