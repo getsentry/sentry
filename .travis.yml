@@ -45,7 +45,7 @@ install:
   - nvm install $TRAVIS_NODE_VERSION
   - npm install -g yarn@1.3.2
   - yarn install --pure-lockfile
-  - make travis-install-$TEST_SUITE
+  - make travis-install-sentry-dev
 
 before_script:
   - pip freeze
@@ -53,7 +53,7 @@ before_script:
   - mysql -u root -e 'create database sentry;'
 script:
   - make travis-lint-$TEST_SUITE
-  - make travis-install-sentry-dev
+  - make travis-test-$TEST_SUITE
   - make travis-scan-$TEST_SUITE
 
 after_success:
