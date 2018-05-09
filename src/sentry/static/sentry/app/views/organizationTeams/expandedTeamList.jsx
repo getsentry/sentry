@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
-import LazyLoad from 'react-lazy-load';
+import LazyLoad from 'react-lazyload';
 
 import ApiMixin from 'app/mixins/apiMixin';
 import {update as projectUpdate} from 'app/actionCreators/projects';
