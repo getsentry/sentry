@@ -12,3 +12,6 @@ class BaseQuery(object):
 
     def preprocess(self, query):
         pass
+
+    def execute(self):
+        pass
