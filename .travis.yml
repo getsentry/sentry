@@ -12,7 +12,9 @@ branches:
   - the-real-deal
 
 cache:
+  apt: true
   yarn: true
+  pip: true
   directories:
     - node_modules
     - $HOME/.cache/pip/wheels
@@ -41,6 +43,7 @@ env:
 install:
   - nvm install $TRAVIS_NODE_VERSION
   - npm install -g yarn@1.3.2
+  - yarn install --pure-lockfile
   - make travis-install-$TEST_SUITE
 
 before_script:
