@@ -11,18 +11,31 @@ endif
 
 PIP = LDFLAGS="$(LDFLAGS)" pip -q
 
-# TODO all: install-system-pkgs intall-yarn-pkgs install-sentry
+# TODO test the all recipe, and also why did we separate develop from develop-only? better to merge into just develop
+all: update-submodules install-system-pkgs intall-yarn-pkgs install-sentry
 develop: setup-git develop-only
-develop-only: update-submodules install-brew install-yarn install-sentry-dev
+develop-only: update-submodules install-system-pkgs install-yarn-pkgs install-sentry-dev
 
-install-yarn:
+setup-git:
+	@echo "--> Installing git hooks"
+	git config branch.autosetuprebase always
+	cd .git/hooks && ln -sf ../../config/hooks/* ./
+	@echo ""
+
+update-submodules:
+	@echo "--> Updating git submodules"
+	git submodule init
+	git submodule update
+	@echo ""
+
+install-system-pkgs:
+	@hash brew 2> /dev/null && brew bundle || (echo '! Homebrew not found, skipping system dependencies.')
+
+install-yarn-pkgs:
 	@echo "--> Installing Node dependencies"
 	@hash yarn 2> /dev/null || (echo 'Cannot continue with JavaScript dependencies. Please install yarn before proceeding. For more information refer to https://yarnpkg.com/lang/en/docs/install/'; echo 'If you are on a mac run:'; echo '  brew install yarn'; exit 1)
 	# Use NODE_ENV=development so that yarn installs both dependencies + devDependencies
 	NODE_ENV=development yarn install --pure-lockfile
-
-install-brew:
-	@hash brew 2> /dev/null && brew bundle || (echo '! Homebrew not found, skipping system dependencies.')
 
 install-sentry:
 	@echo "--> Installing Sentry"
@@ -43,12 +56,6 @@ reset-db:
 	createdb -E utf-8 sentry
 	@echo "--> Applying migrations"
 	sentry upgrade
-
-setup-git:
-	@echo "--> Installing git hooks"
-	git config branch.autosetuprebase always
-	cd .git/hooks && ln -sf ../../config/hooks/* ./
-	@echo ""
 
 build: locale
 
@@ -81,12 +88,6 @@ update-transifex: build-js-po
 	tx pull -a
 	./bin/find-good-catalogs src/sentry/locale/catalogs.json
 	cd src/sentry && sentry django compilemessages
-
-update-submodules:
-	@echo "--> Updating git submodules"
-	git submodule init
-	git submodule update
-	@echo ""
 
 build-platform-assets:
 	@echo "--> Building platform assets"
