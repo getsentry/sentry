@@ -7,29 +7,63 @@ describe('SettingsBackButton', function() {
   const project = TestStubs.Project();
   const org = TestStubs.Organization();
 
-  it('renders "Back to Project" when given project slug', function() {
-    let wrapper = mount(<BackButton params={{}} organization={org} project={project} />);
-    expect(wrapper.find('BackButtonWrapper').text()).toBe(' Back to Project');
-    expect(wrapper.find('BackButtonWrapper').prop('to')).toBe('/org-slug/project-slug/');
+  describe('No Context From App', function() {
+    it('renders "Back to Project" when given project slug', function() {
+      let wrapper = mount(
+        <BackButton params={{}} organization={org} project={project} />
+      );
+      expect(wrapper.find('BackButtonWrapper').text()).toBe('Back to Project');
+      expect(wrapper.find('BackButtonWrapper').prop('to')).toBe(
+        '/org-slug/project-slug/'
+      );
+    });
+
+    it('renders "Back to Organization" when no project slug', function() {
+      let wrapper = mount(<BackButton params={{}} organization={org} project={null} />);
+      expect(wrapper.find('BackButtonWrapper').text()).toBe('Back to Organization');
+      expect(wrapper.find('BackButtonWrapper').prop('to')).toBe('/org-slug/');
+    });
+
+    it('uses "last route" when provided', function() {
+      let wrapper = mount(
+        <BackButton
+          lastRoute="/org-slug/project-slug/foo/bar/"
+          params={{}}
+          organization={org}
+          project={project}
+        />
+      );
+      expect(wrapper.find('BackButtonWrapper').prop('to')).toBe(
+        '/org-slug/project-slug/foo/bar/'
+      );
+    });
   });
 
-  it('renders "Back to Organization" when no project slug', function() {
-    let wrapper = mount(<BackButton params={{}} organization={org} project={null} />);
-    expect(wrapper.find('BackButtonWrapper').text()).toBe(' Back to Organization');
-    expect(wrapper.find('BackButtonWrapper').prop('to')).toBe('/org-slug/');
-  });
+  describe('With Context From App', function() {
+    it('renders "Back to Project" only if `lastAppContext` is "project"', function() {
+      let wrapper = mount(
+        <BackButton params={{}} organization={org} lastRoute="/foo/" project={project} />,
+        {
+          context: {
+            lastAppContext: 'project',
+          },
+        }
+      );
+      expect(wrapper.find('BackButtonWrapper').text()).toBe('Back to Project');
+      expect(wrapper.find('BackButtonWrapper').prop('to')).toBe('/foo/');
+    });
 
-  it('uses "last route" when provided', function() {
-    let wrapper = mount(
-      <BackButton
-        lastRoute="/org-slug/project-slug/foo/bar/"
-        params={{}}
-        organization={org}
-        project={project}
-      />
-    );
-    expect(wrapper.find('BackButtonWrapper').prop('to')).toBe(
-      '/org-slug/project-slug/foo/bar/'
-    );
+    it('renders "Back to Organization" if `lastAppContext` is "organization", even with project in props', function() {
+      let wrapper = mount(
+        <BackButton params={{}} organization={org} project={project} />,
+        {
+          context: {
+            lastAppContext: 'organization',
+          },
+        }
+      );
+      expect(wrapper.find('BackButtonWrapper').text()).toBe('Back to Organization');
+      expect(wrapper.find('BackButtonWrapper').prop('to')).toBe('/org-slug/');
+    });
   });
 });

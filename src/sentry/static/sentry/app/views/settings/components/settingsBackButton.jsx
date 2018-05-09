@@ -34,13 +34,28 @@ class BackButton extends React.Component {
     lastRoute: PropTypes.string,
   };
 
+  static contextTypes = {
+    lastAppContext: PropTypes.oneOf(['project', 'organization']),
+  };
+
   render() {
     let {params, organization, project, lastRoute} = this.props;
+    let {lastAppContext} = this.context;
+    // lastAppContext is set when Settings is initial loaded,
+    // so if that is truthy, determine if we have project context at that point
+    // otherwise use what we have in latest context (e.g. if you navigated to settings directly)
+    let shouldGoBackToProject = lastRoute && lastAppContext === 'project';
 
-    let projectId = params.projectId || (project && project.slug);
+    let projectId =
+      shouldGoBackToProject || !lastAppContext
+        ? params.projectId || (project && project.slug)
+        : null;
     let orgId = params.orgId || (organization && organization.slug);
     let url = projectId ? '/:orgId/:projectId/' : '/:orgId/';
-    let label = projectId ? t('Project') : t('Organization');
+    let label =
+      shouldGoBackToProject || (!lastAppContext && projectId)
+        ? t('Project')
+        : t('Organization');
 
     return (
       <BackButtonWrapper
@@ -53,7 +68,7 @@ class BackButton extends React.Component {
         }
       >
         <Icon src="icon-chevron-left" size="10px" />
-        {tct(' Back to [label]', {label})}
+        {tct('Back to [label]', {label})}
       </BackButtonWrapper>
     );
   }
