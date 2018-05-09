@@ -42,6 +42,21 @@ class OrganizationMemberListTest(APITestCase):
         assert response.data[0]['email'] == self.user_2.email
         assert response.data[1]['email'] == self.owner_user.email
 
+    def test_query(self):
+        response = self.client.get(self.url + "?query=bar")
+
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]['email'] == "bar@localhost"
+
+    def test_query_null_user(self):
+        OrganizationMember.objects.create(email="billy@localhost", organization=self.org)
+        response = self.client.get(self.url + "?query=bill")
+
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]['email'] == "billy@localhost"
+
     def test_email_query(self):
         response = self.client.get(self.url + "?query=email:foo@localhost")
 
