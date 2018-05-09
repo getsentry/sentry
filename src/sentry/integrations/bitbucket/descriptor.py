@@ -4,7 +4,7 @@ from sentry.api.base import Endpoint
 from sentry.utils.http import absolute_uri
 
 
-class BitBucketDescriptorEndpoint(Endpoint):
+class BitbucketDescriptorEndpoint(Endpoint):
     authentication_classes = ()
     permission_classes = ()
 

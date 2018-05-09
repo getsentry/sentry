@@ -23,4 +23,4 @@ unregister = default_manager.unregister
 register(SlackIdentityProvider)  # NOQA
 register(GitHubIdentityProvider)  # NOQA
 register(VSTSIdentityProvider)  # NOQA
-register(BitBucketIdentityProvider)  # NOQA
+register(BitbucketIdentityProvider)  # NOQA

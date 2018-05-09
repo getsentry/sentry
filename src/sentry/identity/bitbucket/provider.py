@@ -3,11 +3,11 @@ from __future__ import absolute_import
 from sentry.identity.atlassian_connect import AtlassianConnectProvider, AtlassianConnectLoginView
 
 
-class BitBucketIdentityProvider(AtlassianConnectProvider):
+class BitbucketIdentityProvider(AtlassianConnectProvider):
     key = 'bitbucket'
-    name = 'BitBucket'
+    name = 'Bitbucket'
 
 
-class BitBucketLoginView(AtlassianConnectLoginView):
+class BitbucketLoginView(AtlassianConnectLoginView):
     def __init__(self, *args, **kwargs):
-        super(AtlassianConnectLoginView, self).__init__('BitBucket', 'bitbucket', *args, **kwargs)
+        super(AtlassianConnectLoginView, self).__init__('Bitbucket', 'bitbucket', *args, **kwargs)

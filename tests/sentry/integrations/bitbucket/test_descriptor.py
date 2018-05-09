@@ -1,14 +1,14 @@
 from __future__ import absolute_import
 
 from sentry.testutils import APITestCase
-from sentry.integrations.bitbucket.descriptor import BitBucketDescriptorEndpoint
+from sentry.integrations.bitbucket.descriptor import BitbucketDescriptorEndpoint
 
 
-class BitBucketDescriptorEndpointTest(APITestCase):
+class BitbucketDescriptorEndpointTest(APITestCase):
     def test_default_permissions(self):
         # Permissions must be empty so that it will be accessible.
-        assert BitBucketDescriptorEndpoint.authentication_classes == ()
-        assert BitBucketDescriptorEndpoint.permission_classes == ()
+        assert BitbucketDescriptorEndpoint.authentication_classes == ()
+        assert BitbucketDescriptorEndpoint.permission_classes == ()
 
     def test_response(self):
         response = self.client.get('/extensions/bitbucket/descriptor/')
