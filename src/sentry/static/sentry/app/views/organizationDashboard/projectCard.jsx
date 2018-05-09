@@ -45,7 +45,7 @@ class ProjectCard extends React.Component {
 
     return (
       <StyledProjectCard>
-        <Flex justify="space-between" p={2} align="center">
+        <Flex justify="space-between" align="center">
           <StyledLink to={`/${params.orgId}/${project.slug}/`}>
             <strong>{project.slug}</strong>
           </StyledLink>
@@ -88,6 +88,7 @@ const ChartContainer = styled.div`
 
 const StyledLink = styled(Link)`
   ${overflowEllipsis};
+  padding: 16px;
 `;
 
 const StyledProjectCard = styled.div`
@@ -99,6 +100,7 @@ const StyledProjectCard = styled.div`
 
 const Star = styled.a`
   color: ${p => (p.active ? p.theme.yellowOrange : '#afa3bb')};
+  margin-right: 16px;
   &:hover {
     color: ${p => p.theme.yellowOrange};
     opacity: 0.6;
