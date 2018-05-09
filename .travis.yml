@@ -56,7 +56,7 @@ before_script:
   - mysql -u root -e 'create database sentry;'
 script:
   - make travis-lint-$TEST_SUITE
-  - make travis-test-$TEST_SUITE
+  - make travis-install-sentry-dev
   - make travis-scan-$TEST_SUITE
 
 after_success:
@@ -107,6 +107,8 @@ matrix:
         - postgresql
     - python: 2.7
       env: TEST_SUITE=mysql DB=mysql
+      install:
+        - pip install -q mysqlclient
       services:
         - memcached
         - mysql
