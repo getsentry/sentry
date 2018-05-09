@@ -34,13 +34,13 @@ install-python-base:
 	@echo "--> Installing Python dependencies"
 	# order matters here, base package must install first
 	$(PIP) install -e .
-	$(PIP) install "file://`pwd`#egg=sentry[dev]"
+	$(PIP) install -e ".[dev]"
 
 install-python-develop:
-	$(PIP) install "file://`pwd`#egg=sentry[dev,tests]"
+	$(PIP) install -e ".[dev,tests]"
 
 install-python-tests:
-	$(PIP) install "file://`pwd`#egg=sentry[dev,tests,optional]"
+	$(PIP) install -e ".[dev,tests,optional]"
 
 dev-postgres: install-python
 
