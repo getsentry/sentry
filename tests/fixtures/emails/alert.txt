@@ -1,0 +1,49 @@
+Details
+-------
+
+http://example.com/link
+
+
+Suspect Commits
+---------------
+
+* feat: Do something to raven/base.py
+  1b17483 - dcramer@gmail.com
+
+
+Tags
+----
+
+* logger = javascript
+* environment = prod
+* level = error
+* device = Other
+
+
+Stacktrace
+-----------
+
+
+
+
+Template
+-----------
+
+
+
+
+Request
+-----------
+
+
+
+
+User
+-----------
+
+
+
+
+
+
+Unsubscribe: javascript:alert("This is a preview page, what did you expect to happen?");
