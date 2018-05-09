@@ -41,10 +41,6 @@ env:
     - DJANGO_VERSION=">=1.6,<1.7"
 
 install:
-  - wget -N "http://chromedriver.storage.googleapis.com/$(curl https://chromedriver.storage.googleapis.com/LATEST_RELEASE)/chromedriver_linux64.zip" -P ~/
-  - unzip ~/chromedriver_linux64.zip -d ~/
-  - rm ~/chromedriver_linux64.zip
-  - sudo install -m755 ~/chromedriver /usr/local/bin/
   - nvm install $TRAVIS_NODE_VERSION
   - npm install -g yarn@1.3.2
   - yarn install --pure-lockfile
@@ -115,6 +111,11 @@ matrix:
         - redis-server
     - python: 2.7
       env: TEST_SUITE=acceptance
+      install:
+        - wget -N "http://chromedriver.storage.googleapis.com/$(curl https://chromedriver.storage.googleapis.com/LATEST_RELEASE)/chromedriver_linux64.zip" -P ~/
+        - unzip ~/chromedriver_linux64.zip -d ~/
+        - rm ~/chromedriver_linux64.zip
+        - sudo install -m755 ~/chromedriver /usr/local/bin/
       services:
         - memcached
         - redis-server
