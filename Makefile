@@ -197,21 +197,18 @@ extract-api-docs:
 ############################
 
 # Bases for all builds
-travis-upgrade-pip:
-	python -m pip install -q "pip>=9,<10"
 travis-setup-cassandra:
 	echo "create keyspace sentry with replication = {'class' : 'SimpleStrategy', 'replication_factor': 1};" | cqlsh --cqlversion=3.1.7
 	echo 'create table nodestore (key text primary key, value blob, flags int);' | cqlsh -k sentry --cqlversion=3.1.7
 travis-install-python:
 	pip install -q Django${DJANGO_VERSION}
-	$(MAKE) travis-upgrade-pip
 	$(MAKE) install-python-base
 	$(MAKE) install-python-tests
 	python -m pip install -q codecov
 travis-noop:
 	@echo "nothing to do here."
 
-.PHONY: travis-upgrade-pip travis-setup-cassandra travis-install-python travis-noop
+.PHONY: travis-setup-cassandra travis-install-python travis-noop
 
 travis-install-sqlite: travis-install-python
 travis-install-postgres: travis-install-python dev-postgres
@@ -229,11 +226,9 @@ travis-install-acceptance: install-yarn travis-install-postgres
 travis-install-network: travis-install-postgres
 travis-install-snuba: travis-install-postgres
 travis-install-js:
-	$(MAKE) travis-upgrade-pip
 	$(MAKE) travis-install-python install-yarn
 travis-install-cli: travis-install-postgres
 travis-install-dist:
-	$(MAKE) travis-upgrade-pip
 	$(MAKE) travis-install-python install-yarn
 travis-install-django-18: travis-install-postgres
 
