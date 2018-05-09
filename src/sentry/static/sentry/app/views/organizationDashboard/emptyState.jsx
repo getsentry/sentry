@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import {Flex} from 'grid-emotion';
 import styled from 'react-emotion';
 
@@ -12,15 +11,13 @@ import img from '../../../images/dashboard/hair-on-fire.svg';
 export default class EmptyState extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization,
-    projects: PropTypes.arrayOf(SentryTypes.Project),
   };
 
   render() {
-    const {organization, projects} = this.props;
+    const {organization} = this.props;
     const orgId = organization.slug;
     const canCreateProject = organization.access.includes('project:write');
     const canJoinTeam = organization.access.includes('team:read');
-    const hasProjects = !!projects.length;
 
     return (
       <Flex flex="1" align="center" justify="center">
@@ -45,21 +42,19 @@ export default class EmptyState extends React.Component {
                 </Tooltip>
               </CallToAction>
 
-              {!hasProjects && (
-                <CallToAction>
-                  <Tooltip
-                    disabled={canCreateProject}
-                    title={t('You do not have permission to create a project.')}
+              <CallToAction>
+                <Tooltip
+                  disabled={canCreateProject}
+                  title={t('You do not have permission to create a project.')}
+                >
+                  <Button
+                    disabled={!canCreateProject}
+                    to={`/organizations/${orgId}/projects/new/`}
                   >
-                    <Button
-                      disabled={!canCreateProject}
-                      to={`/organizations/${orgId}/projects/new/`}
-                    >
-                      {t('Create project')}
-                    </Button>
-                  </Tooltip>
-                </CallToAction>
-              )}
+                    {t('Create project')}
+                  </Button>
+                </Tooltip>
+              </CallToAction>
             </Flex>
           </Content>
         </Wrapper>

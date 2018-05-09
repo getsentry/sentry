@@ -4,7 +4,6 @@ import {shallow} from 'enzyme';
 import EmptyState from 'app/views/organizationDashboard/emptyState';
 
 describe('EmptyState', function() {
-  const project = TestStubs.Project();
   const org = TestStubs.Organization();
   it('shows "Create Project" button when there are no projects', function() {
     let wrapper = shallow(
@@ -14,16 +13,6 @@ describe('EmptyState', function() {
     expect(
       wrapper.find('Button[to="/organizations/org-slug/projects/new/"]')
     ).toHaveLength(1);
-  });
-
-  it('does not have "Create Project" button when there are projects', function() {
-    let wrapper = shallow(
-      <EmptyState organization={org} projects={[project]} />,
-      TestStubs.routerContext()
-    );
-    expect(
-      wrapper.find('Button[to="/organizations/org-slug/projects/new/"]')
-    ).toHaveLength(0);
   });
 
   it('"Create Project" is disabled when no access to `project:write`', function() {
