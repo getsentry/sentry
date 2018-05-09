@@ -39,7 +39,6 @@ env:
     - DJANGO_VERSION=">=1.6,<1.7"
 
 install:
-  - 'export PATH=$PATH:~/.bin'
   - nvm install $TRAVIS_NODE_VERSION
   - npm install -g yarn@1.3.2
   - make travis-install-$TEST_SUITE
