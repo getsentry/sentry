@@ -42,6 +42,16 @@ class ExampleIntegration(Integration):
     def create_comment(self):
         pass
 
+    def get_link_issue_config(self, group):
+        return [
+            {
+                'name': 'externalIssue',
+                'label': 'Issue',
+                'default': '',
+                'type': 'string',
+            }
+        ]
+
 
 class ExampleIntegrationProvider(IntegrationProvider):
     """
