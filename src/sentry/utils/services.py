@@ -10,6 +10,7 @@ import six
 from django.utils.functional import empty, LazyObject
 
 from sentry.utils import warnings
+from sentry.utils.datastructures import LayeredMapping
 from sentry.utils.concurrent import FutureSet, ThreadedExecutor
 
 from .imports import import_string
@@ -192,7 +193,7 @@ class ServiceDelegator(Service):
 
     class ServiceState(threading.local):
         def __init__(self):
-            self.backends = {}
+            self.backends = LayeredMapping()
 
     state = ServiceState()
 
@@ -275,23 +276,25 @@ class ServiceDelegator(Service):
                     '{!r} is not a registered backend.'.format(
                         selected_backend_names[0]))
 
-            def call_backend_method(backend):
-                base = self.__backend_base
-                active_backends = type(self).state.backends
+            def call_backend_method(backend, active_backends):
+                # Update this thread local state so that the active backends
+                # will continue to be propagated between different threads.
+                type(self).state.backends = active_backends
 
                 # Ensure that we haven't somehow accidentally entered a context
                 # where the backend we're calling has already been marked as
                 # active (or worse, some other backend is already active.)
+                base = self.__backend_base
                 assert base not in active_backends
 
                 # Mark the backend as active.
-                active_backends[base] = backend
+                active_backends.push({base: backend})
                 try:
                     return getattr(backend, attribute_name)(*args, **kwargs)
                 finally:
                     # Unmark the backend as active.
                     assert active_backends[base] is backend
-                    del active_backends[base]
+                    active_backends.pop()
 
             # Enqueue all of the secondary backend requests first since these
             # are non-blocking queue insertions. (Since the primary backend
@@ -315,7 +318,11 @@ class ServiceDelegator(Service):
                         exc_info=True)
                 else:
                     results[i] = executor.submit(
-                        functools.partial(call_backend_method, backend),
+                        functools.partial(
+                            call_backend_method,
+                            backend,
+                            type(self).state.backends.copy(),
+                        ),
                         priority=1,
                         block=False,
                     )
@@ -325,7 +332,11 @@ class ServiceDelegator(Service):
             # since we already ensured that the primary backend exists.)
             backend, executor = self.__backends[selected_backend_names[0]]
             results[0] = executor.submit(
-                functools.partial(call_backend_method, backend),
+                functools.partial(
+                    call_backend_method,
+                    backend,
+                    type(self).state.backends.copy(),
+                ),
                 priority=0,
                 block=True,
             )

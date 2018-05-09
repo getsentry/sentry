@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
-from collections import Hashable, MutableMapping
+import six
+
+from collections import Hashable, Mapping, MutableMapping
 
 __unset__ = object()
 
@@ -61,3 +63,42 @@ class BidirectionalMapping(MutableMapping):
 
     def inverse(self):
         return self.__inverse.copy()
+
+
+class LayeredMapping(Mapping):
+    def __init__(self, layers=None):
+        if layers is None:
+            layers = []
+
+        self.__layers = layers
+
+    def __getitem__(self, key):
+        for layer in reversed(self.__layers):
+            if key in layer:
+                return layer[key]
+        raise KeyError(key)
+
+    def __iter__(self):
+        seen_keys = set()
+        for layer in reversed(self.__layers):
+            for key in six.iterkeys(layer):
+                if key not in seen_keys:
+                    yield key
+                    seen_keys.add(key)
+
+    def __len__(self):
+        keys = set()
+        for layer in self.__layers:
+            keys.update(layer.keys())
+        return len(keys)
+
+    def push(self, layer):
+        """Add a new layer to top of the stack."""
+        self.__layers.append(layer)
+
+    def pop(self):
+        """Remove the topmost layer from the stack."""
+        return self.__layers.pop()
+
+    def copy(self):
+        return type(self)(self.__layers[:])
