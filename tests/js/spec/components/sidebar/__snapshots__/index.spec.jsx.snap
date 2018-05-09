@@ -381,6 +381,46 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
         </Component>
       </MenuItemLink>
     </SidebarMenuItem>
+    <SidebarMenuItem
+      to="/settings/org-slug/teams/"
+    >
+      <MenuItemLink
+        to="/settings/org-slug/teams/"
+      >
+        <Component
+          className="css-1vsrn4x-MenuItemLink ebifsjx1"
+          to="/settings/org-slug/teams/"
+        >
+          <Link
+            className="css-1vsrn4x-MenuItemLink ebifsjx1"
+            to="/settings/org-slug/teams/"
+          >
+            <Link
+              className="css-1vsrn4x-MenuItemLink ebifsjx1"
+              onlyActiveOnIndex={false}
+              style={Object {}}
+              to="/settings/org-slug/teams/"
+            >
+              <a
+                className="css-1vsrn4x-MenuItemLink ebifsjx1"
+                onClick={[Function]}
+                style={Object {}}
+              >
+                <MenuItemLabel
+                  hasMenu={false}
+                >
+                  <span
+                    className="css-3xcmix-MenuItemLabel-MenuItemLabel ebifsjx0"
+                  >
+                    Teams
+                  </span>
+                </MenuItemLabel>
+              </a>
+            </Link>
+          </Link>
+        </Component>
+      </MenuItemLink>
+    </SidebarMenuItem>
     <Hook
       Components={
         Object {
