@@ -32,7 +32,6 @@ install-python:
 
 install-python-base:
 	@echo "--> Installing Python dependencies"
-	$(PIP) install "setuptools>=0.9.8" "pip>=8.0.0"
 	# order matters here, base package must install first
 	$(PIP) install -e .
 	$(PIP) install "file://`pwd`#egg=sentry[dev]"
