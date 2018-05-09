@@ -68,7 +68,7 @@ export default class EmptyState extends React.Component {
 }
 
 const CallToAction = styled('div')`
-  margin-bottom: 16px;
+  margin-bottom: 24px;
   &:last-child {
     margin-bottom: 0;
   }
