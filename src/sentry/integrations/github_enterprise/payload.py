@@ -15,7 +15,7 @@ from sentry import options
 from sentry.utils import json
 from sentry.api.base import Endpoint
 
-logger = logging.getLogger('sentry.integrations.github')
+logger = logging.getLogger('sentry.integrations.github-enterprise')
 
 
 class GitHubEnterpriseAppsEndpoint(Endpoint):
@@ -28,7 +28,7 @@ class GitHubEnterpriseAppsEndpoint(Endpoint):
 
     def get_secret(self):
         # todo(maxbittker)
-        return options.get('github-app.webhook-secret')
+        return options.get('github-enterprise-app.webhook-secret')
 
     def is_valid_signature(self, method, body, secret, signature):
         if method != 'sha1':
@@ -46,29 +46,29 @@ class GitHubEnterpriseAppsEndpoint(Endpoint):
 
         secret = self.get_secret()
         if secret is None:
-            logger.error('github.webhook.missing-secret',)
+            logger.error('github-enterpise.webhook.missing-secret',)
             return HttpResponse(status=401)
 
         body = six.binary_type(request.body)
         if not body:
-            logger.error('github.webhook.missing-body',)
+            logger.error('github-enterpise.webhook.missing-body',)
             return HttpResponse(status=400)
 
         try:
             method, signature = request.META['HTTP_X_HUB_SIGNATURE'].split('=', 1)
         except (KeyError, IndexError):
-            logger.error('github.webhook.missing-signature',)
+            logger.error('github-enterpise.webhook.missing-signature',)
             return HttpResponse(status=400)
 
         if not self.is_valid_signature(method, body, self.get_secret(), signature):
-            logger.error('github.webhook.invalid-signature',)
+            logger.error('github-enterpise.webhook.invalid-signature',)
             return HttpResponse(status=401)
 
         try:
             json.loads(body.decode('utf-8'))
         except JSONDecodeError:
             logger.error(
-                'github.webhook.invalid-json',
+                'github-enterpise.webhook.invalid-json',
                 exc_info=True,
             )
             return HttpResponse(status=400)
