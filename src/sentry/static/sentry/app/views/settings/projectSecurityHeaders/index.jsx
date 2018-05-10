@@ -70,18 +70,20 @@ export default class ProjectSecurityHeaders extends AsyncView {
               )}
             </TextBlock>
             <table className="table" style={{marginBottom: 0}}>
-              <tr>
-                <th style={{padding: '8px 5px'}}>sentry_environment</th>
-                <td style={{padding: '8px 5px'}}>
-                  {t('The environment name (e.g. production)')}.
-                </td>
-              </tr>
-              <tr>
-                <th style={{padding: '8px 5px'}}>sentry_release</th>
-                <td style={{padding: '8px 5px'}}>
-                  {t('The version of the application.')}
-                </td>
-              </tr>
+              <tbody>
+                <tr>
+                  <th style={{padding: '8px 5px'}}>sentry_environment</th>
+                  <td style={{padding: '8px 5px'}}>
+                    {t('The environment name (e.g. production)')}.
+                  </td>
+                </tr>
+                <tr>
+                  <th style={{padding: '8px 5px'}}>sentry_release</th>
+                  <td style={{padding: '8px 5px'}}>
+                    {t('The version of the application.')}
+                  </td>
+                </tr>
+              </tbody>
             </table>
           </PanelBody>
         </Panel>
