@@ -41,33 +41,31 @@ exports[`ProjectCard renders 1`] = `
       <Flex
         align="center"
         justify="space-between"
-        p={2}
       >
         <Base
           align="center"
-          className="css-188rjiu"
+          className="css-v7pzd9"
           justify="space-between"
-          p={2}
         >
           <div
-            className="css-188rjiu"
+            className="css-v7pzd9"
             is={null}
           >
             <StyledLink
               to="/org-slug/project-slug/"
             >
               <Link
-                className="css-kor5al-StyledLink efesc7i2"
+                className="css-1vw4sd8-StyledLink efesc7i2"
                 to="/org-slug/project-slug/"
               >
                 <Link
-                  className="css-kor5al-StyledLink efesc7i2"
+                  className="css-1vw4sd8-StyledLink efesc7i2"
                   onlyActiveOnIndex={false}
                   style={Object {}}
                   to="/org-slug/project-slug/"
                 >
                   <a
-                    className="css-kor5al-StyledLink efesc7i2"
+                    className="css-1vw4sd8-StyledLink efesc7i2"
                     onClick={[Function]}
                     style={Object {}}
                   >
@@ -88,7 +86,7 @@ exports[`ProjectCard renders 1`] = `
                 title="Add to bookmarks"
               >
                 <a
-                  className="tip project-select-bookmark icon icon-star-solid css-syj8e8-Star efesc7i4"
+                  className="tip project-select-bookmark icon icon-star-solid css-31kf5u-Star efesc7i4"
                   onClick={[Function]}
                   title="Add to bookmarks"
                 />
