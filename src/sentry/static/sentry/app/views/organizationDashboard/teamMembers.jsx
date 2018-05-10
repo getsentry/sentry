@@ -15,6 +15,10 @@ export default class TeamMembers extends AsyncComponent {
     return [['members', `/teams/${orgId}/${teamId}/members/`]];
   }
 
+  renderLoading() {
+    return null;
+  }
+
   renderBody() {
     if (this.state.members) {
       const users = this.state.members.filter(({user}) => !!user).map(({user}) => user);
