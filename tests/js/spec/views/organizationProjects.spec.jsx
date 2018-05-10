@@ -4,8 +4,6 @@ import {mount} from 'enzyme';
 import {Client} from 'app/api';
 import OrganizationProjectsViewContainer from 'app/views/settings/organization/projects/organizationProjectsView';
 
-jest.mock('lodash/debounce', () => jest.fn(fn => fn));
-
 describe('OrganizationProjects', function() {
   let org;
   let project;

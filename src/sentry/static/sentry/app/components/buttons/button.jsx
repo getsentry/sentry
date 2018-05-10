@@ -146,7 +146,7 @@ const getBoxShadow = active => ({priority, borderless, disabled}) => {
   return `box-shadow: ${active ? 'inset' : ''} 0 2px rgba(0, 0, 0, 0.05)`;
 };
 
-const getColors = ({priority, disabled, theme}) => {
+const getColors = ({priority, disabled, borderless, theme}) => {
   let themeName = disabled ? 'disabled' : priority || 'default';
   let {
     color,
@@ -160,7 +160,7 @@ const getColors = ({priority, disabled, theme}) => {
   return css`
     color: ${color};
     background-color: ${background};
-    border: 1px solid ${border || 'transparent'};
+    border: 1px solid ${!borderless && !!border ? border : 'transparent'};
 
     &:hover {
       color: ${color};
@@ -171,7 +171,10 @@ const getColors = ({priority, disabled, theme}) => {
     &:active {
       ${colorActive ? 'color: ${colorActive};' : ''};
       background: ${backgroundActive};
-      border: 1px solid ${borderActive || border || 'transparent'};
+      border: 1px solid
+        ${!borderless && (borderActive || border)
+          ? borderActive || border
+          : 'transparent'};
     }
   `;
 };

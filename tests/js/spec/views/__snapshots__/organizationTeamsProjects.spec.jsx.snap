@@ -246,7 +246,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                       >
                                         <Component
                                           aria-label="Manage Project"
-                                          className="css-o6814l-StyledButton-getColors e17811v30"
+                                          className="css-dkprmi-StyledButton-getColors e17811v30"
                                           disabled={false}
                                           onClick={[Function]}
                                           role="button"
@@ -255,7 +255,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                         >
                                           <Link
                                             aria-label="Manage Project"
-                                            className="css-o6814l-StyledButton-getColors e17811v30"
+                                            className="css-dkprmi-StyledButton-getColors e17811v30"
                                             disabled={false}
                                             onClick={[Function]}
                                             onlyActiveOnIndex={false}
@@ -266,7 +266,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                           >
                                             <a
                                               aria-label="Manage Project"
-                                              className="css-o6814l-StyledButton-getColors e17811v30"
+                                              className="css-dkprmi-StyledButton-getColors e17811v30"
                                               disabled={false}
                                               onClick={[Function]}
                                               role="button"

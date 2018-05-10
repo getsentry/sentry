@@ -8,7 +8,6 @@ import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 
 jest.mock('app/api');
 jest.mock('app/actionCreators/indicator');
-jest.mock('lodash/debounce', () => jest.fn(fn => fn));
 
 describe('OrganizationMembersView', function() {
   let members = TestStubs.Members();
