@@ -3,13 +3,14 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {t} from 'app/locale';
+import DropdownAutoCompleteMenu from 'app/components/dropdownAutoCompleteMenu';
 import DropdownMenu from 'app/components/dropdownMenu';
 import InlineSvg from 'app/components/inlineSvg';
 import SentryTypes from 'app/proptypes';
 import withOrganizations from 'app/utils/withOrganizations';
 
-import SidebarOrgSummary from './sidebarOrgSummary';
-import SidebarMenuItem from './sidebarMenuItem';
+import SidebarOrgSummary, {OrgSummary} from './sidebarOrgSummary';
+import SidebarMenuItem, {MenuItemLink} from './sidebarMenuItem';
 import Divider from './divider.styled';
 import SidebarDropdownMenu from './sidebarDropdownMenu.styled';
 
@@ -28,48 +29,71 @@ class SwitchOrganization extends React.Component {
 
     return (
       <DropdownMenu isNestedDropdown>
-        {({isOpen, getMenuProps, getActorProps}) => {
+        {({
+          isOpen,
+          getMenuProps: getParentMenuProps,
+          getActorProps: getParentActorProps,
+        }) => {
           return (
-            <React.Fragment>
-              <SwitchOrganizationMenuActor
-                data-test-id="sidebar-switch-org"
-                {...getActorProps()}
-              >
-                {t('Switch organization')}
-
-                <SubMenuCaret>
-                  <i className="icon-arrow-right" />
-                </SubMenuCaret>
-              </SwitchOrganizationMenuActor>
-
-              {isOpen && (
-                <SwitchOrganizationMenu
-                  data-test-id="sidebar-switch-org-menu"
-                  {...getMenuProps({isStyled: true})}
-                >
-                  {organizations.map(organization => (
+            <DropdownAutoCompleteMenu
+              {...getParentMenuProps({
+                isOpen,
+                emptyMessage: t('No organizations'),
+                maxHeight: '350px',
+                menuProps: {isStyled: true},
+                inputProps: {style: {lineHeight: 1}},
+                rootProps: {style: {width: '100%'}},
+                items: organizations.map(organization => ({
+                  value: organization.slug,
+                  label: (
                     <SidebarMenuItem
                       key={organization.slug}
                       to={`/${organization.slug}/`}
                     >
                       <SidebarOrgSummary organization={organization} />
                     </SidebarMenuItem>
-                  ))}
-                  {hasOrganizations && canCreateOrganization && <Divider />}
-                  {canCreateOrganization && (
-                    <SidebarMenuItem
-                      to={'/organizations/new/'}
-                      style={{alignItems: 'center'}}
+                  ),
+                })),
+                renderMenu: props => {
+                  return (
+                    <SwitchOrganizationMenu
+                      data-test-id="sidebar-switch-org-menu"
+                      {...props}
+                      {...getParentMenuProps({isStyled: true})}
                     >
-                      <MenuItemLabelWithIcon>
-                        <AddIcon src="icon-circle-add" />
-                        <span>{t('Create a new organization')}</span>
-                      </MenuItemLabelWithIcon>
-                    </SidebarMenuItem>
-                  )}
-                </SwitchOrganizationMenu>
-              )}
-            </React.Fragment>
+                      <OrganizationList>{props.children}</OrganizationList>
+                      {hasOrganizations && canCreateOrganization && <Divider />}
+                      {canCreateOrganization && (
+                        <SidebarMenuItem
+                          to={'/organizations/new/'}
+                          style={{alignItems: 'center'}}
+                        >
+                          <MenuItemLabelWithIcon>
+                            <AddIcon src="icon-circle-add" />
+                            <span>{t('Create a new organization')}</span>
+                          </MenuItemLabelWithIcon>
+                        </SidebarMenuItem>
+                      )}
+                    </SwitchOrganizationMenu>
+                  );
+                },
+              })}
+            >
+              {({getActorProps, actions, selectedItem}) => {
+                return (
+                  <SwitchOrganizationMenuActor
+                    data-test-id="sidebar-switch-org"
+                    {...getParentActorProps({isStyled: true})}
+                  >
+                    {t('Switch organization')}
+
+                    <SubMenuCaret>
+                      <i className="icon-arrow-right" />
+                    </SubMenuCaret>
+                  </SwitchOrganizationMenuActor>
+                );
+              }}
+            </DropdownAutoCompleteMenu>
           );
         }}
       </DropdownMenu>
@@ -113,8 +137,24 @@ const SwitchOrganizationMenuActor = styled('span')`
   padding: 0 ${p => p.theme.sidebar.menuSpacing};
 `;
 
+// This is empty but is used below as a selector
+const OrganizationList = styled('div')``;
+
 const SwitchOrganizationMenu = styled('div')`
   ${SidebarDropdownMenu};
   top: 0;
-  left: 256px;
+  left: 240px;
+
+  /* stylelint-disable-next-line no-duplicate-selectors */
+  ${OrganizationList} {
+    /* stylelint-disable-next-line no-duplicate-selectors */
+    ${MenuItemLink} {
+      padding: 0;
+    }
+  }
+
+  /* stylelint-disable-next-line no-duplicate-selectors */
+  ${OrgSummary} {
+    padding: 0;
+  }
 `;
