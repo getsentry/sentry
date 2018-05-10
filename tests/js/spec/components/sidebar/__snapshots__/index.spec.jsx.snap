@@ -2,6 +2,7 @@
 
 exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
 <SwitchOrganizationMenu
+  blendCorner={true}
   data-test-id="sidebar-switch-org-menu"
   innerRef={[Function]}
   onClick={[Function]}
@@ -9,12 +10,69 @@ exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
   onMouseLeave={[Function]}
 >
   <div
-    className="css-1t0ls5k-SwitchOrganizationMenu-SidebarDropdownMenu ejspo4a4"
+    className="css-1rupk6e-SwitchOrganizationMenu-SidebarDropdownMenu ejspo4a5"
     data-test-id="sidebar-switch-org-menu"
     onClick={[Function]}
     onMouseEnter={[Function]}
     onMouseLeave={[Function]}
   >
+    <OrganizationList>
+      <div
+        className="css-1ufo0r2-OrganizationList ejspo4a4"
+      >
+        <StyledInput
+          autoFocus={true}
+          onBlur={[Function]}
+          onChange={[Function]}
+          onClick={[Function]}
+          onFocus={[Function]}
+          onKeyDown={[Function]}
+          onMouseEnter={[Function]}
+          onMouseLeave={[Function]}
+          placeholder="Filter search"
+          style={
+            Object {
+              "lineHeight": 1,
+            }
+          }
+          value=""
+        >
+          <input
+            autoFocus={true}
+            className="css-1e2d82e-Input-inputStyles-StyledInput ejumqxq1"
+            onBlur={[Function]}
+            onChange={[Function]}
+            onClick={[Function]}
+            onFocus={[Function]}
+            onKeyDown={[Function]}
+            onMouseEnter={[Function]}
+            onMouseLeave={[Function]}
+            placeholder="Filter search"
+            style={
+              Object {
+                "lineHeight": 1,
+              }
+            }
+            value=""
+          />
+        </StyledInput>
+        <MenuContent
+          maxHeight="350px"
+        >
+          <div
+            className="css-16feejj-MenuContent ejumqxq5"
+          >
+            <EmptyMessage>
+              <div
+                className="css-gdn3yc-EmptyMessage ejumqxq6"
+              >
+                No organizations
+              </div>
+            </EmptyMessage>
+          </div>
+        </MenuContent>
+      </div>
+    </OrganizationList>
     <SidebarMenuItem
       style={
         Object {
@@ -480,31 +538,97 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                       isNestedDropdown={true}
                       keepMenuOpen={false}
                     >
-                      <SwitchOrganizationMenuActor
-                        data-test-id="sidebar-switch-org"
+                      <DropdownAutoCompleteMenu
+                        blendCorner={true}
+                        emptyMessage="No organizations"
+                        inputProps={
+                          Object {
+                            "style": Object {
+                              "lineHeight": 1,
+                            },
+                          }
+                        }
+                        isOpen={false}
+                        items={Array []}
+                        maxHeight="350px"
+                        menuProps={
+                          Object {
+                            "isStyled": true,
+                          }
+                        }
                         onClick={[Function]}
                         onMouseEnter={[Function]}
                         onMouseLeave={[Function]}
+                        onSelect={[Function]}
+                        renderMenu={[Function]}
+                        rootProps={
+                          Object {
+                            "style": Object {
+                              "width": "100%",
+                            },
+                          }
+                        }
                       >
-                        <span
-                          className="css-1lqnj07-SwitchOrganizationMenuActor ejspo4a3"
-                          data-test-id="sidebar-switch-org"
+                        <AutoComplete
+                          isOpen={false}
+                          itemToString={[Function]}
                           onClick={[Function]}
                           onMouseEnter={[Function]}
                           onMouseLeave={[Function]}
+                          onSelect={[Function]}
+                          resetInputOnClose={true}
                         >
-                          Switch organization
-                          <SubMenuCaret>
-                            <span
-                              className="css-turth4-SubMenuCaret ejspo4a2"
+                          <DropdownMenu
+                            isOpen={false}
+                            keepMenuOpen={false}
+                            onClickOutside={[Function]}
+                          >
+                            <AutoCompleteRoot
+                              style={
+                                Object {
+                                  "width": "100%",
+                                }
+                              }
                             >
-                              <i
-                                className="icon-arrow-right"
-                              />
-                            </span>
-                          </SubMenuCaret>
-                        </span>
-                      </SwitchOrganizationMenuActor>
+                              <div
+                                className="css-6v04yn-AutoCompleteRoot ejumqxq0"
+                                style={
+                                  Object {
+                                    "width": "100%",
+                                  }
+                                }
+                              >
+                                <SwitchOrganizationMenuActor
+                                  data-test-id="sidebar-switch-org"
+                                  innerRef={[Function]}
+                                  onClick={[Function]}
+                                  onMouseEnter={[Function]}
+                                  onMouseLeave={[Function]}
+                                >
+                                  <span
+                                    className="css-1lqnj07-SwitchOrganizationMenuActor ejspo4a3"
+                                    data-test-id="sidebar-switch-org"
+                                    onClick={[Function]}
+                                    onMouseEnter={[Function]}
+                                    onMouseLeave={[Function]}
+                                  >
+                                    Switch organization
+                                    <SubMenuCaret>
+                                      <span
+                                        className="css-turth4-SubMenuCaret ejspo4a2"
+                                      >
+                                        <i
+                                          className="icon-arrow-right"
+                                        />
+                                      </span>
+                                    </SubMenuCaret>
+                                  </span>
+                                </SwitchOrganizationMenuActor>
+                              </div>
+                            </AutoCompleteRoot>
+                          </DropdownMenu>
+                        </AutoComplete>
+                      </DropdownAutoCompleteMenu>
                     </DropdownMenu>
                   </SwitchOrganization>
                 </withOrganizations>
