@@ -272,11 +272,7 @@ const ProjectSelector = createReactClass({
     let orgId = org.slug;
     let projectId = project.slug;
 
-    return (
-      <span>
-        <Link to={`/${orgId}/${projectId}/`}>{label}</Link>
-      </span>
-    );
+    return <Link to={`/${orgId}/${projectId}/`}>{label}</Link>;
   },
 
   renderProjectList({organization: org, projects, filter, hasProjectWrite}) {

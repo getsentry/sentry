@@ -219,6 +219,8 @@ const StyledAvatar = styled(Avatar)`
   margin-top: 2px;
   margin-bottom: 2px;
   margin-right: ${p => (p.collapsed ? '0' : '12px')};
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.08);
+  border-radius: 4px;
 `;
 
 const OrgAndUserMenu = styled('div')`
