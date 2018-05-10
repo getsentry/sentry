@@ -4,6 +4,7 @@ import _ from 'lodash';
 
 import createReactClass from 'create-react-class';
 
+import SentryTypes from 'app/proptypes';
 import ApiMixin from 'app/mixins/apiMixin';
 import SuggestedOwners from 'app/components/group/suggestedOwners';
 import GroupParticipants from 'app/components/group/participants';
@@ -14,6 +15,7 @@ import IndicatorStore from 'app/stores/indicatorStore';
 import TagDistributionMeter from 'app/components/group/tagDistributionMeter';
 import LoadingError from 'app/components/loadingError';
 import {t, tct} from 'app/locale';
+import withEnvironment from 'app/utils/withEnvironment';
 
 const GroupSidebar = createReactClass({
   displayName: 'GroupSidebar',
@@ -21,6 +23,7 @@ const GroupSidebar = createReactClass({
   propTypes: {
     group: PropTypes.object,
     event: PropTypes.object,
+    environment: SentryTypes.Environment,
   },
 
   contextTypes: {
@@ -239,6 +242,15 @@ const GroupSidebar = createReactClass({
             />
           );
         })}
+        {group.tags.length === 0 && (
+          <p>
+            {this.props.environment
+              ? tct('No tags found in the [env] environment', {
+                  env: this.props.environment.displayName,
+                })
+              : t('No tags found')}
+          </p>
+        )}
 
         {this.renderParticipantData()}
 
@@ -261,4 +273,4 @@ const GroupSidebar = createReactClass({
   },
 });
 
-export default GroupSidebar;
+export default withEnvironment(GroupSidebar);
