@@ -1,5 +1,6 @@
 NPM_ROOT = ./node_modules
 STATIC_DIR = src/sentry/static/sentry
+DJANGO_VERSION := ">=1.6,<1.7"
 
 ifneq "$(wildcard /usr/local/opt/libxmlsec1/lib)" ""
 	LDFLAGS += -L/usr/local/opt/libxmlsec1/lib
@@ -10,10 +11,50 @@ endif
 
 PIP = LDFLAGS="$(LDFLAGS)" pip -q
 
+
+####################
+# End user recipes #
+####################
+
 # TODO test the all recipe, and also why did we separate develop from develop-only? better to merge into just develop
 all: update-submodules install-system-pkgs intall-yarn-pkgs install-sentry
 develop: setup-git develop-only
 develop-only: update-submodules install-system-pkgs install-yarn-pkgs install-sentry-dev
+
+build: locale
+
+dev-docs:
+	$(PIP) install -r doc-requirements.txt
+
+test: develop lint test-js test-python test-cli
+
+testloop: develop
+	pip install -q pytest-xdist
+	py.test tests -f
+
+reset-db:
+	@echo "--> Dropping existing 'sentry' database"
+	dropdb sentry || true
+	@echo "--> Creating 'sentry' database"
+	createdb -E utf-8 sentry
+	@echo "--> Applying migrations"
+	sentry upgrade
+
+clean:
+	@echo "--> Cleaning static cache"
+	rm -rf dist/* static/dist/*
+	@echo "--> Cleaning integration docs cache"
+	rm -rf src/sentry/integration-docs
+	@echo "--> Cleaning pyc files"
+	find . -name "*.pyc" -delete
+	@echo "--> Cleaning python build artifacts"
+	rm -rf build/ dist/ src/sentry/assets.json
+	@echo ""
+
+
+#################
+# Child recipes #
+#################
 
 setup-git:
 	@echo "--> Installing git hooks"
@@ -43,31 +84,8 @@ install-sentry:
 
 install-sentry-dev:
 	@echo "--> Installing Sentry (dev)"
+	pip install -q Django${DJANGO_VERSION}
 	$(PIP) install -e ".[dev,tests,optional]"
-
-dev-docs:
-	$(PIP) install -r doc-requirements.txt
-
-reset-db:
-	@echo "--> Dropping existing 'sentry' database"
-	dropdb sentry || true
-	@echo "--> Creating 'sentry' database"
-	createdb -E utf-8 sentry
-	@echo "--> Applying migrations"
-	sentry upgrade
-
-build: locale
-
-clean:
-	@echo "--> Cleaning static cache"
-	rm -rf dist/* static/dist/*
-	@echo "--> Cleaning integration docs cache"
-	rm -rf src/sentry/integration-docs
-	@echo "--> Cleaning pyc files"
-	find . -name "*.pyc" -delete
-	@echo "--> Cleaning python build artifacts"
-	rm -rf build/ dist/ src/sentry/assets.json
-	@echo ""
 
 build-js-po:
 	mkdir -p build
@@ -92,12 +110,6 @@ build-platform-assets:
 	@echo "--> Building platform assets"
 	sentry init
 	@echo "from sentry.utils.integrationdocs import sync_docs; sync_docs(quiet=True)" | sentry exec
-
-test: develop lint test-js test-python test-cli
-
-testloop: develop
-	pip install -q pytest-xdist
-	py.test tests -f
 
 test-cli:
 	@echo "--> Testing CLI"
@@ -176,7 +188,6 @@ extract-api-docs:
 	rm -rf api-docs/cache/*
 	cd api-docs; python generator.py
 
-
 .PHONY: develop dev-docs setup-git build clean locale update-transifex update-submodules test testloop test-cli test-js test-styleguide test-python test-acceptance lint lint-python lint-js coverage publish scan-python
 
 
@@ -184,14 +195,13 @@ extract-api-docs:
 # Halt, Travis stuff below #
 ############################
 
-# Bases for all builds
-travis-setup-cassandra:
-	echo "create keyspace sentry with replication = {'class' : 'SimpleStrategy', 'replication_factor': 1};" | cqlsh --cqlversion=3.1.7
-	echo 'create table nodestore (key text primary key, value blob, flags int);' | cqlsh -k sentry --cqlversion=3.1.7
 travis-noop:
 	@echo "nothing to do here."
 
-.PHONY: travis-setup-cassandra travis-install-sentry-dev travis-noop
+# this isn't used yet, but when done, add this to .travis.yml, similar to how the dbs are setup
+travis-setup-cassandra:
+	echo "create keyspace sentry with replication = {'class' : 'SimpleStrategy', 'replication_factor': 1};" | cqlsh --cqlversion=3.1.7
+	echo 'create table nodestore (key text primary key, value blob, flags int);' | cqlsh -k sentry --cqlversion=3.1.7
 
 # Lint steps
 travis-lint-sqlite: lint-python
@@ -223,7 +233,6 @@ travis-test-dist:
 travis-test-django-18: travis-test-postgres
 
 .PHONY: travis-test-sqlite travis-test-postgres travis-test-mysql travis-test-js travis-test-cli travis-test-dist
-
 
 # Scan steps
 travis-scan-sqlite: scan-python

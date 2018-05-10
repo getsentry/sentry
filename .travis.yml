@@ -45,7 +45,7 @@ install:
   - unzip ~/chromedriver_linux64.zip -d ~/
   - rm ~/chromedriver_linux64.zip
   - sudo install -m755 ~/chromedriver /usr/local/bin/
-  - pip install -q codecov mysqlclient Django${DJANGO_VERSION}
+  - pip install -q codecov mysqlclient
   - nvm install $TRAVIS_NODE_VERSION
   - npm install -g yarn@1.3.2
   - yarn install --pure-lockfile
