@@ -67,3 +67,28 @@ class OrganizationStatsTest(APITestCase):
         })
 
         assert project.id not in response.data
+
+    def test_project_id_only(self):
+        self.login_as(user=self.user)
+
+        org = self.create_organization(owner=self.user)
+        project = self.create_project(
+            teams=[self.create_team(organization=org, members=[self.user])],
+        )
+        project2 = self.create_project(
+            teams=[self.create_team(organization=org, members=[self.user])],
+        )
+
+        make_request = functools.partial(
+            self.client.get,
+            reverse('sentry-api-0-organization-stats', args=[org.slug]),
+        )
+
+        response = make_request({
+            'projectID': [project.id],
+            'group': 'project',
+        })
+
+        assert response.status_code == 200, response.content
+        assert project.id in response.data
+        assert project2.id not in response.data

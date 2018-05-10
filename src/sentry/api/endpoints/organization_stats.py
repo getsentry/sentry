@@ -65,7 +65,7 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, EnvironmentMixin, StatsMix
                     ))
             else:
                 project_list = Project.objects.filter(
-                    team__in=team_list,
+                    teams__in=team_list,
                     id__in=project_ids,
                 )
             keys = list({p.id for p in project_list})
