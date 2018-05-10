@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
-
 import createReactClass from 'create-react-class';
+import classNames from 'classnames';
 
 import ApiMixin from 'app/mixins/apiMixin';
 import SuggestedOwners from 'app/components/group/suggestedOwners';
@@ -213,6 +213,10 @@ const GroupSidebar = createReactClass({
     let orgId = this.getOrganization().slug;
     let group = this.getGroup();
 
+    let subscribeBtnClass = classNames('btn btn-default btn-subscribe', {
+      subscribed: group.isSubscribed,
+    });
+
     return (
       <div className="group-stats">
         <SuggestedOwners event={this.props.event} />
@@ -247,12 +251,8 @@ const GroupSidebar = createReactClass({
         </h6>
         <p className="help-block">{this.getNotificationText()}</p>
         {this.canChangeSubscriptionState() && (
-          <a
-            className={`btn btn-default btn-subscribe ${group.isSubscribed &&
-              'subscribed'}`}
-            onClick={this.toggleSubscription}
-          >
-            <span className="icon-signal" />{' '}
+          <a className={subscribeBtnClass} onClick={this.toggleSubscription}>
+            <span className="icon-signal" />
             {group.isSubscribed ? t('Unsubscribe') : t('Subscribe')}
           </a>
         )}
