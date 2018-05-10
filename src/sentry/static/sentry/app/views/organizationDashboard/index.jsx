@@ -8,6 +8,7 @@ import styled from 'react-emotion';
 import SentryTypes from 'app/proptypes';
 import IdBadge from 'app/components/idBadge';
 import OrganizationState from 'app/mixins/organizationState';
+import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 import getProjectsByTeams from 'app/utils/getProjectsByTeams';
 import {sortProjects} from 'app/utils';
 import withTeams from 'app/utils/withTeams';
@@ -26,11 +27,12 @@ class Dashboard extends React.Component {
     organization: SentryTypes.Organization,
   };
 
-  componentWillMount() {
+  componentDidMount() {
     $(document.body).addClass('org-dashboard');
   }
   componentWillUnmount() {
     $(document.body).removeClass('org-dashboard');
+    ProjectsStatsStore.reset();
   }
 
   render() {

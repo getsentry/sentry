@@ -269,6 +269,10 @@ describe('OrganizationDashboard', function() {
       expect(wrapper.find('LoadingCard')).toHaveLength(0);
       expect(wrapper.find('Chart')).toHaveLength(9);
       jest.useRealTimers();
+
+      // Resets store when it unmounts
+      wrapper.unmount();
+      expect(ProjectsStatsStore.itemsById).toEqual({});
     });
   });
 });
