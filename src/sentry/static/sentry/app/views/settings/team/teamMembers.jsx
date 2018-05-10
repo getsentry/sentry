@@ -203,6 +203,7 @@ const TeamMembers = createReactClass({
         items={items}
         onSelect={this.addTeamMember}
         menuHeader={menuHeader}
+        emptyMessage={t('No members')}
       >
         {({isOpen, selectedItem}) => (
           <DropdownButton isOpen={isOpen} size="xsmall">

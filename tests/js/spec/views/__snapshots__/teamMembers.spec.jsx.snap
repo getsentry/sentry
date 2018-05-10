@@ -17,6 +17,7 @@ exports[`TeamMembers renders 1`] = `
     >
       <DropdownAutoComplete
         alignMenu="right"
+        emptyMessage="No members"
         items={Array []}
         menuHeader={
           <StyledMembersLabel>

@@ -4,6 +4,7 @@ import React from 'react';
 import _ from 'lodash';
 import styled from 'react-emotion';
 
+import {t} from 'app/locale';
 import AutoComplete from 'app/components/autoComplete';
 import Input from 'app/views/settings/components/forms/controls/input';
 import space from 'app/styles/space';
@@ -37,6 +38,16 @@ class DropdownAutoCompleteMenu extends React.Component {
     onSelect: PropTypes.func,
 
     /**
+     * Message to display when there are no items initially
+     */
+    emptyMessage: PropTypes.node,
+
+    /**
+     * Message to display when there are no items that match the search
+     */
+    noResultsMessage: PropTypes.node,
+
+    /**
      * Presentational properties
      */
 
@@ -62,6 +73,7 @@ class DropdownAutoCompleteMenu extends React.Component {
   static defaultProps = {
     onSelect: () => {},
     blendCorner: true,
+    emptyMessage: t('No items'),
   };
 
   filterItems = (items, inputValue) =>
@@ -107,6 +119,8 @@ class DropdownAutoCompleteMenu extends React.Component {
       menuProps,
       alignMenu,
       blendCorner,
+      emptyMessage,
+      noResultsMessage,
       style,
       menuHeader,
       menuFooter,
@@ -114,7 +128,12 @@ class DropdownAutoCompleteMenu extends React.Component {
     } = this.props;
 
     return (
-      <AutoComplete itemToString={item => ''} onSelect={onSelect} {...props}>
+      <AutoComplete
+        resetInputOnClose
+        itemToString={item => ''}
+        onSelect={onSelect}
+        {...props}
+      >
         {({
           getActorProps,
           getRootProps,
@@ -127,6 +146,13 @@ class DropdownAutoCompleteMenu extends React.Component {
           isOpen,
           actions,
         }) => {
+          // Only filter results if menu is open
+          let autoCompleteResults =
+            (isOpen && this.autoCompleteFilter(items, inputValue)) || [];
+          let hasItems = items && !!items.length;
+          let hasResults = !!autoCompleteResults.length;
+          let showNoResultsMessage = inputValue && hasItems && !hasResults;
+
           return (
             <AutoCompleteRoot {...getRootProps()}>
               {children({
@@ -153,7 +179,14 @@ class DropdownAutoCompleteMenu extends React.Component {
                   />
                   <div>
                     {menuHeader && <StyledLabel>{menuHeader}</StyledLabel>}
-                    {this.autoCompleteFilter(items, inputValue).map(
+
+                    {!hasItems && <EmptyMessage>{emptyMessage}</EmptyMessage>}
+                    {showNoResultsMessage && (
+                      <EmptyMessage>
+                        {noResultsMessage || `${emptyMessage} ${t('found')}`}
+                      </EmptyMessage>
+                    )}
+                    {autoCompleteResults.map(
                       ({index, ...item}) =>
                         item.groupLabel ? (
                           <StyledLabel key={item.value}>{item.label}</StyledLabel>
@@ -264,6 +297,14 @@ const StyledMenu = styled(({isOpen, blendCorner, alignMenu, ...props}) => (
 
   ${getMenuBorderRadius};
   ${({alignMenu}) => (alignMenu === 'left' ? 'left: 0;' : '')};
+`;
+
+const EmptyMessage = styled('div')`
+  color: ${p => p.theme.gray1};
+  padding: ${space(1)} ${space(2)};
+  text-align: center;
+  font-size: 1.2em;
+  text-transform: none;
 `;
 
 export default DropdownAutoCompleteMenu;
