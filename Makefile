@@ -1,6 +1,5 @@
 NPM_ROOT = ./node_modules
 STATIC_DIR = src/sentry/static/sentry
-DJANGO_VERSION := ">=1.6,<1.7"
 
 ifneq "$(wildcard /usr/local/opt/libxmlsec1/lib)" ""
 	LDFLAGS += -L/usr/local/opt/libxmlsec1/lib
@@ -84,7 +83,6 @@ install-sentry:
 
 install-sentry-dev:
 	@echo "--> Installing Sentry (dev)"
-	pip install -q Django${DJANGO_VERSION}
 	$(PIP) install -e ".[dev,tests,optional]"
 
 build-js-po:

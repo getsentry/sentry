@@ -36,7 +36,7 @@ env:
     - CXX=g++-4.8
     - SOUTH_TESTS_MIGRATE=1
     - JEST_JUNIT_OUTPUT=jest.junit.xml
-    - DJANGO_VERSION=">=1.6,<1.7"
+    - DJANGO_VERSION=">=1.6.11,<1.7"
 
 # install additional package managers other than pip which comes with a "language: python" travis env
 before_install:
@@ -56,7 +56,7 @@ install:
   - yarn install --pure-lockfile
 # note, might need to add LDFLAGS
   - pip install codecov mysqlclient Django${DJANGO_VERSION}
-  - pip install -vvv ".[dev,tests,optional]"
+  - pip install -e ".[dev,tests,optional]"
 
 before_script:
   - pip freeze
