@@ -141,9 +141,11 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
     def get_installation_info(self, url, access_token, installation_id):
         session = http.build_session()
         resp = session.get(
-            # 'https://{}/api/v3/app/installations/{}'.format(url, installation_id),
-            # why does this 404???????
-            'https://{}/api/v3/app/installations/'.format(url, installation_id),
+            # why does this 404?
+            # Not Found for url: https://35.232.149.196/api/v3/app/installations/27
+            # https://developer.github.com/enterprise/2.13/v3/apps/#get-a-single-installation
+            'https://{}/api/v3/app/installations/{}'.format(url, installation_id),
+            # 'https://{}/api/v3/app/installations/'.format(url, installation_id),
             headers={
                 'Authorization': 'Bearer %s' % get_jwt(),
                 'Accept': 'application/vnd.github.machine-man-preview+json',
