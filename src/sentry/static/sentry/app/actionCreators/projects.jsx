@@ -62,7 +62,7 @@ const _debouncedLoadStats = debounce((api, projectSet, params) => {
 
   let idQueryParams = projects.map(project => `id:${project}`).join(' ');
   let endpoint = `/organizations/${params.orgId}/projects/`;
-  ProjectActions.loadStatsForProject(params.orgId, projects, params);
+
   api.request(endpoint, {
     query: {
       statsPeriod: '24h',
@@ -71,9 +71,7 @@ const _debouncedLoadStats = debounce((api, projectSet, params) => {
     success: data => {
       ProjectActions.loadStatsForProjectSuccess(data);
     },
-    error: data => {
-      ProjectActions.loadStatsForProjectError(data);
-    },
+    error: data => {},
   });
 
   // Reset projects list
