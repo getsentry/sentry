@@ -15,6 +15,11 @@ exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
     onMouseEnter={[Function]}
     onMouseLeave={[Function]}
   >
+    <OrganizationList>
+      <div
+        className="css-1qovpib-OrganizationList ejspo4a5"
+      />
+    </OrganizationList>
     <SidebarMenuItem
       style={
         Object {
