@@ -10,6 +10,7 @@ import AsyncComponent from 'app/components/asyncComponent';
 import OrganizationState from 'app/mixins/organizationState';
 import getProjectsByTeams from 'app/utils/getProjectsByTeams';
 import {sortProjects} from 'app/utils';
+import space from 'app/styles/space';
 import withTeams from 'app/utils/withTeams';
 import withProjects from 'app/utils/withProjects';
 import {t} from 'app/locale';
@@ -127,13 +128,23 @@ class Dashboard extends AsyncComponent {
   }
 }
 
+const ProjectCards = styled(Flex)`
+  flex-wrap: wrap;
+  padding: 0 ${space(3)} ${space(3)};
+`;
+
 const TeamSection = styled.div`
   border-bottom: ${p => (p.showBorder ? '1px solid ' + p.theme.borderLight : 0)};
+
+  &:last-child {
+    ${ProjectCards} {
+      padding-bottom: 0;
+    }
+  }
 `;
 
 const TeamTitleBar = styled(Flex)`
-  padding: 24px 24px 0;
-  margin-bottom: 16px;
+  padding: ${space(3)} ${space(4)} 10px;
 `;
 
 const TeamName = styled.h4`
@@ -141,13 +152,8 @@ const TeamName = styled.h4`
   font-size: 20px;
 `;
 
-const ProjectCards = styled(Flex)`
-  flex-wrap: wrap;
-  padding: 0 16px 24px;
-`;
-
 const ProjectCardWrapper = styled(Box)`
-  padding: 8px;
+  padding: 10px;
 `;
 
 const OrganizationDashboard = createReactClass({
