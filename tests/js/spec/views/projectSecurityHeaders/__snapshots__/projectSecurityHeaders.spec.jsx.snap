@@ -62,47 +62,49 @@ exports[`ProjectSecurityHeaders renders 1`] = `
             }
           }
         >
-          <tr>
-            <th
-              style={
-                Object {
-                  "padding": "8px 5px",
+          <tbody>
+            <tr>
+              <th
+                style={
+                  Object {
+                    "padding": "8px 5px",
+                  }
                 }
-              }
-            >
-              sentry_environment
-            </th>
-            <td
-              style={
-                Object {
-                  "padding": "8px 5px",
+              >
+                sentry_environment
+              </th>
+              <td
+                style={
+                  Object {
+                    "padding": "8px 5px",
+                  }
                 }
-              }
-            >
-              The environment name (e.g. production)
-              .
-            </td>
-          </tr>
-          <tr>
-            <th
-              style={
-                Object {
-                  "padding": "8px 5px",
+              >
+                The environment name (e.g. production)
+                .
+              </td>
+            </tr>
+            <tr>
+              <th
+                style={
+                  Object {
+                    "padding": "8px 5px",
+                  }
                 }
-              }
-            >
-              sentry_release
-            </th>
-            <td
-              style={
-                Object {
-                  "padding": "8px 5px",
+              >
+                sentry_release
+              </th>
+              <td
+                style={
+                  Object {
+                    "padding": "8px 5px",
+                  }
                 }
-              }
-            >
-              The version of the application.
-            </td>
-          </tr>
+              >
+                The version of the application.
+              </td>
+            </tr>
+          </tbody>
         </table>
       </PanelBody>
     </Panel>
