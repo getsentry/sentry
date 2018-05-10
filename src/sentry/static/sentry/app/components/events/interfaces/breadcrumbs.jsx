@@ -68,6 +68,7 @@ class BreadcrumbsInterface extends React.Component {
     // reverse array to get consistent idx between collapsed/expanded state
     // (indexes begin and increment from last breadcrumb)
     return crumbs
+      .sort((a, b) => a.timestamp > b.timestamp)
       .reverse()
       .map((item, idx) => {
         return <Breadcrumb key={idx} crumb={item} />;
