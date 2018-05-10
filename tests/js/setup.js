@@ -9,6 +9,7 @@ import PropTypes from 'prop-types';
 import ConfigStore from 'app/stores/configStore';
 import theme from 'app/utils/theme';
 
+jest.mock('lodash/debounce', () => jest.fn(fn => fn));
 jest.mock('app/utils/recreateRoute');
 jest.mock('app/translations');
 jest.mock('app/api');

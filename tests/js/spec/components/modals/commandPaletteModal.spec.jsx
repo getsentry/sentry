@@ -8,7 +8,6 @@ import FormSearchStore from 'app/stores/formSearchStore';
 import {navigateTo} from 'app/actionCreators/navigation';
 
 jest.mock('jquery');
-jest.mock('lodash/debounce', () => jest.fn(fn => fn));
 jest.mock('app/actionCreators/formSearch');
 jest.mock('app/actionCreators/navigation');
 

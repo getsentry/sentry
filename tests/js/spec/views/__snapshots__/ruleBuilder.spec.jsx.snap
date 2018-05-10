@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`RuleBuilder render() renders 1`] = `
+exports[`RuleBuilder renders 1`] = `
 <RuleBuilder
   onAddRule={
     [MockFunction] {
@@ -11,6 +11,32 @@ exports[`RuleBuilder render() renders 1`] = `
       ],
     }
   }
+  organization={
+    Object {
+      "access": Array [
+        "org:read",
+        "org:write",
+        "org:admin",
+        "project:read",
+        "project:write",
+        "project:admin",
+        "team:read",
+        "team:write",
+        "team:admin",
+      ],
+      "features": Array [],
+      "id": "3",
+      "name": "Organization Name",
+      "onboardingTasks": Array [],
+      "projects": Array [],
+      "slug": "org-slug",
+      "status": Object {
+        "id": "active",
+        "name": "active",
+      },
+      "teams": Array [],
+    }
+  }
   project={
     Object {
       "hasAccess": true,
@@ -19,7 +45,14 @@ exports[`RuleBuilder render() renders 1`] = `
       "isMember": true,
       "name": "Project Name",
       "slug": "project-slug",
-      "teams": Array [],
+      "teams": Array [
+        Object {
+          "id": "3",
+          "isMember": true,
+          "name": "COOL TEAM",
+          "slug": "cool-team",
+        },
+      ],
     }
   }
 >
@@ -389,354 +422,282 @@ exports[`RuleBuilder render() renders 1`] = `
           >
             <SelectOwners
               onChange={[Function]}
-              options={
-                Array [
-                  Object {
-                    "actor": Object {
-                      "id": "1",
-                      "name": "Jane Doe",
-                      "type": "user",
-                    },
-                    "label": "Jane Doe",
-                    "searchKey": "janedoe@example.com  Jane Doe",
-                    "value": "user:1",
+              organization={
+                Object {
+                  "access": Array [
+                    "org:read",
+                    "org:write",
+                    "org:admin",
+                    "project:read",
+                    "project:write",
+                    "project:admin",
+                    "team:read",
+                    "team:write",
+                    "team:admin",
+                  ],
+                  "features": Array [],
+                  "id": "3",
+                  "name": "Organization Name",
+                  "onboardingTasks": Array [],
+                  "projects": Array [],
+                  "slug": "org-slug",
+                  "status": Object {
+                    "id": "active",
+                    "name": "active",
                   },
-                  Object {
-                    "actor": Object {
-                      "id": "2",
-                      "name": "John Smith",
-                      "type": "user",
+                  "teams": Array [],
+                }
+              }
+              project={
+                Object {
+                  "hasAccess": true,
+                  "id": "2",
+                  "isBookmarked": false,
+                  "isMember": true,
+                  "name": "Project Name",
+                  "slug": "project-slug",
+                  "teams": Array [
+                    Object {
+                      "id": "3",
+                      "isMember": true,
+                      "name": "COOL TEAM",
+                      "slug": "cool-team",
                     },
-                    "label": "John Smith",
-                    "searchKey": "johnsmith@example.com  John Smith",
-                    "value": "user:2",
-                  },
-                ]
+                  ],
+                }
               }
               value={Array []}
             >
               <MultiSelectControl
+                async={true}
+                cache={false}
+                className="css-1domaf0"
+                defaultOptions={true}
+                filterOptions={[Function]}
+                loadOptions={[Function]}
                 onChange={[Function]}
-                options={
-                  Array [
-                    Object {
-                      "actor": Object {
-                        "id": "1",
-                        "name": "Jane Doe",
-                        "type": "user",
-                      },
-                      "label": "Jane Doe",
-                      "searchKey": "janedoe@example.com  Jane Doe",
-                      "value": "user:1",
-                    },
-                    Object {
-                      "actor": Object {
-                        "id": "2",
-                        "name": "John Smith",
-                        "type": "user",
-                      },
-                      "label": "John Smith",
-                      "searchKey": "johnsmith@example.com  John Smith",
-                      "value": "user:2",
-                    },
-                  ]
-                }
+                onInputChange={[Function]}
                 placeholder="Add Owners"
-                style={
-                  Object {
-                    "overflow": "visible",
-                    "width": 200,
-                  }
-                }
                 value={Array []}
                 valueComponent={[Function]}
               >
                 <SelectControl
+                  async={true}
+                  cache={false}
+                  className="css-1domaf0"
+                  defaultOptions={true}
+                  filterOptions={[Function]}
+                  loadOptions={[Function]}
                   multi={true}
                   onChange={[Function]}
-                  options={
-                    Array [
-                      Object {
-                        "actor": Object {
-                          "id": "1",
-                          "name": "Jane Doe",
-                          "type": "user",
-                        },
-                        "label": "Jane Doe",
-                        "searchKey": "janedoe@example.com  Jane Doe",
-                        "value": "user:1",
-                      },
-                      Object {
-                        "actor": Object {
-                          "id": "2",
-                          "name": "John Smith",
-                          "type": "user",
-                        },
-                        "label": "John Smith",
-                        "searchKey": "johnsmith@example.com  John Smith",
-                        "value": "user:2",
-                      },
-                    ]
-                  }
+                  onInputChange={[Function]}
                   placeholder="Add Owners"
-                  style={
-                    Object {
-                      "overflow": "visible",
-                      "width": 200,
-                    }
-                  }
                   value={Array []}
                   valueComponent={[Function]}
                 >
                   <StyledSelect
                     arrowRenderer={[Function]}
+                    async={true}
+                    cache={false}
+                    className="css-1domaf0"
+                    defaultOptions={true}
+                    filterOptions={[Function]}
+                    loadOptions={[Function]}
                     multi={true}
                     onChange={[Function]}
-                    options={
-                      Array [
-                        Object {
-                          "actor": Object {
-                            "id": "1",
-                            "name": "Jane Doe",
-                            "type": "user",
-                          },
-                          "label": "Jane Doe",
-                          "searchKey": "janedoe@example.com  Jane Doe",
-                          "value": "user:1",
-                        },
-                        Object {
-                          "actor": Object {
-                            "id": "2",
-                            "name": "John Smith",
-                            "type": "user",
-                          },
-                          "label": "John Smith",
-                          "searchKey": "johnsmith@example.com  John Smith",
-                          "value": "user:2",
-                        },
-                      ]
-                    }
+                    onInputChange={[Function]}
                     placeholder="Add Owners"
-                    style={
-                      Object {
-                        "overflow": "visible",
-                        "width": 200,
-                      }
-                    }
                     value={Array []}
                     valueComponent={[Function]}
                   >
                     <Component
                       arrowRenderer={[Function]}
-                      className="css-16280ey-StyledSelect eho28m20"
+                      async={true}
+                      cache={false}
+                      className="css-11osmt1-StyledSelect eho28m20"
+                      defaultOptions={true}
+                      filterOptions={[Function]}
+                      loadOptions={[Function]}
                       multi={true}
                       onChange={[Function]}
-                      options={
-                        Array [
-                          Object {
-                            "actor": Object {
-                              "id": "1",
-                              "name": "Jane Doe",
-                              "type": "user",
-                            },
-                            "label": "Jane Doe",
-                            "searchKey": "janedoe@example.com  Jane Doe",
-                            "value": "user:1",
-                          },
-                          Object {
-                            "actor": Object {
-                              "id": "2",
-                              "name": "John Smith",
-                              "type": "user",
-                            },
-                            "label": "John Smith",
-                            "searchKey": "johnsmith@example.com  John Smith",
-                            "value": "user:2",
-                          },
-                        ]
-                      }
+                      onInputChange={[Function]}
                       placeholder="Add Owners"
-                      style={
-                        Object {
-                          "overflow": "visible",
-                          "width": 200,
-                        }
-                      }
                       value={Array []}
                       valueComponent={[Function]}
                     >
-                      <Select
+                      <Async
                         arrowRenderer={[Function]}
-                        autosize={true}
-                        backspaceRemoves={true}
-                        backspaceToRemoveMessage="Press backspace to remove {label}"
-                        className="css-16280ey-StyledSelect eho28m20"
-                        clearAllText="Clear all"
-                        clearRenderer={[Function]}
-                        clearValueText="Clear value"
-                        clearable={true}
-                        closeOnSelect={true}
-                        deleteRemoves={true}
-                        delimiter=","
-                        disabled={false}
-                        escapeClearsValue={true}
+                        autoload={true}
+                        cache={false}
+                        className="css-11osmt1-StyledSelect eho28m20"
+                        defaultOptions={true}
                         filterOptions={[Function]}
                         ignoreAccents={true}
                         ignoreCase={true}
-                        inputProps={Object {}}
-                        isLoading={false}
-                        joinValues={false}
-                        labelKey="label"
-                        matchPos="any"
-                        matchProp="any"
-                        menuBuffer={0}
-                        menuRenderer={[Function]}
+                        loadOptions={[Function]}
+                        loadingPlaceholder="Loading..."
                         multi={true}
-                        noResultsText="No results found"
-                        onBlurResetsInput={true}
                         onChange={[Function]}
-                        onCloseResetsInput={true}
-                        onSelectResetsInput={true}
-                        openOnClick={true}
-                        optionComponent={[Function]}
-                        options={
-                          Array [
-                            Object {
-                              "actor": Object {
-                                "id": "1",
-                                "name": "Jane Doe",
-                                "type": "user",
-                              },
-                              "label": "Jane Doe",
-                              "searchKey": "janedoe@example.com  Jane Doe",
-                              "value": "user:1",
-                            },
-                            Object {
-                              "actor": Object {
-                                "id": "2",
-                                "name": "John Smith",
-                                "type": "user",
-                              },
-                              "label": "John Smith",
-                              "searchKey": "johnsmith@example.com  John Smith",
-                              "value": "user:2",
-                            },
-                          ]
-                        }
-                        pageSize={5}
+                        onInputChange={[Function]}
+                        options={Array []}
                         placeholder="Add Owners"
-                        removeSelected={true}
-                        required={false}
-                        rtl={false}
-                        scrollMenuIntoView={true}
-                        searchable={true}
-                        simpleValue={false}
-                        style={
-                          Object {
-                            "overflow": "visible",
-                            "width": 200,
-                          }
-                        }
-                        tabSelectsValue={true}
-                        trimFilter={true}
+                        searchPromptText="Type to search"
                         value={Array []}
                         valueComponent={[Function]}
-                        valueKey="value"
                       >
-                        <div
-                          className="Select css-16280ey-StyledSelect eho28m20 is-clearable is-searchable Select--multi"
+                        <Select
+                          arrowRenderer={[Function]}
+                          autoload={true}
+                          autosize={true}
+                          backspaceRemoves={true}
+                          backspaceToRemoveMessage="Press backspace to remove {label}"
+                          cache={false}
+                          className="css-11osmt1-StyledSelect eho28m20"
+                          clearAllText="Clear all"
+                          clearRenderer={[Function]}
+                          clearValueText="Clear value"
+                          clearable={true}
+                          closeOnSelect={true}
+                          defaultOptions={true}
+                          deleteRemoves={true}
+                          delimiter=","
+                          disabled={false}
+                          escapeClearsValue={true}
+                          filterOptions={[Function]}
+                          ignoreAccents={true}
+                          ignoreCase={true}
+                          inputProps={Object {}}
+                          isLoading={true}
+                          joinValues={false}
+                          labelKey="label"
+                          loadOptions={[Function]}
+                          loadingPlaceholder="Loading..."
+                          matchPos="any"
+                          matchProp="any"
+                          menuBuffer={0}
+                          menuRenderer={[Function]}
+                          multi={true}
+                          noResultsText="Loading..."
+                          onBlurResetsInput={true}
+                          onChange={[Function]}
+                          onCloseResetsInput={true}
+                          onInputChange={[Function]}
+                          onSelectResetsInput={true}
+                          openOnClick={true}
+                          optionComponent={[Function]}
+                          options={Array []}
+                          pageSize={5}
+                          placeholder="Loading..."
+                          removeSelected={true}
+                          required={false}
+                          rtl={false}
+                          scrollMenuIntoView={true}
+                          searchPromptText="Type to search"
+                          searchable={true}
+                          simpleValue={false}
+                          tabSelectsValue={true}
+                          trimFilter={true}
+                          value={Array []}
+                          valueComponent={[Function]}
+                          valueKey="value"
                         >
                           <div
-                            className="Select-control"
-                            onKeyDown={[Function]}
-                            onMouseDown={[Function]}
-                            onTouchEnd={[Function]}
-                            onTouchMove={[Function]}
-                            onTouchStart={[Function]}
-                            style={
-                              Object {
-                                "overflow": "visible",
-                                "width": 200,
-                              }
-                            }
+                            className="Select css-11osmt1-StyledSelect eho28m20 is-clearable is-loading is-searchable Select--multi"
                           >
-                            <span
-                              className="Select-multi-value-wrapper"
-                              id="react-select-3--value"
-                            >
-                              <div
-                                className="Select-placeholder"
-                              >
-                                Add Owners
-                              </div>
-                              <AutosizeInput
-                                aria-activedescendant="react-select-3--value"
-                                aria-expanded="false"
-                                aria-haspopup="false"
-                                aria-owns=""
-                                className="Select-input"
-                                injectStyles={true}
-                                minWidth="5"
-                                onBlur={[Function]}
-                                onChange={[Function]}
-                                onFocus={[Function]}
-                                required={false}
-                                role="combobox"
-                                value=""
-                              >
-                                <div
-                                  className="Select-input"
-                                  style={
-                                    Object {
-                                      "display": "inline-block",
-                                    }
-                                  }
-                                >
-                                  <input
-                                    aria-activedescendant="react-select-3--value"
-                                    aria-expanded="false"
-                                    aria-haspopup="false"
-                                    aria-owns=""
-                                    onBlur={[Function]}
-                                    onChange={[Function]}
-                                    onFocus={[Function]}
-                                    required={false}
-                                    role="combobox"
-                                    style={
-                                      Object {
-                                        "boxSizing": "content-box",
-                                        "width": "5px",
-                                      }
-                                    }
-                                    value=""
-                                  />
-                                  <div
-                                    style={
-                                      Object {
-                                        "height": 0,
-                                        "left": 0,
-                                        "overflow": "scroll",
-                                        "position": "absolute",
-                                        "top": 0,
-                                        "visibility": "hidden",
-                                        "whiteSpace": "pre",
-                                      }
-                                    }
-                                  />
-                                </div>
-                              </AutosizeInput>
-                            </span>
-                            <span
-                              className="Select-arrow-zone"
+                            <div
+                              className="Select-control"
+                              onKeyDown={[Function]}
                               onMouseDown={[Function]}
+                              onTouchEnd={[Function]}
+                              onTouchMove={[Function]}
+                              onTouchStart={[Function]}
                             >
                               <span
-                                className="icon-arrow-down"
-                              />
-                            </span>
+                                className="Select-multi-value-wrapper"
+                                id="react-select-3--value"
+                              >
+                                <div
+                                  className="Select-placeholder"
+                                >
+                                  Loading...
+                                </div>
+                                <AutosizeInput
+                                  aria-activedescendant="react-select-3--value"
+                                  aria-expanded="false"
+                                  aria-haspopup="false"
+                                  aria-owns=""
+                                  className="Select-input"
+                                  injectStyles={true}
+                                  minWidth="5"
+                                  onBlur={[Function]}
+                                  onChange={[Function]}
+                                  onFocus={[Function]}
+                                  required={false}
+                                  role="combobox"
+                                  value=""
+                                >
+                                  <div
+                                    className="Select-input"
+                                    style={
+                                      Object {
+                                        "display": "inline-block",
+                                      }
+                                    }
+                                  >
+                                    <input
+                                      aria-activedescendant="react-select-3--value"
+                                      aria-expanded="false"
+                                      aria-haspopup="false"
+                                      aria-owns=""
+                                      onBlur={[Function]}
+                                      onChange={[Function]}
+                                      onFocus={[Function]}
+                                      required={false}
+                                      role="combobox"
+                                      style={
+                                        Object {
+                                          "boxSizing": "content-box",
+                                          "width": "5px",
+                                        }
+                                      }
+                                      value=""
+                                    />
+                                    <div
+                                      style={
+                                        Object {
+                                          "height": 0,
+                                          "left": 0,
+                                          "overflow": "scroll",
+                                          "position": "absolute",
+                                          "top": 0,
+                                          "visibility": "hidden",
+                                          "whiteSpace": "pre",
+                                        }
+                                      }
+                                    />
+                                  </div>
+                                </AutosizeInput>
+                              </span>
+                              <span
+                                aria-hidden="true"
+                                className="Select-loading-zone"
+                              >
+                                <span
+                                  className="Select-loading"
+                                />
+                              </span>
+                              <span
+                                className="Select-arrow-zone"
+                                onMouseDown={[Function]}
+                              >
+                                <span
+                                  className="icon-arrow-down"
+                                />
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                      </Select>
+                        </Select>
+                      </Async>
                     </Component>
                   </StyledSelect>
                 </SelectControl>
@@ -768,7 +729,7 @@ exports[`RuleBuilder render() renders 1`] = `
             size="zero"
           >
             <Component
-              className="e1hyuoc79 css-nbmdxi-StyledButton-getColors-RuleAddButton e17811v30"
+              className="e1hyuoc79 css-1gabw8k-StyledButton-getColors-RuleAddButton e17811v30"
               disabled={false}
               onClick={[Function]}
               priority="primary"
@@ -776,7 +737,7 @@ exports[`RuleBuilder render() renders 1`] = `
               size="zero"
             >
               <button
-                className="e1hyuoc79 css-nbmdxi-StyledButton-getColors-RuleAddButton e17811v30"
+                className="e1hyuoc79 css-1gabw8k-StyledButton-getColors-RuleAddButton e17811v30"
                 disabled={false}
                 onClick={[Function]}
                 priority="primary"
@@ -876,9 +837,35 @@ exports[`RuleBuilder render() renders 1`] = `
 </RuleBuilder>
 `;
 
-exports[`RuleBuilder renders with suggestions renders 1`] = `
+exports[`RuleBuilder renders with suggestions 1`] = `
 <RuleBuilder
   onAddRule={[MockFunction]}
+  organization={
+    Object {
+      "access": Array [
+        "org:read",
+        "org:write",
+        "org:admin",
+        "project:read",
+        "project:write",
+        "project:admin",
+        "team:read",
+        "team:write",
+        "team:admin",
+      ],
+      "features": Array [],
+      "id": "3",
+      "name": "Organization Name",
+      "onboardingTasks": Array [],
+      "projects": Array [],
+      "slug": "org-slug",
+      "status": Object {
+        "id": "active",
+        "name": "active",
+      },
+      "teams": Array [],
+    }
+  }
   paths={
     Array [
       "a/bar",
@@ -893,7 +880,14 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
       "isMember": true,
       "name": "Project Name",
       "slug": "project-slug",
-      "teams": Array [],
+      "teams": Array [
+        Object {
+          "id": "3",
+          "isMember": true,
+          "name": "COOL TEAM",
+          "slug": "cool-team",
+        },
+      ],
     }
   }
   urls={
@@ -1479,29 +1473,49 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
           >
             <SelectOwners
               onChange={[Function]}
-              options={
-                Array [
-                  Object {
-                    "actor": Object {
-                      "id": "1",
-                      "name": "Jane Doe",
-                      "type": "user",
-                    },
-                    "label": "Jane Doe",
-                    "searchKey": "janedoe@example.com  Jane Doe",
-                    "value": "user:1",
+              organization={
+                Object {
+                  "access": Array [
+                    "org:read",
+                    "org:write",
+                    "org:admin",
+                    "project:read",
+                    "project:write",
+                    "project:admin",
+                    "team:read",
+                    "team:write",
+                    "team:admin",
+                  ],
+                  "features": Array [],
+                  "id": "3",
+                  "name": "Organization Name",
+                  "onboardingTasks": Array [],
+                  "projects": Array [],
+                  "slug": "org-slug",
+                  "status": Object {
+                    "id": "active",
+                    "name": "active",
                   },
-                  Object {
-                    "actor": Object {
-                      "id": "2",
-                      "name": "John Smith",
-                      "type": "user",
+                  "teams": Array [],
+                }
+              }
+              project={
+                Object {
+                  "hasAccess": true,
+                  "id": "2",
+                  "isBookmarked": false,
+                  "isMember": true,
+                  "name": "Project Name",
+                  "slug": "project-slug",
+                  "teams": Array [
+                    Object {
+                      "id": "3",
+                      "isMember": true,
+                      "name": "COOL TEAM",
+                      "slug": "cool-team",
                     },
-                    "label": "John Smith",
-                    "searchKey": "johnsmith@example.com  John Smith",
-                    "value": "user:2",
-                  },
-                ]
+                  ],
+                }
               }
               value={
                 Array [
@@ -1511,46 +1525,48 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
                       "name": "Jane Doe",
                       "type": "user",
                     },
-                    "label": "Jane Doe",
-                    "searchKey": "janedoe@example.com  Jane Doe",
+                    "label": <IdBadge
+                      avatarSize={24}
+                      hideEmail={true}
+                      useLink={false}
+                      user={
+                        Object {
+                          "email": "janedoe@example.com",
+                          "flags": Object {
+                            "newsletter_consent_prompt": false,
+                          },
+                          "hasPasswordAuth": true,
+                          "id": "1",
+                          "isAuthenticated": true,
+                          "name": "Jane Doe",
+                          "options": Object {
+                            "timezone": "UTC",
+                          },
+                          "user": Object {
+                            "email": "janedoe@example.com",
+                            "id": "1",
+                            "name": "Jane Doe",
+                          },
+                          "username": "foo@example.com",
+                        }
+                      }
+                    />,
+                    "searchKey": "janedoe@example.com jane doe",
                     "value": "user:1",
                   },
                 ]
               }
             >
               <MultiSelectControl
+                async={true}
+                cache={false}
+                className="css-1domaf0"
+                defaultOptions={true}
+                filterOptions={[Function]}
+                loadOptions={[Function]}
                 onChange={[Function]}
-                options={
-                  Array [
-                    Object {
-                      "actor": Object {
-                        "id": "1",
-                        "name": "Jane Doe",
-                        "type": "user",
-                      },
-                      "label": "Jane Doe",
-                      "searchKey": "janedoe@example.com  Jane Doe",
-                      "value": "user:1",
-                    },
-                    Object {
-                      "actor": Object {
-                        "id": "2",
-                        "name": "John Smith",
-                        "type": "user",
-                      },
-                      "label": "John Smith",
-                      "searchKey": "johnsmith@example.com  John Smith",
-                      "value": "user:2",
-                    },
-                  ]
-                }
+                onInputChange={[Function]}
                 placeholder="Add Owners"
-                style={
-                  Object {
-                    "overflow": "visible",
-                    "width": 200,
-                  }
-                }
                 value={
                   Array [
                     Object {
@@ -1559,8 +1575,33 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
                         "name": "Jane Doe",
                         "type": "user",
                       },
-                      "label": "Jane Doe",
-                      "searchKey": "janedoe@example.com  Jane Doe",
+                      "label": <IdBadge
+                        avatarSize={24}
+                        hideEmail={true}
+                        useLink={false}
+                        user={
+                          Object {
+                            "email": "janedoe@example.com",
+                            "flags": Object {
+                              "newsletter_consent_prompt": false,
+                            },
+                            "hasPasswordAuth": true,
+                            "id": "1",
+                            "isAuthenticated": true,
+                            "name": "Jane Doe",
+                            "options": Object {
+                              "timezone": "UTC",
+                            },
+                            "user": Object {
+                              "email": "janedoe@example.com",
+                              "id": "1",
+                              "name": "Jane Doe",
+                            },
+                            "username": "foo@example.com",
+                          }
+                        }
+                      />,
+                      "searchKey": "janedoe@example.com jane doe",
                       "value": "user:1",
                     },
                   ]
@@ -1568,39 +1609,16 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
                 valueComponent={[Function]}
               >
                 <SelectControl
+                  async={true}
+                  cache={false}
+                  className="css-1domaf0"
+                  defaultOptions={true}
+                  filterOptions={[Function]}
+                  loadOptions={[Function]}
                   multi={true}
                   onChange={[Function]}
-                  options={
-                    Array [
-                      Object {
-                        "actor": Object {
-                          "id": "1",
-                          "name": "Jane Doe",
-                          "type": "user",
-                        },
-                        "label": "Jane Doe",
-                        "searchKey": "janedoe@example.com  Jane Doe",
-                        "value": "user:1",
-                      },
-                      Object {
-                        "actor": Object {
-                          "id": "2",
-                          "name": "John Smith",
-                          "type": "user",
-                        },
-                        "label": "John Smith",
-                        "searchKey": "johnsmith@example.com  John Smith",
-                        "value": "user:2",
-                      },
-                    ]
-                  }
+                  onInputChange={[Function]}
                   placeholder="Add Owners"
-                  style={
-                    Object {
-                      "overflow": "visible",
-                      "width": 200,
-                    }
-                  }
                   value={
                     Array [
                       Object {
@@ -1609,8 +1627,33 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
                           "name": "Jane Doe",
                           "type": "user",
                         },
-                        "label": "Jane Doe",
-                        "searchKey": "janedoe@example.com  Jane Doe",
+                        "label": <IdBadge
+                          avatarSize={24}
+                          hideEmail={true}
+                          useLink={false}
+                          user={
+                            Object {
+                              "email": "janedoe@example.com",
+                              "flags": Object {
+                                "newsletter_consent_prompt": false,
+                              },
+                              "hasPasswordAuth": true,
+                              "id": "1",
+                              "isAuthenticated": true,
+                              "name": "Jane Doe",
+                              "options": Object {
+                                "timezone": "UTC",
+                              },
+                              "user": Object {
+                                "email": "janedoe@example.com",
+                                "id": "1",
+                                "name": "Jane Doe",
+                              },
+                              "username": "foo@example.com",
+                            }
+                          }
+                        />,
+                        "searchKey": "janedoe@example.com jane doe",
                         "value": "user:1",
                       },
                     ]
@@ -1619,39 +1662,16 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
                 >
                   <StyledSelect
                     arrowRenderer={[Function]}
+                    async={true}
+                    cache={false}
+                    className="css-1domaf0"
+                    defaultOptions={true}
+                    filterOptions={[Function]}
+                    loadOptions={[Function]}
                     multi={true}
                     onChange={[Function]}
-                    options={
-                      Array [
-                        Object {
-                          "actor": Object {
-                            "id": "1",
-                            "name": "Jane Doe",
-                            "type": "user",
-                          },
-                          "label": "Jane Doe",
-                          "searchKey": "janedoe@example.com  Jane Doe",
-                          "value": "user:1",
-                        },
-                        Object {
-                          "actor": Object {
-                            "id": "2",
-                            "name": "John Smith",
-                            "type": "user",
-                          },
-                          "label": "John Smith",
-                          "searchKey": "johnsmith@example.com  John Smith",
-                          "value": "user:2",
-                        },
-                      ]
-                    }
+                    onInputChange={[Function]}
                     placeholder="Add Owners"
-                    style={
-                      Object {
-                        "overflow": "visible",
-                        "width": 200,
-                      }
-                    }
                     value={
                       Array [
                         Object {
@@ -1660,8 +1680,33 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
                             "name": "Jane Doe",
                             "type": "user",
                           },
-                          "label": "Jane Doe",
-                          "searchKey": "janedoe@example.com  Jane Doe",
+                          "label": <IdBadge
+                            avatarSize={24}
+                            hideEmail={true}
+                            useLink={false}
+                            user={
+                              Object {
+                                "email": "janedoe@example.com",
+                                "flags": Object {
+                                  "newsletter_consent_prompt": false,
+                                },
+                                "hasPasswordAuth": true,
+                                "id": "1",
+                                "isAuthenticated": true,
+                                "name": "Jane Doe",
+                                "options": Object {
+                                  "timezone": "UTC",
+                                },
+                                "user": Object {
+                                  "email": "janedoe@example.com",
+                                  "id": "1",
+                                  "name": "Jane Doe",
+                                },
+                                "username": "foo@example.com",
+                              }
+                            }
+                          />,
+                          "searchKey": "janedoe@example.com jane doe",
                           "value": "user:1",
                         },
                       ]
@@ -1670,40 +1715,16 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
                   >
                     <Component
                       arrowRenderer={[Function]}
-                      className="css-16280ey-StyledSelect eho28m20"
+                      async={true}
+                      cache={false}
+                      className="css-11osmt1-StyledSelect eho28m20"
+                      defaultOptions={true}
+                      filterOptions={[Function]}
+                      loadOptions={[Function]}
                       multi={true}
                       onChange={[Function]}
-                      options={
-                        Array [
-                          Object {
-                            "actor": Object {
-                              "id": "1",
-                              "name": "Jane Doe",
-                              "type": "user",
-                            },
-                            "label": "Jane Doe",
-                            "searchKey": "janedoe@example.com  Jane Doe",
-                            "value": "user:1",
-                          },
-                          Object {
-                            "actor": Object {
-                              "id": "2",
-                              "name": "John Smith",
-                              "type": "user",
-                            },
-                            "label": "John Smith",
-                            "searchKey": "johnsmith@example.com  John Smith",
-                            "value": "user:2",
-                          },
-                        ]
-                      }
+                      onInputChange={[Function]}
                       placeholder="Add Owners"
-                      style={
-                        Object {
-                          "overflow": "visible",
-                          "width": 200,
-                        }
-                      }
                       value={
                         Array [
                           Object {
@@ -1712,88 +1733,56 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
                               "name": "Jane Doe",
                               "type": "user",
                             },
-                            "label": "Jane Doe",
-                            "searchKey": "janedoe@example.com  Jane Doe",
+                            "label": <IdBadge
+                              avatarSize={24}
+                              hideEmail={true}
+                              useLink={false}
+                              user={
+                                Object {
+                                  "email": "janedoe@example.com",
+                                  "flags": Object {
+                                    "newsletter_consent_prompt": false,
+                                  },
+                                  "hasPasswordAuth": true,
+                                  "id": "1",
+                                  "isAuthenticated": true,
+                                  "name": "Jane Doe",
+                                  "options": Object {
+                                    "timezone": "UTC",
+                                  },
+                                  "user": Object {
+                                    "email": "janedoe@example.com",
+                                    "id": "1",
+                                    "name": "Jane Doe",
+                                  },
+                                  "username": "foo@example.com",
+                                }
+                              }
+                            />,
+                            "searchKey": "janedoe@example.com jane doe",
                             "value": "user:1",
                           },
                         ]
                       }
                       valueComponent={[Function]}
                     >
-                      <Select
+                      <Async
                         arrowRenderer={[Function]}
-                        autosize={true}
-                        backspaceRemoves={true}
-                        backspaceToRemoveMessage="Press backspace to remove {label}"
-                        className="css-16280ey-StyledSelect eho28m20"
-                        clearAllText="Clear all"
-                        clearRenderer={[Function]}
-                        clearValueText="Clear value"
-                        clearable={true}
-                        closeOnSelect={true}
-                        deleteRemoves={true}
-                        delimiter=","
-                        disabled={false}
-                        escapeClearsValue={true}
+                        autoload={true}
+                        cache={false}
+                        className="css-11osmt1-StyledSelect eho28m20"
+                        defaultOptions={true}
                         filterOptions={[Function]}
                         ignoreAccents={true}
                         ignoreCase={true}
-                        inputProps={Object {}}
-                        isLoading={false}
-                        joinValues={false}
-                        labelKey="label"
-                        matchPos="any"
-                        matchProp="any"
-                        menuBuffer={0}
-                        menuRenderer={[Function]}
+                        loadOptions={[Function]}
+                        loadingPlaceholder="Loading..."
                         multi={true}
-                        noResultsText="No results found"
-                        onBlurResetsInput={true}
                         onChange={[Function]}
-                        onCloseResetsInput={true}
-                        onSelectResetsInput={true}
-                        openOnClick={true}
-                        optionComponent={[Function]}
-                        options={
-                          Array [
-                            Object {
-                              "actor": Object {
-                                "id": "1",
-                                "name": "Jane Doe",
-                                "type": "user",
-                              },
-                              "label": "Jane Doe",
-                              "searchKey": "janedoe@example.com  Jane Doe",
-                              "value": "user:1",
-                            },
-                            Object {
-                              "actor": Object {
-                                "id": "2",
-                                "name": "John Smith",
-                                "type": "user",
-                              },
-                              "label": "John Smith",
-                              "searchKey": "johnsmith@example.com  John Smith",
-                              "value": "user:2",
-                            },
-                          ]
-                        }
-                        pageSize={5}
+                        onInputChange={[Function]}
+                        options={Array []}
                         placeholder="Add Owners"
-                        removeSelected={true}
-                        required={false}
-                        rtl={false}
-                        scrollMenuIntoView={true}
-                        searchable={true}
-                        simpleValue={false}
-                        style={
-                          Object {
-                            "overflow": "visible",
-                            "width": 200,
-                          }
-                        }
-                        tabSelectsValue={true}
-                        trimFilter={true}
+                        searchPromptText="Type to search"
                         value={
                           Array [
                             Object {
@@ -1802,92 +1791,208 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
                                 "name": "Jane Doe",
                                 "type": "user",
                               },
-                              "label": "Jane Doe",
-                              "searchKey": "janedoe@example.com  Jane Doe",
+                              "label": <IdBadge
+                                avatarSize={24}
+                                hideEmail={true}
+                                useLink={false}
+                                user={
+                                  Object {
+                                    "email": "janedoe@example.com",
+                                    "flags": Object {
+                                      "newsletter_consent_prompt": false,
+                                    },
+                                    "hasPasswordAuth": true,
+                                    "id": "1",
+                                    "isAuthenticated": true,
+                                    "name": "Jane Doe",
+                                    "options": Object {
+                                      "timezone": "UTC",
+                                    },
+                                    "user": Object {
+                                      "email": "janedoe@example.com",
+                                      "id": "1",
+                                      "name": "Jane Doe",
+                                    },
+                                    "username": "foo@example.com",
+                                  }
+                                }
+                              />,
+                              "searchKey": "janedoe@example.com jane doe",
                               "value": "user:1",
                             },
                           ]
                         }
                         valueComponent={[Function]}
-                        valueKey="value"
                       >
-                        <div
-                          className="Select css-16280ey-StyledSelect eho28m20 has-value is-clearable is-searchable Select--multi"
+                        <Select
+                          arrowRenderer={[Function]}
+                          autoload={true}
+                          autosize={true}
+                          backspaceRemoves={true}
+                          backspaceToRemoveMessage="Press backspace to remove {label}"
+                          cache={false}
+                          className="css-11osmt1-StyledSelect eho28m20"
+                          clearAllText="Clear all"
+                          clearRenderer={[Function]}
+                          clearValueText="Clear value"
+                          clearable={true}
+                          closeOnSelect={true}
+                          defaultOptions={true}
+                          deleteRemoves={true}
+                          delimiter=","
+                          disabled={false}
+                          escapeClearsValue={true}
+                          filterOptions={[Function]}
+                          ignoreAccents={true}
+                          ignoreCase={true}
+                          inputProps={Object {}}
+                          isLoading={true}
+                          joinValues={false}
+                          labelKey="label"
+                          loadOptions={[Function]}
+                          loadingPlaceholder="Loading..."
+                          matchPos="any"
+                          matchProp="any"
+                          menuBuffer={0}
+                          menuRenderer={[Function]}
+                          multi={true}
+                          noResultsText="Loading..."
+                          onBlurResetsInput={true}
+                          onChange={[Function]}
+                          onCloseResetsInput={true}
+                          onInputChange={[Function]}
+                          onSelectResetsInput={true}
+                          openOnClick={true}
+                          optionComponent={[Function]}
+                          options={Array []}
+                          pageSize={5}
+                          placeholder="Loading..."
+                          removeSelected={true}
+                          required={false}
+                          rtl={false}
+                          scrollMenuIntoView={true}
+                          searchPromptText="Type to search"
+                          searchable={true}
+                          simpleValue={false}
+                          tabSelectsValue={true}
+                          trimFilter={true}
+                          value={
+                            Array [
+                              Object {
+                                "actor": Object {
+                                  "id": "1",
+                                  "name": "Jane Doe",
+                                  "type": "user",
+                                },
+                                "label": <IdBadge
+                                  avatarSize={24}
+                                  hideEmail={true}
+                                  useLink={false}
+                                  user={
+                                    Object {
+                                      "email": "janedoe@example.com",
+                                      "flags": Object {
+                                        "newsletter_consent_prompt": false,
+                                      },
+                                      "hasPasswordAuth": true,
+                                      "id": "1",
+                                      "isAuthenticated": true,
+                                      "name": "Jane Doe",
+                                      "options": Object {
+                                        "timezone": "UTC",
+                                      },
+                                      "user": Object {
+                                        "email": "janedoe@example.com",
+                                        "id": "1",
+                                        "name": "Jane Doe",
+                                      },
+                                      "username": "foo@example.com",
+                                    }
+                                  }
+                                />,
+                                "searchKey": "janedoe@example.com jane doe",
+                                "value": "user:1",
+                              },
+                            ]
+                          }
+                          valueComponent={[Function]}
+                          valueKey="value"
                         >
                           <div
-                            className="Select-control"
-                            onKeyDown={[Function]}
-                            onMouseDown={[Function]}
-                            onTouchEnd={[Function]}
-                            onTouchMove={[Function]}
-                            onTouchStart={[Function]}
-                            style={
-                              Object {
-                                "overflow": "visible",
-                                "width": 200,
-                              }
-                            }
+                            className="Select css-11osmt1-StyledSelect eho28m20 has-value is-clearable is-focused is-loading is-searchable Select--multi"
                           >
-                            <span
-                              className="Select-multi-value-wrapper"
-                              id="react-select-5--value"
+                            <div
+                              className="Select-control"
+                              onKeyDown={[Function]}
+                              onMouseDown={[Function]}
+                              onTouchEnd={[Function]}
+                              onTouchMove={[Function]}
+                              onTouchStart={[Function]}
                             >
-                              <ValueComponent
-                                disabled={false}
-                                id="react-select-5--value-0"
-                                instancePrefix="react-select-5-"
-                                key="value-0-user:1"
-                                onClick={null}
-                                onRemove={[Function]}
-                                placeholder="Add Owners"
-                                value={
-                                  Object {
-                                    "actor": Object {
-                                      "id": "1",
-                                      "name": "Jane Doe",
-                                      "type": "user",
-                                    },
-                                    "label": "Jane Doe",
-                                    "searchKey": "janedoe@example.com  Jane Doe",
-                                    "value": "user:1",
-                                  }
-                                }
+                              <span
+                                className="Select-multi-value-wrapper"
+                                id="react-select-5--value"
                               >
-                                <a
-                                  onClick={[Function]}
-                                >
-                                  <ActorAvatar
-                                    actor={
-                                      Object {
+                                <ValueComponent
+                                  disabled={false}
+                                  id="react-select-5--value-0"
+                                  instancePrefix="react-select-5-"
+                                  key="value-0-user:1"
+                                  onClick={null}
+                                  onRemove={[Function]}
+                                  placeholder="Loading..."
+                                  value={
+                                    Object {
+                                      "actor": Object {
                                         "id": "1",
                                         "name": "Jane Doe",
                                         "type": "user",
-                                      }
+                                      },
+                                      "label": <IdBadge
+                                        avatarSize={24}
+                                        hideEmail={true}
+                                        useLink={false}
+                                        user={
+                                          Object {
+                                            "email": "janedoe@example.com",
+                                            "flags": Object {
+                                              "newsletter_consent_prompt": false,
+                                            },
+                                            "hasPasswordAuth": true,
+                                            "id": "1",
+                                            "isAuthenticated": true,
+                                            "name": "Jane Doe",
+                                            "options": Object {
+                                              "timezone": "UTC",
+                                            },
+                                            "user": Object {
+                                              "email": "janedoe@example.com",
+                                              "id": "1",
+                                              "name": "Jane Doe",
+                                            },
+                                            "username": "foo@example.com",
+                                          }
+                                        }
+                                      />,
+                                      "searchKey": "janedoe@example.com jane doe",
+                                      "value": "user:1",
                                     }
-                                    size={28}
+                                  }
+                                >
+                                  <a
+                                    onClick={[Function]}
                                   >
-                                    <Avatar
-                                      hasTooltip={true}
-                                      size={28}
-                                      user={
+                                    <ActorAvatar
+                                      actor={
                                         Object {
-                                          "email": "janedoe@example.com",
-                                          "flags": Object {
-                                            "newsletter_consent_prompt": false,
-                                          },
-                                          "hasPasswordAuth": true,
                                           "id": "1",
-                                          "isAuthenticated": true,
                                           "name": "Jane Doe",
-                                          "options": Object {
-                                            "timezone": "UTC",
-                                          },
-                                          "username": "foo@example.com",
+                                          "type": "user",
                                         }
                                       }
+                                      size={28}
                                     >
-                                      <UserAvatar
-                                        gravatar={true}
+                                      <Avatar
                                         hasTooltip={true}
                                         size={28}
                                         user={
@@ -1903,36 +2008,57 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
                                             "options": Object {
                                               "timezone": "UTC",
                                             },
+                                            "user": Object {
+                                              "email": "janedoe@example.com",
+                                              "id": "1",
+                                              "name": "Jane Doe",
+                                            },
                                             "username": "foo@example.com",
                                           }
                                         }
                                       >
-                                        <BaseAvatar
-                                          gravatarId="janedoe@example.com"
+                                        <UserAvatar
+                                          gravatar={true}
                                           hasTooltip={true}
-                                          letterId="janedoe@example.com"
                                           size={28}
-                                          style={Object {}}
-                                          title="Jane Doe"
-                                          tooltip="Jane Doe (janedoe@example.com)"
-                                          type="gravatar"
+                                          user={
+                                            Object {
+                                              "email": "janedoe@example.com",
+                                              "flags": Object {
+                                                "newsletter_consent_prompt": false,
+                                              },
+                                              "hasPasswordAuth": true,
+                                              "id": "1",
+                                              "isAuthenticated": true,
+                                              "name": "Jane Doe",
+                                              "options": Object {
+                                                "timezone": "UTC",
+                                              },
+                                              "user": Object {
+                                                "email": "janedoe@example.com",
+                                                "id": "1",
+                                                "name": "Jane Doe",
+                                              },
+                                              "username": "foo@example.com",
+                                            }
+                                          }
                                         >
-                                          <Tooltip
-                                            disabled={false}
-                                            title="Jane Doe (janedoe@example.com)"
+                                          <BaseAvatar
+                                            gravatarId="janedoe@example.com"
+                                            hasTooltip={true}
+                                            letterId="janedoe@example.com"
+                                            size={28}
+                                            style={Object {}}
+                                            title="Jane Doe"
+                                            tooltip="Jane Doe (janedoe@example.com)"
+                                            type="gravatar"
                                           >
-                                            <StyledBaseAvatar
-                                              className="tip avatar"
-                                              style={
-                                                Object {
-                                                  "height": "28px",
-                                                  "width": "28px",
-                                                }
-                                              }
+                                            <Tooltip
+                                              disabled={false}
                                               title="Jane Doe (janedoe@example.com)"
                                             >
-                                              <span
-                                                className="tip avatar css-15umz1j-StyledBaseAvatar e1z0ohzl0"
+                                              <StyledBaseAvatar
+                                                className="tip avatar"
                                                 style={
                                                   Object {
                                                     "height": "28px",
@@ -1941,106 +2067,114 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
                                                 }
                                                 title="Jane Doe (janedoe@example.com)"
                                               >
-                                                <img
-                                                  onError={[Function]}
-                                                  onLoad={[Function]}
-                                                  src="undefined/avatar/e1f3994f2632af3d1c8c2dcc168a10e6?d=blank&s=32"
-                                                />
-                                              </span>
-                                            </StyledBaseAvatar>
-                                          </Tooltip>
-                                        </BaseAvatar>
-                                      </UserAvatar>
-                                    </Avatar>
-                                  </ActorAvatar>
-                                </a>
-                              </ValueComponent>
-                              <AutosizeInput
-                                aria-activedescendant="react-select-5--value"
-                                aria-expanded="false"
-                                aria-haspopup="false"
-                                aria-owns=""
-                                className="Select-input"
-                                injectStyles={true}
-                                minWidth="5"
-                                onBlur={[Function]}
-                                onChange={[Function]}
-                                onFocus={[Function]}
-                                required={false}
-                                role="combobox"
-                                value=""
-                              >
-                                <div
+                                                <span
+                                                  className="tip avatar css-15umz1j-StyledBaseAvatar e1z0ohzl0"
+                                                  style={
+                                                    Object {
+                                                      "height": "28px",
+                                                      "width": "28px",
+                                                    }
+                                                  }
+                                                  title="Jane Doe (janedoe@example.com)"
+                                                >
+                                                  <img
+                                                    onError={[Function]}
+                                                    onLoad={[Function]}
+                                                    src="undefined/avatar/e1f3994f2632af3d1c8c2dcc168a10e6?d=blank&s=32"
+                                                  />
+                                                </span>
+                                              </StyledBaseAvatar>
+                                            </Tooltip>
+                                          </BaseAvatar>
+                                        </UserAvatar>
+                                      </Avatar>
+                                    </ActorAvatar>
+                                  </a>
+                                </ValueComponent>
+                                <AutosizeInput
+                                  aria-activedescendant="react-select-5--value"
+                                  aria-expanded="false"
+                                  aria-haspopup="false"
+                                  aria-owns="react-select-5--backspace-remove-message"
                                   className="Select-input"
-                                  style={
-                                    Object {
-                                      "display": "inline-block",
-                                    }
-                                  }
+                                  injectStyles={true}
+                                  minWidth="5"
+                                  onBlur={[Function]}
+                                  onChange={[Function]}
+                                  onFocus={[Function]}
+                                  required={false}
+                                  role="combobox"
+                                  value=""
                                 >
-                                  <input
-                                    aria-activedescendant="react-select-5--value"
-                                    aria-expanded="false"
-                                    aria-haspopup="false"
-                                    aria-owns=""
-                                    onBlur={[Function]}
-                                    onChange={[Function]}
-                                    onFocus={[Function]}
-                                    required={false}
-                                    role="combobox"
-                                    style={
-                                      Object {
-                                        "boxSizing": "content-box",
-                                        "width": "5px",
-                                      }
-                                    }
-                                    value=""
-                                  />
                                   <div
+                                    className="Select-input"
                                     style={
                                       Object {
-                                        "height": 0,
-                                        "left": 0,
-                                        "overflow": "scroll",
-                                        "position": "absolute",
-                                        "top": 0,
-                                        "visibility": "hidden",
-                                        "whiteSpace": "pre",
+                                        "display": "inline-block",
                                       }
                                     }
-                                  />
-                                </div>
-                              </AutosizeInput>
-                            </span>
-                            <span
-                              aria-label="Clear all"
-                              className="Select-clear-zone"
-                              onMouseDown={[Function]}
-                              onTouchEnd={[Function]}
-                              onTouchMove={[Function]}
-                              onTouchStart={[Function]}
-                              title="Clear all"
-                            >
+                                  >
+                                    <input
+                                      aria-activedescendant="react-select-5--value"
+                                      aria-expanded="false"
+                                      aria-haspopup="false"
+                                      aria-owns="react-select-5--backspace-remove-message"
+                                      onBlur={[Function]}
+                                      onChange={[Function]}
+                                      onFocus={[Function]}
+                                      required={false}
+                                      role="combobox"
+                                      style={
+                                        Object {
+                                          "boxSizing": "content-box",
+                                          "width": "5px",
+                                        }
+                                      }
+                                      value=""
+                                    />
+                                    <div
+                                      style={
+                                        Object {
+                                          "height": 0,
+                                          "left": 0,
+                                          "overflow": "scroll",
+                                          "position": "absolute",
+                                          "top": 0,
+                                          "visibility": "hidden",
+                                          "whiteSpace": "pre",
+                                        }
+                                      }
+                                    />
+                                  </div>
+                                </AutosizeInput>
+                              </span>
                               <span
-                                className="Select-clear"
-                                dangerouslySetInnerHTML={
-                                  Object {
-                                    "__html": "&times;",
-                                  }
-                                }
-                              />
-                            </span>
-                            <span
-                              className="Select-arrow-zone"
-                              onMouseDown={[Function]}
-                            >
+                                aria-live="assertive"
+                                className="Select-aria-only"
+                                id="react-select-5--backspace-remove-message"
+                              >
+                                Press backspace to remove [object Object]
+                              </span>
                               <span
-                                className="icon-arrow-down"
-                              />
-                            </span>
+                                aria-hidden="true"
+                                className="Select-loading-zone"
+                              >
+                                <span
+                                  className="Select-loading"
+                                />
+                              </span>
+                              <span
+                                className="Select-arrow-zone"
+                                onMouseDown={[Function]}
+                              >
+                                <span
+                                  className="icon-arrow-down"
+                                />
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                      </Select>
+                        </Select>
+                      </Async>
                     </Component>
                   </StyledSelect>
                 </SelectControl>
@@ -2072,7 +2206,7 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
             size="zero"
           >
             <Component
-              className="e1hyuoc79 css-nbmdxi-StyledButton-getColors-RuleAddButton e17811v30"
+              className="e1hyuoc79 css-1gabw8k-StyledButton-getColors-RuleAddButton e17811v30"
               disabled={false}
               onClick={[Function]}
               priority="primary"
@@ -2080,7 +2214,7 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
               size="zero"
             >
               <button
-                className="e1hyuoc79 css-nbmdxi-StyledButton-getColors-RuleAddButton e17811v30"
+                className="e1hyuoc79 css-1gabw8k-StyledButton-getColors-RuleAddButton e17811v30"
                 disabled={false}
                 onClick={[Function]}
                 priority="primary"

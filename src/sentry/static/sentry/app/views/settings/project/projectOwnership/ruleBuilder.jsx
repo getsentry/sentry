@@ -2,18 +2,17 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 import {Flex} from 'grid-emotion';
+
+import {t} from 'app/locale';
 import memberListStore from 'app/stores/memberListStore';
-import ProjectsStore from 'app/stores/projectsStore';
 import Button from 'app/components/buttons/button';
 import SelectField from 'app/components/forms/selectField';
 import TextOverflow from 'app/components/textOverflow';
 import InlineSvg from 'app/components/inlineSvg';
 import Input from 'app/views/settings/components/forms/controls/input';
 import SentryTypes from 'app/proptypes';
-import {buildUserId, buildTeamId} from 'app/utils';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import SelectOwners from 'app/views/settings/project/projectOwnership/selectOwners';
-import {t} from 'app/locale';
 
 const initialState = {
   text: '',
@@ -24,6 +23,7 @@ const initialState = {
 class RuleBuilder extends React.Component {
   static propTypes = {
     project: SentryTypes.Project,
+    organization: SentryTypes.Organization,
     onAddRule: PropTypes.func,
     urls: PropTypes.arrayOf(PropTypes.string),
     paths: PropTypes.arrayOf(PropTypes.string),
@@ -32,39 +32,6 @@ class RuleBuilder extends React.Component {
   constructor(props) {
     super(props);
     this.state = initialState;
-  }
-
-  mentionableUsers() {
-    return memberListStore.getAll().map(({id, name, email}) => ({
-      value: buildUserId(id),
-      label: name || email,
-      searchKey: `${email}  ${name}`,
-      actor: {
-        type: 'user',
-        id,
-        name,
-      },
-    }));
-  }
-
-  mentionableTeams() {
-    let {project} = this.props;
-    let projectData = ProjectsStore.getBySlug(project.slug);
-
-    if (!projectData) {
-      return [];
-    }
-
-    return projectData.teams.map(team => ({
-      value: buildTeamId(team.id),
-      label: `#${team.slug}`,
-      searchKey: `#${team.slug}`,
-      actor: {
-        type: 'team',
-        id: team.id,
-        name: team.slug,
-      },
-    }));
   }
 
   handleTypeChange = val => {
@@ -102,7 +69,7 @@ class RuleBuilder extends React.Component {
   };
 
   render() {
-    let {urls, paths} = this.props;
+    let {urls, paths, project, organization} = this.props;
     let {type, text, owners} = this.state;
 
     return (
@@ -154,7 +121,8 @@ class RuleBuilder extends React.Component {
           <Divider src="icon-chevron-right" />
           <Flex flex="1" align="center" mr={1}>
             <SelectOwners
-              options={[...this.mentionableTeams(), ...this.mentionableUsers()]}
+              organization={organization}
+              project={project}
               value={owners}
               onChange={this.handleChangeOwners}
             />

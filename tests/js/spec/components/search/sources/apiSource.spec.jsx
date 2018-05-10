@@ -3,8 +3,6 @@ import {mount} from 'enzyme';
 
 import {ApiSource} from 'app/components/search/sources/apiSource';
 
-jest.mock('lodash/debounce', () => jest.fn(fn => fn));
-
 describe('ApiSource', function() {
   let wrapper;
   let org = TestStubs.Organization();
