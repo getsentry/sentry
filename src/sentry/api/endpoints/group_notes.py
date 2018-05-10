@@ -13,10 +13,8 @@ from sentry.api.serializers.rest_framework.group_notes import NoteSerializer, se
 
 from sentry.api.fields.actor import Actor
 
-from sentry.models import (
-    Activity, GroupLink, GroupSubscription, GroupSubscriptionReason,
-    ExternalIssue, Integration, User
-)
+from sentry.models import Activity, GroupSubscription, GroupSubscriptionReason, User
+from sentry.tasks.integrations import post_comment
 from sentry.utils.functional import extract_lazy_object
 
 
@@ -101,28 +99,15 @@ class GroupNotesEndpoint(GroupEndpoint):
             data=data,
         )
 
+        activity.send_notification()
+
         # sync Sentry comments to external issues
         if features.has('organizations:internal-catchall', group.organization, actor=request.user):
-            external_issues = list(
-                ExternalIssue.objects.filter(
-                    id__in=GroupLink.objects.filter(
-                        project_id=group.project_id,
-                        group_id=group.id,
-                        linked_type=GroupLink.LinkedType.issue,
-                    ).values_list('linked_id', flat=True)
-                )
-            )
-
-            if external_issues:
-                integrations = {
-                    i.id: i for i in Integration.objects.filter(
-                        id__in=[external_issue.integration_id for external_issue in external_issues]
-                    )
+            post_comment.apply_async(
+                kwargs={
+                    'group_id': group.id,
+                    'project_id': group.project_id,
+                    'data': data,
                 }
-
-                for external_issue in external_issues:
-                    integration = integrations[external_issue.integration_id]
-                    integration.get_installation().create_comment(external_issue.key, data['text'])
-
-        activity.send_notification()
+            )
         return Response(serialize(activity, request.user), status=201)
