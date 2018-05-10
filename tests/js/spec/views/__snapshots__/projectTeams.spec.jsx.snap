@@ -27,6 +27,7 @@ exports[`ProjectTeams renders 1`] = `
         <div>
           <DropdownAutoComplete
             alignMenu="right"
+            emptyMessage="No teams"
             items={
               Array [
                 Object {

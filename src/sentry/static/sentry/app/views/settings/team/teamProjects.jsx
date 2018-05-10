@@ -133,6 +133,7 @@ const TeamProjects = createReactClass({
             <DropdownAutoComplete
               items={otherProjects}
               onSelect={this.handleProjectSelected}
+              emptyMessage={t('No projects')}
             >
               {({isOpen, selectedItem}) => (
                 <DropdownButton isOpen={isOpen} size="xsmall">

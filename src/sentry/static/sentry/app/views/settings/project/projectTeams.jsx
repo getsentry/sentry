@@ -200,6 +200,7 @@ class ProjectTeams extends AsyncView {
         items={teamsToAdd}
         onSelect={this.handleAdd}
         menuHeader={menuHeader}
+        emptyMessage={t('No teams')}
       >
         {({isOpen, selectedItem}) => (
           <DropdownButton isOpen={isOpen} size="xsmall">

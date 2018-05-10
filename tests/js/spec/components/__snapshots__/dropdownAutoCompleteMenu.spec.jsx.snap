@@ -5,6 +5,7 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
   isOpen={true}
   itemToString={[Function]}
   onSelect={[Function]}
+  resetInputOnClose={true}
 />
 `;
 
@@ -13,6 +14,7 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
   isOpen={true}
   itemToString={[Function]}
   onSelect={[Function]}
+  resetInputOnClose={true}
 />
 `;
 

@@ -257,4 +257,19 @@ describe('AutoComplete', function() {
     expect(wrapper.instance().items.size).toBe(0);
     expect(wrapper.state('inputValue')).toBe('Pineapple');
   });
+
+  it('can reset input when menu closes', function() {
+    jest.useFakeTimers();
+    wrapper.setProps({resetInputOnClose: true});
+    input.simulate('focus');
+    expect(wrapper.state('isOpen')).toBe(true);
+
+    input.simulate('change', {target: {value: 'a'}});
+    expect(wrapper.state('inputValue')).toBe('a');
+
+    input.simulate('blur');
+    jest.runAllTimers();
+    expect(wrapper.state('isOpen')).toBe(false);
+    expect(wrapper.state('inputValue')).toBe('');
+  });
 });
