@@ -81,6 +81,7 @@ class SwitchOrganization extends React.Component {
 }
 const SwitchOrganizationContainer = withOrganizations(SwitchOrganization);
 
+export {SwitchOrganization};
 export default SwitchOrganizationContainer;
 
 const AddIcon = styled(InlineSvg)`
