@@ -226,6 +226,7 @@ describe('OrganizationDashboard', function() {
 
     it('uses ProjectsStatsStore to load stats', function() {
       jest.useFakeTimers();
+      ProjectsStatsStore.onStatsLoadSuccess([{...projects[0], stats: [[1517281200, 2]]}]);
       const loadStatsSpy = jest.spyOn(projectsActions, 'loadStatsForProject');
       const mock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
@@ -249,19 +250,20 @@ describe('OrganizationDashboard', function() {
       expect(loadStatsSpy).toHaveBeenCalledTimes(9);
       expect(mock).not.toHaveBeenCalled();
 
-      // Has 9 Loading Cards
-      expect(wrapper.find('LoadingCard')).toHaveLength(9);
+      // Has 8 Loading Cards because 1 project has been loaded in store already
+      expect(wrapper.find('LoadingCard')).toHaveLength(8);
 
       // Advance timers so that batched request fires
       jest.advanceTimersByTime(51);
 
       expect(mock).toHaveBeenCalledTimes(1);
       // query ids = 3, 2, 4 = bookmarked
+      // 1 - already loaded in store so shouldn't be in query
       expect(mock).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
           query: expect.objectContaining({
-            query: 'id:3 id:2 id:4 id:3 id:2 id:4 id:5 id:1 id:6',
+            query: 'id:3 id:2 id:4 id:5 id:6',
           }),
         })
       );
