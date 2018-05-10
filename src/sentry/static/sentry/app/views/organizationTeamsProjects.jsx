@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {Box, Flex} from 'grid-emotion';
 import {Link} from 'react-router';
-import LazyLoad from 'react-lazy-load';
+import LazyLoad from 'react-lazyload';
 
 import BarChart from 'app/components/barChart';
 import Button from 'app/components/buttons/button';
