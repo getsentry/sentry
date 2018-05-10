@@ -10,11 +10,6 @@ endif
 
 PIP = LDFLAGS="$(LDFLAGS)" pip -q
 
-
-####################
-# End user recipes #
-####################
-
 # TODO test the all recipe, and also why did we separate develop from develop-only? better to merge into just develop
 all: update-submodules install-system-pkgs install-yarn-pkgs install-sentry
 develop: setup-git develop-only
@@ -211,7 +206,7 @@ travis-lint-snuba: lint-python
 travis-lint-js: lint-js
 travis-lint-cli: travis-noop
 travis-lint-dist: travis-noop
-travis-lint-django-18: travis-lint-postgres
+travis-lint-django-18: lint-python
 
 .PHONY: travis-lint-sqlite travis-lint-postgres travis-lint-mysql travis-lint-js travis-lint-cli travis-lint-dist
 
@@ -222,13 +217,12 @@ travis-test-mysql: test-python
 travis-test-acceptance: test-acceptance
 travis-test-network: test-network
 travis-test-snuba: test-snuba
-travis-test-js:
-	$(MAKE) test-js
+travis-test-js: test-js
 travis-test-cli: test-cli
 travis-test-dist:
 	SENTRY_BUILD=$(TRAVIS_COMMIT) SENTRY_LIGHT_BUILD=0 python setup.py sdist bdist_wheel
 	@ls -lh dist/
-travis-test-django-18: travis-test-postgres
+travis-test-django-18: test-python
 
 .PHONY: travis-test-sqlite travis-test-postgres travis-test-mysql travis-test-js travis-test-cli travis-test-dist
 
