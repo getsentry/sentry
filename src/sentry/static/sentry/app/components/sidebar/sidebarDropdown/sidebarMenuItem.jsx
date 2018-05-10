@@ -66,3 +66,5 @@ const MenuItemLink = styled(({to, href, ...props}) => {
     padding-right: 0;
   }
 `;
+
+export {MenuItemLink};
