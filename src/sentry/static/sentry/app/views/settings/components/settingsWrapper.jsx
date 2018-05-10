@@ -1,8 +1,11 @@
 import $ from 'jquery';
 import React from 'react';
+import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 
 import ScrollToTop from 'app/views/settings/components/scrollToTop';
+import SentryTypes from 'app/proptypes';
+import withLatestContext from 'app/utils/withLatestContext';
 
 const StyledSettingsWrapper = styled.div`
   font-family: 'Rubik', sans-serif;
@@ -18,9 +21,34 @@ const StyledSettingsWrapper = styled.div`
 `;
 
 class SettingsWrapper extends React.Component {
-  componentWillMount() {
+  static propTypes = {
+    project: SentryTypes.Project,
+    organization: SentryTypes.Organization,
+  };
+  static childContextTypes = {
+    lastAppContext: PropTypes.oneOf(['project', 'organization']),
+  };
+
+  constructor(props) {
+    super(props);
+    // save current context
+    this.state = {
+      lastAppContext: !!props.project
+        ? 'project'
+        : !!props.organization ? 'organization' : null,
+    };
+  }
+
+  getChildContext() {
+    return {
+      lastAppContext: this.state.lastAppContext,
+    };
+  }
+
+  componentDidMount() {
     $(document.body).addClass('new-settings');
   }
+
   componentWillUnmount() {
     $(document.body).removeClass('new-settings');
   }
@@ -34,4 +62,4 @@ class SettingsWrapper extends React.Component {
   }
 }
 
-export default SettingsWrapper;
+export default withLatestContext(SettingsWrapper);

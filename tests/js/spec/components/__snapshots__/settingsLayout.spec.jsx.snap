@@ -5,9 +5,7 @@ exports[`SettingsLayout renders 1`] = `
   <SettingsHeader>
     <SettingsSubheader>
       <Container>
-        <withOrganizations>
-          Back to Project
-        </withOrganizations>
+        <withOrganizations />
       </Container>
     </SettingsSubheader>
     <Container>
