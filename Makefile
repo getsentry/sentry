@@ -17,7 +17,7 @@ PIP = LDFLAGS="$(LDFLAGS)" pip -q
 ####################
 
 # TODO test the all recipe, and also why did we separate develop from develop-only? better to merge into just develop
-all: update-submodules install-system-pkgs intall-yarn-pkgs install-sentry
+all: update-submodules install-system-pkgs install-yarn-pkgs install-sentry
 develop: setup-git develop-only
 develop-only: update-submodules install-system-pkgs install-yarn-pkgs install-sentry-dev
 
