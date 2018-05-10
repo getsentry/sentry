@@ -3,13 +3,17 @@ import {mount} from 'enzyme';
 
 import {ProjectCard} from 'app/views/organizationDashboard/projectCard';
 
+// NOTE: Unmocking debounce so that the actionCreator never fires
+jest.unmock('lodash/debounce');
+
 describe('ProjectCard', function() {
   let wrapper, projectMock;
 
   beforeEach(function() {
     wrapper = mount(
       <ProjectCard
-        project={TestStubs.Project({platforms: ['javascript']})}
+        project={TestStubs.Project()}
+        projectDetails={TestStubs.Project({platforms: ['javascript']})}
         params={{orgId: 'org-slug'}}
         stats={[[1525042800, 1], [1525046400, 2]]}
       />,
@@ -56,7 +60,8 @@ describe('ProjectCard', function() {
   it('renders empty state if no event has ever been sent', function() {
     wrapper = mount(
       <ProjectCard
-        project={TestStubs.Project({
+        project={TestStubs.Project()}
+        projectDetails={TestStubs.Project({
           platforms: [],
           firstEvent: null,
           platform: 'csharp',

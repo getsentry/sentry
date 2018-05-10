@@ -1,3 +1,5 @@
+import {debounce} from 'lodash';
+
 import {
   addLoadingMessage,
   addErrorMessage,
@@ -40,6 +42,38 @@ export function loadStats(api, params) {
       ProjectActions.loadStatsError(data);
     },
   });
+}
+
+// This is going to queue up a list of project ids we need to fetch stats for
+// Will be cleared when debounced function fires
+let _projectStatsToFetch = [];
+
+const _debouncedLoadStats = debounce((api, projects, params) => {
+  const idQueryParams = projects.map(project => `id:${project}`).join(' ');
+  let endpoint = `/organizations/${params.orgId}/projects/`;
+  ProjectActions.loadStatsForProject(params.orgId, projects, params);
+  api.request(endpoint, {
+    query: {
+      statsPeriod: '24h',
+      query: idQueryParams,
+    },
+    success: data => {
+      ProjectActions.loadStatsForProjectSuccess(data);
+    },
+    error: data => {
+      ProjectActions.loadStatsForProjectError(data);
+    },
+  });
+
+  // Reset projects list
+  _projectStatsToFetch = [];
+}, 50);
+
+export function loadStatsForProject(api, project, params) {
+  // Queue up a list of projects that we need stats for
+  // and call a debounced function to fetch stats for list of projects
+  _projectStatsToFetch.push(project);
+  _debouncedLoadStats(api, _projectStatsToFetch, params);
 }
 
 export function setActiveProject(project) {

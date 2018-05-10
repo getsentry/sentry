@@ -26,6 +26,10 @@ jest.mock('react-router', () => {
     },
   };
 });
+jest.mock('react-lazyload', () => {
+  const LazyLoadMock = ({children}) => children;
+  return LazyLoadMock;
+});
 
 const constantDate = new Date(1508208080000); //National Pasta Day
 MockDate.set(constantDate);
