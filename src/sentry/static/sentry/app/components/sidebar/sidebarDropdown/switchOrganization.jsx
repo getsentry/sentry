@@ -57,7 +57,8 @@ class SwitchOrganization extends React.Component {
                       </SidebarMenuItem>
                     ))}
                   </OrganizationList>
-                  {hasOrganizations && canCreateOrganization && <Divider />}
+                  {hasOrganizations &&
+                    canCreateOrganization && <Divider css={{marginTop: 0}} />}
                   {canCreateOrganization && (
                     <SidebarMenuItem
                       to={'/organizations/new/'}
