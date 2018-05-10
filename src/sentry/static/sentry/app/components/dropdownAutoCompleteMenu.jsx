@@ -63,9 +63,25 @@ class DropdownAutoCompleteMenu extends React.Component {
     menuHeader: PropTypes.element,
 
     /**
+     * Props to pass to root component
+     */
+    rootProps: PropTypes.object,
+    /**
+     * Props to pass to input component
+     */
+    inputProps: PropTypes.object,
+    /**
      * Props to pass to menu component
      */
     menuProps: PropTypes.object,
+    /**
+     * Render function for Menu
+     */
+    renderMenu: PropTypes.func,
+    /**
+     * Max height of menu items, be sure to include units
+     */
+    maxHeight: PropTypes.string,
     css: PropTypes.object,
     style: PropTypes.object,
   };
@@ -117,15 +133,22 @@ class DropdownAutoCompleteMenu extends React.Component {
       children,
       items,
       menuProps,
+      inputProps,
+      rootProps,
       alignMenu,
       blendCorner,
+      maxHeight,
       emptyMessage,
       noResultsMessage,
       style,
       menuHeader,
       menuFooter,
+      renderMenu,
       ...props
     } = this.props;
+
+    // eslint-disable-next-line
+    const Menu = renderMenu || StyledMenu;
 
     return (
       <AutoComplete
@@ -154,7 +177,7 @@ class DropdownAutoCompleteMenu extends React.Component {
           let showNoResultsMessage = inputValue && hasItems && !hasResults;
 
           return (
-            <AutoCompleteRoot {...getRootProps()}>
+            <AutoCompleteRoot {...getRootProps(rootProps)}>
               {children({
                 getActorProps,
                 actions,
@@ -163,7 +186,7 @@ class DropdownAutoCompleteMenu extends React.Component {
               })}
 
               {isOpen && (
-                <StyledMenu
+                <Menu
                   {...getMenuProps({
                     ...menuProps,
                     style,
@@ -175,9 +198,9 @@ class DropdownAutoCompleteMenu extends React.Component {
                   <StyledInput
                     autoFocus
                     placeholder="Filter search"
-                    {...getInputProps()}
+                    {...getInputProps(inputProps)}
                   />
-                  <div>
+                  <MenuContent maxHeight={maxHeight}>
                     {menuHeader && <StyledLabel>{menuHeader}</StyledLabel>}
 
                     {!hasItems && <EmptyMessage>{emptyMessage}</EmptyMessage>}
@@ -202,8 +225,8 @@ class DropdownAutoCompleteMenu extends React.Component {
                         )
                     )}
                     {menuFooter && <StyledLabel>{menuFooter}</StyledLabel>}
-                  </div>
-                </StyledMenu>
+                  </MenuContent>
+                </Menu>
               )}
             </AutoCompleteRoot>
           );
@@ -235,7 +258,7 @@ const getMenuBorderRadius = ({blendCorner, alignMenu, theme}) => {
   `;
 };
 
-const AutoCompleteRoot = styled(({isOpen, ...props}) => <div {...props} />)`
+const AutoCompleteRoot = styled('div')`
   position: relative;
   display: inline-block;
 `;
@@ -281,9 +304,7 @@ const StyledLabel = styled('div')`
   }
 `;
 
-const StyledMenu = styled(({isOpen, blendCorner, alignMenu, ...props}) => (
-  <div {...props} />
-))`
+const StyledMenu = styled('div')`
   background: #fff;
   border: 1px solid ${p => p.theme.borderLight};
   position: absolute;
@@ -297,6 +318,11 @@ const StyledMenu = styled(({isOpen, blendCorner, alignMenu, ...props}) => (
 
   ${getMenuBorderRadius};
   ${({alignMenu}) => (alignMenu === 'left' ? 'left: 0;' : '')};
+`;
+
+const MenuContent = styled('div')`
+  overflow-y: auto;
+  ${p => p.maxHeight && `max-height: ${p.maxHeight}`};
 `;
 
 const EmptyMessage = styled('div')`
