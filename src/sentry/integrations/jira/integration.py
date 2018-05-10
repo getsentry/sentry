@@ -45,6 +45,9 @@ class JiraIntegration(Integration):
     def create_comment(self, issue_id, comment):
         return self.get_client().create_comment(issue_id, comment)
 
+    def search_issues(self, query):
+        return self.get_client().search_issues(query)
+
 
 class JiraIntegrationProvider(IntegrationProvider):
     key = 'jira'
