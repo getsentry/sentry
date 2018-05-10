@@ -1,4 +1,4 @@
-import LazyLoad from 'react-lazy-load';
+import LazyLoad from 'react-lazyload';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
