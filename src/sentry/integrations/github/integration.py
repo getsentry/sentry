@@ -55,7 +55,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
     def get_installation_info(self, access_token, installation_id):
         session = http.build_session()
         resp = session.get(
-            '%s/app/installations/%s' % installation_id,
+            'https://api.github.com/app/installations/%s' % installation_id,
             headers={
                 'Authorization': 'Bearer %s' % get_jwt(),
                 'Accept': 'application/vnd.github.machine-man-preview+json',

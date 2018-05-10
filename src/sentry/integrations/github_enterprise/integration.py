@@ -4,16 +4,16 @@ from six.moves.urllib.parse import urlparse
 from django.utils.translation import ugettext_lazy as _
 from django import forms
 
-# from sentry import http, options
+from sentry import http
 from sentry.web.helpers import render_to_response
 from sentry.identity.pipeline import IdentityProviderPipeline
-from sentry.identity.github import get_user_info
+from sentry.identity.github_enterprise import get_user_info
 from sentry.integrations import IntegrationMetadata
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.utils.http import absolute_uri
 
-# from sentry.integrations.github.utils import get_jwt
+from sentry.integrations.github.utils import get_jwt
 
 
 DESCRIPTION = """
@@ -138,13 +138,47 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
                 GitHubEnterpriseInstallationRedirect(),
                 identity_pipeline_view]
 
+    def get_installation_info(self, url, access_token, installation_id):
+        session = http.build_session()
+        resp = session.get(
+            # 'https://{}/api/v3/app/installations/{}'.format(url, installation_id),
+            # why does this 404???????
+            'https://{}/api/v3/app/installations/'.format(url, installation_id),
+            headers={
+                'Authorization': 'Bearer %s' % get_jwt(),
+                'Accept': 'application/vnd.github.machine-man-preview+json',
+            },
+            verify=False
+        )
+        resp.raise_for_status()
+        installation_resp = resp.json()
+
+        resp = session.get(
+            'https://{}/api/v3/user/installations'.format(url),
+            params={'access_token': access_token},
+            headers={'Accept': 'application/vnd.github.machine-man-preview+json'},
+            verify=False
+        )
+        resp.raise_for_status()
+        user_installations_resp = resp.json()
+
+        # verify that user actually has access to the installation
+        for installation in user_installations_resp['installations']:
+            if installation['id'] == installation_resp['id']:
+                return installation_resp
+
+        return None
+
     def build_integration(self, state):
         identity = state['identity']['data']
         installation_data = state['installation_data']
-
-        user = get_user_info(identity['access_token'])
+        # this doesn't work yet:
+        # user = get_user_info(installation_data['url'], identity['access_token'])
         installation = self.get_installation_info(
-            identity['access_token'], state['installation_id'])
+            installation_data['url'],
+            identity['access_token'],
+            state['installation_id'])
+        # installation_data['id'])
 
         return {
             'name': installation['account']['login'],
@@ -159,7 +193,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
             },
             'user_identity': {
                 'type': 'github-enterprise',
-                'external_id': user['id'],
+                # 'external_id': user['id'],
                 'scopes': [],  # GitHub apps do not have user scopes
                 'data': {'access_token': identity['access_token']},
             },

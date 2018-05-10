@@ -5,6 +5,7 @@ __all__ = ['OAuth2Provider', 'OAuth2CallbackView', 'OAuth2LoginView']
 from six.moves.urllib.parse import parse_qsl, urlencode
 from uuid import uuid4
 from time import time
+from django.views.decorators.csrf import csrf_exempt
 
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.utils import json
@@ -161,10 +162,11 @@ class OAuth2LoginView(PipelineView):
             'redirect_uri': redirect_uri,
         }
 
+    @csrf_exempt
     def dispatch(self, request, pipeline):
-        # import ipdb;
-        # ipdb.set_trace()
-        if 'code' in request.GET or request.GET.get("response_type"):
+        import ipdb
+        ipdb.set_trace()
+        if 'code' in request.GET:
             return pipeline.next_step()
 
         state = uuid4().hex

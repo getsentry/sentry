@@ -185,7 +185,7 @@ def safe_urlopen(
     headers=None,
     allow_redirects=False,
     timeout=30,
-    verify_ssl=True,
+    verify_ssl=False,
     user_agent=None
 ):
     """
