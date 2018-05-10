@@ -182,6 +182,37 @@ describe('OrganizationDashboard', function() {
       expect(projectCards.at(4).prop('data-test-id')).toBe('m');
       expect(projectCards.at(5).prop('data-test-id')).toBe('z');
     });
+
+    it('renders favorited projects if there is any, even if team list is empty', function() {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/projects/?statsPeriod=24h',
+        body: [
+          TestStubs.Project({
+            teams: [],
+            stats: [[1517281200, 2], [1517310000, 1]],
+          }),
+        ],
+      });
+
+      const teams = [];
+      const projects = [TestStubs.Project({teams, isBookmarked: true})];
+
+      const wrapper = shallow(
+        <Dashboard
+          teams={teams}
+          projects={projects}
+          organization={TestStubs.Organization()}
+          params={{orgId: 'org-slug'}}
+        />,
+        TestStubs.routerContext()
+      );
+      const projectCard = wrapper.find('ProjectCardWrapper');
+
+      expect(projectCard).toHaveLength(1);
+
+      const emptyState = wrapper.find('EmptyState');
+      expect(emptyState).toHaveLength(0);
+    });
   });
 
   describe('ProjectsStatsStore', function() {
