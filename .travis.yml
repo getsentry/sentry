@@ -55,7 +55,8 @@ install:
   - sudo install -m755 ~/chromedriver /usr/local/bin/
   - yarn install --pure-lockfile
 # note, might need to add LDFLAGS
-  - pip install codecov mysqlclient Django${DJANGO_VERSION}
+# codecov is travis only or should be included in reuqirements text files?
+  - pip install codecov mysqlclient
   - pip install -e ".[dev,tests,optional]"
 
 before_script:
