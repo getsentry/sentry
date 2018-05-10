@@ -30,7 +30,6 @@ const Icon = styled(InlineSvg)`
 class BackButton extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization,
-    project: SentryTypes.Project,
     lastRoute: PropTypes.string,
   };
 
@@ -39,17 +38,14 @@ class BackButton extends React.Component {
   };
 
   render() {
-    let {params, organization, project, lastRoute} = this.props;
+    let {params, organization, lastRoute} = this.props;
     let {lastAppContext} = this.context;
     // lastAppContext is set when Settings is initial loaded,
     // so if that is truthy, determine if we have project context at that point
     // otherwise use what we have in latest context (e.g. if you navigated to settings directly)
     let shouldGoBackToProject = lastRoute && lastAppContext === 'project';
 
-    let projectId =
-      shouldGoBackToProject || !lastAppContext
-        ? params.projectId || (project && project.slug)
-        : null;
+    let projectId = shouldGoBackToProject || !lastAppContext ? params.projectId : null;
     let orgId = params.orgId || (organization && organization.slug);
     let url = projectId ? '/:orgId/:projectId/' : '/:orgId/';
     let label =
