@@ -119,7 +119,9 @@ class Dashboard extends AsyncComponent {
             </TeamSection>
           );
         })}
-        {!teamSlugs.length && <EmptyState orgId={params.orgId} />}
+        {!teamSlugs.length && (
+          <EmptyState projects={projects} teams={teams} organization={organization} />
+        )}
       </React.Fragment>
     );
   }
