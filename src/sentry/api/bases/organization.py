@@ -146,7 +146,7 @@ class OrganizationEndpoint(Endpoint):
             'organization': organization.id,
         })
 
-        request.organization = organization
+        request._request.organization = organization
 
         kwargs['organization'] = organization
         return (args, kwargs)
