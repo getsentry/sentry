@@ -55,8 +55,8 @@ install:
   - sudo install -m755 ~/chromedriver /usr/local/bin/
   - yarn install --pure-lockfile
 # note, might need to add LDFLAGS
-  - pip install -e ".[dev,tests,optional]"
   - pip install codecov mysqlclient Django${DJANGO_VERSION}
+  - pip install -vvv ".[dev,tests,optional]"
 
 before_script:
   - pip freeze
