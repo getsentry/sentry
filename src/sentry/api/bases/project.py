@@ -126,5 +126,7 @@ class ProjectEndpoint(Endpoint):
             'organization': project.organization_id,
         })
 
+        request._request.organization = project.organization
+
         kwargs['project'] = project
         return (args, kwargs)
