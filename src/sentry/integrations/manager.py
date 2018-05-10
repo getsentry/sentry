@@ -33,7 +33,6 @@ class IntegrationManager(object):
         return key in self.__values
 
     def register(self, cls):
-        print(cls.key)
         self.__values[cls.key] = cls
 
     def unregister(self, cls):

@@ -45,7 +45,6 @@ class GitHubEnterpriseAppsEndpoint(Endpoint):
     def post(self, request, *kwargs):
 
         secret = self.get_secret()
-        print("PAYLOAD PAYLOAD PAYLOAD")
         if secret is None:
             logger.error('github.webhook.missing-secret',)
             return HttpResponse(status=401)

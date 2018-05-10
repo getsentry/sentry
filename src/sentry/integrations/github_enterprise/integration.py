@@ -7,7 +7,7 @@ from django import forms
 from sentry import http
 from sentry.web.helpers import render_to_response
 from sentry.identity.pipeline import IdentityProviderPipeline
-from sentry.identity.github_enterprise import get_user_info
+# from sentry.identity.github_enterprise import get_user_info
 from sentry.integrations import IntegrationMetadata
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.pipeline import NestedPipelineView, PipelineView
@@ -172,8 +172,8 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
     def build_integration(self, state):
         identity = state['identity']['data']
         installation_data = state['installation_data']
-        # this doesn't work yet:
         # user = get_user_info(installation_data['url'], identity['access_token'])
+        # this doesn't work yet (404s):
         installation = self.get_installation_info(
             installation_data['url'],
             identity['access_token'],
