@@ -60,7 +60,7 @@ class ProjectHeader extends React.Component {
 
     return (
       <div className="sub-header flex flex-container flex-vertically-centered">
-        <div className="project-header p-t-1">
+        <div className="project-header">
           <div className="project-header-main">
             <div className="project-select-wrapper">
               <ProjectSelector organization={org} projectId={project.slug} />
@@ -123,6 +123,7 @@ class ProjectHeader extends React.Component {
                   <MenuItem
                     onClick={clearActiveEnvironment}
                     className={activeEnvironment === null && 'active'}
+                    linkClassName="truncate"
                   >
                     {allEnvironmentsLabel}
                   </MenuItem>
@@ -135,6 +136,7 @@ class ProjectHeader extends React.Component {
                         activeEnvironment.name === env.name &&
                         'active'
                       }
+                      linkClassName="truncate"
                     >
                       {env.displayName}
                     </MenuItem>
