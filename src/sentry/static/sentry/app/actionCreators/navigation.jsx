@@ -2,6 +2,7 @@ import React from 'react';
 
 import {openModal} from 'app/actionCreators/modal';
 import ContextPickerModal from 'app/components/contextPickerModal';
+import NavigationActions from 'app/actions/navigationActions';
 
 export function navigateTo(to, router) {
   // Check for placeholder params
@@ -25,4 +26,8 @@ export function navigateTo(to, router) {
   } else {
     router.push(to);
   }
+}
+
+export function setLastRoute(route) {
+  NavigationActions.setLastRoute(route);
 }

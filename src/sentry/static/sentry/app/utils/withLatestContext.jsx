@@ -22,7 +22,7 @@ const withLatestContext = WrappedComponent =>
       render() {
         let {organizations} = this.props;
         let {latestContext} = this.state;
-        let {organization, project} = latestContext || {};
+        let {organization, project, lastRoute} = latestContext || {};
 
         // Even though org details exists in LatestContextStore,
         // fetch organization from OrganizationsStore so that we can
@@ -39,6 +39,7 @@ const withLatestContext = WrappedComponent =>
             organizations={organizations}
             organization={latestOrganization}
             project={project}
+            lastRoute={lastRoute}
             {...this.props}
           />
         );

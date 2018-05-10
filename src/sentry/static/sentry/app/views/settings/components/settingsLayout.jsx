@@ -113,7 +113,7 @@ class SettingsLayout extends React.Component {
         <SettingsHeader>
           <SettingsSubheader>
             <Container>
-              <SettingsBackButton params={params}>Back to Project</SettingsBackButton>
+              <SettingsBackButton params={params} />
             </Container>
           </SettingsSubheader>
           <Container>
