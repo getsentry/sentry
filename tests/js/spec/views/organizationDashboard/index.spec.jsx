@@ -83,7 +83,7 @@ describe('OrganizationDashboard', function() {
         TestStubs.routerContext()
       );
       const emptyState = wrapper.find('EmptyState');
-      const favorites = wrapper.find('TeamSection[type="favorites"]');
+      const favorites = wrapper.find('TeamSection[data-test-id="favorites"]');
       const teamSection = wrapper.find('TeamSection');
       expect(emptyState).toHaveLength(0);
       expect(favorites).toHaveLength(0);
@@ -102,7 +102,7 @@ describe('OrganizationDashboard', function() {
         />,
         TestStubs.routerContext()
       );
-      const favorites = wrapper.find('TeamSection[type="favorites"]');
+      const favorites = wrapper.find('TeamSection[data-test-id="favorites"]');
       expect(favorites).toHaveLength(1);
     });
 

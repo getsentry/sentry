@@ -23,17 +23,8 @@ import NoEvents from './noEvents';
 class ProjectCard extends React.Component {
   static propTypes = {
     project: SentryTypes.Project.isRequired,
-    projectDetails: SentryTypes.Project,
-    stats: PropTypes.array,
     params: PropTypes.object,
   };
-
-  constructor(props) {
-    super(props);
-    this.state = {
-      projectDetails: null,
-    };
-  }
 
   componentDidMount() {
     const {project, params} = this.props;
@@ -59,19 +50,16 @@ class ProjectCard extends React.Component {
   };
 
   render() {
-    const {project, projectDetails, stats, params} = this.props;
+    const {project, params} = this.props;
+    const {stats} = project;
 
     const bookmarkText = project.isBookmarked
       ? t('Remove from bookmarks')
       : t('Add to bookmarks');
 
     return (
-      <ProjectCardWrapper
-        data-test-id={project.slug}
-        width={['100%', '50%', '33%', '25%']}
-      >
-        {stats === null && <LoadingCard />}
-        {stats && (
+      <Box p={1} data-test-id={project.slug} width={['100%', '50%', '33%', '25%']}>
+        {stats ? (
           <StyledProjectCard>
             <Flex justify="space-between" align="center">
               <StyledLink to={`/${params.orgId}/${project.slug}/`}>
@@ -86,17 +74,15 @@ class ProjectCard extends React.Component {
               </Tooltip>
             </Flex>
             <ChartContainer>
-              {!stats ? (
-                <NoStats>{t('Project stats are not available at the moment.')}</NoStats>
-              ) : (
-                <Chart stats={stats} noEvents={!project.firstEvent} />
-              )}
+              <Chart stats={stats} noEvents={!project.firstEvent} />
               {!project.firstEvent && <NoEvents />}
             </ChartContainer>
-            <PlatformList project={projectDetails} orgId={params.orgId} />
+            <PlatformList project={project} orgId={params.orgId} />
           </StyledProjectCard>
+        ) : (
+          <LoadingCard />
         )}
-      </ProjectCardWrapper>
+      </Box>
     );
   }
 }
@@ -125,25 +111,19 @@ const ProjectCardContainer = createReactClass({
     });
   },
   render() {
+    const {project, ...props} = this.props;
     const {projectDetails} = this.state;
     return (
       <ProjectCard
-        {...this.props}
-        projectDetails={projectDetails}
-        stats={projectDetails && projectDetails.stats}
+        {...props}
+        project={{
+          ...project,
+          ...(projectDetails || {}),
+        }}
       />
     );
   },
 });
-
-const NoStats = styled('div')`
-  background-color: rgba(255, 255, 255);
-  font-weight: bold;
-  font-size: 0.8em;
-  text-align: center;
-  opacity: 0.4;
-  padding: 18px 0;
-`;
 
 const ChartContainer = styled.div`
   position: relative;
@@ -170,10 +150,6 @@ const Star = styled.a`
     color: ${p => p.theme.yellowOrange};
     opacity: 0.6;
   }
-`;
-
-const ProjectCardWrapper = styled(Box)`
-  padding: 8px;
 `;
 
 const LoadingCard = styled('div')`

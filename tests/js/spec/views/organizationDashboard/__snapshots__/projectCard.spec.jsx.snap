@@ -14,39 +14,27 @@ exports[`ProjectCard renders 1`] = `
       "isBookmarked": false,
       "isMember": true,
       "name": "Project Name",
-      "slug": "project-slug",
-      "teams": Array [],
-    }
-  }
-  projectDetails={
-    Object {
-      "hasAccess": true,
-      "id": "2",
-      "isBookmarked": false,
-      "isMember": true,
-      "name": "Project Name",
       "platforms": Array [
         "javascript",
       ],
       "slug": "project-slug",
+      "stats": Array [
+        Array [
+          1525042800,
+          1,
+        ],
+        Array [
+          1525046400,
+          2,
+        ],
+      ],
       "teams": Array [],
     }
   }
-  stats={
-    Array [
-      Array [
-        1525042800,
-        1,
-      ],
-      Array [
-        1525046400,
-        2,
-      ],
-    ]
-  }
 >
-  <ProjectCardWrapper
+  <Box
     data-test-id="project-slug"
+    p={1}
     width={
       Array [
         "100%",
@@ -57,8 +45,9 @@ exports[`ProjectCard renders 1`] = `
     }
   >
     <Base
-      className="css-sw99u4-ProjectCardWrapper efesc7i5"
+      className="css-1g50fs4"
       data-test-id="project-slug"
+      p={1}
       width={
         Array [
           "100%",
@@ -69,13 +58,13 @@ exports[`ProjectCard renders 1`] = `
       }
     >
       <div
-        className="css-sw99u4-ProjectCardWrapper efesc7i5"
+        className="css-1g50fs4"
         data-test-id="project-slug"
         is={null}
       >
         <StyledProjectCard>
           <div
-            className="css-18be1td-StyledProjectCard efesc7i3"
+            className="css-18be1td-StyledProjectCard efesc7i2"
           >
             <Flex
               align="center"
@@ -94,17 +83,17 @@ exports[`ProjectCard renders 1`] = `
                     to="/org-slug/project-slug/"
                   >
                     <Link
-                      className="css-1vw4sd8-StyledLink efesc7i2"
+                      className="css-1vw4sd8-StyledLink efesc7i1"
                       to="/org-slug/project-slug/"
                     >
                       <Link
-                        className="css-1vw4sd8-StyledLink efesc7i2"
+                        className="css-1vw4sd8-StyledLink efesc7i1"
                         onlyActiveOnIndex={false}
                         style={Object {}}
                         to="/org-slug/project-slug/"
                       >
                         <a
-                          className="css-1vw4sd8-StyledLink efesc7i2"
+                          className="css-1vw4sd8-StyledLink efesc7i1"
                           onClick={[Function]}
                           style={Object {}}
                         >
@@ -125,7 +114,7 @@ exports[`ProjectCard renders 1`] = `
                       title="Add to bookmarks"
                     >
                       <a
-                        className="tip project-select-bookmark icon icon-star-solid css-31kf5u-Star efesc7i4"
+                        className="tip project-select-bookmark icon icon-star-solid css-31kf5u-Star efesc7i3"
                         onClick={[Function]}
                         title="Add to bookmarks"
                       />
@@ -136,7 +125,7 @@ exports[`ProjectCard renders 1`] = `
             </Flex>
             <ChartContainer>
               <div
-                className="css-1s8o1vf-ChartContainer efesc7i1"
+                className="css-1s8o1vf-ChartContainer efesc7i0"
               >
                 <Chart
                   noEvents={true}
@@ -359,6 +348,16 @@ exports[`ProjectCard renders 1`] = `
                     "javascript",
                   ],
                   "slug": "project-slug",
+                  "stats": Array [
+                    Array [
+                      1525042800,
+                      1,
+                    ],
+                    Array [
+                      1525046400,
+                      2,
+                    ],
+                  ],
                   "teams": Array [],
                 }
               }
@@ -381,6 +380,16 @@ exports[`ProjectCard renders 1`] = `
                       "javascript",
                     ],
                     "slug": "project-slug",
+                    "stats": Array [
+                      Array [
+                        1525042800,
+                        1,
+                      ],
+                      Array [
+                        1525046400,
+                        2,
+                      ],
+                    ],
                     "teams": Array [],
                   }
                 }
@@ -486,6 +495,6 @@ exports[`ProjectCard renders 1`] = `
         </StyledProjectCard>
       </div>
     </Base>
-  </ProjectCardWrapper>
+  </Box>
 </ProjectCard>
 `;

@@ -48,7 +48,7 @@ class Dashboard extends React.Component {
       <React.Fragment>
         {favorites.length > 0 && (
           <TeamSection
-            type="favorites"
+            data-test-id="favorites"
             orgId={params.orgId}
             showBorder
             team={null}
