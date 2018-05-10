@@ -1,8 +1,10 @@
+import {withRouter} from 'react-router';
 import React from 'react';
 import PropTypes from 'prop-types';
 import {Flex, Box} from 'grid-emotion';
 
 import {t, tct} from 'app/locale';
+import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/buttons/button';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import SentryTypes from 'app/proptypes';
@@ -90,4 +92,73 @@ class OrganizationAccessRequests extends React.Component {
   }
 }
 
-export default OrganizationAccessRequests;
+class OrganizationAccessRequestsContainer extends AsyncComponent {
+  static propTypes = {
+    routes: PropTypes.array,
+    router: PropTypes.object.isRequired,
+    organization: SentryTypes.Organization,
+  };
+
+  getDefaultState() {
+    let state = super.getDefaultState();
+    return {
+      ...state,
+      accessRequestBusy: new Map(),
+    };
+  }
+
+  getEndpoints() {
+    return [
+      ['requestList', `/organizations/${this.props.params.orgId}/access-requests/`],
+    ];
+  }
+
+  approveOrDeny = (isApproved, id) => {
+    let {params} = this.props;
+    let {orgId} = params || {};
+
+    this.setState(state => ({
+      accessRequestBusy: state.accessRequestBusy.set(id, true),
+    }));
+
+    return new Promise((resolve, reject) => {
+      this.api.request(`/organizations/${orgId}/access-requests/${id}/`, {
+        method: 'PUT',
+        data: {isApproved},
+        success: data => {
+          this.setState(state => ({
+            requestList: state.requestList.filter(
+              ({id: existingId}) => existingId !== id
+            ),
+          }));
+          resolve(data);
+        },
+        error: err => reject(err),
+        complete: () =>
+          this.setState(state => ({
+            accessRequestBusy: state.accessRequestBusy.set(id, false),
+          })),
+      });
+    });
+  };
+
+  handleApprove = id => this.approveOrDeny(true, id);
+
+  handleDeny = id => this.approveOrDeny(false, id);
+
+  renderBody() {
+    let {requestList, accessRequestBusy} = this.state;
+
+    return (
+      <OrganizationAccessRequests
+        onApprove={this.handleApprove}
+        onDeny={this.handleDeny}
+        accessRequestBusy={accessRequestBusy}
+        requestList={requestList}
+        {...this.props}
+      />
+    );
+  }
+}
+
+export default withRouter(OrganizationAccessRequestsContainer);

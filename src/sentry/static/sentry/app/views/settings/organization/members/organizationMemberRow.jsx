@@ -86,6 +86,7 @@ export default class OrganizationMemberRow extends React.PureComponent {
       currentUser,
       canRemoveMembers,
       canAddMembers,
+      style,
     } = this.props;
 
     let {id, flags, email, name, roleName, pending, user} = member;
@@ -104,7 +105,7 @@ export default class OrganizationMemberRow extends React.PureComponent {
     let isInviting = status === 'loading';
 
     return (
-      <PanelItem align="center" p={0} py={2}>
+      <PanelItem align="center" p={0} py={2} style={style}>
         <Box pl={2}>
           <Avatar size={32} user={user ? user : {email}} />
         </Box>
