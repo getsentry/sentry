@@ -3,15 +3,20 @@ import {mount} from 'enzyme';
 
 import {ProjectCard} from 'app/views/organizationDashboard/projectCard';
 
+// NOTE: Unmocking debounce so that the actionCreator never fires
+jest.unmock('lodash/debounce');
+
 describe('ProjectCard', function() {
   let wrapper, projectMock;
 
   beforeEach(function() {
     wrapper = mount(
       <ProjectCard
-        project={TestStubs.Project({platforms: ['javascript']})}
+        project={TestStubs.Project({
+          stats: [[1525042800, 1], [1525046400, 2]],
+          platforms: ['javascript'],
+        })}
         params={{orgId: 'org-slug'}}
-        stats={[[1525042800, 1], [1525046400, 2]]}
       />,
       TestStubs.routerContext()
     );
@@ -53,6 +58,15 @@ describe('ProjectCard', function() {
     );
   });
 
+  it('renders loading placeholder card if there are no stats', function() {
+    wrapper = mount(
+      <ProjectCard project={TestStubs.Project()} params={{orgId: 'org-slug'}} />,
+      TestStubs.routerContext()
+    );
+
+    expect(wrapper.find('LoadingCard')).toHaveLength(1);
+  });
+
   it('renders empty state if no event has ever been sent', function() {
     wrapper = mount(
       <ProjectCard
@@ -60,9 +74,9 @@ describe('ProjectCard', function() {
           platforms: [],
           firstEvent: null,
           platform: 'csharp',
+          stats: [],
         })}
         params={{orgId: 'org-slug'}}
-        stats={[]}
       />,
       TestStubs.routerContext()
     );

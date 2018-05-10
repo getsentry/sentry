@@ -37,13 +37,14 @@ class PlatformList extends React.Component {
   }
   render() {
     const {project, orgId} = this.props;
-    const platforms = project.platforms.slice(0, MAX_PLATFORMS);
+    const platforms =
+      project && project.platforms && project.platforms.slice(0, MAX_PLATFORMS);
 
     const link = `/${orgId}/${project.slug}/getting-started/${project.platform
       ? project.platform + '/'
       : ''}`;
 
-    if (!platforms.length) {
+    if (!platforms || !platforms.length) {
       return (
         <NoPlatforms align="center" p={2}>
           {project.firstEvent ? (
