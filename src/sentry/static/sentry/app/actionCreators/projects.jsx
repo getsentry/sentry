@@ -54,6 +54,12 @@ const _debouncedLoadStats = debounce((api, projectSet, params) => {
   let projects = Array.from(projectSet).filter(
     project => !existingProjectStats.includes(project)
   );
+
+  if (!projects.length) {
+    _projectStatsToFetch.clear();
+    return;
+  }
+
   let idQueryParams = projects.map(project => `id:${project}`).join(' ');
   let endpoint = `/organizations/${params.orgId}/projects/`;
   ProjectActions.loadStatsForProject(params.orgId, projects, params);
