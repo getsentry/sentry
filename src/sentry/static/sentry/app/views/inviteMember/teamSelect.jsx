@@ -40,9 +40,9 @@ class TeamSelect extends React.Component {
                     onChange={e => {
                       toggleTeam(slug);
                     }}
+                    style={{marginTop: 0}}
                   />
-                  <span>{name}</span>
-                  <span className="team-slug">{slug}</span>
+                  <span>{slug}</span>
                 </label>
               </TeamItem>
             ))}

@@ -443,21 +443,26 @@ exports[`CreateProject should render roles when available and allowed, and handl
                                   checked={false}
                                   id="bar"
                                   onChange={[Function]}
+                                  style={
+                                    Object {
+                                      "marginTop": 0,
+                                    }
+                                  }
                                 >
                                   <input
                                     checked={false}
                                     className="chk-select"
                                     id="bar"
                                     onChange={[Function]}
+                                    style={
+                                      Object {
+                                        "marginTop": 0,
+                                      }
+                                    }
                                     type="checkbox"
                                   />
                                 </Checkbox>
                                 <span>
-                                  bar
-                                </span>
-                                <span
-                                  className="team-slug"
-                                >
                                   bar
                                 </span>
                               </label>
@@ -476,21 +481,26 @@ exports[`CreateProject should render roles when available and allowed, and handl
                                   checked={false}
                                   id="foo"
                                   onChange={[Function]}
+                                  style={
+                                    Object {
+                                      "marginTop": 0,
+                                    }
+                                  }
                                 >
                                   <input
                                     checked={false}
                                     className="chk-select"
                                     id="foo"
                                     onChange={[Function]}
+                                    style={
+                                      Object {
+                                        "marginTop": 0,
+                                      }
+                                    }
                                     type="checkbox"
                                   />
                                 </Checkbox>
                                 <span>
-                                  foo
-                                </span>
-                                <span
-                                  className="team-slug"
-                                >
                                   foo
                                 </span>
                               </label>
