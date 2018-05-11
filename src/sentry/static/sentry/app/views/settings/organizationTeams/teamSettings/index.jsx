@@ -88,13 +88,15 @@ export default class TeamSettings extends AsyncView {
           </Box>
         </Form>
 
-        <AvatarChooser
-          type="team"
-          allowGravatar={false}
-          endpoint={`/teams/${organization.slug}/${team.slug}/avatar/`}
-          model={team}
-          onSave={this.handleSubmitSuccess}
-        />
+        {organization.features.includes('internal-catchall') && (
+          <AvatarChooser
+            type="team"
+            allowGravatar={false}
+            endpoint={`/teams/${organization.slug}/${team.slug}/avatar/`}
+            model={team}
+            onSave={this.handleSubmitSuccess}
+          />
+        )}
 
         {access.has('team:admin') && (
           <Panel>
