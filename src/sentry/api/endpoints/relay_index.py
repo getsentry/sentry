@@ -1,15 +1,14 @@
 from __future__ import absolute_import
 
-from rest_framework.permissions import IsAuthenticated
-
-from sentry.api.base import Endpoint
-from sentry.api.paginator import OffsetPaginator
-from sentry.api.serializers import serialize
 from sentry.models import Relay
+from sentry.api.base import Endpoint
+from sentry.api.serializers import serialize
+from sentry.api.paginator import OffsetPaginator
+from sentry.api.permissions import SuperuserPermission
 
 
 class RelayIndexEndpoint(Endpoint):
-    permission_classes = (IsAuthenticated, )
+    permission_classes = (SuperuserPermission, )
 
     def get(self, request):
         """

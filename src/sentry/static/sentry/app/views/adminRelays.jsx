@@ -2,16 +2,33 @@
 /* eslint-disable react/jsx-key */
 import React from 'react';
 import moment from 'moment';
+import createReactClass from 'create-react-class';
+
+import ApiMixin from 'app/mixins/apiMixin';
+import withEnvironment from 'app/utils/withEnvironment';
 
 import ResultGrid from '../components/resultGrid';
+import LinkWithConfirmation from '../components/linkWithConfirmation';
 import {t} from '../locale';
 
 const prettyDate = function(x) {
   return moment(x).format('ll LTS');
 };
 
-class AdminRelays extends React.Component {
-  getRow = row => {
+const AdminRelays = createReactClass({
+  displayName: 'GroupEventDetails',
+
+  mixins: [ApiMixin],
+
+  onDelete(key) {
+    this.api.request(`/relays/${key}/`, {
+      method: 'DELETE',
+      success: () => {},
+      error: () => {},
+    });
+  },
+
+  getRow(row) {
     return [
       <td>
         <strong>{row.relayId}</strong>
@@ -19,8 +36,20 @@ class AdminRelays extends React.Component {
       <td>{row.publicKey}</td>,
       <td style={{textAlign: 'right'}}>{prettyDate(row.firstSeen)}</td>,
       <td style={{textAlign: 'right'}}>{prettyDate(row.lastSeen)}</td>,
+      <td style={{textAlign: 'right'}}>
+        <span className="editor-tools">
+          <LinkWithConfirmation
+            className="danger"
+            title="Remove"
+            message={t('Are you sure you wish to delete this relay?')}
+            onConfirm={() => this.onDelete(row.id)}
+          >
+            {t('Remove')}
+          </LinkWithConfirmation>
+        </span>
+      </td>,
     ];
-  };
+  },
 
   render() {
     let columns = [
@@ -28,6 +57,7 @@ class AdminRelays extends React.Component {
       <th>Public Key</th>,
       <th style={{width: 150, textAlign: 'right'}}>First seen</th>,
       <th style={{width: 150, textAlign: 'right'}}>Last seen</th>,
+      <th />,
     ];
 
     return (
@@ -50,7 +80,7 @@ class AdminRelays extends React.Component {
         />
       </div>
     );
-  }
-}
+  },
+});
 
-export default AdminRelays;
+export default withEnvironment(AdminRelays);
