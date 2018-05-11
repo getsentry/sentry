@@ -52,8 +52,8 @@ class CreateProjectTest(AcceptanceTestCase):
 
         self.browser.click('.ref-create-team')
         self.browser.wait_until('.modal-dialog')
-        input = self.browser.element('input[name="name"]')
-        input.send_keys('New Team')
+        input = self.browser.element('input[name="slug"]')
+        input.send_keys('new-team')
 
         self.browser.snapshot(name='create project no teams - create team modal')
         self.browser.element('.modal-dialog form').submit()
