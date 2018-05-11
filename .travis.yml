@@ -43,14 +43,15 @@ before_install:
   - nvm install $TRAVIS_NODE_VERSION
   - npm install -g yarn@1.3.2
 install:
-  - wget -N "http://chromedriver.storage.googleapis.com/$(curl https://chromedriver.storage.googleapis.com/LATEST_RELEASE)/chromedriver_linux64.zip" -P ~/
-  - unzip ~/chromedriver_linux64.zip -d ~/
-  - rm ~/chromedriver_linux64.zip
-  - sudo install -m755 ~/chromedriver /usr/local/bin/
   - yarn install --pure-lockfile
 # note, might need to add LDFLAGS
   - pip install mysqlclient
   - pip install -e ".[dev,tests,optional]"
+# chromedriver needed for integration testing
+  - wget -N "http://chromedriver.storage.googleapis.com/$(curl https://chromedriver.storage.googleapis.com/LATEST_RELEASE)/chromedriver_linux64.zip" -P ~/
+  - unzip ~/chromedriver_linux64.zip -d ~/
+  - rm ~/chromedriver_linux64.zip
+  - sudo install -m755 ~/chromedriver /usr/local/bin/
 
 before_script:
   - pip freeze
@@ -135,6 +136,14 @@ matrix:
         - memcached
         - redis-server
         - postgresql
+    # django 1.8 in testing; allowed to fail
+    - python: 2.7
+      env: TEST_SUITE=postgres DJANGO_VERSION=">=1.8,<1.9"
+      services:
+        - memcached
+        - redis-server
+        - postgresql
+    # snuba in testing; allowed to fail
     - python: 2.7
       env: TEST_SUITE=snuba SENTRY_TAGSTORE=sentry.tagstore.snuba.SnubaTagStorage
       services:
@@ -146,13 +155,11 @@ matrix:
         - docker run -d --name clickhouse-server -p 9000:9000 -p 9009:9009 -p 8123:8123 --ulimit nofile=262144:262144 yandex/clickhouse-server
         - docker run -d --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=clickhouse-server:9000 --name snuba -p 1218:1218 --link clickhouse-server:clickhouse-server getsentry/snuba
         - docker ps -a
+  # jobs are defined in matrix/include
+  # to specify which jobs are allowed to fail, match the env exactly in matrix/allow_failures
   allow_failures:
     - python: 2.7
       env: TEST_SUITE=postgres DJANGO_VERSION=">=1.8,<1.9"
-      services:
-        - memcached
-        - redis-server
-        - postgresql
     - python: 2.7
       env: TEST_SUITE=snuba SENTRY_TAGSTORE=sentry.tagstore.snuba.SnubaTagStorage
 
