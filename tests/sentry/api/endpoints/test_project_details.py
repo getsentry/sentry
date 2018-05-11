@@ -90,7 +90,7 @@ class ProjectUpdateTest(APITestCase):
         })
         self.login_as(user=self.user)
 
-    def test_team_changes(self):
+    def test_team_changes_deprecated(self):
         project = self.create_project()
         team = self.create_team(members=[self.user])
         self.login_as(user=self.user)
@@ -106,30 +106,11 @@ class ProjectUpdateTest(APITestCase):
                 'team': team.slug,
             }
         )
-        assert resp.status_code == 200, resp.content
+        assert resp.status_code == 400, resp.content
+        assert resp.data['detail'][0] == 'Editing a team via this endpoint has been deprecated.'
+
         project = Project.objects.get(id=project.id)
         assert project.teams.first() == team
-
-    def test_team_changes_not_found(self):
-        project = self.create_project()
-        self.login_as(user=self.user)
-        url = reverse(
-            'sentry-api-0-project-details',
-            kwargs={
-                'organization_slug': project.organization.slug,
-                'project_slug': project.slug,
-            }
-        )
-        resp = self.client.put(
-            url, data={
-                'team': 'the-team-that-does-not-exist',
-            }
-        )
-        assert resp.status_code == 400, resp.content
-        assert resp.data['detail'][0] == 'The new team is not found.'
-        project = Project.objects.get(id=project.id)
-
-        assert project.teams.first() == self.team
 
     def test_simple_member_restriction(self):
         project = self.create_project()
