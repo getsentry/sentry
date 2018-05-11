@@ -6,6 +6,7 @@ import styled from 'react-emotion';
 import {withRouter} from 'react-router';
 import {Flex, Box} from 'grid-emotion';
 
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import SentryTypes from 'app/proptypes';
 import {Client} from 'app/api';
 import Link from 'app/components/link';
@@ -46,6 +47,8 @@ class ProjectCard extends React.Component {
       data: {
         isBookmarked: !project.isBookmarked,
       },
+    }).catch(() => {
+      addErrorMessage(t('Unable to toggle bookmark for %s', project.slug));
     });
   };
 
@@ -99,18 +102,18 @@ const ProjectCardContainer = createReactClass({
     const {project} = this.props;
     const initialState = ProjectsStatsStore.getInitialState() || {};
     return {
-      projectDetails: initialState[project.id] || null,
+      projectDetails: initialState[project.slug] || null,
     };
   },
-  onProjectStoreUpdate(itemsById) {
+  onProjectStoreUpdate(itemsBySlug) {
     const {project} = this.props;
 
     // Don't update state if we already have stats
-    if (!!this.state.projectDetails) return;
-    if (!itemsById[project.id]) return;
+    if (!itemsBySlug[project.slug]) return;
+    if (itemsBySlug[project.slug] === this.state.projectDetails) return;
 
     this.setState({
-      projectDetails: itemsById[project.id],
+      projectDetails: itemsBySlug[project.slug],
     });
   },
   render() {

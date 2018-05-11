@@ -306,7 +306,7 @@ describe('OrganizationDashboard', function() {
 
       // Resets store when it unmounts
       wrapper.unmount();
-      expect(ProjectsStatsStore.itemsById).toEqual({});
+      expect(ProjectsStatsStore.getAll()).toEqual({});
     });
   });
 });
