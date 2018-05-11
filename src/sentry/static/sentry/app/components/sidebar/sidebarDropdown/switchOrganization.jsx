@@ -33,7 +33,18 @@ class SwitchOrganization extends React.Component {
             <React.Fragment>
               <SwitchOrganizationMenuActor
                 data-test-id="sidebar-switch-org"
-                {...getActorProps()}
+                {...getActorProps({
+                  isStyled: true,
+                })}
+                onClick={e => {
+                  // This overwrites `DropdownMenu.getActorProps.onClick` which normally handles clicks on actor
+                  // to toggle visibility of menu. Instead, do nothing because it is nested and we only want it
+                  // to appear when hovered on. Will also stop menu from closing when clicked on (which seems to be common
+                  // behavior);
+
+                  // Stop propagation so that dropdown menu doesn't close here
+                  e.stopPropagation();
+                }}
               >
                 {t('Switch organization')}
 
