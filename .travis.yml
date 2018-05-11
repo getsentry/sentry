@@ -13,7 +13,7 @@ branches:
 cache:
   directories:
     - node_modules
-    - $HOME/.cache/pip
+    - $HOME/.cache/pip/wheels
     - $HOME/.cache/yarn
 
 addons:
