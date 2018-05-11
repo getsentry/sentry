@@ -184,32 +184,33 @@ describe('OrganizationDashboard', function() {
     });
 
     it('renders favorited projects if there is any, even if team list is empty', function() {
+      const projects = [
+        TestStubs.Project({
+          id: '1',
+          slug: 'm',
+          teams: [],
+          isBookmarked: true,
+          stats: [],
+        }),
+      ];
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/projects/?statsPeriod=24h',
-        body: [
-          TestStubs.Project({
-            teams: [],
-            stats: [[1517281200, 2], [1517310000, 1]],
-          }),
-        ],
+        url: '/organizations/org-slug/projects/',
+        body: projects,
       });
 
-      const teams = [];
-      const projects = [TestStubs.Project({teams, isBookmarked: true})];
-
-      const wrapper = shallow(
+      const wrapper = mount(
         <Dashboard
-          teams={teams}
+          teams={[]}
           projects={projects}
           organization={TestStubs.Organization()}
           params={{orgId: 'org-slug'}}
         />,
-        TestStubs.routerContext()
+        routerContext
       );
-      const projectCard = wrapper.find('ProjectCardWrapper');
 
-      expect(projectCard).toHaveLength(1);
-
+      expect(wrapper.find('TeamSection')).toHaveLength(1);
+      const projectCards = wrapper.find('ProjectCard');
+      expect(projectCards).toHaveLength(1);
       const emptyState = wrapper.find('EmptyState');
       expect(emptyState).toHaveLength(0);
     });
