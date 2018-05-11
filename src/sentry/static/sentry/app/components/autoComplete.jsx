@@ -169,7 +169,7 @@ class AutoComplete extends React.Component {
     callIfFunction(onClick, item, e);
   };
 
-  handleMenuMouseDown = ({onClick} = {}, e) => {
+  handleMenuMouseDown = () => {
     // Cancel close menu from input blur (mouseDown event can occur before input blur :()
     setTimeout(() => this.blurTimer && clearTimeout(this.blurTimer));
   };
