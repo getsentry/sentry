@@ -8,6 +8,7 @@ from django.core.urlresolvers import reverse
 from exam import fixture
 from mock import Mock
 
+from sentry.coreapi import APIRateLimited
 from sentry.models import ProjectKey
 from sentry.signals import event_accepted, event_dropped, event_filtered
 from sentry.testutils import (assert_mock_called_once_with_partial, TestCase)
@@ -746,3 +747,14 @@ class RobotsTxtTest(TestCase):
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         assert resp['Content-Type'] == 'text/plain'
+
+
+def rate_limited_dispatch(*args, **kwargs):
+    raise APIRateLimited(retry_after=42.42)
+
+
+class APIViewTest(TestCase):
+    @mock.patch('sentry.web.api.APIView._dispatch', new=rate_limited_dispatch)
+    def test_retry_after_int(self):
+        resp = self._postWithHeader({})
+        assert resp['Retry-After'] == '43'
