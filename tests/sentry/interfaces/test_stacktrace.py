@@ -354,7 +354,6 @@ class StacktraceTest(TestCase):
             {
                 'module': 'com.example.api.entry.EntriesResource_$$_javassist_seam_74',
                 'function': 'fn',
-                'file': 'EntriesResource_$$_javassist_seam_74.java'
             }
         )
         result = interface.get_hash(platform='java')
@@ -368,13 +367,25 @@ class StacktraceTest(TestCase):
             {
                 'module': 'com.example.api.entry.EntriesResource_$$_javassist_74',
                 'function': 'fn',
-                'file': 'EntriesResource_$$_javassist_seam_74.java'
             }
         )
         result = interface.get_hash(platform='java')
         self.assertEquals(
             result, [
                 'com.example.api.entry.EntriesResource_$$_javassist<auto>', 'fn'
+            ]
+        )
+
+        interface = Frame.to_python(
+            {
+                'filename': 'EntriesResource_$$_javassist_seam_74.java',
+                'function': 'fn',
+            }
+        )
+        result = interface.get_hash(platform='java')
+        self.assertEquals(
+            result, [
+                'EntriesResource_$$_javassist<auto>.java', 'fn'
             ]
         )
 
