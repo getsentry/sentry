@@ -4,8 +4,8 @@ import styled from 'react-emotion';
 
 import {t} from 'app/locale';
 import Checkbox from 'app/components/checkbox';
+import IdBadge from 'app/components/idBadge';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import TeamBadge from 'app/components/idBadge/teamBadge';
 
 const TeamItem = styled.div`
   width: 25%;
@@ -43,7 +43,7 @@ class TeamSelect extends React.Component {
                     }}
                     style={{marginTop: 0}}
                   />
-                  <TeamBadge team={team} hideAvatar />
+                  <IdBadge team={team} hideAvatar />
                 </label>
               </TeamItem>
             ))}
