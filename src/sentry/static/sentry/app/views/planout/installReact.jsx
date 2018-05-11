@@ -5,10 +5,10 @@ import createReactClass from 'create-react-class';
 import {t} from 'app/locale';
 
 const InstallReactTest = createReactClass({
-  displayName: 'ProjectInstallPlatform',
+  displayName: 'InstallReactTest',
 
   propTypes: {
-    dsn: PropTypes.str,
+    dsn: PropTypes.string,
   },
 
   getInitialState(props) {
