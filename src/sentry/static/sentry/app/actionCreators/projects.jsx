@@ -24,7 +24,7 @@ export function update(api, params) {
         return data;
       },
       err => {
-        ProjectActions.updateError(err);
+        ProjectActions.updateError(err, params.projectId);
         throw err;
       }
     );
@@ -50,7 +50,7 @@ export function loadStats(api, params) {
 let _projectStatsToFetch = new Set();
 
 const _debouncedLoadStats = debounce((api, projectSet, params) => {
-  let existingProjectStats = Object.keys(ProjectsStatsStore.itemsById);
+  let existingProjectStats = Object.values(ProjectsStatsStore.getAll()).map(({id}) => id);
   let projects = Array.from(projectSet).filter(
     project => !existingProjectStats.includes(project)
   );
