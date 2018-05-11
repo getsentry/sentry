@@ -58,7 +58,10 @@ class ProjectCard extends React.Component {
       : t('Add to bookmarks');
 
     return (
-      <Box p={1} data-test-id={project.slug} width={['100%', '50%', '33%', '25%']}>
+      <ProjectCardWrapper
+        data-test-id={project.slug}
+        width={['100%', '50%', '33%', '25%']}
+      >
         {stats ? (
           <StyledProjectCard>
             <Flex justify="space-between" align="center">
@@ -82,7 +85,7 @@ class ProjectCard extends React.Component {
         ) : (
           <LoadingCard />
         )}
-      </Box>
+      </ProjectCardWrapper>
     );
   }
 }
@@ -134,6 +137,10 @@ const ChartContainer = styled.div`
 const StyledLink = styled(Link)`
   ${overflowEllipsis};
   padding: 16px;
+`;
+
+const ProjectCardWrapper = styled(Box)`
+  padding: 10px;
 `;
 
 const StyledProjectCard = styled.div`

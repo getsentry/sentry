@@ -99,7 +99,7 @@ const StyledNav = styled(Flex)`
   border-bottom: 1px solid ${p => p.theme.borderLight};
   box-shadow: ${p => p.theme.dropShadowLight};
   background-color: white;
-  padding: ${space(2)} 24px;
+  padding: ${space(2)} ${space(4)};
 `;
 
 const StyledDropdown = styled.div`

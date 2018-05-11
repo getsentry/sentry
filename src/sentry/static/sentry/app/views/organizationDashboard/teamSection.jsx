@@ -4,6 +4,7 @@ import {Flex} from 'grid-emotion';
 import styled from 'react-emotion';
 
 import SentryTypes from 'app/proptypes';
+import space from 'app/styles/space';
 
 import TeamMembers from './teamMembers';
 import ProjectCard from './projectCard';
@@ -41,25 +42,30 @@ class TeamSection extends React.Component {
   }
 }
 
+const ProjectCards = styled(Flex)`
+  flex-wrap: wrap;
+  padding: 0 ${space(3)} ${space(3)};
+`;
+
 const TeamSectionWrapper = styled.div`
   border-bottom: ${p => (p.showBorder ? '1px solid ' + p.theme.borderLight : 0)};
-  min-height: 180px;
+
+  /* stylelint-disable no-duplicate-selectors */
+  &:last-child {
+    ${ProjectCards} {
+      padding-bottom: 0;
+    }
+  }
+  /* stylelint-enable */
 `;
 
 const TeamTitleBar = styled(Flex)`
-  padding: 24px 24px 0;
-  margin-bottom: 16px;
+  padding: ${space(3)} ${space(4)} 10px;
 `;
 
 const TeamName = styled.h4`
   margin: 0;
   font-size: 20px;
-  line-height: 24px;
-`;
-
-const ProjectCards = styled(Flex)`
-  flex-wrap: wrap;
-  padding: 0 16px 24px;
 `;
 
 export default TeamSection;
