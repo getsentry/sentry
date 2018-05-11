@@ -20,10 +20,10 @@ export default class TeamMembers extends AsyncComponent {
   }
 
   renderBody() {
-    if (this.state.members) {
-      const users = this.state.members.filter(({user}) => !!user).map(({user}) => user);
-      return <AvatarList users={users} />;
-    }
-    return null;
+    const {members} = this.state;
+    if (!members || !Array.isArray(members)) return null;
+
+    const users = members.filter(({user}) => !!user).map(({user}) => user);
+    return <AvatarList users={users} />;
   }
 }
