@@ -101,7 +101,7 @@ class AsyncComponent extends React.Component {
       let query = (params && params.query) || {};
       // If paginate option then pass entire `query` object to API call
       // It should only be expecting `query.cursor` for pagination
-      if (options.paginate) {
+      if (options.paginate || locationQuery.cursor) {
         query = {...locationQuery, ...query};
       }
 

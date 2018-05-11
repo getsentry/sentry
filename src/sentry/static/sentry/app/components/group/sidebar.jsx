@@ -1,15 +1,15 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
-
 import createReactClass from 'create-react-class';
+import classNames from 'classnames';
 
 import SentryTypes from 'app/proptypes';
 import ApiMixin from 'app/mixins/apiMixin';
 import SuggestedOwners from 'app/components/group/suggestedOwners';
 import GroupParticipants from 'app/components/group/participants';
 import GroupReleaseStats from 'app/components/group/releaseStats';
-import GroupState from 'app/mixins/groupState';
+import ProjectState from 'app/mixins/projectState';
 import HookStore from 'app/stores/hookStore';
 import IndicatorStore from 'app/stores/indicatorStore';
 import TagDistributionMeter from 'app/components/group/tagDistributionMeter';
@@ -21,7 +21,7 @@ const GroupSidebar = createReactClass({
   displayName: 'GroupSidebar',
 
   propTypes: {
-    group: PropTypes.object,
+    group: PropTypes.object.isRequired,
     event: PropTypes.object,
     environment: SentryTypes.Environment,
   },
@@ -30,7 +30,7 @@ const GroupSidebar = createReactClass({
     location: PropTypes.object,
   },
 
-  mixins: [ApiMixin, GroupState],
+  mixins: [ApiMixin, ProjectState],
 
   getInitialState() {
     // Allow injection via getsentry et all
@@ -47,7 +47,7 @@ const GroupSidebar = createReactClass({
   },
 
   componentWillMount() {
-    let group = this.props.group;
+    let {group} = this.props;
     this.api.request(`/issues/${group.id}/participants/`, {
       success: data => {
         this.setState({
@@ -61,7 +61,7 @@ const GroupSidebar = createReactClass({
         });
       },
     });
-    // Fetch group data for all environments since the one in GroupState is filtered for the selected environment
+    // Fetch group data for all environments since the one passed in props is filtered for the selected environment
     // The charts rely on having all environment data as well as the data for the selected env
     this.api.request(`/issues/${group.id}/`, {
       success: data => {
@@ -158,11 +158,11 @@ const GroupSidebar = createReactClass({
   },
 
   canChangeSubscriptionState() {
-    return !(this.getGroup().subscriptionDetails || {disabled: false}).disabled;
+    return !(this.props.group.subscriptionDetails || {disabled: false}).disabled;
   },
 
   getNotificationText() {
-    let group = this.getGroup();
+    let {group} = this.props;
 
     if (group.isSubscribed) {
       let result = t(
@@ -211,10 +211,14 @@ const GroupSidebar = createReactClass({
   },
 
   render() {
+    let {group} = this.props;
     let project = this.getProject();
     let projectId = project.slug;
     let orgId = this.getOrganization().slug;
-    let group = this.getGroup();
+
+    let subscribeBtnClass = classNames('btn btn-default btn-subscribe', {
+      subscribed: group.isSubscribed,
+    });
 
     return (
       <div className="group-stats">
@@ -234,6 +238,7 @@ const GroupSidebar = createReactClass({
           return (
             <TagDistributionMeter
               key={data.key}
+              data-test-id="group-tag"
               orgId={orgId}
               projectId={projectId}
               group={group}
@@ -243,7 +248,7 @@ const GroupSidebar = createReactClass({
           );
         })}
         {group.tags.length === 0 && (
-          <p>
+          <p data-test-id="no-tags">
             {this.props.environment
               ? tct('No tags found in the [env] environment', {
                   env: this.props.environment.displayName,
@@ -259,12 +264,8 @@ const GroupSidebar = createReactClass({
         </h6>
         <p className="help-block">{this.getNotificationText()}</p>
         {this.canChangeSubscriptionState() && (
-          <a
-            className={`btn btn-default btn-subscribe ${group.isSubscribed &&
-              'subscribed'}`}
-            onClick={this.toggleSubscription}
-          >
-            <span className="icon-signal" />{' '}
+          <a className={subscribeBtnClass} onClick={this.toggleSubscription}>
+            <span className="icon-signal" />
             {group.isSubscribed ? t('Unsubscribe') : t('Subscribe')}
           </a>
         )}
@@ -273,4 +274,5 @@ const GroupSidebar = createReactClass({
   },
 });
 
+export {GroupSidebar};
 export default withEnvironment(GroupSidebar);

@@ -47,17 +47,21 @@ class SwitchOrganization extends React.Component {
                   data-test-id="sidebar-switch-org-menu"
                   {...getMenuProps({isStyled: true})}
                 >
-                  {organizations.map(organization => (
-                    <SidebarMenuItem
-                      key={organization.slug}
-                      to={`/${organization.slug}/`}
-                    >
-                      <SidebarOrgSummary organization={organization} />
-                    </SidebarMenuItem>
-                  ))}
-                  {hasOrganizations && canCreateOrganization && <Divider />}
+                  <OrganizationList>
+                    {organizations.map(organization => (
+                      <SidebarMenuItem
+                        key={organization.slug}
+                        to={`/${organization.slug}/`}
+                      >
+                        <SidebarOrgSummary organization={organization} />
+                      </SidebarMenuItem>
+                    ))}
+                  </OrganizationList>
+                  {hasOrganizations &&
+                    canCreateOrganization && <Divider css={{marginTop: 0}} />}
                   {canCreateOrganization && (
                     <SidebarMenuItem
+                      data-test-id="sidebar-create-org"
                       to={'/organizations/new/'}
                       style={{alignItems: 'center'}}
                     >
@@ -78,6 +82,7 @@ class SwitchOrganization extends React.Component {
 }
 const SwitchOrganizationContainer = withOrganizations(SwitchOrganization);
 
+export {SwitchOrganization};
 export default SwitchOrganizationContainer;
 
 const AddIcon = styled(InlineSvg)`
@@ -117,4 +122,9 @@ const SwitchOrganizationMenu = styled('div')`
   ${SidebarDropdownMenu};
   top: 0;
   left: 256px;
+`;
+
+const OrganizationList = styled('div')`
+  max-height: 350px;
+  overflow-y: auto;
 `;
