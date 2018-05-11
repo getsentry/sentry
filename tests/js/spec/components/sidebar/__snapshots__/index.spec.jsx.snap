@@ -15,7 +15,13 @@ exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
     onMouseEnter={[Function]}
     onMouseLeave={[Function]}
   >
+    <OrganizationList>
+      <div
+        className="css-1qovpib-OrganizationList ejspo4a5"
+      />
+    </OrganizationList>
     <SidebarMenuItem
+      data-test-id="sidebar-create-org"
       style={
         Object {
           "alignItems": "center",
@@ -24,6 +30,7 @@ exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
       to="/organizations/new/"
     >
       <MenuItemLink
+        data-test-id="sidebar-create-org"
         style={
           Object {
             "alignItems": "center",
@@ -33,6 +40,7 @@ exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
       >
         <Component
           className="css-1vsrn4x-MenuItemLink ebifsjx1"
+          data-test-id="sidebar-create-org"
           style={
             Object {
               "alignItems": "center",
@@ -42,6 +50,7 @@ exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
         >
           <Link
             className="css-1vsrn4x-MenuItemLink ebifsjx1"
+            data-test-id="sidebar-create-org"
             style={
               Object {
                 "alignItems": "center",
@@ -51,6 +60,7 @@ exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
           >
             <Link
               className="css-1vsrn4x-MenuItemLink ebifsjx1"
+              data-test-id="sidebar-create-org"
               onlyActiveOnIndex={false}
               style={
                 Object {
@@ -61,6 +71,7 @@ exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
             >
               <a
                 className="css-1vsrn4x-MenuItemLink ebifsjx1"
+                data-test-id="sidebar-create-org"
                 onClick={[Function]}
                 style={
                   Object {
