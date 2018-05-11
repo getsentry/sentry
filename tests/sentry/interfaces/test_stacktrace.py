@@ -287,7 +287,7 @@ class StacktraceTest(TestCase):
                 'function': 'invoke'
             }
         )
-        result = interface.get_hash()
+        result = interface.get_hash(platform='java')
         self.assertEquals(result, [
             'sentry_clojure_example.core$_main$fn__<auto>',
             'invoke',
@@ -300,7 +300,7 @@ class StacktraceTest(TestCase):
                 'function': 'invoke'
             }
         )
-        result = interface.get_hash()
+        result = interface.get_hash(platform='java')
         self.assertEquals(
             result, [
                 'sentry_clojure_example.core$_main$fn__<auto>$fn__<auto>',
@@ -318,7 +318,7 @@ class StacktraceTest(TestCase):
                 'jipJipManagementApplication'
             }
         )
-        result = interface.get_hash()
+        result = interface.get_hash(platform='java')
         self.assertEquals(
             result, [
                 'invalid.gruml.talkytalkyhub.common.config.JipJipConfig'
@@ -339,13 +339,42 @@ class StacktraceTest(TestCase):
                 'jipJipManagementApplication'
             }
         )
-        result = interface.get_hash()
+        result = interface.get_hash(platform='java')
         self.assertEquals(
             result, [
                 'invalid.gruml.talkytalkyhub.common.config.JipJipConfig'
                 '$$EnhancerBySpringCGLIB$$<auto>$$EnhancerBySpringCGLIB$$<auto>'
                 '$$FastClassBySpringCGLIB$$<auto>',
                 'jipJipManagementApplication',
+            ]
+        )
+
+    def test_get_hash_ignores_javassist(self):
+        interface = Frame.to_python(
+            {
+                'module': 'com.example.api.entry.EntriesResource_$$_javassist_seam_74',
+                'function': 'fn',
+                'file': 'EntriesResource_$$_javassist_seam_74.java'
+            }
+        )
+        result = interface.get_hash(platform='java')
+        self.assertEquals(
+            result, [
+                'com.example.api.entry.EntriesResource_$$_javassist<auto>', 'fn'
+            ]
+        )
+
+        interface = Frame.to_python(
+            {
+                'module': 'com.example.api.entry.EntriesResource_$$_javassist_74',
+                'function': 'fn',
+                'file': 'EntriesResource_$$_javassist_seam_74.java'
+            }
+        )
+        result = interface.get_hash(platform='java')
+        self.assertEquals(
+            result, [
+                'com.example.api.entry.EntriesResource_$$_javassist<auto>', 'fn'
             ]
         )
 
@@ -356,7 +385,7 @@ class StacktraceTest(TestCase):
                 'function': 'invoke',
             }
         )
-        result = interface.get_hash()
+        result = interface.get_hash(platform='java')
         self.assertEquals(result, [
             'sun.reflect.GeneratedMethodAccessor',
             'invoke',
