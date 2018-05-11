@@ -100,9 +100,11 @@ describe('DropdownAutoCompleteMenu', function() {
     expect(wrapper.find('EmptyMessage')).toHaveLength(1);
     expect(wrapper.find('EmptyMessage').text()).toBe('No items!');
 
-    // Should still be "no items" empty message even if search results return an empty set
+    // Should be "No items! Found"  because there are no results and there is a search value
+    // This is for the case where items is an async result from an API endpoint that also does
+    // a string match query.
     wrapper.find('StyledInput').simulate('change', {target: {value: 'U-S-A'}});
-    expect(wrapper.find('EmptyMessage').text()).toBe('No items!');
+    expect(wrapper.find('EmptyMessage').text()).toBe('No items! found');
   });
 
   it('shows default empty results message when there are no items found in search', function() {

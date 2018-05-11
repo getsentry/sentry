@@ -14,6 +14,7 @@ function LoadingIndicator(props) {
     className,
     style,
     relative,
+    size,
   } = props;
   let cx = classNames(className, {
     overlay,
@@ -29,9 +30,17 @@ function LoadingIndicator(props) {
     'load-complete': finished,
   });
 
+  let loadingStyle = {};
+  if (size) {
+    loadingStyle = {
+      width: size,
+      height: size,
+    };
+  }
+
   return (
     <div className={cx} style={style}>
-      <div className={loadingCx}>
+      <div className={loadingCx} style={loadingStyle}>
         {finished ? <div className="checkmark draw" /> : null}
       </div>
 
@@ -48,6 +57,7 @@ LoadingIndicator.propTypes = {
   finished: PropTypes.bool,
   relative: PropTypes.bool,
   hideMessage: PropTypes.bool,
+  size: PropTypes.number,
 };
 
 export default LoadingIndicator;
