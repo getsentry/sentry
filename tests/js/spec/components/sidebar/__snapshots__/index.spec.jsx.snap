@@ -493,6 +493,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                     >
                       <SwitchOrganizationMenuActor
                         data-test-id="sidebar-switch-org"
+                        innerRef={[Function]}
                         onClick={[Function]}
                         onMouseEnter={[Function]}
                         onMouseLeave={[Function]}
