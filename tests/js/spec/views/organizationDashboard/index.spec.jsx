@@ -40,6 +40,10 @@ describe('OrganizationDashboard', function() {
       url: '/teams/org-slug/team-slug/members/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/stats/',
+      body: [[1517281200, 2], [1517310000, 1]],
+    });
     ProjectsStatsStore.reset();
   });
 

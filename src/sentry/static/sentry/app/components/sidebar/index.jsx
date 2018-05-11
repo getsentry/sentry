@@ -26,6 +26,7 @@ import SidebarDropdown from './sidebarDropdown';
 import SidebarHelp from './help';
 import SidebarItem from './sidebarItem';
 import OnboardingStatus from './onboardingStatus';
+import OrganizationStatsChart from './organizationStatsChart';
 
 class Sidebar extends React.Component {
   static propTypes = {
@@ -278,6 +279,8 @@ class Sidebar extends React.Component {
                   label={t('Stats')}
                   to={`/organizations/${organization.slug}/stats/`}
                 />
+
+                {!collapsed && <OrganizationStatsChart organization={organization} />}
               </SidebarSection>
             </React.Fragment>
           )}

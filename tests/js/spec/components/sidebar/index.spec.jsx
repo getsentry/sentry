@@ -33,6 +33,10 @@ describe('Sidebar', function() {
       url: '/broadcasts/',
       method: 'PUT',
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/stats/',
+      body: [[1517281200, 2], [1517310000, 1]],
+    });
   });
 
   it('renders', function() {
