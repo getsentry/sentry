@@ -241,6 +241,7 @@ const TeamMembers = createReactClass({
         emptyMessage={t('No members')}
         onChange={this.handleMemberFilterChange}
         busy={this.state.dropdownBusy}
+        onClose={() => this.debouncedFetchMembersRequest('')}
       >
         {({isOpen, selectedItem}) => (
           <DropdownButton isOpen={isOpen} size="xsmall">

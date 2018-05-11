@@ -31,6 +31,7 @@ exports[`TeamMembers renders 1`] = `
           </StyledMembersLabel>
         }
         onChange={[Function]}
+        onClose={[Function]}
         onSelect={[Function]}
       />
     </div>
