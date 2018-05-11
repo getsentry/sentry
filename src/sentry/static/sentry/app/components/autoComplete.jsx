@@ -124,6 +124,18 @@ class AutoComplete extends React.Component {
     }, 200);
   };
 
+  // Dropdown detected click outside, we should close
+  handleClickOutside = () => {
+    // Otherwise, it's possible that this gets fired multiple times
+    // e.g. click outside triggers closeMenu and at the same time input gets blurred, so
+    // a timer is set to close the menu
+    if (this.blurTimer) {
+      clearTimeout(this.blurTimer);
+    }
+
+    this.closeMenu();
+  };
+
   handleInputKeyDown = ({onKeyDown} = {}, e) => {
     let shouldSelectWithEnter =
       e.key === 'Enter' && this.items.size && this.items.has(this.state.highlightedIndex);
@@ -196,10 +208,11 @@ class AutoComplete extends React.Component {
    */
   openMenu = (...args) => {
     let {onOpen} = this.props;
-    if (this.isControlled() && typeof onOpen === 'function') {
-      onOpen(...args);
-      return;
-    }
+
+    callIfFunction(onOpen, ...args);
+
+    if (this.isControlled()) return;
+
     this.resetHighlightState();
     this.setState({
       isOpen: true,
@@ -213,10 +226,10 @@ class AutoComplete extends React.Component {
    */
   closeMenu = (...args) => {
     let {onClose, resetInputOnClose} = this.props;
-    if (this.isControlled() && typeof onClose === 'function') {
-      onClose(...args);
-      return;
-    }
+
+    callIfFunction(onClose, ...args);
+
+    if (this.isControlled()) return;
 
     this.setState(state => {
       return {
@@ -260,7 +273,7 @@ class AutoComplete extends React.Component {
     let isOpen = this.getOpenState();
 
     return (
-      <DropdownMenu isOpen={isOpen} onClickOutside={this.closeMenu}>
+      <DropdownMenu isOpen={isOpen} onClickOutside={this.handleClickOutside}>
         {dropdownMenuProps =>
           children({
             ...dropdownMenuProps,
