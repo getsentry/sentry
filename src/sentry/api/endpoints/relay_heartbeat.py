@@ -4,13 +4,11 @@ from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.api.authentication import RelayAuthentication
-from sentry.api.permissions import RelayPermission
 from sentry.relay import change_set, query
 
 
 class RelayHeartbeatEndpoint(Endpoint):
     authentication_classes = (RelayAuthentication, )
-    permission_classes = (RelayPermission, )
 
     def post(self, request):
         changesets = request.relay_request_data.get('changesets')

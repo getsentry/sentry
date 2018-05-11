@@ -20,11 +20,28 @@ const AdminRelays = createReactClass({
 
   mixins: [ApiMixin],
 
+  getInitialState() {
+    return {
+      loading: false,
+    };
+  },
+
   onDelete(key) {
+    this.setState({
+      loading: true,
+    });
     this.api.request(`/relays/${key}/`, {
       method: 'DELETE',
-      success: () => {},
-      error: () => {},
+      success: () => {
+        this.setState({
+          loading: false,
+        });
+      },
+      error: () => {
+        this.setState({
+          loading: false,
+        });
+      },
     });
   },
 

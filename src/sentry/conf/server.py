@@ -1329,3 +1329,9 @@ PRIVACY_URL = None
 SENTRY_MINIDUMP_CACHE = False
 # The location for cached minidumps
 SENTRY_MINIDUMP_PATH = '/tmp/minidump'
+
+# Relay
+# List of PKs allowed to register with Sentry
+SENTRY_RELAY_ALLOWED_PK = [
+
+]

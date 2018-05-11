@@ -2,16 +2,17 @@ from __future__ import absolute_import
 
 import six
 
-from rest_framework import serializers, status
 from rest_framework.response import Response
+from rest_framework import serializers, status
 
-from django.core.cache import cache as default_cache
+from django.conf import settings
 from django.utils import timezone
+from django.core.cache import cache as default_cache
 
 from sentry.utils import json
+from sentry.models import Relay
 from sentry.api.base import Endpoint
 from sentry.api.serializers import serialize
-from sentry.models import Relay
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
 
 
@@ -37,6 +38,16 @@ class RelayRegisterChallengeEndpoint(Endpoint):
     authentication_classes = ()
     permission_classes = ()
 
+    def check_allowed_relay(self, request, data):
+        """
+        Checks if the relay is allowed to register, otherwise raises an exception
+        """
+        if (settings.DEBUG or
+            request.META.get('REMOTE_ADDR', None) in settings.INTERNAL_IPS or
+                data.get('public_key', None) in settings.SENTRY_RELAY_ALLOWED_PK):
+            return True
+        return False
+
     def post(self, request):
         """
         Requests to Register a Relay
@@ -56,6 +67,11 @@ class RelayRegisterChallengeEndpoint(Endpoint):
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        if not self.check_allowed_relay(request, json_data):
+            return Response({
+                'detail': 'Relay is not allowed to register',
+            }, status=status.HTTP_401_UNAUTHORIZED)
 
         sig = get_header_relay_signature(request)
         if not sig:
