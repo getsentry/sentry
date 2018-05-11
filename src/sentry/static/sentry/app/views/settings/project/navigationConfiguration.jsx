@@ -81,7 +81,7 @@ export default function getConfiguration({project}) {
       ],
     },
     {
-      name: t('Client'),
+      name: t('Data'),
       items: [
         {
           path: `${pathPrefix}/install/`,
