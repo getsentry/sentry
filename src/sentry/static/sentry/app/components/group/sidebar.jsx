@@ -238,6 +238,7 @@ const GroupSidebar = createReactClass({
           return (
             <TagDistributionMeter
               key={data.key}
+              data-test-id="group-tag"
               orgId={orgId}
               projectId={projectId}
               group={group}
@@ -247,7 +248,7 @@ const GroupSidebar = createReactClass({
           );
         })}
         {group.tags.length === 0 && (
-          <p>
+          <p data-test-id="no-tags">
             {this.props.environment
               ? tct('No tags found in the [env] environment', {
                   env: this.props.environment.displayName,
@@ -273,4 +274,5 @@ const GroupSidebar = createReactClass({
   },
 });
 
+export {GroupSidebar};
 export default withEnvironment(GroupSidebar);
