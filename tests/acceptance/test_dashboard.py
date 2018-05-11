@@ -35,7 +35,7 @@ class DashboardTest(AcceptanceTestCase):
         self.project.update(first_event=None)
         self.browser.get(self.path)
         self.browser.wait_until_not('.loading-indicator')
-        self.browser.snapshot('new dashboard empty')
+        self.browser.snapshot('org dash no issues')
 
     def test_one_issue(self):
         event = create_sample_event(
@@ -57,3 +57,28 @@ class DashboardTest(AcceptanceTestCase):
         self.browser.get(self.path)
         self.browser.wait_until_not('.loading-indicator')
         self.browser.snapshot('org dash one issue')
+
+
+class EmptyDashboardTest(AcceptanceTestCase):
+    def setUp(self):
+        super(EmptyDashboardTest, self).setUp()
+        self.user = self.create_user('foo@example.com')
+        self.org = self.create_organization(
+            name='Rowdy Tiger',
+            owner=None,
+        )
+        self.team = self.create_team(organization=self.org, name='Mariachi Band')
+        self.create_member(
+            user=self.user,
+            organization=self.org,
+            role='owner',
+            teams=[self.team],
+        )
+        self.login_as(self.user)
+        self.path = '/{}/'.format(self.org.slug)
+
+    def test_new_dashboard_empty(self):
+        with self.feature('organizations:dashboard'):
+            self.browser.get(self.path)
+            self.browser.wait_until_not('.loading-indicator')
+            self.browser.snapshot('new dashboard empty')
