@@ -31,15 +31,13 @@ env:
     - PIP_DISABLE_PIP_VERSION_CHECK=on
     - SENTRY_LIGHT_BUILD=1
     - SENTRY_SKIP_BACKEND_VALIDATION=1
-    - TRAVIS_NODE_VERSION=8.9.1
     - CXX=g++-4.8
     - SOUTH_TESTS_MIGRATE=1
-    - JEST_JUNIT_OUTPUT=jest.junit.xml
     - DJANGO_VERSION=">=1.6.11,<1.7"
 
 # install additional package managers other than pip which comes with a "language: python" travis env
 before_install:
-  - nvm install $TRAVIS_NODE_VERSION
+  - nvm install 8.9.1
   - npm install -g yarn@1.3.2
 install:
   - yarn install --pure-lockfile
