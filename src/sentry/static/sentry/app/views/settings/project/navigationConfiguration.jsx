@@ -17,7 +17,7 @@ export default function getConfiguration({project}) {
         },
         {
           path: `${pathPrefix}/teams/`,
-          title: t('Teams'),
+          title: t('Project Teams'),
           description: t('Manage team access for a project'),
         },
         {
