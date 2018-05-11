@@ -1,8 +1,11 @@
+import React from 'react';
+import styled from 'react-emotion';
+
 import {DEFAULT_TOAST_DURATION} from 'app/constants';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import IndicatorActions from 'app/actions/indicatorActions';
 
-// Removes a single indicator
+// RFormValueoves a single indicator
 export function removeIndicator(indicator) {
   IndicatorActions.remove(indicator);
 }
@@ -42,6 +45,16 @@ export function addSuccessMessage(...args) {
   return addMessageWithType('success')(...args);
 }
 
+// Transform form values into a string
+// Otherwise bool values will not get rendered and empty strings look like a bug
+const prettyFormString = val => {
+  if (val === '') {
+    return '<empty>';
+  }
+
+  return `${val}`;
+};
+
 /**
  * This will call an action creator to generate a "Toast" message that
  * notifies user the field that changed with its previous and current values.
@@ -57,7 +70,11 @@ export function saveOnBlurUndoMessage(change, model, fieldName) {
   if (!label) return;
 
   addSuccessMessage(
-    `Changed ${label} from "${change.old}" to "${change.new}"`,
+    tct('Changed [fieldName] from [oldValue] to [newValue]', {
+      fieldName: <strong>{label}</strong>,
+      oldValue: <FormValue>{prettyFormString(change.old)}</FormValue>,
+      newValue: <FormValue>{prettyFormString(change.new)}</FormValue>,
+    }),
     DEFAULT_TOAST_DURATION,
     {
       model,
@@ -72,12 +89,38 @@ export function saveOnBlurUndoMessage(change, model, fieldName) {
         if (!didUndo) return;
         if (!label) return;
 
-        model.saveField(fieldName, newValue).then(() => {
-          addMessage(`Restored ${label} from "${oldValue}" to "${newValue}"`, 'undo', {
-            duration: DEFAULT_TOAST_DURATION,
-          });
+        // `saveField` can return null if it can't save
+        let saveResult = model.saveField(fieldName, newValue);
+
+        if (!saveResult) {
+          addErrorMessage(
+            tct('Unable to restore [fieldName] from [oldValue] to [newValue]', {
+              fieldName: <strong>{label}</strong>,
+              oldValue: <FormValue>{prettyFormString(oldValue)}</FormValue>,
+              newValue: <FormValue>{prettyFormString(newValue)}</FormValue>,
+            })
+          );
+          return;
+        }
+
+        saveResult.then(() => {
+          addMessage(
+            tct('Restored [fieldName] from [oldValue] to [newValue]', {
+              fieldName: <strong>{label}</strong>,
+              oldValue: <FormValue>{prettyFormString(oldValue)}</FormValue>,
+              newValue: <FormValue>{prettyFormString(newValue)}</FormValue>,
+            }),
+            'undo',
+            {
+              duration: DEFAULT_TOAST_DURATION,
+            }
+          );
         });
       },
     }
   );
 }
+
+const FormValue = styled('span')`
+  font-style: italic;
+`;
