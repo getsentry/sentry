@@ -110,7 +110,7 @@ class ProjectUpdateTest(APITestCase):
         assert resp.data['detail'][0] == 'Editing a team via this endpoint has been deprecated.'
 
         project = Project.objects.get(id=project.id)
-        assert project.teams.first() == team
+        assert project.teams.first() != team
 
     def test_simple_member_restriction(self):
         project = self.create_project()
