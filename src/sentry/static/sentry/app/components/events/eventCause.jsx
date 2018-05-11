@@ -62,7 +62,6 @@ export default createReactClass({
 
   getUniqueCommitsWithAuthors() {
     let {committers} = this.state;
-
     //get a list of commits with author information attached
     let commitsWithAuthors = flatMap(committers, ({commits, author}) =>
       commits.map(commit => ({
@@ -70,6 +69,7 @@ export default createReactClass({
         author,
       }))
     );
+
     //remove duplicate commits
     let uniqueCommitsWithAuthors = uniqBy(commitsWithAuthors, commit => commit.id);
     return uniqueCommitsWithAuthors;
