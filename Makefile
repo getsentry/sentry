@@ -45,11 +45,6 @@ clean:
 	rm -rf build/ dist/ src/sentry/assets.json
 	@echo ""
 
-
-#################
-# Child recipes #
-#################
-
 setup-git:
 	@echo "--> Installing git hooks"
 	git config branch.autosetuprebase always
@@ -63,17 +58,18 @@ update-submodules:
 	@echo ""
 
 install-system-pkgs:
-	@hash brew 2> /dev/null && brew bundle || (echo '! Homebrew not found, skipping system dependencies.')
+    @echo "--> Installing system dependencies (from Brewfile)"
+	@command -v brew 2>&1 > /dev/null && brew bundle || (echo '! Homebrew not found, skipping system dependencies.')
 
 install-yarn-pkgs:
 	@echo "--> Installing Node dependencies"
-	@hash yarn 2> /dev/null || (echo 'Cannot continue with JavaScript dependencies. Please install yarn before proceeding. For more information refer to https://yarnpkg.com/lang/en/docs/install/'; echo 'If you are on a mac run:'; echo '  brew install yarn'; exit 1)
+	@command -v yarn 2>&1 > /dev/null || (echo 'Cannot continue with JavaScript dependencies. Please install yarn before proceeding. For more information refer to https://yarnpkg.com/lang/en/docs/install/'; echo 'If you are on a mac run:'; echo '  brew install yarn'; exit 1)
 	# Use NODE_ENV=development so that yarn installs both dependencies + devDependencies
 	NODE_ENV=development yarn install --pure-lockfile
 
 install-sentry:
 	@echo "--> Installing Sentry"
-	# TODO merge dev dependnecies into sentry if they are needed for a non-development install
+	# TODO merge dev dependencies into sentry if they are needed for a non-development install
 	$(PIP) install -e ".[dev]"
 
 install-sentry-dev:
@@ -191,7 +187,6 @@ extract-api-docs:
 travis-noop:
 	@echo "nothing to do here."
 
-# this isn't used yet, but when done, add this to .travis.yml, similar to how the dbs are setup
 travis-setup-cassandra:
 	echo "create keyspace sentry with replication = {'class' : 'SimpleStrategy', 'replication_factor': 1};" | cqlsh --cqlversion=3.1.7
 	echo 'create table nodestore (key text primary key, value blob, flags int);' | cqlsh -k sentry --cqlversion=3.1.7
