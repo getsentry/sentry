@@ -76,3 +76,13 @@ export function openCommandPalette(options = {}) {
       });
     });
 }
+
+export function openRecoveryOptions(options = {}) {
+  import(/* webpackChunkName: "RecoveryOptionsModal" */ '../components/modals/recoveryOptionsModal')
+    .then(mod => mod.default)
+    .then(Modal => {
+      openModal(deps => <Modal {...deps} {...options} />, {
+        modalClassName: 'recovery-options',
+      });
+    });
+}
