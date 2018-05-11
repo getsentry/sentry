@@ -8,7 +8,7 @@ from sentry.app import raven
 from sentry.models import ApiKey, ApiToken, Relay
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
 
-import smith
+import semaphore
 
 
 class QuietBasicAuthentication(BasicAuthentication):
@@ -41,7 +41,7 @@ class RelayAuthentication(QuietBasicAuthentication):
                                                   max_age=60 * 5)
             request.relay = relay
             request.relay_request_data = data
-        except smith.UnpackError:
+        except semaphore.UnpackError:
             raise AuthenticationFailed('Invalid relay signature')
 
         # TODO(mitsuhiko): can we return the relay here?  would be nice if we

@@ -15,7 +15,7 @@ from sentry.models import Relay
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
 
 
-from smith import create_register_challenge, validate_register_response, \
+from semaphore import create_register_challenge, validate_register_response, \
     get_register_response_relay_id, PublicKey
 
 

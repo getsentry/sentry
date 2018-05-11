@@ -6,7 +6,7 @@ from django.utils import timezone
 from sentry.db.models import Model, EncryptedTextField
 from django.utils.functional import cached_property
 
-import smith
+import semaphore
 
 
 class Relay(Model):
@@ -25,4 +25,4 @@ class Relay(Model):
 
     @cached_property
     def public_key_object(self):
-        return smith.PublicKey.parse(self.public_key)
+        return semaphore.PublicKey.parse(self.public_key)
