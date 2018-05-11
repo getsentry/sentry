@@ -59,14 +59,14 @@ const ProjectInstallPlatform = createReactClass({
       integration,
       platform,
       html: null,
-      installExperiment: false,
+      experimentPlatforms: new Set(['javascript-react']),
     };
   },
 
   componentDidMount() {
     this.fetchData();
-    this.inInstallExperiment();
     $(window).scrollTop(0);
+    this.recordAnalytics();
   },
 
   componentWillReceiveProps(nextProps) {
@@ -78,17 +78,6 @@ const ProjectInstallPlatform = createReactClass({
 
   isGettingStarted() {
     return location.href.indexOf('getting-started') > 0;
-  },
-
-  inInstallExperiment() {
-    let experimentPlatforms = new Set(['javascript-react']);
-    let currentPlatform = this.state.integration.id;
-    let installExperiment =
-      ConfigStore.get('features').has('install-experiment') &&
-      experimentPlatforms.has(currentPlatform);
-    this.setState({
-      installExperiment,
-    });
   },
 
   fetchData() {
@@ -118,6 +107,26 @@ const ProjectInstallPlatform = createReactClass({
         {display || platform}
       </Link>
     );
+  },
+
+  inInstallExperiment() {
+    let {experimentPlatforms} = this.state;
+    let currentPlatform = this.state.integration.id;
+    let installExperiment =
+      ConfigStore.get('features').has('install-experiment') &&
+      experimentPlatforms.has(currentPlatform);
+    return installExperiment;
+  },
+
+  recordAnalytics() {
+    let {experimentPlatforms, integration} = this.state;
+    let currentPlatform = integration.id;
+
+    if (!experimentPlatforms.has(currentPlatform)) return;
+    analytics('experiment.installation_instructions', {
+      integration: integration.id,
+      variant: this.inInstallExperiment(),
+    });
   },
 
   renderSidebar() {
@@ -206,10 +215,6 @@ const ProjectInstallPlatform = createReactClass({
       return <NotFound />;
     }
 
-    analytics('experiment.installation_instructions', {
-      integration: integration.id,
-    });
-
     return (
       <Panel>
         <PanelHeader hasButtons>
@@ -233,15 +238,16 @@ const ProjectInstallPlatform = createReactClass({
   },
 
   render() {
-    let {installExperiment} = this.state;
+    let installExperiment;
+    if (!this.state.loading) {
+      installExperiment = this.inInstallExperiment();
+    }
 
     return (
       <div className="install row">
-        {installExperiment ? (
-          <div className="install-content col-md-10">{this.renderTestBody()}</div>
-        ) : (
-          <div className="install-content col-md-10">{this.renderBody()}</div>
-        )}
+        <div className="install-content col-md-10">
+          {installExperiment ? this.renderTestBody() : this.renderBody()}
+        </div>
         {this.renderSidebar()}
       </div>
     );

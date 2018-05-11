@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 import createReactClass from 'create-react-class';
 
 import {t} from 'app/locale';
@@ -25,26 +26,24 @@ const InstallReactTest = createReactClass({
       <div>
         <h3> Installation </h3>
         <p>
-          {' '}
-          Start by adding the <span className="pre"> raven.js </span> script tag to your
+          {t('Start by adding the')}
+          <span className="pre"> raven.js </span>{' '}
+          {t(`script tag to your
           page. It should be loaded as early as possible, before your main javascript
-          bundle.{' '}
+          bundle.`)}
         </p>
         <pre>
           <span>{'<'}</span>
-          <span className="script">script </span>
-          <span className="attribute">src</span>
+          <ScriptSpan>script </ScriptSpan>
+          <AttributeSpan>src</AttributeSpan>
           <span>=</span>
-          <span className="value-text">
-            "https://cdn.ravenjs.com/3.24.0/raven.min.js"
-          </span>
+          <ValueSpan>{t('https://cdn.ravenjs.com/3.24.0/raven.min.js')}</ValueSpan>
           <br />
-          <span className="attribute"> crossorigin</span>
+          <AttributeSpan> crossorigin</AttributeSpan>
           <span>=</span>
-          <span className="value-text">{'anonymous'}</span>
-          <span>{'>'}</span>
-          <span>{'</'}</span>
-          <span className="script">script</span>
+          <ValueSpan>{'anonymous'}</ValueSpan>
+          <span>{'></'}</span>
+          <ScriptSpan>script</ScriptSpan>
           <span>{'>'}</span>
         </pre>
 
@@ -53,17 +52,17 @@ const InstallReactTest = createReactClass({
 
         <pre>
           <span>{'Raven.config('}</span>
-          <span className="value-text">{"'"}</span>
-          <span className="value-text">{dsn}</span>
+          <ValueSpan>{"'"}</ValueSpan>
+          <ValueSpan>{dsn}</ValueSpan>
           <span>{"', {"}</span>
           <br />
 
           <span>{'   release: '}</span>
-          <span className="value-text">{'test-1-2-3'}</span>
+          <ValueSpan>{'0-0-0'}</ValueSpan>
           <span>{','}</span>
           <br />
           <span>{'   environment: '}</span>
-          <span className="value-text">{'development'}</span>
+          <ValueSpan>{'development'}</ValueSpan>
           <span>{','}</span>
           <br />
           <span>{'}).install()'}</span>
@@ -73,5 +72,15 @@ const InstallReactTest = createReactClass({
     );
   },
 });
+
+const ScriptSpan = styled('span')`
+  color: #2eb0f7;
+`;
+const AttributeSpan = styled('span')`
+  color: #a47ac6;
+`;
+const ValueSpan = styled('span')`
+  color: #e8535a;
+`;
 
 export default InstallReactTest;
