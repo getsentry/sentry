@@ -1,4 +1,3 @@
-NPM_ROOT = ./node_modules
 STATIC_DIR = src/sentry/static/sentry
 
 ifneq "$(wildcard /usr/local/opt/libxmlsec1/lib)" ""
@@ -58,12 +57,12 @@ update-submodules:
 	@echo ""
 
 install-system-pkgs:
-    @echo "--> Installing system dependencies (from Brewfile)"
-	@command -v brew 2>&1 > /dev/null && brew bundle || (echo '! Homebrew not found, skipping system dependencies.')
+	@echo "--> Installing system packages (from Brewfile)"
+	@command -v brew 2>&1 > /dev/null && brew bundle || (echo 'WARNING: homebrew not found or brew bundle failed - skipping system dependencies.')
 
 install-yarn-pkgs:
-	@echo "--> Installing Node dependencies"
-	@command -v yarn 2>&1 > /dev/null || (echo 'Cannot continue with JavaScript dependencies. Please install yarn before proceeding. For more information refer to https://yarnpkg.com/lang/en/docs/install/'; echo 'If you are on a mac run:'; echo '  brew install yarn'; exit 1)
+	@echo "--> Installing Yarn packages"
+	@command -v yarn 2>&1 > /dev/null || (echo 'yarn not found. Please install it before proceeding.'; exit 1)
 	# Use NODE_ENV=development so that yarn installs both dependencies + devDependencies
 	NODE_ENV=development yarn install --pure-lockfile
 
@@ -112,7 +111,7 @@ test-cli:
 
 test-js:
 	@echo "--> Building static assets"
-	@${NPM_ROOT}/.bin/webpack --profile --json > webpack-stats.json
+	@./node_modules/.bin/webpack --profile --json > webpack-stats.json
 	@echo "--> Running JavaScript tests"
 	@npm run test-ci
 	@echo ""
@@ -143,7 +142,7 @@ test-snuba:
 
 test-acceptance: build-platform-assets
 	@echo "--> Building static assets"
-	@${NPM_ROOT}/.bin/webpack --display errors-only
+	@./node_modules/.bin/webpack --display errors-only
 	@echo "--> Running acceptance tests"
 	py.test tests/acceptance --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml" --html="pytest.html"
 	@echo ""
@@ -177,9 +176,6 @@ extract-api-docs:
 	rm -rf api-docs/cache/*
 	cd api-docs; python generator.py
 
-.PHONY: develop dev-docs setup-git build clean locale update-transifex update-submodules test testloop test-cli test-js test-styleguide test-python test-acceptance lint lint-python lint-js coverage publish scan-python
-
-
 ############################
 # Halt, Travis stuff below #
 ############################
@@ -203,8 +199,6 @@ travis-lint-cli: travis-noop
 travis-lint-dist: travis-noop
 travis-lint-django-18: lint-python
 
-.PHONY: travis-lint-sqlite travis-lint-postgres travis-lint-mysql travis-lint-js travis-lint-cli travis-lint-dist
-
 # Test steps
 travis-test-sqlite: test-python
 travis-test-postgres: test-python
@@ -219,8 +213,6 @@ travis-test-dist:
 	@ls -lh dist/
 travis-test-django-18: test-python
 
-.PHONY: travis-test-sqlite travis-test-postgres travis-test-mysql travis-test-js travis-test-cli travis-test-dist
-
 # Scan steps
 travis-scan-sqlite: scan-python
 travis-scan-postgres: scan-python
@@ -233,4 +225,4 @@ travis-scan-cli: travis-noop
 travis-scan-dist: travis-noop
 travis-scan-django-18: travis-noop
 
-.PHONY: travis-scan-sqlite travis-scan-postgres travis-scan-mysql travis-scan-acceptance travis-scan-network travis-scan-snuba travis-scan-js travis-scan-cli travis-scan-dist travis-scan-django-18
+.PHONY: all develop develop-only build dev-docs test testloop reset-db clean setup-git update-submodules install-system-pkgs install-yarn-pkgs install-sentry install-sentry-dev build-js-po locale update-transifex build-platform-assets test-cli test-js test-styleguide test-python test-network test-snuba test-acceptance lint lint-python lint-js scan-python coverage publish extract-api-docs travis-noop travis-setup-cassandra travis-lint-sqlite travis-lint-postgres travis-lint-mysql travis-lint-acceptance travis-lint-network travis-lint-snuba travis-lint-js travis-lint-cli travis-lint-dist travis-lint-django-18 travis-test-sqlite travis-test-postgres travis-test-mysql travis-test-acceptance travis-test-network travis-test-snuba travis-test-js travis-test-cli travis-test-dist travis-test-django-18 travis-scan-sqlite travis-scan-postgres travis-scan-mysql travis-scan-acceptance travis-scan-network travis-scan-snuba travis-scan-js travis-scan-cli travis-scan-dist travis-scan-django-18
