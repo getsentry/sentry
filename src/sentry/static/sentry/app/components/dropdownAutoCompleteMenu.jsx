@@ -166,7 +166,9 @@ class DropdownAutoCompleteMenu extends React.Component {
             (isOpen && this.autoCompleteFilter(items, inputValue)) || [];
           let hasItems = items && !!items.length;
           let hasResults = !!autoCompleteResults.length;
-          let showNoResultsMessage = inputValue && hasItems && !hasResults;
+          let showNoItems = !busy && !inputValue && !hasItems;
+          // Results mean there was a search (i.e. inputValue)
+          let showNoResultsMessage = !busy && inputValue && !hasResults;
 
           return (
             <AutoCompleteRoot {...getRootProps()}>
@@ -201,27 +203,33 @@ class DropdownAutoCompleteMenu extends React.Component {
                   <div>
                     {menuHeader && <StyledLabel>{menuHeader}</StyledLabel>}
 
-                    {!hasItems && <EmptyMessage>{emptyMessage}</EmptyMessage>}
+                    {showNoItems && <EmptyMessage>{emptyMessage}</EmptyMessage>}
                     {showNoResultsMessage && (
                       <EmptyMessage>
                         {noResultsMessage || `${emptyMessage} ${t('found')}`}
                       </EmptyMessage>
                     )}
-                    {autoCompleteResults.map(
-                      ({index, ...item}) =>
-                        item.groupLabel ? (
-                          <StyledLabel key={item.value}>{item.label}</StyledLabel>
-                        ) : (
-                          <AutoCompleteItem
-                            key={`${item.value}-${index}`}
-                            index={index}
-                            highlightedIndex={highlightedIndex}
-                            {...getItemProps({item, index})}
-                          >
-                            {item.label}
-                          </AutoCompleteItem>
-                        )
+                    {busy && (
+                      <Flex justify="center" p={1}>
+                        <EmptyMessage>{t('Searching...')}</EmptyMessage>
+                      </Flex>
                     )}
+                    {!busy &&
+                      autoCompleteResults.map(
+                        ({index, ...item}) =>
+                          item.groupLabel ? (
+                            <StyledLabel key={item.value}>{item.label}</StyledLabel>
+                          ) : (
+                            <AutoCompleteItem
+                              key={`${item.value}-${index}`}
+                              index={index}
+                              highlightedIndex={highlightedIndex}
+                              {...getItemProps({item, index})}
+                            >
+                              {item.label}
+                            </AutoCompleteItem>
+                          )
+                      )}
                     {menuFooter && <StyledLabel>{menuFooter}</StyledLabel>}
                   </div>
                 </StyledMenu>

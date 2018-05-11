@@ -188,6 +188,7 @@ const TeamMembers = createReactClass({
  * @param {Event} e React Event when member filter input changes
  */
   handleMemberFilterChange(e) {
+    this.setState({dropdownBusy: true});
     this.debouncedFetchMembersRequest(e.target.value);
   },
 
