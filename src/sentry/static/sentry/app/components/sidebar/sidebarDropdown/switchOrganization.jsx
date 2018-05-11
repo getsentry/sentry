@@ -61,6 +61,7 @@ class SwitchOrganization extends React.Component {
                     canCreateOrganization && <Divider css={{marginTop: 0}} />}
                   {canCreateOrganization && (
                     <SidebarMenuItem
+                      data-test-id="sidebar-create-org"
                       to={'/organizations/new/'}
                       style={{alignItems: 'center'}}
                     >
