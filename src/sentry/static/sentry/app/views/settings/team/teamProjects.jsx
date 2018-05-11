@@ -3,6 +3,7 @@ import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import styled from 'react-emotion';
 
+import Tooltip from 'app/components/tooltip';
 import ApiMixin from 'app/mixins/apiMixin';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import space from 'app/styles/space';
@@ -16,7 +17,6 @@ import OrganizationState from 'app/mixins/organizationState';
 import ProjectListItem from 'app/views/settings/components/settingsProjectItem';
 import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
 import InlineSvg from 'app/components/inlineSvg';
-
 import {sortProjects} from 'app/utils';
 import {t} from 'app/locale';
 
@@ -84,18 +84,27 @@ const TeamProjects = createReactClass({
   },
 
   projectPanelcontents(projects) {
+    let access = this.getAccess();
+    let canWrite = access.has('org:write');
+
     return projects.length ? (
       sortProjects(projects).map((project, i) => (
         <StyledPanelItem key={project.id}>
           <ProjectListItem project={project} organization={this.context.organization} />
-          <Button
-            size="small"
-            onClick={() => {
-              this.handleLinkProject(project, 'remove');
-            }}
+          <Tooltip
+            disabled={canWrite}
+            title={t('You do not have enough permission to change project association.')}
           >
-            <RemoveIcon /> {t('Remove')}
-          </Button>
+            <Button
+              size="small"
+              disabled={!canWrite}
+              onClick={() => {
+                this.handleLinkProject(project, 'remove');
+              }}
+            >
+              <RemoveIcon /> {t('Remove')}
+            </Button>
+          </Tooltip>
         </StyledPanelItem>
       ))
     ) : (
@@ -109,10 +118,10 @@ const TeamProjects = createReactClass({
     if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
 
     let {projectListLinked, allProjects} = this.state;
+    let access = this.getAccess();
+
     let linkedProjectIds = new Set(projectListLinked.map(p => p.id));
-
     let linkedProjects = allProjects.filter(p => linkedProjectIds.has(p.id));
-
     let otherProjects = allProjects
       .filter(p => {
         return !linkedProjectIds.has(p.id);
@@ -130,17 +139,27 @@ const TeamProjects = createReactClass({
         <PanelHeader hasButtons={true}>
           <div>{t('Projects')}</div>
           <div style={{textTransform: 'none'}}>
-            <DropdownAutoComplete
-              items={otherProjects}
-              onSelect={this.handleProjectSelected}
-              emptyMessage={t('No projects')}
-            >
-              {({isOpen, selectedItem}) => (
-                <DropdownButton isOpen={isOpen} size="xsmall">
-                  {t('Add Project')}
-                </DropdownButton>
-              )}
-            </DropdownAutoComplete>
+            {!access.has('org:write') ? (
+              <DropdownButton
+                disabled
+                title={t('You do not have enough permission to associate a project.')}
+                size="xsmall"
+              >
+                {t('Add Project')}
+              </DropdownButton>
+            ) : (
+              <DropdownAutoComplete
+                items={otherProjects}
+                onSelect={this.handleProjectSelected}
+                emptyMessage={t('No projects')}
+              >
+                {({isOpen, selectedItem}) => (
+                  <DropdownButton isOpen={isOpen} size="xsmall">
+                    {t('Add Project')}
+                  </DropdownButton>
+                )}
+              </DropdownAutoComplete>
+            )}
           </div>
         </PanelHeader>
         <PanelBody>{this.projectPanelcontents(linkedProjects)}</PanelBody>
