@@ -81,9 +81,9 @@ export default class SelectOwners extends React.Component {
     }
   }
 
-  renderUserBadge = user => (
-    <IdBadge avatarSize={24} user={user} hideEmail useLink={false} />
-  );
+  renderUserBadge = user => {
+    return <IdBadge avatarSize={24} user={user} hideEmail useLink={false} />;
+  };
 
   createMentionableUser = user => {
     return {

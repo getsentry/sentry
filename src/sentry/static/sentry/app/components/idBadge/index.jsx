@@ -17,11 +17,12 @@ export default class IdBadge extends React.Component {
     team: SentryTypes.Team,
     project: SentryTypes.Project,
     organization: SentryTypes.Organization,
+    member: SentryTypes.Member,
     user: SentryTypes.User,
   };
 
   render() {
-    let {organization, project, team, user} = this.props;
+    let {organization, project, team, user, member} = this.props;
 
     if (organization) {
       return <OrganizationBadge {...this.props} />;
@@ -29,12 +30,12 @@ export default class IdBadge extends React.Component {
       return <ProjectBadge {...this.props} />;
     } else if (team) {
       return <TeamBadge {...this.props} />;
-    } else if (user) {
+    } else if (member || user) {
       return <UserBadge useLink={false} {...this.props} />;
     }
 
     throw new Error(
-      'IdBadge: required property missing (organization, project, team, user)'
+      'IdBadge: required property missing (organization, project, team, member, user)'
     );
   }
 }

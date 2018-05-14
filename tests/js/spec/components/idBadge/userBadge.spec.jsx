@@ -4,15 +4,25 @@ import {mount, shallow} from 'enzyme';
 import UserBadge from 'app/components/idBadge/userBadge';
 
 describe('UserBadge', function() {
+  let member = TestStubs.Member();
   let user = TestStubs.User();
 
-  it('renders', function() {
-    let wrapper = mount(<UserBadge user={user} orgId="orgId" />);
+  it('renders with link when member is supplied', function() {
+    let wrapper = mount(<UserBadge member={member} orgId="orgId" />);
 
     expect(wrapper.find('StyledUserBadge')).toHaveLength(1);
     expect(wrapper.find('StyledName').prop('children')).toBe('Foo Bar');
     expect(wrapper.find('StyledEmail').prop('children')).toBe('foo@example.com');
     expect(wrapper.find('StyledName Link')).toHaveLength(1);
+  });
+
+  it('renders with no link when user is supplied', function() {
+    let wrapper = mount(<UserBadge user={user} orgId="orgId" />);
+
+    expect(wrapper.find('StyledUserBadge')).toHaveLength(1);
+    expect(wrapper.find('StyledName').prop('children')).toBe('Foo Bar');
+    expect(wrapper.find('StyledEmail').prop('children')).toBe('foo@example.com');
+    expect(wrapper.find('StyledName Link')).toHaveLength(0);
   });
 
   it('can display alternate display names/emails', function() {
