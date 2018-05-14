@@ -31,7 +31,7 @@ class EventOwnersEndpoint(ProjectEndpoint):
         # populate event data
         Event.objects.bind_nodes([event], 'data')
 
-        owners, matcher = ProjectOwnership.get_owners(project.id, event.data)
+        owners, rules = ProjectOwnership.get_owners(project.id, event.data)
 
         # For sake of the API, we don't differentiate between
         # the implicit "everyone" and no owners
@@ -44,5 +44,8 @@ class EventOwnersEndpoint(ProjectEndpoint):
                 request.user,
                 ActorSerializer(),
             ),
-            'rule': matcher,
+            # TODO(mattrobenolt): We need to change the API here to return
+            # all rules, just keeping this way currently for API compat
+            'rule': rules[0].matcher if rules else None,
+            'rules': rules or [],
         })
