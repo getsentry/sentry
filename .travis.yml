@@ -11,10 +11,10 @@ branches:
   - master
 
 cache:
+  pip: true
+  yarn: true
   directories:
     - node_modules
-    - $HOME/.cache/pip/wheels
-    - $HOME/.cache/yarn
 
 addons:
   apt:
