@@ -1,9 +1,10 @@
 from __future__ import absolute_import
 
-__all__ = ['Integration', 'IntegrationProvider', 'IntegrationMetadata']
+__all__ = ['Integration', 'IntegrationFeatures', 'IntegrationProvider', 'IntegrationMetadata']
 
 import logging
 from collections import namedtuple
+from enum import Enum
 
 from sentry.pipeline import PipelineProvider
 
@@ -16,6 +17,12 @@ IntegrationMetadata = namedtuple('IntegrationMetadata', [
     'source_url',   # URL to view the source
     'aspects',      # A map of integration specific 'aspects' to the aspect config.
 ])
+
+
+class IntegrationFeatures(Enum):
+    NOTIFICATION = 'notification'
+    ISSUE_SYNC = 'issue_sync'
+    COMMITS = 'commits'
 
 
 class IntegrationProvider(PipelineProvider):
@@ -53,6 +60,9 @@ class IntegrationProvider(PipelineProvider):
 
     # whether or not the integration installation be initiated from Sentry
     can_add = True
+
+    # can be any number of IntegrationFeatures
+    features = frozenset()
 
     @classmethod
     def get_installation(cls, model, **kwargs):

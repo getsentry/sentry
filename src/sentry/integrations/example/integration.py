@@ -1,7 +1,9 @@
 from __future__ import absolute_import
 
 from django.http import HttpResponse
-from sentry.integrations import Integration, IntegrationProvider, IntegrationMetadata
+from sentry.integrations import (
+    Integration, IntegrationFeatures, IntegrationMetadata, IntegrationProvider
+)
 from sentry.pipeline import PipelineView
 
 
@@ -62,6 +64,8 @@ class ExampleIntegrationProvider(IntegrationProvider):
     metadata = metadata
 
     integration_cls = ExampleIntegration
+
+    features = frozenset([IntegrationFeatures.ISSUE_SYNC])
 
     def get_pipeline_views(self):
         return [

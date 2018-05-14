@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.integration import IntegrationIssueSerializer
+from sentry.integrations.base import IntegrationFeatures
 from sentry.models import ExternalIssue, GroupLink, OrganizationIntegration
 
 
@@ -30,6 +31,10 @@ class GroupIntegrationDetails(GroupEndpoint):
         except OrganizationIntegration.DoesNotExist:
             return Response(status=404)
 
+        if not integration.has_feature(IntegrationFeatures.ISSUE_SYNC):
+            return Response(
+                {'detail': 'This feature is not supported for this integration.'}, status=400)
+
         # TODO(jess): add create issue config to serializer
         return Response(
             serialize(integration, request.user, IntegrationIssueSerializer(group, action))
@@ -51,6 +56,10 @@ class GroupIntegrationDetails(GroupEndpoint):
             ).select_related('integration').get().integration
         except OrganizationIntegration.DoesNotExist:
             return Response(status=404)
+
+        if not integration.has_feature(IntegrationFeatures.ISSUE_SYNC):
+            return Response(
+                {'detail': 'This feature is not supported for this integration.'}, status=400)
 
         # TODO(jess): some validation from provider to ensure this
         # issue id is valid and also maybe to fetch the title/description

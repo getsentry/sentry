@@ -66,6 +66,9 @@ class Integration(Model):
     def get_installation(self):
         return self.get_provider().get_installation(self)
 
+    def has_feature(self, feature):
+        return feature in self.get_provider().features
+
     def add_organization(self, organization_id, default_auth_id=None, config=None):
         """
         Add an organization to this integration.
