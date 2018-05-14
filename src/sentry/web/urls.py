@@ -506,6 +506,7 @@ urlpatterns += patterns(
     url(r'^extensions/slack/', include('sentry.integrations.slack.urls')),
     url(r'^extensions/github/', include('sentry.integrations.github.urls')),
     url(r'^extensions/vsts/', include('sentry.integrations.vsts.urls')),
+    url(r'^extensions/bitbucket/', include('sentry.integrations.bitbucket.urls')),
 
     url(r'^plugins/', include('sentry.plugins.base.urls')),
 

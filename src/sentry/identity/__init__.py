@@ -3,10 +3,12 @@ from __future__ import absolute_import
 from .base import *  # NOQA
 from .manager import IdentityManager  # NOQA
 from .oauth2 import *  # NOQA
+from .atlassian_connect import *  # NOQA
 
 from .slack import *  # NOQA
 from .github import *  # NOQA
 from .vsts import *  # NOQA
+from .bitbucket import *  # NOQA
 
 
 default_manager = IdentityManager()
@@ -21,3 +23,4 @@ unregister = default_manager.unregister
 register(SlackIdentityProvider)  # NOQA
 register(GitHubIdentityProvider)  # NOQA
 register(VSTSIdentityProvider)  # NOQA
+register(BitBucketIdentityProvider)  # NOQA
