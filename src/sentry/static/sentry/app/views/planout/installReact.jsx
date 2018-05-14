@@ -48,25 +48,45 @@ const InstallReactTest = createReactClass({
         </pre>
 
         <h3> Basic Configuration </h3>
-        <p>{t('Next configure Raven.js to use your Sentry DSN: ')}</p>
+        <p>
+          {t(`Next configure Raven.js to use your Sentry DSN. Sending release and environment data both provide valuable
+          context e.g. when an issue was first seen. Learn more about `)}
+          <a href="https://docs.sentry.io/clients/javascript/config/">
+            {' '}
+            configuration options{' '}
+          </a>here.
+        </p>
 
         <pre>
-          <span>{'Raven.config('}</span>
-          <ValueSpan>{"'"}</ValueSpan>
-          <ValueSpan>{dsn}</ValueSpan>
-          <span>{"', {"}</span>
+          <span>
+            {'<'}
+            <ScriptSpan>script</ScriptSpan>
+            {'>'}
+          </span>
+          <br />
+          <span>{' Raven.config('}</span>
+          <ValueSpan>'{dsn}'</ValueSpan>
+          <span>{', {'}</span>
           <br />
 
           <span>{'   release: '}</span>
-          <ValueSpan>{'0-0-0'}</ValueSpan>
+          <ValueSpan>{"'0-0-0'"}</ValueSpan>
           <span>{','}</span>
           <br />
           <span>{'   environment: '}</span>
-          <ValueSpan>{'development'}</ValueSpan>
+          <ValueSpan>{"'development-test'"}</ValueSpan>
           <span>{','}</span>
           <br />
-          <span>{'}).install()'}</span>
+          <span>{' }).install()'}</span>
+          <br />
+          <span>
+            {'</'}
+            <ScriptSpan>script</ScriptSpan>
+            {'>'}
+          </span>
+          <br />
         </pre>
+
         <p>Congrats! Raven is now ready to capture any uncaught exceptions</p>
       </div>
     );
