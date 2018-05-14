@@ -155,10 +155,6 @@ scan-python:
 	bin/scan
 	@echo ""
 
-coverage: develop
-	$(MAKE) test-python
-	coverage html
-
 publish:
 	python setup.py sdist bdist_wheel upload
 
