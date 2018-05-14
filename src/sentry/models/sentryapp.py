@@ -3,16 +3,15 @@ from __future__ import absolute_import
 import six
 import uuid
 
-from bitfield import BitField
 from django.db import models
 from django.utils import timezone
 from django.template.defaultfilters import slugify
 
-from sentry.db.models import (ArrayField, FlexibleForeignKey, ParanoidModel)
-from sentry.models import ApiScopes
+from sentry.db.models import FlexibleForeignKey, ParanoidModel
+from sentry.models.apiscopes import HasApiScopes
 
 
-class SentryApp(ParanoidModel):
+class SentryApp(ParanoidModel, HasApiScopes):
     __core__ = True
 
     application = models.OneToOneField('sentry.ApiApplication',
@@ -27,10 +26,6 @@ class SentryApp(ParanoidModel):
     # determine who can manage the SentryApp itself.
     owner = FlexibleForeignKey('sentry.User',
                                related_name='owned_sentry_apps')
-
-    # The set of OAuth scopes necessary for this integration to function.
-    scopes = BitField(flags=ApiScopes().to_bitfield())
-    scope_list = ArrayField(of=models.TextField())
 
     name = models.TextField()
     slug = models.CharField(max_length=64, unique=True)
