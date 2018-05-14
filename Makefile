@@ -10,9 +10,8 @@ endif
 PIP = LDFLAGS="$(LDFLAGS)" pip -q
 WEBPACK = NODE_ENV=production ./node_modules/.bin/webpack
 
-# TODO test the all recipe, and also why did we separate develop from develop-only? better to merge into just develop
-all: update-submodules install-system-pkgs install-yarn-pkgs install-sentry
 develop: setup-git develop-only
+# Used by https://github.com/getsentry/sentry-docs/blob/master/bin/extract-docs
 develop-only: update-submodules install-system-pkgs install-yarn-pkgs install-sentry-dev
 
 build: locale
@@ -62,18 +61,13 @@ install-system-pkgs:
 	@command -v brew 2>&1 > /dev/null && brew bundle || (echo 'WARNING: homebrew not found or brew bundle failed - skipping system dependencies.')
 
 install-yarn-pkgs:
-	@echo "--> Installing Yarn packages"
+	@echo "--> Installing Yarn packages (for development)"
 	@command -v yarn 2>&1 > /dev/null || (echo 'yarn not found. Please install it before proceeding.'; exit 1)
 	# Use NODE_ENV=development so that yarn installs both dependencies + devDependencies
 	NODE_ENV=development yarn install --pure-lockfile
 
-install-sentry:
-	@echo "--> Installing Sentry"
-	# TODO merge dev dependencies into sentry if they are needed for a non-development install
-	$(PIP) install -e ".[dev]"
-
 install-sentry-dev:
-	@echo "--> Installing Sentry (dev)"
+	@echo "--> Installing Sentry (for development)"
 	$(PIP) install -e ".[dev,tests,optional]"
 
 build-js-po:
