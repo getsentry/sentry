@@ -17,6 +17,7 @@ def execute_changesets(relay, changesets):
                 'sentry.relay.changesets.%s' %
                 changeset.get('type'))
         except ImportError:
+            logger.error('Changeset failed', exc_info=True)
             return
 
         change_set_class = getattr(relay_changeset, type_to_class_name(changeset.get('type', None)))

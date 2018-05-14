@@ -94,3 +94,65 @@ class RelayQueryGetProjectConfigTest(APITestCase):
 
         assert resp.status_code == 200, resp.content
         assert result.get('queryResults').get(query_id).get('status') == 'error'
+
+    def test_invalid_query(self):
+        query_id = six.binary_type(uuid4())
+
+        data = {
+            'changesets': [],
+            'queries': {
+                query_id: {
+                    'type': 'get_project_configg',
+                    'project_id': self.project.id,
+                    'data': None
+                }
+            }
+        }
+
+        raw_json, signature = self.private_key.pack(data)
+
+        resp = self.client.post(
+            self.path,
+            data=raw_json,
+            content_type='application/json',
+            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
+            HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
+        )
+
+        result = json.loads(resp.content)
+
+        assert resp.status_code == 200, resp.content
+        assert result.get('queryResults').get(query_id).get('status') == 'error'
+        query_result = result.get('queryResults').get(query_id).get('error')
+        assert query_result == 'unknown query'
+
+    def test_project_does_not_exist(self):
+        query_id = six.binary_type(uuid4())
+
+        data = {
+            'changesets': [],
+            'queries': {
+                query_id: {
+                    'type': 'get_project_config',
+                    'project_id': 9999,
+                    'data': None
+                }
+            }
+        }
+
+        raw_json, signature = self.private_key.pack(data)
+
+        resp = self.client.post(
+            self.path,
+            data=raw_json,
+            content_type='application/json',
+            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
+            HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
+        )
+
+        result = json.loads(resp.content)
+
+        assert resp.status_code == 200, resp.content
+        assert result.get('queryResults').get(query_id).get('status') == 'error'
+        query_result = result.get('queryResults').get(query_id).get('error')
+        assert query_result == 'Project does not exist'

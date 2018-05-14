@@ -33,8 +33,7 @@ class RelayChangeSetStoreV7Test(APITestCase):
             'sentry-api-0-relay-heartbeat'
         )
 
-    def test_storev7(self):
-        data = {
+        self.data = {
             'changesets': [
                 {
                     'type': 'store_v7',
@@ -129,7 +128,22 @@ class RelayChangeSetStoreV7Test(APITestCase):
             'queries': {}
         }
 
-        raw_json, signature = self.private_key.pack(data)
+    def test_storev7(self):
+        raw_json, signature = self.private_key.pack(self.data)
+
+        resp = self.client.post(
+            self.path,
+            data=raw_json,
+            content_type='application/json',
+            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
+            HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
+        )
+
+        assert resp.status_code == 200, resp.content
+
+    def test_invalid_changeset(self):
+        self.data['changesets'][0]['type'] = 'abc'
+        raw_json, signature = self.private_key.pack(self.data)
 
         resp = self.client.post(
             self.path,
