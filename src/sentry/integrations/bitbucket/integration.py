@@ -4,6 +4,8 @@ from sentry.integrations import IntegrationProvider, IntegrationMetadata
 from sentry.pipeline import NestedPipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from django.utils.translation import ugettext_lazy as _
+from sentry.utils.http import absolute_uri
+from sentry.models import Integration
 DESCRIPTION = """
 Bitbucket for Sentry.io
 """
@@ -23,10 +25,14 @@ class BitbucketIntegrationProvider(IntegrationProvider):
     metadata = metadata
 
     def get_pipeline_views(self):
+        identity_pipeline_config = {
+            'redirect_url': absolute_uri('/extensions/bitbucket/setup/'),
+        }
         identity_pipeline_view = NestedPipelineView(
             bind_key='identity',
             provider_key='bitbucket',
             pipeline_cls=IdentityProviderPipeline,
+            config=identity_pipeline_config,
         )
 
         return [
@@ -34,23 +40,40 @@ class BitbucketIntegrationProvider(IntegrationProvider):
         ]
 
     def build_integration(self, state):
-        user_data = state['user']
-        user_links = user_data['links']['self']
+        if state.get('publicKey'):
+            user_data = state['user']
+            user_links = user_data['links']['self']
+            return {
+                'provider': 'bitbucket',
+                'external_id': state['clientKey'],
+                'name': 'Bitbucket',
+                'metadata': {
+                    'public_key': state['publicKey'],
+                    'shared_secret': state['sharedSecret'],
+                    'base_url': state['baseUrl'],
+                    'domain_name': state['baseUrl'].replace('https://', ''),
+                },
+                'user_identity': {
+                    'type': 'bitbucket',
+                    'name': user_data['username'],
+                    'display_name': user_data['display_name'],
+                    'account_id': user_data['account_id'],
+                    'icon': user_links.get('avatar'),
+                }
+            }
+
+        integration = Integration.objects.get(
+            provider='bitbucket',
+            external_id=state['identity']['bitbucket_client_id']
+        )
         return {
             'provider': 'bitbucket',
-            'external_id': state['clientKey'],
+            'external_id': integration.external_id,
             'name': 'Bitbucket',
             'metadata': {
-                'public_key': state['publicKey'],
-                'shared_secret': state['sharedSecret'],
-                'base_url': state['baseUrl'],
-                'domain_name': state['baseUrl'].replace('https://', ''),
+                'public_key': integration.metadata['public_key'],
+                'shared_secret': integration.metadata['shared_secret'],
+                'base_url': integration.metadata['base_url'],
+                'domain_name': integration.metadata['base_url'],
             },
-            'user_identity': {
-                'type': 'bitbucket',
-                'name': user_data['username'],
-                'display_name': user_data['display_name'],
-                'account_id': user_data['account_id'],
-                'icon': user_links['avatar'],
-            }
         }
