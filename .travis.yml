@@ -10,6 +10,7 @@ cache:
   directories:
     - node_modules
     - $HOME/.cache/pip/wheels
+    - $HOME/google-cloud-sdk
 branches:
   only:
   - master
@@ -132,9 +133,32 @@ matrix:
         - docker run -d --name clickhouse-server -p 9000:9000 -p 9009:9009 -p 8123:8123 --ulimit nofile=262144:262144 yandex/clickhouse-server
         - docker run -d --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=clickhouse-server:9000 --name snuba -p 1218:1218 --link clickhouse-server:clickhouse-server getsentry/snuba
         - docker ps -a
+
+    # Deploy 'storybook' (component & style guide)
+    - language: node_js
+      env: STORYBOOK_BUILD=1
+      before_install:
+        # Decrypt the credentials we added to the repo using the key we added with the Travis command line tool
+        - openssl aes-256-cbc -K $encrypted_020be61ef175_key -iv $encrypted_020be61ef175_iv -in .travis/storybook-credentials.tar.gz.enc -out credentials.tar.gz -d
+        # If the SDK is not already cached, download it and unpack it
+        - if [ ! -d ${HOME}/google-cloud-sdk ]; then curl https://sdk.cloud.google.com | bash; fi
+        - tar -xzf credentials.tar.gz
+        # Use the decrypted service account credentials to authenticate the command line tool
+        - gcloud auth activate-service-account --key-file client-secret.json
+      install:
+        - nvm install $TRAVIS_NODE_VERSION
+        - make install-yarn
+        - gcloud version
+      after_success: skip
+      after_failure: skip
+      script: bash .travis/deploy-storybook.sh
+
   allow_failures:
     - python: 2.7
       env: TEST_SUITE=snuba SENTRY_TAGSTORE=sentry.tagstore.snuba.SnubaTagStorage
+    - language: node_js
+      env: STORYBOOK_BUILD=1
+
 notifications:
   webhooks:
     urls:
