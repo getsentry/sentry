@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from .base import *  # NOQA
 from .manager import IdentityManager  # NOQA
 from .oauth2 import *  # NOQA
-from .atlassian_connect import *  # NOQA
 
 from .slack import *  # NOQA
 from .github import *  # NOQA
