@@ -12,7 +12,7 @@ Bitbucket for Sentry.io
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
     author='The Sentry Team',
-    noun=_('Repository'),
+    noun=_('Bitbucket Account'),
     issue_url='https://github.com/getsentry/sentry/issues/new?title=Bitbucket%20Integration:%20&labels=Component%3A%20Integrations',
     source_url='https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/bitbucket',
     aspects={},
@@ -42,23 +42,23 @@ class BitbucketIntegrationProvider(IntegrationProvider):
     def build_integration(self, state):
         if state.get('publicKey'):
             user_data = state['user']
-            user_links = user_data['links']['self']
             return {
                 'provider': 'bitbucket',
                 'external_id': state['clientKey'],
-                'name': 'Bitbucket',
+                'name': user_data['display_name'],
                 'metadata': {
                     'public_key': state['publicKey'],
                     'shared_secret': state['sharedSecret'],
                     'base_url': state['baseUrl'],
-                    'domain_name': state['baseUrl'].replace('https://', ''),
+                    'domain_name': user_data['links']['html']['href'].replace('https://', ''),
+                    'icon': user_data['links']['avatar']['href'],
                 },
                 'user_identity': {
                     'type': 'bitbucket',
                     'name': user_data['username'],
                     'display_name': user_data['display_name'],
                     'account_id': user_data['account_id'],
-                    'icon': user_links.get('avatar'),
+                    'icon': user_data['links']['avatar']['href'],
                 }
             }
 
@@ -69,11 +69,11 @@ class BitbucketIntegrationProvider(IntegrationProvider):
         return {
             'provider': 'bitbucket',
             'external_id': integration.external_id,
-            'name': 'Bitbucket',
+            'name': integration.name,
             'metadata': {
                 'public_key': integration.metadata['public_key'],
                 'shared_secret': integration.metadata['shared_secret'],
                 'base_url': integration.metadata['base_url'],
-                'domain_name': integration.metadata['base_url'],
+                'domain_name': integration.metadata['domain_name'],
             },
         }

@@ -12,8 +12,8 @@ class BitbucketDescriptorEndpoint(Endpoint):
         return self.respond(
             {
                 'key': 'sentry-bitbucket',
-                'name': 'Sentry Bitbucket',
-                'description': 'A sentry integration',
+                'name': 'Sentry for Bitbucket',
+                'description': 'A Sentry integration',
                 'vendor': {
                     'name': 'Sentry.io',
                     'url': 'https://sentry.io/'
