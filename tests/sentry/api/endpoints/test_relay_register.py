@@ -5,6 +5,7 @@ import six
 
 from uuid import uuid4
 
+from django.conf import settings
 from django.core.urlresolvers import reverse
 
 from sentry.models import Relay
@@ -20,6 +21,8 @@ class RelayRegisterTest(APITestCase):
         self.key_pair = generate_key_pair()
 
         self.public_key = self.key_pair[1]
+        settings.SENTRY_RELAY_ALLOWED_PK.append(six.binary_type(self.public_key))
+
         self.private_key = self.key_pair[0]
         self.relay_id = six.binary_type(uuid4())
 
@@ -209,6 +212,8 @@ class RelayRegisterTest(APITestCase):
         )
 
         keys = generate_key_pair()
+
+        settings.SENTRY_RELAY_ALLOWED_PK.append(six.binary_type(keys[1]))
 
         data = {
             'public_key': six.binary_type(keys[1]),

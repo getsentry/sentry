@@ -1332,6 +1332,4 @@ SENTRY_MINIDUMP_PATH = '/tmp/minidump'
 
 # Relay
 # List of PKs allowed to register with Sentry
-SENTRY_RELAY_ALLOWED_PK = [
-
-]
+SENTRY_RELAY_ALLOWED_PK = []

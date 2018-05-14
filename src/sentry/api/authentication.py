@@ -16,7 +16,7 @@ class QuietBasicAuthentication(BasicAuthentication):
         return 'xBasic realm="%s"' % self.www_authenticate_realm
 
 
-class RelayAuthentication(QuietBasicAuthentication):
+class RelayAuthentication(BasicAuthentication):
     def authenticate(self, request):
         relay_id = get_header_relay_id(request)
         relay_sig = get_header_relay_signature(request)

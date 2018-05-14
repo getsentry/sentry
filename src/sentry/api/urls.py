@@ -182,12 +182,6 @@ urlpatterns = patterns(
     ),
 
     url(
-        r'^relays/(?P<relay_id>[^\/]+)/$',
-        RelayDetailsEndpoint.as_view(),
-        name='sentry-api-0-relays-details'
-    ),
-
-    url(
         r'^relays/register/challenge/$',
         RelayRegisterChallengeEndpoint.as_view(),
         name='sentry-api-0-relay-register-challenge'
@@ -203,6 +197,12 @@ urlpatterns = patterns(
         r'^relays/heartbeat/$',
         RelayHeartbeatEndpoint.as_view(),
         name='sentry-api-0-relay-heartbeat'
+    ),
+
+    url(
+        r'^relays/(?P<relay_id>[^\/]+)/$',
+        RelayDetailsEndpoint.as_view(),
+        name='sentry-api-0-relays-details'
     ),
 
     # Api Data
