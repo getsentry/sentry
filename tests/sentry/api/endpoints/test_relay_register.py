@@ -332,3 +332,140 @@ class RelayRegisterTest(APITestCase):
         )
 
         assert resp.status_code == 400, resp.content
+
+    def test_invalid_json_response(self):
+        data = {
+            'public_key': six.binary_type(self.public_key),
+            'relay_id': self.relay_id,
+        }
+
+        raw_json, signature = self.private_key.pack(data)
+
+        resp = self.client.post(
+            self.path,
+            data=raw_json,
+            content_type='application/json',
+            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
+            HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
+        )
+
+        assert resp.status_code == 200, resp.content
+        result = json.loads(resp.content)
+
+        _, signature = self.private_key.pack(result)
+
+        resp = self.client.post(
+            reverse(
+                'sentry-api-0-relay-register-response'
+            ),
+            data='a',
+            content_type='application/json',
+            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
+            HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
+        )
+
+        assert resp.status_code == 400, resp.content
+
+    def test_missing_token_response(self):
+        data = {
+            'public_key': six.binary_type(self.public_key),
+            'relay_id': self.relay_id,
+        }
+
+        raw_json, signature = self.private_key.pack(data)
+
+        resp = self.client.post(
+            self.path,
+            data=raw_json,
+            content_type='application/json',
+            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
+            HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
+        )
+
+        assert resp.status_code == 200, resp.content
+        result = json.loads(resp.content)
+
+        del result['token']
+
+        raw_json, signature = self.private_key.pack(result)
+
+        resp = self.client.post(
+            reverse(
+                'sentry-api-0-relay-register-response'
+            ),
+            data=raw_json,
+            content_type='application/json',
+            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
+            HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
+        )
+
+        assert resp.status_code == 400, resp.content
+
+    def test_missing_sig_response(self):
+        data = {
+            'public_key': six.binary_type(self.public_key),
+            'relay_id': self.relay_id,
+        }
+
+        raw_json, signature = self.private_key.pack(data)
+
+        resp = self.client.post(
+            self.path,
+            data=raw_json,
+            content_type='application/json',
+            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
+            HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
+        )
+
+        assert resp.status_code == 200, resp.content
+        result = json.loads(resp.content)
+
+        raw_json, signature = self.private_key.pack(result)
+
+        resp = self.client.post(
+            reverse(
+                'sentry-api-0-relay-register-response'
+            ),
+            data=raw_json,
+            content_type='application/json',
+            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
+        )
+
+        assert resp.status_code == 400, resp.content
+
+    def test_relay_id_missmatch_response(self):
+        data = {
+            'public_key': six.binary_type(self.public_key),
+            'relay_id': self.relay_id,
+        }
+
+        raw_json, signature = self.private_key.pack(data)
+
+        resp = self.client.post(
+            self.path,
+            data=raw_json,
+            content_type='application/json',
+            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
+            HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
+        )
+
+        assert resp.status_code == 200, resp.content
+        result = json.loads(resp.content)
+
+        raw_json, signature = self.private_key.pack(result)
+
+        resp = self.client.post(
+            reverse(
+                'sentry-api-0-relay-register-response'
+            ),
+            data=raw_json,
+            content_type='application/json',
+            HTTP_X_SENTRY_RELAY_ID=six.binary_type(uuid4()),
+            HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
+        )
+
+        assert resp.status_code == 400, resp.content
+
+    def test_valid_register_response_twice(self):
+        self.test_valid_register_response()
+        self.test_valid_register_response()
