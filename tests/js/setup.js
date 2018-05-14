@@ -530,25 +530,21 @@ window.TestStubs = {
     url: 'https://status.sentry.io',
   }),
 
-  Members: () => [
-    {
-      id: '1',
-      email: 'sentry1@test.com',
-      name: 'Sentry 1 Name',
-      role: '',
-      roleName: '',
-      pending: false,
-      flags: {
-        'sso:linked': false,
-      },
-      user: {
-        id: '1',
-        has2fa: false,
-        name: 'Sentry 1 Name',
-        email: 'sentry1@test.com',
-        username: 'Sentry 1 Username',
-      },
+  Member: params => ({
+    id: '1',
+    email: 'sentry1@test.com',
+    name: 'Sentry 1 Name',
+    role: '',
+    roleName: '',
+    pending: false,
+    flags: {
+      'sso:linked': false,
     },
+    user: TestStubs.User(),
+    ...params,
+  }),
+  Members: () => [
+    TestStubs.Member(),
     {
       id: '2',
       name: 'Sentry 2 Name',

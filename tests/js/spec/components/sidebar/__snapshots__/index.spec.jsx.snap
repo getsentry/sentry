@@ -757,13 +757,11 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                         >
                           <StyledName
                             hideEmail={false}
-                            to="/settings/undefined/members/1/"
                             useLink={false}
                           >
                             <Component
                               className="css-12fcmnb-StyledName ev46mzr3"
                               hideEmail={false}
-                              to="/settings/undefined/members/1/"
                               useLink={false}
                             >
                               <span
@@ -1769,13 +1767,11 @@ exports[`Sidebar renders without org and router 1`] = `
                         >
                           <StyledName
                             hideEmail={false}
-                            to="/settings/undefined/members/1/"
                             useLink={false}
                           >
                             <Component
                               className="css-12fcmnb-StyledName ev46mzr3"
                               hideEmail={false}
-                              to="/settings/undefined/members/1/"
                               useLink={false}
                             >
                               <span

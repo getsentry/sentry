@@ -3,10 +3,11 @@ import PropTypes from 'prop-types';
 
 import {userDisplayName} from 'app/utils/formatters';
 import BaseAvatar from 'app/components/avatar/baseAvatar';
+import SentryTypes from 'app/proptypes';
 
 class UserAvatar extends React.Component {
   static propTypes = {
-    user: PropTypes.object,
+    user: SentryTypes.User,
     gravatar: PropTypes.bool,
     ...BaseAvatar.propTypes,
   };
