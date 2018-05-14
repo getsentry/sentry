@@ -8,6 +8,7 @@ ifneq "$(wildcard /usr/local/opt/openssl/lib)" ""
 endif
 
 PIP = LDFLAGS="$(LDFLAGS)" pip -q
+WEBPACK = NODE_ENV=production ./node_modules/.bin/webpack
 
 # TODO test the all recipe, and also why did we separate develop from develop-only? better to merge into just develop
 all: update-submodules install-system-pkgs install-yarn-pkgs install-sentry
@@ -77,7 +78,7 @@ install-sentry-dev:
 
 build-js-po:
 	mkdir -p build
-	SENTRY_EXTRACT_TRANSLATIONS=1 ./node_modules/.bin/webpack
+	SENTRY_EXTRACT_TRANSLATIONS=1 $(WEBPACK)
 
 locale: build-js-po
 	cd src/sentry && sentry django makemessages -i static -l en
@@ -111,7 +112,7 @@ test-cli:
 
 test-js:
 	@echo "--> Building static assets"
-	@./node_modules/.bin/webpack --profile --json > webpack-stats.json
+	@$(WEBPACK) --profile --json > webpack-stats.json
 	@echo "--> Running JavaScript tests"
 	@npm run test-ci
 	@echo ""
@@ -142,7 +143,7 @@ test-snuba:
 
 test-acceptance: build-platform-assets
 	@echo "--> Building static assets"
-	@./node_modules/.bin/webpack --display errors-only
+	@$(WEBPACK) --display errors-only
 	@echo "--> Running acceptance tests"
 	py.test tests/acceptance --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml" --html="pytest.html"
 	@echo ""
