@@ -66,6 +66,7 @@ const TeamTitleBar = styled(Flex)`
 const TeamName = styled.h4`
   margin: 0;
   font-size: 20px;
+  line-height: 24px; /* We need this so that header doesn't flicker when lazy loading because avatarList height > this */
 `;
 
 export default TeamSection;

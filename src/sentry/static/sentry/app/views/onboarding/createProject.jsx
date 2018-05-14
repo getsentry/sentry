@@ -106,7 +106,10 @@ const CreateProject = createReactClass({
           error: err.responseJSON.detail,
         });
 
-        if (err.status != 403) {
+        // Only log this if the error is something other than:
+        // * The user not having access to create a project, or,
+        // * A project with that slug already exists
+        if (err.status !== 403 && err.status !== 409) {
           Raven.captureMessage('Onboarding project creation failed', {
             extra: {
               err,
