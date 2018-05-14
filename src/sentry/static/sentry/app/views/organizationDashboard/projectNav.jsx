@@ -37,7 +37,7 @@ const ProjectNav = createReactClass({
         tooltip: t('You do not have permission to create new teams'),
       },
       {
-        title: t('Teammate'),
+        title: t('Member'),
         to: `settings/${org.slug}/members/new/`,
         disabled: !hasTeamWrite,
         tooltip: t('You do not have permission to manage teams'),

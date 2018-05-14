@@ -52,7 +52,7 @@ class Dashboard extends React.Component {
             orgId={params.orgId}
             showBorder
             team={null}
-            title={t('Favorites')}
+            title={t('Bookmarked projects')}
             projects={favorites}
           />
         )}
