@@ -10,18 +10,20 @@ class BitbucketInstalledEndpointTest(APITestCase):
         self.provider = 'bitbucket'
         self.path = '/extensions/bitbucket/installed/'
 
-        self.name = 'Bitbucket'
         self.client_key = u'connection:123'
         self.public_key = u'123abcDEFg'
         self.shared_secret = u'G12332434SDfsjkdfgsd'
-        self.base_url = u'https://bitbucket.org'
-        self.domain_name = u'bitbucket.org'
+        self.base_url = u'https://bitbucket.org/'
+        self.domain_name = u'bitbucket.org/sentryuser/'
+        self.display_name = u'Sentry User'
+        self.icon = u'https://bitbucket.org/account/sentryuser/avatar/32/'
 
         self.metadata = {
             'public_key': self.public_key,
             'shared_secret': self.shared_secret,
             'base_url': self.base_url,
             'domain_name': self.domain_name,
+            'icon': self.icon
         }
         self.data_from_bitbucket = {
             u'key': u'sentry-bitbucket',
@@ -31,7 +33,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
             u'publicKey': self.public_key,
             u'user': {
                 u'username': u'sentryuser',
-                u'display_name': u'Sentry User',
+                u'display_name': self.display_name,
                 u'account_id': u'123456t256371u',
                 u'links': {
                     u'self': {u'herf': u'https://api.bitbucket.org/2.0/users/sentryuser/'},
@@ -67,7 +69,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
             provider=self.provider,
             external_id=self.client_key
         )
-        assert integration.name == 'Bitbucket'
+        assert integration.name == self.display_name
         assert integration.metadata == self.metadata
 
     def test_installed_without_public_key(self):
@@ -75,7 +77,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
             provider=self.provider,
             external_id=self.client_key,
             defaults={
-                'name': self.name,
+                'name': self.display_name,
                 'metadata': self.metadata,
             }
         )[0]
