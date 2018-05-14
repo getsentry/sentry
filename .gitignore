@@ -1,5 +1,6 @@
 .cache/
 .coverage
+.storybook-out/
 .DS_Store
 *.egg-info
 *.pyc
