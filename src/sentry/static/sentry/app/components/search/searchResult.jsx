@@ -61,7 +61,7 @@ class SearchResult extends React.Component {
           displayEmail={highlightedDescription}
           userLink={false}
           orgId={params.orgId}
-          user={model}
+          member={model}
           avatarSize={32}
         />
       );
