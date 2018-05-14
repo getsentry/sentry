@@ -445,7 +445,7 @@ exports[`CreateProject should render roles when available and allowed, and handl
                                   onChange={[Function]}
                                   style={
                                     Object {
-                                      "marginTop": 0,
+                                      "marginTop": "1px",
                                     }
                                   }
                                 >
@@ -456,7 +456,7 @@ exports[`CreateProject should render roles when available and allowed, and handl
                                     onChange={[Function]}
                                     style={
                                       Object {
-                                        "marginTop": 0,
+                                        "marginTop": "1px",
                                       }
                                     }
                                     type="checkbox"
@@ -556,7 +556,7 @@ exports[`CreateProject should render roles when available and allowed, and handl
                                   onChange={[Function]}
                                   style={
                                     Object {
-                                      "marginTop": 0,
+                                      "marginTop": "1px",
                                     }
                                   }
                                 >
@@ -567,7 +567,7 @@ exports[`CreateProject should render roles when available and allowed, and handl
                                     onChange={[Function]}
                                     style={
                                       Object {
-                                        "marginTop": 0,
+                                        "marginTop": "1px",
                                       }
                                     }
                                     type="checkbox"
