@@ -189,7 +189,7 @@ export default class OrganizationIntegration extends AsyncView {
     const titleIcon = <PluginIcon size={28} pluginId={provider.key} />;
 
     const header = (
-      <PanelHeader disablePadding hasButtons>
+      <PanelHeader disablePadding hasButtons={provider.canAdd}>
         <Box px={2}>{provider.metadata.noun}</Box>
         {provider.canAdd && (
           <Box mr={1}>
