@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from django.conf import settings
+
 from sentry.models import Relay
 from sentry.api.base import Endpoint
 from sentry.api.serializers import serialize
@@ -20,7 +22,9 @@ class RelayIndexEndpoint(Endpoint):
 
         :auth: required
         """
-        queryset = Relay.objects.all()
+        queryset = Relay.objects.filter(
+            public_key__in=settings.SENTRY_RELAY_WHITELIST_PK,
+        )
 
         return self.paginate(
             request=request,

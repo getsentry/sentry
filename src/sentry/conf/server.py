@@ -1331,5 +1331,5 @@ SENTRY_MINIDUMP_CACHE = False
 SENTRY_MINIDUMP_PATH = '/tmp/minidump'
 
 # Relay
-# List of PKs allowed to register with Sentry
-SENTRY_RELAY_ALLOWED_PK = []
+# List of PKs whitelisted by Sentry
+SENTRY_RELAY_WHITELIST_PK = []

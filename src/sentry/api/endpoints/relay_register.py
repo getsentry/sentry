@@ -44,7 +44,7 @@ class RelayRegisterChallengeEndpoint(Endpoint):
         """
         if (settings.DEBUG or
             request.META.get('REMOTE_ADDR', None) in settings.INTERNAL_IPS or
-                data.get('public_key', None) in settings.SENTRY_RELAY_ALLOWED_PK):
+                data.get('public_key', None) in settings.SENTRY_RELAY_WHITELIST_PK):
             return True
         return False
 
