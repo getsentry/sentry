@@ -34,7 +34,7 @@ class PermissionDenied extends React.Component {
 
     Raven.captureException(new Error(ERROR_NAME), {
       fingerprint: [ERROR_NAME, route],
-      extraInfo: {
+      extra: {
         route,
         orgFeatures: (organization && organization.features) || [],
         orgAccess: (organization && organization.access) || [],
