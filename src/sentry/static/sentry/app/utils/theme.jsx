@@ -136,6 +136,7 @@ const theme = {
 theme.textColor = theme.gray5;
 theme.success = theme.green;
 theme.error = theme.red;
+theme.disabled = '#ced3d6';
 
 theme.alert.info.iconColor = theme.blue;
 theme.alert.info.background = theme.blue;
@@ -192,7 +193,7 @@ theme.button = {
     // borderActive: '#352b7b',
   },
   disabled: {
-    color: '#ced3d6',
+    color: theme.disabled,
     border: '#e3e5e6',
     borderActive: '#e3e5e6',
     background: theme.white,

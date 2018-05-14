@@ -1,3 +1,4 @@
+import {Link} from 'react-router';
 import LazyLoad from 'react-lazyload';
 import React from 'react';
 import PropTypes from 'prop-types';
@@ -41,7 +42,8 @@ class Dashboard extends React.Component {
     const {projectsByTeam} = getProjectsByTeams(teams, sortedProjects);
     const teamSlugs = Object.keys(projectsByTeam).sort();
     const favorites = projects.filter(project => project.isBookmarked);
-    const hasTeamAccess = new Set(organization.access).has('team:read');
+    const access = new Set(organization.access);
+    const hasTeamAccess = access.has('team:read');
     const teamsMap = new Map(teams.map(teamObj => [teamObj.slug, teamObj]));
 
     return (
@@ -72,7 +74,11 @@ class Dashboard extends React.Component {
                 team={team}
                 hasTeamAccess={hasTeamAccess}
                 showBorder={showBorder}
-                title={<IdBadge team={team} />}
+                title={
+                  <TeamLink to={`/settings/${organization.slug}/teams/${team.slug}/`}>
+                    <IdBadge team={team} />
+                  </TeamLink>
+                }
                 projects={projectsByTeam[slug]}
               />
             </LazyLoad>
@@ -111,5 +117,11 @@ const OrganizationDashboard = createReactClass({
 const TeamSectionPlaceholder = styled('div')`
   height: 180px;
 `;
+
+const TeamLink = styled(Link)`
+  display: flex;
+  align-items: center;
+`;
+
 export {Dashboard};
 export default withTeams(withProjects(OrganizationDashboard));
