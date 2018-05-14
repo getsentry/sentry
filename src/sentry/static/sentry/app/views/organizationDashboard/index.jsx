@@ -8,7 +8,6 @@ import styled from 'react-emotion';
 
 import SentryTypes from 'app/proptypes';
 import IdBadge from 'app/components/idBadge';
-import InlineSvg from 'app/components/inlineSvg';
 import OrganizationState from 'app/mixins/organizationState';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 import getProjectsByTeams from 'app/utils/getProjectsByTeams';
@@ -78,7 +77,6 @@ class Dashboard extends React.Component {
                 title={
                   <TeamLink to={`/settings/${organization.slug}/teams/${team.slug}/`}>
                     <IdBadge team={team} />
-                    <SettingsIcon src="icon-settings" />
                   </TeamLink>
                 }
                 projects={projectsByTeam[slug]}
@@ -120,22 +118,9 @@ const TeamSectionPlaceholder = styled('div')`
   height: 180px;
 `;
 
-const SettingsIcon = styled(InlineSvg)`
-  font-size: 14px;
-  margin-left: 6px;
-  opacity: 0;
-`;
-
 const TeamLink = styled(Link)`
   display: flex;
   align-items: center;
-
-  &:hover {
-    /* stylelint-disable-next-line no-duplicate-selectors */
-    ${SettingsIcon} {
-      opacity: 1;
-    }
-  }
 `;
 
 export {Dashboard};
