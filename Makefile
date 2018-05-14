@@ -158,9 +158,6 @@ scan-python:
 publish:
 	python setup.py sdist bdist_wheel upload
 
-extract-api-docs:
-	rm -rf api-docs/cache/*
-	cd api-docs; python generator.py
 
 ############################
 # Halt, Travis stuff below #
