@@ -15,7 +15,7 @@ describe('GroupActivity', function() {
     sandbox
       .stub(ConfigStore, 'get')
       .withArgs('user')
-      .returns({});
+      .returns({id: '123'});
   });
 
   afterEach(function() {
