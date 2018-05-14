@@ -33,7 +33,18 @@ class SwitchOrganization extends React.Component {
             <React.Fragment>
               <SwitchOrganizationMenuActor
                 data-test-id="sidebar-switch-org"
-                {...getActorProps()}
+                {...getActorProps({
+                  isStyled: true,
+                })}
+                onClick={e => {
+                  // This overwrites `DropdownMenu.getActorProps.onClick` which normally handles clicks on actor
+                  // to toggle visibility of menu. Instead, do nothing because it is nested and we only want it
+                  // to appear when hovered on. Will also stop menu from closing when clicked on (which seems to be common
+                  // behavior);
+
+                  // Stop propagation so that dropdown menu doesn't close here
+                  e.stopPropagation();
+                }}
               >
                 {t('Switch organization')}
 
@@ -47,17 +58,21 @@ class SwitchOrganization extends React.Component {
                   data-test-id="sidebar-switch-org-menu"
                   {...getMenuProps({isStyled: true})}
                 >
-                  {organizations.map(organization => (
-                    <SidebarMenuItem
-                      key={organization.slug}
-                      to={`/${organization.slug}/`}
-                    >
-                      <SidebarOrgSummary organization={organization} />
-                    </SidebarMenuItem>
-                  ))}
-                  {hasOrganizations && canCreateOrganization && <Divider />}
+                  <OrganizationList>
+                    {organizations.map(organization => (
+                      <SidebarMenuItem
+                        key={organization.slug}
+                        to={`/${organization.slug}/`}
+                      >
+                        <SidebarOrgSummary organization={organization} />
+                      </SidebarMenuItem>
+                    ))}
+                  </OrganizationList>
+                  {hasOrganizations &&
+                    canCreateOrganization && <Divider css={{marginTop: 0}} />}
                   {canCreateOrganization && (
                     <SidebarMenuItem
+                      data-test-id="sidebar-create-org"
                       to={'/organizations/new/'}
                       style={{alignItems: 'center'}}
                     >
@@ -78,6 +93,7 @@ class SwitchOrganization extends React.Component {
 }
 const SwitchOrganizationContainer = withOrganizations(SwitchOrganization);
 
+export {SwitchOrganization};
 export default SwitchOrganizationContainer;
 
 const AddIcon = styled(InlineSvg)`
@@ -117,4 +133,9 @@ const SwitchOrganizationMenu = styled('div')`
   ${SidebarDropdownMenu};
   top: 0;
   left: 256px;
+`;
+
+const OrganizationList = styled('div')`
+  max-height: 350px;
+  overflow-y: auto;
 `;

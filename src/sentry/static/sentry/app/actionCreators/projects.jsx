@@ -1,3 +1,5 @@
+import {debounce} from 'lodash';
+
 import {
   addLoadingMessage,
   addErrorMessage,
@@ -5,6 +7,7 @@ import {
 } from 'app/actionCreators/indicator';
 import {tct} from 'app/locale';
 import ProjectActions from 'app/actions/projectActions';
+import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 
 export function update(api, params) {
   ProjectActions.update(params.projectId, params.data);
@@ -21,7 +24,7 @@ export function update(api, params) {
         return data;
       },
       err => {
-        ProjectActions.updateError(err);
+        ProjectActions.updateError(err, params.projectId);
         throw err;
       }
     );
@@ -40,6 +43,46 @@ export function loadStats(api, params) {
       ProjectActions.loadStatsError(data);
     },
   });
+}
+
+// This is going to queue up a list of project ids we need to fetch stats for
+// Will be cleared when debounced function fires
+let _projectStatsToFetch = new Set();
+
+const _debouncedLoadStats = debounce((api, projectSet, params) => {
+  let existingProjectStats = Object.values(ProjectsStatsStore.getAll()).map(({id}) => id);
+  let projects = Array.from(projectSet).filter(
+    project => !existingProjectStats.includes(project)
+  );
+
+  if (!projects.length) {
+    _projectStatsToFetch.clear();
+    return;
+  }
+
+  let idQueryParams = projects.map(project => `id:${project}`).join(' ');
+  let endpoint = `/organizations/${params.orgId}/projects/`;
+
+  api.request(endpoint, {
+    query: {
+      statsPeriod: '24h',
+      query: idQueryParams,
+    },
+    success: data => {
+      ProjectActions.loadStatsForProjectSuccess(data);
+    },
+    error: data => {},
+  });
+
+  // Reset projects list
+  _projectStatsToFetch.clear();
+}, 50);
+
+export function loadStatsForProject(api, project, params) {
+  // Queue up a list of projects that we need stats for
+  // and call a debounced function to fetch stats for list of projects
+  _projectStatsToFetch.add(project);
+  _debouncedLoadStats(api, _projectStatsToFetch, params);
 }
 
 export function setActiveProject(project) {

@@ -11,6 +11,7 @@ import AdminOverview from 'app/views/adminOverview';
 import AdminProjects from 'app/views/adminProjects';
 import AdminQueue from 'app/views/adminQueue';
 import AdminQuotas from 'app/views/adminQuotas';
+import AdminRelays from 'app/views/adminRelays';
 import AdminSettings from 'app/views/adminSettings';
 import AdminUsers from 'app/views/adminUsers';
 import ApiApplicationDetails from 'app/views/apiApplicationDetails';
@@ -50,6 +51,7 @@ import OrganizationMemberDetail from 'app/views/settings/organization/members/or
 import OrganizationMembersView from 'app/views/settings/organization/members/organizationMembersView';
 import OrganizationProjectsView from 'app/views/settings/organization/projects/organizationProjectsView';
 import OrganizationRateLimits from 'app/views/organizationRateLimits';
+import OrganizationRoot from 'app/views/organizationRoot';
 import OrganizationRepositoriesView from 'app/views/organizationRepositoriesView';
 import OrganizationGeneralSettingsView from 'app/views/settings/organization/general/organizationGeneralSettingsView';
 import OrganizationStats from 'app/views/organizationStats';
@@ -619,6 +621,7 @@ function routes() {
       <Route path="/manage/" component={errorHandler(AdminLayout)}>
         <IndexRoute component={errorHandler(AdminOverview)} />
         <Route path="buffer/" component={errorHandler(AdminBuffer)} />
+        <Route path="relays/" component={errorHandler(AdminRelays)} />
         <Route path="organizations/" component={errorHandler(AdminOrganizations)} />
         <Route path="projects/" component={errorHandler(AdminProjects)} />
         <Route path="queue/" component={errorHandler(AdminQueue)} />
@@ -649,50 +652,51 @@ function routes() {
       </Route>
 
       <Route path="/:orgId/" component={errorHandler(OrganizationDetails)}>
-        <IndexRoute component={errorHandler(OrganizationDashboard)} />
-
-        <Route
-          path="/organizations/:orgId/activity/"
-          component={errorHandler(OrganizationActivity)}
-        />
-
-        <Route
-          path="/organizations/:orgId/teams/new/"
-          component={errorHandler(TeamCreate)}
-        />
-
-        <Route path="/organizations/:orgId/" component={OrganizationHomeContainer}>
+        <Route component={errorHandler(OrganizationRoot)}>
+          <IndexRoute component={errorHandler(OrganizationDashboard)} />
           <Route
-            path="projects/"
-            component={errorHandler(OrganizationTeamsProjectsView)}
+            path="/organizations/:orgId/activity/"
+            component={errorHandler(OrganizationActivity)}
           />
-          {hooksOrgRoutes}
-          {orgSettingsRoutes}
-          <Route path="stats/" component={errorHandler(OrganizationStats)} />
+
+          <Route
+            path="/organizations/:orgId/teams/new/"
+            component={errorHandler(TeamCreate)}
+          />
+
+          <Route path="/organizations/:orgId/" component={OrganizationHomeContainer}>
+            <Route
+              path="projects/"
+              component={errorHandler(OrganizationTeamsProjectsView)}
+            />
+            {hooksOrgRoutes}
+            {orgSettingsRoutes}
+            <Route path="stats/" component={errorHandler(OrganizationStats)} />
+          </Route>
+
+          <Route
+            path="/organizations/:orgId/issues/assigned/"
+            component={errorHandler(MyIssuesAssignedToMe)}
+          />
+          <Route
+            path="/organizations/:orgId/issues/bookmarks/"
+            component={errorHandler(MyIssuesBookmarked)}
+          />
+          <Route
+            path="/organizations/:orgId/issues/history/"
+            component={errorHandler(MyIssuesViewed)}
+          />
+
+          <Route
+            path="/organizations/:orgId/projects/new/"
+            component={errorHandler(NewProject)}
+          />
+
+          <Route
+            path="/organizations/:orgId/projects/choose/"
+            component={errorHandler(ProjectChooser)}
+          />
         </Route>
-
-        <Route
-          path="/organizations/:orgId/issues/assigned/"
-          component={errorHandler(MyIssuesAssignedToMe)}
-        />
-        <Route
-          path="/organizations/:orgId/issues/bookmarks/"
-          component={errorHandler(MyIssuesBookmarked)}
-        />
-        <Route
-          path="/organizations/:orgId/issues/history/"
-          component={errorHandler(MyIssuesViewed)}
-        />
-
-        <Route
-          path="/organizations/:orgId/projects/new/"
-          component={errorHandler(NewProject)}
-        />
-
-        <Route
-          path="/organizations/:orgId/projects/choose/"
-          component={errorHandler(ProjectChooser)}
-        />
 
         <Route
           path=":projectId/getting-started/"

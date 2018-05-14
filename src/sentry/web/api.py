@@ -1,6 +1,8 @@
 from __future__ import absolute_import, print_function
 
 import base64
+import math
+
 import jsonschema
 import logging
 import os
@@ -136,7 +138,7 @@ class APIView(BaseView):
             response['X-Sentry-Error'] = context['error']
 
             if isinstance(e, APIRateLimited) and e.retry_after is not None:
-                response['Retry-After'] = six.text_type(e.retry_after)
+                response['Retry-After'] = six.text_type(int(math.ceil(e.retry_after)))
 
         except Exception as e:
             # TODO(dcramer): test failures are not outputting the log message

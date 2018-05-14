@@ -101,6 +101,7 @@
     "dev-proxy": "node scripts/devproxy.js",
     "dev-server": "webpack-dev-server",
     "storybook": "start-storybook -p 9001 -c .storybook",
+    "storybook-build": "build-storybook -c .storybook -o .storybook-out",
     "snapshot": "build-storybook && PERCY_TOKEN=$STORYBOOK_PERCY_TOKEN PERCY_PROJECT=$STORYBOOK_PERCY_PROJECT percy-storybook --widths=1280",
     "webpack-profile": "yarn -s webpack --profile --json > stats.json"
   },
