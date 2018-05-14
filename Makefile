@@ -10,6 +10,7 @@ endif
 PIP = LDFLAGS="$(LDFLAGS)" pip -q
 WEBPACK = NODE_ENV=production ./node_modules/.bin/webpack
 
+test: develop lint test-js test-python test-cli
 develop: setup-git develop-only
 # Used by https://github.com/getsentry/sentry-docs/blob/master/bin/extract-docs
 develop-only: update-submodules install-system-pkgs install-yarn-pkgs install-sentry-dev
@@ -18,12 +19,6 @@ build: locale
 
 dev-docs:
 	$(PIP) install -r doc-requirements.txt
-
-test: develop lint test-js test-python test-cli
-
-testloop: develop
-	pip install -q pytest-xdist
-	py.test tests -f
 
 reset-db:
 	@echo "--> Dropping existing 'sentry' database"
