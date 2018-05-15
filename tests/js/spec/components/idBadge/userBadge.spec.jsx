@@ -49,4 +49,10 @@ describe('UserBadge', function() {
 
     expect(wrapper.find('StyledEmail')).toHaveLength(0);
   });
+
+  it('renders when a member without a user to passed to member', function() {
+    let wrapper = mount(<UserBadge member={{...member, user: null}} />);
+
+    expect(wrapper.find('StyledName').prop('children')).toBe('Sentry 1 Name');
+  });
 });
