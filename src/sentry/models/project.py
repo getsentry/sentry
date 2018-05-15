@@ -165,7 +165,6 @@ class Project(Model):
 
     def get_option(self, *args, **kwargs):
         from sentry.models import ProjectOption
-        self.update_rev_for_option()
         return ProjectOption.objects.get_value(self, *args, **kwargs)
 
     def delete_option(self, *args, **kwargs):
