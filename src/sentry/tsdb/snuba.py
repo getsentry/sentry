@@ -77,7 +77,7 @@ class SnubaTSDB(BaseTSDB):
         end = to_datetime(series[-1] + rollup)
 
         result = snuba.query(start, end, groupby, None, keys_map,
-                             aggregations, rollup)
+                             aggregations, rollup, referrer='tsdb')
 
         if group_on_time:
             keys_map['time'] = series
