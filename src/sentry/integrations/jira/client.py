@@ -5,7 +5,7 @@ import jwt
 import re
 from six.moves.urllib.parse import urlparse
 
-from sentry.http import build_session
+from sentry.integrations.client import ApiClient
 from sentry.utils.http import absolute_uri
 
 from .utils import get_query_hash
@@ -13,7 +13,7 @@ from .utils import get_query_hash
 JIRA_KEY = '%s.jira' % (urlparse(absolute_uri()).hostname, )
 
 
-class JiraApiClient(object):
+class JiraApiClient(ApiClient):
     COMMENT_URL = '/rest/api/2/issue/%s/comment'
     ISSUE_URL = '/rest/api/2/issue/%s'
     SEARCH_URL = '/rest/api/2/search/'
@@ -21,8 +21,9 @@ class JiraApiClient(object):
     def __init__(self, base_url, shared_secret):
         self.base_url = base_url
         self.shared_secret = shared_secret
+        super(JiraApiClient, self).__init__(verify_ssl=False)
 
-    def request(self, method, path, data=None, params=None, headers=None, **kwargs):
+    def request(self, method, path, data=None, params=None, **kwargs):
         jwt_payload = {
             'iss': JIRA_KEY,
             'iat': datetime.datetime.utcnow(),
@@ -34,18 +35,7 @@ class JiraApiClient(object):
             jwt=encoded_jwt,
             **(params or {})
         )
-
-        session = build_session()
-        resp = session.request(
-            method.lower(),
-            url='%s%s' % (self.base_url, path),
-            headers=headers,
-            json=data,
-            params=params,
-        )
-
-        resp.raise_for_status()
-        return resp.json()
+        return self._request(method, path, data=data, params=params, **kwargs)
 
     def get_issue(self, issue_id):
         return self.request('GET', self.ISSUE_URL % (issue_id,))
