@@ -10,6 +10,7 @@ from sentry.plugins import Plugin2
 from sentry.tasks.store import preprocess_event, process_event, save_event
 from sentry.testutils import PluginTestCase
 from sentry.utils.dates import to_datetime
+from sentry.testutils.fixtures import log_db_queries
 
 
 class BasicPreprocessorPlugin(Plugin2):
@@ -39,6 +40,22 @@ class BasicPreprocessorPlugin(Plugin2):
 
 class StoreTasksTest(PluginTestCase):
     plugin = BasicPreprocessorPlugin
+
+    @log_db_queries
+    def test_process_event_query_count(self):
+        with self.assertNumQueries(2):
+            project = self.create_project()
+
+            data = {
+                'project': project.id,
+                'platform': 'mattlang',
+                'message': 'test',
+                'extra': {
+                    'foo': 'bar'
+                },
+            }
+
+            preprocess_event(data=data)
 
     @mock.patch('sentry.tasks.store.save_event')
     @mock.patch('sentry.tasks.store.process_event')

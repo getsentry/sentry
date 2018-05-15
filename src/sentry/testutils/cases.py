@@ -23,6 +23,8 @@ import requests
 import six
 import types
 import logging
+import sqlparse
+import re
 
 from click.testing import CliRunner
 from contextlib import contextmanager
@@ -33,8 +35,10 @@ from django.contrib.auth.models import AnonymousUser
 from django.core import signing
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
+from django.db import connections, DEFAULT_DB_ALIAS
 from django.http import HttpRequest
 from django.test import TestCase, TransactionTestCase
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from django.utils.importlib import import_module
 from exam import before, fixture, Exam
@@ -307,6 +311,55 @@ class BaseTestCase(Fixtures, Exam):
         assert deleted_log.date_created.replace(
             microsecond=0) == original_object.date_added.replace(microsecond=0)
         assert deleted_log.date_deleted >= deleted_log.date_created
+
+    def assertMaxWriteQueries(self, queries, *args, **kwargs):
+        func = kwargs.pop('func', None)
+        using = kwargs.pop("using", DEFAULT_DB_ALIAS)
+        conn = connections[using]
+
+        context = _AssertQueriesContext(self, queries, conn)
+        if func is None:
+            return context
+
+        with context:
+            func(*args, **kwargs)
+
+
+class _AssertQueriesContext(CaptureQueriesContext):
+    def __init__(self, test_case, queries, connection):
+        self.test_case = test_case
+        self.queries = queries
+        super(_AssertQueriesContext, self).__init__(connection)
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        super(_AssertQueriesContext, self).__exit__(exc_type, exc_value, traceback)
+        if exc_type is not None:
+            return
+
+        write_ops = ['INSERT', 'UPDATE', 'DELETE']
+
+        write_ops_count = 0
+        real_queries = {}
+
+        for query in self.captured_queries:
+            match = re.search(r"u'([^']*)'", query['sql'])
+            if match:
+                parsed = sqlparse.parse(match.group(1))
+                for token in parsed[0].tokens:
+                    if token.ttype is sqlparse.tokens.DML:
+                        if token.value.upper() in write_ops:
+                            if real_queries.get(parsed[0].get_name()) is None:
+                                real_queries[parsed[0].get_name()] = 0
+                            real_queries[parsed[0].get_name()] += 1
+                            write_ops_count += 1
+
+        for table, num in self.queries.items():
+            executed = real_queries.get(table, 0)
+            self.test_case.assertTrue(
+                executed <= num, "%d write queries executed on `%s`, expected <= %d" % (
+                    executed, table, num
+                )
+            )
 
 
 class TestCase(BaseTestCase, TestCase):
