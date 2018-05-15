@@ -55,7 +55,7 @@ class SlackLinkIdentitiyView(BaseView):
                 type='slack',
                 organization=organization,
             )
-        except Integration.DoesNotExist:
+        except IdentityProvider.DoesNotExist:
             raise Http404
 
         if request.method != 'POST':
