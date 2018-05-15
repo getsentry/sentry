@@ -99,10 +99,9 @@ class InstallationConfigView(PipelineView):
             pipeline.bind_state('oauth_config_information', {
                 "access_token_url": "https://{}/login/oauth/access_token".format(form_data.get('url')),
                 "authorize_url": "https://{}/login/oauth/authorize".format(form_data.get('url')),
-                "id": form_data.get('client-id'),
-                "iss": form_data.get('id'),
+                "client_id": form_data.get('client-id'),
                 "private_key": form_data.get('private-key'),
-                "secret": form_data.get('client-secret'),
+                "client_secret": form_data.get('client-secret'),
             })
 
             return pipeline.next_step()
@@ -196,6 +195,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
                 'scopes': [],  # GitHub apps do not have user scopes
                 'data': {'access_token': identity['access_token']},
             },
+            'identity_config': state['oauth_config_information']
         }
 
 
