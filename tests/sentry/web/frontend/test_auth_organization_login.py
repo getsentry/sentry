@@ -191,6 +191,10 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert user.email == 'bar@example.com'
         assert new_user != user
 
+        # Without settings.TERMS_URL and settings.PRIVACY_URL, this should be
+        # unset following new user creation
+        assert not new_user.flags.newsletter_consent_prompt
+
         member = OrganizationMember.objects.get(
             organization=organization,
             user=new_user,
