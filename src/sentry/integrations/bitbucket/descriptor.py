@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from sentry.api.base import Endpoint
 from sentry.utils.http import absolute_uri
+from .client import BITBUCKET_KEY
 
 
 class BitbucketDescriptorEndpoint(Endpoint):
@@ -11,7 +12,7 @@ class BitbucketDescriptorEndpoint(Endpoint):
     def get(self, request):
         return self.respond(
             {
-                'key': 'sentry-bitbucket',
+                'key': BITBUCKET_KEY,
                 'name': 'Sentry for Bitbucket',
                 'description': 'A Sentry integration',
                 'vendor': {
