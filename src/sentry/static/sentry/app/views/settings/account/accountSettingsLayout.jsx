@@ -6,12 +6,14 @@ import SettingsLayout from 'app/views/settings/components/settingsLayout';
 class AccountSettingsLayout extends React.Component {
   render() {
     return (
-      <SettingsLayout
-        {...this.props}
-        renderNavigation={() => <AccountSettingsNavigation {...this.props} />}
-      >
-        {this.props.children}
-      </SettingsLayout>
+      <div className="app">
+        <SettingsLayout
+          {...this.props}
+          renderNavigation={() => <AccountSettingsNavigation {...this.props} />}
+        >
+          {this.props.children}
+        </SettingsLayout>
+      </div>
     );
   }
 }

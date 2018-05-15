@@ -1,7 +1,6 @@
 import {Flex, Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
@@ -16,14 +15,6 @@ import Tag from 'app/views/settings/components/tag';
 import accountEmailsFields from 'app/data/forms/accountEmails';
 
 const ENDPOINT = '/users/me/emails/';
-
-const RemoveButton = styled(({hidden, ...props}) => (
-  <Button priority="danger" size="small" {...props}>
-    <span className="icon-trash" />
-  </Button>
-))`
-  ${p => (p.hidden ? 'opacity: 0' : '')};
-`;
 
 class EmailRow extends React.Component {
   static propTypes = {
@@ -72,14 +63,18 @@ class EmailRow extends React.Component {
               {t('Resend verification')}
             </Button>
           )}
-          {!hideRemove && (
-            <Box ml={1}>
-              <RemoveButton
-                onClick={this.handleRemove}
-                hidden={isPrimary || hideRemove}
-              />
-            </Box>
-          )}
+          {!hideRemove &&
+            !isPrimary && (
+              <Box ml={1}>
+                <Button
+                  data-test-id="remove"
+                  priority="danger"
+                  size="small"
+                  icon="icon-trash"
+                  onClick={this.handleRemove}
+                />
+              </Box>
+            )}
         </Flex>
       </PanelItem>
     );

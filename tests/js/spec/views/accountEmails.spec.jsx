@@ -36,7 +36,7 @@ describe('AccountEmails', function() {
 
     // The first Button should be delete button for first secondary email (NOT primary)
     wrapper
-      .find('RemoveButton')
+      .find('[data-test-id="remove"]')
       .at(1)
       .simulate('click');
 
