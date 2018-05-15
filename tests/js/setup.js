@@ -534,8 +534,8 @@ window.TestStubs = {
     id: '1',
     email: 'sentry1@test.com',
     name: 'Sentry 1 Name',
-    role: '',
-    roleName: '',
+    role: 'member',
+    roleName: 'Member',
     pending: false,
     flags: {
       'sso:linked': false,
@@ -549,8 +549,8 @@ window.TestStubs = {
       id: '2',
       name: 'Sentry 2 Name',
       email: 'sentry2@test.com',
-      role: '',
-      roleName: '',
+      role: 'member',
+      roleName: 'Member',
       pending: true,
       flags: {
         'sso:linked': false,
