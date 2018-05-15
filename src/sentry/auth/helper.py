@@ -8,6 +8,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.core.urlresolvers import reverse
 from django.db import IntegrityError, transaction
+from django.db.models import F
 from django.http import HttpResponseRedirect
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
@@ -386,6 +387,9 @@ class AuthHelper(object):
             email=identity['email'],
             name=identity.get('name', '')[:200],
         )
+
+        if settings.TERMS_URL and settings.PRIVACY_URL:
+            user.update(flags=F('flags').bitor(User.flags.newsletter_consent_prompt))
 
         try:
             with transaction.atomic():
