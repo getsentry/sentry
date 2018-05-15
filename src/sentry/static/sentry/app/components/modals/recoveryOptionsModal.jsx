@@ -52,7 +52,7 @@ class RecoveryOptionsModal extends AsyncComponent {
 
         <Body>
           <TextBlock>
-            {t(`Two factor authentication via ${authenticatorName} has been enabled `)}
+            {t(`Two factor authentication via ${authenticatorName} has been enabled`)}
           </TextBlock>
           <TextBlock>
             {t('You should now set up recovery options to secure your account.')}
@@ -77,13 +77,13 @@ class RecoveryOptionsModal extends AsyncComponent {
         {!skipSms && !smsEnrolled ? (
           // set up backup phone number
           <div className="modal-footer">
-            <Button onClick={this.handleSkipSms} name={'skipStep'} autoFocus>
+            <Button onClick={this.handleSkipSms} name="skipStep" autoFocus>
               {t('Skip this step')}
             </Button>
             <Button
-              priority={'primary'}
+              priority="primary"
               to={`/settings/account/security/${sms.id}/enroll/`}
-              name={'addPhone'}
+              name="addPhone"
               css={{marginLeft: space(1)}}
               autoFocus
             >
@@ -94,13 +94,13 @@ class RecoveryOptionsModal extends AsyncComponent {
           // get recovery codes
           <div className="modal-footer">
             <Button
-              priority={'primary'}
+              priority="primary"
               to={
                 recoveryEnrolled
                   ? `/settings/account/security/${recovery.authId}/`
                   : '/settings/account/security/'
               }
-              name={'getCodes'}
+              name="getCodes"
               autoFocus
             >
               {t('Get Recovery Codes')}
