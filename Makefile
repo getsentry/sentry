@@ -180,7 +180,6 @@ travis-lint-snuba: lint-python
 travis-lint-js: lint-js
 travis-lint-cli: travis-noop
 travis-lint-dist: travis-noop
-travis-lint-django-18: lint-python
 
 # Test steps
 travis-test-sqlite: test-python
@@ -194,7 +193,6 @@ travis-test-cli: test-cli
 travis-test-dist:
 	SENTRY_BUILD=$(TRAVIS_COMMIT) SENTRY_LIGHT_BUILD=0 python setup.py sdist bdist_wheel
 	@ls -lh dist/
-travis-test-django-18: test-python
 
 # Scan steps
 travis-scan-sqlite: scan-python
@@ -206,6 +204,5 @@ travis-scan-snuba: scan-python
 travis-scan-js: travis-noop
 travis-scan-cli: travis-noop
 travis-scan-dist: travis-noop
-travis-scan-django-18: travis-noop
 
-.PHONY: all develop develop-only build dev-docs test testloop reset-db clean setup-git update-submodules install-system-pkgs install-yarn-pkgs install-sentry install-sentry-dev build-js-po locale update-transifex build-platform-assets test-cli test-js test-styleguide test-python test-network test-snuba test-acceptance lint lint-python lint-js scan-python coverage publish extract-api-docs travis-noop travis-setup-cassandra travis-lint-sqlite travis-lint-postgres travis-lint-mysql travis-lint-acceptance travis-lint-network travis-lint-snuba travis-lint-js travis-lint-cli travis-lint-dist travis-lint-django-18 travis-test-sqlite travis-test-postgres travis-test-mysql travis-test-acceptance travis-test-network travis-test-snuba travis-test-js travis-test-cli travis-test-dist travis-test-django-18 travis-scan-sqlite travis-scan-postgres travis-scan-mysql travis-scan-acceptance travis-scan-network travis-scan-snuba travis-scan-js travis-scan-cli travis-scan-dist travis-scan-django-18
+.PHONY: all develop develop-only build dev-docs test testloop reset-db clean setup-git update-submodules install-system-pkgs install-yarn-pkgs install-sentry install-sentry-dev build-js-po locale update-transifex build-platform-assets test-cli test-js test-styleguide test-python test-network test-snuba test-acceptance lint lint-python lint-js scan-python coverage publish extract-api-docs travis-noop travis-setup-cassandra travis-lint-sqlite travis-lint-postgres travis-lint-mysql travis-lint-acceptance travis-lint-network travis-lint-snuba travis-lint-js travis-lint-cli travis-lint-dist travis-test-sqlite travis-test-postgres travis-test-mysql travis-test-acceptance travis-test-network travis-test-snuba travis-test-js travis-test-cli travis-test-dist travis-scan-sqlite travis-scan-postgres travis-scan-mysql travis-scan-acceptance travis-scan-network travis-scan-snuba travis-scan-js travis-scan-cli travis-scan-dist
