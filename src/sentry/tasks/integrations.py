@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from sentry.tasks.base import instrumented_task, retry
 
-from sentry.models import ExternalIssue, GroupLink, Integration
+from sentry.models import ExternalIssue, Integration
 
 
 @instrumented_task(
@@ -11,27 +11,10 @@ from sentry.models import ExternalIssue, GroupLink, Integration
     default_retry_delay=60 * 5,
     max_retries=5
 )
-# TODO(jess): Add retry exclusions once ApiClients have better error handling
-@retry()
-def post_comment(project_id, group_id, data, **kwargs):
-    # sync Sentry comments to external issues
-    external_issues = list(
-        ExternalIssue.objects.filter(
-            id__in=GroupLink.objects.filter(
-                project_id=project_id,
-                group_id=group_id,
-                linked_type=GroupLink.LinkedType.issue,
-            ).values_list('linked_id', flat=True)
-        )
-    )
-
-    if external_issues:
-        integrations = {
-            i.id: i for i in Integration.objects.filter(
-                id__in=[external_issue.integration_id for external_issue in external_issues]
-            )
-        }
-
-        for external_issue in external_issues:
-            integration = integrations[external_issue.integration_id]
-            integration.get_installation().create_comment(external_issue.key, data['text'])
+# TODO(jess): Add more retry exclusions once ApiClients have better error handling
+@retry(exclude=(ExternalIssue.DoesNotExist, Integration.DoesNotExist))
+def post_comment(external_issue_id, data, **kwargs):
+    # sync Sentry comments to an external issue
+    external_issue = ExternalIssue.objects.get(id=external_issue_id)
+    integration = Integration.objects.get(id=external_issue.integration_id)
+    integration.get_installation().create_comment(external_issue.key, data['text'])
