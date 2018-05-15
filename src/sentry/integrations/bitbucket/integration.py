@@ -41,6 +41,7 @@ class BitbucketIntegrationProvider(IntegrationProvider):
         ]
 
     def build_integration(self, state):
+        # TODO(LB): Add verification for clientKey
         if state.get('publicKey'):
             principal_data = state['principal']
             user_data = state['user']
