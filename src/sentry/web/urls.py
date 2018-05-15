@@ -420,6 +420,8 @@ urlpatterns += patterns(
         react_page_view,
         name='sentry-organization-stats'
     ),
+
+    # TODO REMOVEME #NEW-SETTINGS, redirect to team settings?
     url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/teams/(?P<team_slug>[\w_-]+)/remove/$',
         RemoveTeamView.as_view(),
@@ -448,11 +450,13 @@ urlpatterns += patterns(
         react_page_view,
         name='sentry-manage-project'
     ),
+    # TODO REMOVEME #NEW-SETTINGS, redirect to project settings?
     url(
         r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/remove/$',
         RemoveProjectView.as_view(),
         name='sentry-remove-project'
     ),
+    # TODO REMOVEME #NEW-SETTINGS, redirect to project settings?
     url(
         r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/transfer/$',
         TransferProjectView.as_view(),
