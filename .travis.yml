@@ -130,6 +130,7 @@ matrix:
         - unzip ~/chromedriver_linux64.zip -d ~/
         - rm ~/chromedriver_linux64.zip
         - sudo install -m755 ~/chromedriver /usr/local/bin/
+        - yarn install --pure-lockfile
       before_script:
         - psql -c 'create database sentry;' -U postgres
 
