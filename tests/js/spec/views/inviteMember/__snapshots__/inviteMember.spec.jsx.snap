@@ -473,70 +473,79 @@ exports[`CreateProject should render roles when available and allowed, and handl
                                     }
                                   }
                                 >
-                                  <TeamBadge
-                                    avatarSize={24}
-                                    hideAvatar={true}
-                                    hideOverflow={true}
-                                    team={
-                                      Object {
-                                        "hasAccess": true,
-                                        "id": "1",
-                                        "name": "bar",
-                                        "slug": "bar",
-                                      }
-                                    }
+                                  <InlineErrorBoundary
+                                    mini={true}
                                   >
-                                    <BaseBadge
-                                      avatarSize={24}
-                                      displayName={
-                                        <BadgeDisplayName
-                                          hideOverflow={true}
-                                        >
-                                          #
-                                          bar
-                                        </BadgeDisplayName>
-                                      }
-                                      hideAvatar={true}
-                                      team={
-                                        Object {
-                                          "hasAccess": true,
-                                          "id": "1",
-                                          "name": "bar",
-                                          "slug": "bar",
-                                        }
-                                      }
+                                    <ErrorBoundary
+                                      className="css-otlbo1-InlineErrorBoundary e83vi020"
+                                      mini={true}
                                     >
-                                      <Flex
-                                        align="center"
+                                      <TeamBadge
+                                        avatarSize={24}
+                                        hideAvatar={true}
+                                        hideOverflow={true}
+                                        team={
+                                          Object {
+                                            "hasAccess": true,
+                                            "id": "1",
+                                            "name": "bar",
+                                            "slug": "bar",
+                                          }
+                                        }
                                       >
-                                        <Base
-                                          align="center"
-                                          className="css-5ipae5"
-                                        >
-                                          <div
-                                            className="css-5ipae5"
-                                            is={null}
-                                          >
+                                        <BaseBadge
+                                          avatarSize={24}
+                                          displayName={
                                             <BadgeDisplayName
                                               hideOverflow={true}
                                             >
-                                              <Component
-                                                className="css-1boiawc-BadgeDisplayName eeoia0v0"
-                                                hideOverflow={true}
-                                              >
-                                                <span
-                                                  className="css-1boiawc-BadgeDisplayName eeoia0v0"
-                                                >
-                                                  #
-                                                  bar
-                                                </span>
-                                              </Component>
+                                              #
+                                              bar
                                             </BadgeDisplayName>
-                                          </div>
-                                        </Base>
-                                      </Flex>
-                                    </BaseBadge>
-                                  </TeamBadge>
+                                          }
+                                          hideAvatar={true}
+                                          team={
+                                            Object {
+                                              "hasAccess": true,
+                                              "id": "1",
+                                              "name": "bar",
+                                              "slug": "bar",
+                                            }
+                                          }
+                                        >
+                                          <Flex
+                                            align="center"
+                                          >
+                                            <Base
+                                              align="center"
+                                              className="css-5ipae5"
+                                            >
+                                              <div
+                                                className="css-5ipae5"
+                                                is={null}
+                                              >
+                                                <BadgeDisplayName
+                                                  hideOverflow={true}
+                                                >
+                                                  <Component
+                                                    className="css-1boiawc-BadgeDisplayName eeoia0v0"
+                                                    hideOverflow={true}
+                                                  >
+                                                    <span
+                                                      className="css-1boiawc-BadgeDisplayName eeoia0v0"
+                                                    >
+                                                      #
+                                                      bar
+                                                    </span>
+                                                  </Component>
+                                                </BadgeDisplayName>
+                                              </div>
+                                            </Base>
+                                          </Flex>
+                                        </BaseBadge>
+                                      </TeamBadge>
+                                    </ErrorBoundary>
+                                  </InlineErrorBoundary>
                                 </IdBadge>
                               </label>
                             </div>
@@ -584,70 +593,79 @@ exports[`CreateProject should render roles when available and allowed, and handl
                                     }
                                   }
                                 >
-                                  <TeamBadge
-                                    avatarSize={24}
-                                    hideAvatar={true}
-                                    hideOverflow={true}
-                                    team={
-                                      Object {
-                                        "hasAccess": false,
-                                        "id": "2",
-                                        "name": "foo",
-                                        "slug": "foo",
-                                      }
-                                    }
+                                  <InlineErrorBoundary
+                                    mini={true}
                                   >
-                                    <BaseBadge
-                                      avatarSize={24}
-                                      displayName={
-                                        <BadgeDisplayName
-                                          hideOverflow={true}
-                                        >
-                                          #
-                                          foo
-                                        </BadgeDisplayName>
-                                      }
-                                      hideAvatar={true}
-                                      team={
-                                        Object {
-                                          "hasAccess": false,
-                                          "id": "2",
-                                          "name": "foo",
-                                          "slug": "foo",
-                                        }
-                                      }
+                                    <ErrorBoundary
+                                      className="css-otlbo1-InlineErrorBoundary e83vi020"
+                                      mini={true}
                                     >
-                                      <Flex
-                                        align="center"
+                                      <TeamBadge
+                                        avatarSize={24}
+                                        hideAvatar={true}
+                                        hideOverflow={true}
+                                        team={
+                                          Object {
+                                            "hasAccess": false,
+                                            "id": "2",
+                                            "name": "foo",
+                                            "slug": "foo",
+                                          }
+                                        }
                                       >
-                                        <Base
-                                          align="center"
-                                          className="css-5ipae5"
-                                        >
-                                          <div
-                                            className="css-5ipae5"
-                                            is={null}
-                                          >
+                                        <BaseBadge
+                                          avatarSize={24}
+                                          displayName={
                                             <BadgeDisplayName
                                               hideOverflow={true}
                                             >
-                                              <Component
-                                                className="css-1boiawc-BadgeDisplayName eeoia0v0"
-                                                hideOverflow={true}
-                                              >
-                                                <span
-                                                  className="css-1boiawc-BadgeDisplayName eeoia0v0"
-                                                >
-                                                  #
-                                                  foo
-                                                </span>
-                                              </Component>
+                                              #
+                                              foo
                                             </BadgeDisplayName>
-                                          </div>
-                                        </Base>
-                                      </Flex>
-                                    </BaseBadge>
-                                  </TeamBadge>
+                                          }
+                                          hideAvatar={true}
+                                          team={
+                                            Object {
+                                              "hasAccess": false,
+                                              "id": "2",
+                                              "name": "foo",
+                                              "slug": "foo",
+                                            }
+                                          }
+                                        >
+                                          <Flex
+                                            align="center"
+                                          >
+                                            <Base
+                                              align="center"
+                                              className="css-5ipae5"
+                                            >
+                                              <div
+                                                className="css-5ipae5"
+                                                is={null}
+                                              >
+                                                <BadgeDisplayName
+                                                  hideOverflow={true}
+                                                >
+                                                  <Component
+                                                    className="css-1boiawc-BadgeDisplayName eeoia0v0"
+                                                    hideOverflow={true}
+                                                  >
+                                                    <span
+                                                      className="css-1boiawc-BadgeDisplayName eeoia0v0"
+                                                    >
+                                                      #
+                                                      foo
+                                                    </span>
+                                                  </Component>
+                                                </BadgeDisplayName>
+                                              </div>
+                                            </Base>
+                                          </Flex>
+                                        </BaseBadge>
+                                      </TeamBadge>
+                                    </ErrorBoundary>
+                                  </InlineErrorBoundary>
                                 </IdBadge>
                               </label>
                             </div>
