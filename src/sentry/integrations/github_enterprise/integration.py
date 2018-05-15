@@ -7,7 +7,7 @@ from django import forms
 from sentry import http
 from sentry.web.helpers import render_to_response
 from sentry.identity.pipeline import IdentityProviderPipeline
-# from sentry.identity.github_enterprise import get_user_info
+from sentry.identity.github_enterprise import get_user_info
 from sentry.integrations import IntegrationMetadata
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.pipeline import NestedPipelineView, PipelineView
@@ -173,7 +173,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
     def build_integration(self, state):
         identity = state['identity']['data']
         installation_data = state['installation_data']
-        # user = get_user_info(installation_data['url'], identity['access_token'])
+        user = get_user_info(installation_data['url'], identity['access_token'])
         installation = self.get_installation_info(
             installation_data,
             identity['access_token'],
@@ -192,7 +192,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
             },
             'user_identity': {
                 'type': 'github-enterprise',
-                # 'external_id': user['id'],
+                'external_id': user['id'],
                 'scopes': [],  # GitHub apps do not have user scopes
                 'data': {'access_token': identity['access_token']},
             },
