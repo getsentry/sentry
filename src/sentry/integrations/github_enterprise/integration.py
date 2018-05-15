@@ -100,6 +100,8 @@ class InstallationConfigView(PipelineView):
                 "access_token_url": "https://{}/login/oauth/access_token".format(form_data.get('url')),
                 "authorize_url": "https://{}/login/oauth/authorize".format(form_data.get('url')),
                 "id": form_data.get('client-id'),
+                "iss": form_data.get('id'),
+                "private_key": form_data.get('private-key'),
                 "secret": form_data.get('client-secret'),
             })
 
@@ -138,16 +140,13 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
                 GitHubEnterpriseInstallationRedirect(),
                 identity_pipeline_view]
 
-    def get_installation_info(self, url, access_token, installation_id):
+    def get_installation_info(self, installation_data, access_token, installation_id):
         session = http.build_session()
         resp = session.get(
-            # why does this 404?
-            # Not Found for url: https://35.232.149.196/api/v3/app/installations/27
-            # https://developer.github.com/enterprise/2.13/v3/apps/#get-a-single-installation
-            'https://{}/api/v3/app/installations/{}'.format(url, installation_id),
-            # 'https://{}/api/v3/app/installations/'.format(url, installation_id),
+            'https://{}/api/v3/app/installations/{}'.format(
+                installation_data['url'], installation_id),
             headers={
-                'Authorization': 'Bearer %s' % get_jwt(),
+                'Authorization': 'Bearer %s' % get_jwt(github_id=installation_data['id'], github_private_key=installation_data['private-key']),
                 'Accept': 'application/vnd.github.machine-man-preview+json',
             },
             verify=False
@@ -156,7 +155,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
         installation_resp = resp.json()
 
         resp = session.get(
-            'https://{}/api/v3/user/installations'.format(url),
+            'https://{}/api/v3/user/installations'.format(installation_data['url']),
             params={'access_token': access_token},
             headers={'Accept': 'application/vnd.github.machine-man-preview+json'},
             verify=False
@@ -175,12 +174,10 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
         identity = state['identity']['data']
         installation_data = state['installation_data']
         # user = get_user_info(installation_data['url'], identity['access_token'])
-        # this doesn't work yet (404s):
         installation = self.get_installation_info(
-            installation_data['url'],
+            installation_data,
             identity['access_token'],
             state['installation_id'])
-        # installation_data['id'])
 
         return {
             'name': installation['account']['login'],

@@ -8,7 +8,7 @@ import time
 from sentry import options
 
 
-def get_jwt():
+def get_jwt(github_id=None, github_private_key=None):
     exp = datetime.datetime.utcnow() + datetime.timedelta(minutes=10)
     exp = calendar.timegm(exp.timetuple())
     # Generate the JWT
@@ -18,7 +18,8 @@ def get_jwt():
         # JWT expiration time (10 minute maximum)
         'exp': exp,
         # Integration's GitHub identifier
-        'iss': options.get('github-app.id'),
+        'iss': github_id or options.get('github-app.id'),
     }
 
-    return jwt.encode(payload, options.get('github-app.private-key'), algorithm='RS256')
+    return jwt.encode(payload, github_private_key or options.get(
+        'github-app.private-key'), algorithm='RS256')
