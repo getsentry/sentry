@@ -365,6 +365,21 @@ urlpatterns += patterns(
 
     url(r'^accept-transfer/$', react_page_view, name='sentry-accept-project-transfer'),
     url(r'^settings/', react_page_view),
+    url(
+        r'^settings/(?P<organization_slug>[\w_-]+)/members/$',
+        react_page_view,
+        name='sentry-organization-members'
+    ),
+    url(
+        r'^settings/(?P<organization_slug>[\w_-]+)/members/new/$',
+        react_page_view,
+        name='sentry-create-organization-member'
+    ),
+    url(
+        r'^settings/(?P<organization_slug>[\w_-]+)/members/(?P<member_id>\d+)/$',
+        react_page_view,
+        name='sentry-organization-member-settings'
+    ),
 
     # Organizations
     url(r'^(?P<organization_slug>[\w_-]+)/$',
@@ -401,19 +416,14 @@ urlpatterns += patterns(
         name='sentry-organization-members-old'
     ),
     url(
-        r'^settings/(?P<organization_slug>[\w_-]+)/members/$',
-        react_page_view,
-        name='sentry-organization-members'
-    ),
-    url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/members/new/$',
-        react_page_view,
-        name='sentry-create-organization-member'
+        RedirectView.as_view(pattern_name="sentry-create-organization-member", permanent=False),
+        name='sentry-create-organization-member-old'
     ),
     url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/members/(?P<member_id>\d+)/$',
-        react_page_view,
-        name='sentry-organization-member-settings'
+        RedirectView.as_view(pattern_name="sentry-organization-member-settings", permanent=False),
+        name='sentry-organization-member-settings-old'
     ),
     url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/stats/$',
