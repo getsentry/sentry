@@ -10,10 +10,11 @@ class BitbucketInstalledEndpointTest(APITestCase):
         self.provider = 'bitbucket'
         self.path = '/extensions/bitbucket/installed/'
 
+        self.username = u'sentryuser'
         self.client_key = u'connection:123'
         self.public_key = u'123abcDEFg'
         self.shared_secret = u'G12332434SDfsjkdfgsd'
-        self.base_url = u'https://bitbucket.org/'
+        self.base_url = u'https://api.bitbucket.org'
         self.domain_name = u'bitbucket.org/sentryuser/'
         self.display_name = u'Sentry User'
         self.icon = u'https://bitbucket.org/account/sentryuser/avatar/32/'
@@ -25,28 +26,31 @@ class BitbucketInstalledEndpointTest(APITestCase):
             'domain_name': self.domain_name,
             'icon': self.icon
         }
+        self.user_data = {
+            u'username': self.username,
+            u'display_name': self.display_name,
+            u'account_id': u'123456t256371u',
+            u'links': {
+                u'self': {u'herf': u'https://api.bitbucket.org/2.0/users/sentryuser/'},
+                u'html': {u'href': u'https://bitbucket.org/sentryuser/'},
+                u'avatar': {u'href': u'https://bitbucket.org/account/sentryuser/avatar/32/'},
+            },
+            u'created_on': u'2018-04-18T00:46:37.374621+00:00',
+            u'is_staff': False,
+            u'type': u'user',
+            u'uuid': u'{e123-f456-g78910}'
+        }
         self.data_from_bitbucket = {
             u'key': u'sentry-bitbucket',
             u'eventType': u'installed',
             u'baseUrl': self.base_url,
             u'sharedSecret': self.shared_secret,
             u'publicKey': self.public_key,
-            u'user': {
-                u'username': u'sentryuser',
-                u'display_name': self.display_name,
-                u'account_id': u'123456t256371u',
-                u'links': {
-                    u'self': {u'herf': u'https://api.bitbucket.org/2.0/users/sentryuser/'},
-                    u'html': {u'href': u'https://bitbucket.org/sentryuser/'},
-                    u'avatar': {u'href': u'https://bitbucket.org/account/sentryuser/avatar/32/'},
-                },
-                u'created_on': u'2018-04-18T00:46:37.374621+00:00',
-                u'is_staff': False,
-                u'type': u'user',
-                u'uuid': u'{e123-f456-g78910}'},
+            u'user': self.user_data,
             u'productType': u'bitbucket',
             u'baseApiUrl': u'https://api.bitbucket.org',
             u'clientKey': self.client_key,
+            u'principal': self.user_data,
         }
         self.data_without_public_key = {
             'identity': {
@@ -69,7 +73,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
             provider=self.provider,
             external_id=self.client_key
         )
-        assert integration.name == self.display_name
+        assert integration.name == self.username
         assert integration.metadata == self.metadata
 
     def test_installed_without_public_key(self):
@@ -77,7 +81,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
             provider=self.provider,
             external_id=self.client_key,
             defaults={
-                'name': self.display_name,
+                'name': self.username,
                 'metadata': self.metadata,
             }
         )[0]
