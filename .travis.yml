@@ -68,7 +68,9 @@ after_failure:
   - zeus upload -t "text/xml+checkstyle" eslint.checkstyle.xml
   - zeus upload -t "application/webpack-stats+json" webpack-stats.json
 
-# each attribute in the matrix will override the global attribute
+# each job in the matrix inherits `env/global` and uses everything above,
+# but custom `services`, `before_install`, `install`, and `before_script` directives
+# may be defined to define and setup individual job environments with more precision.
 matrix:
   fast_finish: true
   include:
@@ -123,7 +125,7 @@ matrix:
         - redis-server
         - postgresql
       install:
-        - pip install -e .
+        - pip install -e ".[dev,tests,optional]"
         - wget -N "http://chromedriver.storage.googleapis.com/$(curl https://chromedriver.storage.googleapis.com/LATEST_RELEASE)/chromedriver_linux64.zip" -P ~/
         - unzip ~/chromedriver_linux64.zip -d ~/
         - rm ~/chromedriver_linux64.zip
@@ -138,6 +140,7 @@ matrix:
         - npm install -g "yarn@${YARN_VERSION}"
       install:
         - yarn install --pure-lockfile
+        - pip install click
 
     - python: 2.7
       env: TEST_SUITE=cli
@@ -209,7 +212,6 @@ matrix:
       install:
         - yarn install --pure-lockfile
         - gcloud version
-      before_script: skip
       script: bash .travis/deploy-storybook.sh
       after_success: skip
       after_failure: skip
