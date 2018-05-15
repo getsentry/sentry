@@ -11,7 +11,7 @@ from sentry.integrations.base import IntegrationFeatures
 from sentry.models import ExternalIssue, GroupLink, OrganizationIntegration
 
 
-class GroupIntegrationDetails(GroupEndpoint):
+class GroupIntegrationDetailsEndpoint(GroupEndpoint):
     def get(self, request, group, integration_id):
         # Keep link/create separate since create will likely require
         # many external API calls that aren't necessary if the user is
