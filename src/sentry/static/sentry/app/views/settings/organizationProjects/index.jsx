@@ -14,11 +14,12 @@ import AsyncView from 'app/views/asyncView';
 import Pagination from 'app/components/pagination';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import ProjectListItem from 'app/views/settings/components/settingsProjectItem';
-import ProjectStatsGraph from 'app/views/settings/organization/projects/projectStatsGraph';
 import SentryTypes from 'app/proptypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 
-export default class OrganizationProjectsView extends AsyncView {
+import ProjectStatsGraph from './projectStatsGraph';
+
+export default class OrganizationProjects extends AsyncView {
   static contextTypes = {
     router: PropTypes.object.isRequired,
     organization: SentryTypes.Organization,

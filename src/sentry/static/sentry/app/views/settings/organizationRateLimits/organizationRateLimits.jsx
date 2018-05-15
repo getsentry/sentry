@@ -1,5 +1,4 @@
 import {Box} from 'grid-emotion';
-import createReactClass from 'create-react-class';
 import PropTypes from 'prop-types';
 import React from 'react';
 
@@ -7,7 +6,6 @@ import {t, tct} from 'app/locale';
 import Field from 'app/views/settings/components/forms/field';
 import Form from 'app/views/settings/components/forms/form';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
-import OrganizationState from 'app/mixins/organizationState';
 import RangeField from 'app/views/settings/components/forms/rangeField';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
@@ -31,7 +29,7 @@ const getRateLimitValues = () => {
 // We can just generate this once
 const ACCOUNT_RATE_LIMIT_VALUES = getRateLimitValues();
 
-class OrganizationRateLimits extends React.Component {
+export default class OrganizationRateLimit extends React.Component {
   static propTypes = {
     organization: PropTypes.object.isRequired,
   };
@@ -137,19 +135,3 @@ class OrganizationRateLimits extends React.Component {
     );
   }
 }
-
-const OrganizationRateLimitsContainer = createReactClass({
-  displayName: 'OrganizationRateLimits',
-  mixins: [OrganizationState],
-
-  render() {
-    if (!this.context.organization) return null;
-
-    return (
-      <OrganizationRateLimits {...this.props} organization={this.context.organization} />
-    );
-  },
-});
-
-export {OrganizationRateLimits};
-export default OrganizationRateLimitsContainer;

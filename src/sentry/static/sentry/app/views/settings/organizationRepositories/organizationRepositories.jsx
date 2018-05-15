@@ -12,7 +12,8 @@ import SpreadLayout from 'app/components/spreadLayout';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
-import AddRepositoryLink from 'app/views/settings/organization/repositories/addRepositoryLink';
+
+import AddRepositoryLink from './addRepositoryLink';
 
 const RepoRow = styled(SpreadLayout)`
   border-bottom: 1px solid ${p => p.theme.borderLight};
@@ -22,7 +23,7 @@ const RepoRow = styled(SpreadLayout)`
   }
 `;
 
-class OrganizationRepositories extends React.Component {
+export default class OrganizationRepositories extends React.Component {
   static propTypes = {
     itemList: PropTypes.array,
     repoConfig: PropTypes.object,
@@ -180,5 +181,3 @@ class OrganizationRepositories extends React.Component {
     );
   }
 }
-
-export default OrganizationRepositories;

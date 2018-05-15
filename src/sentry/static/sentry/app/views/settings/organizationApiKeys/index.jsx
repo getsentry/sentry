@@ -4,12 +4,13 @@ import React from 'react';
 import {Client} from 'app/api';
 import {addSuccessMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
-import LazyLoad from 'app/components/lazyLoad';
 import AsyncView from 'app/views/asyncView';
 import SentryTypes from 'app/proptypes';
 import recreateRoute from 'app/utils/recreateRoute';
 
-class OrganizationApiKeysView extends AsyncView {
+import OrganizationApiKeysList from './organizationApiKeysList';
+
+class OrganizationApiKeys extends AsyncView {
   static contextTypes = {
     organization: SentryTypes.Organization,
   };
@@ -65,11 +66,7 @@ class OrganizationApiKeysView extends AsyncView {
 
   renderBody() {
     return (
-      <LazyLoad
-        component={() =>
-          import(/*webpackChunkName: "organizationApiKeysList"*/ './organizationApiKeysList').then(
-            mod => mod.default
-          )}
+      <OrganizationApiKeysList
         busy={this.state.busy}
         keys={this.state.keys}
         organization={this.context.organization}
@@ -81,4 +78,4 @@ class OrganizationApiKeysView extends AsyncView {
   }
 }
 
-export default OrganizationApiKeysView;
+export default OrganizationApiKeys;

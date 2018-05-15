@@ -2,11 +2,12 @@ import React from 'react';
 
 import {t} from 'app/locale';
 import IndicatorStore from 'app/stores/indicatorStore';
-import OrganizationAuthList from 'app/views/settings/organization/auth/organizationAuthList';
 import AsyncView from 'app/views/asyncView';
 import SentryTypes from 'app/proptypes';
 
-class OrganizationAuthView extends AsyncView {
+import OrganizationAuthList from './organizationAuthList';
+
+class OrganizationAuth extends AsyncView {
   static contextTypes = {
     organization: SentryTypes.Organization,
   };
@@ -119,4 +120,4 @@ class OrganizationAuthView extends AsyncView {
   }
 }
 
-export default OrganizationAuthView;
+export default OrganizationAuth;

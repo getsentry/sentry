@@ -11,12 +11,13 @@ import Button from 'app/components/buttons/button';
 import ConfigStore from 'app/stores/configStore';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import OrganizationState from 'app/mixins/organizationState';
-import RoleSelect from 'app/views/inviteMember/roleSelect';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TeamSelect from 'app/views/inviteMember/teamSelect';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import TextField from 'app/components/forms/textField';
 import replaceRouterParams from 'app/utils/replaceRouterParams';
+
+import RoleSelect from './roleSelect';
+import TeamSelect from './teamSelect';
 
 // These don't have allowed and are only used for superusers. superceded by server result of allowed roles
 const STATIC_ROLE_LIST = [

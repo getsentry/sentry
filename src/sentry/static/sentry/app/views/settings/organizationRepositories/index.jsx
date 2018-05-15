@@ -4,9 +4,10 @@ import {sortArray} from 'app/utils';
 import {t} from 'app/locale';
 import IndicatorStore from 'app/stores/indicatorStore';
 import AsyncView from 'app/views/asyncView';
-import LazyLoad from 'app/components/lazyLoad';
 
-class OrganizationRepositoriesView extends AsyncView {
+import OrganizationRepositories from './organizationRepositories';
+
+export default class OrganizationRepositoriesContainer extends AsyncView {
   getEndpoints() {
     let {orgId} = this.props.params;
     return [
@@ -82,11 +83,7 @@ class OrganizationRepositoriesView extends AsyncView {
 
   renderBody() {
     return (
-      <LazyLoad
-        component={() =>
-          import(/*webpackChunkName: "organizationRepositories"*/ './settings/organization/repositories/organizationRepositories').then(
-            mod => mod.default
-          )}
+      <OrganizationRepositories
         {...this.props}
         {...this.state}
         onAddRepo={this.onAddRepo}
@@ -96,5 +93,3 @@ class OrganizationRepositoriesView extends AsyncView {
     );
   }
 }
-
-export default OrganizationRepositoriesView;

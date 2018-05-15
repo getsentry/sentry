@@ -10,11 +10,12 @@ import DateTime from 'app/components/dateTime';
 import IndicatorStore from 'app/stores/indicatorStore';
 import NotFound from 'app/components/errors/notFound';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import RoleSelect from 'app/views/inviteMember/roleSelect';
 import SentryTypes from 'app/proptypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TeamSelect from 'app/views/inviteMember/teamSelect';
 import recreateRoute from 'app/utils/recreateRoute';
+
+import RoleSelect from './inviteMember/roleSelect';
+import TeamSelect from './inviteMember/teamSelect';
 
 class OrganizationMemberDetail extends AsyncView {
   static contextTypes = {

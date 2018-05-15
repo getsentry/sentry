@@ -6,10 +6,11 @@ import {t, tct} from 'app/locale';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ExternalLink from 'app/components/externalLink';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
-import ProviderItem from 'app/views/settings/organization/auth/providerItem';
 import SentryTypes from 'app/proptypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import getCookie from 'app/utils/getCookie';
+
+import ProviderItem from './providerItem';
 
 class OrganizationAuthList extends React.Component {
   static contextTypes = {

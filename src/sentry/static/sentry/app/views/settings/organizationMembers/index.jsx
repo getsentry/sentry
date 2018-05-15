@@ -12,12 +12,13 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ConfigStore from 'app/stores/configStore';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Input from 'app/views/settings/components/forms/controls/input';
-import OrganizationAccessRequests from 'app/views/settings/organization/members/organizationAccessRequests';
-import OrganizationMemberRow from 'app/views/settings/organization/members/organizationMemberRow';
 import Pagination from 'app/components/pagination';
 import SentryTypes from 'app/proptypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import recreateRoute from 'app/utils/recreateRoute';
+
+import OrganizationAccessRequests from './organizationAccessRequests';
+import OrganizationMemberRow from './organizationMemberRow';
 
 class OrganizationMembersView extends AsyncView {
   static propTypes = {

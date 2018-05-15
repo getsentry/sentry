@@ -15,7 +15,7 @@ import recreateRoute from 'app/utils/recreateRoute';
 
 const API_CHOICES = API_SCOPES.map(s => [s, s]);
 
-class OrganizationApiKeyDetailsView extends AsyncView {
+class OrganizationApiKeyDetails extends AsyncView {
   static contextTypes = {
     organization: SentryTypes.Organization,
   };
@@ -56,7 +56,7 @@ class OrganizationApiKeyDetailsView extends AsyncView {
 
     // Go back to API list
     browserHistory.push(
-      recreateRoute('api-keys/', {
+      recreateRoute('', {
         stepBack: -1,
         routes: this.props.routes,
         params: this.props.params,
@@ -84,7 +84,7 @@ class OrganizationApiKeyDetailsView extends AsyncView {
           onSubmitError={this.handleSubmitError}
           onCancel={() =>
             browserHistory.push(
-              recreateRoute('api-keys/', {
+              recreateRoute('', {
                 stepBack: -1,
                 routes: this.props.routes,
                 params: this.props.params,
@@ -116,4 +116,4 @@ class OrganizationApiKeyDetailsView extends AsyncView {
   }
 }
 
-export default OrganizationApiKeyDetailsView;
+export default OrganizationApiKeyDetails;

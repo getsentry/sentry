@@ -20,8 +20,10 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import recreateRoute from 'app/utils/recreateRoute';
 
-const OrganizationGeneralSettingsView = createReactClass({
-  displayName: 'OrganizationGeneralSettingsView',
+import OrganizationSettingsForm from './organizationSettingsForm';
+
+const OrganizationGeneralSettings = createReactClass({
+  displayName: 'OrganizationGeneralSettings',
 
   propTypes: {
     routes: PropTypes.arrayOf(PropTypes.object),
@@ -38,12 +40,8 @@ const OrganizationGeneralSettingsView = createReactClass({
   },
 
   componentDidMount() {
-    let fetchForm = import(/*webpackChunkName: "organizationSettingsForm"*/ './organizationSettingsForm').then(
-      mod => mod.default
-    );
-
-    Promise.all([this.fetchData(), fetchForm]).then(
-      ([data, Form]) => {
+    Promise.all([this.fetchData()]).then(
+      ([data]) => {
         // Redirect if can't write to org
         if (
           data &&
@@ -60,7 +58,7 @@ const OrganizationGeneralSettingsView = createReactClass({
           return;
         }
 
-        this.setState({data, loading: false, Form});
+        this.setState({data, loading: false});
       },
       () => {
         this.setState({error: true, loading: false});
@@ -107,7 +105,7 @@ const OrganizationGeneralSettingsView = createReactClass({
   },
 
   render() {
-    let {data, loading, error, Form} = this.state;
+    let {data, loading, error} = this.state;
     let orgId = this.props.params.orgId;
     let access = data && new Set(data.access);
 
@@ -119,11 +117,10 @@ const OrganizationGeneralSettingsView = createReactClass({
         {error && <LoadingError />}
 
         {!loading &&
-          !error &&
-          Form && (
+          !error && (
             <div>
               <SettingsPageHeader title={t('Organization Settings')} />
-              <Form
+              <OrganizationSettingsForm
                 {...this.props}
                 initialData={data}
                 orgId={orgId}
@@ -189,4 +186,4 @@ const OrganizationGeneralSettingsView = createReactClass({
   },
 });
 
-export default OrganizationGeneralSettingsView;
+export default OrganizationGeneralSettings;

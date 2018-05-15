@@ -2,9 +2,10 @@ import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import LazyLoad from 'app/components/lazyLoad';
 import AsyncView from 'app/views/asyncView';
 import SentryTypes from 'app/proptypes';
+
+import AuditLogList from './auditLogList';
 
 const EVENT_TYPES = [
   'member.invite',
@@ -40,7 +41,7 @@ const EVENT_TYPES = [
   'api-key.remove',
 ].sort();
 
-class AuditLogView extends AsyncView {
+class OrganizationAuditLog extends AsyncView {
   static propTypes = {
     routes: PropTypes.array,
   };
@@ -82,11 +83,7 @@ class AuditLogView extends AsyncView {
     let currentEventType = this.props.location.query.event;
 
     return (
-      <LazyLoad
-        component={() =>
-          import(/*webpackChunkName: "auditLogList"*/ './auditLogList').then(
-            mod => mod.default
-          )}
+      <AuditLogList
         entries={this.state.entryList}
         pageLinks={this.state.pageLinks}
         eventType={currentEventType}
@@ -98,4 +95,4 @@ class AuditLogView extends AsyncView {
   }
 }
 
-export default AuditLogView;
+export default OrganizationAuditLog;
