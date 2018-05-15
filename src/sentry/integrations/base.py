@@ -141,6 +141,9 @@ class IntegrationProvider(PipelineProvider):
         >>>     bindings.add('repository.provider', GitHubRepositoryProvider, key='github')
         """
 
+    def has_feature(self, feature):
+        return feature in self.features
+
 
 class Integration(object):
     """
