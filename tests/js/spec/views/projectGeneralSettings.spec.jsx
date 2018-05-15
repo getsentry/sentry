@@ -2,7 +2,7 @@ import {browserHistory} from 'react-router';
 import {mount} from 'enzyme';
 import React from 'react';
 
-import ProjectGeneralSettings from 'app/views/projectGeneralSettings';
+import ProjectGeneralSettings from 'app/views/settings/projectGeneralSettings';
 import ProjectContext from 'app/views/projects/projectContext';
 import ProjectsStore from 'app/stores/projectsStore';
 
