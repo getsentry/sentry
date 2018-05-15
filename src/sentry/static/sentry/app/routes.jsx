@@ -535,23 +535,6 @@ function routes() {
         />
 
         <Route
-          path="all-teams/"
-          name="All Teams"
-          allTeams
-          componentPromise={() =>
-            import(/*webpackChunkName: OrganizationTeams*/ './views/settings/organizationTeams')}
-          component={errorHandler(LazyLoad)}
-        />
-
-        <Route
-          name="Your Teams"
-          path="your-teams/"
-          componentPromise={() =>
-            import(/*webpackChunkName: OrganizationTeams*/ './views/settings/organizationTeams')}
-          component={errorHandler(LazyLoad)}
-        />
-
-        <Route
           name="Team"
           path=":teamId/"
           componentPromise={() =>
@@ -708,6 +691,22 @@ function routes() {
           <Route path="/organizations/:orgId/" component={OrganizationHomeContainer}>
             <Redirect from="projects/" to="/:orgId/" />
             {hooksOrgRoutes}
+            <Redirect path="teams/" to="/settings/:orgId/teams/" />
+            <Redirect path="teams/your-teams/" to="/settings/:orgId/teams/" />
+            <Redirect path="teams/all-teams/" to="/settings/:orgId/teams/" />
+            <Redirect path="teams/:teamId/" to="/settings/:orgId/teams/:teamId/" />
+            <Redirect
+              path="teams/:teamId/members/"
+              to="/settings/:orgId/teams/:teamId/members/"
+            />
+            <Redirect
+              path="teams/:teamId/projects/"
+              to="/settings/:orgId/teams/:teamId/projects/"
+            />
+            <Redirect
+              path="teams/:teamId/settings/"
+              to="/settings/:orgId/teams/:teamId/settings/"
+            />
             {orgSettingsRoutes}
             <Route path="stats/" component={errorHandler(OrganizationStats)} />
           </Route>
