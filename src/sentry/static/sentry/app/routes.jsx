@@ -53,7 +53,6 @@ import OrganizationRoot from 'app/views/organizationRoot';
 import OrganizationRepositoriesView from 'app/views/organizationRepositoriesView';
 import OrganizationGeneralSettingsView from 'app/views/settings/organization/general/organizationGeneralSettingsView';
 import OrganizationStats from 'app/views/organizationStats';
-import OrganizationTeams from 'app/views/organizationTeams';
 import ProjectEnvironments from 'app/views/projectEnvironments';
 import ProjectTags from 'app/views/projectTags';
 import ProjectChooser from 'app/views/projectChooser';
@@ -83,10 +82,6 @@ import RouteNotFound from 'app/views/routeNotFound';
 import SettingsProjectProvider from 'app/views/settings/components/settingsProjectProvider';
 import SettingsWrapper from 'app/views/settings/components/settingsWrapper';
 import Stream from 'app/views/stream';
-import TeamDetails from 'app/views/teamDetails';
-import TeamMembers from 'app/views/teamMembers';
-import TeamSettings from 'app/views/teamSettings';
-import TeamProjects from 'app/views/settings/team/teamProjects';
 import errorHandler from 'app/utils/errorHandler';
 
 function appendTrailingSlash(nextState, replace) {
@@ -533,33 +528,57 @@ function routes() {
       <Route path="settings/" component={errorHandler(OrganizationGeneralSettingsView)} />
 
       <Route name="Teams" path="teams/">
-        <IndexRoute component={errorHandler(OrganizationTeams)} />
+        <IndexRoute
+          componentPromise={() =>
+            import(/*webpackChunkName: OrganizationTeams*/ './views/settings/organizationTeams')}
+          component={errorHandler(LazyLoad)}
+        />
 
         <Route
           path="all-teams/"
           name="All Teams"
           allTeams
-          component={errorHandler(OrganizationTeams)}
+          componentPromise={() =>
+            import(/*webpackChunkName: OrganizationTeams*/ './views/settings/organizationTeams')}
+          component={errorHandler(LazyLoad)}
         />
 
         <Route
           name="Your Teams"
           path="your-teams/"
-          component={errorHandler(OrganizationTeams)}
+          componentPromise={() =>
+            import(/*webpackChunkName: OrganizationTeams*/ './views/settings/organizationTeams')}
+          component={errorHandler(LazyLoad)}
         />
 
-        <Route name="Team" path=":teamId/" component={errorHandler(TeamDetails)}>
+        <Route
+          name="Team"
+          path=":teamId/"
+          componentPromise={() =>
+            import(/*webpackChunkName: TeamDetails*/ './views/settings/teamDetails')}
+          component={errorHandler(LazyLoad)}
+        >
           <IndexRedirect to="members/" />
-          <Route path="members/" name="Members" component={errorHandler(TeamMembers)} />
+          <Route
+            path="members/"
+            name="Members"
+            componentPromise={() =>
+              import(/*webpackChunkName: TeamMembers*/ './views/settings/teamMembers')}
+            component={errorHandler(LazyLoad)}
+          />
           <Route
             path="projects/"
             name="Projects"
-            component={errorHandler(TeamProjects)}
+            componentPromise={() =>
+              import(/*webpackChunkName: TeamProjects*/ './views/settings/teamProjects')}
+            component={errorHandler(LazyLoad)}
           />
           <Route
             path="settings/"
             name="settings"
-            component={errorHandler(TeamSettings)}
+            componentPromise={() =>
+              import(/*webpackChunkName: TeamSettings*/ './views/settings/teamSettings')}
+            component={errorHandler(LazyLoad)}
           />
         </Route>
       </Route>
