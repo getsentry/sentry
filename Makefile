@@ -166,10 +166,6 @@ publish:
 travis-noop:
 	@echo "nothing to do here."
 
-travis-setup-cassandra:
-	echo "create keyspace sentry with replication = {'class' : 'SimpleStrategy', 'replication_factor': 1};" | cqlsh --cqlversion=3.1.7
-	echo 'create table nodestore (key text primary key, value blob, flags int);' | cqlsh -k sentry --cqlversion=3.1.7
-
 # Lint steps
 travis-lint-sqlite: lint-python
 travis-lint-postgres: lint-python
