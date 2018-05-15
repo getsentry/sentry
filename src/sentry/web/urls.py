@@ -397,6 +397,11 @@ urlpatterns += patterns(
     ),
     url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/members/$',
+        RedirectView.as_view(pattern_name="sentry-organization-members", permanent=False),
+        name='sentry-organization-members-old'
+    ),
+    url(
+        r'^settings/(?P<organization_slug>[\w_-]+)/members/$',
         react_page_view,
         name='sentry-organization-members'
     ),
