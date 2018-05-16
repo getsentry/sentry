@@ -225,7 +225,7 @@ exports[`GroupReleaseStats renders 1`] = `
                 <figure
                   className="css-3q0f3i-StyledBarChart e5t71580"
                 >
-                  <Flex
+                  <Columns
                     justify="space-between"
                     style={
                       Object {
@@ -235,7 +235,7 @@ exports[`GroupReleaseStats renders 1`] = `
                     }
                   >
                     <Base
-                      className="css-pee1ch"
+                      className="css-tqa1m0-Columns e5t71581"
                       justify="space-between"
                       style={
                         Object {
@@ -245,7 +245,7 @@ exports[`GroupReleaseStats renders 1`] = `
                       }
                     >
                       <div
-                        className="css-pee1ch"
+                        className="css-tqa1m0-Columns e5t71581"
                         is={null}
                         style={
                           Object {
@@ -274,7 +274,7 @@ exports[`GroupReleaseStats renders 1`] = `
                             title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 29th, 7:00 pm &#8594 Jan 30th, 2:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>2 events</dd><dt class=\\"environment\\"><span></span></dt><dd>2 events<small>in All Environments</small></dd></dl></div>"
                           >
                             <div
-                              className="tip css-nnybem-Column e5t71581"
+                              className="tip css-6b15ws-Column e5t71582"
                               style={
                                 Object {
                                   "height": "100%",
@@ -294,7 +294,7 @@ exports[`GroupReleaseStats renders 1`] = `
                                 }
                               >
                                 <div
-                                  className="css-ctrtw6-ColumnRow e5t71582"
+                                  className="css-1innhww-ColumnRow e5t71583"
                                   style={
                                     Object {
                                       "backgroundColor": null,
@@ -318,7 +318,7 @@ exports[`GroupReleaseStats renders 1`] = `
                                 }
                               >
                                 <div
-                                  className="css-ctrtw6-ColumnRow e5t71582"
+                                  className="css-1innhww-ColumnRow e5t71583"
                                   style={
                                     Object {
                                       "backgroundColor": null,
@@ -342,7 +342,7 @@ exports[`GroupReleaseStats renders 1`] = `
                                 }
                               >
                                 <div
-                                  className="css-ctrtw6-ColumnRow e5t71582"
+                                  className="css-1innhww-ColumnRow e5t71583"
                                   style={
                                     Object {
                                       "backgroundColor": null,
@@ -377,7 +377,7 @@ exports[`GroupReleaseStats renders 1`] = `
                             title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 30th, 3:00 am &#8594 Jan 30th, 10:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd><dt class=\\"environment\\"><span></span></dt><dd>1 event<small>in All Environments</small></dd></dl></div>"
                           >
                             <div
-                              className="tip css-nnybem-Column e5t71581"
+                              className="tip css-6b15ws-Column e5t71582"
                               style={
                                 Object {
                                   "height": "100%",
@@ -397,7 +397,7 @@ exports[`GroupReleaseStats renders 1`] = `
                                 }
                               >
                                 <div
-                                  className="css-ctrtw6-ColumnRow e5t71582"
+                                  className="css-1innhww-ColumnRow e5t71583"
                                   style={
                                     Object {
                                       "backgroundColor": null,
@@ -421,7 +421,7 @@ exports[`GroupReleaseStats renders 1`] = `
                                 }
                               >
                                 <div
-                                  className="css-ctrtw6-ColumnRow e5t71582"
+                                  className="css-1innhww-ColumnRow e5t71583"
                                   style={
                                     Object {
                                       "backgroundColor": null,
@@ -445,7 +445,7 @@ exports[`GroupReleaseStats renders 1`] = `
                                 }
                               >
                                 <div
-                                  className="css-ctrtw6-ColumnRow e5t71582"
+                                  className="css-1innhww-ColumnRow e5t71583"
                                   style={
                                     Object {
                                       "backgroundColor": null,
@@ -462,7 +462,7 @@ exports[`GroupReleaseStats renders 1`] = `
                         </Tooltip>
                       </div>
                     </Base>
-                  </Flex>
+                  </Columns>
                 </figure>
               </StyledBarChart>
             </StackedBarChart>
@@ -581,7 +581,7 @@ exports[`GroupReleaseStats renders 1`] = `
                 <figure
                   className="css-3q0f3i-StyledBarChart e5t71580"
                 >
-                  <Flex
+                  <Columns
                     justify="space-between"
                     style={
                       Object {
@@ -591,7 +591,7 @@ exports[`GroupReleaseStats renders 1`] = `
                     }
                   >
                     <Base
-                      className="css-pee1ch"
+                      className="css-tqa1m0-Columns e5t71581"
                       justify="space-between"
                       style={
                         Object {
@@ -601,7 +601,7 @@ exports[`GroupReleaseStats renders 1`] = `
                       }
                     >
                       <div
-                        className="css-pee1ch"
+                        className="css-tqa1m0-Columns e5t71581"
                         is={null}
                         style={
                           Object {
@@ -630,7 +630,7 @@ exports[`GroupReleaseStats renders 1`] = `
                             title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Dec 31st, 4:00 pm &#8594 Jan 3rd, 3:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd><dt class=\\"environment\\"><span></span></dt><dd>1 event<small>in All Environments</small></dd></dl></div>"
                           >
                             <div
-                              className="tip css-nnybem-Column e5t71581"
+                              className="tip css-6b15ws-Column e5t71582"
                               style={
                                 Object {
                                   "height": "100%",
@@ -650,7 +650,7 @@ exports[`GroupReleaseStats renders 1`] = `
                                 }
                               >
                                 <div
-                                  className="css-ctrtw6-ColumnRow e5t71582"
+                                  className="css-1innhww-ColumnRow e5t71583"
                                   style={
                                     Object {
                                       "backgroundColor": null,
@@ -674,7 +674,7 @@ exports[`GroupReleaseStats renders 1`] = `
                                 }
                               >
                                 <div
-                                  className="css-ctrtw6-ColumnRow e5t71582"
+                                  className="css-1innhww-ColumnRow e5t71583"
                                   style={
                                     Object {
                                       "backgroundColor": null,
@@ -698,7 +698,7 @@ exports[`GroupReleaseStats renders 1`] = `
                                 }
                               >
                                 <div
-                                  className="css-ctrtw6-ColumnRow e5t71582"
+                                  className="css-1innhww-ColumnRow e5t71583"
                                   style={
                                     Object {
                                       "backgroundColor": null,
@@ -733,7 +733,7 @@ exports[`GroupReleaseStats renders 1`] = `
                             title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 3rd, 4:00 pm &#8594 Jan 6th, 3:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>122 events</dd><dt class=\\"environment\\"><span></span></dt><dd>122 events<small>in All Environments</small></dd></dl></div>"
                           >
                             <div
-                              className="tip css-nnybem-Column e5t71581"
+                              className="tip css-6b15ws-Column e5t71582"
                               style={
                                 Object {
                                   "height": "100%",
@@ -753,7 +753,7 @@ exports[`GroupReleaseStats renders 1`] = `
                                 }
                               >
                                 <div
-                                  className="css-ctrtw6-ColumnRow e5t71582"
+                                  className="css-1innhww-ColumnRow e5t71583"
                                   style={
                                     Object {
                                       "backgroundColor": null,
@@ -777,7 +777,7 @@ exports[`GroupReleaseStats renders 1`] = `
                                 }
                               >
                                 <div
-                                  className="css-ctrtw6-ColumnRow e5t71582"
+                                  className="css-1innhww-ColumnRow e5t71583"
                                   style={
                                     Object {
                                       "backgroundColor": null,
@@ -801,7 +801,7 @@ exports[`GroupReleaseStats renders 1`] = `
                                 }
                               >
                                 <div
-                                  className="css-ctrtw6-ColumnRow e5t71582"
+                                  className="css-1innhww-ColumnRow e5t71583"
                                   style={
                                     Object {
                                       "backgroundColor": null,
@@ -818,7 +818,7 @@ exports[`GroupReleaseStats renders 1`] = `
                         </Tooltip>
                       </div>
                     </Base>
-                  </Flex>
+                  </Columns>
                 </figure>
               </StyledBarChart>
             </StackedBarChart>

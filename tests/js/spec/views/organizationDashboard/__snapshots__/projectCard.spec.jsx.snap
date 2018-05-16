@@ -207,7 +207,7 @@ exports[`ProjectCard renders 1`] = `
                             <figure
                               className="css-3q0f3i-StyledBarChart e5t71580"
                             >
-                              <Flex
+                              <Columns
                                 justify="space-between"
                                 style={
                                   Object {
@@ -217,7 +217,7 @@ exports[`ProjectCard renders 1`] = `
                                 }
                               >
                                 <Base
-                                  className="css-pee1ch"
+                                  className="css-tqa1m0-Columns e5t71581"
                                   justify="space-between"
                                   style={
                                     Object {
@@ -227,7 +227,7 @@ exports[`ProjectCard renders 1`] = `
                                   }
                                 >
                                   <div
-                                    className="css-pee1ch"
+                                    className="css-tqa1m0-Columns e5t71581"
                                     is={null}
                                     style={
                                       Object {
@@ -256,7 +256,7 @@ exports[`ProjectCard renders 1`] = `
                                         title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 29, 2018<br />11:00 PM  &#8594; 11:59 PM</span></div></div><div class=\\"value-label\\">1 events</div>"
                                       >
                                         <div
-                                          className="tip css-1xcesml-Column e5t71581"
+                                          className="tip css-6b15ws-Column e5t71582"
                                           style={
                                             Object {
                                               "height": "100%",
@@ -276,7 +276,7 @@ exports[`ProjectCard renders 1`] = `
                                             }
                                           >
                                             <div
-                                              className="css-i8152u-ColumnRow e5t71582"
+                                              className="css-7tc4sj-ColumnRow e5t71583"
                                               style={
                                                 Object {
                                                   "backgroundColor": null,
@@ -311,7 +311,7 @@ exports[`ProjectCard renders 1`] = `
                                         title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 30, 2018<br />12:00 AM  &#8594; 12:59 AM</span></div></div><div class=\\"value-label\\">2 events</div>"
                                       >
                                         <div
-                                          className="tip css-1xcesml-Column e5t71581"
+                                          className="tip css-6b15ws-Column e5t71582"
                                           style={
                                             Object {
                                               "height": "100%",
@@ -331,7 +331,7 @@ exports[`ProjectCard renders 1`] = `
                                             }
                                           >
                                             <div
-                                              className="css-i8152u-ColumnRow e5t71582"
+                                              className="css-7tc4sj-ColumnRow e5t71583"
                                               style={
                                                 Object {
                                                   "backgroundColor": null,
@@ -348,7 +348,7 @@ exports[`ProjectCard renders 1`] = `
                                     </Tooltip>
                                   </div>
                                 </Base>
-                              </Flex>
+                              </Columns>
                             </figure>
                           </StyledBarChart>
                         </StackedBarChart>

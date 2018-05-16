@@ -35,7 +35,6 @@ const StackedBarChart = createReactClass({
       })
     ),
     height: PropTypes.number,
-    width: PropTypes.number,
     label: PropTypes.string,
     markers: PropTypes.arrayOf(
       PropTypes.shape({
@@ -341,9 +340,9 @@ const StackedBarChart = createReactClass({
             <AxisMin>0</AxisMin>
           </Axis>
         )}
-        <Flex justify="space-between" style={{height, minHeight: '30px'}}>
+        <Columns justify="space-between" style={{height, minHeight: '30px'}}>
           {this.renderChart()}
-        </Flex>
+        </Columns>
       </StyledBarChart>
     );
   },
@@ -356,22 +355,23 @@ const StyledBarChart = styled.figure`
   padding: ${p => (p.showAxis ? '5px 0 5px 25px' : 0)};
 `;
 
+const Columns = styled(Flex)`
+  margin-left: -1px;
+  margin-right: -1px;
+`;
+
 const Column = styled.div`
   height: 100%;
   text-indent: -9999em;
   flex: 1;
   position: relative;
-
-  &:hover {
-    background: ${p => p.theme.offWhite};
-  }
+  border-left: 1px solid transparent;
+  border-right: 1px solid transparent;
 `;
 
 const ColumnRow = styled.div`
   position: absolute;
   width: 100%;
-  border-left: 1px solid #fff;
-  border-right: 1px solid #fff;
 
   background-color: ${p => {
     switch (p.columnType) {
