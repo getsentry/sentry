@@ -6,7 +6,7 @@ from rest_framework.response import Response
 
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.integration import IntegrationIssueSerializer
+from sentry.api.serializers.models.integration import IntegrationIssueConfigSerializer
 from sentry.integrations.base import IntegrationFeatures
 from sentry.models import ExternalIssue, GroupLink, OrganizationIntegration
 
@@ -37,7 +37,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
 
         # TODO(jess): add create issue config to serializer
         return Response(
-            serialize(integration, request.user, IntegrationIssueSerializer(group, action))
+            serialize(integration, request.user, IntegrationIssueConfigSerializer(group, action))
         )
 
     # was thinking put for link an existing issue, post for create new issue?
