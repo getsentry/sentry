@@ -38,15 +38,8 @@ let NewSettingsWarning = ({location = {}}) => {
       .replace('settings/close-account/', 'remove/')
       .replace('account/settings/api/', 'api/')
       .replace('auth-tokens/', '');
-  } else if (isOrgIndex) {
-    oldLocation = location.pathname.replace(
-      orgSettingsIndex,
-      '/organizations/$1/settings/'
-    );
-  } else if (isOrg) {
-    oldLocation = location.pathname.replace(orgRegex, '/organizations/$1/$2/');
-  } else if (isProject) {
-    oldLocation = location.pathname.replace(projectRegex, '/$1/$2/settings/');
+  } else if (isOrgIndex || isOrg || isProject) {
+    return null;
   }
 
   // original org auth view and account settings are django views so we can't use react router navigation
@@ -69,6 +62,11 @@ const Container = styled(Flex)`
   max-width: ${p => p.theme.settings.containerWidth};
   margin: 0 auto;
   padding: 0 ${p => p.theme.grid * 2}px;
+`;
+
+// this wrapper is required, else content won't stretch horizontally
+const ContentContainerWrapper = styled(Box)`
+  flex: 1; /* so this stretches vertically so that footer is fixed at bottom */
 `;
 
 const SidebarWrapper = styled(Box)`
@@ -113,7 +111,7 @@ class SettingsLayout extends React.Component {
         <SettingsHeader>
           <SettingsSubheader>
             <Container>
-              <SettingsBackButton params={params}>Back to Project</SettingsBackButton>
+              <SettingsBackButton params={params} />
             </Container>
           </SettingsSubheader>
           <Container>
@@ -129,15 +127,19 @@ class SettingsLayout extends React.Component {
             </Flex>
           </Container>
         </SettingsHeader>
-        <Container flex="1">
-          {typeof renderNavigation === 'function' && (
-            <SidebarWrapper>{renderNavigation()}</SidebarWrapper>
-          )}
-          <Content>
-            {children}
-            <NewSettingsWarning location={this.props.location} />
-          </Content>
-        </Container>
+
+        {/* this is div wrapper is required, else content won't stretch horizontally */}
+        <ContentContainerWrapper>
+          <Container>
+            {typeof renderNavigation === 'function' && (
+              <SidebarWrapper>{renderNavigation()}</SidebarWrapper>
+            )}
+            <Content>
+              {children}
+              <NewSettingsWarning location={this.props.location} />
+            </Content>
+          </Container>
+        </ContentContainerWrapper>
         <Footer />
       </React.Fragment>
     );

@@ -8,7 +8,6 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import ProjectTable from 'app/views/organizationStats/projectTable';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import StackedBarChart from 'app/components/stackedBarChart';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import {
@@ -66,7 +65,7 @@ class OrganizationStats extends React.Component {
 
     return (
       <div>
-        <SettingsPageHeader title={t('Organization Stats')} />
+        <h4>{t('Organization Stats')}</h4>
         <div className="row">
           <div className="col-md-9">
             <TextBlock>

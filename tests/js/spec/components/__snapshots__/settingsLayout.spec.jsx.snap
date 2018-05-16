@@ -5,9 +5,7 @@ exports[`SettingsLayout renders 1`] = `
   <SettingsHeader>
     <SettingsSubheader>
       <Container>
-        <withOrganizations>
-          Back to Project
-        </withOrganizations>
+        <withOrganizations />
       </Container>
     </SettingsSubheader>
     <Container>
@@ -29,13 +27,13 @@ exports[`SettingsLayout renders 1`] = `
       </Flex>
     </Container>
   </SettingsHeader>
-  <Container
-    flex="1"
-  >
-    <Content>
-      <NewSettingsWarning />
-    </Content>
-  </Container>
+  <ContentContainerWrapper>
+    <Container>
+      <Content>
+        <NewSettingsWarning />
+      </Content>
+    </Container>
+  </ContentContainerWrapper>
   <Footer />
 </React.Fragment>
 `;

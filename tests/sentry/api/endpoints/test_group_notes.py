@@ -202,15 +202,16 @@ class GroupNoteCreateTest(APITestCase):
         url = '/api/0/issues/{}/comments/'.format(group.id)
 
         with self.feature('organizations:internal-catchall'):
-            response = self.client.post(
-                url, format='json', data={
-                    'text': 'hello world',
-                }
-            )
-            assert response.status_code == 201, response.content
+            with self.tasks():
+                response = self.client.post(
+                    url, format='json', data={
+                        'text': 'hello world',
+                    }
+                )
+                assert response.status_code == 201, response.content
 
-            activity = Activity.objects.get(id=response.data['id'])
-            assert activity.user == self.user
-            assert activity.group == group
-            assert activity.data == {'text': 'hello world'}
-            mock_create_comment.assert_called_with('APP-123', 'hello world')
+                activity = Activity.objects.get(id=response.data['id'])
+                assert activity.user == self.user
+                assert activity.group == group
+                assert activity.data == {'text': 'hello world'}
+                mock_create_comment.assert_called_with('APP-123', 'hello world')

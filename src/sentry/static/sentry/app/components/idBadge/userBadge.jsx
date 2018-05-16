@@ -5,29 +5,34 @@ import Avatar from 'app/components/avatar';
 import Link from 'app/components/link';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
+import SentryTypes from 'app/proptypes';
 
 const UserBadge = ({
   displayName,
   displayEmail,
   user,
+  member,
   orgId,
   avatarSize,
   useLink,
   hideEmail,
   ...props
 }) => {
+  let userFromPropsOrMember = user || (member && member.user) || member;
   return (
     <StyledUserBadge {...props}>
-      <StyledAvatar user={user} size={avatarSize} />
+      <StyledAvatar user={userFromPropsOrMember} size={avatarSize} />
       <StyledNameAndEmail>
         <StyledName
-          useLink={useLink && orgId}
+          useLink={useLink && orgId && member}
           hideEmail={hideEmail}
-          to={`/settings/${orgId}/members/${user.id}/`}
+          to={member && orgId && `/settings/${orgId}/members/${member.id}/`}
         >
-          {displayName || user.name || user.email}
+          {displayName || userFromPropsOrMember.name || userFromPropsOrMember.email}
         </StyledName>
-        {!hideEmail && <StyledEmail>{displayEmail || user.email}</StyledEmail>}
+        {!hideEmail && (
+          <StyledEmail>{displayEmail || userFromPropsOrMember.email}</StyledEmail>
+        )}
       </StyledNameAndEmail>
     </StyledUserBadge>
   );
@@ -37,7 +42,15 @@ UserBadge.propTypes = {
   displayName: PropTypes.node,
   displayEmail: PropTypes.node,
   avatarSize: PropTypes.number,
-  user: PropTypes.object,
+  /**
+   * Sometimes we may not have the member object (i.e. the current user, `ConfigStore.get('user')`,
+   * is an user, not a member)
+   */
+  user: SentryTypes.User,
+  /**
+   * This is a Sentry member (not the user object that is a child of the member object)
+   */
+  member: SentryTypes.Member,
   orgId: PropTypes.string,
   useLink: PropTypes.bool,
   hideEmail: PropTypes.bool,

@@ -436,7 +436,7 @@ CELERY_IMPORTS = (
     'sentry.tasks.process_buffer', 'sentry.tasks.reports', 'sentry.tasks.reprocessing',
     'sentry.tasks.scheduler', 'sentry.tasks.signals', 'sentry.tasks.store', 'sentry.tasks.unmerge',
     'sentry.tasks.symcache_update', 'sentry.tasks.servicehooks',
-    'sentry.tagstore.tasks', 'sentry.tasks.assemble'
+    'sentry.tagstore.tasks', 'sentry.tasks.assemble', 'sentry.tasks.integrations',
 )
 CELERY_QUEUES = [
     Queue('activity.notify', routing_key='activity.notify'),
@@ -458,6 +458,7 @@ CELERY_QUEUES = [
     Queue('events.reprocessing.process_event', routing_key='events.reprocessing.process_event'),
     Queue('events.reprocess_events', routing_key='events.reprocess_events'),
     Queue('events.save_event', routing_key='events.save_event'),
+    Queue('integrations', routing_key='integrations'),
     Queue('merge', routing_key='merge'),
     Queue('options', routing_key='options'),
     Queue('reports.deliver', routing_key='reports.deliver'),
@@ -752,14 +753,15 @@ SENTRY_FEATURES = {
     'organizations:group-unmerge': False,
     'organizations:integrations-v3': False,
     'organizations:invite-members': True,
-    'organizations:new-settings': False,
+    'organizations:new-settings': True,
     'organizations:require-2fa': False,
     'organizations:environments': False,
     'organizations:internal-catchall': False,
-    'organizations:new-teams': False,
-    'organizations:code-owners': False,
+    'organizations:new-teams': True,
+    'organizations:code-owners': True,
     'organizations:unreleased-changes': False,
-    'organizations:dashboard': False,
+    'organizations:dashboard': True,
+    'organizations:suggested-commits': True,
     'organizations:relay': False,
     'projects:global-events': False,
     'projects:plugins': True,
@@ -1329,3 +1331,7 @@ PRIVACY_URL = None
 SENTRY_MINIDUMP_CACHE = False
 # The location for cached minidumps
 SENTRY_MINIDUMP_PATH = '/tmp/minidump'
+
+# Relay
+# List of PKs whitelisted by Sentry
+SENTRY_RELAY_WHITELIST_PK = []

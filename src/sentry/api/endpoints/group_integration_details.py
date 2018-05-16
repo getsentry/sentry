@@ -5,10 +5,41 @@ from django.db import IntegrityError, transaction
 from rest_framework.response import Response
 
 from sentry.api.bases import GroupEndpoint
+from sentry.api.serializers import serialize
+from sentry.api.serializers.models.integration import IntegrationIssueSerializer
+from sentry.integrations.base import IntegrationFeatures
 from sentry.models import ExternalIssue, GroupLink, OrganizationIntegration
 
 
 class GroupIntegrationDetails(GroupEndpoint):
+    def get(self, request, group, integration_id):
+        # Keep link/create separate since create will likely require
+        # many external API calls that aren't necessary if the user is
+        # just linking
+        action = request.GET.get('action')
+        if action not in {'link', 'create'}:
+            return Response({'detail': 'Action is required and should be either link or create'})
+
+        organization_id = group.project.organization_id
+        try:
+            # check org permissions
+            # TODO(jess): should this eventually check ProjectIntegration?
+            integration = OrganizationIntegration.objects.filter(
+                integration_id=integration_id,
+                organization_id=organization_id,
+            ).select_related('integration').get().integration
+        except OrganizationIntegration.DoesNotExist:
+            return Response(status=404)
+
+        if not integration.has_feature(IntegrationFeatures.ISSUE_SYNC):
+            return Response(
+                {'detail': 'This feature is not supported for this integration.'}, status=400)
+
+        # TODO(jess): add create issue config to serializer
+        return Response(
+            serialize(integration, request.user, IntegrationIssueSerializer(group, action))
+        )
+
     # was thinking put for link an existing issue, post for create new issue?
     def put(self, request, group, integration_id):
         external_issue_id = request.DATA.get('externalIssue')
@@ -25,6 +56,10 @@ class GroupIntegrationDetails(GroupEndpoint):
             ).select_related('integration').get().integration
         except OrganizationIntegration.DoesNotExist:
             return Response(status=404)
+
+        if not integration.has_feature(IntegrationFeatures.ISSUE_SYNC):
+            return Response(
+                {'detail': 'This feature is not supported for this integration.'}, status=400)
 
         # TODO(jess): some validation from provider to ensure this
         # issue id is valid and also maybe to fetch the title/description

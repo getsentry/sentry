@@ -70,8 +70,16 @@ class DropdownMenu extends React.Component {
     if (!this.dropdownMenu) return;
     // Dropdown menu itself
     if (this.dropdownMenu.contains(e.target)) return;
+
+    if (!this.dropdownActor) {
+      // Log an error, should be lower priority
+      Raven.captureException(new Error('DropdownMenu does not have "Actor" attached'), {
+        level: 'warning',
+      });
+    }
+
     // Button that controls visibility of dropdown menu
-    if (this.dropdownActor.contains(e.target)) return;
+    if (this.dropdownActor && this.dropdownActor.contains(e.target)) return;
 
     if (typeof shouldIgnoreClickOutside === 'function' && shouldIgnoreClickOutside(e))
       return;

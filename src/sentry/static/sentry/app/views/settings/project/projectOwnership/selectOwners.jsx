@@ -81,9 +81,9 @@ export default class SelectOwners extends React.Component {
     }
   }
 
-  renderUserBadge = user => (
-    <IdBadge avatarSize={24} user={user} hideEmail useLink={false} />
-  );
+  renderUserBadge = user => {
+    return <IdBadge avatarSize={24} user={user} hideEmail useLink={false} />;
+  };
 
   createMentionableUser = user => {
     return {
@@ -249,6 +249,11 @@ export default class SelectOwners extends React.Component {
 
   queryMembers = debounce((query, cb) => {
     let {organization} = this.props;
+
+    // Because this function is debounced, the component can potentially be
+    // unmounted before this fires, in which case, `this.api` is null
+    if (!this.api) return null;
+
     return this.api
       .requestPromise(`/organizations/${organization.slug}/members/`, {
         query: {query},

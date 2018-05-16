@@ -7,7 +7,7 @@ from sentry.ownership.grammar import (
 
 fixture_data = """
 # cool stuff comment
-*.js                    #frontend m@robenolt.com
+*.js                    #frontend m@ROBENOLT.com
 # good comment
 
 

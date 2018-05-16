@@ -208,7 +208,7 @@ class Sidebar extends React.Component {
                   {...sidebarItemProps}
                   onClick={this.hidePanel}
                   icon={<InlineSvg src="icon-star" />}
-                  label={t('Starred issues')}
+                  label={t('Bookmarked issues')}
                   to={`/organizations/${organization.slug}/issues/bookmarks/`}
                 />
                 <SidebarItem

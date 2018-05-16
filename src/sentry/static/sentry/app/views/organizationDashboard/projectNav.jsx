@@ -37,7 +37,7 @@ const ProjectNav = createReactClass({
         tooltip: t('You do not have permission to create new teams'),
       },
       {
-        title: t('Teammate'),
+        title: t('Member'),
         to: `settings/${org.slug}/members/new/`,
         disabled: !hasTeamWrite,
         tooltip: t('You do not have permission to manage teams'),
@@ -99,7 +99,7 @@ const StyledNav = styled(Flex)`
   border-bottom: 1px solid ${p => p.theme.borderLight};
   box-shadow: ${p => p.theme.dropShadowLight};
   background-color: white;
-  padding: ${space(2)} 24px;
+  padding: ${space(2)} ${space(4)};
 `;
 
 const StyledDropdown = styled.div`

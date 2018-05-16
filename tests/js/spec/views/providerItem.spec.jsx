@@ -1,7 +1,7 @@
 import React from 'react';
 import {shallow, mount} from 'enzyme';
 
-import ProviderItem from 'app/views/settings/organization/auth/providerItem';
+import ProviderItem from 'app/views/settings/organizationAuth/providerItem';
 
 describe('ProviderItem', function() {
   it('renders', function() {

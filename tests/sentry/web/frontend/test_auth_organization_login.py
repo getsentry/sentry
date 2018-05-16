@@ -60,7 +60,8 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         self.assertTemplateUsed(resp, 'sentry/auth-confirm-identity.html')
         assert resp.status_code == 200
 
-        resp = self.client.post(path, {'op': 'newuser'})
+        with self.settings(TERMS_URL='https://example.com/terms', PRIVACY_URL='https://example.com/privacy'):
+            resp = self.client.post(path, {'op': 'newuser'})
 
         assert resp.status_code == 302
         assert resp['Location'] == 'http://testserver' + reverse('sentry-login')
@@ -73,6 +74,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert user.email == 'foo@example.com'
         assert not user.has_usable_password()
         assert not user.is_managed
+        assert user.flags.newsletter_consent_prompt
 
         member = OrganizationMember.objects.get(
             organization=organization,
@@ -188,6 +190,10 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         new_user = auth_identity.user
         assert user.email == 'bar@example.com'
         assert new_user != user
+
+        # Without settings.TERMS_URL and settings.PRIVACY_URL, this should be
+        # unset following new user creation
+        assert not new_user.flags.newsletter_consent_prompt
 
         member = OrganizationMember.objects.get(
             organization=organization,

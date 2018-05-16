@@ -1,18 +1,8 @@
 import {Redirect, Route, IndexRoute, IndexRedirect} from 'react-router';
 import React from 'react';
 
-import AcceptProjectTransfer from 'app/views/acceptProjectTransfer';
 import AccountAuthorizations from 'app/views/accountAuthorizations';
 import AccountLayout from 'app/views/accountLayout';
-import AdminBuffer from 'app/views/adminBuffer';
-import AdminLayout from 'app/views/adminLayout';
-import AdminOrganizations from 'app/views/adminOrganizations';
-import AdminOverview from 'app/views/adminOverview';
-import AdminProjects from 'app/views/adminProjects';
-import AdminQueue from 'app/views/adminQueue';
-import AdminQuotas from 'app/views/adminQuotas';
-import AdminSettings from 'app/views/adminSettings';
-import AdminUsers from 'app/views/adminUsers';
 import ApiApplicationDetails from 'app/views/apiApplicationDetails';
 import ApiApplications from 'app/views/apiApplications';
 import ApiLayout from 'app/views/apiLayout';
@@ -29,7 +19,6 @@ import GroupTagValues from 'app/views/groupTagValues';
 import GroupTags from 'app/views/groupTags';
 import GroupUserReports from 'app/views/groupUserReports';
 import HookStore from 'app/stores/hookStore';
-import InviteMember from 'app/views/inviteMember/inviteMember';
 import LazyLoad from 'app/components/lazyLoad';
 import MyIssuesAssignedToMe from 'app/views/myIssues/assignedToMe';
 import MyIssuesBookmarked from 'app/views/myIssues/bookmarked';
@@ -38,26 +27,14 @@ import NewProject from 'app/views/projectInstall/newProject';
 import OnboardingConfigure from 'app/views/onboarding/configure/index';
 import OnboardingWizard from 'app/views/onboarding/index';
 import OrganizationActivity from 'app/views/organizationActivity';
-import OrganizationApiKeyDetailsView from 'app/views/settings/organization/apiKeys/organizationApiKeyDetailsView';
-import OrganizationApiKeysView from 'app/views/settings/organization/apiKeys/organizationApiKeysView';
-import OrganizationAuditLogView from 'app/views/settings/organization/auditLog/auditLogView';
 import OrganizationContext from 'app/views/organizationContext';
 import OrganizationCreate from 'app/views/organizationCreate';
 import OrganizationDashboard from 'app/views/organizationDashboard';
 import OrganizationDetails from 'app/views/organizationDetails';
 import OrganizationHomeContainer from 'app/components/organizations/homeContainer';
-import OrganizationMemberDetail from 'app/views/settings/organization/members/organizationMemberDetail';
-import OrganizationMembersView from 'app/views/settings/organization/members/organizationMembersView';
-import OrganizationProjectsView from 'app/views/settings/organization/projects/organizationProjectsView';
-import OrganizationRateLimits from 'app/views/organizationRateLimits';
-import OrganizationRepositoriesView from 'app/views/organizationRepositoriesView';
-import OrganizationGeneralSettingsView from 'app/views/settings/organization/general/organizationGeneralSettingsView';
+import OrganizationMembers from 'app/views/settings/organizationMembers';
+import OrganizationRoot from 'app/views/organizationRoot';
 import OrganizationStats from 'app/views/organizationStats';
-import OrganizationTeams from 'app/views/organizationTeams';
-import OrganizationTeamsProjectsView from 'app/views/organizationTeamsProjects';
-import ProjectAlertRules from 'app/views/settings/projectAlerts/projectAlertRules';
-import ProjectAlertRuleDetails from 'app/views/settings/projectAlerts/projectAlertRuleDetails';
-import ProjectAlertSettings from 'app/views/settings/projectAlerts/projectAlertSettings';
 import ProjectEnvironments from 'app/views/projectEnvironments';
 import ProjectTags from 'app/views/projectTags';
 import ProjectChooser from 'app/views/projectChooser';
@@ -67,7 +44,6 @@ import ProjectDebugSymbols from 'app/views/projectDebugSymbols';
 import ProjectDetails from 'app/views/projectDetails';
 import ProjectDocsContext from 'app/views/projectInstall/docsContext';
 import ProjectEvents from 'app/views/projectEvents';
-import ProjectGeneralSettings from 'app/views/projectGeneralSettings';
 import ProjectGettingStarted from 'app/views/projectInstall/gettingStarted';
 import ProjectInstallOverview from 'app/views/projectInstall/overview';
 import ProjectInstallPlatform from 'app/views/projectInstall/platform';
@@ -88,11 +64,6 @@ import RouteNotFound from 'app/views/routeNotFound';
 import SettingsProjectProvider from 'app/views/settings/components/settingsProjectProvider';
 import SettingsWrapper from 'app/views/settings/components/settingsWrapper';
 import Stream from 'app/views/stream';
-import TeamCreate from 'app/views/teamCreate';
-import TeamDetails from 'app/views/teamDetails';
-import TeamMembers from 'app/views/teamMembers';
-import TeamSettings from 'app/views/teamSettings';
-import TeamProjects from 'app/views/settings/team/teamProjects';
 import errorHandler from 'app/utils/errorHandler';
 
 function appendTrailingSlash(nextState, replace) {
@@ -238,7 +209,12 @@ const accountSettingsRoutes = (
 
 const projectSettingsRoutes = (
   <React.Fragment>
-    <IndexRoute name="General" component={errorHandler(ProjectGeneralSettings)} />
+    <IndexRoute
+      name="General"
+      componentPromise={() =>
+        import(/*webpackChunkName: "ProjectGeneralSettings"*/ 'app/views/settings/projectGeneralSettings')}
+      component={errorHandler(LazyLoad)}
+    />
     <Route
       path="teams/"
       name="Teams"
@@ -247,14 +223,30 @@ const projectSettingsRoutes = (
       component={errorHandler(LazyLoad)}
     />
     <Route name="Alerts" path="alerts/">
-      <IndexRoute component={errorHandler(ProjectAlertSettings)} />
+      <IndexRoute
+        component={errorHandler(LazyLoad)}
+        componentPromise={() =>
+          import(/*webpackChunkName: "ProjectAlertSettings"*/ './views/settings/projectAlerts/projectAlertSettings')}
+      />
       <Route path="rules/" name="Rules" component={null}>
-        <IndexRoute component={errorHandler(ProjectAlertRules)} />
-        <Route path="new/" name="New" component={errorHandler(ProjectAlertRuleDetails)} />
+        <IndexRoute
+          component={errorHandler(LazyLoad)}
+          componentPromise={() =>
+            import(/*webpackChunkName: "ProjectAlertRules"*/ './views/settings/projectAlerts/projectAlertRules')}
+        />
+        <Route
+          path="new/"
+          name="New"
+          component={errorHandler(LazyLoad)}
+          componentPromise={() =>
+            import(/*webpackChunkName: "ProjectAlertRuleDetails"*/ './views/settings/projectAlerts/projectAlertRuleDetails')}
+        />
         <Route
           path=":ruleId/"
           name="Edit"
-          component={errorHandler(ProjectAlertRuleDetails)}
+          componentPromise={() =>
+            import(/*webpackChunkName: "ProjectAlertRuleDetails"*/ './views/settings/projectAlerts/projectAlertRuleDetails')}
+          component={errorHandler(LazyLoad)}
         />
       </Route>
     </Route>
@@ -451,37 +443,48 @@ function routes() {
     <React.Fragment>
       <IndexRoute
         name="General"
-        component={errorHandler(OrganizationGeneralSettingsView)}
+        componentPromise={() =>
+          import(/*webpackChunkName: OrganizationGeneralSettings*/ './views/settings/organizationGeneralSettings')}
+        component={errorHandler(LazyLoad)}
       />
 
       <Route
         path="projects/"
         name="Projects"
-        component={errorHandler(OrganizationProjectsView)}
+        componentPromise={() =>
+          import(/*webpackChunkName: OrganizationProjects*/ './views/settings/organizationProjects')}
+        component={errorHandler(LazyLoad)}
       />
 
-      <Route
-        path="api-keys/"
-        name="API Key"
-        component={errorHandler(OrganizationApiKeysView)}
-      />
+      <Route path="api-keys/" name="API Key">
+        <IndexRoute
+          componentPromise={() =>
+            import(/*webpackChunkName: OrganizationApiKeys*/ './views/settings/organizationApiKeys')}
+          component={errorHandler(LazyLoad)}
+        />
 
-      <Route
-        path="api-keys/:apiKey/"
-        component={errorHandler(OrganizationApiKeyDetailsView)}
-      />
+        <Route
+          path=":apiKey/"
+          name="Details"
+          componentPromise={() =>
+            import(/*webpackChunkName: OrganizationApiKeyDetails*/ './views/settings/organizationApiKeys/organizationApiKeyDetails')}
+          component={errorHandler(LazyLoad)}
+        />
+      </Route>
 
       <Route
         path="audit-log/"
         name="Audit Log"
-        component={errorHandler(OrganizationAuditLogView)}
+        componentPromise={() =>
+          import(/*webpackChunkName: OrganizationAuditLog*/ './views/settings/organizationAuditLog')}
+        component={errorHandler(LazyLoad)}
       />
 
       <Route
         path="auth/"
         name="Auth Providers"
         componentPromise={() =>
-          import(/*webpackChunkName: OrganizationAuthView*/ './views/settings/organization/auth/organizationAuthView')}
+          import(/*webpackChunkName: OrganizationAuth*/ './views/settings/organizationAuth')}
         component={errorHandler(LazyLoad)}
       />
 
@@ -490,59 +493,83 @@ function routes() {
           component={
             HookStore.get('component:org-members-view').length
               ? HookStore.get('component:org-members-view')[0]()
-              : OrganizationMembersView
+              : OrganizationMembers
           }
         />
-        <Route path="new/" name="Invite" component={errorHandler(InviteMember)} />
+        <Route
+          path="new/"
+          name="Invite"
+          componentPromise={() =>
+            import(/*webpackChunkName: InviteMember*/ './views/settings/organizationMembers/inviteMember')}
+          component={errorHandler(LazyLoad)}
+        />
         <Route
           path=":memberId/"
           name="Details"
-          component={errorHandler(OrganizationMemberDetail)}
+          componentPromise={() =>
+            import(/*webpackChunkName: OrganizationMemberDetail*/ './views/settings/organizationMembers/organizationMemberDetail')}
+          component={errorHandler(LazyLoad)}
         />
       </Route>
 
       <Route
         path="rate-limits/"
         name="Rate Limits"
-        component={errorHandler(OrganizationRateLimits)}
+        componentPromise={() =>
+          import(/*webpackChunkName: OrganizationRateLimits*/ './views/settings/organizationRateLimits')}
+        component={errorHandler(LazyLoad)}
       />
 
       <Route
         path="repos/"
         name="Repositories"
-        component={errorHandler(OrganizationRepositoriesView)}
+        componentPromise={() =>
+          import(/*webpackChunkName: OrganizationRepositories*/ './views/settings/organizationRepositories')}
+        component={errorHandler(LazyLoad)}
       />
 
-      <Route path="settings/" component={errorHandler(OrganizationGeneralSettingsView)} />
+      <Route
+        path="settings/"
+        componentPromise={() =>
+          import(/*webpackChunkName: OrganizationGeneralSettings*/ './views/settings/organizationGeneralSettings')}
+        component={errorHandler(LazyLoad)}
+      />
 
       <Route name="Teams" path="teams/">
-        <IndexRoute component={errorHandler(OrganizationTeams)} />
-
-        <Route
-          path="all-teams/"
-          name="All Teams"
-          allTeams
-          component={errorHandler(OrganizationTeams)}
+        <IndexRoute
+          componentPromise={() =>
+            import(/*webpackChunkName: OrganizationTeams*/ './views/settings/organizationTeams')}
+          component={errorHandler(LazyLoad)}
         />
 
         <Route
-          name="Your Teams"
-          path="your-teams/"
-          component={errorHandler(OrganizationTeams)}
-        />
-
-        <Route name="Team" path=":teamId/" component={errorHandler(TeamDetails)}>
+          name="Team"
+          path=":teamId/"
+          componentPromise={() =>
+            import(/*webpackChunkName: TeamDetails*/ './views/settings/organizationTeams/teamDetails')}
+          component={errorHandler(LazyLoad)}
+        >
           <IndexRedirect to="members/" />
-          <Route path="members/" name="Members" component={errorHandler(TeamMembers)} />
+          <Route
+            path="members/"
+            name="Members"
+            componentPromise={() =>
+              import(/*webpackChunkName: TeamMembers*/ './views/settings/organizationTeams/teamMembers')}
+            component={errorHandler(LazyLoad)}
+          />
           <Route
             path="projects/"
             name="Projects"
-            component={errorHandler(TeamProjects)}
+            componentPromise={() =>
+              import(/*webpackChunkName: TeamProjects*/ './views/settings/organizationTeams/teamProjects')}
+            component={errorHandler(LazyLoad)}
           />
           <Route
             path="settings/"
             name="settings"
-            component={errorHandler(TeamSettings)}
+            componentPromise={() =>
+              import(/*webpackChunkName: TeamSettings*/ './views/settings/organizationTeams/teamSettings')}
+            component={errorHandler(LazyLoad)}
           />
         </Route>
       </Route>
@@ -551,7 +578,12 @@ function routes() {
 
   return (
     <Route path="/" component={errorHandler(App)}>
-      <Route path="/accept-transfer/" component={errorHandler(AcceptProjectTransfer)} />
+      <Route
+        path="/accept-transfer/"
+        componentPromise={() =>
+          import(/*webpackChunkName:"AcceptProjectTransfer"*/ 'app/views/acceptProjectTransfer')}
+        component={errorHandler(LazyLoad)}
+      />
       <Route path="/account/" component={errorHandler(AccountLayout)}>
         <Route path="authorizations/" component={errorHandler(AccountAuthorizations)} />
       </Route>
@@ -616,15 +648,65 @@ function routes() {
 
       <Route path="/api/new-token/" component={errorHandler(ApiNewToken)} />
 
-      <Route path="/manage/" component={errorHandler(AdminLayout)}>
-        <IndexRoute component={errorHandler(AdminOverview)} />
-        <Route path="buffer/" component={errorHandler(AdminBuffer)} />
-        <Route path="organizations/" component={errorHandler(AdminOrganizations)} />
-        <Route path="projects/" component={errorHandler(AdminProjects)} />
-        <Route path="queue/" component={errorHandler(AdminQueue)} />
-        <Route path="quotas/" component={errorHandler(AdminQuotas)} />
-        <Route path="settings/" component={errorHandler(AdminSettings)} />
-        <Route path="users/" component={errorHandler(AdminUsers)} />
+      <Route
+        path="/manage/"
+        componentPromise={() =>
+          import(/*webpackChunkName:"AdminLayout"*/ 'app/views/admin/adminLayout')}
+        component={errorHandler(LazyLoad)}
+      >
+        <IndexRoute
+          componentPromise={() =>
+            import(/*webpackChunkName:"AdminOverview"*/ 'app/views/admin/adminOverview')}
+          component={errorHandler(LazyLoad)}
+        />
+        <Route
+          path="buffer/"
+          componentPromise={() =>
+            import(/*webpackChunkName:"AdminBuffer"*/ 'app/views/admin/adminBuffer')}
+          component={errorHandler(LazyLoad)}
+        />
+        <Route
+          path="relays/"
+          componentPromise={() =>
+            import(/*webpackChunkName:"AdminRelays"*/ 'app/views/admin/adminRelays')}
+          component={errorHandler(LazyLoad)}
+        />
+        <Route
+          path="organizations/"
+          componentPromise={() =>
+            import(/*webpackChunkName:"AdminOrganizations"*/ 'app/views/admin/adminOrganizations')}
+          component={errorHandler(LazyLoad)}
+        />
+        <Route
+          path="projects/"
+          componentPromise={() =>
+            import(/*webpackChunkName:"AdminProjects"*/ 'app/views/admin/adminProjects')}
+          component={errorHandler(LazyLoad)}
+        />
+        <Route
+          path="queue/"
+          componentPromise={() =>
+            import(/*webpackChunkName:"AdminQueue"*/ 'app/views/admin/adminQueue')}
+          component={errorHandler(LazyLoad)}
+        />
+        <Route
+          path="quotas/"
+          componentPromise={() =>
+            import(/*webpackChunkName:"AdminQuotas"*/ 'app/views/admin/adminQuotas')}
+          component={errorHandler(LazyLoad)}
+        />
+        <Route
+          path="settings/"
+          componentPromise={() =>
+            import(/*webpackChunkName:"AdminSettings"*/ 'app/views/admin/adminSettings')}
+          component={errorHandler(LazyLoad)}
+        />
+        <Route
+          path="users/"
+          componentPromise={() =>
+            import(/*webpackChunkName:"AdminUsers"*/ 'app/views/admin/adminUsers')}
+          component={errorHandler(LazyLoad)}
+        />
         {hooksAdminRoutes}
       </Route>
 
@@ -649,50 +731,66 @@ function routes() {
       </Route>
 
       <Route path="/:orgId/" component={errorHandler(OrganizationDetails)}>
-        <IndexRoute component={errorHandler(OrganizationDashboard)} />
-
-        <Route
-          path="/organizations/:orgId/activity/"
-          component={errorHandler(OrganizationActivity)}
-        />
-
-        <Route
-          path="/organizations/:orgId/teams/new/"
-          component={errorHandler(TeamCreate)}
-        />
-
-        <Route path="/organizations/:orgId/" component={OrganizationHomeContainer}>
+        <Route component={errorHandler(OrganizationRoot)}>
+          <IndexRoute component={errorHandler(OrganizationDashboard)} />
           <Route
-            path="projects/"
-            component={errorHandler(OrganizationTeamsProjectsView)}
+            path="/organizations/:orgId/activity/"
+            component={errorHandler(OrganizationActivity)}
           />
-          {hooksOrgRoutes}
-          {orgSettingsRoutes}
-          <Route path="stats/" component={errorHandler(OrganizationStats)} />
+
+          <Route
+            path="/organizations/:orgId/teams/new/"
+            componentPromise={() =>
+              import(/*webpackChunkName:"TeamCreate"*/ './views/teamCreate')}
+            component={errorHandler(LazyLoad)}
+          />
+
+          <Route path="/organizations/:orgId/" component={OrganizationHomeContainer}>
+            <Redirect from="projects/" to="/:orgId/" />
+            {hooksOrgRoutes}
+            <Redirect path="teams/" to="/settings/:orgId/teams/" />
+            <Redirect path="teams/your-teams/" to="/settings/:orgId/teams/" />
+            <Redirect path="teams/all-teams/" to="/settings/:orgId/teams/" />
+            <Redirect path="teams/:teamId/" to="/settings/:orgId/teams/:teamId/" />
+            <Redirect
+              path="teams/:teamId/members/"
+              to="/settings/:orgId/teams/:teamId/members/"
+            />
+            <Redirect
+              path="teams/:teamId/projects/"
+              to="/settings/:orgId/teams/:teamId/projects/"
+            />
+            <Redirect
+              path="teams/:teamId/settings/"
+              to="/settings/:orgId/teams/:teamId/settings/"
+            />
+            {orgSettingsRoutes}
+            <Route path="stats/" component={errorHandler(OrganizationStats)} />
+          </Route>
+
+          <Route
+            path="/organizations/:orgId/issues/assigned/"
+            component={errorHandler(MyIssuesAssignedToMe)}
+          />
+          <Route
+            path="/organizations/:orgId/issues/bookmarks/"
+            component={errorHandler(MyIssuesBookmarked)}
+          />
+          <Route
+            path="/organizations/:orgId/issues/history/"
+            component={errorHandler(MyIssuesViewed)}
+          />
+
+          <Route
+            path="/organizations/:orgId/projects/new/"
+            component={errorHandler(NewProject)}
+          />
+
+          <Route
+            path="/organizations/:orgId/projects/choose/"
+            component={errorHandler(ProjectChooser)}
+          />
         </Route>
-
-        <Route
-          path="/organizations/:orgId/issues/assigned/"
-          component={errorHandler(MyIssuesAssignedToMe)}
-        />
-        <Route
-          path="/organizations/:orgId/issues/bookmarks/"
-          component={errorHandler(MyIssuesBookmarked)}
-        />
-        <Route
-          path="/organizations/:orgId/issues/history/"
-          component={errorHandler(MyIssuesViewed)}
-        />
-
-        <Route
-          path="/organizations/:orgId/projects/new/"
-          component={errorHandler(NewProject)}
-        />
-
-        <Route
-          path="/organizations/:orgId/projects/choose/"
-          component={errorHandler(ProjectChooser)}
-        />
 
         <Route
           path=":projectId/getting-started/"

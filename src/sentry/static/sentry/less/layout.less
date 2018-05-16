@@ -55,7 +55,7 @@ body {
     /* This is for organization level views e.g. "Assigned to me" */
     .organization-home {
       .container {
-        margin-top: 30px;
+        margin-top: 24px;
       }
     }
   }
@@ -229,6 +229,8 @@ body.auth {
 
   .project-header {
     display: flex;
+    margin-top: 18px;
+
     &-main {
       flex-grow: 1;
     }
@@ -240,6 +242,7 @@ body.auth {
         font-weight: normal;
         display: block;
         margin-top: 8px;
+        margin-bottom: 8px;
       }
     }
   }
@@ -251,7 +254,7 @@ body.auth {
 
   .project-select-bookmark {
     border-left: 1px solid @gray-lightest;
-    padding-left: 10px;
+    padding-left: 15px;
     margin-left: 10px;
     color: @40;
     &.active {
@@ -265,6 +268,7 @@ body.auth {
 
     + .dropdown-menu {
       z-index: @zindex-sticky-bar + 2;
+      width: 172px;
     }
   }
 
@@ -294,14 +298,14 @@ body.auth {
       z-index: 2;
 
       a {
-        padding-bottom: 13px;
+        padding-bottom: 10px;
       }
     }
   }
 
   .project-select-wrapper + .nav-tabs,
   #blk_projectselect + .nav-tabs {
-    margin-top: 10px;
+    margin-top: 12px;
   }
 
   .align-right {

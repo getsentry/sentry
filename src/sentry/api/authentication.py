@@ -5,12 +5,48 @@ from rest_framework.authentication import (BasicAuthentication, get_authorizatio
 from rest_framework.exceptions import AuthenticationFailed
 
 from sentry.app import raven
-from sentry.models import ApiKey, ApiToken
+from sentry.models import ApiKey, ApiToken, Relay
+from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
+
+import semaphore
 
 
 class QuietBasicAuthentication(BasicAuthentication):
     def authenticate_header(self, request):
         return 'xBasic realm="%s"' % self.www_authenticate_realm
+
+
+class RelayAuthentication(BasicAuthentication):
+    def authenticate(self, request):
+        relay_id = get_header_relay_id(request)
+        relay_sig = get_header_relay_signature(request)
+        if not relay_id:
+            raise AuthenticationFailed('Invalid relay ID')
+        if not relay_sig:
+            raise AuthenticationFailed('Missing relay signature')
+        return self.authenticate_credentials(relay_id, relay_sig, request)
+
+    def authenticate_credentials(self, relay_id, relay_sig, request):
+        raven.tags_context({
+            'relay_id': relay_id,
+        })
+
+        try:
+            relay = Relay.objects.get(relay_id=relay_id)
+        except Relay.DoesNotExist:
+            raise AuthenticationFailed('Unknown relay')
+
+        try:
+            data = relay.public_key_object.unpack(request.body, relay_sig,
+                                                  max_age=60 * 5)
+            request.relay = relay
+            request.relay_request_data = data
+        except semaphore.UnpackError:
+            raise AuthenticationFailed('Invalid relay signature')
+
+        # TODO(mitsuhiko): can we return the relay here?  would be nice if we
+        # could find some common interface for it
+        return (AnonymousUser(), None)
 
 
 class ApiKeyAuthentication(QuietBasicAuthentication):
