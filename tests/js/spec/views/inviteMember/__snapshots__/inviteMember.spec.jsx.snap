@@ -197,7 +197,7 @@ exports[`CreateProject should render roles when available and allowed, and handl
                         >
                           <Label>
                             <label
-                              className="css-r8kahz-Label enzv8160"
+                              className="css-r8kahz-Label e1y9x5r70"
                             >
                               <Radio
                                 checked={false}
@@ -280,7 +280,7 @@ exports[`CreateProject should render roles when available and allowed, and handl
                         >
                           <Label>
                             <label
-                              className="css-r8kahz-Label enzv8160"
+                              className="css-r8kahz-Label e1y9x5r70"
                             >
                               <Radio
                                 checked={false}
@@ -434,7 +434,7 @@ exports[`CreateProject should render roles when available and allowed, and handl
                             key="bar"
                           >
                             <div
-                              className="css-16v1fbz-TeamItem e1r79plm0"
+                              className="css-16v1fbz-TeamItem e1tbg1m40"
                             >
                               <label
                                 className="checkbox"
@@ -554,7 +554,7 @@ exports[`CreateProject should render roles when available and allowed, and handl
                             key="foo"
                           >
                             <div
-                              className="css-16v1fbz-TeamItem e1r79plm0"
+                              className="css-16v1fbz-TeamItem e1tbg1m40"
                             >
                               <label
                                 className="checkbox"
