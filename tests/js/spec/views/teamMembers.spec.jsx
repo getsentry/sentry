@@ -2,7 +2,7 @@ import React from 'react';
 import {shallow, mount} from 'enzyme';
 
 import {Client} from 'app/api';
-import TeamMembers from 'app/views/settings/team/teamMembers';
+import TeamMembers from 'app/views/settings/organizationTeams/teamMembers';
 
 describe('TeamMembers', function() {
   let routerContext = TestStubs.routerContext();

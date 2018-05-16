@@ -235,19 +235,19 @@ exports[`OrganizationTeamProjects Should render 1`] = `
               key="2"
             >
               <PanelItem
-                className="css-qjeif8-StyledPanelItem er5mk5i1"
+                className="css-qjeif8-StyledPanelItem eqsa6vb1"
                 p={2}
               >
                 <StyledPanelItem
-                  className="css-qjeif8-StyledPanelItem er5mk5i1"
+                  className="css-qjeif8-StyledPanelItem eqsa6vb1"
                   p={2}
                 >
                   <Base
-                    className="er5mk5i1 css-avuc83-StyledPanelItem-StyledPanelItem eo8n7lk0"
+                    className="eqsa6vb1 css-avuc83-StyledPanelItem-StyledPanelItem eo8n7lk0"
                     p={2}
                   >
                     <div
-                      className="er5mk5i1 css-avuc83-StyledPanelItem-StyledPanelItem eo8n7lk0"
+                      className="eqsa6vb1 css-avuc83-StyledPanelItem-StyledPanelItem eo8n7lk0"
                       is={null}
                     >
                       <ProjectItem
@@ -540,20 +540,20 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                         >
                                           <RemoveIcon>
                                             <Component
-                                              className="css-1e2j5j0-RemoveIcon er5mk5i0"
+                                              className="css-1e2j5j0-RemoveIcon eqsa6vb0"
                                             >
                                               <InlineSvg
-                                                className="css-1e2j5j0-RemoveIcon er5mk5i0"
+                                                className="css-1e2j5j0-RemoveIcon eqsa6vb0"
                                                 src="icon-circle-subtract"
                                               >
                                                 <StyledSvg
-                                                  className="css-1e2j5j0-RemoveIcon er5mk5i0"
+                                                  className="css-1e2j5j0-RemoveIcon eqsa6vb0"
                                                   height="1em"
                                                   viewBox={Object {}}
                                                   width="1em"
                                                 >
                                                   <svg
-                                                    className="er5mk5i0 css-10g0ex9-StyledSvg-RemoveIcon e2idor0"
+                                                    className="eqsa6vb0 css-10g0ex9-StyledSvg-RemoveIcon e2idor0"
                                                     height="1em"
                                                     viewBox={Object {}}
                                                     width="1em"

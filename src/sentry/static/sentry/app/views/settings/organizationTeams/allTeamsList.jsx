@@ -4,10 +4,11 @@ import React from 'react';
 
 import {openCreateTeamModal} from 'app/actionCreators/modal';
 import {tct} from 'app/locale';
-import AllTeamsRow from 'app/views/settings/team/allTeamsRow';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import SentryTypes from 'app/proptypes';
 import TextBlock from 'app/views/settings/components/text/textBlock';
+
+import AllTeamsRow from './allTeamsRow';
 
 class AllTeamsList extends React.Component {
   static propTypes = {

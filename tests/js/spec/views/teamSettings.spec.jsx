@@ -1,62 +1,10 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import {mount, shallow} from 'enzyme';
+import {mount} from 'enzyme';
 
-import TeamSettings from 'app/views/settings/team/teamSettings.old';
 import TeamStore from 'app/stores/teamStore';
-import NewTeamSettings from 'app/views/settings/team/teamSettings';
+import TeamSettings from 'app/views/settings/organizationTeams/teamSettings';
 
-const childContextTypes = {
-  organization: PropTypes.object,
-  router: PropTypes.object,
-  location: PropTypes.object,
-};
-
-// #NEW-SETTINGS
 describe('TeamSettings', function() {
-  describe('render()', function() {
-    let wrapper;
-    beforeEach(function() {
-      let team = TestStubs.Team();
-      wrapper = shallow(
-        <TeamSettings
-          routes={[]}
-          params={{orgId: 'org', teamId: team.slug}}
-          team={team}
-          onTeamChange={() => {}}
-        />,
-        {
-          context: {
-            router: TestStubs.router(),
-            organization: {
-              id: '1337',
-              access: [],
-            },
-          },
-          childContextTypes,
-        }
-      );
-    });
-
-    it('renders', function() {
-      wrapper.update();
-      expect(wrapper).toMatchSnapshot();
-    });
-
-    it('renders with remove team', function() {
-      wrapper.setContext({
-        organization: {
-          id: '1337',
-          access: ['team:admin'],
-        },
-      });
-      wrapper.update();
-      expect(wrapper).toMatchSnapshot();
-    });
-  });
-});
-
-describe('NewTeamSettings', function() {
   beforeEach(function() {
     MockApiClient.clearMockResponses();
     sinon.stub(window.location, 'assign');
@@ -76,7 +24,7 @@ describe('NewTeamSettings', function() {
     let {router} = mountOptions.context;
 
     let wrapper = mount(
-      <NewTeamSettings
+      <TeamSettings
         routes={[]}
         router={router}
         params={{orgId: 'org', teamId: team.slug}}
@@ -124,7 +72,7 @@ describe('NewTeamSettings', function() {
     let team = TestStubs.Team();
 
     let wrapper = mount(
-      <NewTeamSettings
+      <TeamSettings
         routes={[]}
         params={{orgId: 'org', teamId: team.slug}}
         team={team}
@@ -157,7 +105,7 @@ describe('NewTeamSettings', function() {
     ]);
 
     let wrapper = mount(
-      <NewTeamSettings
+      <TeamSettings
         router={{push: routerPushMock}}
         routes={[]}
         params={{orgId: 'org', teamId: team.slug}}

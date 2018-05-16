@@ -6,14 +6,13 @@ import Reflux from 'reflux';
 import {loadStats} from 'app/actionCreators/projects';
 import {sortArray} from 'app/utils';
 import ApiMixin from 'app/mixins/apiMixin';
-import LoadingIndicator from 'app/components/loadingIndicator';
 import OrganizationState from 'app/mixins/organizationState';
 import ProjectsStore from 'app/stores/projectsStore';
 import TeamStore from 'app/stores/teamStore';
-import getSettingsComponent from 'app/utils/getSettingsComponent';
+import OrganizationTeams from './organizationTeams';
 
-const OrganizationTeams = createReactClass({
-  displayName: 'OrganizationTeams',
+const OrganizationTeamsContainer = createReactClass({
+  displayName: 'OrganizationTeamsContainer',
 
   propTypes: {
     routes: PropTypes.arrayOf(PropTypes.object),
@@ -28,7 +27,6 @@ const OrganizationTeams = createReactClass({
 
   getInitialState() {
     return {
-      Component: null,
       teamList: sortArray(TeamStore.getAll(), function(o) {
         return o && o.name;
       }),
@@ -41,16 +39,6 @@ const OrganizationTeams = createReactClass({
 
   componentDidMount() {
     this.fetchStats();
-
-    getSettingsComponent(
-      () =>
-        import(/* webpackChunkName: "organizationTeamsView" */ '../settings/team/organizationTeamsView'),
-      () =>
-        import(/* webpackChunkName: "organizationTeamsView.old" */ './organizationTeamsView'),
-      this.props.routes
-    ).then(Component => {
-      this.setState({Component});
-    });
   },
 
   fetchStats() {
@@ -86,7 +74,6 @@ const OrganizationTeams = createReactClass({
 
   render() {
     if (!this.context.organization) return null;
-    if (!this.state.Component) return <LoadingIndicator />;
 
     let access = this.getAccess();
     let features = this.getFeatures();
@@ -96,7 +83,7 @@ const OrganizationTeams = createReactClass({
     let activeTeams = this.state.teamList.filter(team => team.isMember);
 
     return (
-      <this.state.Component
+      <OrganizationTeams
         {...this.props}
         access={access}
         features={features}
@@ -109,4 +96,4 @@ const OrganizationTeams = createReactClass({
   },
 });
 
-export default OrganizationTeams;
+export default OrganizationTeamsContainer;
