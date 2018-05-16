@@ -22,13 +22,13 @@ class IntegrationSerializer(Serializer):
         }
 
 
-class IntegrationIssueSerializer(IntegrationSerializer):
+class IntegrationIssueConfigSerializer(IntegrationSerializer):
     def __init__(self, group, action):
         self.group = group
         self.action = action
 
     def serialize(self, obj, attrs, user):
-        data = super(IntegrationIssueSerializer, self).serialize(obj, attrs, user)
+        data = super(IntegrationIssueConfigSerializer, self).serialize(obj, attrs, user)
         installation = obj.get_installation()
 
         if self.action == 'link':
