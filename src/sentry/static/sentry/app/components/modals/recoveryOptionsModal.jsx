@@ -82,6 +82,7 @@ class RecoveryOptionsModal extends AsyncComponent {
             </Button>
             <Button
               priority="primary"
+              onClick={closeModal}
               to={`/settings/account/security/${sms.id}/enroll/`}
               name="addPhone"
               css={{marginLeft: space(1)}}
@@ -95,6 +96,7 @@ class RecoveryOptionsModal extends AsyncComponent {
           <div className="modal-footer">
             <Button
               priority="primary"
+              onClick={closeModal}
               to={
                 recoveryEnrolled
                   ? `/settings/account/security/${recovery.authId}/`
