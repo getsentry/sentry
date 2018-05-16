@@ -7,7 +7,7 @@ from sentry.testutils import APITestCase
 
 
 class GroupIntegrationDetailsTest(APITestCase):
-    def test_simple_get(self):
+    def test_simple_get_link(self):
         self.login_as(user=self.user)
         org = self.organization
         group = self.create_group()
@@ -36,6 +36,49 @@ class GroupIntegrationDetailsTest(APITestCase):
                 'name': 'externalIssue',
                 'label': 'Issue',
             }]
+        }
+
+    def test_simple_get_create(self):
+        self.login_as(user=self.user)
+        org = self.organization
+        group = self.create_group()
+        self.create_event(group=group)
+        integration = Integration.objects.create(
+            provider='example',
+            name='Example',
+        )
+        integration.add_organization(org.id)
+
+        path = '/api/0/issues/{}/integrations/{}/?action=create'.format(group.id, integration.id)
+
+        response = self.client.get(path)
+
+        assert response.data == {
+            'id': six.text_type(integration.id),
+            'name': integration.name,
+            'icon': integration.metadata.get('icon'),
+            'domain_name': integration.metadata.get('domain_name'),
+            'provider': {
+                'key': integration.get_provider().key,
+                'name': integration.get_provider().name,
+            },
+            'createIssueConfig': [
+                {
+                    'default': 'message',
+                    'type': 'string',
+                    'name': 'title',
+                    'label': 'Title',
+                }, {
+                    'default': ('http://testserver/baz/bar/issues/1/\n\n```\n'
+                                'Stacktrace (most recent call last):\n\n  '
+                                'File "sentry/models/foo.py", line 29, in build_msg\n    '
+                                'string_max_length=self.string_max_length)\n\nmessage\n```'
+                                ),
+                    'type': 'textarea',
+                    'name': 'description',
+                    'label': 'Description',
+                }
+            ]
         }
 
     def test_simple_put(self):
