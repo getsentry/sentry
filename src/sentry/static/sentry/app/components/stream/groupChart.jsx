@@ -34,7 +34,7 @@ class GroupChart extends React.Component {
     });
 
     return (
-      <LazyLoad>
+      <LazyLoad debounce={50} height={24}>
         <StyledBarChart points={chartData} label="events" />
       </LazyLoad>
     );

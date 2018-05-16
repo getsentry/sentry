@@ -1,7 +1,7 @@
 import React from 'react';
 import {shallow, mount} from 'enzyme';
 import _ from 'lodash';
-import {InviteMember} from 'app/views/inviteMember/inviteMember';
+import {InviteMember} from 'app/views/settings/organizationMembers/inviteMember';
 import ConfigStore from 'app/stores/configStore';
 
 jest.mock('app/api');

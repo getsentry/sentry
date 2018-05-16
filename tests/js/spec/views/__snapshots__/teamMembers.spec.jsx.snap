@@ -50,8 +50,8 @@ exports[`TeamMembers renders 1`] = `
           "id": "1",
           "name": "Sentry 1 Name",
           "pending": false,
-          "role": "",
-          "roleName": "",
+          "role": "member",
+          "roleName": "Member",
           "user": Object {
             "email": "foo@example.com",
             "flags": Object {
@@ -102,8 +102,8 @@ exports[`TeamMembers renders 1`] = `
           "id": "2",
           "name": "Sentry 2 Name",
           "pending": true,
-          "role": "",
-          "roleName": "",
+          "role": "member",
+          "roleName": "Member",
           "user": Object {
             "email": "sentry2@test.com",
             "has2fa": false,
