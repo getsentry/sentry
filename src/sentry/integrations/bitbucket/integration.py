@@ -35,10 +35,7 @@ class BitbucketIntegrationProvider(IntegrationProvider):
             pipeline_cls=IdentityProviderPipeline,
             config=identity_pipeline_config,
         )
-
-        return [
-            identity_pipeline_view,
-        ]
+        return [identity_pipeline_view]
 
     def build_integration(self, state):
         # TODO(LB): Add verification for clientKey
