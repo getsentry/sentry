@@ -47,6 +47,7 @@ exports[`ResolutionBox render() handles inNextRelease with actor 1`] = `
           user={
             Object {
               "email": "david@sentry.io",
+              "id": "111",
               "name": "David Cramer",
             }
           }
@@ -125,6 +126,7 @@ exports[`ResolutionBox render() handles inRelease with actor 1`] = `
           user={
             Object {
               "email": "david@sentry.io",
+              "id": "111",
               "name": "David Cramer",
             }
           }

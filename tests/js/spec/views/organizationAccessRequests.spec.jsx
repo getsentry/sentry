@@ -29,6 +29,7 @@ describe('OrganizationAccessRequests', function() {
               id: 'memberid',
               email: '',
               name: '',
+              role: '',
               roleName: '',
               user: {
                 id: '',
@@ -58,6 +59,7 @@ describe('OrganizationAccessRequests', function() {
               id: 'memberid',
               email: '',
               name: '',
+              role: '',
               roleName: '',
               user: {
                 id: '',
@@ -93,6 +95,7 @@ describe('OrganizationAccessRequests', function() {
               id: 'memberid',
               email: '',
               name: '',
+              role: '',
               roleName: '',
               user: {
                 id: '',

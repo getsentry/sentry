@@ -55,6 +55,7 @@ describe('OrganizationMembersView', function() {
             id: 'pending-member-id',
             email: '',
             name: '',
+            role: '',
             roleName: '',
             user: {
               id: '',
