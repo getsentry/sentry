@@ -1,20 +1,39 @@
+import {withRouter} from 'react-router';
 import $ from 'jquery';
 import PropTypes from 'prop-types';
 import Raven from 'raven-js';
 import React from 'react';
+import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 
 class RouteError extends React.Component {
   static propTypes = {
     error: PropTypes.object.isRequired,
+    routes: PropTypes.array,
+  };
+
+  static contextTypes = {
+    organization: PropTypes.object,
+    project: PropTypes.object,
   };
 
   componentWillMount() {
+    let {routes} = this.props;
+    let {organization, project} = this.context;
     // TODO(dcramer): show something in addition to embed (that contains it?)
-    // TODO(dcramer): capture better context
     // throw this in a timeout so if it errors we dont fall over
     this._timeout = window.setTimeout(
       function() {
-        Raven.captureException(this.props.error);
+        let route = getRouteStringFromRoutes(routes);
+
+        Raven.captureException(this.props.error, {
+          fingerprint: [this.props.error, route],
+          extra: {
+            route,
+            orgFeatures: (organization && organization.features) || [],
+            orgAccess: (organization && organization.access) || [],
+            projectFeatures: (project && project.features) || [],
+          },
+        });
         // TODO(dcramer): we do not have errorId until send() is called which
         // has latency in production so this will literally never fire
         Raven.showReportDialog();
@@ -71,4 +90,4 @@ class RouteError extends React.Component {
   }
 }
 
-export default RouteError;
+export default withRouter(RouteError);

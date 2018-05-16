@@ -42,7 +42,7 @@ describe('ProjectPlugins', function() {
       routerContext
     );
 
-    expect(wrapper.find('RouteError')).toHaveLength(1);
+    expect(wrapper.dive().find('RouteError')).toHaveLength(1);
   });
 
   it('has error state when plugins=[]', function() {
@@ -55,7 +55,6 @@ describe('ProjectPlugins', function() {
       />,
       routerContext
     );
-
-    expect(wrapper.find('RouteError')).toHaveLength(1);
+    expect(wrapper.dive().find('RouteError')).toHaveLength(1);
   });
 });
