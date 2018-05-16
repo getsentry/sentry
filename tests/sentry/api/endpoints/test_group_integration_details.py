@@ -4,6 +4,7 @@ import six
 
 from sentry.models import ExternalIssue, GroupLink, Integration
 from sentry.testutils import APITestCase
+from sentry.utils.http import absolute_uri
 
 
 class GroupIntegrationDetailsTest(APITestCase):
@@ -69,11 +70,11 @@ class GroupIntegrationDetailsTest(APITestCase):
                     'name': 'title',
                     'label': 'Title',
                 }, {
-                    'default': ('http://testserver/baz/bar/issues/1/\n\n```\n'
+                    'default': ('%s\n\n```\n'
                                 'Stacktrace (most recent call last):\n\n  '
                                 'File "sentry/models/foo.py", line 29, in build_msg\n    '
                                 'string_max_length=self.string_max_length)\n\nmessage\n```'
-                                ),
+                                ) % (absolute_uri(group.get_absolute_url()),),
                     'type': 'textarea',
                     'name': 'description',
                     'label': 'Description',
