@@ -3,16 +3,6 @@ import React from 'react';
 
 import AccountAuthorizations from 'app/views/accountAuthorizations';
 import AccountLayout from 'app/views/accountLayout';
-import AdminBuffer from 'app/views/adminBuffer';
-import AdminLayout from 'app/views/adminLayout';
-import AdminOrganizations from 'app/views/adminOrganizations';
-import AdminOverview from 'app/views/adminOverview';
-import AdminProjects from 'app/views/adminProjects';
-import AdminQueue from 'app/views/adminQueue';
-import AdminQuotas from 'app/views/adminQuotas';
-import AdminRelays from 'app/views/adminRelays';
-import AdminSettings from 'app/views/adminSettings';
-import AdminUsers from 'app/views/adminUsers';
 import ApiApplicationDetails from 'app/views/apiApplicationDetails';
 import ApiApplications from 'app/views/apiApplications';
 import ApiLayout from 'app/views/apiLayout';
@@ -640,16 +630,65 @@ function routes() {
 
       <Route path="/api/new-token/" component={errorHandler(ApiNewToken)} />
 
-      <Route path="/manage/" component={errorHandler(AdminLayout)}>
-        <IndexRoute component={errorHandler(AdminOverview)} />
-        <Route path="buffer/" component={errorHandler(AdminBuffer)} />
-        <Route path="relays/" component={errorHandler(AdminRelays)} />
-        <Route path="organizations/" component={errorHandler(AdminOrganizations)} />
-        <Route path="projects/" component={errorHandler(AdminProjects)} />
-        <Route path="queue/" component={errorHandler(AdminQueue)} />
-        <Route path="quotas/" component={errorHandler(AdminQuotas)} />
-        <Route path="settings/" component={errorHandler(AdminSettings)} />
-        <Route path="users/" component={errorHandler(AdminUsers)} />
+      <Route
+        path="/manage/"
+        componentPromise={() =>
+          import(/*webpackChunkName:"AdminLayout"*/ 'app/views/admin/adminLayout')}
+        component={errorHandler(LazyLoad)}
+      >
+        <IndexRoute
+          componentPromise={() =>
+            import(/*webpackChunkName:"AdminOverview"*/ 'app/views/admin/adminOverview')}
+          component={errorHandler(LazyLoad)}
+        />
+        <Route
+          path="buffer/"
+          componentPromise={() =>
+            import(/*webpackChunkName:"AdminBuffer"*/ 'app/views/admin/adminBuffer')}
+          component={errorHandler(LazyLoad)}
+        />
+        <Route
+          path="relays/"
+          componentPromise={() =>
+            import(/*webpackChunkName:"AdminRelays"*/ 'app/views/admin/adminRelays')}
+          component={errorHandler(LazyLoad)}
+        />
+        <Route
+          path="organizations/"
+          componentPromise={() =>
+            import(/*webpackChunkName:"AdminOrganizations"*/ 'app/views/admin/adminOrganizations')}
+          component={errorHandler(LazyLoad)}
+        />
+        <Route
+          path="projects/"
+          componentPromise={() =>
+            import(/*webpackChunkName:"AdminProjects"*/ 'app/views/admin/adminProjects')}
+          component={errorHandler(LazyLoad)}
+        />
+        <Route
+          path="queue/"
+          componentPromise={() =>
+            import(/*webpackChunkName:"AdminQueue"*/ 'app/views/admin/adminQueue')}
+          component={errorHandler(LazyLoad)}
+        />
+        <Route
+          path="quotas/"
+          componentPromise={() =>
+            import(/*webpackChunkName:"AdminQuotas"*/ 'app/views/admin/adminQuotas')}
+          component={errorHandler(LazyLoad)}
+        />
+        <Route
+          path="settings/"
+          componentPromise={() =>
+            import(/*webpackChunkName:"AdminSettings"*/ 'app/views/admin/adminSettings')}
+          component={errorHandler(LazyLoad)}
+        />
+        <Route
+          path="users/"
+          componentPromise={() =>
+            import(/*webpackChunkName:"AdminUsers"*/ 'app/views/admin/adminUsers')}
+          component={errorHandler(LazyLoad)}
+        />
         {hooksAdminRoutes}
       </Route>
 

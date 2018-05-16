@@ -4,12 +4,12 @@ import React from 'react';
 import moment from 'moment';
 import createReactClass from 'create-react-class';
 
+import {t} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
 import withEnvironment from 'app/utils/withEnvironment';
 
-import ResultGrid from '../components/resultGrid';
-import LinkWithConfirmation from '../components/linkWithConfirmation';
-import {t} from '../locale';
+import ResultGrid from 'app/components/resultGrid';
+import LinkWithConfirmation from 'app/components/linkWithConfirmation';
 
 const prettyDate = function(x) {
   return moment(x).format('ll LTS');
