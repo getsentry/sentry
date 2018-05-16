@@ -326,7 +326,7 @@ window.TestStubs = {
         lastUsedAt: null,
         enrollButton: 'Activate',
         description:
-          'Using a recovery code is the only way to access your account, if you lose your device and cannot receive two factor authentication codes.',
+          'Recovery codes are the only way to access your account if you lose your device and cannot receive two factor authentication codes.',
         isEnrolled: true,
         removeButton: null,
         id: 'recovery',

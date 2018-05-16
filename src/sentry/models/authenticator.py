@@ -277,9 +277,9 @@ class RecoveryCodeInterface(AuthenticatorInterface):
     interface_id = 'recovery'
     name = _('Recovery Codes')
     description = _(
-        'Using a recovery code is the only way to access '
-        'your account, if you lose your device and cannot '
-        'receive two factor authentication codes.'
+        'Recovery codes are the only way to access your account '
+        'if you lose your device and cannot receive two factor '
+        'authentication codes.'
     )
     enroll_button = _('Activate')
     configure_button = _('View Codes')

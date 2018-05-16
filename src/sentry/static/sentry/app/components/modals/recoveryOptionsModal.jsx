@@ -61,14 +61,14 @@ class RecoveryOptionsModal extends AsyncComponent {
           {!skipSms && !smsEnrolled ? (
             // set up backup phone number
             <Alert>
-              {t('Do you want to add a phone number as a backup 2FA method?')}
+              {t('We recommend adding a phone number as a backup 2FA method.')}
             </Alert>
           ) : (
             // get recovery codes
             <Alert>
               {t(
-                `Using a recovery code is the only way to access your account, if you lose your
-                   device and cannot receive two factor authentication codes.`
+                `Recovery codes are the only way to access your account if you lose
+                  your device and cannot receive two factor authentication codes.`
               )}
             </Alert>
           )}
