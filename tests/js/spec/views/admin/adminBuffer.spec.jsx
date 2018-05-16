@@ -1,7 +1,7 @@
 import React from 'react';
 import {shallow} from 'enzyme';
 
-import AdminBuffer from 'app/views/adminBuffer';
+import AdminBuffer from 'app/views/admin/adminBuffer';
 
 // TODO(dcramer): this doesnt really test anything as we need to
 // mock the API Response/wait on it
