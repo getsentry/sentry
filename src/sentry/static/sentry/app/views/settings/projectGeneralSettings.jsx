@@ -18,6 +18,7 @@ import Confirm from 'app/components/confirm';
 import Field from 'app/views/settings/components/forms/field';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import handleXhrErrorResponse from 'app/utils/handleXhrErrorResponse';
 import {Panel, PanelAlert, PanelHeader} from 'app/components/panels';
 import ProjectsStore from 'app/stores/projectsStore';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -61,7 +62,7 @@ class ProjectGeneralSettings extends AsyncView {
     removeProject(this.api, orgId, project).then(() => {
       // Need to hard reload because lots of components do not listen to Projects Store
       window.location.assign('/');
-    });
+    }, handleXhrErrorResponse('Unable to remove project'));
   };
 
   handleTransferProject = () => {
@@ -73,7 +74,7 @@ class ProjectGeneralSettings extends AsyncView {
     transferProject(this.api, orgId, project, this._form.email).then(() => {
       // Need to hard reload because lots of components do not listen to Projects Store
       window.location.assign('/');
-    });
+    }, handleXhrErrorResponse('Unable to transfer project'));
   };
 
   renderRemoveProject() {
