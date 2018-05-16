@@ -42,11 +42,11 @@ class TeamsListTest(AcceptanceTestCase):
         self.browser.snapshot('organization team - members list')
 
         # Click projects tab
-        self.browser.click('.nav-tabs li:nth-child(1) a')
+        self.browser.click('.nav-tabs li:nth-child(2) a')
         self.browser.wait_until_not('.loading-indicator')
         self.browser.snapshot('organization team - projects list')
 
         # Click projects tab
-        self.browser.click('.nav-tabs li:nth-child(2) a')
+        self.browser.click('.nav-tabs li:nth-child(3) a')
         self.browser.wait_until_not('.loading-indicator')
         self.browser.snapshot('organization team - settings')
