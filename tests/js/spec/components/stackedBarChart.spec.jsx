@@ -13,12 +13,27 @@ describe('StackedBarChart', function() {
       ];
 
       let wrapper = shallow(<StackedBarChart points={points} />);
-      let columns = wrapper.find('.chart-column');
+      let columns = wrapper.find('Column');
 
       expect(columns).toHaveProperty('length', 3);
-      expect(columns.at(0).text()).toEqual('10'); // check y values
-      expect(columns.at(1).text()).toEqual('20');
-      expect(columns.at(2).text()).toEqual('30');
+      expect(
+        columns
+          .at(0)
+          .childAt(0)
+          .props().children
+      ).toEqual(10); // check y values
+      expect(
+        columns
+          .at(1)
+          .childAt(0)
+          .props().children
+      ).toEqual(20);
+      expect(
+        columns
+          .at(2)
+          .childAt(0)
+          .props().children
+      ).toEqual(30);
     });
 
     it('renders with points and markers', function() {
@@ -33,16 +48,33 @@ describe('StackedBarChart', function() {
       ];
 
       let wrapper = shallow(<StackedBarChart points={points} markers={markers} />);
-      let columns = wrapper.find('a');
+      let columns = wrapper.find('Column');
+      let columnMarkers = wrapper.find('Marker');
 
-      expect(columns).toHaveProperty('length', 5);
+      expect(columns).toHaveProperty('length', 3);
+      expect(columnMarkers).toHaveProperty('length', 2);
 
-      // NOTE: markers are placed *before* corresponding chart column
-      expect(columns.at(0).text()).toEqual('first seen');
-      expect(columns.at(1).text()).toEqual('10');
-      expect(columns.at(2).text()).toEqual('20');
-      expect(columns.at(3).text()).toEqual('last seen');
-      expect(columns.at(4).text()).toEqual('30');
+      expect(columnMarkers.at(0).props().children).toEqual('first seen');
+      expect(columnMarkers.at(1).props().children).toEqual('last seen');
+
+      expect(
+        columns
+          .at(0)
+          .childAt(0)
+          .props().children
+      ).toEqual(10);
+      expect(
+        columns
+          .at(1)
+          .childAt(0)
+          .props().children
+      ).toEqual(20);
+      expect(
+        columns
+          .at(2)
+          .childAt(0)
+          .props().children
+      ).toEqual(30);
     });
 
     it('renders with points and markers, when first and last seen are same data point', function() {
@@ -53,14 +85,20 @@ describe('StackedBarChart', function() {
       ];
 
       let wrapper = shallow(<StackedBarChart points={points} markers={markers} />);
-      let columns = wrapper.find('a');
+      let columns = wrapper.find('Column');
+      let columnMarkers = wrapper.find('Marker');
 
-      expect(columns).toHaveProperty('length', 3);
+      expect(columns).toHaveProperty('length', 1);
+      expect(columnMarkers).toHaveProperty('length', 2);
 
-      // NOTE: markers are placed *before* corresponding chart column
-      expect(columns.at(0).text()).toEqual('first seen');
-      expect(columns.at(1).text()).toEqual('last seen');
-      expect(columns.at(2).text()).toEqual('30');
+      expect(columnMarkers.at(0).props().children).toEqual('first seen');
+      expect(columnMarkers.at(1).props().children).toEqual('last seen');
+      expect(
+        columns
+          .at(0)
+          .childAt(0)
+          .props().children
+      ).toEqual(30);
     });
   });
 });

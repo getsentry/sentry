@@ -143,7 +143,7 @@ const KeyStats = createReactClass({
               height={150}
               label="events"
               barClasses={['accepted', 'rate-limited']}
-              className="standard-barchart"
+              showAxis
               style={{border: 'none'}}
               tooltip={this.renderTooltip}
             />

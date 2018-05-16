@@ -78,7 +78,7 @@ class HookStats extends AsyncComponent {
               height={150}
               label="events"
               barClasses={['total']}
-              className="standard-barchart"
+              showAxis
               style={{border: 'none'}}
               tooltip={this.renderTooltip}
             />

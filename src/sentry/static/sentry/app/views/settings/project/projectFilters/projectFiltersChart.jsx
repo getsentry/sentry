@@ -190,7 +190,7 @@ const ProjectFiltersChart = createReactClass({
                 series={this.state.formattedData}
                 label="events"
                 barClasses={Object.keys(this.getStatOpts())}
-                className="standard-barchart filtered-stats-barchart"
+                showAxis
                 tooltip={this.renderTooltip}
               />
             )}

@@ -92,7 +92,7 @@ export default createReactClass({
     return (
       <BarChart
         points={this.getChartPoints()}
-        className="standard-barchart"
+        showAxis
         label={this.props.label}
         height={this.props.height}
       />

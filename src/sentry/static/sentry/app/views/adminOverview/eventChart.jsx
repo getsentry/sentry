@@ -144,12 +144,6 @@ export default createReactClass({
   render() {
     if (this.state.loading) return <LoadingIndicator />;
     else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
-    return (
-      <StackedBarChart
-        series={this.getChartSeries()}
-        height={150}
-        className="standard-barchart"
-      />
-    );
+    return <StackedBarChart series={this.getChartSeries()} height={150} showAxis />;
   },
 });

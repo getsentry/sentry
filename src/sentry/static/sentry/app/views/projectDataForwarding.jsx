@@ -87,7 +87,7 @@ const DataForwardingStats = createReactClass({
               height={150}
               label="events"
               barClasses={['accepted']}
-              className="standard-barchart"
+              showAxis
             />
           ) : (
             <div className="blankslate p-y-2">

@@ -93,14 +93,16 @@ class OrganizationStats extends React.Component {
             <LoadingError onRetry={this.fetchData} />
           ) : (
             <Panel className="bar-chart">
-              <StackedBarChart
-                points={orgStats}
-                height={150}
-                label="events"
-                className="standard-barchart b-a-0 m-b-0"
-                barClasses={['accepted', 'rate-limited', 'black-listed']}
-                tooltip={this.renderTooltip}
-              />
+              <PanelBody disablePadding={false}>
+                <StackedBarChart
+                  points={orgStats}
+                  height={150}
+                  label="events"
+                  barClasses={['accepted', 'rate-limited', 'black-listed']}
+                  showAxis
+                  tooltip={this.renderTooltip}
+                />
+              </PanelBody>
             </Panel>
           )}
         </div>

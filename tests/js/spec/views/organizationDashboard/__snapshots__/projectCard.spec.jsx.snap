@@ -203,104 +203,154 @@ exports[`ProjectCard renders 1`] = `
                           series={Array []}
                           width={null}
                         >
-                          <figure
-                            className="css-h6aoq0-StyledBarChart e1wib7610 barchart"
-                            style={
-                              Object {
-                                "height": 60,
-                                "width": null,
-                              }
-                            }
-                          >
-                            <span
-                              className="max-y"
+                          <StyledBarChart>
+                            <figure
+                              className="css-3q0f3i-StyledBarChart e5t71580"
                             >
-                              <count
-                                value={10}
-                              >
-                                <span>
-                                  10
-                                </span>
-                              </count>
-                            </span>
-                            <span
-                              className="min-y"
-                            >
-                              0
-                            </span>
-                            <span>
-                              <Tooltip
-                                key="1525042800"
-                                title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 29, 2018<br />11:00 PM  &#8594; 11:59 PM</span></div></div><div class=\\"value-label\\">1 events</div>"
-                                tooltipOptions={
+                              <Flex
+                                justify="space-between"
+                                style={
                                   Object {
-                                    "html": true,
-                                    "placement": "bottom",
+                                    "height": 60,
+                                    "minHeight": "30px",
                                   }
                                 }
                               >
-                                <a
-                                  className="tip chart-column"
+                                <Base
+                                  className="css-pee1ch"
+                                  justify="space-between"
                                   style={
                                     Object {
-                                      "height": "100%",
-                                      "width": "50%",
+                                      "height": 60,
+                                      "minHeight": "30px",
                                     }
                                   }
-                                  title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 29, 2018<br />11:00 PM  &#8594; 11:59 PM</span></div></div><div class=\\"value-label\\">1 events</div>"
                                 >
-                                  <span
-                                    className="chart-bar"
-                                    key="0"
+                                  <div
+                                    className="css-pee1ch"
+                                    is={null}
                                     style={
                                       Object {
-                                        "backgroundColor": null,
-                                        "bottom": "0%",
-                                        "height": "9.9%",
+                                        "height": 60,
+                                        "minHeight": "30px",
                                       }
                                     }
                                   >
-                                    1
-                                  </span>
-                                </a>
-                              </Tooltip>
-                              <Tooltip
-                                key="1525046400"
-                                title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 30, 2018<br />12:00 AM  &#8594; 12:59 AM</span></div></div><div class=\\"value-label\\">2 events</div>"
-                                tooltipOptions={
-                                  Object {
-                                    "html": true,
-                                    "placement": "bottom",
-                                  }
-                                }
-                              >
-                                <a
-                                  className="tip chart-column"
-                                  style={
-                                    Object {
-                                      "height": "100%",
-                                      "width": "50%",
-                                    }
-                                  }
-                                  title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 30, 2018<br />12:00 AM  &#8594; 12:59 AM</span></div></div><div class=\\"value-label\\">2 events</div>"
-                                >
-                                  <span
-                                    className="chart-bar"
-                                    key="0"
-                                    style={
-                                      Object {
-                                        "backgroundColor": null,
-                                        "bottom": "0%",
-                                        "height": "19.8%",
+                                    <Tooltip
+                                      key="1525042800"
+                                      title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 29, 2018<br />11:00 PM  &#8594; 11:59 PM</span></div></div><div class=\\"value-label\\">1 events</div>"
+                                      tooltipOptions={
+                                        Object {
+                                          "html": true,
+                                          "placement": "bottom",
+                                        }
                                       }
-                                    }
-                                  >
-                                    2
-                                  </span>
-                                </a>
-                              </Tooltip>
-                            </span>
-                          </figure>
+                                    >
+                                      <Column
+                                        className="tip"
+                                        style={
+                                          Object {
+                                            "height": "100%",
+                                          }
+                                        }
+                                        title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 29, 2018<br />11:00 PM  &#8594; 11:59 PM</span></div></div><div class=\\"value-label\\">1 events</div>"
+                                      >
+                                        <div
+                                          className="tip css-1xcesml-Column e5t71581"
+                                          style={
+                                            Object {
+                                              "height": "100%",
+                                            }
+                                          }
+                                          title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 29, 2018<br />11:00 PM  &#8594; 11:59 PM</span></div></div><div class=\\"value-label\\">1 events</div>"
+                                        >
+                                          <ColumnRow
+                                            columnType="chart-bar"
+                                            key="0"
+                                            style={
+                                              Object {
+                                                "backgroundColor": null,
+                                                "bottom": "0%",
+                                                "height": "9.9%",
+                                              }
+                                            }
+                                          >
+                                            <div
+                                              className="css-i8152u-ColumnRow e5t71582"
+                                              style={
+                                                Object {
+                                                  "backgroundColor": null,
+                                                  "bottom": "0%",
+                                                  "height": "9.9%",
+                                                }
+                                              }
+                                            >
+                                              1
+                                            </div>
+                                          </ColumnRow>
+                                        </div>
+                                      </Column>
+                                    </Tooltip>
+                                    <Tooltip
+                                      key="1525046400"
+                                      title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 30, 2018<br />12:00 AM  &#8594; 12:59 AM</span></div></div><div class=\\"value-label\\">2 events</div>"
+                                      tooltipOptions={
+                                        Object {
+                                          "html": true,
+                                          "placement": "bottom",
+                                        }
+                                      }
+                                    >
+                                      <Column
+                                        className="tip"
+                                        style={
+                                          Object {
+                                            "height": "100%",
+                                          }
+                                        }
+                                        title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 30, 2018<br />12:00 AM  &#8594; 12:59 AM</span></div></div><div class=\\"value-label\\">2 events</div>"
+                                      >
+                                        <div
+                                          className="tip css-1xcesml-Column e5t71581"
+                                          style={
+                                            Object {
+                                              "height": "100%",
+                                            }
+                                          }
+                                          title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 30, 2018<br />12:00 AM  &#8594; 12:59 AM</span></div></div><div class=\\"value-label\\">2 events</div>"
+                                        >
+                                          <ColumnRow
+                                            columnType="chart-bar"
+                                            key="0"
+                                            style={
+                                              Object {
+                                                "backgroundColor": null,
+                                                "bottom": "0%",
+                                                "height": "19.8%",
+                                              }
+                                            }
+                                          >
+                                            <div
+                                              className="css-i8152u-ColumnRow e5t71582"
+                                              style={
+                                                Object {
+                                                  "backgroundColor": null,
+                                                  "bottom": "0%",
+                                                  "height": "19.8%",
+                                                }
+                                              }
+                                            >
+                                              2
+                                            </div>
+                                          </ColumnRow>
+                                        </div>
+                                      </Column>
+                                    </Tooltip>
+                                  </div>
+                                </Base>
+                              </Flex>
+                            </figure>
+                          </StyledBarChart>
                         </StackedBarChart>
                       </BarChart>
                     </StyledBarChart>

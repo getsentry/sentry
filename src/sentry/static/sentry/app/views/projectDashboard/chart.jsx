@@ -128,7 +128,7 @@ const ProjectChart = createReactClass({
           markers={markers}
           label="events"
           height={150}
-          className="standard-barchart"
+          showAxis
         />
         <small className="date-legend">
           <DynamicWrapper

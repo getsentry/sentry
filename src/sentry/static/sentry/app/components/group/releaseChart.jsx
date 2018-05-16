@@ -90,7 +90,7 @@ const GroupReleaseChart = createReactClass({
   },
 
   render() {
-    let className = 'bar-chart group-chart ' + (this.props.className || '');
+    let className = 'bar-chart group-chart m-b-1 ' + (this.props.className || '');
 
     let group = this.props.group;
     let stats = group.stats[this.props.statsPeriod];

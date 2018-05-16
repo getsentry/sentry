@@ -3,6 +3,8 @@ import createReactClass from 'create-react-class';
 import PropTypes from 'prop-types';
 import moment from 'moment-timezone';
 import _ from 'lodash';
+import {Flex} from 'grid-emotion';
+import styled from 'react-emotion';
 
 import Tooltip from 'app/components/tooltip';
 import Count from 'app/components/count';
@@ -13,6 +15,7 @@ const StackedBarChart = createReactClass({
 
   propTypes: {
     // TODO(dcramer): DEPRECATED, use series instead
+    showAxis: PropTypes.bool,
     points: PropTypes.arrayOf(
       PropTypes.shape({
         x: PropTypes.number.isRequired,
@@ -219,9 +222,9 @@ const StackedBarChart = createReactClass({
 
     return (
       <Tooltip title={title} key={key} tooltipOptions={{html: true, placement: 'bottom'}}>
-        <a className={className} style={{height: '100%'}}>
-          <span>{marker.label}</span>
-        </a>
+        <MarkerPosition>
+          <Marker className={className}>{marker.label}</Marker>
+        </MarkerPosition>
       </Tooltip>
     );
   },
@@ -254,9 +257,9 @@ const StackedBarChart = createReactClass({
     let pts = point.y.map((y, i) => {
       let pct = totalY && this.floatFormat(y / totalY * totalPct * 99, 2);
       let pt = (
-        <span
+        <ColumnRow
           key={i}
-          className={this.props.barClasses[i]}
+          columnType={this.props.barClasses[i]}
           style={{
             height: pct + '%',
             bottom: prevPct + '%',
@@ -264,7 +267,7 @@ const StackedBarChart = createReactClass({
           }}
         >
           {y}
-        </span>
+        </ColumnRow>
       );
       prevPct += pct;
       return pt;
@@ -279,9 +282,7 @@ const StackedBarChart = createReactClass({
         key={point.x}
         tooltipOptions={{html: true, placement: 'bottom'}}
       >
-        <a className="chart-column" style={{width: pointWidth, height: '100%'}}>
-          {pts}
-        </a>
+        <Column style={{height: '100%'}}>{pts}</Column>
       </Tooltip>
     );
   },
@@ -327,20 +328,139 @@ const StackedBarChart = createReactClass({
   },
 
   render() {
-    let {className, style, height, width} = this.props;
-    let figureClass = [className, 'barchart'].join(' ');
+    let {height} = this.props;
     let maxval = this.maxPointValue();
 
     return (
-      <figure className={figureClass} style={{height, width, ...style}}>
-        <span className="max-y">
-          <Count value={maxval} />
-        </span>
-        <span className="min-y">0</span>
-        <span>{this.renderChart()}</span>
-      </figure>
+      <StyledBarChart showAxis={this.props.showAxis}>
+        {this.props.showAxis && (
+          <Axis>
+            <AxisMax>
+              <Count value={maxval} />
+            </AxisMax>
+            <AxisMin>0</AxisMin>
+          </Axis>
+        )}
+        <Flex justify="space-between" style={{height, minHeight: '30px'}}>
+          {this.renderChart()}
+        </Flex>
+      </StyledBarChart>
     );
   },
 });
+
+const StyledBarChart = styled.figure`
+  position: relative;
+  display: block;
+  align-items: flex-end;
+  padding: ${p => (p.showAxis ? '5px 0 5px 25px' : 0)};
+`;
+
+const Column = styled.div`
+  height: 100%;
+  text-indent: -9999em;
+  flex: 1;
+  position: relative;
+
+  &:hover {
+    background: ${p => p.theme.offWhite};
+  }
+`;
+
+const ColumnRow = styled.div`
+  position: absolute;
+  width: 100%;
+  border-left: 1px solid #fff;
+  border-right: 1px solid #fff;
+
+  background-color: ${p => {
+    switch (p.columnType) {
+      case 'rate-limited':
+        return p.theme.red;
+      case 'dropped':
+        return p.theme.red;
+      case 'black-listed':
+        return p.theme.orange;
+      case 'filtered':
+        return p.theme.orange;
+      case 'environment':
+        return p.theme.purpleLightest;
+      default:
+        return p.theme.gray1;
+    }
+  }};
+
+  &:hover {
+    background-color: ${p => {
+      switch (p.columnType) {
+        case 'rate-limited':
+          return p.theme.redDark;
+        case 'dropped':
+          return p.theme.redDark;
+        case 'black-listed':
+          return p.theme.orangeDark;
+        case 'filtered':
+          return p.theme.orangeDark;
+        case 'environment':
+          return p.theme.purpleDark;
+        default:
+          return p.theme.gray2;
+      }
+    }};
+  }
+
+  &:first-child {
+    min-height: 1px;
+  }
+`;
+
+const AxisMin = styled.div`
+  bottom: 0;
+`;
+
+const AxisMax = styled.div`
+  top: 0;
+`;
+
+const Axis = styled.div`
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  color: ${p => p.theme.gray3};
+  font-size: 10px;
+
+  > ${AxisMin}, > ${AxisMax} {
+    width: 20px;
+    position: absolute;
+    text-align: right;
+    line-height: 1;
+  }
+`;
+const MarkerPosition = styled.div`
+  position: relative;
+  width: 0;
+  z-index: 2;
+`;
+
+const Marker = styled.div`
+  background: ${p => p.theme.gray3};
+  position: absolute;
+  bottom: -4px;
+  left: -4px;
+  border-radius: 4px;
+  text-indent: -9999em;
+  width: 8px;
+  height: 8px;
+  box-shadow: 0 0 0 2px #fff;
+
+  &.first-seen {
+    background: ${p => p.theme.pinkLight};
+  }
+
+  &.last-seen {
+    background: ${p => p.theme.greenLight};
+  }
+`;
 
 export default StackedBarChart;
