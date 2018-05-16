@@ -456,6 +456,7 @@ const Marker = styled.div`
 
   &.first-seen {
     background: ${p => p.theme.pinkLight};
+    left: -14px;
   }
 
   &.last-seen {
