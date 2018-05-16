@@ -135,7 +135,7 @@ export default {
     HookStore: require('app/stores/hookStore').default,
     Indicators: require('app/components/indicators').default,
     IndicatorStore: require('app/stores/indicatorStore').default,
-    InviteMember: require('app/views/inviteMember/inviteMember').default,
+    InviteMember: require('app/views/settings/organizationMembers/inviteMember').default,
     LoadingError: require('app/components/loadingError').default,
     LoadingIndicator: require('app/components/loadingIndicator').default,
     ListLink: require('app/components/listLink').default,
@@ -145,8 +145,7 @@ export default {
       .default,
     OrganizationsLoader: require('app/components/organizations/organizationsLoader')
       .default,
-    OrganizationMembersView: require('app/views/settings/organization/members/organizationMembersView')
-      .default,
+    OrganizationMembersView: require('app/views/settings/organizationMembers').default,
     Panel: require('app/components/panels/panel').default,
     PanelHeader: require('app/components/panels/panelHeader').default,
     PanelBody: require('app/components/panels/panelBody').default,
