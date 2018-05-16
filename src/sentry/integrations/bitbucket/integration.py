@@ -60,14 +60,14 @@ class BitbucketIntegrationProvider(IntegrationProvider):
                     'type': 'bitbucket',
                     'name': user_data['username'],
                     'display_name': user_data['display_name'],
-                    'account_id': user_data['account_id'],
+                    'external_id': user_data['uuid'],
                     'icon': user_data['links']['avatar']['href'],
                 }
             }
 
         integration = Integration.objects.get(
             provider='bitbucket',
-            external_id=state['identity']['bitbucket_client_id']
+            external_id=state['identity']['bitbucket_client_key']
         )
         return {
             'provider': 'bitbucket',
