@@ -23,8 +23,6 @@ import requests
 import six
 import types
 import logging
-import sqlparse
-import re
 
 from click.testing import CliRunner
 from contextlib import contextmanager
@@ -63,7 +61,9 @@ from sentry.utils import json
 from sentry.utils.auth import SSO_SESSION_KEY
 
 from .fixtures import Fixtures
-from .helpers import AuthProvider, Feature, get_auth_header, TaskRunner, override_options
+from .helpers import (
+    AuthProvider, Feature, get_auth_header, TaskRunner, override_options, parse_queries
+)
 
 DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'
 
@@ -336,25 +336,10 @@ class _AssertQueriesContext(CaptureQueriesContext):
         if exc_type is not None:
             return
 
-        write_ops = ['INSERT', 'UPDATE', 'DELETE']
-
-        write_ops_count = 0
-        real_queries = {}
-
-        for query in self.captured_queries:
-            match = re.search(r"u'([^']*)'", query['sql'])
-            if match:
-                parsed = sqlparse.parse(match.group(1))
-                for token in parsed[0].tokens:
-                    if token.ttype is sqlparse.tokens.DML:
-                        if token.value.upper() in write_ops:
-                            if real_queries.get(parsed[0].get_name()) is None:
-                                real_queries[parsed[0].get_name()] = 0
-                            real_queries[parsed[0].get_name()] += 1
-                            write_ops_count += 1
+        queries = parse_queries(self.captured_queries)
 
         for table, num in self.queries.items():
-            executed = real_queries.get(table, 0)
+            executed = queries.get(table, 0)
             self.test_case.assertTrue(
                 executed <= num, "%d write queries executed on `%s`, expected <= %d" % (
                     executed, table, num
