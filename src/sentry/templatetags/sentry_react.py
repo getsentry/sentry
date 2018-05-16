@@ -103,6 +103,8 @@ def get_react_config(context):
         enabled_features.append('auth:register')
     if features.has('user:assistant', actor=user):
         enabled_features.append('assistant')
+    if features.has('user:install-experiment', actor=user):
+        enabled_features.append('install-experiment')
 
     version_info = _get_version_info()
 
