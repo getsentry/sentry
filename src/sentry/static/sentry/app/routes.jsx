@@ -54,7 +54,6 @@ import OrganizationRepositoriesView from 'app/views/organizationRepositoriesView
 import OrganizationGeneralSettingsView from 'app/views/settings/organization/general/organizationGeneralSettingsView';
 import OrganizationStats from 'app/views/organizationStats';
 import OrganizationTeams from 'app/views/organizationTeams';
-import OrganizationTeamsProjectsView from 'app/views/organizationTeamsProjects';
 import ProjectEnvironments from 'app/views/projectEnvironments';
 import ProjectTags from 'app/views/projectTags';
 import ProjectChooser from 'app/views/projectChooser';
@@ -688,10 +687,7 @@ function routes() {
           />
 
           <Route path="/organizations/:orgId/" component={OrganizationHomeContainer}>
-            <Route
-              path="projects/"
-              component={errorHandler(OrganizationTeamsProjectsView)}
-            />
+            <Redirect from="projects/" to="/:orgId/" />
             {hooksOrgRoutes}
             {orgSettingsRoutes}
             <Route path="stats/" component={errorHandler(OrganizationStats)} />
