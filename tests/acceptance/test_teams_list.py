@@ -5,9 +5,9 @@ from django.utils import timezone
 from sentry.testutils import AcceptanceTestCase
 
 
-class ProjectListTest(AcceptanceTestCase):
+class TeamsListTest(AcceptanceTestCase):
     def setUp(self):
-        super(ProjectListTest, self).setUp()
+        super(TeamsListTest, self).setUp()
         self.user = self.create_user('foo@example.com')
         self.org = self.create_organization(
             name='Rowdy Tiger',
@@ -26,15 +26,27 @@ class ProjectListTest(AcceptanceTestCase):
             teams=[self.team],
         )
         self.login_as(self.user)
+        # this should redirect to /settings/{}/teams/
         self.path = '/organizations/{}/teams/'.format(self.org.slug)
 
     def test_simple(self):
         self.project.update(first_event=timezone.now())
         self.browser.get(self.path)
-        # dashboard is a bit complex to load since it has many subcomponents
-        # so we bank on the core container and the activity container being
-        # enough of a check
-        self.browser.wait_until('.organization-home')
         self.browser.wait_until_not('.loading-indicator')
-        self.browser.wait_until('.stats-column .count')
-        self.browser.snapshot('organization project list')
+        self.browser.wait_until('.team-list')
+        self.browser.snapshot('organization teams list')
+
+        # team details link
+        self.browser.click('.team-list a[href]:first-child')
+        self.browser.wait_until_not('.loading-indicator')
+        self.browser.snapshot('organization team - members list')
+
+        # Click projects tab
+        self.browser.click('.nav-tabs li:nth-child(1) a')
+        self.browser.wait_until_not('.loading-indicator')
+        self.browser.snapshot('organization team - projects list')
+
+        # Click projects tab
+        self.browser.click('.nav-tabs li:nth-child(2) a')
+        self.browser.wait_until_not('.loading-indicator')
+        self.browser.snapshot('organization team - settings')

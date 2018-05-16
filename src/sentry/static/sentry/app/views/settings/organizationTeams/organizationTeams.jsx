@@ -4,14 +4,15 @@ import React from 'react';
 import {getOrganizationState} from 'app/mixins/organizationState';
 import {openCreateTeamModal} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
-import AllTeamsList from 'app/views/settings/team/allTeamsList';
 import Button from 'app/components/buttons/button';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import SentryTypes from 'app/proptypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import recreateRoute from 'app/utils/recreateRoute';
 
-class OrganizationTeamsView extends React.Component {
+import AllTeamsList from './allTeamsList';
+
+class OrganizationTeams extends React.Component {
   static propTypes = {
     allTeams: PropTypes.arrayOf(SentryTypes.Team),
     activeTeams: PropTypes.arrayOf(SentryTypes.Team),
@@ -100,4 +101,4 @@ class OrganizationTeamsView extends React.Component {
   }
 }
 
-export default OrganizationTeamsView;
+export default OrganizationTeams;

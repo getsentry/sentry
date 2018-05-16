@@ -13,8 +13,9 @@ import Field from 'app/views/settings/components/forms/field';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import SentryTypes from 'app/proptypes';
-import TeamModel from 'app/views/settings/team/model';
 import teamSettingsFields from 'app/data/forms/teamSettingsFields';
+
+import TeamModel from './model';
 
 export default class TeamSettings extends AsyncView {
   static propTypes = {

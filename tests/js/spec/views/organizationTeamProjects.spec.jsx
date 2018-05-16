@@ -5,7 +5,7 @@ import {Client} from 'app/api';
 import TeamStore from 'app/stores/teamStore';
 import ProjectsStore from 'app/stores/projectsStore';
 
-import OrganizationTeamProjects from 'app/views/settings/team/teamProjects';
+import OrganizationTeamProjects from 'app/views/settings/organizationTeams/teamProjects';
 
 describe('OrganizationTeamProjects', function() {
   let project;
