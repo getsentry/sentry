@@ -2,12 +2,16 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import moment from 'moment';
+import styled from 'react-emotion';
+
 import SentryTypes from 'app/proptypes';
 import ApiMixin from 'app/mixins/apiMixin';
 import BarChart from 'app/components/barChart';
 import DynamicWrapper from 'app/components/dynamicWrapper';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import Panel from 'app/components/panels/panel';
+import {PanelBody} from 'app/components/panels/index';
 import ProjectState from 'app/mixins/projectState';
 
 const ProjectChart = createReactClass({
@@ -122,21 +126,23 @@ const ProjectChart = createReactClass({
       });
 
     return (
-      <div className="chart-wrapper">
-        <BarChart
-          points={points}
-          markers={markers}
-          label="events"
-          height={150}
-          showAxis
-        />
-        <small className="date-legend">
-          <DynamicWrapper
-            fixed="Test Date 1, 2000"
-            value={moment(this.props.dateSince * 1000).format('LL')}
+      <Panel className="m-b-2">
+        <PanelBody disablePadding={false}>
+          <BarChart
+            points={points}
+            markers={markers}
+            label="events"
+            height={150}
+            showAxis
           />
-        </small>
-      </div>
+          <DateLegend>
+            <DynamicWrapper
+              fixed="Test Date 1, 2000"
+              value={moment(this.props.dateSince * 1000).format('LL')}
+            />
+          </DateLegend>
+        </PanelBody>
+      </Panel>
     );
   },
 
@@ -150,5 +156,12 @@ const ProjectChart = createReactClass({
     );
   },
 });
+
+const DateLegend = styled.div`
+  font-size: 0.75em;
+  margin-top: 5px;
+  margin-bottom: -5px;
+  color: ${p => p.theme.gray3};
+`;
 
 export default ProjectChart;
