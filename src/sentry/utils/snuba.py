@@ -18,7 +18,7 @@ class SnubaError(Exception):
 
 def query(start, end, groupby, conditions=None, filter_keys=None,
           aggregations=None, rollup=None, arrayjoin=None, limit=None, orderby=None,
-          having=None):
+          having=None, referrer=None):
     """
     Sends a query to snuba.
 
@@ -93,8 +93,12 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
         'orderby': orderby,
     }) if v is not None}
 
+    headers = {}
+    if referrer:
+        headers['referer'] = referrer
+
     try:
-        response = requests.post(url, data=json.dumps(request))
+        response = requests.post(url, data=json.dumps(request), headers=headers)
         response.raise_for_status()
     except requests.RequestException as re:
         raise SnubaError(re)

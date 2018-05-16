@@ -344,6 +344,7 @@ def do_search(project_id, environment_id, tags, start, end,
         aggregations=aggregations,
         orderby='-' + sort,
         limit=limit,
+        referrer='search',
     )
 
     # {hash -> group_id, ...}
