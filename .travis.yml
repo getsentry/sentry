@@ -124,6 +124,9 @@ matrix:
         - memcached
         - redis-server
         - postgresql
+      before_install:
+        - nvm install "$NPM_VERSION"
+        - npm install -g "yarn@${YARN_VERSION}"
       install:
         - pip install -e ".[dev,tests,optional]"
         - wget -N "http://chromedriver.storage.googleapis.com/$(curl https://chromedriver.storage.googleapis.com/LATEST_RELEASE)/chromedriver_linux64.zip" -P ~/
