@@ -1,5 +1,5 @@
 brew 'python@2'
-brew 'yarn'
+brew 'npm'
 brew 'libxmlsec1'
 brew 'openssl'
 brew 'redis@3.2', restart_service: true

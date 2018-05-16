@@ -54,6 +54,9 @@ update-submodules:
 install-system-pkgs:
 	@echo "--> Installing system packages (from Brewfile)"
 	@command -v brew 2>&1 > /dev/null && brew bundle || (echo 'WARNING: homebrew not found or brew bundle failed - skipping system dependencies.')
+    @echo "--> Installing yarn 1.3.2 (via npm)"
+    @command -v npm 2>&1 > /dev/null || (echo 'npm not found. Please install it before proceeding.'; exit 1)
+	@npm install -g "yarn@1.3.2"
 
 install-yarn-pkgs:
 	@echo "--> Installing Yarn packages (for development)"
