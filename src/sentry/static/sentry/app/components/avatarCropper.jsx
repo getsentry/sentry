@@ -39,7 +39,7 @@ class AvatarCropper extends React.Component {
     /*eslint consistent-return:0*/
     let file = ev.target.files[0];
 
-    if (!file) return; // No file selected (e.g. model clicked "cancel")
+    if (!file) return; // No file selected (e.g. user clicked "cancel")
 
     if (!/^image\//.test(file.type))
       return void this.handleError('That is not a supported file type.');
