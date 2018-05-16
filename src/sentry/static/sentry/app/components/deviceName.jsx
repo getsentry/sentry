@@ -26,8 +26,9 @@ export default class DeviceName extends React.Component {
 
   constructor(...args) {
     super(...args);
+
     this.state = {
-      deviceNameMapper: null,
+      iOSDeviceList: null,
     };
   }
 
