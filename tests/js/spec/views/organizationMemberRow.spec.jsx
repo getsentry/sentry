@@ -11,6 +11,7 @@ describe('OrganizationMemberRow', function() {
     id: '1',
     email: '',
     name: '',
+    role: '',
     roleName: '',
     pending: false,
     flags: {

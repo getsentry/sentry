@@ -365,6 +365,21 @@ urlpatterns += patterns(
 
     url(r'^accept-transfer/$', react_page_view, name='sentry-accept-project-transfer'),
     url(r'^settings/', react_page_view),
+    url(
+        r'^settings/(?P<organization_slug>[\w_-]+)/members/$',
+        react_page_view,
+        name='sentry-organization-members'
+    ),
+    url(
+        r'^settings/(?P<organization_slug>[\w_-]+)/members/new/$',
+        react_page_view,
+        name='sentry-create-organization-member'
+    ),
+    url(
+        r'^settings/(?P<organization_slug>[\w_-]+)/members/(?P<member_id>\d+)/$',
+        react_page_view,
+        name='sentry-organization-member-settings'
+    ),
 
     # Organizations
     url(r'^(?P<organization_slug>[\w_-]+)/$',
@@ -397,24 +412,26 @@ urlpatterns += patterns(
     ),
     url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/members/$',
-        react_page_view,
-        name='sentry-organization-members'
+        RedirectView.as_view(pattern_name="sentry-organization-members", permanent=False),
+        name='sentry-organization-members-old'
     ),
     url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/members/new/$',
-        react_page_view,
-        name='sentry-create-organization-member'
+        RedirectView.as_view(pattern_name="sentry-create-organization-member", permanent=False),
+        name='sentry-create-organization-member-old'
     ),
     url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/members/(?P<member_id>\d+)/$',
-        react_page_view,
-        name='sentry-organization-member-settings'
+        RedirectView.as_view(pattern_name="sentry-organization-member-settings", permanent=False),
+        name='sentry-organization-member-settings-old'
     ),
     url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/stats/$',
         react_page_view,
         name='sentry-organization-stats'
     ),
+
+    # TODO REMOVEME #NEW-SETTINGS, redirect to team settings?
     url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/teams/(?P<team_slug>[\w_-]+)/remove/$',
         RemoveTeamView.as_view(),
@@ -443,11 +460,13 @@ urlpatterns += patterns(
         react_page_view,
         name='sentry-manage-project'
     ),
+    # TODO REMOVEME #NEW-SETTINGS, redirect to project settings?
     url(
         r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/remove/$',
         RemoveProjectView.as_view(),
         name='sentry-remove-project'
     ),
+    # TODO REMOVEME #NEW-SETTINGS, redirect to project settings?
     url(
         r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/transfer/$',
         TransferProjectView.as_view(),
