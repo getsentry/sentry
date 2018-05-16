@@ -58,7 +58,7 @@ class JiraApiClient(ApiClient):
         based on URL
         TODO: Implement GET attr in cache as well. (see self.create_meta for example)
         """
-        key = 'sentry-jira:' + md5(full_url, self.base_url).hexdigest()
+        key = 'sentry-jira-2:' + md5(full_url, self.base_url).hexdigest()
         cached_result = cache.get(key)
         if not cached_result:
             cached_result = self.get(full_url)
