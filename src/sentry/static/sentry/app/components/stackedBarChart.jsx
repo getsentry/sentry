@@ -383,6 +383,8 @@ const ColumnRow = styled.div`
         return p.theme.orange;
       case 'filtered':
         return p.theme.orange;
+      case 'release':
+        return p.theme.purple;
       case 'environment':
         return p.theme.purpleLightest;
       default:
