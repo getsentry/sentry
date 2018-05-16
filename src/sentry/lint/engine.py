@@ -231,6 +231,27 @@ def is_prettier_valid(project_root, prettier_path):
     return True
 
 
+def js_lint_format(file_list=None):
+    """
+    We only format JavaScript code as part of this pre-commit hook. It is not part
+    of the lint engine. This uses eslint's `--fix` formatting feature.
+    """
+    eslint_path = get_node_modules_bin('eslint')
+
+    if not os.path.exists(eslint_path):
+        from click import echo
+        echo('!! Skipping JavaScript linting and formatting because eslint is not installed.')
+        return False
+
+    js_file_list = get_js_files(file_list)
+
+    # manually exclude some bad files
+    js_file_list = [x for x in js_file_list if '/javascript/example-project/' not in x]
+
+    return run_formatter([eslint_path, '--fix', ],
+                         js_file_list)
+
+
 def js_format(file_list=None):
     """
     We only format JavaScript code as part of this pre-commit hook. It is not part
@@ -367,6 +388,8 @@ def run(file_list=None, format=True, lint=True, js=True, py=True,
             if py:
                 results.append(py_format(file_list))
             if js:
+                # run eslint with --fix and skip these linters down below
+                results.append(js_lint_format(file_list))
                 results.append(js_format(file_list))
             if less:
                 results.append(less_format(file_list))
@@ -379,8 +402,12 @@ def run(file_list=None, format=True, lint=True, js=True, py=True,
             if py:
                 results.append(py_lint(file_list, parseable=parseable))
             if js:
-                results.append(js_lint(file_list, parseable=parseable, format=format))
+                # stylelint `--fix` doesn't work well
                 results.append(js_stylelint(file_list, parseable=parseable, format=format))
+
+                if not format:
+                    # these tasks are called when we need to format, so skip it here
+                    results.append(js_lint(file_list, parseable=parseable, format=format))
 
         if test:
             if js:
