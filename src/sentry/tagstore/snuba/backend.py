@@ -66,7 +66,8 @@ class SnubaTagStorage(TagStorage):
         conditions = [[tag, '!=', '']]
         aggregations = [['uniq', tag, 'unique_values']]
 
-        result = snuba.query(start, end, [], conditions, filters, aggregations)
+        result = snuba.query(start, end, [], conditions, filters, aggregations,
+                             referrer='tagstore.__get_tag_key')
         if result == 0:
             raise TagKeyNotFound if group_id is None else GroupTagKeyNotFound
         else:
@@ -90,7 +91,8 @@ class SnubaTagStorage(TagStorage):
         aggregations = [['uniq', 'tags_value', 'values_seen']]
 
         result = snuba.query(start, end, ['tags_key'], [], filters,
-                             aggregations, limit=limit, orderby='-values_seen')
+                             aggregations, limit=limit, orderby='-values_seen',
+                             referrer='tagstore.__get_tag_keys')
 
         if group_id is None:
             ctor = TagKey
@@ -145,7 +147,8 @@ class SnubaTagStorage(TagStorage):
             ['max', SEEN_COLUMN, 'last_seen'],
         ]
 
-        result = snuba.query(start, end, [tag], conditions, filters, aggregations)
+        result = snuba.query(start, end, [tag], conditions, filters, aggregations,
+                             referrer='tagstore.__get_tag_values')
 
         if group_id is None:
             ctor = TagValue
@@ -198,7 +201,8 @@ class SnubaTagStorage(TagStorage):
             ['max', SEEN_COLUMN, 'last_seen'],
         ]
 
-        result = snuba.query(start, end, ['issue'], conditions, filters, aggregations)
+        result = snuba.query(start, end, ['issue'], conditions, filters, aggregations,
+                             referrer='tagstore.get_group_list_tag_value')
 
         return {
             issue: GroupTagValue(
@@ -220,7 +224,8 @@ class SnubaTagStorage(TagStorage):
         conditions = [[tag, '!=', '']]
         aggregations = [['count()', '', 'count']]
 
-        return snuba.query(start, end, [], conditions, filters, aggregations)
+        return snuba.query(start, end, [], conditions, filters, aggregations,
+                           referrer='tagstore.get_group_tag_value_count')
 
     def get_top_group_tag_values(self, project_id, group_id, environment_id, key, limit=3):
         start, end = self.get_time_range()
@@ -238,7 +243,8 @@ class SnubaTagStorage(TagStorage):
         ]
 
         result = snuba.query(start, end, [tag], conditions, filters,
-                             aggregations, limit=limit, orderby='-times_seen')
+                             aggregations, limit=limit, orderby='-times_seen',
+                             referrer='tagstore.get_top_group_tag_values')
         return [
             GroupTagValue(
                 group_id=group_id,
@@ -261,7 +267,8 @@ class SnubaTagStorage(TagStorage):
         orderby = 'seen' if first else '-seen'
 
         result = snuba.query(start, end, ['release'], conditions, filters,
-                             aggregations, limit=1, orderby=orderby)
+                             aggregations, limit=1, orderby=orderby,
+                             referrer='tagstore.__get_release')
         if not result:
             return None
         else:
@@ -291,7 +298,9 @@ class SnubaTagStorage(TagStorage):
             ['max', SEEN_COLUMN, 'last_seen'],
         ]
 
-        result = snuba.query(start, end, ['project_id', key], conditions, filters, aggregations)
+        result = snuba.query(start, end, ['project_id', key],
+                             conditions, filters, aggregations,
+                             referrer='tagstore.get_release_tags')
 
         values = []
         for project_data in six.itervalues(result):
@@ -321,7 +330,8 @@ class SnubaTagStorage(TagStorage):
         aggregations = [['max', SEEN_COLUMN, 'seen']]
 
         result = snuba.query(start, end, ['issue'], conditions, filters,
-                             aggregations, limit=limit, orderby='-seen')
+                             aggregations, limit=limit, orderby='-seen',
+                             referrer='tagstore.get_group_ids_for_users')
         return result.keys()
 
     def get_group_tag_values_for_users(self, event_users, limit=100):
@@ -343,7 +353,8 @@ class SnubaTagStorage(TagStorage):
         ]
 
         result = snuba.query(start, end, ['issue', 'user_id'], conditions, filters,
-                             aggregations, orderby='-last_seen', limit=limit)
+                             aggregations, orderby='-last_seen', limit=limit,
+                             referrer='tagstore.get_group_tag_values_for_users')
 
         values = []
         for issue, users in six.iteritems(result):
@@ -367,7 +378,8 @@ class SnubaTagStorage(TagStorage):
         }
         aggregations = [['uniq', 'user_id', 'count']]
 
-        result = snuba.query(start, end, ['issue'], None, filters, aggregations)
+        result = snuba.query(start, end, ['issue'], None, filters, aggregations,
+                             referrer='tagstore.get_groups_user_counts')
         return defaultdict(int, {k: v for k, v in result.items() if v})
 
     def get_group_event_ids(self, project_id, group_id, environment_id, tags):
