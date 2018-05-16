@@ -38,9 +38,10 @@ class OAuth2Provider(Provider):
             return self.oauth_access_token_url
 
         # # check the model for installation information
-        if self.provider_model.config and self.provider_model.config.get('access_token_url'):
+        if self.pipeline.provider_model and self.pipeline.provider_model.config.get(
+                'access_token_url'):
             # todo(maxbittker) get the name of this key
-            return self.provider_model.config.get('access_token_url')
+            return self.pipeline.provider_model.config.get('access_token_url')
 
         # otherwise try the pipeline state
         pipeline_token_url = self.pipeline.parent_pipeline.fetch_state(
@@ -58,9 +59,10 @@ class OAuth2Provider(Provider):
             return self.oauth_authorize_url
 
         # # check the model for installation information
-        if self.provider_model.config and self.provider_model.config.get('authorize_url'):
+        if self.pipeline.provider_model and self.pipeline.provider_model.config.get(
+                'authorize_url'):
             # todo(maxbittker) get the name of this key
-            return self.provider_model.config.get('authorize_url')
+            return self.pipeline.provider_model.config.get('authorize_url')
 
         # otherwise try the pipeline state
 
@@ -74,9 +76,9 @@ class OAuth2Provider(Provider):
 
     def get_oauth_client_id(self):
         # # check the model for instalation information
-        if self.provider_model.config and self.provider_model.config.get('client_id'):
+        if self.pipeline.provider_model and self.pipeline.provider_model.config.get('client_id'):
             # todo(maxbittker) get the name of this key
-            return self.provider_model.config.get('client_id')
+            return self.pipeline.provider_model.config.get('client_id')
 
         # otherwise try the pipeline state
         client_id = self.pipeline.parent_pipeline.fetch_state(
@@ -89,9 +91,10 @@ class OAuth2Provider(Provider):
 
     def get_oauth_client_secret(self):
         # # check the model for instalation information
-        if self.provider_model.config and self.provider_model.config.get('client_secret'):
+        if self.pipeline.provider_model and self.pipeline.provider_model.config.get(
+                'client_secret'):
             # todo(maxbittker) get the name of this key
-            return self.provider_model.config.get('client_secret')
+            return self.pipeline.provider_model.config.get('client_secret')
 
         # otherwise try the pipeline state
         client_secret = self.pipeline.parent_pipeline.fetch_state('oauth_config_information') \
