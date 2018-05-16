@@ -1,6 +1,10 @@
 import Reflux from 'reflux';
 import PreferencesActions from '../actions/preferencesActions';
 
+/**
+ * This store is used to hold local user preferences
+ * Side-effects (like reading/writing to cookies) are done in associated actionCreators
+ */
 const PreferencesStore = Reflux.createStore({
   init() {
     this.reset();
