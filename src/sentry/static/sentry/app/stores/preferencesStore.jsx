@@ -11,6 +11,7 @@ const PreferencesStore = Reflux.createStore({
 
     this.listenTo(PreferencesActions.hideSidebar, this.onHideSidebar);
     this.listenTo(PreferencesActions.showSidebar, this.onShowSidebar);
+    this.listenTo(PreferencesActions.changeDashboard, this.onChangeDashboard);
     this.listenTo(PreferencesActions.loadInitialState, this.loadInitialState);
   },
 
@@ -21,6 +22,7 @@ const PreferencesStore = Reflux.createStore({
   reset() {
     this._state = {
       collapsed: false,
+      dashboardType: 'teams',
     };
   },
 
@@ -36,6 +38,11 @@ const PreferencesStore = Reflux.createStore({
 
   onShowSidebar() {
     this._state.collapsed = false;
+    this.trigger(this._state);
+  },
+
+  onChangeDashboard(type) {
+    this._state.dashboardType = type;
     this.trigger(this._state);
   },
 });

@@ -1,28 +1,26 @@
-import {Link} from 'react-router';
-import LazyLoad from 'react-lazyload';
 import React from 'react';
+import Reflux from 'reflux';
 import PropTypes from 'prop-types';
 import createReactClass from 'create-react-class';
 import {Flex} from 'grid-emotion';
-import styled from 'react-emotion';
 
-import SentryTypes from 'app/proptypes';
-import IdBadge from 'app/components/idBadge';
+import {changeDashboard} from 'app/actionCreators/preferences';
+import AlphabeticalDashboard from 'app/views/organizationDashboard/alphabeticalDashboard';
 import OrganizationState from 'app/mixins/organizationState';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
-import getProjectsByTeams from 'app/utils/getProjectsByTeams';
-import {sortProjects} from 'app/utils';
+import PreferencesStore from 'app/stores/preferencesStore';
+import SentryTypes from 'app/proptypes';
+import SelectControl from 'app/components/forms/selectControl';
+import TeamDashboard from 'app/views/organizationDashboard/teamDashboard';
 import withTeams from 'app/utils/withTeams';
 import withProjects from 'app/utils/withProjects';
-import {t} from 'app/locale';
 
 import OldDashboard from './oldDashboard';
 import ProjectNav from './projectNav';
-import TeamSection from './teamSection';
-import EmptyState from './emptyState';
 
 class Dashboard extends React.Component {
   static propTypes = {
+    type: PropTypes.oneOf(['team', 'alphabetical']),
     teams: PropTypes.array,
     projects: PropTypes.array,
     organization: SentryTypes.Organization,
@@ -37,74 +35,70 @@ class Dashboard extends React.Component {
   }
 
   render() {
-    const {teams, projects, params, organization} = this.props;
-    const sortedProjects = sortProjects(projects);
-    const {projectsByTeam} = getProjectsByTeams(teams, sortedProjects);
-    const teamSlugs = Object.keys(projectsByTeam).sort();
-    const favorites = projects.filter(project => project.isBookmarked);
-    const access = new Set(organization.access);
-    const hasTeamAccess = access.has('team:read');
-    const teamsMap = new Map(teams.map(teamObj => [teamObj.slug, teamObj]));
+    const {type, ...props} = this.props;
 
-    return (
-      <React.Fragment>
-        {favorites.length > 0 && (
-          <TeamSection
-            data-test-id="favorites"
-            orgId={params.orgId}
-            showBorder
-            team={null}
-            title={t('Bookmarked projects')}
-            projects={favorites}
-          />
-        )}
+    if (type === null) return null;
 
-        {teamSlugs.map((slug, index) => {
-          const showBorder = index !== teamSlugs.length - 1;
-          const team = teamsMap.get(slug);
-          return (
-            <LazyLoad
-              key={slug}
-              once
-              debounce={50}
-              placeholder={<TeamSectionPlaceholder />}
-            >
-              <TeamSection
-                orgId={params.orgId}
-                team={team}
-                hasTeamAccess={hasTeamAccess}
-                showBorder={showBorder}
-                title={
-                  <TeamLink to={`/settings/${organization.slug}/teams/${team.slug}/`}>
-                    <IdBadge team={team} />
-                  </TeamLink>
-                }
-                projects={projectsByTeam[slug]}
-              />
-            </LazyLoad>
-          );
-        })}
-        {teamSlugs.length === 0 &&
-          favorites.length === 0 && (
-            <EmptyState projects={projects} teams={teams} organization={organization} />
-          )}
-      </React.Fragment>
-    );
+    if (type === 'alphabetical') {
+      return <AlphabeticalDashboard {...props} />;
+    }
+
+    // Default dashboard
+    return <TeamDashboard {...props} />;
   }
 }
 
 const OrganizationDashboard = createReactClass({
   displayName: 'OrganizationDashboard',
-  mixins: [OrganizationState],
+  mixins: [OrganizationState, Reflux.listenTo(PreferencesStore, 'onPreferencesChange')],
+  getInitialState() {
+    return {
+      dashboardType: PreferencesStore.getInitialState().dashboardType,
+    };
+  },
+
+  onPreferencesChange(store) {
+    if (store.dashboardType === this.state.dashboardType) return;
+    this.setState({
+      dashboardType: store.dashboardType,
+    });
+  },
+
+  handleChangeDashboard({value}) {
+    // Unmount old dashboard completely so that the UI seems a bit more responsive
+    this.setState(
+      {
+        dashboardType: null,
+      },
+      () => {
+        changeDashboard(value);
+      }
+    );
+  },
 
   render() {
     const hasNewDashboardFeature = this.getFeatures().has('dashboard');
 
     if (hasNewDashboardFeature) {
       return (
-        <Flex flex="1" direction="column">
+        <Flex flex="1" direction="column" style={{position: 'relative'}}>
           <ProjectNav />
-          <Dashboard organization={this.context.organization} {...this.props} />
+          <div>
+            <SelectControl
+              clearable={false}
+              value={this.state.dashboardType}
+              onChange={this.handleChangeDashboard}
+              options={[
+                {value: 'alphabetical', label: 'Alphabetical'},
+                {value: 'teams', label: 'By Teams'},
+              ]}
+            />
+          </div>
+          <Dashboard
+            organization={this.context.organization}
+            {...this.props}
+            type={this.state.dashboardType}
+          />
         </Flex>
       );
     } else {
@@ -112,16 +106,6 @@ const OrganizationDashboard = createReactClass({
     }
   },
 });
-
-// This placeholder height will mean that we query for the first `window.height / 180` components
-const TeamSectionPlaceholder = styled('div')`
-  height: 180px;
-`;
-
-const TeamLink = styled(Link)`
-  display: flex;
-  align-items: center;
-`;
 
 export {Dashboard};
 export default withTeams(withProjects(OrganizationDashboard));
