@@ -2,7 +2,7 @@ import React from 'react';
 import {shallow} from 'enzyme';
 
 import {Client} from 'app/api';
-import AdminSettings from 'app/views/adminSettings';
+import AdminSettings from 'app/views/admin/adminSettings';
 
 // TODO(dcramer): this doesnt really test anything as we need to
 // mock the API Response/wait on it
