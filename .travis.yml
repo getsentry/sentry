@@ -35,7 +35,7 @@ env:
     - CXX=g++-4.8
     - SOUTH_TESTS_MIGRATE=1
     - DJANGO_VERSION=">=1.6.11,<1.7"
-    - NPM_VERSION="8.9.1"
+    - NODE_VERSION="8.9.1"
     - YARN_VERSION="1.3.2"
 
 script:
@@ -124,6 +124,9 @@ matrix:
         - memcached
         - redis-server
         - postgresql
+      before_install:
+        - nvm install "$NODE_VERSION"
+        - npm install -g "yarn@${YARN_VERSION}"
       install:
         - pip install -e ".[dev,tests,optional]"
         - wget -N "http://chromedriver.storage.googleapis.com/$(curl https://chromedriver.storage.googleapis.com/LATEST_RELEASE)/chromedriver_linux64.zip" -P ~/
@@ -137,7 +140,7 @@ matrix:
     - python: 2.7
       env: TEST_SUITE=js
       before_install:
-        - nvm install "$NPM_VERSION"
+        - nvm install "$NODE_VERSION"
         - npm install -g "yarn@${YARN_VERSION}"
       install:
         - yarn install --pure-lockfile
@@ -208,7 +211,7 @@ matrix:
         # Use the decrypted service account credentials to authenticate the command line tool
         - gcloud auth activate-service-account --key-file client-secret.json
         # Travis doesn't "inherit" steps like before_install in the build matrix, so we have to explicitly install our package managers
-        - nvm install "$NPM_VERSION"
+        - nvm install "$NODE_VERSION"
         - npm install -g "yarn@${YARN_VERSION}"
       install:
         - yarn install --pure-lockfile
