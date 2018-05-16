@@ -127,7 +127,7 @@ test-network:
 
 test-snuba:
 	@echo "--> Running snuba tests"
-	py.test tests/snuba --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml"
+	py.test tests/snuba -vv --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml"
 	@echo ""
 
 test-acceptance: build-platform-assets
