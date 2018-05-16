@@ -464,7 +464,7 @@ function routes() {
         />
 
         <Route
-          path="/:apiKey/"
+          path=":apiKey/"
           name="Details"
           componentPromise={() =>
             import(/*webpackChunkName: OrganizationApiKeyDetails*/ './views/settings/organizationApiKeys/organizationApiKeyDetails')}
