@@ -2,7 +2,7 @@ import {browserHistory} from 'react-router';
 import {mount} from 'enzyme';
 import React from 'react';
 
-import OrganizationGeneralSettingsView from 'app/views/settings/organization/general/organizationGeneralSettingsView';
+import OrganizationGeneralSettings from 'app/views/settings/organizationGeneralSettings';
 import recreateRoute from 'app/utils/recreateRoute';
 
 jest.mock('jquery');
@@ -16,7 +16,7 @@ jest.mock('react-router', () => {
   };
 });
 
-describe('OrganizationGeneralSettingsView', function() {
+describe('OrganizationGeneralSettings', function() {
   const org = TestStubs.Organization();
   const ENDPOINT = `/organizations/${org.slug}/`;
   beforeEach(function() {
@@ -37,7 +37,7 @@ describe('OrganizationGeneralSettingsView', function() {
       body: {},
     });
     let wrapper = mount(
-      <OrganizationGeneralSettingsView params={{orgId: org.slug}} />,
+      <OrganizationGeneralSettings params={{orgId: org.slug}} />,
       TestStubs.routerContext()
     );
 
@@ -49,7 +49,7 @@ describe('OrganizationGeneralSettingsView', function() {
 
   it('can enable "early adopter"', async function() {
     let wrapper = mount(
-      <OrganizationGeneralSettingsView params={{orgId: org.slug}} />,
+      <OrganizationGeneralSettings params={{orgId: org.slug}} />,
       TestStubs.routerContext()
     );
     let mock = MockApiClient.addMockResponse({
@@ -71,7 +71,7 @@ describe('OrganizationGeneralSettingsView', function() {
 
   it('changes org slug and redirects to new slug', async function() {
     let wrapper = mount(
-      <OrganizationGeneralSettingsView params={{orgId: org.slug}} />,
+      <OrganizationGeneralSettings params={{orgId: org.slug}} />,
       TestStubs.routerContext()
     );
     let mock = MockApiClient.addMockResponse({
@@ -110,7 +110,7 @@ describe('OrganizationGeneralSettingsView', function() {
     });
     recreateRoute.mockReturnValueOnce('teams');
     let wrapper = mount(
-      <OrganizationGeneralSettingsView routes={[]} params={{orgId: org.slug}} />,
+      <OrganizationGeneralSettings routes={[]} params={{orgId: org.slug}} />,
       TestStubs.routerContext()
     );
 
@@ -130,7 +130,7 @@ describe('OrganizationGeneralSettingsView', function() {
       }),
     });
     let wrapper = mount(
-      <OrganizationGeneralSettingsView params={{orgId: org.slug}} />,
+      <OrganizationGeneralSettings params={{orgId: org.slug}} />,
       TestStubs.routerContext()
     );
 
@@ -150,7 +150,7 @@ describe('OrganizationGeneralSettingsView', function() {
       }),
     });
     let wrapper = mount(
-      <OrganizationGeneralSettingsView params={{orgId: org.slug}} />,
+      <OrganizationGeneralSettings params={{orgId: org.slug}} />,
       TestStubs.routerContext()
     );
     let mock = MockApiClient.addMockResponse({
@@ -179,7 +179,7 @@ describe('OrganizationGeneralSettingsView', function() {
 
   it('shows require2fa switch w/ feature flag', async function() {
     let wrapper = mount(
-      <OrganizationGeneralSettingsView params={{orgId: org.slug}} />,
+      <OrganizationGeneralSettings params={{orgId: org.slug}} />,
       TestStubs.routerContext([
         {
           organization: TestStubs.Organization({
@@ -201,7 +201,7 @@ describe('OrganizationGeneralSettingsView', function() {
       method: 'PUT',
     });
     let wrapper = mount(
-      <OrganizationGeneralSettingsView params={{orgId: org.slug}} />,
+      <OrganizationGeneralSettings params={{orgId: org.slug}} />,
       TestStubs.routerContext([
         {
           organization: TestStubs.Organization({
@@ -235,7 +235,7 @@ describe('OrganizationGeneralSettingsView', function() {
     });
 
     let wrapper = mount(
-      <OrganizationGeneralSettingsView params={{orgId: org.slug}} />,
+      <OrganizationGeneralSettings params={{orgId: org.slug}} />,
       TestStubs.routerContext([
         {
           organization: TestStubs.Organization({
@@ -279,7 +279,7 @@ describe('OrganizationGeneralSettingsView', function() {
     });
 
     let wrapper = mount(
-      <OrganizationGeneralSettingsView params={{orgId: org.slug}} />,
+      <OrganizationGeneralSettings params={{orgId: org.slug}} />,
       TestStubs.routerContext([
         {
           organization: TestStubs.Organization({

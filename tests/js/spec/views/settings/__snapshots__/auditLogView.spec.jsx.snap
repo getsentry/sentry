@@ -1,11 +1,10 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`AuditLogView renders 1`] = `
+exports[`OrganizationAuditLog renders 1`] = `
 <SideEffect(DocumentTitle)
   title="Organization Name Audit Log - Sentry"
 >
-  <LazyLoad
-    component={[Function]}
+  <AuditLogList
     entries={
       Array [
         Object {

@@ -3,13 +3,13 @@ import React from 'react';
 import {Client} from 'app/api';
 import {mount} from 'enzyme';
 import ConfigStore from 'app/stores/configStore';
-import OrganizationMembersView from 'app/views/settings/organization/members/organizationMembersView';
+import OrganizationMembers from 'app/views/settings/organizationMembers';
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 
 jest.mock('app/api');
 jest.mock('app/actionCreators/indicator');
 
-describe('OrganizationMembersView', function() {
+describe('OrganizationMembers', function() {
   let members = TestStubs.Members();
   let currentUser = members[1];
   let defaultProps = {
@@ -83,7 +83,7 @@ describe('OrganizationMembersView', function() {
     });
 
     let wrapper = mount(
-      <OrganizationMembersView
+      <OrganizationMembers
         {...defaultProps}
         params={{
           orgId: 'org-id',
@@ -115,7 +115,7 @@ describe('OrganizationMembersView', function() {
     });
 
     let wrapper = mount(
-      <OrganizationMembersView
+      <OrganizationMembers
         {...defaultProps}
         params={{
           orgId: 'org-id',
@@ -146,7 +146,7 @@ describe('OrganizationMembersView', function() {
     });
 
     let wrapper = mount(
-      <OrganizationMembersView
+      <OrganizationMembers
         {...defaultProps}
         params={{
           orgId: 'org-id',
@@ -178,7 +178,7 @@ describe('OrganizationMembersView', function() {
     });
 
     let wrapper = mount(
-      <OrganizationMembersView
+      <OrganizationMembers
         {...defaultProps}
         params={{
           orgId: 'org-id',
@@ -211,7 +211,7 @@ describe('OrganizationMembersView', function() {
       },
     });
     let wrapper = mount(
-      <OrganizationMembersView
+      <OrganizationMembers
         {...defaultProps}
         params={{
           orgId: 'org-id',
@@ -237,7 +237,7 @@ describe('OrganizationMembersView', function() {
       method: 'PUT',
     });
     let wrapper = mount(
-      <OrganizationMembersView
+      <OrganizationMembers
         {...defaultProps}
         params={{
           orgId: 'org-id',
@@ -270,7 +270,7 @@ describe('OrganizationMembersView', function() {
       method: 'PUT',
     });
     let wrapper = mount(
-      <OrganizationMembersView
+      <OrganizationMembers
         {...defaultProps}
         params={{
           orgId: 'org-id',
@@ -305,7 +305,7 @@ describe('OrganizationMembersView', function() {
     });
     let routerContext = TestStubs.routerContext();
     let wrapper = mount(
-      <OrganizationMembersView
+      <OrganizationMembers
         {...defaultProps}
         location={{}}
         params={{

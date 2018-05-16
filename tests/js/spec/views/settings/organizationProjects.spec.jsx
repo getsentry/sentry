@@ -2,7 +2,7 @@ import React from 'react';
 import {mount} from 'enzyme';
 
 import {Client} from 'app/api';
-import OrganizationProjectsViewContainer from 'app/views/settings/organization/projects/organizationProjectsView';
+import OrganizationProjectsContainer from 'app/views/settings/organizationProjects';
 
 describe('OrganizationProjects', function() {
   let org;
@@ -38,7 +38,7 @@ describe('OrganizationProjects', function() {
 
   it('Should render the projects in the store', function() {
     let wrapper = mount(
-      <OrganizationProjectsViewContainer params={{orgId: org.slug}} />,
+      <OrganizationProjectsContainer params={{orgId: org.slug}} />,
       routerContext
     );
     expect(wrapper).toMatchSnapshot();
@@ -62,7 +62,7 @@ describe('OrganizationProjects', function() {
       body: [],
     });
     let wrapper = mount(
-      <OrganizationProjectsViewContainer location={{}} params={{orgId: org.slug}} />,
+      <OrganizationProjectsContainer location={{}} params={{orgId: org.slug}} />,
       routerContext
     );
 

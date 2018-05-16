@@ -2,7 +2,7 @@ import {mount} from 'enzyme';
 import React from 'react';
 
 import {Client} from 'app/api';
-import {OrganizationRateLimits} from 'app/views/settings/organizationRateLimits';
+import OrganizationRateLimits from 'app/views/settings/organizationRateLimits/organizationRateLimits';
 
 const ENDPOINT = '/organizations/org-slug/';
 

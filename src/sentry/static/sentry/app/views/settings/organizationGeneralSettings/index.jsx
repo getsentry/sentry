@@ -113,10 +113,11 @@ const OrganizationGeneralSettings = createReactClass({
 
     return (
       <div>
-        {loading && <LoadingIndicator />}
         {error && <LoadingError />}
+        {loading && !error && <LoadingIndicator />}
 
-        {!loading &&
+        {data &&
+          !loading &&
           !error && (
             <div>
               <SettingsPageHeader title={t('Organization Settings')} />

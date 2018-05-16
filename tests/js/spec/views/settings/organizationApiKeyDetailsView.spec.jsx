@@ -3,7 +3,7 @@ import React from 'react';
 import {mount} from 'enzyme';
 
 import {Client} from 'app/api';
-import OrganizationApiKeyDetailsView from 'app/views/settings/organization/apiKeys/organizationApiKeyDetailsView';
+import OrganizationApiKeyDetails from 'app/views/settings/organizationApiKeys/organizationApiKeyDetails';
 
 jest.mock('jquery');
 
@@ -13,7 +13,7 @@ const childContextTypes = {
   location: PropTypes.object,
 };
 
-describe('OrganizationApiKeyDetailsView', function() {
+describe('OrganizationApiKeyDetails', function() {
   beforeEach(function() {
     Client.clearMockResponses();
     Client.addMockResponse({
@@ -30,7 +30,7 @@ describe('OrganizationApiKeyDetailsView', function() {
 
   it('renders', function() {
     let wrapper = mount(
-      <OrganizationApiKeyDetailsView params={{apiKey: 1, orgId: 'org-slug'}} />,
+      <OrganizationApiKeyDetails params={{apiKey: 1, orgId: 'org-slug'}} />,
       {
         context: {
           router: TestStubs.router(),

@@ -2,11 +2,11 @@ import React from 'react';
 import {shallow} from 'enzyme';
 
 import {Client} from 'app/api';
-import AuditLogView from 'app/views/settings/organization/auditLog/auditLogView';
+import OrganizationAuditLog from 'app/views/settings/organizationAuditLog';
 
 jest.mock('jquery');
 
-describe('AuditLogView', function() {
+describe('OrganizationAuditLog', function() {
   let org = TestStubs.Organization();
   const ENDPOINT = `/organizations/${org.slug}/audit-logs/`;
 
@@ -20,7 +20,7 @@ describe('AuditLogView', function() {
 
   it('renders', function(done) {
     let wrapper = shallow(
-      <AuditLogView location={{query: ''}} params={{orgId: org.slug}} />,
+      <OrganizationAuditLog location={{query: ''}} params={{orgId: org.slug}} />,
       TestStubs.routerContext()
     );
 

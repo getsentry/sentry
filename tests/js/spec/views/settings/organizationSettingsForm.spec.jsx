@@ -2,7 +2,7 @@ import React from 'react';
 
 import {mount} from 'enzyme';
 import {saveOnBlurUndoMessage} from 'app/actionCreators/indicator';
-import NewOrganizationSettingsForm from 'app/views/settings/organization/general/organizationSettingsForm';
+import OrganizationSettingsForm from 'app/views/settings/organizationGeneralSettings/organizationSettingsForm';
 
 jest.mock('jquery');
 jest.mock('app/actionCreators/indicator');
@@ -27,7 +27,7 @@ describe('OrganizationSettingsForm', function() {
     });
 
     let wrapper = mount(
-      <NewOrganizationSettingsForm
+      <OrganizationSettingsForm
         location={TestStubs.location()}
         orgId={organization.id}
         access={new Set('org:admin')}

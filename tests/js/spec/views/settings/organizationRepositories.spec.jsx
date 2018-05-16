@@ -2,7 +2,7 @@ import React from 'react';
 import {shallow} from 'enzyme';
 
 import {Client} from 'app/api';
-import OrganizationRepositories from 'app/views/settings/organization/repositories/organizationRepositories';
+import OrganizationRepositories from 'app/views/settings/organizationRepositories/organizationRepositories';
 
 describe('OrganizationRepositories', function() {
   it('renders without providers', function() {

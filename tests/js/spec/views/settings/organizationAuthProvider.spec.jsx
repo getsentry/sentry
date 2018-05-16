@@ -2,7 +2,7 @@ import React from 'react';
 import {shallow, mount} from 'enzyme';
 
 import {Client} from 'app/api';
-import OrganizationAuthProvider from 'app/views/settings/organization/auth/organizationAuthProvider';
+import OrganizationAuthProvider from 'app/views/settings/organizationAuth/organizationAuthProvider';
 
 jest.mock('jquery');
 

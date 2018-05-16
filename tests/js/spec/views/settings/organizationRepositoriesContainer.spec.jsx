@@ -3,14 +3,14 @@ import React from 'react';
 import {shallow} from 'enzyme';
 
 import {Client} from 'app/api';
-import OrganizationRepositories from 'app/views/organizationRepositoriesView';
+import OrganizationRepositoriesContainer from 'app/views/settings/organizationRepositories';
 
 const childContextTypes = {
   organization: PropTypes.object,
   location: PropTypes.object,
 };
 
-describe('OrganizationRepositoriesView', function() {
+describe('OrganizationRepositoriesContainer', function() {
   beforeEach(function() {
     Client.clearMockResponses();
   });
@@ -29,14 +29,17 @@ describe('OrganizationRepositoriesView', function() {
       });
 
       it('is loading when initially rendering', function() {
-        let wrapper = shallow(<OrganizationRepositories params={{orgId: 'org-slug'}} />, {
-          context: {
-            router: TestStubs.router(),
-            organization: TestStubs.Organization(),
-            location: TestStubs.location(),
-          },
-          childContextTypes,
-        });
+        let wrapper = shallow(
+          <OrganizationRepositoriesContainer params={{orgId: 'org-slug'}} />,
+          {
+            context: {
+              router: TestStubs.router(),
+              organization: TestStubs.Organization(),
+              location: TestStubs.location(),
+            },
+            childContextTypes,
+          }
+        );
         expect(wrapper).toMatchSnapshot();
       });
     });

@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`OrganizationApiKeyDetailsView renders 1`] = `
-<OrganizationApiKeyDetailsView
+exports[`OrganizationApiKeyDetails renders 1`] = `
+<OrganizationApiKeyDetails
   params={
     Object {
       "apiKey": 1,
@@ -513,5 +513,5 @@ exports[`OrganizationApiKeyDetailsView renders 1`] = `
       </div>
     </DocumentTitle>
   </SideEffect(DocumentTitle)>
-</OrganizationApiKeyDetailsView>
+</OrganizationApiKeyDetails>
 `;

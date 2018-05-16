@@ -2,7 +2,7 @@ import React from 'react';
 import {mount} from 'enzyme';
 
 import {Client} from 'app/api';
-import OrganizationApiKeysView from 'app/views/settings/organization/apiKeys/organizationApiKeysView';
+import OrganizationApiKeys from 'app/views/settings/organizationApiKeys';
 
 const routes = [
   {path: '/'},
@@ -11,7 +11,7 @@ const routes = [
   {path: 'api-keys/', name: 'API Key'},
 ];
 
-describe('OrganizationApiKeysView', function() {
+describe('OrganizationApiKeys', function() {
   let routerContext = TestStubs.routerContext();
 
   beforeEach(function() {
@@ -34,7 +34,7 @@ describe('OrganizationApiKeysView', function() {
 
   it('fetches api keys', function() {
     let wrapper = mount(
-      <OrganizationApiKeysView
+      <OrganizationApiKeys
         location={TestStubs.location()}
         params={{orgId: 'org-slug'}}
         routes={routes}
@@ -47,15 +47,15 @@ describe('OrganizationApiKeysView', function() {
 
   it('can delete a key', function() {
     let wrapper = mount(
-      <OrganizationApiKeysView
+      <OrganizationApiKeys
         location={TestStubs.location()}
         params={{orgId: 'org-slug'}}
         routes={routes}
       />,
       routerContext
     );
-    // OrganizationApiKeysView.handleRemove = jest.fn();
-    // expect(OrganizationApiKeysView.handleRemove).not.toHaveBeenCalled();
+    // OrganizationApiKeys.handleRemove = jest.fn();
+    // expect(OrganizationApiKeys.handleRemove).not.toHaveBeenCalled();
 
     wrapper.instance().handleRemove(1);
 

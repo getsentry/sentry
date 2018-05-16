@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`OrganizationProjects Should render the projects in the store 1`] = `
-<OrganizationProjectsView
+<OrganizationProjects
   params={
     Object {
       "orgId": "org-slug",
@@ -637,5 +637,5 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
       </div>
     </DocumentTitle>
   </SideEffect(DocumentTitle)>
-</OrganizationProjectsView>
+</OrganizationProjects>
 `;

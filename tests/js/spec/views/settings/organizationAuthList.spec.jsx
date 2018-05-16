@@ -1,7 +1,7 @@
 import React from 'react';
 import {shallow} from 'enzyme';
 
-import OrganizationAuthList from 'app/views/settings/organization/auth/organizationAuthList';
+import OrganizationAuthList from 'app/views/settings/organizationAuth/organizationAuthList';
 
 jest.mock('jquery');
 

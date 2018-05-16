@@ -1,7 +1,7 @@
 import React from 'react';
 import {mount, shallow} from 'enzyme';
 
-import OrganizationAccessRequests from 'app/views/settings/organization/members/organizationAccessRequests';
+import OrganizationAccessRequests from 'app/views/settings/organizationMembers/organizationAccessRequests';
 
 describe('OrganizationAccessRequests', function() {
   beforeEach(function() {});

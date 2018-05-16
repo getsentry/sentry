@@ -1,7 +1,7 @@
 import React from 'react';
 import {shallow} from 'enzyme';
 
-import OrganizationMemberRow from 'app/views/settings/organization/members/organizationMemberRow';
+import OrganizationMemberRow from 'app/views/settings/organizationMembers/organizationMemberRow';
 
 const findWithText = (wrapper, text) =>
   wrapper.filterWhere(n => n.prop('children') && n.prop('children').includes(text));

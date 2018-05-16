@@ -1,7 +1,7 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import OrganizationApiKeysList from 'app/views/settings/organization/apiKeys/organizationApiKeysList';
+import OrganizationApiKeysList from 'app/views/settings/organizationApiKeys/organizationApiKeysList';
 
 jest.unmock('app/utils/recreateRoute');
 

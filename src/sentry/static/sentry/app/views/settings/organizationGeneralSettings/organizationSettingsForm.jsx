@@ -11,8 +11,8 @@ import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import organizationSettingsFields from 'app/data/forms/organizationGeneralSettings';
 import OrganizationState from 'app/mixins/organizationState';
 
-const NewOrganizationSettingsForm = createReactClass({
-  displayName: 'NewOrganizationSettingsForm',
+const OrganizationSettingsForm = createReactClass({
+  displayName: 'OrganizationSettingsForm',
 
   propTypes: {
     location: PropTypes.object,
@@ -63,4 +63,4 @@ const NewOrganizationSettingsForm = createReactClass({
   },
 });
 
-export default NewOrganizationSettingsForm;
+export default OrganizationSettingsForm;
