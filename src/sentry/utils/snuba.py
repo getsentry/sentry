@@ -18,7 +18,7 @@ class SnubaError(Exception):
 
 def query(start, end, groupby, conditions=None, filter_keys=None,
           aggregations=None, rollup=None, arrayjoin=None, limit=None, orderby=None,
-          having=None):
+          having=None, flatten_single_aggregate=True):
     """
     Sends a query to snuba.
 
@@ -118,17 +118,17 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
             if col in d:
                 d[col] = rev_snuba_map[col][d[col]]
 
-    return nest_groups(response['data'], groupby, aggregate_cols)
+    return nest_groups(response['data'], groupby, aggregate_cols, flatten_single_aggregate)
 
 
-def nest_groups(data, groups, aggregate_cols):
+def nest_groups(data, groups, aggregate_cols, flatten_single_aggregate):
     """
     Build a nested mapping from query response rows. Each group column
     gives a new level of nesting and the leaf result is the aggregate
     """
     if not groups:
         # At leaf level, just return the aggregations from the first data row
-        if len(aggregate_cols) == 1:
+        if len(aggregate_cols) == 1 and flatten_single_aggregate:
             # Special case, if there is only one aggregate, just return the raw value
             return data[0][aggregate_cols[0]] if data else None
         else:
@@ -138,7 +138,10 @@ def nest_groups(data, groups, aggregate_cols):
         inter = {}
         for d in data:
             inter.setdefault(d[g], []).append(d)
-        return {k: nest_groups(v, rest, aggregate_cols) for k, v in six.iteritems(inter)}
+        return {
+            k: nest_groups(v, rest, aggregate_cols, flatten_single_aggregate)
+            for k, v in six.iteritems(inter)
+        }
 
 
 def is_condition(cond_or_list):
