@@ -4,6 +4,7 @@ import styled from 'react-emotion';
 
 import {t} from 'app/locale';
 import Checkbox from 'app/components/checkbox';
+import IdBadge from 'app/components/idBadge';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 
 const TeamItem = styled.div`
@@ -30,19 +31,19 @@ class TeamSelect extends React.Component {
 
         <PanelBody className="grouping-controls team-choices">
           <PanelItem css={{flexWrap: 'wrap'}}>
-            {teams.map(({slug, name}, i) => (
-              <TeamItem key={slug}>
+            {teams.map(team => (
+              <TeamItem key={team.slug}>
                 <label className="checkbox">
                   <Checkbox
-                    id={slug}
+                    id={team.slug}
                     disabled={disabled}
-                    checked={selectedTeams.has(slug)}
+                    checked={selectedTeams.has(team.slug)}
                     onChange={e => {
-                      toggleTeam(slug);
+                      toggleTeam(team.slug);
                     }}
+                    style={{marginTop: '1px'}}
                   />
-                  <span>{name}</span>
-                  <span className="team-slug">{slug}</span>
+                  <IdBadge team={team} hideAvatar />
                 </label>
               </TeamItem>
             ))}

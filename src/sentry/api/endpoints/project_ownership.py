@@ -1,12 +1,14 @@
 from __future__ import absolute_import
 
+import six
+
 from rest_framework import serializers
 from rest_framework.response import Response
 from django.utils import timezone
 
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import ProjectOwnership, resolve_actor, UnknownActor
+from sentry.models import ProjectOwnership, resolve_actors
 
 from sentry.ownership.grammar import parse_rules, dump_schema, ParseError
 
@@ -28,17 +30,16 @@ class ProjectOwnershipSerializer(serializers.Serializer):
 
         schema = dump_schema(rules)
 
-        bad_actors = []
-        for rule in rules:
-            for owner in rule.owners:
-                try:
-                    resolve_actor(owner, self.context['ownership'].project_id)
-                except UnknownActor:
-                    if owner.type == 'user':
-                        bad_actors.append(owner.identifier)
+        owners = {o for rule in rules for o in rule.owners}
+        actors = resolve_actors(owners, self.context['ownership'].project_id)
 
-                    if owner.type == 'team':
-                        bad_actors.append(u'#{}'.format(owner.identifier))
+        bad_actors = []
+        for owner, actor in six.iteritems(actors):
+            if actor is None:
+                if owner.type == 'user':
+                    bad_actors.append(owner.identifier)
+                elif owner.type == 'team':
+                    bad_actors.append(u'#{}'.format(owner.identifier))
 
         if bad_actors:
             raise serializers.ValidationError(

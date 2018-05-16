@@ -9,12 +9,36 @@ export const Metadata = PropTypes.shape({
   uri: PropTypes.string,
 });
 
+const Avatar = PropTypes.shape({
+  avatarType: PropTypes.oneOf(['letter_avatar', 'upload', 'gravatar']),
+  avatarUuid: PropTypes.string,
+});
+
 /**
  * A User is someone that has registered on Sentry
  *
  */
 export const User = PropTypes.shape({
+  avatar: Avatar,
+  avatarUrl: PropTypes.string,
+  dateJoined: PropTypes.string,
+  email: PropTypes.string,
+  emails: PropTypes.arrayOf(
+    PropTypes.shape({
+      is_verified: PropTypes.bool,
+      id: PropTypes.string,
+      email: PropTypes.string,
+    })
+  ),
+  has2fa: PropTypes.bool,
+  hasPasswordAuth: PropTypes.bool,
   id: PropTypes.string.isRequired,
+  identities: PropTypes.array,
+  isActive: PropTypes.bool,
+  isManaged: PropTypes.bool,
+  lastActive: PropTypes.string,
+  lastLogin: PropTypes.string,
+  username: PropTypes.string,
 });
 
 export const Config = PropTypes.shape({
@@ -46,11 +70,17 @@ export const Config = PropTypes.shape({
  * not have registered for an account yet
  */
 export const Member = PropTypes.shape({
-  id: PropTypes.string.isRequired,
+  dateCreated: PropTypes.string,
   email: PropTypes.string.isRequired,
+  flags: PropTypes.shape({
+    'sso:linked': PropTypes.bool,
+    'sso:invalid': PropTypes.bool,
+  }),
+  id: PropTypes.string.isRequired,
   name: PropTypes.string.isRequired,
-  roleName: PropTypes.string.isRequired,
   pending: PropTypes.bool,
+  role: PropTypes.string.isRequired,
+  roleName: PropTypes.string.isRequired,
   user: User,
 });
 

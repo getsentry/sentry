@@ -17,7 +17,7 @@ export default function getConfiguration({project}) {
         },
         {
           path: `${pathPrefix}/teams/`,
-          title: t('Teams'),
+          title: t('Project Teams'),
           description: t('Manage team access for a project'),
         },
         {
@@ -47,7 +47,7 @@ export default function getConfiguration({project}) {
         },
         {
           path: `${pathPrefix}/release-tracking/`,
-          title: t('Release Tracking'),
+          title: t('Releases'),
           show: ({access}) => access.has('project:write'),
         },
         {
@@ -67,7 +67,7 @@ export default function getConfiguration({project}) {
         },
         {
           path: `${pathPrefix}/debug-symbols/`,
-          title: t('Debug Information Files'),
+          title: t('Debug Files'),
         },
         {
           path: `${pathPrefix}/processing-issues/`,

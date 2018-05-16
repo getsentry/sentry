@@ -34,8 +34,8 @@ describe('GroupSeenBy', function() {
         context: {
           group: TestStubs.Group({
             seenBy: [
-              {id: 1, email: 'jane@example.com'},
-              {id: 2, email: 'john@example.com'},
+              {id: '1', email: 'jane@example.com'},
+              {id: '2', email: 'john@example.com'},
             ],
           }),
           project: TestStubs.Project(),

@@ -69,18 +69,18 @@ def get_requirements(env):
     with open('requirements-{}.txt'.format(env)) as fp:
         return [x.strip() for x in fp.read().split('\n') if not x.startswith('#')]
 
-
 install_requires = get_requirements('base')
 dev_requires = get_requirements('dev')
 tests_require = get_requirements('test')
 optional_requires = get_requirements('optional')
 
+# override django version in requirements file if DJANGO_VERSION is set
 DJANGO_VERSION = os.environ.get('DJANGO_VERSION')
 if DJANGO_VERSION:
     install_requires = [
-        'Django{}'.format(DJANGO_VERSION[1:-1])
-        if k.startswith('Django>=') else k
-        for k in install_requires
+        'Django{}'.format(DJANGO_VERSION)
+        if r.startswith('Django>=') else r
+        for r in install_requires
     ]
 
 

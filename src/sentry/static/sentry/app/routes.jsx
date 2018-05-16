@@ -1,7 +1,6 @@
 import {Redirect, Route, IndexRoute, IndexRedirect} from 'react-router';
 import React from 'react';
 
-import AcceptProjectTransfer from 'app/views/acceptProjectTransfer';
 import AccountAuthorizations from 'app/views/accountAuthorizations';
 import AccountLayout from 'app/views/accountLayout';
 import AdminBuffer from 'app/views/adminBuffer';
@@ -11,6 +10,7 @@ import AdminOverview from 'app/views/adminOverview';
 import AdminProjects from 'app/views/adminProjects';
 import AdminQueue from 'app/views/adminQueue';
 import AdminQuotas from 'app/views/adminQuotas';
+import AdminRelays from 'app/views/adminRelays';
 import AdminSettings from 'app/views/adminSettings';
 import AdminUsers from 'app/views/adminUsers';
 import ApiApplicationDetails from 'app/views/apiApplicationDetails';
@@ -49,16 +49,10 @@ import OrganizationHomeContainer from 'app/components/organizations/homeContaine
 import OrganizationMemberDetail from 'app/views/settings/organization/members/organizationMemberDetail';
 import OrganizationMembersView from 'app/views/settings/organization/members/organizationMembersView';
 import OrganizationProjectsView from 'app/views/settings/organization/projects/organizationProjectsView';
-import OrganizationRateLimits from 'app/views/organizationRateLimits';
 import OrganizationRoot from 'app/views/organizationRoot';
 import OrganizationRepositoriesView from 'app/views/organizationRepositoriesView';
 import OrganizationGeneralSettingsView from 'app/views/settings/organization/general/organizationGeneralSettingsView';
 import OrganizationStats from 'app/views/organizationStats';
-import OrganizationTeams from 'app/views/organizationTeams';
-import OrganizationTeamsProjectsView from 'app/views/organizationTeamsProjects';
-import ProjectAlertRules from 'app/views/settings/projectAlerts/projectAlertRules';
-import ProjectAlertRuleDetails from 'app/views/settings/projectAlerts/projectAlertRuleDetails';
-import ProjectAlertSettings from 'app/views/settings/projectAlerts/projectAlertSettings';
 import ProjectEnvironments from 'app/views/projectEnvironments';
 import ProjectTags from 'app/views/projectTags';
 import ProjectChooser from 'app/views/projectChooser';
@@ -68,7 +62,6 @@ import ProjectDebugSymbols from 'app/views/projectDebugSymbols';
 import ProjectDetails from 'app/views/projectDetails';
 import ProjectDocsContext from 'app/views/projectInstall/docsContext';
 import ProjectEvents from 'app/views/projectEvents';
-import ProjectGeneralSettings from 'app/views/projectGeneralSettings';
 import ProjectGettingStarted from 'app/views/projectInstall/gettingStarted';
 import ProjectInstallOverview from 'app/views/projectInstall/overview';
 import ProjectInstallPlatform from 'app/views/projectInstall/platform';
@@ -89,11 +82,6 @@ import RouteNotFound from 'app/views/routeNotFound';
 import SettingsProjectProvider from 'app/views/settings/components/settingsProjectProvider';
 import SettingsWrapper from 'app/views/settings/components/settingsWrapper';
 import Stream from 'app/views/stream';
-import TeamCreate from 'app/views/teamCreate';
-import TeamDetails from 'app/views/teamDetails';
-import TeamMembers from 'app/views/teamMembers';
-import TeamSettings from 'app/views/teamSettings';
-import TeamProjects from 'app/views/settings/team/teamProjects';
 import errorHandler from 'app/utils/errorHandler';
 
 function appendTrailingSlash(nextState, replace) {
@@ -239,7 +227,12 @@ const accountSettingsRoutes = (
 
 const projectSettingsRoutes = (
   <React.Fragment>
-    <IndexRoute name="General" component={errorHandler(ProjectGeneralSettings)} />
+    <IndexRoute
+      name="General"
+      componentPromise={() =>
+        import(/*webpackChunkName: "ProjectGeneralSettings"*/ 'app/views/settings/projectGeneralSettings')}
+      component={errorHandler(LazyLoad)}
+    />
     <Route
       path="teams/"
       name="Teams"
@@ -248,14 +241,30 @@ const projectSettingsRoutes = (
       component={errorHandler(LazyLoad)}
     />
     <Route name="Alerts" path="alerts/">
-      <IndexRoute component={errorHandler(ProjectAlertSettings)} />
+      <IndexRoute
+        component={errorHandler(LazyLoad)}
+        componentPromise={() =>
+          import(/*webpackChunkName: "ProjectAlertSettings"*/ './views/settings/projectAlerts/projectAlertSettings')}
+      />
       <Route path="rules/" name="Rules" component={null}>
-        <IndexRoute component={errorHandler(ProjectAlertRules)} />
-        <Route path="new/" name="New" component={errorHandler(ProjectAlertRuleDetails)} />
+        <IndexRoute
+          component={errorHandler(LazyLoad)}
+          componentPromise={() =>
+            import(/*webpackChunkName: "ProjectAlertRules"*/ './views/settings/projectAlerts/projectAlertRules')}
+        />
+        <Route
+          path="new/"
+          name="New"
+          component={errorHandler(LazyLoad)}
+          componentPromise={() =>
+            import(/*webpackChunkName: "ProjectAlertRuleDetails"*/ './views/settings/projectAlerts/projectAlertRuleDetails')}
+        />
         <Route
           path=":ruleId/"
           name="Edit"
-          component={errorHandler(ProjectAlertRuleDetails)}
+          componentPromise={() =>
+            import(/*webpackChunkName: "ProjectAlertRuleDetails"*/ './views/settings/projectAlerts/projectAlertRuleDetails')}
+          component={errorHandler(LazyLoad)}
         />
       </Route>
     </Route>
@@ -505,7 +514,9 @@ function routes() {
       <Route
         path="rate-limits/"
         name="Rate Limits"
-        component={errorHandler(OrganizationRateLimits)}
+        componentPromise={() =>
+          import(/*webpackChunkName: OrganizationRateLimits*/ 'app/views/settings/organizationRateLimits')}
+        component={errorHandler(LazyLoad)}
       />
 
       <Route
@@ -517,33 +528,40 @@ function routes() {
       <Route path="settings/" component={errorHandler(OrganizationGeneralSettingsView)} />
 
       <Route name="Teams" path="teams/">
-        <IndexRoute component={errorHandler(OrganizationTeams)} />
-
-        <Route
-          path="all-teams/"
-          name="All Teams"
-          allTeams
-          component={errorHandler(OrganizationTeams)}
+        <IndexRoute
+          componentPromise={() =>
+            import(/*webpackChunkName: OrganizationTeams*/ './views/settings/organizationTeams')}
+          component={errorHandler(LazyLoad)}
         />
 
         <Route
-          name="Your Teams"
-          path="your-teams/"
-          component={errorHandler(OrganizationTeams)}
-        />
-
-        <Route name="Team" path=":teamId/" component={errorHandler(TeamDetails)}>
+          name="Team"
+          path=":teamId/"
+          componentPromise={() =>
+            import(/*webpackChunkName: TeamDetails*/ './views/settings/organizationTeams/teamDetails')}
+          component={errorHandler(LazyLoad)}
+        >
           <IndexRedirect to="members/" />
-          <Route path="members/" name="Members" component={errorHandler(TeamMembers)} />
+          <Route
+            path="members/"
+            name="Members"
+            componentPromise={() =>
+              import(/*webpackChunkName: TeamMembers*/ './views/settings/organizationTeams/teamMembers')}
+            component={errorHandler(LazyLoad)}
+          />
           <Route
             path="projects/"
             name="Projects"
-            component={errorHandler(TeamProjects)}
+            componentPromise={() =>
+              import(/*webpackChunkName: TeamProjects*/ './views/settings/organizationTeams/teamProjects')}
+            component={errorHandler(LazyLoad)}
           />
           <Route
             path="settings/"
             name="settings"
-            component={errorHandler(TeamSettings)}
+            componentPromise={() =>
+              import(/*webpackChunkName: TeamSettings*/ './views/settings/organizationTeams/teamSettings')}
+            component={errorHandler(LazyLoad)}
           />
         </Route>
       </Route>
@@ -552,7 +570,12 @@ function routes() {
 
   return (
     <Route path="/" component={errorHandler(App)}>
-      <Route path="/accept-transfer/" component={errorHandler(AcceptProjectTransfer)} />
+      <Route
+        path="/accept-transfer/"
+        componentPromise={() =>
+          import(/*webpackChunkName:"AcceptProjectTransfer"*/ 'app/views/acceptProjectTransfer')}
+        component={errorHandler(LazyLoad)}
+      />
       <Route path="/account/" component={errorHandler(AccountLayout)}>
         <Route path="authorizations/" component={errorHandler(AccountAuthorizations)} />
       </Route>
@@ -620,6 +643,7 @@ function routes() {
       <Route path="/manage/" component={errorHandler(AdminLayout)}>
         <IndexRoute component={errorHandler(AdminOverview)} />
         <Route path="buffer/" component={errorHandler(AdminBuffer)} />
+        <Route path="relays/" component={errorHandler(AdminRelays)} />
         <Route path="organizations/" component={errorHandler(AdminOrganizations)} />
         <Route path="projects/" component={errorHandler(AdminProjects)} />
         <Route path="queue/" component={errorHandler(AdminQueue)} />
@@ -659,15 +683,30 @@ function routes() {
 
           <Route
             path="/organizations/:orgId/teams/new/"
-            component={errorHandler(TeamCreate)}
+            componentPromise={() =>
+              import(/*webpackChunkName:"TeamCreate"*/ './views/teamCreate')}
+            component={errorHandler(LazyLoad)}
           />
 
           <Route path="/organizations/:orgId/" component={OrganizationHomeContainer}>
-            <Route
-              path="projects/"
-              component={errorHandler(OrganizationTeamsProjectsView)}
-            />
+            <Redirect from="projects/" to="/:orgId/" />
             {hooksOrgRoutes}
+            <Redirect path="teams/" to="/settings/:orgId/teams/" />
+            <Redirect path="teams/your-teams/" to="/settings/:orgId/teams/" />
+            <Redirect path="teams/all-teams/" to="/settings/:orgId/teams/" />
+            <Redirect path="teams/:teamId/" to="/settings/:orgId/teams/:teamId/" />
+            <Redirect
+              path="teams/:teamId/members/"
+              to="/settings/:orgId/teams/:teamId/members/"
+            />
+            <Redirect
+              path="teams/:teamId/projects/"
+              to="/settings/:orgId/teams/:teamId/projects/"
+            />
+            <Redirect
+              path="teams/:teamId/settings/"
+              to="/settings/:orgId/teams/:teamId/settings/"
+            />
             {orgSettingsRoutes}
             <Route path="stats/" component={errorHandler(OrganizationStats)} />
           </Route>

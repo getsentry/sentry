@@ -235,19 +235,19 @@ exports[`OrganizationTeamProjects Should render 1`] = `
               key="2"
             >
               <PanelItem
-                className="css-qjeif8-StyledPanelItem er5mk5i1"
+                className="css-qjeif8-StyledPanelItem eqsa6vb1"
                 p={2}
               >
                 <StyledPanelItem
-                  className="css-qjeif8-StyledPanelItem er5mk5i1"
+                  className="css-qjeif8-StyledPanelItem eqsa6vb1"
                   p={2}
                 >
                   <Base
-                    className="er5mk5i1 css-avuc83-StyledPanelItem-StyledPanelItem eo8n7lk0"
+                    className="eqsa6vb1 css-avuc83-StyledPanelItem-StyledPanelItem eo8n7lk0"
                     p={2}
                   >
                     <div
-                      className="er5mk5i1 css-avuc83-StyledPanelItem-StyledPanelItem eo8n7lk0"
+                      className="eqsa6vb1 css-avuc83-StyledPanelItem-StyledPanelItem eo8n7lk0"
                       is={null}
                     >
                       <ProjectItem
@@ -487,93 +487,98 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                           </Link>
                         </div>
                       </ProjectItem>
-                      <Button
-                        disabled={false}
-                        onClick={[Function]}
-                        size="small"
+                      <Tooltip
+                        disabled={true}
+                        title="You do not have enough permission to change project association."
                       >
-                        <StyledButton
+                        <Button
                           disabled={false}
                           onClick={[Function]}
-                          role="button"
                           size="small"
                         >
-                          <Component
-                            className="css-dkprmi-StyledButton-getColors e17811v30"
+                          <StyledButton
                             disabled={false}
                             onClick={[Function]}
                             role="button"
                             size="small"
                           >
-                            <button
+                            <Component
                               className="css-dkprmi-StyledButton-getColors e17811v30"
                               disabled={false}
                               onClick={[Function]}
                               role="button"
                               size="small"
                             >
-                              <ButtonLabel
+                              <button
+                                className="css-dkprmi-StyledButton-getColors e17811v30"
+                                disabled={false}
+                                onClick={[Function]}
+                                role="button"
                                 size="small"
                               >
-                                <Component
-                                  className="css-179w01k-ButtonLabel e17811v31"
+                                <ButtonLabel
                                   size="small"
                                 >
-                                  <Flex
-                                    align="center"
+                                  <Component
                                     className="css-179w01k-ButtonLabel e17811v31"
                                     size="small"
                                   >
-                                    <Base
+                                    <Flex
                                       align="center"
-                                      className="e17811v31 css-8mahft-ButtonLabel"
+                                      className="css-179w01k-ButtonLabel e17811v31"
                                       size="small"
                                     >
-                                      <div
+                                      <Base
+                                        align="center"
                                         className="e17811v31 css-8mahft-ButtonLabel"
-                                        is={null}
                                         size="small"
                                       >
-                                        <RemoveIcon>
-                                          <Component
-                                            className="css-1e2j5j0-RemoveIcon er5mk5i0"
-                                          >
-                                            <InlineSvg
-                                              className="css-1e2j5j0-RemoveIcon er5mk5i0"
-                                              src="icon-circle-subtract"
+                                        <div
+                                          className="e17811v31 css-8mahft-ButtonLabel"
+                                          is={null}
+                                          size="small"
+                                        >
+                                          <RemoveIcon>
+                                            <Component
+                                              className="css-1e2j5j0-RemoveIcon eqsa6vb0"
                                             >
-                                              <StyledSvg
-                                                className="css-1e2j5j0-RemoveIcon er5mk5i0"
-                                                height="1em"
-                                                viewBox={Object {}}
-                                                width="1em"
+                                              <InlineSvg
+                                                className="css-1e2j5j0-RemoveIcon eqsa6vb0"
+                                                src="icon-circle-subtract"
                                               >
-                                                <svg
-                                                  className="er5mk5i0 css-10g0ex9-StyledSvg-RemoveIcon e2idor0"
+                                                <StyledSvg
+                                                  className="css-1e2j5j0-RemoveIcon eqsa6vb0"
                                                   height="1em"
                                                   viewBox={Object {}}
                                                   width="1em"
                                                 >
-                                                  <use
-                                                    href="#test"
-                                                    xlinkHref="#test"
-                                                  />
-                                                </svg>
-                                              </StyledSvg>
-                                            </InlineSvg>
-                                          </Component>
-                                        </RemoveIcon>
-                                         
-                                        Remove
-                                      </div>
-                                    </Base>
-                                  </Flex>
-                                </Component>
-                              </ButtonLabel>
-                            </button>
-                          </Component>
-                        </StyledButton>
-                      </Button>
+                                                  <svg
+                                                    className="eqsa6vb0 css-10g0ex9-StyledSvg-RemoveIcon e2idor0"
+                                                    height="1em"
+                                                    viewBox={Object {}}
+                                                    width="1em"
+                                                  >
+                                                    <use
+                                                      href="#test"
+                                                      xlinkHref="#test"
+                                                    />
+                                                  </svg>
+                                                </StyledSvg>
+                                              </InlineSvg>
+                                            </Component>
+                                          </RemoveIcon>
+                                           
+                                          Remove
+                                        </div>
+                                      </Base>
+                                    </Flex>
+                                  </Component>
+                                </ButtonLabel>
+                              </button>
+                            </Component>
+                          </StyledButton>
+                        </Button>
+                      </Tooltip>
                     </div>
                   </Base>
                 </StyledPanelItem>
