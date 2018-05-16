@@ -4,6 +4,7 @@ from sentry import integrations
 from sentry.api.bases import GroupEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.integration import IntegrationIssueSerializer
 from sentry.integrations.base import IntegrationFeatures
 from sentry.models import Integration
 
@@ -22,6 +23,6 @@ class GroupIntegrationsEndpoint(GroupEndpoint):
             ),
             request=request,
             order_by='name',
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda x: serialize(x, request.user, IntegrationIssueSerializer(group)),
             paginator_cls=OffsetPaginator,
         )
