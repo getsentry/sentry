@@ -366,7 +366,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         if results and query not in SAVED_SEARCH_QUERIES:
             advanced_search.send(project=project, sender=request.user)
             analytics.record('project_issue.searched', user_id=request.user.id,
-                             organization_id=project.organization_id, project=project.id,
+                             organization_id=project.organization_id, project_id=project.id,
                              query=query)
 
         return response
