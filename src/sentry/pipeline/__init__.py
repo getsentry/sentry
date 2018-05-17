@@ -158,12 +158,13 @@ class Pipeline(object):
         self.provider.set_pipeline(self)
         self.provider.set_config(config)
 
-        self.pipeline = self.get_pipeline_views()
+        self.pipeline_views = self.get_pipeline_views()
 
         # we serialize the pipeline to be ['fqn.PipelineView', ...] which
         # allows us to determine if the pipeline has changed during the auth
         # flow or if the user is somehow circumventing a chunk of it
-        pipe_ids = ['{}.{}'.format(type(v).__module__, type(v).__name__) for v in self.pipeline]
+        pipe_ids = ['{}.{}'.format(type(v).__module__, type(v).__name__)
+                    for v in self.pipeline_views]
         self.signature = md5_text(*pipe_ids).hexdigest()
 
     def get_pipeline_views(self):
@@ -200,10 +201,10 @@ class Pipeline(object):
         """
         step_index = self.state.step_index
 
-        if step_index == len(self.pipeline):
+        if step_index == len(self.pipeline_views):
             return self.finish_pipeline()
 
-        step = self.pipeline[step_index]
+        step = self.pipeline_views[step_index]
 
         # support late binding steps
         if isinstance(step, LambdaType):
