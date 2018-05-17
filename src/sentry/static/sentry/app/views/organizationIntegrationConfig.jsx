@@ -114,11 +114,14 @@ export default class OrganizationIntegrationConfig extends AsyncView {
   }
 
   getEndpoints() {
-    const {orgId} = this.props.params;
+    const {orgId, providerKey} = this.props.params;
 
     return [
       ['config', `/organizations/${orgId}/config/integrations/`],
-      ['itemList', `/organizations/${orgId}/integrations/`],
+      [
+        'integrations',
+        `/organizations/${orgId}/integrations/?provider_key=${providerKey}`,
+      ],
     ];
   }
 
@@ -157,14 +160,14 @@ export default class OrganizationIntegrationConfig extends AsyncView {
 
     // Merge the new integration into the list. If we're updating an
     // integration ovewrrite the old integration.
-    const keyedItems = keyBy(this.state.itemList, i => i.id);
-    const itemList = sortArray(
+    const keyedItems = keyBy(this.state.integrations, i => i.id);
+    const integrations = sortArray(
       Object.values({...keyedItems, [data.id]: data}),
       i => i.name
     );
 
     IndicatorStore.addSuccess(t('Integration Added'));
-    this.setState({itemList});
+    this.setState({integrations});
   };
 
   handleDeleteIntegration = integration => {
@@ -175,7 +178,9 @@ export default class OrganizationIntegrationConfig extends AsyncView {
       method: 'DELETE',
       success: () => {
         this.setState({
-          itemList: this.state.itemList.filter(item => item.id !== integration.id),
+          integrations: this.state.integrations.filter(
+            item => item.id !== integration.id
+          ),
         });
         IndicatorStore.addSuccess(t('Integration removed'));
       },
@@ -210,9 +215,7 @@ export default class OrganizationIntegrationConfig extends AsyncView {
   }
 
   renderBody() {
-    const {providerKey} = this.props.params;
-
-    const integrations = this.state.itemList.filter(i => i.provider.key === providerKey);
+    const integrations = this.state.integrations;
     const provider = this.getProvider();
 
     if (provider === null) {
