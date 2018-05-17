@@ -26,7 +26,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         assert OrganizationIntegration.objects.filter(
             organization_id=self.organization.id,
             integration_id=integration.id,
-        )
+        ).exists()
 
     def test_with_pre_existing_ref(self):
         old_integration = Integration.objects.create(
