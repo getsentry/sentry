@@ -14,7 +14,7 @@ describe('IdBadge', function() {
   it('renders the correct component when `team` property is passed', function() {
     let wrapper = shallow(<IdBadge team={TestStubs.Team()} />, routerContext);
 
-    expect(wrapper.find('TeamBadge')).toHaveLength(1);
+    expect(wrapper.find('TeamBadgeContainer')).toHaveLength(1);
   });
 
   it('renders the correct component when `project` property is passed', function() {
@@ -30,7 +30,7 @@ describe('IdBadge', function() {
       routerContext
     );
 
-    expect(wrapper.find('OrganizationBadge')).toHaveLength(1);
+    expect(wrapper.find('OrganizationBadgeContainer')).toHaveLength(1);
   });
 
   it('throws when no valid properties are passed', function() {

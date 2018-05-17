@@ -110,6 +110,7 @@ exports[`SuggestedOwners render() should show owners when enable 1`] = `
                   title="Jane Doe"
                   tooltip="Jane Doe (janedoe@example.com)"
                   type="gravatar"
+                  uploadPath="avatar"
                 >
                   <Tooltip
                     disabled={true}

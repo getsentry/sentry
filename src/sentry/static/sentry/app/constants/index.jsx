@@ -49,4 +49,12 @@ export const DEFAULT_FUSE_OPTIONS = {
   // findAllMatches: true,
 };
 
+// Maps a `type: string` -> `url-prefix: string`
+export const AVATAR_URL_MAP = {
+  team: 'team-avatar',
+  organization: 'organization-avatar',
+  project: 'project-avatar',
+  user: 'avatar',
+};
+
 export const MENU_CLOSE_DELAY = 200;

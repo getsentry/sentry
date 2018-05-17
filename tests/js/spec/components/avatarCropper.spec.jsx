@@ -17,7 +17,7 @@ describe('AvatarCropper', function() {
         'are positive (cropper is getting smaller)',
       function() {
         let cropper = shallow(
-          <AvatarCropper user={USER} updateDataUrlState={function() {}} />
+          <AvatarCropper model={USER} updateDataUrlState={function() {}} />
         ).instance();
         let diff = cropper.getDiffNW(4, 5);
         expect(diff).toEqual(-4.5);
@@ -29,7 +29,7 @@ describe('AvatarCropper', function() {
         'are negative (cropper is getting bigger)',
       function() {
         let cropper = shallow(
-          <AvatarCropper user={USER} updateDataUrlState={function() {}} />
+          <AvatarCropper model={USER} updateDataUrlState={function() {}} />
         ).instance();
         let diff = cropper.getDiffNW(-4, -5);
         expect(diff).toEqual(4.5);
@@ -43,7 +43,7 @@ describe('AvatarCropper', function() {
         'xDiff is positive (cropper is getting bigger)',
       function() {
         let cropper = shallow(
-          <AvatarCropper user={USER} updateDataUrlState={function() {}} />
+          <AvatarCropper model={USER} updateDataUrlState={function() {}} />
         ).instance();
         let diff = cropper.getDiffNE(-4, 5);
         expect(diff).toEqual(4.5);
@@ -55,7 +55,7 @@ describe('AvatarCropper', function() {
         'xDiff is negative (cropper is getting smaller)',
       function() {
         let cropper = shallow(
-          <AvatarCropper user={USER} updateDataUrlState={function() {}} />
+          <AvatarCropper model={USER} updateDataUrlState={function() {}} />
         ).instance();
         let diff = cropper.getDiffNE(4, -5);
         expect(diff).toEqual(-4.5);
@@ -69,7 +69,7 @@ describe('AvatarCropper', function() {
         'xDiff are positive (cropper is getting bigger)',
       function() {
         let cropper = shallow(
-          <AvatarCropper user={USER} updateDataUrlState={function() {}} />
+          <AvatarCropper model={USER} updateDataUrlState={function() {}} />
         ).instance();
         let diff = cropper.getDiffSE(4, 5);
         expect(diff).toEqual(4.5);
@@ -81,7 +81,7 @@ describe('AvatarCropper', function() {
         'xDiff are negative (cropper is getting smaller)',
       function() {
         let cropper = shallow(
-          <AvatarCropper user={USER} updateDataUrlState={function() {}} />
+          <AvatarCropper model={USER} updateDataUrlState={function() {}} />
         ).instance();
         let diff = cropper.getDiffSE(-4, -5);
         expect(diff).toEqual(-4.5);
@@ -95,7 +95,7 @@ describe('AvatarCropper', function() {
         'xDiff is negative (cropper is getting bigger)',
       function() {
         let cropper = shallow(
-          <AvatarCropper user={USER} updateDataUrlState={function() {}} />
+          <AvatarCropper model={USER} updateDataUrlState={function() {}} />
         ).instance();
         let diff = cropper.getDiffSW(4, -5);
         expect(diff).toEqual(4.5);
@@ -107,7 +107,7 @@ describe('AvatarCropper', function() {
         'xDiff is positive (cropper is getting smaller)',
       function() {
         let cropper = shallow(
-          <AvatarCropper user={USER} updateDataUrlState={function() {}} />
+          <AvatarCropper model={USER} updateDataUrlState={function() {}} />
         ).instance();
         let diff = cropper.getDiffSW(-4, 5);
         expect(diff).toEqual(-4.5);

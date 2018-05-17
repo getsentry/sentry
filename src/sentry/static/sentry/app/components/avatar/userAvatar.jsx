@@ -38,6 +38,7 @@ class UserAvatar extends React.Component {
       <BaseAvatar
         {...props}
         type={type}
+        uploadPath="avatar"
         uploadId={user.avatar && user.avatar.avatarUuid}
         gravatarId={user && user.email && user.email.toLowerCase()}
         letterId={user.email || user.username || user.id || user.ip_address}

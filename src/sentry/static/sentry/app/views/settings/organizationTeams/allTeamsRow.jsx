@@ -9,6 +9,7 @@ import {joinTeam, leaveTeam} from 'app/actionCreators/teams';
 import {t, tct} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
 import {PanelItem} from 'app/components/panels';
+import IdBadge from 'app/components/idBadge';
 
 // TODO(dcramer): this isnt great UX
 
@@ -115,7 +116,7 @@ const AllTeamsRow = createReactClass({
   render() {
     let {access, team, urlPrefix, openMembership, organization} = this.props;
     let features = new Set(organization.features);
-    let display = features.has('new-teams') ? `#${team.slug}` : team.name;
+    let display = features.has('new-teams') ? <IdBadge team={team} /> : team.name;
     return (
       <PanelItem p={0} align="center">
         <Box flex="1" p={2}>
