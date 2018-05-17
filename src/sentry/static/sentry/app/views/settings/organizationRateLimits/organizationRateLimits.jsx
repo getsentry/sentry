@@ -65,7 +65,7 @@ export default class OrganizationRateLimit extends React.Component {
             </PanelAlert>
 
             <Form
-              className="ref-rate-limit-editor"
+              data-test-id="rate-limit-editor"
               saveOnBlur
               allowUndo
               apiMethod="PUT"
