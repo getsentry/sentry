@@ -50,7 +50,9 @@ class ProjectKeyCredentials extends React.Component {
         {showDsn && (
           <Field
             label={t('DSN (Legacy)')}
-            help={t('Use this DSN with server-side SDKs in older versions of Sentry.')}
+            help={t(
+              'This DSN includes the secret which is no longer required by Sentry or newer versions of SDKs.'
+            )}
             inline={false}
             flexibleControlStateSize
           >
