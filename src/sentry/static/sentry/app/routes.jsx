@@ -403,7 +403,7 @@ const projectSettingsRoutes = (
       path="integrations/:providerKey/"
       name="Integration Configuration"
       componentPromise={() =>
-        import(/* webpackChunkName: "OrganizationIntegrationConfig" */ './views/organizationIntegrationConfig')}
+        import(/* webpackChunkName: "OrganizationIntegration" */ './views/organizationIntegration')}
       component={errorHandler(LazyLoad)}
     />
     <Route

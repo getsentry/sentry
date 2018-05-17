@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`OrganizationIntegrationConfig render() with one integration renders 1`] = `
-<OrganizationIntegrationConfig
+exports[`OrganizationIntegration render() with one integration renders 1`] = `
+<OrganizationIntegration
   params={
     Object {
       "orgId": "org-slug",
@@ -216,190 +216,208 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
               <div
                 className="css-9vq8an-textStyles"
               >
-                <PanelItem
+                <InstalledIntegration
+                  integration={
+                    Object {
+                      "domain_name": "gtithub.com/test-integration",
+                      "icon": "http://example.com/integration_icon.png",
+                      "id": "1",
+                      "name": "Test Integration",
+                      "provider": Object {
+                        "key": "github",
+                        "name": "GitHub",
+                      },
+                    }
+                  }
                   key="1"
-                  p={0}
-                  py={2}
+                  onRemove={[Function]}
+                  provider={
+                    Object {
+                      "canAdd": true,
+                      "config": Array [],
+                      "key": "github",
+                      "metadata": Object {
+                        "aspects": Object {
+                          "alert_link": Object {
+                            "link": "/url/with/params/{orgId}/",
+                            "text": "This is a *alert link* with markdown formatting",
+                          },
+                        },
+                        "author": "Morty",
+                        "description": "*markdown* formatted _description_",
+                        "issue_url": "http://example.com/integration_issue_url",
+                        "noun": "Installation",
+                        "source_url": "http://example.com/integration_source_url",
+                      },
+                      "name": "GitHub",
+                      "setupDialog": Object {
+                        "height": 100,
+                        "url": "/github-integration-setup-uri/",
+                        "width": 100,
+                      },
+                    }
+                  }
                 >
-                  <StyledPanelItem
+                  <PanelItem
+                    key="1"
                     p={0}
                     py={2}
                   >
-                    <Base
-                      className="css-1uon4oe-StyledPanelItem eo8n7lk0"
+                    <StyledPanelItem
                       p={0}
                       py={2}
                     >
-                      <div
+                      <Base
                         className="css-1uon4oe-StyledPanelItem eo8n7lk0"
-                        is={null}
+                        p={0}
+                        py={2}
                       >
-                        <Box
-                          pl={2}
+                        <div
+                          className="css-1uon4oe-StyledPanelItem eo8n7lk0"
+                          is={null}
                         >
-                          <Base
-                            className="css-wwmrss"
+                          <Box
                             pl={2}
                           >
-                            <div
+                            <Base
                               className="css-wwmrss"
-                              is={null}
+                              pl={2}
                             >
-                              <IntegrationIcon
-                                src="http://example.com/integration_icon.png"
+                              <div
+                                className="css-wwmrss"
+                                is={null}
                               >
-                                <img
-                                  className="css-lx37iq-IntegrationIcon e16ncsfk0"
+                                <IntegrationIcon
                                   src="http://example.com/integration_icon.png"
-                                />
-                              </IntegrationIcon>
-                            </div>
-                          </Base>
-                        </Box>
-                        <Box
-                          flex={1}
-                          px={2}
-                        >
-                          <Base
-                            className="css-pcjga5"
+                                >
+                                  <img
+                                    className="css-lx37iq-IntegrationIcon e13u596k0"
+                                    src="http://example.com/integration_icon.png"
+                                  />
+                                </IntegrationIcon>
+                              </div>
+                            </Base>
+                          </Box>
+                          <Box
                             flex={1}
                             px={2}
                           >
-                            <div
+                            <Base
                               className="css-pcjga5"
-                              is={null}
+                              flex={1}
+                              px={2}
                             >
-                              <IntegrationName>
-                                <div
-                                  className="css-1daz7ru-IntegrationName e16ncsfk1"
-                                >
-                                  Test Integration
-                                </div>
-                              </IntegrationName>
-                              <DomainName>
-                                <div
-                                  className="css-1ay0cji-DomainName e16ncsfk2"
-                                >
-                                  gtithub.com/test-integration
-                                </div>
-                              </DomainName>
-                            </div>
-                          </Base>
-                        </Box>
-                        <Box
-                          mr={1}
-                          pr={2}
-                        >
-                          <Base
-                            className="css-3n6m02"
+                              <div
+                                className="css-pcjga5"
+                                is={null}
+                              >
+                                <IntegrationName>
+                                  <div
+                                    className="css-1daz7ru-IntegrationName e13u596k1"
+                                  >
+                                    Test Integration
+                                  </div>
+                                </IntegrationName>
+                                <DomainName>
+                                  <div
+                                    className="css-1ay0cji-DomainName e13u596k2"
+                                  >
+                                    gtithub.com/test-integration
+                                  </div>
+                                </DomainName>
+                              </div>
+                            </Base>
+                          </Box>
+                          <Box
                             mr={1}
                             pr={2}
                           >
-                            <div
+                            <Base
                               className="css-3n6m02"
-                              is={null}
+                              mr={1}
+                              pr={2}
                             >
-                              <Confirm
-                                cancelText="Cancel"
-                                confirmText="Confirm"
-                                message="Removing this inegration will disable the integration for all projects. Are you sure you want to remove this integration?"
-                                onConfirm={[Function]}
-                                priority="primary"
+                              <div
+                                className="css-3n6m02"
+                                is={null}
                               >
-                                <Button
-                                  disabled={false}
-                                  onClick={[Function]}
-                                  size="small"
+                                <Confirm
+                                  cancelText="Cancel"
+                                  confirmText="Confirm"
+                                  message="Removing this inegration will disable the integration for all projects. Are you sure you want to remove this integration?"
+                                  onConfirm={[Function]}
+                                  priority="primary"
                                 >
-                                  <StyledButton
+                                  <Button
                                     disabled={false}
                                     onClick={[Function]}
-                                    role="button"
                                     size="small"
                                   >
-                                    <Component
-                                      className="css-dkprmi-StyledButton-getColors e17811v30"
+                                    <StyledButton
                                       disabled={false}
                                       onClick={[Function]}
                                       role="button"
                                       size="small"
                                     >
-                                      <button
+                                      <Component
                                         className="css-dkprmi-StyledButton-getColors e17811v30"
                                         disabled={false}
                                         onClick={[Function]}
                                         role="button"
                                         size="small"
                                       >
-                                        <ButtonLabel
+                                        <button
+                                          className="css-dkprmi-StyledButton-getColors e17811v30"
+                                          disabled={false}
+                                          onClick={[Function]}
+                                          role="button"
                                           size="small"
                                         >
-                                          <Component
-                                            className="css-179w01k-ButtonLabel e17811v31"
+                                          <ButtonLabel
                                             size="small"
                                           >
-                                            <Flex
-                                              align="center"
+                                            <Component
                                               className="css-179w01k-ButtonLabel e17811v31"
                                               size="small"
                                             >
-                                              <Base
+                                              <Flex
                                                 align="center"
-                                                className="e17811v31 css-8mahft-ButtonLabel"
+                                                className="css-179w01k-ButtonLabel e17811v31"
                                                 size="small"
                                               >
-                                                <div
+                                                <Base
+                                                  align="center"
                                                   className="e17811v31 css-8mahft-ButtonLabel"
-                                                  is={null}
                                                   size="small"
                                                 >
-                                                  <span
-                                                    className="icon icon-trash"
-                                                    style={
-                                                      Object {
-                                                        "margin": 0,
+                                                  <div
+                                                    className="e17811v31 css-8mahft-ButtonLabel"
+                                                    is={null}
+                                                    size="small"
+                                                  >
+                                                    <span
+                                                      className="icon icon-trash"
+                                                      style={
+                                                        Object {
+                                                          "margin": 0,
+                                                        }
                                                       }
-                                                    }
-                                                  />
-                                                </div>
-                                              </Base>
-                                            </Flex>
-                                          </Component>
-                                        </ButtonLabel>
-                                      </button>
-                                    </Component>
-                                  </StyledButton>
-                                </Button>
-                                <Modal
-                                  animation={false}
-                                  autoFocus={true}
-                                  backdrop={true}
-                                  bsClass="modal"
-                                  dialogComponentClass={[Function]}
-                                  enforceFocus={true}
-                                  keyboard={true}
-                                  manager={
-                                    ModalManager {
-                                      "add": [Function],
-                                      "containers": Array [],
-                                      "data": Array [],
-                                      "handleContainerOverflow": true,
-                                      "hideSiblingNodes": true,
-                                      "isTopModal": [Function],
-                                      "modals": Array [],
-                                      "remove": [Function],
-                                    }
-                                  }
-                                  onHide={[Function]}
-                                  renderBackdrop={[Function]}
-                                  restoreFocus={true}
-                                  show={false}
-                                >
+                                                    />
+                                                  </div>
+                                                </Base>
+                                              </Flex>
+                                            </Component>
+                                          </ButtonLabel>
+                                        </button>
+                                      </Component>
+                                    </StyledButton>
+                                  </Button>
                                   <Modal
+                                    animation={false}
                                     autoFocus={true}
                                     backdrop={true}
-                                    backdropClassName="modal-backdrop"
-                                    containerClassName="modal-open"
+                                    bsClass="modal"
+                                    dialogComponentClass={[Function]}
                                     enforceFocus={true}
                                     keyboard={true}
                                     manager={
@@ -414,22 +432,47 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                                         "remove": [Function],
                                       }
                                     }
-                                    onEntering={[Function]}
-                                    onExited={[Function]}
                                     onHide={[Function]}
                                     renderBackdrop={[Function]}
                                     restoreFocus={true}
                                     show={false}
-                                  />
-                                </Modal>
-                              </Confirm>
-                            </div>
-                          </Base>
-                        </Box>
-                      </div>
-                    </Base>
-                  </StyledPanelItem>
-                </PanelItem>
+                                  >
+                                    <Modal
+                                      autoFocus={true}
+                                      backdrop={true}
+                                      backdropClassName="modal-backdrop"
+                                      containerClassName="modal-open"
+                                      enforceFocus={true}
+                                      keyboard={true}
+                                      manager={
+                                        ModalManager {
+                                          "add": [Function],
+                                          "containers": Array [],
+                                          "data": Array [],
+                                          "handleContainerOverflow": true,
+                                          "hideSiblingNodes": true,
+                                          "isTopModal": [Function],
+                                          "modals": Array [],
+                                          "remove": [Function],
+                                        }
+                                      }
+                                      onEntering={[Function]}
+                                      onExited={[Function]}
+                                      onHide={[Function]}
+                                      renderBackdrop={[Function]}
+                                      restoreFocus={true}
+                                      show={false}
+                                    />
+                                  </Modal>
+                                </Confirm>
+                              </div>
+                            </Base>
+                          </Box>
+                        </div>
+                      </Base>
+                    </StyledPanelItem>
+                  </PanelItem>
+                </InstalledIntegration>
               </div>
             </PanelBody>
           </div>
@@ -501,96 +544,115 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
       <h5>
         GitHub Integration
       </h5>
-      <Details>
-        <Base
-          className="css-16wp28j-Details e16ncsfk3"
-        >
-          <div
-            className="css-16wp28j-Details e16ncsfk3"
-            is={null}
+      <IntegrationDetails
+        author="Morty"
+        links={
+          Array [
+            Object {
+              "href": "http://example.com/integration_issue_url",
+              "title": "Report an Issue",
+            },
+            Object {
+              "href": "http://example.com/integration_source_url",
+              "title": "View Source",
+            },
+          ]
+        }
+        markdownDescription="*markdown* formatted _description_"
+      >
+        <Details>
+          <Base
+            className="css-16wp28j-Details e58h7zp0"
           >
-            <Box
-              width={0.625}
+            <div
+              className="css-16wp28j-Details e58h7zp0"
+              is={null}
             >
-              <Base
-                className="css-dydpyx"
+              <Box
                 width={0.625}
               >
-                <div
+                <Base
                   className="css-dydpyx"
-                  is={null}
+                  width={0.625}
                 >
-                  <Description
-                    dangerouslySetInnerHTML={
-                      Object {
-                        "__html": "<p><em>markdown</em> formatted <em>description</em></p>
-",
-                      }
-                    }
+                  <div
+                    className="css-dydpyx"
+                    is={null}
                   >
-                    <div
-                      className="css-i2iqfw-Description e16ncsfk4"
+                    <Description
                       dangerouslySetInnerHTML={
                         Object {
                           "__html": "<p><em>markdown</em> formatted <em>description</em></p>
 ",
                         }
                       }
-                    />
-                  </Description>
-                  <AuthorName>
-                    <div
-                      className="css-agaydm-AuthorName e16ncsfk5"
                     >
-                      By Morty
-                    </div>
-                  </AuthorName>
-                </div>
-              </Base>
-            </Box>
-            <Box
-              ml={60}
-            >
-              <Base
-                className="css-vgctkd"
+                      <div
+                        className="css-i2iqfw-Description e58h7zp1"
+                        dangerouslySetInnerHTML={
+                          Object {
+                            "__html": "<p><em>markdown</em> formatted <em>description</em></p>
+",
+                          }
+                        }
+                      />
+                    </Description>
+                    <AuthorName>
+                      <div
+                        className="css-agaydm-AuthorName e58h7zp2"
+                      >
+                        By Morty
+                      </div>
+                    </AuthorName>
+                  </div>
+                </Base>
+              </Box>
+              <Box
                 ml={60}
               >
-                <div
+                <Base
                   className="css-vgctkd"
-                  is={null}
+                  ml={60}
                 >
-                  <MetadataLink
-                    href="http://example.com/integration_issue_url"
+                  <div
+                    className="css-vgctkd"
+                    is={null}
                   >
-                    <a
-                      className="css-5qmaie-MetadataLink e16ncsfk6"
+                    <MetadataLink
                       href="http://example.com/integration_issue_url"
+                      key="http://example.com/integration_issue_url"
                     >
-                      Report an Issue
-                    </a>
-                  </MetadataLink>
-                  <MetadataLink
-                    href="http://example.com/integration_source_url"
-                  >
-                    <a
-                      className="css-5qmaie-MetadataLink e16ncsfk6"
+                      <a
+                        className="css-5qmaie-MetadataLink e58h7zp3"
+                        href="http://example.com/integration_issue_url"
+                      >
+                        Report an Issue
+                      </a>
+                    </MetadataLink>
+                    <MetadataLink
                       href="http://example.com/integration_source_url"
+                      key="http://example.com/integration_source_url"
                     >
-                      View Source
-                    </a>
-                  </MetadataLink>
-                </div>
-              </Base>
-            </Box>
-          </div>
-        </Base>
-      </Details>
+                      <a
+                        className="css-5qmaie-MetadataLink e58h7zp3"
+                        href="http://example.com/integration_source_url"
+                      >
+                        View Source
+                      </a>
+                    </MetadataLink>
+                  </div>
+                </Base>
+              </Box>
+            </div>
+          </Base>
+        </Details>
+      </IntegrationDetails>
     </DocumentTitle>
   </SideEffect(DocumentTitle)>
-</OrganizationIntegrationConfig>
+</OrganizationIntegration>
 `;
 
-exports[`OrganizationIntegrationConfig render() without any integrations Displays an error for an invalid provider key 1`] = `
+exports[`OrganizationIntegration render() without any integrations Displays an error for an invalid provider key 1`] = `
 <SideEffect(DocumentTitle)
   title="Global Integrations - Sentry"
 >
