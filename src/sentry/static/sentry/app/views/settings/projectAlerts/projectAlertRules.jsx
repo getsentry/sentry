@@ -21,6 +21,8 @@ import EmptyStateWarning from 'app/components/emptyStateWarning';
 import EnvironmentStore from 'app/stores/environmentStore';
 import ListLink from 'app/components/listLink';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import SentryTypes from 'app/proptypes';
+import Tooltip from 'app/components/tooltip';
 import recreateRoute from 'app/utils/recreateRoute';
 import {conditionalGuideAnchor} from 'app/components/assistant/guideAnchor';
 
@@ -52,6 +54,7 @@ const RuleRow = createReactClass({
     data: PropTypes.object.isRequired,
     onDelete: PropTypes.func.isRequired,
     firstRule: PropTypes.bool,
+    canEdit: PropTypes.bool,
   },
 
   mixins: [ApiMixin],
@@ -87,7 +90,7 @@ const RuleRow = createReactClass({
   },
 
   render() {
-    const {data} = this.props;
+    const {data, canEdit} = this.props;
     const editLink = recreateRoute(`${data.id}/`, this.props);
 
     const env = EnvironmentStore.getByName(data.environment);
@@ -106,9 +109,20 @@ const RuleRow = createReactClass({
           </TextColorLink>
 
           <div>
-            <Button style={{marginRight: 5}} size="small" to={editLink}>
-              {t('Edit Rule')}
-            </Button>
+            <Tooltip
+              disabled={canEdit}
+              title={t('You do not have permission to view rule configuration.')}
+            >
+              <Button
+                data-test-id="edit-rule"
+                style={{marginRight: 5}}
+                disabled={!canEdit}
+                size="small"
+                to={editLink}
+              >
+                {t('Edit Rule')}
+              </Button>
+            </Tooltip>
 
             <Confirm
               message={t('Are you sure you want to remove this rule?')}
@@ -189,6 +203,10 @@ class ProjectAlertRules extends AsyncView {
     routes: PropTypes.array.isRequired,
   };
 
+  static contextTypes = {
+    organization: SentryTypes.Organization,
+  };
+
   getEndpoints() {
     let {orgId, projectId} = this.props.params;
     return [['ruleList', `/projects/${orgId}/${projectId}/rules/`]];
@@ -212,6 +230,9 @@ class ProjectAlertRules extends AsyncView {
 
   renderResults() {
     let {orgId, projectId} = this.props.params;
+    let {organization} = this.context;
+    let canEditRule = organization.access.includes('project:write');
+
     return (
       <div className="rules-list">
         {this.state.ruleList.map(rule => {
@@ -225,6 +246,7 @@ class ProjectAlertRules extends AsyncView {
               routes={this.props.routes}
               onDelete={this.handleDeleteRule.bind(this, rule)}
               firstRule={this.state.ruleList.indexOf(rule) === 0}
+              canEdit={canEditRule}
             />
           );
         })}
