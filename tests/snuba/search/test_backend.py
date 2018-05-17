@@ -784,7 +784,7 @@ class SnubaSearchTest(SnubaTestCase):
             'start': Any(datetime),
             'end': Any(datetime),
             'filter_keys': {
-                'project_id': [2],
+                'project_id': [self.project.id],
                 'primary_hash': [u'513772ee53011ad9f4dc374b2d34d0e9']
             },
             'groupby': ['primary_hash'],
