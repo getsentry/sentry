@@ -112,7 +112,7 @@ const AvatarSettings = createReactClass({
           {this.state.user.avatar.avatarType === 'upload' && (
             <AvatarCropper
               {...this.props}
-              user={this.state.user}
+              model={this.state.user}
               savedDataUrl={this.state.savedDataUrl}
               updateDataUrlState={this.updateDataUrlState}
             />

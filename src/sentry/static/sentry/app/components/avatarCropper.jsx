@@ -315,7 +315,7 @@ class AvatarCropper extends React.Component {
 
   getImgSrc = () => {
     let {savedDataUrl, model, type} = this.props;
-    let uuid = model.avatar.avatarUuid;
+    let uuid = model && model.avatar.avatarUuid;
     let photoUrl = uuid && `/${AVATAR_URL_MAP[type] || 'avatar'}/${uuid}/`;
     return savedDataUrl || this.state.objectURL || photoUrl;
   };
