@@ -23,7 +23,7 @@ describe('OrganizationIntegrationConfig', function() {
     describe('without any integrations', function() {
       beforeEach(function() {
         Client.addMockResponse({
-          url: `/organizations/${org.slug}/integrations/`,
+          url: `/organizations/${org.slug}/integrations/?provider_key=${provider.key}`,
           body: [],
         });
         Client.addMockResponse({
@@ -41,6 +41,10 @@ describe('OrganizationIntegrationConfig', function() {
       });
 
       it('Displays an error for an invalid provider key', function() {
+        Client.addMockResponse({
+          url: `/organizations/${org.slug}/integrations/?provider_key=bad-key`,
+          body: [],
+        });
         const invalidKeyParams = {...params, providerKey: 'bad-key'};
         const wrapper = shallow(
           <OrganizationIntegrationConfig params={invalidKeyParams} />,
@@ -53,7 +57,7 @@ describe('OrganizationIntegrationConfig', function() {
     describe('with one integration', function() {
       beforeEach(function() {
         Client.addMockResponse({
-          url: `/organizations/${org.slug}/integrations/`,
+          url: `/organizations/${org.slug}/integrations/?provider_key=${provider.key}`,
           body: [integration],
         });
         Client.addMockResponse({
@@ -109,7 +113,7 @@ describe('OrganizationIntegrationConfig', function() {
           },
         });
 
-        expect(wrapper.instance().state.itemList).toHaveLength(2);
+        expect(wrapper.instance().state.integrations).toHaveLength(2);
       });
 
       it('Merges existing integrations', function() {
@@ -135,8 +139,8 @@ describe('OrganizationIntegrationConfig', function() {
           },
         });
 
-        expect(wrapper.instance().state.itemList).toHaveLength(1);
-        expect(wrapper.instance().state.itemList[0]).toBe(updatedIntegration);
+        expect(wrapper.instance().state.integrations).toHaveLength(1);
+        expect(wrapper.instance().state.integrations[0]).toBe(updatedIntegration);
       });
 
       it('Deletes an integration', function() {
