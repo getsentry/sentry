@@ -10,8 +10,12 @@ class FinishPipelineTestCase(IntegrationTestCase):
 
     def setUp(self):
         super(FinishPipelineTestCase, self).setUp()
+        self.original_build_integration = self.provider.build_integration
         self.provider.build_integration = lambda self, data: data
         self.external_id = 'dummy_id-123'
+
+    def tearDown(self):
+        self.provider.build_integration = self.original_build_integration
 
     def test_with_data(self):
         self.pipeline.state.data = {'external_id': self.external_id}
