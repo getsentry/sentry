@@ -29,9 +29,38 @@ def load_fixture(name):
 class JavascriptIntegrationTest(TestCase):
     def test_adds_contexts_without_device(self):
         with self.assertMaxWriteQueries({
-            'sentry_projectoptions': 4,
+            'auth_user': 1,
+            'nodestore_node': 2,
+            'sentry_email': 1,
+            'sentry_environment': 1,
+            'sentry_environmentproject': 1,
+            'sentry_eventtag': 1,
+            'sentry_eventuser': 1,
+            'sentry_featureadoption': 2,
+            'sentry_filterkey': 6,
+            'sentry_filtervalue': 12,
+            'sentry_groupedmessage': 1,
+            'sentry_groupemailthread': 1,
+            'sentry_groupenvironment': 1,
+            'sentry_grouphash': 2,
+            'sentry_grouprulestatus': 2,
+            'sentry_grouptagkey': 12,
+            'sentry_message': 1,
+            'sentry_messagefiltervalue': 12,
+            'sentry_organization': 1,
+            'sentry_organizationmember': 1,
+            'sentry_organizationmember_teams': 1,
+            'sentry_organizationonboardingtask': 2,
             'sentry_project': 2,
-            'sentry_grouptagkey': 12
+            'sentry_projectcounter': 2,
+            'sentry_projectkey': 1,
+            'sentry_projectoptions': 4,
+            'sentry_projectteam': 1,
+            'sentry_rule': 1,
+            'sentry_savedsearch': 5,
+            'sentry_team': 1,
+            'sentry_useremail': 2,
+            'sentry_userreport': 1
         }):
             data = {
                 'message': 'hello',
