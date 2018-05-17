@@ -130,6 +130,17 @@ class IntegrationProvider(PipelineProvider):
         >>>         'name': state['name'],
         >>>         'metadata': {url': state['url']},
         >>>     }
+
+        This can return the 'expect_exists' flag, and this method  will expect
+        that the passed 'external_id' exists and will not attempt to recreate
+        or update the integration.
+
+        >>> def build_integration(self, state):
+        >>>    return {
+        >>>        'external_id': state['id'],
+        >>>        'expect_exists': True,
+        >>>    }
+
         """
         raise NotImplementedError
 
