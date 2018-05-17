@@ -43,17 +43,26 @@ def ensure_integration(key, data):
 
 
 class IntegrationPipeline(Pipeline):
+    PREEXISTING_INTEGRATION = 'preexisting_integration'
     pipeline_name = 'integration_pipeline'
     provider_manager = default_manager
 
     def finish_pipeline(self):
         data = self.provider.build_integration(self.state.data)
-        response = self._finish_pipeline(data)
+        existing_integration_id = data.get(self.PREEXISTING_INTEGRATION)
+        if existing_integration_id:
+            integration = Integration.objects.get(
+                provider=self.provider.key,
+                external_id=existing_integration_id,
+            )
+        else:
+            integration = ensure_integration(self.provider.key, data)
+
+        response = self._finish_pipeline(data, integration)
         self.clear_session()
         return response
 
-    def _finish_pipeline(self, data):
-        integration = ensure_integration(self.provider.key, data)
+    def _finish_pipeline(self, data, integration):
         integration.add_organization(self.organization.id)
 
         # Does this integration provide a user identity for the user setting up
