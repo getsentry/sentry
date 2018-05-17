@@ -764,7 +764,17 @@ function routes() {
               path="teams/:teamId/settings/"
               to="/settings/:orgId/teams/:teamId/settings/"
             />
-            {orgSettingsRoutes}
+            <Redirect path="settings/" to="/settings/:orgId/" />
+            <Redirect path="api-keys/" to="/settings/:orgId/api-keys/" />
+            <Redirect path="api-keys/:apiKey/" to="/settings/:orgId/api-keys/:apiKey/" />
+            <Redirect path="members/" to="/settings/:orgId/members/" />
+            <Redirect path="members/new/" to="/settings/:orgId/members/new/" />
+            <Redirect
+              path="members/:memberId/"
+              to="/settings/:orgId/members/:memberId/"
+            />
+            <Redirect path="rate-limits/" to="/settings/:orgId/rate-limits/" />
+            <Redirect path="repos/" to="/settings/:orgId/repos/" />
             <Route path="stats/" component={errorHandler(OrganizationStats)} />
           </Route>
 

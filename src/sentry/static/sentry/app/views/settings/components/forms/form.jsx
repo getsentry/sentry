@@ -34,6 +34,7 @@ export default class Form extends React.Component {
     model: PropTypes.object,
     apiMethod: PropTypes.string,
     apiEndpoint: PropTypes.string,
+    'data-test-id': PropTypes.string,
   };
 
   static defaultProps = {
@@ -144,7 +145,11 @@ export default class Form extends React.Component {
     let shouldShowFooter = typeof hideFooter !== 'undefined' ? !hideFooter : !saveOnBlur;
 
     return (
-      <form onSubmit={this.onSubmit} className={className}>
+      <form
+        onSubmit={this.onSubmit}
+        className={className}
+        data-test-id={this.props['data-test-id']}
+      >
         <div>{children}</div>
 
         {shouldShowFooter && (
