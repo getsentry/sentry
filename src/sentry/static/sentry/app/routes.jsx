@@ -832,6 +832,92 @@ function routes() {
           <Route path="user-feedback/" component={errorHandler(ProjectUserReports)} />
 
           <Route path="settings/" component={errorHandler(ProjectSettings)}>
+            <Redirect from="teams/" to="/settings/:orgId/:projectId/teams/" />
+            <Redirect from="alerts/" to="/settings/:orgId/:projectId/alerts/" />
+            <Redirect
+              from="alerts/rules/"
+              to="/settings/:orgId/:projectId/alerts/rules/"
+            />
+            <Redirect
+              from="alerts/rules/new/"
+              to="/settings/:orgId/:projectId/alerts/rules/new/"
+            />
+            <Redirect
+              from="alerts/rules/:ruleId/"
+              to="/settings/:orgId/:projectId/alerts/rules/:ruleId/"
+            />
+            <Redirect
+              from="environments/"
+              to="/settings/:orgId/:projectId/environments/"
+            />
+            <Redirect
+              from="environments/hidden/"
+              to="/settings/:orgId/:projectId/environments/hidden/"
+            />
+            <Redirect from="tags/" to="/settings/:orgId/:projectId/tags/" />
+            <Redirect
+              from="issue-tracking/"
+              to="/settings/:orgId/:projectId/issue-tracking/"
+            />
+            <Redirect
+              from="release-tracking/"
+              to="/settings/:orgId/:projectId/release-tracking/"
+            />
+            <Redirect from="ownership/" to="/settings/:orgId/:projectId/ownership/" />
+            <Redirect
+              from="data-forwarding/"
+              to="/settings/:orgId/:projectId/data-forwarding/"
+            />
+            <Redirect
+              from="saved-searches/"
+              to="/settings/:orgId/:projectId/saved-searches/"
+            />
+            <Redirect
+              from="debug-symbols/"
+              to="/settings/:orgId/:projectId/debug-symbols/"
+            />
+            <Redirect
+              from="processing-issues/"
+              to="/settings/:orgId/:projectId/processing-issues/"
+            />
+            <Redirect from="filters/" to="/settings/:orgId/:projectId/filters/" />
+            <Redirect from="hooks/" to="/settings/:orgId/:projectId/hooks/" />
+            <Redirect from="keys/" to="/settings/:orgId/:projectId/keys/" />
+            <Redirect from="keys/:keyId/" to="/settings/:orgId/:projectId/keys/:keyId/" />
+            <Redirect
+              from="user-feedback/"
+              to="/settings/:orgId/:projectId/user-feedback/"
+            />
+            <Redirect
+              from="security-headers/"
+              to="/settings/:orgId/:projectId/security-headers/"
+            />
+            <Redirect
+              from="security-headers/csp/"
+              to="/settings/:orgId/:projectId/security-headers/csp/"
+            />
+            <Redirect
+              from="security-headers/expect-ct/"
+              to="/settings/:orgId/:projectId/security-headers/expect-ct/"
+            />
+            <Redirect
+              from="security-headers/hpkp/"
+              to="/settings/:orgId/:projectId/security-headers/hpkp/"
+            />
+            <Redirect from="plugins/" to="/settings/:orgId/:projectId/plugins/" />
+            <Redirect
+              from="plugins/:pluginId/"
+              to="/settings/:orgId/:projectId/plugins/:pluginId/"
+            />
+            <Redirect
+              from="integrations/:providerKey/"
+              to="/settings/:orgId/:projectId/integrations/:providerKey/"
+            />
+            <Redirect from="install/" to="/settings/:orgId/:projectId/install/" />
+            <Redirect
+              from="install/:platform'"
+              to="/settings/:orgId/:projectId/install/:platform/"
+            />
             {projectSettingsRoutes}
           </Route>
 
