@@ -12,6 +12,8 @@ export default class AvatarList extends React.Component {
     users: PropTypes.arrayOf(SentryTypes.User).isRequired,
     avatarSize: PropTypes.number,
     maxVisibleAvatars: PropTypes.number,
+    renderTooltip: PropTypes.func,
+    tooltipOptions: PropTypes.object,
   };
 
   static defaultProps = {
@@ -20,7 +22,13 @@ export default class AvatarList extends React.Component {
   };
 
   render() {
-    const {users, avatarSize, maxVisibleAvatars} = this.props;
+    const {
+      users,
+      avatarSize,
+      maxVisibleAvatars,
+      tooltipOptions,
+      renderTooltip,
+    } = this.props;
     const visibleUsers = users.slice(0, maxVisibleAvatars);
     const numCollapsedUsers = users.length - visibleUsers.length;
 
@@ -35,7 +43,16 @@ export default class AvatarList extends React.Component {
           </Tooltip>
         )}
         {visibleUsers.map(user => {
-          return <StyledAvatar key={user.id} user={user} size={avatarSize} hasTooltip />;
+          return (
+            <StyledAvatar
+              key={user.id}
+              user={user}
+              size={avatarSize}
+              renderTooltip={renderTooltip}
+              tooltipOptions={tooltipOptions}
+              hasTooltip
+            />
+          );
         })}
       </Flex>
     );
