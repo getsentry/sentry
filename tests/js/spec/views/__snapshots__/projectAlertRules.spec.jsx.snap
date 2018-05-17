@@ -306,6 +306,7 @@ exports[`projectAlertRules renders 1`] = `
         className="rules-list"
       >
         <RuleRow
+          canEdit={true}
           data={
             Object {
               "actions": Array [
@@ -393,21 +394,13 @@ exports[`projectAlertRules renders 1`] = `
                               </Link>
                             </TextColorLink>
                             <div>
-                              <Button
-                                disabled={false}
-                                size="small"
-                                style={
-                                  Object {
-                                    "marginRight": 5,
-                                  }
-                                }
-                                to="1/"
+                              <Tooltip
+                                disabled={true}
+                                title="You do not have permission to view rule configuration."
                               >
-                                <StyledButton
-                                  aria-label="Edit Rule"
+                                <Button
+                                  data-test-id="edit-rule"
                                   disabled={false}
-                                  onClick={[Function]}
-                                  role="button"
                                   size="small"
                                   style={
                                     Object {
@@ -416,9 +409,9 @@ exports[`projectAlertRules renders 1`] = `
                                   }
                                   to="1/"
                                 >
-                                  <Component
+                                  <StyledButton
                                     aria-label="Edit Rule"
-                                    className="css-dkprmi-StyledButton-getColors e17811v30"
+                                    data-test-id="edit-rule"
                                     disabled={false}
                                     onClick={[Function]}
                                     role="button"
@@ -430,12 +423,12 @@ exports[`projectAlertRules renders 1`] = `
                                     }
                                     to="1/"
                                   >
-                                    <Link
+                                    <Component
                                       aria-label="Edit Rule"
                                       className="css-dkprmi-StyledButton-getColors e17811v30"
+                                      data-test-id="edit-rule"
                                       disabled={false}
                                       onClick={[Function]}
-                                      onlyActiveOnIndex={false}
                                       role="button"
                                       size="small"
                                       style={
@@ -445,11 +438,13 @@ exports[`projectAlertRules renders 1`] = `
                                       }
                                       to="1/"
                                     >
-                                      <a
+                                      <Link
                                         aria-label="Edit Rule"
                                         className="css-dkprmi-StyledButton-getColors e17811v30"
+                                        data-test-id="edit-rule"
                                         disabled={false}
                                         onClick={[Function]}
+                                        onlyActiveOnIndex={false}
                                         role="button"
                                         size="small"
                                         style={
@@ -457,40 +452,56 @@ exports[`projectAlertRules renders 1`] = `
                                             "marginRight": 5,
                                           }
                                         }
+                                        to="1/"
                                       >
-                                        <ButtonLabel
+                                        <a
+                                          aria-label="Edit Rule"
+                                          className="css-dkprmi-StyledButton-getColors e17811v30"
+                                          data-test-id="edit-rule"
+                                          disabled={false}
+                                          onClick={[Function]}
+                                          role="button"
                                           size="small"
+                                          style={
+                                            Object {
+                                              "marginRight": 5,
+                                            }
+                                          }
                                         >
-                                          <Component
-                                            className="css-179w01k-ButtonLabel e17811v31"
+                                          <ButtonLabel
                                             size="small"
                                           >
-                                            <Flex
-                                              align="center"
+                                            <Component
                                               className="css-179w01k-ButtonLabel e17811v31"
                                               size="small"
                                             >
-                                              <Base
+                                              <Flex
                                                 align="center"
-                                                className="e17811v31 css-8mahft-ButtonLabel"
+                                                className="css-179w01k-ButtonLabel e17811v31"
                                                 size="small"
                                               >
-                                                <div
+                                                <Base
+                                                  align="center"
                                                   className="e17811v31 css-8mahft-ButtonLabel"
-                                                  is={null}
                                                   size="small"
                                                 >
-                                                  Edit Rule
-                                                </div>
-                                              </Base>
-                                            </Flex>
-                                          </Component>
-                                        </ButtonLabel>
-                                      </a>
-                                    </Link>
-                                  </Component>
-                                </StyledButton>
-                              </Button>
+                                                  <div
+                                                    className="e17811v31 css-8mahft-ButtonLabel"
+                                                    is={null}
+                                                    size="small"
+                                                  >
+                                                    Edit Rule
+                                                  </div>
+                                                </Base>
+                                              </Flex>
+                                            </Component>
+                                          </ButtonLabel>
+                                        </a>
+                                      </Link>
+                                    </Component>
+                                  </StyledButton>
+                                </Button>
+                              </Tooltip>
                               <Confirm
                                 cancelText="Cancel"
                                 confirmText="Confirm"
