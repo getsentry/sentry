@@ -47,6 +47,25 @@ class ProjectKeyCredentials extends React.Component {
 
     return (
       <React.Fragment>
+        {showDsn && (
+          <Field
+            label={t('DSN (Legacy)')}
+            help={t('Use this DSN with server-side SDKs in older versions of Sentry.')}
+            inline={false}
+            flexibleControlStateSize
+          >
+            <TextCopyInput>
+              {getDynamicText({
+                value: data.dsn.secret,
+                fixed: data.dsn.secret.replace(
+                  new RegExp(`\/${projectId}$`),
+                  '/<<projectId>>'
+                ),
+              })}
+            </TextCopyInput>
+          </Field>
+        )}
+
         {showDsnPublic && (
           <Field label={t('DSN')} inline={false} flexibleControlStateSize>
             <TextCopyInput>
@@ -102,25 +121,6 @@ class ProjectKeyCredentials extends React.Component {
               {getDynamicText({
                 value: data.dsn.minidump,
                 fixed: data.dsn.minidump.replace(
-                  new RegExp(`\/${projectId}$`),
-                  '/<<projectId>>'
-                ),
-              })}
-            </TextCopyInput>
-          </Field>
-        )}
-
-        {showDsn && (
-          <Field
-            label={t('DSN (Legacy)')}
-            help={t('Use this DSN with server-side SDKs in older versions of Sentry.')}
-            inline={false}
-            flexibleControlStateSize
-          >
-            <TextCopyInput>
-              {getDynamicText({
-                value: data.dsn.secret,
-                fixed: data.dsn.secret.replace(
                   new RegExp(`\/${projectId}$`),
                   '/<<projectId>>'
                 ),
