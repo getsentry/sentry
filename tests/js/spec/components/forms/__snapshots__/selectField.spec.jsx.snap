@@ -67,7 +67,7 @@ exports[`SelectField render() renders with form context 1`] = `
           required={false}
           value="a"
         >
-          <Component
+          <SelectPicker
             arrowRenderer={[Function]}
             className="css-lrye9l-StyledSelect eho28m20"
             clearable={true}
@@ -279,7 +279,7 @@ exports[`SelectField render() renders with form context 1`] = `
                 </div>
               </div>
             </Select>
-          </Component>
+          </SelectPicker>
         </StyledSelect>
       </SelectControl>
     </div>
@@ -355,7 +355,7 @@ exports[`SelectField render() renders without form context 1`] = `
           required={false}
           value="a"
         >
-          <Component
+          <SelectPicker
             arrowRenderer={[Function]}
             className="css-lrye9l-StyledSelect eho28m20"
             clearable={true}
@@ -567,7 +567,7 @@ exports[`SelectField render() renders without form context 1`] = `
                 </div>
               </div>
             </Select>
-          </Component>
+          </SelectPicker>
         </StyledSelect>
       </SelectControl>
     </div>

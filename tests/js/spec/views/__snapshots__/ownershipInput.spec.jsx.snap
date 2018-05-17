@@ -195,7 +195,7 @@ exports[`Project Ownership Input renders 1`] = `
                     required={false}
                     value="path"
                   >
-                    <Component
+                    <SelectPicker
                       arrowRenderer={[Function]}
                       className="css-16280ey-StyledSelect eho28m20"
                       clearable={false}
@@ -389,7 +389,7 @@ exports[`Project Ownership Input renders 1`] = `
                           </div>
                         </div>
                       </Select>
-                    </Component>
+                    </SelectPicker>
                   </StyledSelect>
                 </SelectControl>
               </div>
@@ -534,7 +534,7 @@ exports[`Project Ownership Input renders 1`] = `
                       value={Array []}
                       valueComponent={[Function]}
                     >
-                      <Component
+                      <SelectPicker
                         arrowRenderer={[Function]}
                         async={true}
                         cache={false}
@@ -722,7 +722,7 @@ exports[`Project Ownership Input renders 1`] = `
                             </div>
                           </Select>
                         </Async>
-                      </Component>
+                      </SelectPicker>
                     </StyledSelect>
                   </SelectControl>
                 </MultiSelectControl>
