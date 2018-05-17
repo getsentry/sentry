@@ -35,11 +35,6 @@ const GroupSeenBy = createReactClass({
     // Note className="seen-by" is required for responsive design
     return (
       <SeenByWrapper className="seen-by">
-        <IconWrapper>
-          <Tooltip title={t("People who've viewed this issue")}>
-            <EyeIcon className="icon-eye" />
-          </Tooltip>
-        </IconWrapper>
         <AvatarList
           users={seenBy.filter(user => true || activeUser.id !== user.id)}
           avatarSize={28}
@@ -50,6 +45,11 @@ const GroupSeenBy = createReactClass({
               moment(user.lastSeen).format('LL')
             )}`}
         />
+        <IconWrapper>
+          <Tooltip title={t("People who've viewed this issue")}>
+            <EyeIcon className="icon-eye" />
+          </Tooltip>
+        </IconWrapper>
       </SeenByWrapper>
     );
   },
@@ -59,6 +59,7 @@ export default GroupSeenBy;
 
 const SeenByWrapper = styled('div')`
   display: flex;
+  flex-direction: row-reverse;
   margin-top: 15px;
   float: right;
 `;
