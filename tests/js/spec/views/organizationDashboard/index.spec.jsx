@@ -191,6 +191,7 @@ describe('OrganizationDashboard', function() {
           teams: [],
           isBookmarked: true,
           stats: [],
+          firstEvent: true,
         }),
       ];
       MockApiClient.addMockResponse({

@@ -6,13 +6,6 @@ import analytics from 'app/utils/analytics';
 import ConfigStore from 'app/stores/configStore';
 import ExternalLink from 'app/components/externalLink';
 
-const StyledTitle = styled('div')`
-  color: #493e54;
-  font-size: 16px;
-  text-align: center;
-  font-weight: bold;
-`;
-
 export default class ResourceCard extends React.Component {
   static propTypes = {
     title: PropTypes.string.isRequired,
@@ -30,18 +23,33 @@ export default class ResourceCard extends React.Component {
     let {title, link, imgUrl} = this.props;
 
     return (
-      <div
-        className="flex box p-x-2 p-y-1"
-        style={{flexGrow: 1, alignItems: 'center'}}
-        onClick={this.recordClick}
-      >
-        <ExternalLink href={link}>
+      <ResourceCardWrapper className="box" onClick={this.recordClick}>
+        <StyledLink href={link}>
           <div className="m-b-1">
             <img src={mediaUrl + imgUrl} alt={title} />
           </div>
           <StyledTitle>{title}</StyledTitle>
-        </ExternalLink>
-      </div>
+        </StyledLink>
+      </ResourceCardWrapper>
     );
   }
 }
+
+const StyledTitle = styled('div')`
+  color: #493e54;
+  font-size: 16px;
+  text-align: center;
+  font-weight: bold;
+`;
+
+const ResourceCardWrapper = styled('div')`
+  display: flex;
+  flex: 1;
+  align-items: center;
+  padding: 20px;
+  margin-bottom: 0;
+`;
+
+const StyledLink = styled(ExternalLink)`
+  flex: 1;
+`;

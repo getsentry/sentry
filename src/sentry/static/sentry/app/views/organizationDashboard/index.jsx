@@ -20,6 +20,7 @@ import OldDashboard from './oldDashboard';
 import ProjectNav from './projectNav';
 import TeamSection from './teamSection';
 import EmptyState from './emptyState';
+import Resources from './resources';
 
 class Dashboard extends React.Component {
   static propTypes = {
@@ -87,6 +88,10 @@ class Dashboard extends React.Component {
         {teamSlugs.length === 0 &&
           favorites.length === 0 && (
             <EmptyState projects={projects} teams={teams} organization={organization} />
+          )}
+        {projects.length === 1 &&
+          !projects[0].firstEvent && (
+            <Resources org={organization} project={projects[0]} />
           )}
       </React.Fragment>
     );
