@@ -23,7 +23,7 @@ describe('OrganizationIntegrationConfig', function() {
     describe('without any integrations', function() {
       beforeEach(function() {
         Client.addMockResponse({
-          url: `/organizations/${org.slug}/integrations/`,
+          url: `/organizations/${org.slug}/integrations/?provider_key=${provider.key}`,
           body: [],
         });
         Client.addMockResponse({
@@ -53,7 +53,7 @@ describe('OrganizationIntegrationConfig', function() {
     describe('with one integration', function() {
       beforeEach(function() {
         Client.addMockResponse({
-          url: `/organizations/${org.slug}/integrations/`,
+          url: `/organizations/${org.slug}/integrations/?provider_key=${provider.key}`,
           body: [integration],
         });
         Client.addMockResponse({
