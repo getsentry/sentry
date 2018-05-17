@@ -65,6 +65,7 @@ class IssueDetailsTest(AcceptanceTestCase):
             '/{}/{}/issues/{}/events/{}/'.format(self.org.slug, self.project.slug, event.group.id, event.id)
         )
         self.browser.wait_until('.event-details-container')
+        self.browser.wait_until_not('.loading-indicator')
         self.browser.snapshot('issue details javascript - event details')
 
     def test_rust_event(self):
