@@ -1,3 +1,4 @@
+import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -42,8 +43,9 @@ class OwnerInput extends React.Component {
     if (!text) {
       return null;
     }
+
     if (text.startsWith('Invalid rule owners:')) {
-      return text;
+      return <InvalidOwners>{text}</InvalidOwners>;
     } else {
       return <SyntaxOverlay line={text.match(/line (\d*),/)[1] - 1} />;
     }
@@ -111,18 +113,18 @@ class OwnerInput extends React.Component {
     }));
   }
 
-  onChange(e) {
+  handleChange = e => {
     this.setState({text: e.target.value});
-  }
+  };
 
-  handleAddRule(rule) {
+  handleAddRule = rule => {
     this.setState(
       ({text}) => ({
         text: text + '\n' + rule,
       }),
       this.handleUpdateOwnership
     );
-  }
+  };
 
   render() {
     let {project, organization, urls, paths} = this.props;
@@ -149,40 +151,44 @@ class OwnerInput extends React.Component {
             placeholder={
               '#example usage\npath:src/example/pipeline/* person@sentry.io #infra\nurl:http://example.com/settings/* #product'
             }
-            onChange={this.onChange.bind(this)}
+            onChange={this.handleChange}
             value={text}
             spellCheck="false"
             autoComplete="off"
             autoCorrect="off"
             autoCapitalize="off"
           />
-          {this.parseError(error)}
-          <SaveButton>
-            <Button
-              size="small"
-              priority="primary"
-              onClick={this.handleUpdateOwnership}
-              disabled={text === initialText}
-            >
-              {t('Save Changes')}
-            </Button>
-          </SaveButton>
+          <Flex align="center" justify="space-between">
+            <div>{this.parseError(error)}</div>
+            <SaveButton>
+              <Button
+                size="small"
+                priority="primary"
+                onClick={this.handleUpdateOwnership}
+                disabled={text === initialText}
+              >
+                {t('Save Changes')}
+              </Button>
+            </SaveButton>
+          </Flex>
         </div>
       </React.Fragment>
     );
   }
 }
 
+const TEXTAREA_PADDING = 4;
+const TEXTAREA_LINE_HEIGHT = 24;
+
 const SyntaxOverlay = styled.div`
   ${inputStyles};
-  margin: 10px 0;
   width: 100%;
-  height: 24px;
+  height: ${TEXTAREA_LINE_HEIGHT}px;
   background-color: red;
   opacity: 0.1;
   pointer-events: none;
   position: absolute;
-  top: ${({line}) => line * 24}px;
+  top: ${({line}) => TEXTAREA_PADDING + line * 24}px;
 `;
 
 const SaveButton = styled.div`
@@ -201,6 +207,14 @@ const StyledTextArea = styled(TextareaAutosize)`
   font-family: ${p => p.theme.text.familyMono};
   word-break: break-all;
   white-space: pre-wrap;
+  padding-top: ${TEXTAREA_PADDING}px;
+  line-height: ${TEXTAREA_LINE_HEIGHT}px;
+`;
+
+const InvalidOwners = styled('div')`
+  color: ${p => p.theme.error};
+  font-weight: bold;
+  margin-top: 12px;
 `;
 
 export default OwnerInput;
