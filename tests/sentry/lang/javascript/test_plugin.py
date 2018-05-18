@@ -75,7 +75,7 @@ class JavascriptIntegrationTest(TestCase):
             'sentry_savedsearch': 5,
             'sentry_team': 1,
             'sentry_useremail': 2,
-            'sentry_userreport': 1
+            'sentry_userreport': 1,
         }):
             resp = self._postWithHeader(data)
         assert resp.status_code, 200

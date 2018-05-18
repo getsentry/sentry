@@ -337,24 +337,27 @@ class _AssertQueriesContext(CaptureQueriesContext):
         if exc_type is not None:
             return
 
-        queries = parse_queries(self.captured_queries)
+        parsed_queries = parse_queries(self.captured_queries)
 
         if (self.debug):
             import pprint
             pprint.pprint(self.captured_queries)
             pprint.pprint("====================== Table writes ======================")
-            pprint.pprint(self.queries)
+            pprint.pprint(parsed_queries)
 
-        for table, num in self.queries.items():
-            executed = queries.get(table, 0)
-            self.test_case.assertTrue(
-                executed != 0, "no query against %s emitted, add debug=True to see all the queries" % (
-                    table
+        for table, num in parsed_queries.items():
+            expected = self.queries.get(table, 0)
+            self.test_case.assertFalse(
+                num > expected, "%d max write queries expected on `%s`, got %d, add debug=True to see all the queries" % (
+                    expected, table, num
                 )
             )
-            self.test_case.assertTrue(
-                executed <= num, "%d write queries executed on `%s`, expected <= %d" % (
-                    executed, table, num
+
+        for table, num in self.queries.items():
+            executed = parsed_queries.get(table, None)
+            self.test_case.assertFalse(
+                executed is None, "no query against %s emitted, add debug=True to see all the queries" % (
+                    table
                 )
             )
 

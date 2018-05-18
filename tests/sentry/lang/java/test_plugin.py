@@ -94,17 +94,12 @@ class BasicResolvingIntegrationTest(TestCase):
         }
 
         with self.assertMaxWriteQueries({
-            'auth_user': 2,
             'nodestore_node': 2,
-            'sentry_email': 1,
             'sentry_environment': 1,
             'sentry_environmentproject': 1,
             'sentry_eventtag': 1,
             'sentry_eventuser': 1,
             'sentry_featureadoption': 2,
-            'sentry_file': 2,
-            'sentry_fileblob': 1,
-            'sentry_fileblobindex': 1,
             'sentry_filterkey': 2,
             'sentry_filtervalue': 4,
             'sentry_groupedmessage': 1,
@@ -115,21 +110,10 @@ class BasicResolvingIntegrationTest(TestCase):
             'sentry_grouptagkey': 4,
             'sentry_message': 1,
             'sentry_messagefiltervalue': 4,
-            'sentry_organization': 1,
-            'sentry_organizationmember': 1,
-            'sentry_organizationmember_teams': 1,
             'sentry_organizationonboardingtask': 2,
-            'sentry_project': 2,
+            'sentry_project': 1,
             'sentry_projectcounter': 2,
-            'sentry_projectdsymfile': 1,
-            'sentry_projectkey': 1,
-            'sentry_projectoptions': 6,
-            'sentry_projectteam': 1,
-            'sentry_rule': 1,
-            'sentry_savedsearch': 5,
-            'sentry_team': 1,
-            'sentry_useremail': 2,
-            'sentry_userip': 3,
+            'sentry_userip': 1,
             'sentry_userreport': 1
         }):
             resp = self._postWithHeader(event_data)
