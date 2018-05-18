@@ -6,13 +6,13 @@ import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled, {css, cx} from 'react-emotion';
 
-import {hideSidebar, loadSidebarState, showSidebar} from 'app/actionCreators/sidebar';
+import {hideSidebar, showSidebar} from 'app/actionCreators/preferences';
 import {load as loadIncidents} from 'app/actionCreators/incidents';
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import InlineSvg from 'app/components/inlineSvg';
 import SentryTypes from 'app/proptypes';
-import SidebarStore from 'app/stores/sidebarStore';
+import PreferencesStore from 'app/stores/preferencesStore';
 import theme from 'app/utils/theme';
 import space from 'app/styles/space';
 import withLatestContext from 'app/utils/withLatestContext';
@@ -50,7 +50,6 @@ class Sidebar extends React.Component {
     jQuery(document).on('click', this.documentClickHandler);
 
     loadIncidents();
-    loadSidebarState();
 
     // router can potentially not exist in server side (django) views
     // Otherwise when we change routes using collapsed sidebar, the tooltips will remain after
@@ -295,15 +294,23 @@ class Sidebar extends React.Component {
 const SidebarContainer = withRouter(
   createReactClass({
     displayName: 'SidebarContainer',
-    mixins: [Reflux.connect(SidebarStore, 'sidebar')],
+    mixins: [Reflux.listenTo(PreferencesStore, 'onPreferenceChange')],
+    getInitialState() {
+      return {
+        collapsed: PreferencesStore.getInitialState().collapsed,
+      };
+    },
+
+    onPreferenceChange(store) {
+      if (store.collapsed === this.state.collapsed) return;
+
+      this.setState({
+        collapsed: store.collapsed,
+      });
+    },
 
     render() {
-      return (
-        <Sidebar
-          {...this.props}
-          collapsed={this.state.sidebar && this.state.sidebar.collapsed}
-        />
-      );
+      return <Sidebar {...this.props} collapsed={this.state.collapsed} />;
     },
   })
 );

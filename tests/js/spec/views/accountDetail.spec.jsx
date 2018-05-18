@@ -27,7 +27,7 @@ describe('AccountDetails', function() {
     expect(wrapper.find('input[name="name"]')).toHaveLength(1);
 
     // Stacktrace order, language, timezone
-    expect(wrapper.find('select')).toHaveLength(3);
+    expect(wrapper.find('SelectControl')).toHaveLength(3);
 
     expect(wrapper.find('BooleanField')).toHaveLength(1);
     expect(wrapper.find('RadioGroup')).toHaveLength(1);
@@ -42,6 +42,8 @@ describe('AccountDetails', function() {
   });
 
   describe('Managed User', function() {
+    // I don't think this test expectation is accurate
+    // eslint-disable-next-line jest/no-disabled-tests
     it.skip('does not have password fields', function() {
       mockUserDetails({isManaged: true});
       let wrapper = mount(<AccountDetails location={{}} />, TestStubs.routerContext());

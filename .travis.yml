@@ -19,10 +19,8 @@ cache:
 
 addons:
   apt:
-    sources:
-      - ubuntu-toolchain-r-test
+    update: true
     packages:
-      - g++-4.8
       - libxmlsec1-dev
   chrome: stable
 
@@ -32,7 +30,6 @@ env:
     - PIP_DISABLE_PIP_VERSION_CHECK=on
     - SENTRY_LIGHT_BUILD=1
     - SENTRY_SKIP_BACKEND_VALIDATION=1
-    - CXX=g++-4.8
     - SOUTH_TESTS_MIGRATE=1
     - DJANGO_VERSION=">=1.6.11,<1.7"
     - NODE_VERSION="8.9.1"
@@ -46,18 +43,11 @@ script:
 after_success:
   - pip install codecov
   - codecov -e TEST_SUITE
-  - npm install -g @zeus-ci/cli
-  - zeus upload -t "text/xml+xunit" junit.xml
-  - zeus upload -t "text/xml+xunit" jest.junit.xml
-  - zeus upload -t "text/xml+coverage" coverage.xml
-  - zeus upload -t "text/xml+coverage" coverage/cobertura-coverage.xml
-  - zeus upload -t "text/html+pytest" pytest.html
-  - zeus upload -t "text/plain+pycodestyle" flake8.pycodestyle.log
-  - zeus upload -t "text/xml+checkstyle" eslint.checkstyle.xml
-  - zeus upload -t "application/webpack-stats+json" webpack-stats.json
 
 after_failure:
   - dmesg | tail -n 100
+
+after_script:
   - npm install -g @zeus-ci/cli
   - zeus upload -t "text/xml+xunit" junit.xml
   - zeus upload -t "text/xml+xunit" jest.junit.xml
@@ -86,17 +76,6 @@ matrix:
 
     - python: 2.7
       env: TEST_SUITE=postgres DB=postgres
-      services:
-        - memcached
-        - redis-server
-        - postgresql
-      install:
-        - pip install -e ".[dev,tests,optional]"
-      before_script:
-        - psql -c 'create database sentry;' -U postgres
-
-    - python: 2.7
-      env: TEST_SUITE=network DB=postgres
       services:
         - memcached
         - redis-server

@@ -73,10 +73,7 @@ class ProjectKeyCredentials extends React.Component {
             <TextCopyInput>
               {getDynamicText({
                 value: data.dsn.public,
-                fixed: data.dsn.public.replace(
-                  new RegExp(`\/${projectId}$`),
-                  '/<<projectId>>'
-                ),
+                fixed: '__DSN__',
               })}
             </TextCopyInput>
           </Field>
@@ -94,10 +91,7 @@ class ProjectKeyCredentials extends React.Component {
             <TextCopyInput>
               {getDynamicText({
                 value: data.dsn.security,
-                fixed: data.dsn.security.replace(
-                  new RegExp(`\/${projectId}$`),
-                  '/<<projectId>>'
-                ),
+                fixed: '__SECURITY_HEADER_ENDPOINT__',
               })}
             </TextCopyInput>
           </Field>
@@ -122,10 +116,7 @@ class ProjectKeyCredentials extends React.Component {
             <TextCopyInput>
               {getDynamicText({
                 value: data.dsn.minidump,
-                fixed: data.dsn.minidump.replace(
-                  new RegExp(`\/${projectId}$`),
-                  '/<<projectId>>'
-                ),
+                fixed: '__MINIDUMP_ENDPOINT__',
               })}
             </TextCopyInput>
           </Field>

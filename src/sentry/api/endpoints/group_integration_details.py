@@ -6,12 +6,12 @@ from rest_framework.response import Response
 
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.integration import IntegrationIssueSerializer
+from sentry.api.serializers.models.integration import IntegrationIssueConfigSerializer
 from sentry.integrations.base import IntegrationFeatures
 from sentry.models import ExternalIssue, GroupLink, OrganizationIntegration
 
 
-class GroupIntegrationDetails(GroupEndpoint):
+class GroupIntegrationDetailsEndpoint(GroupEndpoint):
     def get(self, request, group, integration_id):
         # Keep link/create separate since create will likely require
         # many external API calls that aren't necessary if the user is
@@ -37,7 +37,11 @@ class GroupIntegrationDetails(GroupEndpoint):
 
         # TODO(jess): add create issue config to serializer
         return Response(
-            serialize(integration, request.user, IntegrationIssueSerializer(group, action))
+            serialize(
+                integration,
+                request.user,
+                IntegrationIssueConfigSerializer(group, action, params=request.GET),
+            )
         )
 
     # was thinking put for link an existing issue, post for create new issue?

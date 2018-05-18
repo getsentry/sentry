@@ -1,23 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import jQuery from 'jquery';
-import classnames from 'classnames';
-import {css} from 'react-emotion';
 
 import InputField from 'app/views/settings/components/forms/inputField';
-
-const formControlSmall = css`
-  width: 50%;
-  font-weight: bold;
-  font-size: 1.1rem;
-  padding: 0.33em 0.75em;
-
-  .select2-arrow:after {
-    font-size: 1.4em;
-    color: #ccc;
-    margin-top: 0.125em;
-  }
-`;
+import SelectControl from 'app/components/forms/selectControl';
 
 export default class Select2Field extends React.Component {
   static propTypes = {
@@ -40,67 +25,25 @@ export default class Select2Field extends React.Component {
     small: false,
   };
 
-  componentWillUnmount() {
-    if (!this.select) return;
+  handleChange = (onBlur, onChange, optionObj) => {
+    let value;
 
-    this.select = null;
-  }
-
-  onChange = (onBlur, onChange, e) => {
     if (this.props.multiple) {
-      let options = e.target.options;
-      let value = [];
-      for (let i = 0; i < options.length; i++) {
-        if (options[i].selected) {
-          value.push(options[i].value);
-        }
-      }
-      onChange(value, e);
+      // List of optionObjs
+      value = optionObj.map(({value: val}) => val);
     } else {
-      let value = e.target.value;
-      onChange(value, e);
-
-      // Not multplie, also call onBlur to handle saveOnBlur behavior
-      onBlur(value, e);
-    }
-  };
-
-  // Note: mouse hovers will trigger re-render, and re-mounts the native `select` element
-  // This will cause an infinite loop because hover state causes re-render, and then we call $.select2, which
-  // genenerates a new element which will then cause a new hover event.
-  //
-  // HOWEVER we need this behavior because we may re-render from an event and during reconciliation we'll have
-  // an additional native `select` (e.g. when we save an org setting field)
-  //
-  // Handle this right now by disabling hover state completely
-  handleSelectMount = (onBlur, onChange, ref) => {
-    if (ref && !this.select) {
-      jQuery(ref)
-        .select2(this.getSelect2Options())
-        .on('change', this.onChange.bind(this, onBlur, onChange));
-    } else if (!ref) {
-      jQuery(this.select)
-        .off('change')
-        .select2('destroy');
+      value = optionObj.value;
     }
 
-    this.select = ref;
+    onChange(value, {});
+    onBlur(value, {});
   };
-
-  getSelect2Options() {
-    return {
-      allowClear: this.props.allowClear,
-      allowEmpty: this.props.allowEmpty,
-      width: 'element',
-      escapeMarkup: !this.props.escapeMarkup ? m => m : undefined,
-      minimumResultsForSearch: 5,
-    };
-  }
 
   render() {
+    let {multiple, allowClear, ...otherProps} = this.props;
     return (
       <InputField
-        {...this.props}
+        {...otherProps}
         alignRight={this.props.small}
         field={({onChange, onBlur, disabled, ...props}) => {
           let choices = props.choices || [];
@@ -110,23 +53,18 @@ export default class Select2Field extends React.Component {
           }
 
           return (
-            <select
+            <SelectControl
+              {...props}
+              clearable={allowClear}
+              multi={multiple}
               disabled={disabled}
-              className={classnames('form-control', {
-                [formControlSmall]: this.props.small,
-              })}
-              ref={ref => this.handleSelectMount(onBlur, onChange, ref)}
-              onChange={() => {}}
+              onChange={this.handleChange.bind(this, onBlur, onChange)}
               value={props.value}
-            >
-              {choices.map(choice => {
-                return (
-                  <option key={choice[0]} value={choice[0]}>
-                    {choice[1]}
-                  </option>
-                );
-              })}
-            </select>
+              options={choices.map(([value, label]) => ({
+                value,
+                label,
+              }))}
+            />
           );
         }}
       />
