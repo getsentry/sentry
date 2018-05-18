@@ -215,7 +215,10 @@ class FormField extends React.Component {
 
       if (hash !== `#${this.props.name}`) return;
 
-      ref.focus();
+      // Not all form fields have this (e.g. Select fields)
+      if (typeof ref.focus === 'function') {
+        ref.focus();
+      }
     }
 
     this.input = ref;
