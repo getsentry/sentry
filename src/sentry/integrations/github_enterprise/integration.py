@@ -100,7 +100,6 @@ class InstallationConfigView(PipelineView):
                 "access_token_url": "https://{}/login/oauth/access_token".format(form_data.get('url')),
                 "authorize_url": "https://{}/login/oauth/authorize".format(form_data.get('url')),
                 "client_id": form_data.get('client-id'),
-                "private_key": form_data.get('private-key'),
                 "client_secret": form_data.get('client-secret'),
             })
 
