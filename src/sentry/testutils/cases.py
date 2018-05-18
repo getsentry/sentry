@@ -353,14 +353,6 @@ class _AssertQueriesContext(CaptureQueriesContext):
                 )
             )
 
-        for table, num in self.queries.items():
-            executed = parsed_queries.get(table, None)
-            self.test_case.assertFalse(
-                executed is None, "no query against %s emitted, add debug=True to see all the queries" % (
-                    table
-                )
-            )
-
 
 class TestCase(BaseTestCase, TestCase):
     pass
