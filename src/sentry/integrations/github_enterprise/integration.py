@@ -132,7 +132,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
         identity_pipeline_config = dict(
             oauth_scopes=(),
             redirect_url=absolute_uri('/extensions/github-enterprise/setup/'),
-            *self.pipeline.fetch_state('oauth_config_information')
+            **self.pipeline.fetch_state('oauth_config_information')
         )
 
         return NestedPipelineView(

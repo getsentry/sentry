@@ -45,7 +45,12 @@ class OAuth2Provider(Provider):
 
         If the parameter cannot be found a KeyError will be raised.
         """
-        prop = getattr(self, u'oauth_{}'.format(parameter_name))
+        prop = ''
+        try:
+            prop = getattr(self, u'oauth_{}'.format(parameter_name))
+        except AttributeError:
+            pass
+
         if prop is not '':
             return prop
 
