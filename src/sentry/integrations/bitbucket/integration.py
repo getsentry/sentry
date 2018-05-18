@@ -5,7 +5,6 @@ from sentry.pipeline import NestedPipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from django.utils.translation import ugettext_lazy as _
 from sentry.utils.http import absolute_uri
-from sentry.models import Integration
 
 DESCRIPTION = """
 Bitbucket for Sentry.io
@@ -61,19 +60,8 @@ class BitbucketIntegrationProvider(IntegrationProvider):
                     'icon': user_data['links']['avatar']['href'],
                 }
             }
-
-        integration = Integration.objects.get(
-            provider='bitbucket',
-            external_id=state['identity']['bitbucket_client_key']
-        )
         return {
             'provider': 'bitbucket',
-            'external_id': integration.external_id,
-            'name': integration.name,
-            'metadata': {
-                'public_key': integration.metadata['public_key'],
-                'shared_secret': integration.metadata['shared_secret'],
-                'base_url': integration.metadata['base_url'],
-                'domain_name': integration.metadata['domain_name'],
-            },
+            'external_id': state['identity']['bitbucket_client_key'],
+            'expect_exists': True,
         }
