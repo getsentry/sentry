@@ -156,7 +156,10 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
 
 
 @instrumented_task(
-    name='sentry.tasks.index_event_tags', default_retry_delay=60 * 5, max_retries=None
+    name='sentry.tasks.index_event_tags',
+    queue='events.index_event_tags',
+    default_retry_delay=60 * 5,
+    max_retries=None,
 )
 def index_event_tags(organization_id, project_id, event_id, tags,
                      group_id, environment_id, date_added=None, **kwargs):

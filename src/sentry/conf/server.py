@@ -450,6 +450,7 @@ CELERY_QUEUES = [
     Queue('digests.delivery', routing_key='digests.delivery'),
     Queue('digests.scheduling', routing_key='digests.scheduling'),
     Queue('email', routing_key='email'),
+    Queue('events.index_event_tags', routing_key='events.index_event_tags'),
     Queue('events.preprocess_event', routing_key='events.preprocess_event'),
     Queue(
         'events.reprocessing.preprocess_event', routing_key='events.reprocessing.preprocess_event'
