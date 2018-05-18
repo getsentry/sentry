@@ -312,12 +312,12 @@ class BaseTestCase(Fixtures, Exam):
             microsecond=0) == original_object.date_added.replace(microsecond=0)
         assert deleted_log.date_deleted >= deleted_log.date_created
 
-    def assertMaxWriteQueries(self, queries, *args, **kwargs):
+    def assertMaxWriteQueries(self, queries, debug=False, *args, **kwargs):
         func = kwargs.pop('func', None)
         using = kwargs.pop("using", DEFAULT_DB_ALIAS)
         conn = connections[using]
 
-        context = _AssertQueriesContext(self, queries, conn)
+        context = _AssertQueriesContext(self, queries, debug, conn)
         if func is None:
             return context
 
@@ -326,9 +326,10 @@ class BaseTestCase(Fixtures, Exam):
 
 
 class _AssertQueriesContext(CaptureQueriesContext):
-    def __init__(self, test_case, queries, connection):
+    def __init__(self, test_case, queries, debug, connection):
         self.test_case = test_case
         self.queries = queries
+        self.debug = debug
         super(_AssertQueriesContext, self).__init__(connection)
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -338,8 +339,19 @@ class _AssertQueriesContext(CaptureQueriesContext):
 
         queries = parse_queries(self.captured_queries)
 
+        if (self.debug):
+            import pprint
+            pprint.pprint(self.captured_queries)
+            pprint.pprint("====================== Table writes ======================")
+            pprint.pprint(self.queries)
+
         for table, num in self.queries.items():
             executed = queries.get(table, 0)
+            self.test_case.assertTrue(
+                executed != 0, "no query against %s emitted, add debug=True to see all the queries" % (
+                    table
+                )
+            )
             self.test_case.assertTrue(
                 executed <= num, "%d write queries executed on `%s`, expected <= %d" % (
                     executed, table, num

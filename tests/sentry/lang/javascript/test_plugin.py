@@ -28,6 +28,21 @@ def load_fixture(name):
 
 class JavascriptIntegrationTest(TestCase):
     def test_adds_contexts_without_device(self):
+        data = {
+            'message': 'hello',
+            'platform': 'javascript',
+            'sentry.interfaces.Http': {
+                'url':
+                'http://example.com',
+                'headers': [
+                    [
+                        'User-Agent',
+                        'Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.72 Safari/537.36'
+                    ],
+                ],
+            }
+        }
+
         with self.assertMaxWriteQueries({
             'auth_user': 1,
             'nodestore_node': 2,
@@ -62,36 +77,21 @@ class JavascriptIntegrationTest(TestCase):
             'sentry_useremail': 2,
             'sentry_userreport': 1
         }):
-            data = {
-                'message': 'hello',
-                'platform': 'javascript',
-                'sentry.interfaces.Http': {
-                    'url':
-                    'http://example.com',
-                    'headers': [
-                        [
-                            'User-Agent',
-                            'Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.72 Safari/537.36'
-                        ],
-                    ],
-                }
-            }
-
             resp = self._postWithHeader(data)
-            assert resp.status_code, 200
+        assert resp.status_code, 200
 
-            event = Event.objects.get()
-            contexts = event.interfaces['contexts'].to_json()
-            assert contexts.get('os') == {
-                'name': 'Windows 8',
-                'type': 'os',
-            }
-            assert contexts.get('browser') == {
-                'name': 'Chrome',
-                'type': 'browser',
-                'version': '28.0.1500',
-            }
-            assert contexts.get('device') is None
+        event = Event.objects.get()
+        contexts = event.interfaces['contexts'].to_json()
+        assert contexts.get('os') == {
+            'name': 'Windows 8',
+            'type': 'os',
+        }
+        assert contexts.get('browser') == {
+            'name': 'Chrome',
+            'type': 'browser',
+            'version': '28.0.1500',
+        }
+        assert contexts.get('device') is None
 
     def test_adds_contexts_with_device(self):
         data = {
