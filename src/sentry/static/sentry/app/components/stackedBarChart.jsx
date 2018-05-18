@@ -221,8 +221,8 @@ const StackedBarChart = createReactClass({
 
     return (
       <Tooltip title={title} key={key} tooltipOptions={{html: true, placement: 'bottom'}}>
-        <MarkerPosition>
-          <Marker className={className}>{marker.label}</Marker>
+        <MarkerPosition className={className}>
+          <Marker>{marker.label}</Marker>
         </MarkerPosition>
       </Tooltip>
     );
@@ -439,11 +439,6 @@ const Axis = styled.div`
     line-height: 1;
   }
 `;
-const MarkerPosition = styled.div`
-  position: relative;
-  width: 0;
-  z-index: 2;
-`;
 
 const Marker = styled.div`
   background: ${p => p.theme.gray3};
@@ -455,14 +450,27 @@ const Marker = styled.div`
   width: 8px;
   height: 8px;
   box-shadow: 0 0 0 2px #fff;
+`;
+
+const MarkerPosition = styled.div`
+  position: relative;
+  width: 0;
+  z-index: 2;
 
   &.first-seen {
-    background: ${p => p.theme.pinkLight};
-    left: -14px;
+    left: -10px;
+
+    /* stylelint-disable-next-line no-duplicate-selectors */
+    ${Marker} {
+      background: ${p => p.theme.pinkLight};
+    }
   }
 
   &.last-seen {
-    background: ${p => p.theme.greenLight};
+    /* stylelint-disable-next-line no-duplicate-selectors */
+    ${Marker} {
+      background: ${p => p.theme.greenLight};
+    }
   }
 `;
 
