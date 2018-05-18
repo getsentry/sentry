@@ -45,7 +45,7 @@ class ListField(WritableField):
 
     def validate(self, value):
         # Allow empty lists unless child is marked as required
-        if (value is None and self.required) or (not value and self.child.required):
+        if (value is None and self.required) or (not value and self.child and self.child.required):
             raise ValidationError(self.error_messages['required'])
 
         if not isinstance(value, list):
