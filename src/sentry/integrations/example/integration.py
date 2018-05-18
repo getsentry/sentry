@@ -45,16 +45,6 @@ class ExampleIntegration(Integration, IssueSyncMixin):
     def create_comment(self):
         pass
 
-    def get_link_issue_config(self, group, **kwargs):
-        return [
-            {
-                'name': 'externalIssue',
-                'label': 'Issue',
-                'default': '',
-                'type': 'string',
-            }
-        ]
-
 
 class ExampleIntegrationProvider(IntegrationProvider):
     """
