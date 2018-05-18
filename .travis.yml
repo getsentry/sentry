@@ -11,10 +11,10 @@ branches:
   - master
 
 cache:
-  pip: true
   yarn: true
   directories:
     - node_modules
+    - $HOME/virtualenv/python2.7.13
     - $HOME/google-cloud-sdk
 
 addons:
