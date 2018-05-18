@@ -61,3 +61,7 @@ class UnsupportedResponseType(ApiError):
     @property
     def content_type(self):
         return self.text
+
+
+class IntegrationError(Exception):
+    pass

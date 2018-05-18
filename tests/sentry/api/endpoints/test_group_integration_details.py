@@ -109,3 +109,36 @@ class GroupIntegrationDetailsTest(APITestCase):
             group_id=group.id,
             linked_id=external_issue.id,
         ).exists()
+
+    def test_simple_post(self):
+        self.login_as(user=self.user)
+        org = self.organization
+        group = self.create_group()
+        integration = Integration.objects.create(
+            provider='example',
+            name='Example',
+        )
+        integration.add_organization(org.id)
+
+        path = '/api/0/issues/{}/integrations/{}/'.format(group.id, integration.id)
+
+        response = self.client.post(path, data={})
+        assert response.status_code == 400
+        assert response.data['detail'] == 'Assignee is required'
+
+        response = self.client.post(path, data={'assignee': 'foo@sentry.io'})
+        assert response.status_code == 201
+
+        external_issue = ExternalIssue.objects.get(
+            key='APP-123',
+            integration_id=integration.id,
+            organization_id=org.id,
+        )
+        assert external_issue.description == 'This is a test external issue description'
+        assert external_issue.title == 'This is a test external issue title'
+
+        assert GroupLink.objects.filter(
+            linked_type=GroupLink.LinkedType.issue,
+            group_id=group.id,
+            linked_id=external_issue.id,
+        ).exists()
