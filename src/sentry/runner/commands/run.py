@@ -66,7 +66,7 @@ class QueueSetType(click.ParamType):
                 )
             else:
                 queues.add(queue)
-        return frozenset(queues)
+        return set(queues)
 
 
 QueueSet = QueueSetType()
@@ -186,9 +186,10 @@ def smtp(bind, upgrade, noinput):
 @click.option('--without-mingle', is_flag=True, default=False)
 @click.option('--without-heartbeat', is_flag=True, default=False)
 @click.option('--max-tasks-per-child', default=10000)
+@click.option('--ignore-unknown-queues', is_flag=True, default=False)
 @log_options()
 @configuration
-def worker(**options):
+def worker(ignore_unknown_queues, **options):
     "Run background worker instance."
     from django.conf import settings
     if settings.CELERY_ALWAYS_EAGER:
@@ -197,6 +198,20 @@ def worker(**options):
         )
 
     from sentry.celery import app
+
+    if options['queues'] is not None:
+        for queue in options['queues'].copy():
+            for c_queue in app.conf.CELERY_QUEUES:
+                if c_queue.name == queue:
+                    break
+            else:
+                message = 'Queue %r not found' % queue
+                if ignore_unknown_queues:
+                    options['queues'].remove(queue)
+                    click.echo(message)
+                else:
+                    raise click.ClickException(message)
+
     with managed_bgtasks(role='worker'):
         worker = app.Worker(
             # without_gossip=True,
