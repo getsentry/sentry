@@ -72,7 +72,7 @@ matrix:
         - riak
         - redis-server
       install:
-        - pip install -e ".[dev,tests,optional]"
+        - pip install ".[dev,tests,optional]"
 
     - python: 2.7
       env: TEST_SUITE=postgres DB=postgres
@@ -81,7 +81,7 @@ matrix:
         - redis-server
         - postgresql
       install:
-        - pip install -e ".[dev,tests,optional]"
+        - pip install ".[dev,tests,optional]"
       before_script:
         - psql -c 'create database sentry;' -U postgres
 
@@ -92,7 +92,7 @@ matrix:
         - mysql
         - redis-server
       install:
-        - pip install -e ".[dev,tests,optional]"
+        - pip install ".[dev,tests,optional]"
         - pip install mysqlclient
       before_script:
         - mysql -u root -e 'create database sentry;'
@@ -107,7 +107,7 @@ matrix:
         - nvm install "$NODE_VERSION"
         - npm install -g "yarn@${YARN_VERSION}"
       install:
-        - pip install -e ".[dev,tests,optional]"
+        - pip install ".[dev,tests,optional]"
         - wget -N "http://chromedriver.storage.googleapis.com/$(curl https://chromedriver.storage.googleapis.com/LATEST_RELEASE)/chromedriver_linux64.zip" -P ~/
         - unzip ~/chromedriver_linux64.zip -d ~/
         - rm ~/chromedriver_linux64.zip
@@ -131,7 +131,7 @@ matrix:
         - postgresql
         - redis-server
       install:
-        - pip install -e .
+        - pip install .
       before_script:
         - psql -c 'create database sentry;' -U postgres
 
@@ -145,7 +145,7 @@ matrix:
         - redis-server
         - postgresql
       install:
-        - pip install -e ".[dev,tests,optional]"
+        - pip install ".[dev,tests,optional]"
       before_script:
         - psql -c 'create database sentry;' -U postgres
 
@@ -157,7 +157,7 @@ matrix:
         - redis-server
         - postgresql
       install:
-        - pip install -e ".[dev,tests,optional]"
+        - pip install ".[dev,tests,optional]"
       before_script:
         - psql -c 'create database sentry;' -U postgres
 
@@ -174,7 +174,7 @@ matrix:
         - docker run -d --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=clickhouse-server:9000 --name snuba -p 1218:1218 --link clickhouse-server:clickhouse-server getsentry/snuba
         - docker ps -a
       install:
-        - pip install -e ".[dev,tests,optional]"
+        - pip install ".[dev,tests,optional]"
       before_script:
         - psql -c 'create database sentry;' -U postgres
 
