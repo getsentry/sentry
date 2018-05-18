@@ -7,6 +7,7 @@ from six.moves.urllib.parse import urlparse
 
 from sentry.utils.http import absolute_uri
 from sentry.integrations.atlassian_connect import integration_request
+from sentry.integrations.client import ApiClient
 
 BITBUCKET_KEY = '%s.bitbucket' % urlparse(absolute_uri()).hostname
 
@@ -30,14 +31,7 @@ class BitbucketAPIPath(Enum):
     repository_hooks = u'/2.0/repositories/{username}/{repo_slug}/hooks'
 
 
-class Method(Enum):
-    get = 'GET'
-    put = 'PUT'
-    post = 'POST'
-    delete = 'DELETE'
-
-
-class BitbucketAPI(object):
+class BitbucketAPI(ApiClient):
     ALL_REPO_URL = '/2.0/repositories/%s'
 
     def __init__(self, base_url, shared_secret):
@@ -65,18 +59,6 @@ class BitbucketAPI(object):
             shared_secret=self.shared_secret,
             data=data,
         )
-
-    def get(self, path):
-        return self.request(Method.get, path)
-
-    def post(self, path, data=None):
-        return self.request(Method.post, path, data)
-
-    def put(self, path, data=None):
-        return self.request(Method.put, path, data)
-
-    def delete(self, path):
-        return self.request(Method.delete, path)
 
     def get_issue(self, username, repo_slug, issue_id):
         return self.get(BitbucketAPIPath.issue.format(
