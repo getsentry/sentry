@@ -40,7 +40,6 @@ class BitbucketIntegrationProvider(IntegrationProvider):
         # TODO(LB): Add verification for clientKey
         if state.get('publicKey'):
             principal_data = state['principal']
-            user_data = state['user']
             return {
                 'provider': 'bitbucket',
                 'external_id': state['clientKey'],
@@ -52,13 +51,6 @@ class BitbucketIntegrationProvider(IntegrationProvider):
                     'domain_name': principal_data['links']['html']['href'].replace('https://', ''),
                     'icon': principal_data['links']['avatar']['href'],
                 },
-                'user_identity': {
-                    'type': 'bitbucket',
-                    'name': user_data['username'],
-                    'display_name': user_data['display_name'],
-                    'external_id': user_data['uuid'],
-                    'icon': user_data['links']['avatar']['href'],
-                }
             }
         return {
             'provider': 'bitbucket',
