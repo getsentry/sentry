@@ -90,7 +90,7 @@ exports[`SuggestedOwners render() should show owners when enable 1`] = `
             >
               <UserAvatar
                 className="tip"
-                gravatar={true}
+                gravatar={false}
                 hasTooltip={false}
                 title="<div><div class=\\"tooltip-owners-name\\">Jane Doe</div><ul class=\\"tooltip-owners-commits\\">Assigned based on your Project&#x27;s Issue Ownership settings</ul><ul class=\\"tooltip-owners-commits\\">path matched: sentry/tagstore/*</ul></div>"
                 user={
@@ -106,10 +106,11 @@ exports[`SuggestedOwners render() should show owners when enable 1`] = `
                   gravatarId="janedoe@example.com"
                   hasTooltip={false}
                   letterId="janedoe@example.com"
+                  round={true}
                   style={Object {}}
                   title="Jane Doe"
                   tooltip="Jane Doe (janedoe@example.com)"
-                  type="gravatar"
+                  type="letter_avatar"
                   uploadPath="avatar"
                 >
                   <Tooltip
@@ -124,11 +125,45 @@ exports[`SuggestedOwners render() should show owners when enable 1`] = `
                         className="avatar tip css-15umz1j-StyledBaseAvatar e1z0ohzl0"
                         style={Object {}}
                       >
-                        <img
-                          onError={[Function]}
-                          onLoad={[Function]}
-                          src="undefined/avatar/e1f3994f2632af3d1c8c2dcc168a10e6?d=blank&s=64"
-                        />
+                        <LetterAvatar
+                          displayName="Jane Doe"
+                          identifier="janedoe@example.com"
+                          round={true}
+                        >
+                          <Svg
+                            round={true}
+                            viewBox="0 0 120 120"
+                          >
+                            <svg
+                              className="css-1r4mnb9-Svg e1knxa8x0"
+                              viewBox="0 0 120 120"
+                            >
+                              <rect
+                                fill="#f868bc"
+                                height="120"
+                                rx="15"
+                                ry="15"
+                                width="120"
+                                x="0"
+                                y="0"
+                              />
+                              <text
+                                fill="#FFFFFF"
+                                fontSize="65"
+                                style={
+                                  Object {
+                                    "dominantBaseline": "central",
+                                  }
+                                }
+                                textAnchor="middle"
+                                x="50%"
+                                y="50%"
+                              >
+                                JD
+                              </text>
+                            </svg>
+                          </Svg>
+                        </LetterAvatar>
                       </span>
                     </StyledBaseAvatar>
                   </Tooltip>

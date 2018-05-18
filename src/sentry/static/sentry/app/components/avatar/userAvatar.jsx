@@ -14,7 +14,11 @@ class UserAvatar extends React.Component {
   };
 
   static defaultProps = {
-    gravatar: true,
+    // Default gravatar to false in order to support transparent avatars
+    // Avatar falls through to letter avatars if a remote image fails to load,
+    // however gravatar sends back a transparent image when it does not find a gravatar,
+    // so there's little we have to control whether we need to fallback to letter avatar
+    gravatar: false,
   };
 
   getType = (user, gravatar) => {
@@ -49,6 +53,7 @@ class UserAvatar extends React.Component {
             : userDisplayName(user)
         }
         title={user.name || user.email || user.username || ''}
+        round
       />
     );
   }
