@@ -1,16 +1,13 @@
 from __future__ import absolute_import
 
-import datetime
 import hashlib
 import jwt
 
-from sentry.http import build_session
 from sentry.models import Integration
 from sentry.utils.http import percent_encode
 
 __all__ = [
     'AtlassianConnectValidationError',
-    'integration_request',
     'get_query_hash',
     'get_integration_from_request',
 ]
@@ -18,32 +15,6 @@ __all__ = [
 
 class AtlassianConnectValidationError(Exception):
     pass
-
-
-def integration_request(method, path, app_key, base_url, shared_secret,
-                        data=None, params=None, headers=None, **kwargs):
-    jwt_payload = {
-        'iss': app_key,
-        'iat': datetime.datetime.utcnow(),
-        'exp': datetime.datetime.utcnow() + datetime.timedelta(seconds=5 * 60),
-        'qsh': get_query_hash(path, method.upper(), params),
-    }
-    encoded_jwt = jwt.encode(jwt_payload, shared_secret)
-    params = dict(
-        jwt=encoded_jwt,
-        **(params or {})
-    )
-
-    session = build_session()
-    resp = session.request(
-        method.lower(),
-        url='%s%s' % (base_url, path),
-        headers=headers,
-        json=data,
-        params=params,
-    )
-    resp.raise_for_status()
-    return resp.json()
 
 
 def get_query_hash(uri, method, query_params=None):
