@@ -31,79 +31,44 @@ class OAuth2Provider(Provider):
 
     oauth_scopes = ()
 
+    def _get_oauth_parameter(self, parameter_name):
+        """
+        Lookup an OAuth parameter for the provider. Depending on the context of the
+        pipeline using the provider, the parameter may come from 1 of 3 places:
+
+        1. Check the class property of the provider for the parameter.
+
+        2. If the provider has the parameters made available within the ``config``.
+
+        3. If provided, check the pipeline's ``provider_model`` for the oauth parameter
+           in the config field.
+
+        If the parameter cannot be found a KeyError will be raised.
+        """
+        prop = getattr(self, u'oauth_{}'.format(parameter_name))
+        if prop is not '':
+            return prop
+
+        if self.config.get(parameter_name):
+            return self.config.get(parameter_name)
+
+        model = self.pipeline.provider_model
+        if model and model.config.get(parameter_name) is not None:
+            return model.config.get(parameter_name)
+
+        raise KeyError
+
     def get_oauth_access_token_url(self):
-        # for most cloud-based providers, take this off of the class
-
-        if self.oauth_access_token_url is not '':
-            return self.oauth_access_token_url
-
-        # # check the model for installation information
-        if self.pipeline.provider_model and self.pipeline.provider_model.config.get(
-                'access_token_url'):
-            # todo(maxbittker) get the name of this key
-            return self.pipeline.provider_model.config.get('access_token_url')
-
-        # otherwise try the pipeline state
-        pipeline_token_url = self.pipeline.parent_pipeline.fetch_state(
-            'oauth_config_information').get('access_token_url')
-
-        if pipeline_token_url:
-            return pipeline_token_url
-
-        raise NotImplementedError
+        return self._get_oauth_parameter('access_token_url')
 
     def get_oauth_authorize_url(self):
-        # for most cloud-based providers, take this off of the class
-
-        if self.oauth_authorize_url is not '':
-            return self.oauth_authorize_url
-
-        # # check the model for installation information
-        if self.pipeline.provider_model and self.pipeline.provider_model.config.get(
-                'authorize_url'):
-            # todo(maxbittker) get the name of this key
-            return self.pipeline.provider_model.config.get('authorize_url')
-
-        # otherwise try the pipeline state
-
-        pipeline_authorize_url = self.pipeline.parent_pipeline.fetch_state(
-            'oauth_config_information').get('authorize_url')
-
-        if pipeline_authorize_url:
-            return pipeline_authorize_url
-
-        raise NotImplementedError
+        return self._get_oauth_parameter('authorize_url')
 
     def get_oauth_client_id(self):
-        # # check the model for instalation information
-        if self.pipeline.provider_model and self.pipeline.provider_model.config.get('client_id'):
-            # todo(maxbittker) get the name of this key
-            return self.pipeline.provider_model.config.get('client_id')
-
-        # otherwise try the pipeline state
-        client_id = self.pipeline.parent_pipeline.fetch_state(
-            'oauth_config_information').get('client_id')
-
-        if client_id:
-            return client_id
-
-        raise NotImplementedError
+        return self._get_oauth_parameter('client_id')
 
     def get_oauth_client_secret(self):
-        # # check the model for instalation information
-        if self.pipeline.provider_model and self.pipeline.provider_model.config.get(
-                'client_secret'):
-            # todo(maxbittker) get the name of this key
-            return self.pipeline.provider_model.config.get('client_secret')
-
-        # otherwise try the pipeline state
-        client_secret = self.pipeline.parent_pipeline.fetch_state('oauth_config_information') \
-            .get('client_secret')
-
-        if client_secret:
-            return client_secret
-
-        raise NotImplementedError
+        return self._get_oauth_parameter('client_secret')
 
     def get_oauth_scopes(self):
         return self.config.get('oauth_scopes', self.oauth_scopes)
@@ -166,7 +131,6 @@ class OAuth2LoginView(PipelineView):
 
     @csrf_exempt
     def dispatch(self, request, pipeline):
-
         if 'code' in request.GET:
             return pipeline.next_step()
 

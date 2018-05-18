@@ -122,22 +122,34 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
     name = 'GitHub Enterprise'
     metadata = metadata
 
-    def get_pipeline_views(self):
-        identity_pipeline_config = {
-            'oauth_scopes': (),
-            'redirect_url': absolute_uri('/extensions/github-enterprise/setup/'),
-        }
+    def _make_identity_pipeline_view(self):
+        """
+        Make the nested identity provider view. It is important that this view is
+        not constructed until we reach this step and the
+        ``oauth_config_information`` is available in the pipeline state. This
+        method should be late bound into the pipeline vies.
+        """
+        identity_pipeline_config = dict(
+            oauth_scopes=(),
+            redirect_url=absolute_uri('/extensions/github-enterprise/setup/'),
+            *self.pipeline.fetch_state('oauth_config_information')
+        )
 
-        identity_pipeline_view = NestedPipelineView(
+        return NestedPipelineView(
             bind_key='identity',
             provider_key='github-enterprise',
             pipeline_cls=IdentityProviderPipeline,
             config=identity_pipeline_config,
         )
 
+    def get_pipeline_views(self):
         return [InstallationConfigView(),
                 GitHubEnterpriseInstallationRedirect(),
-                identity_pipeline_view]
+
+                # The identity provider pipeline should be constructed at execution
+                # time, this allows for the oauth configuration parameters to be made
+                # available from the installation config view.
+                lambda: self._make_identity_pipeline_view()]
 
     def get_installation_info(self, installation_data, access_token, installation_id):
         session = http.build_session()
