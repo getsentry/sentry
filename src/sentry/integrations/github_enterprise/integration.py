@@ -53,25 +53,25 @@ class InstallationForm(forms.Form):
                 'placeholder': _('sentry-app'),
             }
         ))
-        self.fields['client-id'] = forms.CharField(widget=forms.TextInput(
+        self.fields['client_id'] = forms.CharField(widget=forms.TextInput(
             attrs={
                 'label': "Github App Client ID",
                 'placeholder': _('1'),
             }
         ))
-        self.fields['client-secret'] = forms.CharField(widget=forms.TextInput(
+        self.fields['client_secret'] = forms.CharField(widget=forms.TextInput(
             attrs={
                 'label': "Github App Client Secret",
                 'placeholder': _('XXXXXXXXXXXXXXXXXXXXXXXXXXX'),
             }
         ))
-        self.fields['webhook-secret'] = forms.CharField(required=False, widget=forms.TextInput(
+        self.fields['webhook_secret'] = forms.CharField(required=False, widget=forms.TextInput(
             attrs={
                 'label': "Github App Webhook Secret",
                 'placeholder': _('XXXXXXXXXXXXXXXXXXXXXXXXXXX'),
             }
         ))
-        self.fields['private-key'] = forms.CharField(
+        self.fields['private_key'] = forms.CharField(
             widget=forms.Textarea(attrs={'rows': '60',
                                          'label': "Github App Private Key",
                                          'placeholder': _("""-----BEGIN RSA PRIVATE KEY-----
@@ -99,8 +99,8 @@ class InstallationConfigView(PipelineView):
             pipeline.bind_state('oauth_config_information', {
                 "access_token_url": "https://{}/login/oauth/access_token".format(form_data.get('url')),
                 "authorize_url": "https://{}/login/oauth/authorize".format(form_data.get('url')),
-                "client_id": form_data.get('client-id'),
-                "client_secret": form_data.get('client-secret'),
+                "client_id": form_data.get('client_id'),
+                "client_secret": form_data.get('client_secret'),
             })
 
             return pipeline.next_step()
