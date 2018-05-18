@@ -30,14 +30,18 @@ export default class AdminOverview extends AsyncView {
               <span id="rate" className="pull-right" />
             </h4>
           </div>
-          <EventChart since={since} resolution={resolution} />
+          <div style={{padding: 20}}>
+            <EventChart since={since} resolution={resolution} />
+          </div>
         </div>
 
         <div className="box">
           <div className="box-header">
             <h4>{t('API Responses')}</h4>
           </div>
-          <ApiChart since={since} resolution={resolution} />
+          <div style={{padding: 20}}>
+            <ApiChart since={since} resolution={resolution} />
+          </div>
         </div>
       </div>
     );

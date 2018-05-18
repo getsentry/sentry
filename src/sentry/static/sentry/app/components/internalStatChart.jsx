@@ -90,12 +90,14 @@ export default createReactClass({
     else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
 
     return (
-      <BarChart
-        points={this.getChartPoints()}
-        showAxis
-        label={this.props.label}
-        height={this.props.height}
-      />
+      <div style={{padding: 20}}>
+        <BarChart
+          points={this.getChartPoints()}
+          showAxis
+          label={this.props.label}
+          height={this.props.height}
+        />
+      </div>
     );
   },
 });
