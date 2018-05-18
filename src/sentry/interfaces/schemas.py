@@ -156,6 +156,64 @@ STACKTRACE_INTERFACE_SCHEMA = {
     'additionalProperties': {'not': {}},
 }
 
+EXCEPTION_MECHANISM_INTERFACE_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'type': {
+            'type': 'string',
+            'minLength': 1,
+        },
+        'description': {
+            'type': 'string',
+        },
+        'help_link': {
+            'type': 'string',
+            'minLength': 1,
+        },
+        'handled': {
+            'type': 'boolean',
+        },
+        'data': {
+            'type': 'object',
+        },
+        'meta': {
+            'type': 'object',
+            'default': {},
+            'properties': {
+                'signal': {
+                    'type': 'object',
+                    'properties': {
+                        'number': {'type': 'number'},
+                        'code': {'type': 'number'},
+                        'name': {'type': 'string'},
+                    },
+                    'required': ['number'],
+                },
+                'errno': {
+                    'type': 'object',
+                    'properties': {
+                        'number': {'type': 'number'},
+                        'name': {'type': 'string'},
+                    },
+                    'required': ['number'],
+                },
+                'mach_exception': {
+                    'type': 'object',
+                    'properties': {
+                        'exception': {'type': 'number'},
+                        'code': {'type': 'number'},
+                        'subcode': {'type': 'number'},
+                        'name': {'type': 'string'},
+                        'code_name': {'type': 'string'},
+                    },
+                    'required': ['exception', 'code', 'subcode'],
+                },
+            },
+        }
+    },
+    'required': ['type'],
+}
+
 EXCEPTION_INTERFACE_SCHEMA = {
     'type': 'object',
     'properties': {
@@ -169,7 +227,7 @@ EXCEPTION_INTERFACE_SCHEMA = {
             # 'minLength': 1,
         },
         'module': {'type': 'string'},
-        'mechanism': {'type': 'object'},
+        'mechanism': {},  # see EXCEPTION_MECHANISM_INTERFACE_SCHEMA
         'stacktrace': {
             # To validate stacktraces use STACKTRACE_INTERFACE_SCHEMA
             'type': 'object',
@@ -642,6 +700,7 @@ INTERFACE_SCHEMAS = {
     'sentry.interfaces.Stacktrace': STACKTRACE_INTERFACE_SCHEMA,
     'frame': FRAME_INTERFACE_SCHEMA,  # Not listed in SENTRY_INTERFACES
     'logentry': MESSAGE_INTERFACE_SCHEMA,
+    'mechanism': EXCEPTION_MECHANISM_INTERFACE_SCHEMA,
     'sentry.interfaces.Message': MESSAGE_INTERFACE_SCHEMA,
     'template': TEMPLATE_INTERFACE_SCHEMA,
     'sentry.interfaces.Template': TEMPLATE_INTERFACE_SCHEMA,

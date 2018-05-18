@@ -131,18 +131,20 @@ class BasicResolvingFileTest(TestCase):
                         "type":
                         "NSRangeException",
                         "mechanism": {
-                            "posix_signal": {
-                                "signal": 6,
-                                "code": 0,
-                                "name": "SIGABRT",
-                                "code_name": None
-                            },
                             "type": "cocoa",
-                            "mach_exception": {
-                                "subcode": 0,
-                                "code": 0,
-                                "exception": 10,
-                                "exception_name": "EXC_CRASH"
+                            "meta": {
+                                "signal": {
+                                    "signal": 6,
+                                    "code": 0,
+                                    "name": "SIGABRT",
+                                    "code_name": None
+                                },
+                                "mach_exception": {
+                                    "subcode": 0,
+                                    "code": 0,
+                                    "exception": 10,
+                                    "name": "EXC_CRASH"
+                                }
                             }
                         },
                         "value": (

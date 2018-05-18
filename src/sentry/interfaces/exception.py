@@ -8,7 +8,7 @@ sentry.interfaces.exception
 
 from __future__ import absolute_import
 
-__all__ = ('Exception', )
+__all__ = ('Exception', 'Mechanism', 'upgrade_legacy_mechanism')
 
 import re
 import six
@@ -23,6 +23,228 @@ from sentry.utils.safe import trim
 
 _type_value_re = re.compile('^(\w+):(.*)$')
 
+WELL_KNOWN_ERRNO = {
+    # TODO(ja)
+}
+
+WELL_KNOWN_SIGNALS = {
+    # TODO(ja)
+}
+
+WELL_KNOWN_SIGNAL_CODES = {
+    # TODO(ja)
+}
+
+WELL_KNOWN_EXCEPTIONS = {
+    # TODO(ja)
+}
+
+
+def upgrade_legacy_mechanism(data):
+    """
+    Conversion from mechanism objects sent by old sentry-cocoa SDKs. It assumes
+    "type": "generic" and moves "posix_signal", "mach_exception" into "meta".
+    All other keys are moved into "data".
+
+    Example old payload:
+    >>> {
+    >>>     "posix_signal": {
+    >>>         "name": "SIGSEGV",
+    >>>         "code_name": "SEGV_NOOP",
+    >>>         "signal": 11,
+    >>>         "code": 0
+    >>>     },
+    >>>     "relevant_address": "0x1",
+    >>>     "mach_exception": {
+    >>>         "exception": 1,
+    >>>         "exception_name": "EXC_BAD_ACCESS",
+    >>>         "subcode": 8,
+    >>>         "code": 1
+    >>>     }
+    >>> }
+
+    Example normalization:
+    >>> {
+    >>>     "type": "mach",
+    >>>     "description": "TODO",
+    >>>     "data": {
+    >>>         "relevant_address": "0x1"
+    >>>     },
+    >>>     "meta": {
+    >>>         "mach_exception": {
+    >>>             "exception": 1,
+    >>>             "subcode": 8,
+    >>>             "code": 1,
+    >>>             "name": "EXC_BAD_ACCESS"
+    >>>         },
+    >>>         "signal": {
+    >>>             "number": 11,
+    >>>             "code": 0,
+    >>>             "name": "SIGSEGV",
+    >>>             "code_name": "SEGV_NOOP"
+    >>>         }
+    >>>     }
+    >>> }
+    """
+
+    # Early exit for current protocol. We assume that when someone sends a
+    # "type", we do not need to preprocess and can immediately validate
+    if data is None or data.get('type') is not None:
+        return data
+
+    result = {'type': 'generic'}
+
+    # "posix_signal" and "mach_exception" were optional root-level objects,
+    # which have now moved to special keys inside "meta". We only create "meta"
+    # if there is actual data to add.
+
+    posix_signal = data.pop('posix_signal', None)
+    if posix_signal and posix_signal.get('signal'):
+        result.setdefault('meta', {})['signal'] = {
+            'number': posix_signal.get('signal'),
+            'code': posix_signal.get('code'),
+            'name': posix_signal.get('name'),
+            'code_name': posix_signal.get('code_name'),
+        }
+
+    mach_exception = data.pop('mach_exception', None)
+    if mach_exception:
+        result.setdefault('meta', {})['mach_exception'] = {
+            'exception': mach_exception.get('exception'),
+            'code': mach_exception.get('code'),
+            'subcode': mach_exception.get('subcode'),
+            'name': mach_exception.get('exception_name'),
+        }
+
+    # All remaining data has to be moved to the "data" key. We assume that even
+    # if someone accidentally sent a corret top-level key (such as "handled"),
+    # it will not pass our interface validation and should be moved to "data"
+    # instead.
+    result.setdefault('data', {}).update(data)
+    return result
+
+
+def to_hex_code(code):
+    if code is None:
+        return None
+    elif isinstance(code, six.integer_types):
+        rv = '0x%x' % code
+    elif isinstance(code, six.string_types):
+        if code[:2] == '0x':
+            code = int(code[2:], 16)
+        rv = '0x%x' % int(code)
+    else:
+        raise ValueError('Unsupported format %r' % (code, ))
+    if len(rv) > 24:
+        raise ValueError('Value too long %r' % (rv, ))
+    return rv
+
+
+def prune_empty_keys(obj):
+    if obj is None:
+        return None
+
+    return dict((k, v) for k, v in six.iteritems(obj) if (v == 0 or v is False or v))
+
+
+class Mechanism(Interface):
+    """
+    an optional field residing in the exception interface. It carries additional
+    information about the way the exception was created on the target system.
+    This includes general exception values obtained from operating system or
+    runtime APIs, as well as mechanism-specific values.
+
+    >>> {
+    >>>     "type": "mach",
+    >>>     "description": "EXC_BAD_ACCESS",
+    >>>     "data": {
+    >>>         "relevant_address": "0x1"
+    >>>     },
+    >>>     "handled": false,
+    >>>     "help_link": "https://developer.apple.com/library/content/qa/qa1367/_index.html",
+    >>>     "meta": {
+    >>>         "mach_exception": {
+    >>>              "exception": 1,
+    >>>              "subcode": 8,
+    >>>              "code": 1
+    >>>         },
+    >>>         "signal": 11
+    >>>             "number": 11
+    >>>         }
+    >>>     }
+    >>> }
+    """
+
+    path = 'mechanism'
+
+    @classmethod
+    def to_python(cls, data):
+        data = upgrade_legacy_mechanism(data)
+        is_valid, errors = validate_and_default_interface(data, cls.path)
+        if not is_valid:
+            raise InterfaceValidationError("Invalid mechanism")
+
+        if not data.get('type'):
+            raise InterfaceValidationError("No 'type' present")
+
+        meta = data.get('meta', {})
+        mach_exception = meta.get('mach_exception')
+        if mach_exception is not None:
+            mach_exception = {
+                'exception': mach_exception['exception'],
+                'code': mach_exception['code'],
+                'subcode': mach_exception['subcode'],
+                'name': mach_exception['name'] or (
+                    WELL_KNOWN_EXCEPTIONS.get(mach_exception['exception'])),
+            }
+
+        signal = meta.get('signal')
+        if signal is not None:
+            signal = {
+                'number': signal['number'],
+                'code': signal.get('code'),
+                'name': signal.get('name') or (
+                    WELL_KNOWN_SIGNALS.get(signal['number'])),
+                'code_name': signal.get('code_name') or (
+                    WELL_KNOWN_SIGNAL_CODES.get(signal.get('code'))),
+            }
+
+        errno = meta.get('errno')
+        if errno is not None:
+            errno = {
+                'number': errno['number'],
+                'name': errno.get('name') or (
+                    WELL_KNOWN_ERRNO.get(errno['number'])),
+            }
+
+        kwargs = {
+            'type': trim(data['type'], 128),
+            'description': trim(data.get('description'), 1024),
+            'help_link': trim(data.get('help_link'), 1024),
+            'handled': data.get('handled'),
+            'data': trim(data.get('data'), 4096),
+            'meta': {
+                'errno': errno,
+                'mach_exception': mach_exception,
+                'signal': signal,
+            },
+        }
+
+        return cls(**kwargs)
+
+    def to_json(self):
+        return prune_empty_keys({
+            'type': self.type,
+            'description': self.description,
+            'help_link': self.help_link,
+            'handled': self.handled,
+            'data': self.data,
+            'meta': prune_empty_keys(self.meta),
+        })
+
+    def get_path(self):
+        return self.path
+
 
 class SingleException(Interface):
     """
@@ -33,7 +255,7 @@ class SingleException(Interface):
     You can also optionally bind a stacktrace interface to an exception. The
     spec is identical to ``sentry.interfaces.Stacktrace``.
 
-    >>>  {
+    >>> {
     >>>     "type": "ValueError",
     >>>     "value": "My exception value",
     >>>     "module": "__builtins__",
@@ -83,10 +305,10 @@ class SingleException(Interface):
 
         value = trim(value, 4096)
 
-        mechanism = data.get('mechanism')
-        if mechanism is not None:
-            mechanism = trim(data.get('mechanism'), 4096)
-            mechanism.setdefault('type', 'generic')
+        if data.get('mechanism'):
+            mechanism = Mechanism.to_python(data['mechanism'])
+        else:
+            mechanism = None
 
         kwargs = {
             'type': trim(type, 128),
@@ -101,6 +323,11 @@ class SingleException(Interface):
         return cls(**kwargs)
 
     def to_json(self):
+        if self.mechanism:
+            mechanism = self.mechanism.to_json()
+        else:
+            mechanism = None
+
         if self.stacktrace:
             stacktrace = self.stacktrace.to_json()
         else:
@@ -114,7 +341,7 @@ class SingleException(Interface):
         return {
             'type': self.type,
             'value': self.value,
-            'mechanism': self.mechanism or None,
+            'mechanism': mechanism,
             'module': self.module,
             'stacktrace': stacktrace,
             'thread_id': self.thread_id,
@@ -122,6 +349,11 @@ class SingleException(Interface):
         }
 
     def get_api_context(self, is_public=False):
+        if self.mechanism:
+            mechanism = self.mechanism.to_json()
+        else:
+            mechanism = None
+
         if self.stacktrace:
             stacktrace = self.stacktrace.get_api_context(is_public=is_public)
         else:
@@ -135,7 +367,7 @@ class SingleException(Interface):
         return {
             'type': self.type,
             'value': six.text_type(self.value) if self.value else None,
-            'mechanism': self.mechanism or None,
+            'mechanism': mechanism,
             'threadId': self.thread_id,
             'module': self.module,
             'stacktrace': stacktrace,
@@ -176,7 +408,9 @@ class Exception(Interface):
     >>>         "type": "ValueError",
     >>>         "value": "My exception value",
     >>>         "module": "__builtins__",
-    >>>         "mechanism": {},
+    >>>         "mechanism": {
+    >>>             # see sentry.interfaces.Mechanism
+    >>>         },
     >>>         "stacktrace": {
     >>>             # see sentry.interfaces.Stacktrace
     >>>         }
