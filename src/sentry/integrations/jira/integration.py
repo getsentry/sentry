@@ -1,8 +1,12 @@
 from __future__ import absolute_import
 
+from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.integrations import Integration, IntegrationProvider, IntegrationMetadata
+from sentry.integrations import (
+    Integration, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
+)
+from sentry.integrations.issues import IssueSyncMixin
 
 from .client import JiraApiClient
 
@@ -26,7 +30,18 @@ metadata = IntegrationMetadata(
 )
 
 
-class JiraIntegration(Integration):
+class JiraIntegration(Integration, IssueSyncMixin):
+
+    def get_link_issue_config(self, group, **kwargs):
+        fields = super(JiraIntegration, self).get_link_issue_config(group, **kwargs)
+        org = group.organization
+        autocomplete_url = reverse(
+            'sentry-extensions-jira-search', args=[org.slug, self.model.id],
+        )
+        for field in fields:
+            if field['name'] == 'externalIssue':
+                field['autocompleteUrl'] = autocomplete_url
+        return fields
 
     def get_client(self):
         return JiraApiClient(
@@ -54,6 +69,8 @@ class JiraIntegrationProvider(IntegrationProvider):
     name = 'JIRA'
     metadata = metadata
     integration_cls = JiraIntegration
+
+    features = frozenset([IntegrationFeatures.ISSUE_SYNC])
 
     can_add = False
 
