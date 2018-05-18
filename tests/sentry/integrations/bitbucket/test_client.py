@@ -1,11 +1,13 @@
 from __future__ import absolute_import
 
-from sentry.testutils import APITestCase
+# import responses
+# from .test_client_utils import COMPARE_COMMITS_EXAMPLE, COMMIT_DIFF_PATCH
+from sentry.testutils import IntegrationTestCase
 # from sentry.integrations.bitbucket.descriptor import BitbucketAPI
 
 
-class TestClient(APITestCase):
-
+class TestBitbucketClient(IntegrationTestCase):
+    # TODO(LB): Doesn't appear like simpler api calls are tested. Ask if it's a good idea to do so.
     def test_get_issue(self, issue_id):
         pass
 
