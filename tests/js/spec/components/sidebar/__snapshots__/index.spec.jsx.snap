@@ -303,33 +303,38 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                         displayName="org slug"
                         identifier="org-slug"
                       >
-                        <svg
+                        <Svg
                           viewBox="0 0 120 120"
                         >
-                          <rect
-                            fill="#4674ca"
-                            height="120"
-                            rx="15"
-                            ry="15"
-                            width="120"
-                            x="0"
-                            y="0"
-                          />
-                          <text
-                            fill="#FFFFFF"
-                            fontSize="65"
-                            style={
-                              Object {
-                                "dominantBaseline": "central",
-                              }
-                            }
-                            textAnchor="middle"
-                            x="50%"
-                            y="50%"
+                          <svg
+                            className="css-123ijso-Svg e1knxa8x0"
+                            viewBox="0 0 120 120"
                           >
-                            OS
-                          </text>
-                        </svg>
+                            <rect
+                              fill="#4674ca"
+                              height="120"
+                              rx="15"
+                              ry="15"
+                              width="120"
+                              x="0"
+                              y="0"
+                            />
+                            <text
+                              fill="#FFFFFF"
+                              fontSize="65"
+                              style={
+                                Object {
+                                  "dominantBaseline": "central",
+                                }
+                              }
+                              textAnchor="middle"
+                              x="50%"
+                              y="50%"
+                            >
+                              OS
+                            </text>
+                          </svg>
+                        </Svg>
                       </LetterAvatar>
                     </span>
                   </StyledBaseAvatar>
@@ -692,7 +697,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                               >
                                 <UserAvatar
                                   className="css-1u6j7yz-StyledAvatar ev46mzr4"
-                                  gravatar={true}
+                                  gravatar={false}
                                   hasTooltip={false}
                                   size={32}
                                   user={
@@ -718,11 +723,12 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                                     gravatarId="foo@example.com"
                                     hasTooltip={false}
                                     letterId="foo@example.com"
+                                    round={true}
                                     size={32}
                                     style={Object {}}
                                     title="Foo Bar"
                                     tooltip="Foo Bar (foo@example.com)"
-                                    type="gravatar"
+                                    type="letter_avatar"
                                     uploadPath="avatar"
                                   >
                                     <Tooltip
@@ -747,11 +753,45 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                                             }
                                           }
                                         >
-                                          <img
-                                            onError={[Function]}
-                                            onLoad={[Function]}
-                                            src="undefined/avatar/b48def645758b95537d4424c84d1a9ff?d=blank&s=32"
-                                          />
+                                          <LetterAvatar
+                                            displayName="Foo Bar"
+                                            identifier="foo@example.com"
+                                            round={true}
+                                          >
+                                            <Svg
+                                              round={true}
+                                              viewBox="0 0 120 120"
+                                            >
+                                              <svg
+                                                className="css-1r4mnb9-Svg e1knxa8x0"
+                                                viewBox="0 0 120 120"
+                                              >
+                                                <rect
+                                                  fill="#315cac"
+                                                  height="120"
+                                                  rx="15"
+                                                  ry="15"
+                                                  width="120"
+                                                  x="0"
+                                                  y="0"
+                                                />
+                                                <text
+                                                  fill="#FFFFFF"
+                                                  fontSize="65"
+                                                  style={
+                                                    Object {
+                                                      "dominantBaseline": "central",
+                                                    }
+                                                  }
+                                                  textAnchor="middle"
+                                                  x="50%"
+                                                  y="50%"
+                                                >
+                                                  FB
+                                                </text>
+                                              </svg>
+                                            </Svg>
+                                          </LetterAvatar>
                                         </span>
                                       </StyledBaseAvatar>
                                     </Tooltip>
@@ -1710,7 +1750,7 @@ exports[`Sidebar renders without org and router 1`] = `
                               >
                                 <UserAvatar
                                   className="css-1u6j7yz-StyledAvatar ev46mzr4"
-                                  gravatar={true}
+                                  gravatar={false}
                                   hasTooltip={false}
                                   size={32}
                                   user={
@@ -1736,11 +1776,12 @@ exports[`Sidebar renders without org and router 1`] = `
                                     gravatarId="foo@example.com"
                                     hasTooltip={false}
                                     letterId="foo@example.com"
+                                    round={true}
                                     size={32}
                                     style={Object {}}
                                     title="Foo Bar"
                                     tooltip="Foo Bar (foo@example.com)"
-                                    type="gravatar"
+                                    type="letter_avatar"
                                     uploadPath="avatar"
                                   >
                                     <Tooltip
@@ -1765,11 +1806,45 @@ exports[`Sidebar renders without org and router 1`] = `
                                             }
                                           }
                                         >
-                                          <img
-                                            onError={[Function]}
-                                            onLoad={[Function]}
-                                            src="undefined/avatar/b48def645758b95537d4424c84d1a9ff?d=blank&s=32"
-                                          />
+                                          <LetterAvatar
+                                            displayName="Foo Bar"
+                                            identifier="foo@example.com"
+                                            round={true}
+                                          >
+                                            <Svg
+                                              round={true}
+                                              viewBox="0 0 120 120"
+                                            >
+                                              <svg
+                                                className="css-1r4mnb9-Svg e1knxa8x0"
+                                                viewBox="0 0 120 120"
+                                              >
+                                                <rect
+                                                  fill="#315cac"
+                                                  height="120"
+                                                  rx="15"
+                                                  ry="15"
+                                                  width="120"
+                                                  x="0"
+                                                  y="0"
+                                                />
+                                                <text
+                                                  fill="#FFFFFF"
+                                                  fontSize="65"
+                                                  style={
+                                                    Object {
+                                                      "dominantBaseline": "central",
+                                                    }
+                                                  }
+                                                  textAnchor="middle"
+                                                  x="50%"
+                                                  y="50%"
+                                                >
+                                                  FB
+                                                </text>
+                                              </svg>
+                                            </Svg>
+                                          </LetterAvatar>
                                         </span>
                                       </StyledBaseAvatar>
                                     </Tooltip>

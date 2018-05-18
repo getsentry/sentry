@@ -2299,7 +2299,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                         }
                                       >
                                         <UserAvatar
-                                          gravatar={true}
+                                          gravatar={false}
                                           hasTooltip={true}
                                           size={28}
                                           user={
@@ -2328,11 +2328,12 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                             gravatarId="janedoe@example.com"
                                             hasTooltip={true}
                                             letterId="janedoe@example.com"
+                                            round={true}
                                             size={28}
                                             style={Object {}}
                                             title="Jane Doe"
                                             tooltip="Jane Doe (janedoe@example.com)"
-                                            type="gravatar"
+                                            type="letter_avatar"
                                             uploadPath="avatar"
                                           >
                                             <Tooltip
@@ -2359,11 +2360,45 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                                   }
                                                   title="Jane Doe (janedoe@example.com)"
                                                 >
-                                                  <img
-                                                    onError={[Function]}
-                                                    onLoad={[Function]}
-                                                    src="undefined/avatar/e1f3994f2632af3d1c8c2dcc168a10e6?d=blank&s=32"
-                                                  />
+                                                  <LetterAvatar
+                                                    displayName="Jane Doe"
+                                                    identifier="janedoe@example.com"
+                                                    round={true}
+                                                  >
+                                                    <Svg
+                                                      round={true}
+                                                      viewBox="0 0 120 120"
+                                                    >
+                                                      <svg
+                                                        className="css-1r4mnb9-Svg e1knxa8x0"
+                                                        viewBox="0 0 120 120"
+                                                      >
+                                                        <rect
+                                                          fill="#f868bc"
+                                                          height="120"
+                                                          rx="15"
+                                                          ry="15"
+                                                          width="120"
+                                                          x="0"
+                                                          y="0"
+                                                        />
+                                                        <text
+                                                          fill="#FFFFFF"
+                                                          fontSize="65"
+                                                          style={
+                                                            Object {
+                                                              "dominantBaseline": "central",
+                                                            }
+                                                          }
+                                                          textAnchor="middle"
+                                                          x="50%"
+                                                          y="50%"
+                                                        >
+                                                          JD
+                                                        </text>
+                                                      </svg>
+                                                    </Svg>
+                                                  </LetterAvatar>
                                                 </span>
                                               </StyledBaseAvatar>
                                             </Tooltip>

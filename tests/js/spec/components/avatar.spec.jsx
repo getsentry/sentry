@@ -29,7 +29,7 @@ describe('Avatar', function() {
       expect(avatar.find('span.avatar')).toHaveLength(1);
     });
 
-    it('should show a gravatar when avatar type is gravatar', function() {
+    it('should show a gravatar when avatar type is gravatar', async function() {
       let user = Object.assign({}, USER, {
         avatar: {
           avatarType: 'gravatar',
@@ -39,7 +39,12 @@ describe('Avatar', function() {
       let avatar = mount(<Avatar user={user} />);
 
       expect(avatar.find('BaseAvatar').prop('type')).toBe('gravatar');
-      expect(avatar.find('BaseAvatar img').prop('src')).toMatch(
+
+      // Need update because Gravatar async imports a library
+      await tick();
+      avatar.update();
+
+      expect(avatar.find('BaseAvatar Gravatar Image').prop('src')).toMatch(
         'gravatarBaseUrl/avatar/'
       );
     });
@@ -100,15 +105,20 @@ describe('Avatar', function() {
       expect(avatar.find('BaseAvatar').prop('type')).toBe('letter_avatar');
     });
 
-    it('should show a gravatar when no avatar type is set and user has an email address', function() {
+    it('use letter avatar by default, when no avatar type is set and user has an email address', function() {
       let avatar = mount(<Avatar user={USER} />);
+      expect(avatar.find('BaseAvatar').prop('type')).toBe('letter_avatar');
+    });
+
+    it('should show a gravatar when no avatar type is set and user has an email address', function() {
+      let avatar = mount(<Avatar gravatar user={USER} />);
       expect(avatar.find('BaseAvatar').prop('type')).toBe('gravatar');
     });
 
     it('should not show a gravatar when no avatar type is set and user has no email address', function() {
       let user = Object.assign({}, USER);
       delete user.email;
-      let avatar = mount(<Avatar user={user} />);
+      let avatar = mount(<Avatar gravatar user={user} />);
 
       expect(avatar.find('BaseAvatar').prop('type')).toBe('letter_avatar');
     });
