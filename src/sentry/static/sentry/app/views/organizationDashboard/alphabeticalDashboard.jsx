@@ -25,7 +25,7 @@ class AlphabeticalDashboard extends React.Component {
 
     return (
       <React.Fragment>
-        <div style={{overflow: 'auto', position: 'relative'}}>
+        <ProjectCardsWrapper>
           <ProjectCards>
             {[...favorites, ...otherProjects].map(project => (
               <LazyLoad
@@ -45,7 +45,7 @@ class AlphabeticalDashboard extends React.Component {
               </LazyLoad>
             ))}
           </ProjectCards>
-        </div>
+        </ProjectCardsWrapper>
         {projects.length === 0 && (
           <EmptyState projects={projects} teams={teams} organization={organization} />
         )}
@@ -53,6 +53,10 @@ class AlphabeticalDashboard extends React.Component {
     );
   }
 }
+
+const ProjectCardsWrapper = styled('div')`
+  position: relative;
+`;
 
 const ProjectCards = styled(Flex)`
   flex-wrap: wrap;

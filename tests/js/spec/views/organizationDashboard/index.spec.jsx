@@ -1,5 +1,5 @@
 import React from 'react';
-import {shallow, mount} from 'enzyme';
+import {mount} from 'enzyme';
 
 import {Dashboard} from 'app/views/organizationDashboard';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
@@ -53,14 +53,14 @@ describe('OrganizationDashboard', function() {
     it('renders', function() {
       const projects = [];
 
-      const wrapper = shallow(
+      const wrapper = mount(
         <Dashboard
           teams={teams}
           projects={projects}
           organization={TestStubs.Organization()}
           params={{orgId: 'org-slug'}}
         />,
-        TestStubs.routerContext()
+        routerContext
       );
       const emptyState = wrapper.find('EmptyState');
       expect(emptyState).toHaveLength(1);
@@ -73,14 +73,14 @@ describe('OrganizationDashboard', function() {
     it('renders TeamSection', function() {
       const projects = [TestStubs.Project({teams})];
 
-      const wrapper = shallow(
+      const wrapper = mount(
         <Dashboard
           teams={teams}
           projects={projects}
           organization={TestStubs.Organization()}
           params={{orgId: 'org-slug'}}
         />,
-        TestStubs.routerContext()
+        routerContext
       );
       const emptyState = wrapper.find('EmptyState');
       const favorites = wrapper.find('TeamSection[data-test-id="favorites"]');
@@ -93,14 +93,14 @@ describe('OrganizationDashboard', function() {
     it('renders favorited project in favorites section ', function() {
       const projects = [TestStubs.Project({teams, isBookmarked: true})];
 
-      const wrapper = shallow(
+      const wrapper = mount(
         <Dashboard
           teams={teams}
           projects={projects}
           organization={TestStubs.Organization()}
           params={{orgId: 'org-slug'}}
         />,
-        TestStubs.routerContext()
+        routerContext
       );
       const favorites = wrapper.find('TeamSection[data-test-id="favorites"]');
       expect(favorites).toHaveLength(1);

@@ -8,7 +8,6 @@ import SentryTypes from 'app/proptypes';
 import IdBadge from 'app/components/idBadge';
 import getProjectsByTeams from 'app/utils/getProjectsByTeams';
 import {sortProjects} from 'app/utils';
-import {t} from 'app/locale';
 
 import TeamSection from './teamSection';
 import EmptyState from './emptyState';
@@ -38,7 +37,6 @@ class TeamDashboard extends React.Component {
             orgId={params.orgId}
             showBorder
             team={null}
-            title={t('Bookmarked projects')}
             projects={favorites}
           />
         )}

@@ -3,7 +3,9 @@ import Reflux from 'reflux';
 import PropTypes from 'prop-types';
 import createReactClass from 'create-react-class';
 import {Flex} from 'grid-emotion';
+import styled from 'react-emotion';
 
+import {t} from 'app/locale';
 import {changeDashboard} from 'app/actionCreators/preferences';
 import AlphabeticalDashboard from 'app/views/organizationDashboard/alphabeticalDashboard';
 import OrganizationState from 'app/mixins/organizationState';
@@ -14,6 +16,7 @@ import SelectControl from 'app/components/forms/selectControl';
 import TeamDashboard from 'app/views/organizationDashboard/teamDashboard';
 import withTeams from 'app/utils/withTeams';
 import withProjects from 'app/utils/withProjects';
+import space from 'app/styles/space';
 
 import OldDashboard from './oldDashboard';
 import ProjectNav from './projectNav';
@@ -83,8 +86,12 @@ const OrganizationDashboard = createReactClass({
       return (
         <Flex flex="1" direction="column" style={{position: 'relative'}}>
           <ProjectNav />
-          <div>
+          <DashboardControls>
+            <ProjectsHeader>{t('Projects')}</ProjectsHeader>
             <SelectControl
+              searchable={false}
+              placeholder="Sort dashboard by"
+              style={{width: 130}}
               clearable={false}
               value={this.state.dashboardType}
               onChange={this.handleChangeDashboard}
@@ -93,7 +100,7 @@ const OrganizationDashboard = createReactClass({
                 {value: 'teams', label: 'By Teams'},
               ]}
             />
-          </div>
+          </DashboardControls>
           <Dashboard
             organization={this.context.organization}
             {...this.props}
@@ -109,3 +116,15 @@ const OrganizationDashboard = createReactClass({
 
 export {Dashboard};
 export default withTeams(withProjects(OrganizationDashboard));
+
+const DashboardControls = styled(Flex)`
+  border-bottom: 1px solid ${p => p.theme.borderLight};
+  justify-content: space-between;
+  align-items: center;
+  padding: ${space(1)} 30px;
+`;
+
+const ProjectsHeader = styled('div')`
+  font-weight: bold;
+  font-size: 24px;
+`;
