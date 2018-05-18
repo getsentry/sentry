@@ -53,7 +53,13 @@ class IntegrationPipeline(Pipeline):
         return response
 
     def _finish_pipeline(self, data):
-        integration = ensure_integration(self.provider.key, data)
+        if 'expect_exists' in data:
+            integration = Integration.objects.get(
+                provider=self.provider.key,
+                external_id=data['external_id'],
+            )
+        else:
+            integration = ensure_integration(self.provider.key, data)
         integration.add_organization(self.organization.id)
 
         # Does this integration provide a user identity for the user setting up

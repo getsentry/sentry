@@ -61,7 +61,7 @@ describe('Avatar', function() {
       );
     });
 
-    it('should show an upload with the correct size', function() {
+    it('should show an upload with the correct size (static 120 size)', function() {
       let user = Object.assign({}, USER, {
         avatar: {
           avatarType: 'upload',
@@ -70,7 +70,7 @@ describe('Avatar', function() {
       });
       let avatar = mount(<Avatar user={user} size={76} />);
       expect(avatar.find('BaseAvatar img').prop('src')).toMatch(
-        '/avatar/2d641b5d-8c74-44de-9cb6-fbd54701b35e/?s=80'
+        '/avatar/2d641b5d-8c74-44de-9cb6-fbd54701b35e/?s=120'
       );
 
       avatar = mount(<Avatar user={user} size={121} />);
@@ -80,12 +80,12 @@ describe('Avatar', function() {
 
       avatar = mount(<Avatar user={user} size={32} />);
       expect(avatar.find('BaseAvatar img').prop('src')).toMatch(
-        '/avatar/2d641b5d-8c74-44de-9cb6-fbd54701b35e/?s=32'
+        '/avatar/2d641b5d-8c74-44de-9cb6-fbd54701b35e/?s=120'
       );
 
       avatar = mount(<Avatar user={user} size={1} />);
       expect(avatar.find('BaseAvatar img').prop('src')).toMatch(
-        '/avatar/2d641b5d-8c74-44de-9cb6-fbd54701b35e/?s=20'
+        '/avatar/2d641b5d-8c74-44de-9cb6-fbd54701b35e/?s=120'
       );
     });
 

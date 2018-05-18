@@ -51,9 +51,14 @@ update-submodules:
 	git submodule update
 	@echo ""
 
-install-system-pkgs:
+node-version-check:
+	@test "$$(node -v)" = v"$$(cat .nvmrc)" || (echo 'node version does not match .nvmrc. Recommended to use https://github.com/creationix/nvm'; exit 1)
+
+install-system-pkgs: node-version-check
 	@echo "--> Installing system packages (from Brewfile)"
 	@command -v brew 2>&1 > /dev/null && brew bundle || (echo 'WARNING: homebrew not found or brew bundle failed - skipping system dependencies.')
+	@echo "--> Installing yarn 1.3.2 (via npm)"
+	@npm install -g "yarn@1.3.2"
 
 install-yarn-pkgs:
 	@echo "--> Installing Yarn packages (for development)"
@@ -65,7 +70,7 @@ install-sentry-dev:
 	@echo "--> Installing Sentry (for development)"
 	$(PIP) install -e ".[dev,tests,optional]"
 
-build-js-po:
+build-js-po: node-version-check
 	mkdir -p build
 	SENTRY_EXTRACT_TRANSLATIONS=1 $(WEBPACK)
 
@@ -99,7 +104,7 @@ test-cli:
 	rm -r test_cli
 	@echo ""
 
-test-js:
+test-js: node-version-check
 	@echo "--> Building static assets"
 	@$(WEBPACK) --profile --json > webpack-stats.json
 	@echo "--> Running JavaScript tests"
@@ -117,20 +122,12 @@ test-python: build-platform-assets
 	py.test tests/integration tests/sentry --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml" || exit 1
 	@echo ""
 
-test-network:
-	@echo "--> Building platform assets"
-	sentry init
-	@echo "from sentry.utils.integrationdocs import sync_docs; sync_docs(quiet=True)" | sentry exec
-	@echo "--> Running network tests"
-	py.test tests/network --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml"
-	@echo ""
-
 test-snuba:
 	@echo "--> Running snuba tests"
-	py.test tests/snuba --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml"
+	py.test tests/snuba -vv --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml"
 	@echo ""
 
-test-acceptance: build-platform-assets
+test-acceptance: build-platform-assets node-version-check
 	@echo "--> Building static assets"
 	@$(WEBPACK) --display errors-only
 	@echo "--> Running acceptance tests"
@@ -171,7 +168,6 @@ travis-lint-sqlite: lint-python
 travis-lint-postgres: lint-python
 travis-lint-mysql: lint-python
 travis-lint-acceptance: travis-noop
-travis-lint-network: lint-python
 travis-lint-snuba: lint-python
 travis-lint-js: lint-js
 travis-lint-cli: travis-noop
@@ -182,7 +178,6 @@ travis-test-sqlite: test-python
 travis-test-postgres: test-python
 travis-test-mysql: test-python
 travis-test-acceptance: test-acceptance
-travis-test-network: test-network
 travis-test-snuba: test-snuba
 travis-test-js: test-js
 travis-test-cli: test-cli
@@ -195,10 +190,9 @@ travis-scan-sqlite: scan-python
 travis-scan-postgres: scan-python
 travis-scan-mysql: scan-python
 travis-scan-acceptance: travis-noop
-travis-scan-network: travis-noop
 travis-scan-snuba: scan-python
 travis-scan-js: travis-noop
 travis-scan-cli: travis-noop
 travis-scan-dist: travis-noop
 
-.PHONY: all develop develop-only build dev-docs test testloop reset-db clean setup-git update-submodules install-system-pkgs install-yarn-pkgs install-sentry install-sentry-dev build-js-po locale update-transifex build-platform-assets test-cli test-js test-styleguide test-python test-network test-snuba test-acceptance lint lint-python lint-js scan-python coverage publish extract-api-docs travis-noop travis-setup-cassandra travis-lint-sqlite travis-lint-postgres travis-lint-mysql travis-lint-acceptance travis-lint-network travis-lint-snuba travis-lint-js travis-lint-cli travis-lint-dist travis-test-sqlite travis-test-postgres travis-test-mysql travis-test-acceptance travis-test-network travis-test-snuba travis-test-js travis-test-cli travis-test-dist travis-scan-sqlite travis-scan-postgres travis-scan-mysql travis-scan-acceptance travis-scan-network travis-scan-snuba travis-scan-js travis-scan-cli travis-scan-dist
+.PHONY: all develop develop-only build dev-docs test testloop reset-db clean setup-git update-submodules node-version-check install-system-pkgs install-yarn-pkgs install-sentry install-sentry-dev build-js-po locale update-transifex build-platform-assets test-cli test-js test-styleguide test-python test-snuba test-acceptance lint lint-python lint-js scan-python coverage publish extract-api-docs travis-noop travis-setup-cassandra travis-lint-sqlite travis-lint-postgres travis-lint-mysql travis-lint-acceptance travis-lint-snuba travis-lint-js travis-lint-cli travis-lint-dist travis-test-sqlite travis-test-postgres travis-test-mysql travis-test-acceptance travis-test-snuba travis-test-js travis-test-cli travis-test-dist travis-scan-sqlite travis-scan-postgres travis-scan-mysql travis-scan-acceptance travis-scan-snuba travis-scan-js travis-scan-cli travis-scan-dist

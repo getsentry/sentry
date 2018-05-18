@@ -19,10 +19,8 @@ cache:
 
 addons:
   apt:
-    sources:
-      - ubuntu-toolchain-r-test
+    update: true
     packages:
-      - g++-4.8
       - libxmlsec1-dev
   chrome: stable
 
@@ -32,10 +30,9 @@ env:
     - PIP_DISABLE_PIP_VERSION_CHECK=on
     - SENTRY_LIGHT_BUILD=1
     - SENTRY_SKIP_BACKEND_VALIDATION=1
-    - CXX=g++-4.8
     - SOUTH_TESTS_MIGRATE=1
     - DJANGO_VERSION=">=1.6.11,<1.7"
-    - NPM_VERSION="8.9.1"
+    - NODE_VERSION="8.9.1"
     - YARN_VERSION="1.3.2"
 
 script:
@@ -46,18 +43,11 @@ script:
 after_success:
   - pip install codecov
   - codecov -e TEST_SUITE
-  - npm install -g @zeus-ci/cli
-  - zeus upload -t "text/xml+xunit" junit.xml
-  - zeus upload -t "text/xml+xunit" jest.junit.xml
-  - zeus upload -t "text/xml+coverage" coverage.xml
-  - zeus upload -t "text/xml+coverage" coverage/cobertura-coverage.xml
-  - zeus upload -t "text/html+pytest" pytest.html
-  - zeus upload -t "text/plain+pycodestyle" flake8.pycodestyle.log
-  - zeus upload -t "text/xml+checkstyle" eslint.checkstyle.xml
-  - zeus upload -t "application/webpack-stats+json" webpack-stats.json
 
 after_failure:
   - dmesg | tail -n 100
+
+after_script:
   - npm install -g @zeus-ci/cli
   - zeus upload -t "text/xml+xunit" junit.xml
   - zeus upload -t "text/xml+xunit" jest.junit.xml
@@ -96,17 +86,6 @@ matrix:
         - psql -c 'create database sentry;' -U postgres
 
     - python: 2.7
-      env: TEST_SUITE=network DB=postgres
-      services:
-        - memcached
-        - redis-server
-        - postgresql
-      install:
-        - pip install -e ".[dev,tests,optional]"
-      before_script:
-        - psql -c 'create database sentry;' -U postgres
-
-    - python: 2.7
       env: TEST_SUITE=mysql DB=mysql
       services:
         - memcached
@@ -124,6 +103,9 @@ matrix:
         - memcached
         - redis-server
         - postgresql
+      before_install:
+        - nvm install "$NODE_VERSION"
+        - npm install -g "yarn@${YARN_VERSION}"
       install:
         - pip install -e ".[dev,tests,optional]"
         - wget -N "http://chromedriver.storage.googleapis.com/$(curl https://chromedriver.storage.googleapis.com/LATEST_RELEASE)/chromedriver_linux64.zip" -P ~/
@@ -137,7 +119,7 @@ matrix:
     - python: 2.7
       env: TEST_SUITE=js
       before_install:
-        - nvm install "$NPM_VERSION"
+        - nvm install "$NODE_VERSION"
         - npm install -g "yarn@${YARN_VERSION}"
       install:
         - yarn install --pure-lockfile
@@ -208,7 +190,7 @@ matrix:
         # Use the decrypted service account credentials to authenticate the command line tool
         - gcloud auth activate-service-account --key-file client-secret.json
         # Travis doesn't "inherit" steps like before_install in the build matrix, so we have to explicitly install our package managers
-        - nvm install "$NPM_VERSION"
+        - nvm install "$NODE_VERSION"
         - npm install -g "yarn@${YARN_VERSION}"
       install:
         - yarn install --pure-lockfile

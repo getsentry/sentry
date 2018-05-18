@@ -164,7 +164,7 @@ exports[`RuleBuilder renders 1`] = `
                   required={false}
                   value="path"
                 >
-                  <Component
+                  <SelectPicker
                     arrowRenderer={[Function]}
                     className="css-16280ey-StyledSelect eho28m20"
                     clearable={false}
@@ -358,7 +358,7 @@ exports[`RuleBuilder renders 1`] = `
                         </div>
                       </div>
                     </Select>
-                  </Component>
+                  </SelectPicker>
                 </StyledSelect>
               </SelectControl>
             </div>
@@ -510,7 +510,7 @@ exports[`RuleBuilder renders 1`] = `
                     value={Array []}
                     valueComponent={[Function]}
                   >
-                    <Component
+                    <SelectPicker
                       arrowRenderer={[Function]}
                       async={true}
                       cache={false}
@@ -698,7 +698,7 @@ exports[`RuleBuilder renders 1`] = `
                           </div>
                         </Select>
                       </Async>
-                    </Component>
+                    </SelectPicker>
                   </StyledSelect>
                 </SelectControl>
               </MultiSelectControl>
@@ -1215,7 +1215,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                   required={false}
                   value="path"
                 >
-                  <Component
+                  <SelectPicker
                     arrowRenderer={[Function]}
                     className="css-16280ey-StyledSelect eho28m20"
                     clearable={false}
@@ -1409,7 +1409,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                         </div>
                       </div>
                     </Select>
-                  </Component>
+                  </SelectPicker>
                 </StyledSelect>
               </SelectControl>
             </div>
@@ -1713,7 +1713,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                     }
                     valueComponent={[Function]}
                   >
-                    <Component
+                    <SelectPicker
                       arrowRenderer={[Function]}
                       async={true}
                       cache={false}
@@ -2052,6 +2052,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                             title="Jane Doe"
                                             tooltip="Jane Doe (janedoe@example.com)"
                                             type="gravatar"
+                                            uploadPath="avatar"
                                           >
                                             <Tooltip
                                               disabled={false}
@@ -2175,7 +2176,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                           </div>
                         </Select>
                       </Async>
-                    </Component>
+                    </SelectPicker>
                   </StyledSelect>
                 </SelectControl>
               </MultiSelectControl>

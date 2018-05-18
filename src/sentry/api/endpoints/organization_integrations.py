@@ -12,8 +12,13 @@ class OrganizationIntegrationsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationIntegrationsPermission, )
 
     def get(self, request, organization):
+        integrations = Integration.objects.filter(organizations=organization)
+
+        if 'provider_key' in request.GET:
+            integrations = integrations.filter(provider=request.GET['provider_key'])
+
         return self.paginate(
-            queryset=Integration.objects.filter(organizations=organization),
+            queryset=integrations,
             request=request,
             order_by='name',
             on_results=lambda x: serialize(x, request.user),
