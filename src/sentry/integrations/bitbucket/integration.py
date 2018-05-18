@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from sentry.integrations import IntegrationProvider, IntegrationMetadata
+from sentry.integrations.bitbucket.client import BitbucketClient
 from sentry.pipeline import NestedPipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from django.utils.translation import ugettext_lazy as _
@@ -18,6 +19,48 @@ metadata = IntegrationMetadata(
     source_url='https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/bitbucket',
     aspects={},
 )
+
+
+class BitbucketIntegration(Integration):
+    # TODO(LB): What should be in an Integration?
+    def get_client(self):
+        # TODO(LB): what happens if this is called and the plugin is not configured?
+        return BitbucketClient(
+            self.model.metadata['base_url'],
+            self.model.metadata['shared_secret'],
+        )
+
+    def link_issue(self, request, group, form_data, **kwargs):
+        client = self.get_client(request.user)
+        repo = self.get_option('repo', group.project)
+        try:
+            issue = client.get_issue(
+                repo=repo,
+                issue_id=form_data['issue_id'],
+            )
+        except Exception as e:
+            self.raise_error(e, identity=client.auth)
+
+        comment = form_data.get('comment')
+        if comment:
+            try:
+                client.create_comment(repo, issue['local_id'], {'content': comment})
+            except Exception as e:
+                self.raise_error(e, identity=client.auth)
+
+        return {'title': issue['title']}
+
+    def create_issue(self, request, group, form_data, **kwargs):
+        client = self.get_client(request.user)
+
+        try:
+            response = client.create_issue(
+                repo=self.get_option('repo', group.project), data=form_data
+            )
+        except Exception as e:
+            self.raise_error(e, identity=client.auth)
+
+        return response['local_id']
 
 
 class BitbucketIntegrationProvider(IntegrationProvider):
