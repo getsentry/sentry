@@ -181,7 +181,7 @@ const ProjectFiltersChart = createReactClass({
       <Panel>
         <PanelHeader>{t('Errors filtered in the last 30 days (by day)')}</PanelHeader>
 
-        <PanelBody>
+        <PanelBody disablePadding={false}>
           {isLoading && <LoadingIndicator />}
           {hasError && <LoadingError onRetry={this.fetchData} />}
           {hasLoaded &&
@@ -197,7 +197,9 @@ const ProjectFiltersChart = createReactClass({
           {hasLoaded &&
             this.state.blankStats && (
               <EmptyMessage css={{flexDirection: 'column', alignItems: 'center'}}>
-                <h3 css={noMarginBottom}>{t('Nothing filtered in the last 30 days.')}</h3>
+                <h3 style={{textAlign: 'center'}}>
+                  {t('Nothing filtered in the last 30 days.')}
+                </h3>
                 <TextBlock css={{fontSize: '0.9em', ...noMarginBottom}}>
                   {t(
                     'Issues filtered as a result of your settings below will be shown here.'
