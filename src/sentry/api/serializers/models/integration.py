@@ -57,16 +57,13 @@ class OrganizationIntegrationSerializer(Serializer):
                 project__organization_id__in=[i.organization_id for i in item_list],
             )
 
-        project_integrations_by_org = defaultdict(list)
+        project_integrations_by_org = defaultdict(dict)
         for pi in project_integrations:
-            project_integrations_by_org[pi.project.organization_id].append({
-                'project_id': pi.project_id,
-                'config_data': pi.config,
-            })
+            project_integrations_by_org[pi.project.organization_id][pi.project_id] = pi.config
 
         return {
             i: {
-                'project_integrations': project_integrations_by_org.get(i.organization_id, [])
+                'project_configs': project_integrations_by_org.get(i.organization_id, {})
             } for i in item_list
         }
 
@@ -74,7 +71,7 @@ class OrganizationIntegrationSerializer(Serializer):
         integration = serialize(obj.integration, user, IntegrationConfigSerializer())
         integration.update({
             'config_data': obj.config,
-            'project_integrations': attrs['project_integrations'],
+            'config_data_projects': attrs['project_configs'],
         })
 
         return integration
