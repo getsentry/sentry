@@ -154,6 +154,23 @@ class Integration(object):
     def __init__(self, model):
         self.model = model
 
+    def get_organization_config(self):
+        """
+        Returns a list of JSONForm configuration object descriptors used to
+        configure the integration per-organization. This simply represents the
+        configuration structure.
+
+        See the JSONForm react component for structure details.
+        """
+        return []
+
+    def get_project_config(self):
+        """
+        Provides configuration for the integration on a per-project
+        level. See ``get_config_organization``.
+        """
+        return []
+
     def get_client(self):
         # Return the api client for a given provider
         raise NotImplementedError
