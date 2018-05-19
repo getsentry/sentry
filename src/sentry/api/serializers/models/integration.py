@@ -59,7 +59,7 @@ class OrganizationIntegrationSerializer(Serializer):
 
         project_integrations_by_org = defaultdict(dict)
         for pi in project_integrations:
-            project_integrations_by_org[pi.project.organization_id][pi.project_id] = pi.config
+            project_integrations_by_org[pi.project.organization_id][pi.project.slug] = pi.config
 
         return {
             i: {
