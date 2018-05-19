@@ -33,7 +33,7 @@ class PipelineProvider(object):
 
     def set_pipeline(self, pipeline):
         """
-        todo(maxbittker)
+        Used by the pipeline to give the provider access to the executing pipeline.
         """
         self.pipeline = pipeline
 
