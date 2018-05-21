@@ -96,10 +96,15 @@ class Integration(Model):
         Returns True if the ProjectIntegration was created
         """
         from sentry.models import Project
-        if not OrganizationIntegration.objects.filter(
-            organization_id=Project.objects.get(id=project_id).organization_id,
+        org_id_queryset = Project.objects \
+            .filter(id=project_id) \
+            .values_list('organization_id', flat=True)
+        org_integration = OrganizationIntegration.objects.filter(
+            organization_id=org_id_queryset,
             integration=self,
-        ).exists():
+        )
+
+        if not org_integration.exists():
             return False
 
         try:
