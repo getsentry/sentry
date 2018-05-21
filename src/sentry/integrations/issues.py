@@ -6,22 +6,6 @@ from sentry.models import Event
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
 
-from .exceptions import ApiHostError, ApiError, ApiUnauthorized, UnsupportedResponseType
-
-ERR_INTERNAL = (
-    'An internal error occurred with the integration and the Sentry team has'
-    ' been notified'
-)
-
-ERR_UNAUTHORIZED = (
-    'Unauthorized: either your access token was invalid or you do not have'
-    ' access'
-)
-
-ERR_UNSUPPORTED_RESPONSE_TYPE = (
-    'An unsupported response type was returned: {content_type}'
-)
-
 
 class IssueSyncMixin(object):
     def get_group_title(self, group, event, **kwargs):
