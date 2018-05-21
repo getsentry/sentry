@@ -6,8 +6,14 @@ import jwt
 from sentry.models import Integration
 from sentry.utils.http import percent_encode
 
+__all__ = [
+    'AtlassianConnectValidationError',
+    'get_query_hash',
+    'get_integration_from_request',
+]
 
-class JiraValidationError(Exception):
+
+class AtlassianConnectValidationError(Exception):
     pass
 
 
@@ -39,7 +45,7 @@ def get_integration_from_request(request):
     # parameter or the authorization header.
     token = request.GET.get('jwt')
     if token is None:
-        raise JiraValidationError('No token parameter')
+        raise AtlassianConnectValidationError('No token parameter')
     # Decode the JWT token, without verification. This gives
     # you a header JSON object, a claims JSON object, and a signature.
     decoded = jwt.decode(token, verify=False)
@@ -55,7 +61,7 @@ def get_integration_from_request(request):
             external_id=issuer,
         )
     except Integration.DoesNotExist:
-        raise JiraValidationError('No integration found')
+        raise AtlassianConnectValidationError('No integration found')
     # Verify the signature with the sharedSecret and
     # the algorithm specified in the header's alg field.
     decoded_verified = jwt.decode(token, integration.metadata['shared_secret'])
@@ -64,6 +70,6 @@ def get_integration_from_request(request):
 
     qsh = get_query_hash(request.path, 'GET', request.GET)
     if qsh != decoded_verified['qsh']:
-        raise JiraValidationError('Query hash mismatch')
+        raise AtlassianConnectValidationError('Query hash mismatch')
 
     return integration

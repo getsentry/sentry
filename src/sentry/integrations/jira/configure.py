@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from django import forms
 
-from .utils import get_integration_from_request, JiraValidationError
+from sentry.integrations.atlassian_connect import AtlassianConnectValidationError, get_integration_from_request
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 
@@ -34,7 +34,7 @@ class JiraConfigureView(BaseView):
     def handle(self, request):
         try:
             integration = get_integration_from_request(request)
-        except JiraValidationError:
+        except AtlassianConnectValidationError:
             return self.get_response({'error_message': 'Unable to verify installation.'})
 
         # TODO(jess): restrict to org owners?
