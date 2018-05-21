@@ -14,7 +14,7 @@ cache:
   yarn: true
   directories:
     - node_modules
-    - "${HOME}/virtualenv/python"$(python -c 'import platform; print(platform.python_version())')""
+    - "${HOME}/virtualenv/python$(python -c 'import platform; print(platform.python_version())')"
     - $HOME/google-cloud-sdk
 
 addons:
