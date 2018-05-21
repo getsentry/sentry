@@ -25,11 +25,11 @@ class SnubaTSDB(BaseTSDB):
     model_columns = {
         TSDBModel.project: ('project_id', None),
         TSDBModel.group: ('issue', None),
-        TSDBModel.release: ('sentry:release', None),
+        TSDBModel.release: ('tags[sentry:release]', None),
         TSDBModel.users_affected_by_group: ('issue', 'user_id'),
         TSDBModel.users_affected_by_project: ('project_id', 'user_id'),
         TSDBModel.frequent_environments_by_group: ('issue', 'environment'),
-        TSDBModel.frequent_releases_by_group: ('issue', 'sentry:release'),
+        TSDBModel.frequent_releases_by_group: ('issue', 'tags[sentry:release]'),
         TSDBModel.frequent_issues_by_project: ('project_id', 'issue'),
     }
 

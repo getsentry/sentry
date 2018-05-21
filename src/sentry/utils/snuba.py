@@ -169,7 +169,7 @@ def get_snuba_map(column, ids):
     """
     mappings = {
         'environment': (Environment, 'name'),
-        'sentry:release': (Release, 'version'),
+        'tags[sentry:release]': (Release, 'version'),
     }
     if column in mappings and ids:
         model, field = mappings[column]
