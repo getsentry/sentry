@@ -34,13 +34,6 @@ class Provider(PipelineProvider):
         self.config = config
         self.logger = logging.getLogger('sentry.identity.%s'.format(self.key))
 
-    def get_pipeline(self):
-        """
-        Return a list of AuthView instances representing the authentication
-        pipeline for this provider.
-        """
-        raise NotImplementedError
-
     def build_identity(self, state):
         """
         Return a mapping containing the identity information.

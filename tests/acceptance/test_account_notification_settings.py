@@ -30,3 +30,12 @@ class AccountNotificationSettingsTest(AcceptanceTestCase):
         self.browser.get(self.path)
         self.browser.wait_until_not('.loading-indicator')
         self.browser.snapshot('account notification settings')
+
+    def test_new_simple(self):
+        self.browser.get('/settings/account/notifications/')
+        self.browser.wait_until_not('.loading-indicator')
+        self.browser.snapshot('account notification - settings (new)')
+
+        self.browser.click_when_visible('#Alerts a')
+        self.browser.wait_until_not('.loading-indicator')
+        self.browser.snapshot('account notification - fine tune "Alerts" (new)')

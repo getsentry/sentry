@@ -22,13 +22,12 @@ export default class InputField extends React.Component {
   };
 
   render() {
-    let {className, field, ...otherProps} = this.props;
+    let {className, field} = this.props;
 
     return (
       <FormField className={className} {...this.props}>
         {({children, ...formFieldProps}) => {
           return field({
-            ...otherProps,
             ...formFieldProps,
           });
         }}
