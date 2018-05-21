@@ -8,7 +8,7 @@ import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import ProjectsStore from 'app/stores/projectsStore';
-import Select2Field from 'app/views/settings/components/forms/select2Field';
+import SelectField from 'app/views/settings/components/forms/selectField';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import {fields} from 'app/data/forms/accountNotificationSettings';
@@ -124,7 +124,7 @@ class AccountNotificationsByProject extends React.Component {
           {projectFields.map(field => {
             return (
               <PanelBodyLineItem key={field.name}>
-                <Select2Field
+                <SelectField
                   defaultValue={field.defaultValue}
                   name={field.name}
                   choices={field.choices}
@@ -171,7 +171,7 @@ class AccountNotificationsByOrganization extends React.Component {
         {orgFields.map(field => {
           return (
             <PanelBodyLineItem key={field.name}>
-              <Select2Field
+              <SelectField
                 defaultValue={field.defaultValue}
                 name={field.name}
                 choices={field.choices}

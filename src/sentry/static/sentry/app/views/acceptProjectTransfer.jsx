@@ -4,7 +4,7 @@ import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
 import NarrowLayout from 'app/components/narrowLayout';
-import Select2Field from 'app/views/settings/components/forms/select2Field';
+import SelectField from 'app/views/settings/components/forms/selectField';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import {t, tct} from 'app/locale';
 
@@ -122,7 +122,7 @@ class AcceptProjectTransfer extends AsyncView {
               : {team: choices[0] && choices[0][0]}
           }
         >
-          <Select2Field
+          <SelectField
             choices={choices}
             label={hasTeamsFeature ? t('Organization') : t('Team')}
             name={hasTeamsFeature ? 'organization' : 'team'}
