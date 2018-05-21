@@ -40,6 +40,9 @@ script:
   - make travis-test-$TEST_SUITE
   - make travis-scan-$TEST_SUITE
 
+before_cache:
+  - find -type f -iname '*.egg-link' -delete
+
 after_success:
   - pip install codecov
   - codecov -e TEST_SUITE
