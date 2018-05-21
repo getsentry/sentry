@@ -43,7 +43,7 @@ class OrganizationIntegrationDetailsTest(APITestCase):
 
         # Ensure both Organization *and* Project integrations are removed
         assert not OrganizationIntegration.objects.filter(
-            id=self.integration.id,
+            integration=self.integration,
             organization=self.org,
         ).exists()
         assert not ProjectIntegration.objects.filter(
@@ -61,7 +61,7 @@ class OrganizationIntegrationDetailsTest(APITestCase):
         assert response.status_code == 200, response.content
 
         org_integration = OrganizationIntegration.objects.get(
-            id=self.integration.id,
+            integration=self.integration,
             organization=self.org,
         )
 
