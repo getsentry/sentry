@@ -4,6 +4,7 @@ import styled from 'react-emotion';
 import createReactClass from 'create-react-class';
 
 import {t} from 'app/locale';
+import getDynamicText from 'app/utils/getDynamicText';
 
 const InstallReactTest = createReactClass({
   displayName: 'InstallReactTest',
@@ -65,7 +66,12 @@ const InstallReactTest = createReactClass({
           </span>
           <br />
           <span>{' Raven.config('}</span>
-          <ValueSpan>'{dsn}'</ValueSpan>
+          <ValueSpan>
+            '{getDynamicText({
+              value: dsn,
+              fixed: '__DSN__',
+            })}'
+          </ValueSpan>
           <span>{', {'}</span>
           <br />
 
