@@ -3,19 +3,18 @@ from __future__ import absolute_import
 import datetime
 import jwt
 
-from enum import Enum
 from unidiff import PatchSet
 
 from six.moves.urllib.parse import urlparse
 
 from sentry.utils.http import absolute_uri
-from sentry.integrations.atlassian_connect import get_query_hash  # doesn't exist! :o
+from sentry.integrations.jira.utils import get_query_hash  # TODO(LB): Change to common place
 from sentry.integrations.client import ApiClient
 
 BITBUCKET_KEY = '%s.bitbucket' % urlparse(absolute_uri()).hostname
 
 
-class BitbucketAPIPath(Enum):
+class BitbucketAPIPath(object):
     """
     All UUID's must be surrounded by culybraces.
     repo_slug - repository slug or UUID
@@ -36,6 +35,7 @@ class BitbucketAPIPath(Enum):
 class BitbucketAPI(ApiClient):
 
     def __init__(self, base_url, shared_secret):
+        super(BitbucketAPI, self).__init__(verify_ssl=False)
         self.base_url = base_url
         self.shared_secret = shared_secret
 
@@ -137,12 +137,14 @@ class BitbucketAPI(ApiClient):
 
     def get_commit_filechanges(self, username, repo_slug, sha):
         # TODO(LB): This is a bit more complicated not complete
-        resp = self.get(BitbucketAPIPath.repository_diff.format(
-            username=username,
-            repo_slug=repo_slug,
-            spec=sha,  # TODO(LB): sha vs spec????
-            # TODO(LB): Missing allow_text=True not a thing in this api version; need to look it up
-        ))
+        resp = self.get(
+            BitbucketAPIPath.repository_diff.format(
+                username=username,
+                repo_slug=repo_slug,
+                spec=sha,  # TODO(LB): sha vs spec????
+            ),
+            allow_text=True,
+        )
         diff_file = resp.text
         ps = PatchSet.from_string(diff_file)
         return self.transform_patchset(ps)
@@ -165,7 +167,7 @@ class BitbucketAPI(ApiClient):
             repo_slug=repo_slug,
             revision=end_sha,
         ))
-        return self.zip_commit_data(repo_slug, data['values'])
+        return self.zip_commit_data(username, repo_slug, data['values'])
 
     def compare_commits(self, username, repo_slug, start_sha, end_sha):
         # where start_sha is oldest and end_sha is most recent
@@ -174,7 +176,11 @@ class BitbucketAPI(ApiClient):
         commits = []
         done = False
 
-        url = BitbucketAPIPath.repository_commits.format(username, repo_slug, end_sha)
+        url = BitbucketAPIPath.repository_commits.format(
+            username=username,
+            repo_slug=repo_slug,
+            revision=end_sha,
+        )
 
         while not done and len(commits) < 90:
             data = self.get(url)
@@ -191,4 +197,4 @@ class BitbucketAPI(ApiClient):
             except KeyError:
                 break
 
-        return self.zip_commit_data(repo_slug, commits)
+        return self.zip_commit_data(username, repo_slug, commits)

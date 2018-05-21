@@ -7,38 +7,38 @@ PUSH_EVENT_EXAMPLE = b"""{
             {
                 "links": {
                     "html": {
-                        "href": "https://bitbucket.org/maxbittker/newsdiffs/branches/compare/e0e377d186e4f0e937bdb487a23384fe002df649..8f5952f4dcffd7b311181d48eb0394b0cca21410"
+                        "href": "https://bitbucket.org/sentryuser/newsdiffs/branches/compare/e0e377d186e4f0e937bdb487a23384fe002df649..8f5952f4dcffd7b311181d48eb0394b0cca21410"
                     },
                     "commits": {
-                        "href": "https://api.bitbucket.org/2.0/repositories/maxbittker/newsdiffs/commits?include=e0e377d186e4f0e937bdb487a23384fe002df649&exclude=8f5952f4dcffd7b311181d48eb0394b0cca21410"
+                        "href": "https://api.bitbucket.org/2.0/repositories/sentryuser/newsdiffs/commits?include=e0e377d186e4f0e937bdb487a23384fe002df649&exclude=8f5952f4dcffd7b311181d48eb0394b0cca21410"
                     },
                     "diff": {
-                        "href": "https://api.bitbucket.org/2.0/repositories/maxbittker/newsdiffs/diff/e0e377d186e4f0e937bdb487a23384fe002df649..8f5952f4dcffd7b311181d48eb0394b0cca21410"
+                        "href": "https://api.bitbucket.org/2.0/repositories/sentryuser/newsdiffs/diff/e0e377d186e4f0e937bdb487a23384fe002df649..8f5952f4dcffd7b311181d48eb0394b0cca21410"
                     }
                 },
                 "commits": [
                     {
                         "links": {
                             "approve": {
-                                "href": "https://api.bitbucket.org/2.0/repositories/maxbittker/newsdiffs/commit/e0e377d186e4f0e937bdb487a23384fe002df649/approve"
+                                "href": "https://api.bitbucket.org/2.0/repositories/sentryuser/newsdiffs/commit/e0e377d186e4f0e937bdb487a23384fe002df649/approve"
                             },
                             "statuses": {
-                                "href": "https://api.bitbucket.org/2.0/repositories/maxbittker/newsdiffs/commit/e0e377d186e4f0e937bdb487a23384fe002df649/statuses"
+                                "href": "https://api.bitbucket.org/2.0/repositories/sentryuser/newsdiffs/commit/e0e377d186e4f0e937bdb487a23384fe002df649/statuses"
                             },
                             "comments": {
-                                "href": "https://api.bitbucket.org/2.0/repositories/maxbittker/newsdiffs/commit/e0e377d186e4f0e937bdb487a23384fe002df649/comments"
+                                "href": "https://api.bitbucket.org/2.0/repositories/sentryuser/newsdiffs/commit/e0e377d186e4f0e937bdb487a23384fe002df649/comments"
                             },
                             "self": {
-                                "href": "https://api.bitbucket.org/2.0/repositories/maxbittker/newsdiffs/commit/e0e377d186e4f0e937bdb487a23384fe002df649"
+                                "href": "https://api.bitbucket.org/2.0/repositories/sentryuser/newsdiffs/commit/e0e377d186e4f0e937bdb487a23384fe002df649"
                             },
                             "patch": {
-                                "href": "https://api.bitbucket.org/2.0/repositories/maxbittker/newsdiffs/patch/e0e377d186e4f0e937bdb487a23384fe002df649"
+                                "href": "https://api.bitbucket.org/2.0/repositories/sentryuser/newsdiffs/patch/e0e377d186e4f0e937bdb487a23384fe002df649"
                             },
                             "html": {
-                                "href": "https://bitbucket.org/maxbittker/newsdiffs/commits/e0e377d186e4f0e937bdb487a23384fe002df649"
+                                "href": "https://bitbucket.org/sentryuser/newsdiffs/commits/e0e377d186e4f0e937bdb487a23384fe002df649"
                             },
                             "diff": {
-                                "href": "https://api.bitbucket.org/2.0/repositories/maxbittker/newsdiffs/diff/e0e377d186e4f0e937bdb487a23384fe002df649"
+                                "href": "https://api.bitbucket.org/2.0/repositories/sentryuser/newsdiffs/diff/e0e377d186e4f0e937bdb487a23384fe002df649"
                             }
                         },
                         "date": "2017-05-24T01:05:47+00:00",
@@ -48,10 +48,10 @@ PUSH_EVENT_EXAMPLE = b"""{
                                 "type": "commit",
                                 "links": {
                                     "html": {
-                                        "href": "https://bitbucket.org/maxbittker/newsdiffs/commits/8f5952f4dcffd7b311181d48eb0394b0cca21410"
+                                        "href": "https://bitbucket.org/sentryuser/newsdiffs/commits/8f5952f4dcffd7b311181d48eb0394b0cca21410"
                                     },
                                     "self": {
-                                        "href": "https://api.bitbucket.org/2.0/repositories/maxbittker/newsdiffs/commit/8f5952f4dcffd7b311181d48eb0394b0cca21410"
+                                        "href": "https://api.bitbucket.org/2.0/repositories/sentryuser/newsdiffs/commit/8f5952f4dcffd7b311181d48eb0394b0cca21410"
                                     }
                                 },
                                 "hash": "8f5952f4dcffd7b311181d48eb0394b0cca21410"
@@ -63,22 +63,22 @@ PUSH_EVENT_EXAMPLE = b"""{
                             "type": "author",
                             "user": {
                                 "type": "user",
-                                "display_name": "Max Bittker",
+                                "display_name": "Sentry User",
                                 "uuid": "{b128e0f6-196a-4dde-b72d-f42abc6dc239}",
-                                "username": "maxbittker",
+                                "username": "sentryuser",
                                 "links": {
                                     "html": {
-                                        "href": "https://bitbucket.org/maxbittker/"
+                                        "href": "https://bitbucket.org/sentryuser/"
                                     },
                                     "avatar": {
-                                        "href": "https://bitbucket.org/account/maxbittker/avatar/32/"
+                                        "href": "https://bitbucket.org/account/sentryuser/avatar/32/"
                                     },
                                     "self": {
-                                        "href": "https://api.bitbucket.org/2.0/users/maxbittker"
+                                        "href": "https://api.bitbucket.org/2.0/users/sentryuser"
                                     }
                                 }
                             },
-                            "raw": "Max Bittker <max@getsentry.com>"
+                            "raw": "Sentry User <max@getsentry.com>"
                         }
                     }
                 ],
@@ -86,22 +86,22 @@ PUSH_EVENT_EXAMPLE = b"""{
                     "type": "branch",
                     "links": {
                         "html": {
-                            "href": "https://bitbucket.org/maxbittker/newsdiffs/branch/master"
+                            "href": "https://bitbucket.org/sentryuser/newsdiffs/branch/master"
                         },
                         "commits": {
-                            "href": "https://api.bitbucket.org/2.0/repositories/maxbittker/newsdiffs/commits/master"
+                            "href": "https://api.bitbucket.org/2.0/repositories/sentryuser/newsdiffs/commits/master"
                         },
                         "self": {
-                            "href": "https://api.bitbucket.org/2.0/repositories/maxbittker/newsdiffs/refs/branches/master"
+                            "href": "https://api.bitbucket.org/2.0/repositories/sentryuser/newsdiffs/refs/branches/master"
                         }
                     },
                     "target": {
                         "links": {
                             "html": {
-                                "href": "https://bitbucket.org/maxbittker/newsdiffs/commits/8f5952f4dcffd7b311181d48eb0394b0cca21410"
+                                "href": "https://bitbucket.org/sentryuser/newsdiffs/commits/8f5952f4dcffd7b311181d48eb0394b0cca21410"
                             },
                             "self": {
-                                "href": "https://api.bitbucket.org/2.0/repositories/maxbittker/newsdiffs/commit/8f5952f4dcffd7b311181d48eb0394b0cca21410"
+                                "href": "https://api.bitbucket.org/2.0/repositories/sentryuser/newsdiffs/commit/8f5952f4dcffd7b311181d48eb0394b0cca21410"
                             }
                         },
                         "date": "2017-05-19T22:53:22+00:00",
@@ -111,10 +111,10 @@ PUSH_EVENT_EXAMPLE = b"""{
                                 "type": "commit",
                                 "links": {
                                     "html": {
-                                        "href": "https://bitbucket.org/maxbittker/newsdiffs/commits/1cdfa36e62e615cdc73a1d5fcff1c706965b186d"
+                                        "href": "https://bitbucket.org/sentryuser/newsdiffs/commits/1cdfa36e62e615cdc73a1d5fcff1c706965b186d"
                                     },
                                     "self": {
-                                        "href": "https://api.bitbucket.org/2.0/repositories/maxbittker/newsdiffs/commit/1cdfa36e62e615cdc73a1d5fcff1c706965b186d"
+                                        "href": "https://api.bitbucket.org/2.0/repositories/sentryuser/newsdiffs/commit/1cdfa36e62e615cdc73a1d5fcff1c706965b186d"
                                     }
                                 },
                                 "hash": "1cdfa36e62e615cdc73a1d5fcff1c706965b186d"
@@ -124,7 +124,7 @@ PUSH_EVENT_EXAMPLE = b"""{
                         "message": "README.md edited online with Bitbucket",
                         "author": {
                             "type": "author",
-                            "raw": "Max Bittker <max@getsentry.com>"
+                            "raw": "Sentry User <max@getsentry.com>"
                         }
                     },
                     "name": "master"
@@ -134,22 +134,22 @@ PUSH_EVENT_EXAMPLE = b"""{
                     "type": "branch",
                     "links": {
                         "html": {
-                            "href": "https://bitbucket.org/maxbittker/newsdiffs/branch/master"
+                            "href": "https://bitbucket.org/sentryuser/newsdiffs/branch/master"
                         },
                         "commits": {
-                            "href": "https://api.bitbucket.org/2.0/repositories/maxbittker/newsdiffs/commits/master"
+                            "href": "https://api.bitbucket.org/2.0/repositories/sentryuser/newsdiffs/commits/master"
                         },
                         "self": {
-                            "href": "https://api.bitbucket.org/2.0/repositories/maxbittker/newsdiffs/refs/branches/master"
+                            "href": "https://api.bitbucket.org/2.0/repositories/sentryuser/newsdiffs/refs/branches/master"
                         }
                     },
                     "target": {
                         "links": {
                             "html": {
-                                "href": "https://bitbucket.org/maxbittker/newsdiffs/commits/e0e377d186e4f0e937bdb487a23384fe002df649"
+                                "href": "https://bitbucket.org/sentryuser/newsdiffs/commits/e0e377d186e4f0e937bdb487a23384fe002df649"
                             },
                             "self": {
-                                "href": "https://api.bitbucket.org/2.0/repositories/maxbittker/newsdiffs/commit/e0e377d186e4f0e937bdb487a23384fe002df649"
+                                "href": "https://api.bitbucket.org/2.0/repositories/sentryuser/newsdiffs/commit/e0e377d186e4f0e937bdb487a23384fe002df649"
                             }
                         },
                         "date": "2017-05-24T01:05:47+00:00",
@@ -159,10 +159,10 @@ PUSH_EVENT_EXAMPLE = b"""{
                                 "type": "commit",
                                 "links": {
                                     "html": {
-                                        "href": "https://bitbucket.org/maxbittker/newsdiffs/commits/8f5952f4dcffd7b311181d48eb0394b0cca21410"
+                                        "href": "https://bitbucket.org/sentryuser/newsdiffs/commits/8f5952f4dcffd7b311181d48eb0394b0cca21410"
                                     },
                                     "self": {
-                                        "href": "https://api.bitbucket.org/2.0/repositories/maxbittker/newsdiffs/commit/8f5952f4dcffd7b311181d48eb0394b0cca21410"
+                                        "href": "https://api.bitbucket.org/2.0/repositories/sentryuser/newsdiffs/commit/8f5952f4dcffd7b311181d48eb0394b0cca21410"
                                     }
                                 },
                                 "hash": "8f5952f4dcffd7b311181d48eb0394b0cca21410"
@@ -172,7 +172,7 @@ PUSH_EVENT_EXAMPLE = b"""{
                         "message": "README.md edited online with Bitbucket",
                         "author": {
                             "type": "author",
-                            "raw": "Max Bittker <max@getsentry.com>"
+                            "raw": "Sentry User <max@getsentry.com>"
                         }
                     },
                     "name": "master"
@@ -186,34 +186,34 @@ PUSH_EVENT_EXAMPLE = b"""{
     "repository": {
         "links": {
             "html": {
-                "href": "https://bitbucket.org/maxbittker/newsdiffs"
+                "href": "https://bitbucket.org/sentryuser/newsdiffs"
             },
             "avatar": {
-                "href": "https://bitbucket.org/maxbittker/newsdiffs/avatar/32/"
+                "href": "https://bitbucket.org/sentryuser/newsdiffs/avatar/32/"
             },
             "self": {
-                "href": "https://api.bitbucket.org/2.0/repositories/maxbittker/newsdiffs"
+                "href": "https://api.bitbucket.org/2.0/repositories/sentryuser/newsdiffs"
             }
         },
-        "full_name": "maxbittker/newsdiffs",
+        "full_name": "sentryuser/newsdiffs",
         "scm": "git",
         "uuid": "{c78dfb25-7882-4550-97b1-4e0d38f32859}",
         "type": "repository",
         "is_private": false,
         "owner": {
             "type": "user",
-            "display_name": "Max Bittker",
+            "display_name": "Sentry User",
             "uuid": "{b128e0f6-196a-4dde-b72d-f42abc6dc239}",
-            "username": "maxbittker",
+            "username": "sentryuser",
             "links": {
                 "html": {
-                    "href": "https://bitbucket.org/maxbittker/"
+                    "href": "https://bitbucket.org/sentryuser/"
                 },
                 "avatar": {
-                    "href": "https://bitbucket.org/account/maxbittker/avatar/32/"
+                    "href": "https://bitbucket.org/account/sentryuser/avatar/32/"
                 },
                 "self": {
-                    "href": "https://api.bitbucket.org/2.0/users/maxbittker"
+                    "href": "https://api.bitbucket.org/2.0/users/sentryuser"
                 }
             }
         },
@@ -222,18 +222,18 @@ PUSH_EVENT_EXAMPLE = b"""{
     },
     "actor": {
         "type": "user",
-        "display_name": "Max Bittker",
+        "display_name": "Sentry User",
         "uuid": "{b128e0f6-196a-4dde-b72d-f42abc6dc239}",
-        "username": "maxbittker",
+        "username": "sentryuser",
         "links": {
             "html": {
-                "href": "https://bitbucket.org/maxbittker/"
+                "href": "https://bitbucket.org/sentryuser/"
             },
             "avatar": {
-                "href": "https://bitbucket.org/account/maxbittker/avatar/32/"
+                "href": "https://bitbucket.org/account/sentryuser/avatar/32/"
             },
             "self": {
-                "href": "https://api.bitbucket.org/2.0/users/maxbittker"
+                "href": "https://api.bitbucket.org/2.0/users/sentryuser"
             }
         }
     }
@@ -244,13 +244,13 @@ COMPARE_COMMITS_EXAMPLE = b"""{
 "pagelen": 30,
  "values":
      [{"hash": "e18e4e72de0d824edfbe0d73efe34cbd0d01d301",
-      "repository": {"links": {"self": {"href": "https://api.bitbucket.org/2.0/repositories/maxbittker/newsdiffs"}, "html": {"href": "https://bitbucket.org/maxbittker/newsdiffs"}, "avatar": {"href": "https://bitbucket.org/maxbittker/newsdiffs/avatar/32/"}}, "type": "repository", "name": "newsdiffs", "full_name": "maxbittker/newsdiffs", "uuid": "{c78dfb25-7882-4550-97b1-4e0d38f32859}"}, "links": {"self": {"href": "https://api.bitbucket.org/2.0/repositories/maxbittker/newsdiffs/commit/e18e4e72de0d824edfbe0d73efe34cbd0d01d301"}, "comments": {"href": "https://api.bitbucket.org/2.0/repositories/maxbittker/newsdiffs/commit/e18e4e72de0d824edfbe0d73efe34cbd0d01d301/comments"}, "patch": {"href": "https://api.bitbucket.org/2.0/repositories/maxbittker/newsdiffs/patch/e18e4e72de0d824edfbe0d73efe34cbd0d01d301"}, "html": {"href": "https://bitbucket.org/maxbittker/newsdiffs/commits/e18e4e72de0d824edfbe0d73efe34cbd0d01d301"}, "diff": {"href": "https://api.bitbucket.org/2.0/repositories/maxbittker/newsdiffs/diff/e18e4e72de0d824edfbe0d73efe34cbd0d01d301"}, "approve": {"href": "https://api.bitbucket.org/2.0/repositories/maxbittker/newsdiffs/commit/e18e4e72de0d824edfbe0d73efe34cbd0d01d301/approve"}, "statuses": {"href": "https://api.bitbucket.org/2.0/repositories/maxbittker/newsdiffs/commit/e18e4e72de0d824edfbe0d73efe34cbd0d01d301/statuses"}},
+      "repository": {"links": {"self": {"href": "https://api.bitbucket.org/2.0/repositories/sentryuser/newsdiffs"}, "html": {"href": "https://bitbucket.org/sentryuser/newsdiffs"}, "avatar": {"href": "https://bitbucket.org/sentryuser/newsdiffs/avatar/32/"}}, "type": "repository", "name": "newsdiffs", "full_name": "sentryuser/newsdiffs", "uuid": "{c78dfb25-7882-4550-97b1-4e0d38f32859}"}, "links": {"self": {"href": "https://api.bitbucket.org/2.0/repositories/sentryuser/newsdiffs/commit/e18e4e72de0d824edfbe0d73efe34cbd0d01d301"}, "comments": {"href": "https://api.bitbucket.org/2.0/repositories/sentryuser/newsdiffs/commit/e18e4e72de0d824edfbe0d73efe34cbd0d01d301/comments"}, "patch": {"href": "https://api.bitbucket.org/2.0/repositories/sentryuser/newsdiffs/patch/e18e4e72de0d824edfbe0d73efe34cbd0d01d301"}, "html": {"href": "https://bitbucket.org/sentryuser/newsdiffs/commits/e18e4e72de0d824edfbe0d73efe34cbd0d01d301"}, "diff": {"href": "https://api.bitbucket.org/2.0/repositories/sentryuser/newsdiffs/diff/e18e4e72de0d824edfbe0d73efe34cbd0d01d301"}, "approve": {"href": "https://api.bitbucket.org/2.0/repositories/sentryuser/newsdiffs/commit/e18e4e72de0d824edfbe0d73efe34cbd0d01d301/approve"}, "statuses": {"href": "https://api.bitbucket.org/2.0/repositories/sentryuser/newsdiffs/commit/e18e4e72de0d824edfbe0d73efe34cbd0d01d301/statuses"}},
        "author": {
-            "raw": "Max Bittker <max@getsentry.com>",
+            "raw": "Sentry User <sentryuser@getsentry.com>",
             "type": "author"
         },
-        "parents": [{"hash": "26de9b63d09aa9c787e899f149c672023e292925", "type": "commit", "links": {"self": {"href": "https://api.bitbucket.org/2.0/repositories/maxbittker/newsdiffs/commit/26de9b63d09aa9c787e899f149c672023e292925"}, "html": {"href": "https://bitbucket.org/maxbittker/newsdiffs/commits/26de9b63d09aa9c787e899f149c672023e292925"}}}], "date": "2017-05-16T23:21:40+00:00", "message": "README.md edited online with Bitbucket", "type": "commit"}],
-  "next": "https://api.bitbucket.org/2.0/repositories/maxbittker/newsdiffs/commits/e18e4e72de0d824edfbe0d73efe34cbd0d01d301?page=2"
+        "parents": [{"hash": "26de9b63d09aa9c787e899f149c672023e292925", "type": "commit", "links": {"self": {"href": "https://api.bitbucket.org/2.0/repositories/sentryuser/newsdiffs/commit/26de9b63d09aa9c787e899f149c672023e292925"}, "html": {"href": "https://bitbucket.org/sentryuser/newsdiffs/commits/26de9b63d09aa9c787e899f149c672023e292925"}}}], "date": "2017-05-16T23:21:40+00:00", "message": "README.md edited online with Bitbucket", "type": "commit"}],
+  "next": "https://api.bitbucket.org/2.0/repositories/sentryuser/sentryrepo/commits/e18e4e72de0d824edfbe0d73efe34cbd0d01d301?page=2"
 }
 """
 
@@ -258,8 +258,8 @@ GET_LAST_COMMITS_EXAMPLE = b"""{
 "pagelen": 30,
  "values":
      [{"hash": "e18e4e72de0d824edfbe0d73efe34cbd0d01d301",
-      "repository": {"links": {"self": {"href": "https://api.bitbucket.org/2.0/repositories/maxbittker/newsdiffs"}, "html": {"href": "https://bitbucket.org/maxbittker/newsdiffs"}, "avatar": {"href": "https://bitbucket.org/maxbittker/newsdiffs/avatar/32/"}}, "type": "repository", "name": "newsdiffs", "full_name": "maxbittker/newsdiffs", "uuid": "{c78dfb25-7882-4550-97b1-4e0d38f32859}"}, "links": {"self": {"href": "https://api.bitbucket.org/2.0/repositories/maxbittker/newsdiffs/commit/e18e4e72de0d824edfbe0d73efe34cbd0d01d301"}, "comments": {"href": "https://api.bitbucket.org/2.0/repositories/maxbittker/newsdiffs/commit/e18e4e72de0d824edfbe0d73efe34cbd0d01d301/comments"}, "patch": {"href": "https://api.bitbucket.org/2.0/repositories/maxbittker/newsdiffs/patch/e18e4e72de0d824edfbe0d73efe34cbd0d01d301"}, "html": {"href": "https://bitbucket.org/maxbittker/newsdiffs/commits/e18e4e72de0d824edfbe0d73efe34cbd0d01d301"}, "diff": {"href": "https://api.bitbucket.org/2.0/repositories/maxbittker/newsdiffs/diff/e18e4e72de0d824edfbe0d73efe34cbd0d01d301"}, "approve": {"href": "https://api.bitbucket.org/2.0/repositories/maxbittker/newsdiffs/commit/e18e4e72de0d824edfbe0d73efe34cbd0d01d301/approve"}, "statuses": {"href": "https://api.bitbucket.org/2.0/repositories/maxbittker/newsdiffs/commit/e18e4e72de0d824edfbe0d73efe34cbd0d01d301/statuses"}}, "author": {"raw": "Max Bittker <max@getsentry.com>", "type": "author", "user": {"username": "maxbittker", "display_name": "Max Bittker", "type": "user", "uuid": "{b128e0f6-196a-4dde-b72d-f42abc6dc239}", "links": {"self": {"href": "https://api.bitbucket.org/2.0/users/maxbittker"}, "html": {"href": "https://bitbucket.org/maxbittker/"}, "avatar": {"href": "https://bitbucket.org/account/maxbittker/avatar/32/"}}}}, "parents": [{"hash": "26de9b63d09aa9c787e899f149c672023e292925", "type": "commit", "links": {"self": {"href": "https://api.bitbucket.org/2.0/repositories/maxbittker/newsdiffs/commit/26de9b63d09aa9c787e899f149c672023e292925"}, "html": {"href": "https://bitbucket.org/maxbittker/newsdiffs/commits/26de9b63d09aa9c787e899f149c672023e292925"}}}], "date": "2017-05-16T23:21:40+00:00", "message": "README.md edited online with Bitbucket", "type": "commit"}],
-  "next": "https://api.bitbucket.org/2.0/repositories/maxbittker/newsdiffs/commits/e18e4e72de0d824edfbe0d73efe34cbd0d01d301?page=2"
+      "repository": {"links": {"self": {"href": "https://api.bitbucket.org/2.0/repositories/sentryuser/newsdiffs"}, "html": {"href": "https://bitbucket.org/sentryuser/newsdiffs"}, "avatar": {"href": "https://bitbucket.org/sentryuser/newsdiffs/avatar/32/"}}, "type": "repository", "name": "newsdiffs", "full_name": "sentryuser/newsdiffs", "uuid": "{c78dfb25-7882-4550-97b1-4e0d38f32859}"}, "links": {"self": {"href": "https://api.bitbucket.org/2.0/repositories/sentryuser/newsdiffs/commit/e18e4e72de0d824edfbe0d73efe34cbd0d01d301"}, "comments": {"href": "https://api.bitbucket.org/2.0/repositories/sentryuser/newsdiffs/commit/e18e4e72de0d824edfbe0d73efe34cbd0d01d301/comments"}, "patch": {"href": "https://api.bitbucket.org/2.0/repositories/sentryuser/newsdiffs/patch/e18e4e72de0d824edfbe0d73efe34cbd0d01d301"}, "html": {"href": "https://bitbucket.org/sentryuser/newsdiffs/commits/e18e4e72de0d824edfbe0d73efe34cbd0d01d301"}, "diff": {"href": "https://api.bitbucket.org/2.0/repositories/sentryuser/newsdiffs/diff/e18e4e72de0d824edfbe0d73efe34cbd0d01d301"}, "approve": {"href": "https://api.bitbucket.org/2.0/repositories/sentryuser/newsdiffs/commit/e18e4e72de0d824edfbe0d73efe34cbd0d01d301/approve"}, "statuses": {"href": "https://api.bitbucket.org/2.0/repositories/sentryuser/newsdiffs/commit/e18e4e72de0d824edfbe0d73efe34cbd0d01d301/statuses"}}, "author": {"raw": "Sentry User <max@getsentry.com>", "type": "author", "user": {"username": "sentryuser", "display_name": "Sentry User", "type": "user", "uuid": "{b128e0f6-196a-4dde-b72d-f42abc6dc239}", "links": {"self": {"href": "https://api.bitbucket.org/2.0/users/sentryuser"}, "html": {"href": "https://bitbucket.org/sentryuser/"}, "avatar": {"href": "https://bitbucket.org/account/sentryuser/avatar/32/"}}}}, "parents": [{"hash": "26de9b63d09aa9c787e899f149c672023e292925", "type": "commit", "links": {"self": {"href": "https://api.bitbucket.org/2.0/repositories/sentryuser/newsdiffs/commit/26de9b63d09aa9c787e899f149c672023e292925"}, "html": {"href": "https://bitbucket.org/sentryuser/newsdiffs/commits/26de9b63d09aa9c787e899f149c672023e292925"}}}], "date": "2017-05-16T23:21:40+00:00", "message": "README.md edited online with Bitbucket", "type": "commit"}],
+  "next": "https://api.bitbucket.org/2.0/repositories/sentryuser/newsdiffs/commits/e18e4e72de0d824edfbe0d73efe34cbd0d01d301?page=2"
 }
 """
 
