@@ -113,7 +113,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
             title="1 other users"
           >
             <div
-              className="tip css-nj57ba-CollapsedUsers-Circle e1axh4r51"
+              className="tip css-1831z2i-CollapsedUsers-Circle e1axh4r51"
               size={28}
               title="1 other users"
             >
@@ -124,7 +124,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                   +
                 </span>
               </Plus>
-              99
+              1
             </div>
           </CollapsedUsers>
         </Tooltip>
@@ -150,7 +150,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
           }
         >
           <Avatar
-            className="css-cqjcge-StyledAvatar-Circle e1axh4r50"
+            className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
             hasTooltip={true}
             size={28}
             user={
@@ -171,7 +171,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
             }
           >
             <UserAvatar
-              className="css-cqjcge-StyledAvatar-Circle e1axh4r50"
+              className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
               gravatar={true}
               hasTooltip={true}
               size={28}
@@ -193,7 +193,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
               }
             >
               <BaseAvatar
-                className="css-cqjcge-StyledAvatar-Circle e1axh4r50"
+                className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
                 gravatarId="foo@example.com"
                 hasTooltip={true}
                 letterId="foo@example.com"
@@ -209,7 +209,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                   title="Foo Bar (foo@example.com)"
                 >
                   <StyledBaseAvatar
-                    className="tip avatar css-cqjcge-StyledAvatar-Circle e1axh4r50"
+                    className="tip avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
                     style={
                       Object {
                         "height": "28px",
@@ -219,7 +219,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                     title="Foo Bar (foo@example.com)"
                   >
                     <span
-                      className="tip avatar e1axh4r50 css-15y5yv2-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
+                      className="tip avatar e1axh4r50 css-1a6phbt-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
                       style={
                         Object {
                           "height": "28px",
@@ -262,7 +262,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
           }
         >
           <Avatar
-            className="css-cqjcge-StyledAvatar-Circle e1axh4r50"
+            className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
             hasTooltip={true}
             size={28}
             user={
@@ -283,7 +283,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
             }
           >
             <UserAvatar
-              className="css-cqjcge-StyledAvatar-Circle e1axh4r50"
+              className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
               gravatar={true}
               hasTooltip={true}
               size={28}
@@ -305,7 +305,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
               }
             >
               <BaseAvatar
-                className="css-cqjcge-StyledAvatar-Circle e1axh4r50"
+                className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
                 gravatarId="foo@example.com"
                 hasTooltip={true}
                 letterId="foo@example.com"
@@ -321,7 +321,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                   title="Foo Bar (foo@example.com)"
                 >
                   <StyledBaseAvatar
-                    className="tip avatar css-cqjcge-StyledAvatar-Circle e1axh4r50"
+                    className="tip avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
                     style={
                       Object {
                         "height": "28px",
@@ -331,7 +331,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                     title="Foo Bar (foo@example.com)"
                   >
                     <span
-                      className="tip avatar e1axh4r50 css-15y5yv2-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
+                      className="tip avatar e1axh4r50 css-1a6phbt-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
                       style={
                         Object {
                           "height": "28px",
@@ -374,7 +374,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
           }
         >
           <Avatar
-            className="css-cqjcge-StyledAvatar-Circle e1axh4r50"
+            className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
             hasTooltip={true}
             size={28}
             user={
@@ -395,7 +395,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
             }
           >
             <UserAvatar
-              className="css-cqjcge-StyledAvatar-Circle e1axh4r50"
+              className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
               gravatar={true}
               hasTooltip={true}
               size={28}
@@ -417,7 +417,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
               }
             >
               <BaseAvatar
-                className="css-cqjcge-StyledAvatar-Circle e1axh4r50"
+                className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
                 gravatarId="foo@example.com"
                 hasTooltip={true}
                 letterId="foo@example.com"
@@ -433,7 +433,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                   title="Foo Bar (foo@example.com)"
                 >
                   <StyledBaseAvatar
-                    className="tip avatar css-cqjcge-StyledAvatar-Circle e1axh4r50"
+                    className="tip avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
                     style={
                       Object {
                         "height": "28px",
@@ -443,7 +443,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                     title="Foo Bar (foo@example.com)"
                   >
                     <span
-                      className="tip avatar e1axh4r50 css-15y5yv2-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
+                      className="tip avatar e1axh4r50 css-1a6phbt-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
                       style={
                         Object {
                           "height": "28px",
@@ -486,7 +486,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
           }
         >
           <Avatar
-            className="css-cqjcge-StyledAvatar-Circle e1axh4r50"
+            className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
             hasTooltip={true}
             size={28}
             user={
@@ -507,7 +507,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
             }
           >
             <UserAvatar
-              className="css-cqjcge-StyledAvatar-Circle e1axh4r50"
+              className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
               gravatar={true}
               hasTooltip={true}
               size={28}
@@ -529,7 +529,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
               }
             >
               <BaseAvatar
-                className="css-cqjcge-StyledAvatar-Circle e1axh4r50"
+                className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
                 gravatarId="foo@example.com"
                 hasTooltip={true}
                 letterId="foo@example.com"
@@ -545,7 +545,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                   title="Foo Bar (foo@example.com)"
                 >
                   <StyledBaseAvatar
-                    className="tip avatar css-cqjcge-StyledAvatar-Circle e1axh4r50"
+                    className="tip avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
                     style={
                       Object {
                         "height": "28px",
@@ -555,7 +555,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                     title="Foo Bar (foo@example.com)"
                   >
                     <span
-                      className="tip avatar e1axh4r50 css-15y5yv2-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
+                      className="tip avatar e1axh4r50 css-1a6phbt-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
                       style={
                         Object {
                           "height": "28px",
@@ -598,7 +598,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
           }
         >
           <Avatar
-            className="css-cqjcge-StyledAvatar-Circle e1axh4r50"
+            className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
             hasTooltip={true}
             size={28}
             user={
@@ -619,7 +619,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
             }
           >
             <UserAvatar
-              className="css-cqjcge-StyledAvatar-Circle e1axh4r50"
+              className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
               gravatar={true}
               hasTooltip={true}
               size={28}
@@ -641,7 +641,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
               }
             >
               <BaseAvatar
-                className="css-cqjcge-StyledAvatar-Circle e1axh4r50"
+                className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
                 gravatarId="foo@example.com"
                 hasTooltip={true}
                 letterId="foo@example.com"
@@ -657,7 +657,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                   title="Foo Bar (foo@example.com)"
                 >
                   <StyledBaseAvatar
-                    className="tip avatar css-cqjcge-StyledAvatar-Circle e1axh4r50"
+                    className="tip avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
                     style={
                       Object {
                         "height": "28px",
@@ -667,7 +667,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                     title="Foo Bar (foo@example.com)"
                   >
                     <span
-                      className="tip avatar e1axh4r50 css-15y5yv2-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
+                      className="tip avatar e1axh4r50 css-1a6phbt-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
                       style={
                         Object {
                           "height": "28px",
@@ -764,7 +764,7 @@ exports[`AvatarList renders with user avatars 1`] = `
           }
         >
           <Avatar
-            className="css-cqjcge-StyledAvatar-Circle e1axh4r50"
+            className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
             hasTooltip={true}
             size={28}
             user={
@@ -785,7 +785,7 @@ exports[`AvatarList renders with user avatars 1`] = `
             }
           >
             <UserAvatar
-              className="css-cqjcge-StyledAvatar-Circle e1axh4r50"
+              className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
               gravatar={true}
               hasTooltip={true}
               size={28}
@@ -807,7 +807,7 @@ exports[`AvatarList renders with user avatars 1`] = `
               }
             >
               <BaseAvatar
-                className="css-cqjcge-StyledAvatar-Circle e1axh4r50"
+                className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
                 gravatarId="foo@example.com"
                 hasTooltip={true}
                 letterId="foo@example.com"
@@ -823,7 +823,7 @@ exports[`AvatarList renders with user avatars 1`] = `
                   title="Foo Bar (foo@example.com)"
                 >
                   <StyledBaseAvatar
-                    className="tip avatar css-cqjcge-StyledAvatar-Circle e1axh4r50"
+                    className="tip avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
                     style={
                       Object {
                         "height": "28px",
@@ -833,7 +833,7 @@ exports[`AvatarList renders with user avatars 1`] = `
                     title="Foo Bar (foo@example.com)"
                   >
                     <span
-                      className="tip avatar e1axh4r50 css-15y5yv2-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
+                      className="tip avatar e1axh4r50 css-1a6phbt-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
                       style={
                         Object {
                           "height": "28px",
@@ -876,7 +876,7 @@ exports[`AvatarList renders with user avatars 1`] = `
           }
         >
           <Avatar
-            className="css-cqjcge-StyledAvatar-Circle e1axh4r50"
+            className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
             hasTooltip={true}
             size={28}
             user={
@@ -897,7 +897,7 @@ exports[`AvatarList renders with user avatars 1`] = `
             }
           >
             <UserAvatar
-              className="css-cqjcge-StyledAvatar-Circle e1axh4r50"
+              className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
               gravatar={true}
               hasTooltip={true}
               size={28}
@@ -919,7 +919,7 @@ exports[`AvatarList renders with user avatars 1`] = `
               }
             >
               <BaseAvatar
-                className="css-cqjcge-StyledAvatar-Circle e1axh4r50"
+                className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
                 gravatarId="foo@example.com"
                 hasTooltip={true}
                 letterId="foo@example.com"
@@ -935,7 +935,7 @@ exports[`AvatarList renders with user avatars 1`] = `
                   title="Foo Bar (foo@example.com)"
                 >
                   <StyledBaseAvatar
-                    className="tip avatar css-cqjcge-StyledAvatar-Circle e1axh4r50"
+                    className="tip avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
                     style={
                       Object {
                         "height": "28px",
@@ -945,7 +945,7 @@ exports[`AvatarList renders with user avatars 1`] = `
                     title="Foo Bar (foo@example.com)"
                   >
                     <span
-                      className="tip avatar e1axh4r50 css-15y5yv2-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
+                      className="tip avatar e1axh4r50 css-1a6phbt-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
                       style={
                         Object {
                           "height": "28px",

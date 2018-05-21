@@ -37,8 +37,8 @@ export default class AvatarList extends React.Component {
         {!!numCollapsedUsers && (
           <Tooltip title={`${numCollapsedUsers} other users`}>
             <CollapsedUsers size={avatarSize}>
-              <Plus>+</Plus>
-              {Math.max(numCollapsedUsers, 99)}
+              {numCollapsedUsers < 99 && <Plus>+</Plus>}
+              {numCollapsedUsers}
             </CollapsedUsers>
           </Tooltip>
         )}
@@ -62,7 +62,7 @@ export default class AvatarList extends React.Component {
 const Circle = css`
   border-radius: 50%;
   border: 2px solid white;
-  margin-left: -10px;
+  margin-left: -8px;
   cursor: default;
 
   &:hover {
