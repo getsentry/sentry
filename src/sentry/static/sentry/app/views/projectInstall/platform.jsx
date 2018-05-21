@@ -77,7 +77,7 @@ const ProjectInstallPlatform = createReactClass({
   },
 
   isGettingStarted() {
-    return this.inInstallExperiment && location.href.indexOf('getting-started') > 0;
+    return location.href.indexOf('getting-started') > 0;
   },
 
   fetchData() {
@@ -110,6 +110,7 @@ const ProjectInstallPlatform = createReactClass({
   },
 
   inInstallExperiment() {
+    return true;
     let {experimentPlatforms} = this.state;
     let currentPlatform = this.state.integration.id;
     let installExperiment =
@@ -211,6 +212,7 @@ const ProjectInstallPlatform = createReactClass({
   renderTestBody() {
     let {integration, platform} = this.state;
     let {dsnPublic} = this.props.platformData;
+    let {orgId, projectId} = this.props.params;
 
     if (!integration || !platform) {
       return <NotFound />;
@@ -232,6 +234,16 @@ const ProjectInstallPlatform = createReactClass({
             <LoadingError onRetry={this.fetchData} />
           ) : (
             <InstallReactTest dsn={dsnPublic} />
+          )}
+          {this.isGettingStarted() && (
+            <Button
+              priority="primary"
+              size="large"
+              to={`/${orgId}/${projectId}/#welcome`}
+              style={{marginTop: 20}}
+            >
+              {t('Got it! Take me to the Issue Stream.')}
+            </Button>
           )}
         </PanelBody>
       </Panel>
