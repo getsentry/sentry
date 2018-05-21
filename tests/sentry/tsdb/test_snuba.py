@@ -169,11 +169,11 @@ class SnubaTSDBRequestsTest(TestCase):
                 body = json.loads(request.body)
                 assert body['aggregations'] == [['count()', None, 'aggregate']]
                 assert body['project'] == [project.id]
-                assert body['groupby'] == ['release', 'time']
-                assert ['release', 'IN', ['version X']] in body['conditions']
+                assert body['groupby'] == ['sentry:release', 'time']
+                assert ['sentry:release', 'IN', ['version X']] in body['conditions']
                 return (200, {}, json.dumps({
-                    'data': [{'release': 'version X', 'time': '2018-03-09T01:00:00Z', 'aggregate': 100}],
-                    'meta': [{'name': 'release'}, {'name': 'time'}, {'name': 'aggregate'}]
+                    'data': [{'sentry:release': 'version X', 'time': '2018-03-09T01:00:00Z', 'aggregate': 100}],
+                    'meta': [{'name': 'sentry:release'}, {'name': 'time'}, {'name': 'aggregate'}]
                 }))
 
             rsps.add_callback(
