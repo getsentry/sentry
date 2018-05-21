@@ -26,7 +26,7 @@ class GitHubEnterpriseIdentityProvider(OAuth2Provider):
 
     def build_identity(self, data):
         data = data['data']
-
+        # todo(meredith): this doesn't work yet, need to pass in the base url
         user = get_user_info(data['access_token'])
 
         return {

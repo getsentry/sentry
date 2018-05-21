@@ -74,21 +74,18 @@ class InstallationForm(forms.Form):
         self.fields['private_key'] = forms.CharField(
             widget=forms.Textarea(attrs={'rows': '60',
                                          'label': "Github App Private Key",
-                                         'placeholder': _("""-----BEGIN RSA PRIVATE KEY-----
-XXXXXXXXXXXXXXXXXXXXXXXXXXX
-XXXXXXXXXXXXXXXXXXXXXXXXXXX
-XXXXXXXXXXXXXXXXXXXXXXXXXXX
-XXXXXXXXXXXXXXXXXXXXXXXXXXX
-XXXXXXXXXXXXXXXXXXXXXXXXXXX
------END RSA PRIVATE KEY-----
-"""), })
-        )
+                                         'placeholder': _("-----BEGIN RSA PRIVATE KEY-----\n"
+                                                          "XXXXXXXXXXXXXXXXXXXXXXXXXXX\n"
+                                                          "XXXXXXXXXXXXXXXXXXXXXXXXXXX\n"
+                                                          "XXXXXXXXXXXXXXXXXXXXXXXXXXX\n"
+                                                          "XXXXXXXXXXXXXXXXXXXXXXXXXXX\n"
+                                                          "-----END RSA PRIVATE KEY-----"), }
+                                  ))
 
 
 class InstallationConfigView(PipelineView):
     def dispatch(self, request, pipeline):
         form = InstallationForm(request.POST)
-        # TODO(maxbittker) handle errors
         if form.is_valid():
             form_data = form.cleaned_data
             form_data['url'] = urlparse(form_data['url']).netloc
