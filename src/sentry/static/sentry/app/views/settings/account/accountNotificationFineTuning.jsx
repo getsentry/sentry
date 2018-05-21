@@ -8,7 +8,7 @@ import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import ProjectsStore from 'app/stores/projectsStore';
-import Select2Field from 'app/views/settings/components/forms/select2Field';
+import SelectField from 'app/views/settings/components/forms/selectField';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import {fields} from 'app/data/forms/accountNotificationSettings';
@@ -20,6 +20,7 @@ const ACCOUNT_NOTIFICATION_FIELDS = {
     description: t('Control alerts that you receive per project.'),
     type: 'select',
     choices: [[-1, t('Default')], [1, t('On')], [0, t('Off')]],
+    defaultValue: -1,
     defaultFieldName: 'subscribeByDefault',
   },
   workflow: {
@@ -34,6 +35,7 @@ const ACCOUNT_NOTIFICATION_FIELDS = {
       [1, t('Only on issues I subscribe to')],
       [2, t('Never')],
     ],
+    defaultValue: -1,
     defaultFieldName: 'workflowNotifications',
   },
   deploy: {
@@ -48,6 +50,7 @@ const ACCOUNT_NOTIFICATION_FIELDS = {
       [3, t('Only on deploys with my commits')],
       [4, t('Never')],
     ],
+    defaultValue: -1,
     defaultFieldName: 'deployNotifications',
   },
   reports: {
@@ -121,11 +124,11 @@ class AccountNotificationsByProject extends React.Component {
           {projectFields.map(field => {
             return (
               <PanelBodyLineItem key={field.name}>
-                <Select2Field
+                <SelectField
+                  defaultValue={field.defaultValue}
                   name={field.name}
                   choices={field.choices}
                   label={field.label}
-                  small={true}
                 />
               </PanelBodyLineItem>
             );
@@ -168,11 +171,11 @@ class AccountNotificationsByOrganization extends React.Component {
         {orgFields.map(field => {
           return (
             <PanelBodyLineItem key={field.name}>
-              <Select2Field
+              <SelectField
+                defaultValue={field.defaultValue}
                 name={field.name}
                 choices={field.choices}
                 label={field.label}
-                small
               />
             </PanelBodyLineItem>
           );

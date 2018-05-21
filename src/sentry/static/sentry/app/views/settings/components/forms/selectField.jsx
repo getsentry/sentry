@@ -4,7 +4,7 @@ import React from 'react';
 import InputField from 'app/views/settings/components/forms/inputField';
 import SelectControl from 'app/components/forms/selectControl';
 
-export default class Select2Field extends React.Component {
+export default class SelectField extends React.Component {
   static propTypes = {
     ...InputField.propTypes,
     choices: PropTypes.oneOfType([PropTypes.array, PropTypes.func]).isRequired,
