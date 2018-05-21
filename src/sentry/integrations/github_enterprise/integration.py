@@ -127,6 +127,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
         identity_pipeline_config = dict(
             oauth_scopes=(),
             redirect_url=absolute_uri('/extensions/github-enterprise/setup/'),
+            urlopen_config_options={'verify_ssl': False},
             **self.pipeline.fetch_state('oauth_config_information')
         )
 
@@ -152,7 +153,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
             'https://{}/api/v3/app/installations/{}'.format(
                 installation_data['url'], installation_id),
             headers={
-                'Authorization': 'Bearer %s' % get_jwt(github_id=installation_data['id'], github_private_key=installation_data['private-key']),
+                'Authorization': 'Bearer %s' % get_jwt(github_id=installation_data['id'], github_private_key=installation_data['private_key']),
                 'Accept': 'application/vnd.github.machine-man-preview+json',
             },
             verify=False
