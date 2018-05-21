@@ -87,3 +87,34 @@ class Integration(Model):
             return False
         else:
             return True
+
+    def add_project(self, project_id, config=None):
+        """
+        Add a project to this integration. Requires that a
+        OrganizationIntegration must exist before the project can be added.
+
+        Returns True if the ProjectIntegration was created
+        """
+        from sentry.models import Project
+        org_id_queryset = Project.objects \
+            .filter(id=project_id) \
+            .values_list('organization_id', flat=True)
+        org_integration = OrganizationIntegration.objects.filter(
+            organization_id=org_id_queryset,
+            integration=self,
+        )
+
+        if not org_integration.exists():
+            return False
+
+        try:
+            with transaction.atomic():
+                ProjectIntegration.objects.create(
+                    project_id=project_id,
+                    integration_id=self.id,
+                    config=config or {},
+                )
+        except IntegrityError:
+            return False
+        else:
+            return True

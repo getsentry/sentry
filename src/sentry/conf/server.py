@@ -1056,6 +1056,7 @@ SENTRY_SCOPES = set(
         'project:write',
         'project:admin',
         'project:releases',
+        'project:integrations',
         'event:read',
         'event:write',
         'event:admin',
@@ -1069,6 +1070,7 @@ SENTRY_SCOPE_SETS = (
         ('org:read', 'Read access to organization details.'),
     ), (
         ('org:integrations', 'Read, write, and admin access to organization integrations.'),
+        ('project:integrations', 'Read, write, and admin access to project integrations.'),
     ), (
         ('member:admin', 'Read, write, and admin access to organization members.'),
         ('member:write', 'Read and write access to organization members.'),
@@ -1127,6 +1129,7 @@ SENTRY_ROLES = (
                 'project:write',
                 'project:admin',
                 'project:releases',
+                'project:integrations'
                 'team:read',
                 'team:write',
                 'team:admin',
@@ -1150,6 +1153,7 @@ SENTRY_ROLES = (
                 'project:write',
                 'project:admin',
                 'project:releases',
+                'project:integrations'
                 'team:read',
                 'team:write',
                 'team:admin',
