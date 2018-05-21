@@ -265,7 +265,7 @@ class SnubaTagStorage(TagStorage):
         aggregations = [['min' if first else 'max', SEEN_COLUMN, 'seen']]
         orderby = 'seen' if first else '-seen'
 
-        result = snuba.query(start, end, ['sentry:release'], conditions, filters,
+        result = snuba.query(start, end, ['tags[sentry:release]'], conditions, filters,
                              aggregations, limit=1, orderby=orderby,
                              referrer='tagstore.__get_release')
         if not result:
