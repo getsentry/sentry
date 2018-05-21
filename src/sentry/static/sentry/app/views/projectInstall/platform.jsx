@@ -77,7 +77,7 @@ const ProjectInstallPlatform = createReactClass({
   },
 
   isGettingStarted() {
-    return location.href.indexOf('getting-started') > 0;
+    return this.inInstallExperiment && location.href.indexOf('getting-started') > 0;
   },
 
   fetchData() {
