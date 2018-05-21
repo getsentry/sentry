@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from django.http import Http404
+
 from sentry.api.bases.organization import (
     OrganizationEndpoint, OrganizationIntegrationsPermission
 )
@@ -11,10 +13,13 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationIntegrationsPermission, )
 
     def get(self, request, organization, integration_id):
-        integration = OrganizationIntegration.objects.get(
-            integration_id=integration_id,
-            organization=organization,
-        )
+        try:
+            integration = OrganizationIntegration.objects.get(
+                integration_id=integration_id,
+                organization=organization,
+            )
+        except OrganizationIntegration.DoesNotExist:
+            raise Http404
 
         return self.respond(serialize(integration, request.user))
 
@@ -33,10 +38,13 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationEndpoint):
         return self.respond(status=204)
 
     def post(self, request, organization, integration_id):
-        integration = OrganizationIntegration.objects.get(
-            integration_id=integration_id,
-            organization=organization,
-        )
+        try:
+            integration = OrganizationIntegration.objects.get(
+                integration_id=integration_id,
+                organization=organization,
+            )
+        except OrganizationIntegration.DoesNotExist:
+            raise Http404
 
         config = integration.config
         config.update(request.DATA)

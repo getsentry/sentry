@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from django.http import Http404
+
 from sentry.api.bases.project import ProjectEndpoint, ProjectIntegrationsPermission
 from sentry.api.serializers import serialize
 from sentry.models import ProjectIntegration, Integration
@@ -9,10 +11,13 @@ class ProjectIntegrationDetailsEndpoint(ProjectEndpoint):
     permission_classes = (ProjectIntegrationsPermission, )
 
     def get(self, request, project, integration_id):
-        integration = ProjectIntegration.objects.get(
-            project=project,
-            integration_id=integration_id,
-        )
+        try:
+            integration = ProjectIntegration.objects.get(
+                project=project,
+                integration_id=integration_id,
+            )
+        except ProjectIntegration.DoesNotExist:
+            raise Http404
 
         return self.respond(serialize(integration, request.user))
 
@@ -25,7 +30,7 @@ class ProjectIntegrationDetailsEndpoint(ProjectEndpoint):
                 organizations=project.organization_id,
             )
         except Integration.DoesNotExist:
-            return self.respond(status=404)
+            raise Http404
 
         created = integration.add_project(project.id)
 
@@ -45,7 +50,7 @@ class ProjectIntegrationDetailsEndpoint(ProjectEndpoint):
                 project=project,
             )
         except ProjectIntegration.DoesNotExist:
-            return self.respond(status=404)
+            raise Http404
 
         config = integration.config
         config.update(request.DATA)
