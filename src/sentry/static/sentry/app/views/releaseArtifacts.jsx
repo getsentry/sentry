@@ -108,6 +108,8 @@ const ReleaseArtifacts = createReactClass({
   },
 
   render() {
+    console.log('this is the artifact');
+    console.log(this.state.fileList);
     if (this.state.loading) return <LoadingIndicator />;
     else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
     else if (this.state.fileList.length === 0)

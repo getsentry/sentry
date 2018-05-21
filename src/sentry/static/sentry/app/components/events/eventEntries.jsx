@@ -77,6 +77,8 @@ const EventEntries = createReactClass({
     let {group, isShare, project, event, orgId} = this.props;
     let organization = this.getOrganization();
     let features = organization ? new Set(organization.features) : new Set();
+    // console.log('the release');
+    // console.log(this.props.event);
     let entries = event.entries.map((entry, entryIdx) => {
       try {
         let Component = this.interfaces[entry.type];

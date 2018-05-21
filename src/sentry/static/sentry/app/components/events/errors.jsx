@@ -38,6 +38,7 @@ class EventErrors extends React.Component {
     let errors = this.uniqueErrors(this.props.event.errors);
     let numErrors = errors.length;
     let isOpen = this.state.isOpen;
+    console.log('errors.jsx', this.props.event);
     return (
       <EventDataSection
         group={this.props.group}

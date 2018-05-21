@@ -50,9 +50,12 @@ class EventErrorItem extends React.Component {
   }
 
   render() {
+    console.log('this is the error banner thing');
+    console.log(this.props.error);
     let error = this.props.error;
     let isOpen = this.state.isOpen;
     let data = this.cleanedData();
+    console.log(data);
     return (
       <li>
         {error.message}

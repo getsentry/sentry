@@ -12,9 +12,13 @@ class ExceptionContent extends React.Component {
     view: PropTypes.string.isRequired,
     platform: PropTypes.string,
     newestFirst: PropTypes.bool,
+    release: PropTypes.string,
+    event: PropTypes.object,
   };
 
   render() {
+    // console.log("this is the EVENTTTT and i'm in ExceptionContent");
+    // console.log(this.props.event.errors[0].type)
     let stackView = this.props.view;
     let newestFirst = this.props.newestFirst;
     let children = this.props.values.map((exc, excIdx) => {
@@ -42,6 +46,8 @@ class ExceptionContent extends React.Component {
               includeSystemFrames={stackView === 'full'}
               platform={this.props.platform}
               newestFirst={newestFirst}
+              release={this.props.release}
+              errorType={this.props.event.errors[0].type}
             />
           )}
         </div>
