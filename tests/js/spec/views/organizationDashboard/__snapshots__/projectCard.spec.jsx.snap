@@ -276,7 +276,7 @@ exports[`ProjectCard renders 1`] = `
                                             }
                                           >
                                             <div
-                                              className="css-7tc4sj-ColumnRow e5t71583"
+                                              className="css-7dry5d-ColumnRow-ColumnRow e5t71583"
                                               style={
                                                 Object {
                                                   "backgroundColor": null,
@@ -331,7 +331,7 @@ exports[`ProjectCard renders 1`] = `
                                             }
                                           >
                                             <div
-                                              className="css-7tc4sj-ColumnRow e5t71583"
+                                              className="css-7dry5d-ColumnRow-ColumnRow e5t71583"
                                               style={
                                                 Object {
                                                   "backgroundColor": null,

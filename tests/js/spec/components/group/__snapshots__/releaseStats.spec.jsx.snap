@@ -294,7 +294,7 @@ exports[`GroupReleaseStats renders 1`] = `
                                 }
                               >
                                 <div
-                                  className="css-1innhww-ColumnRow e5t71583"
+                                  className="css-1bwbgj5-ColumnRow-ColumnRow e5t71583"
                                   style={
                                     Object {
                                       "backgroundColor": null,
@@ -318,7 +318,7 @@ exports[`GroupReleaseStats renders 1`] = `
                                 }
                               >
                                 <div
-                                  className="css-1innhww-ColumnRow e5t71583"
+                                  className="css-1bwbgj5-ColumnRow-ColumnRow e5t71583"
                                   style={
                                     Object {
                                       "backgroundColor": null,
@@ -342,7 +342,7 @@ exports[`GroupReleaseStats renders 1`] = `
                                 }
                               >
                                 <div
-                                  className="css-1innhww-ColumnRow e5t71583"
+                                  className="css-15d5msq-ColumnRow-ColumnRow e5t71583"
                                   style={
                                     Object {
                                       "backgroundColor": null,
@@ -397,7 +397,7 @@ exports[`GroupReleaseStats renders 1`] = `
                                 }
                               >
                                 <div
-                                  className="css-1innhww-ColumnRow e5t71583"
+                                  className="css-1bwbgj5-ColumnRow-ColumnRow e5t71583"
                                   style={
                                     Object {
                                       "backgroundColor": null,
@@ -421,7 +421,7 @@ exports[`GroupReleaseStats renders 1`] = `
                                 }
                               >
                                 <div
-                                  className="css-1innhww-ColumnRow e5t71583"
+                                  className="css-1bwbgj5-ColumnRow-ColumnRow e5t71583"
                                   style={
                                     Object {
                                       "backgroundColor": null,
@@ -445,7 +445,7 @@ exports[`GroupReleaseStats renders 1`] = `
                                 }
                               >
                                 <div
-                                  className="css-1innhww-ColumnRow e5t71583"
+                                  className="css-15d5msq-ColumnRow-ColumnRow e5t71583"
                                   style={
                                     Object {
                                       "backgroundColor": null,
@@ -650,7 +650,7 @@ exports[`GroupReleaseStats renders 1`] = `
                                 }
                               >
                                 <div
-                                  className="css-1innhww-ColumnRow e5t71583"
+                                  className="css-1bwbgj5-ColumnRow-ColumnRow e5t71583"
                                   style={
                                     Object {
                                       "backgroundColor": null,
@@ -674,7 +674,7 @@ exports[`GroupReleaseStats renders 1`] = `
                                 }
                               >
                                 <div
-                                  className="css-1innhww-ColumnRow e5t71583"
+                                  className="css-1bwbgj5-ColumnRow-ColumnRow e5t71583"
                                   style={
                                     Object {
                                       "backgroundColor": null,
@@ -698,7 +698,7 @@ exports[`GroupReleaseStats renders 1`] = `
                                 }
                               >
                                 <div
-                                  className="css-1innhww-ColumnRow e5t71583"
+                                  className="css-15d5msq-ColumnRow-ColumnRow e5t71583"
                                   style={
                                     Object {
                                       "backgroundColor": null,
@@ -753,7 +753,7 @@ exports[`GroupReleaseStats renders 1`] = `
                                 }
                               >
                                 <div
-                                  className="css-1innhww-ColumnRow e5t71583"
+                                  className="css-1bwbgj5-ColumnRow-ColumnRow e5t71583"
                                   style={
                                     Object {
                                       "backgroundColor": null,
@@ -777,7 +777,7 @@ exports[`GroupReleaseStats renders 1`] = `
                                 }
                               >
                                 <div
-                                  className="css-1innhww-ColumnRow e5t71583"
+                                  className="css-1bwbgj5-ColumnRow-ColumnRow e5t71583"
                                   style={
                                     Object {
                                       "backgroundColor": null,
@@ -801,7 +801,7 @@ exports[`GroupReleaseStats renders 1`] = `
                                 }
                               >
                                 <div
-                                  className="css-1innhww-ColumnRow e5t71583"
+                                  className="css-15d5msq-ColumnRow-ColumnRow e5t71583"
                                   style={
                                     Object {
                                       "backgroundColor": null,

@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 import moment from 'moment-timezone';
 import _ from 'lodash';
 import {Flex} from 'grid-emotion';
-import styled from 'react-emotion';
+import styled, {css} from 'react-emotion';
 
 import Tooltip from 'app/components/tooltip';
 import Count from 'app/components/count';
@@ -373,26 +373,41 @@ const ColumnRow = styled.div`
   position: absolute;
   width: 100%;
 
-  background-color: ${p => {
+  ${p => {
     switch (p.columnType) {
       case 'rate-limited':
-        return p.theme.red;
+        return css`
+          background-color: ${p.theme.red};
+        `;
       case 'dropped':
-        return p.theme.red;
+        return css`
+          background-color: ${p.theme.red};
+        `;
       case 'black-listed':
-        return p.theme.orange;
+        return css`
+          background-color: ${p.theme.orange};
+        `;
       case 'filtered':
-        return p.theme.orange;
+        return css`
+          background-color: ${p.theme.orange};
+        `;
       case 'release':
-        return p.theme.purple;
+        return css`
+          background-color: ${p.theme.purple};
+        `;
       case 'environment':
-        return p.theme.purpleLightest;
+        return css`
+          background-color: ${p.theme.purpleLightest};
+        `;
       default:
-        return p.theme.gray1;
+        return css`
+          background-color: ${p.theme.gray1};
+          min-height: 1px;
+        `;
     }
   }};
 
-  &:hover {
+  ${Column}:hover & {
     background-color: ${p => {
       switch (p.columnType) {
         case 'rate-limited':
@@ -403,16 +418,14 @@ const ColumnRow = styled.div`
           return p.theme.orangeDark;
         case 'filtered':
           return p.theme.orangeDark;
-        case 'environment':
+        case 'release':
           return p.theme.purpleDark;
+        case 'environment':
+          return p.theme.purple;
         default:
           return p.theme.gray2;
       }
     }};
-  }
-
-  &:first-child {
-    min-height: 1px;
   }
 `;
 
