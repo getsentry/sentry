@@ -40,10 +40,8 @@ const GroupSeenBy = createReactClass({
           avatarSize={28}
           maxVisibleAvatars={10}
           tooltipOptions={{html: true}}
-          renderTooltip={user =>
-            `${_.escape(userDisplayName(user))} <br/> ${_.escape(
-              moment(user.lastSeen).format('LL')
-            )}`}
+          renderTooltip={user => `${_.escape(userDisplayName(user))} <br/>
+            ${moment(user.lastSeen).format('LL')}`}
         />
         <IconWrapper>
           <Tooltip title={t("People who've viewed this issue")}>
