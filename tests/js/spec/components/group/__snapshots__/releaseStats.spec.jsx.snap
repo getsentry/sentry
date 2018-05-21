@@ -221,9 +221,11 @@ exports[`GroupReleaseStats renders 1`] = `
               tooltip={[Function]}
               width={null}
             >
-              <StyledBarChart>
+              <StyledBarChart
+                className="barchart"
+              >
                 <figure
-                  className="css-3q0f3i-StyledBarChart e5t71580"
+                  className="barchart css-3q0f3i-StyledBarChart e5t71580"
                 >
                   <Columns
                     justify="space-between"
@@ -577,9 +579,11 @@ exports[`GroupReleaseStats renders 1`] = `
               tooltip={[Function]}
               width={null}
             >
-              <StyledBarChart>
+              <StyledBarChart
+                className="barchart"
+              >
                 <figure
-                  className="css-3q0f3i-StyledBarChart e5t71580"
+                  className="barchart css-3q0f3i-StyledBarChart e5t71580"
                 >
                   <Columns
                     justify="space-between"

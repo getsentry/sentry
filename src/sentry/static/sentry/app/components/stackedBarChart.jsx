@@ -331,7 +331,7 @@ const StackedBarChart = createReactClass({
     let maxval = this.maxPointValue();
 
     return (
-      <StyledBarChart showAxis={this.props.showAxis}>
+      <StyledBarChart showAxis={this.props.showAxis} className="barchart">
         {this.props.showAxis && (
           <Axis>
             <AxisMax>
