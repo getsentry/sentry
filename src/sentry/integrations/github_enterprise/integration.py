@@ -32,55 +32,55 @@ metadata = IntegrationMetadata(
 
 
 class InstallationForm(forms.Form):
+    url = forms.CharField(widget=forms.TextInput(
+        attrs={
+            'label': "Installation Url",
+            'placeholder': _('https://github.example.com'),
+        }
+    ))
+    id = forms.CharField(widget=forms.TextInput(
+        attrs={
+            'label': "Github App ID",
+            'placeholder': _('1'),
+        }
+    ))
+    name = forms.CharField(widget=forms.TextInput(
+        attrs={
+            'label': "Github App Name",
+            'placeholder': _('sentry-app'),
+        }
+    ))
+    client_id = forms.CharField(widget=forms.TextInput(
+        attrs={
+            'label': "Github App Client ID",
+            'placeholder': _('1'),
+        }
+    ))
+    client_secret = forms.CharField(widget=forms.TextInput(
+        attrs={
+            'label': "Github App Client Secret",
+            'placeholder': _('XXXXXXXXXXXXXXXXXXXXXXXXXXX'),
+        }
+    ))
+    webhook_secret = forms.CharField(required=False, widget=forms.TextInput(
+        attrs={
+            'label': "Github App Webhook Secret",
+            'placeholder': _('XXXXXXXXXXXXXXXXXXXXXXXXXXX'),
+        }
+    ))
+    private_key = forms.CharField(
+        widget=forms.Textarea(attrs={'rows': '60',
+                                     'label': "Github App Private Key",
+                                     'placeholder': _("-----BEGIN RSA PRIVATE KEY-----\n"
+                                                      "XXXXXXXXXXXXXXXXXXXXXXXXXXX\n"
+                                                      "XXXXXXXXXXXXXXXXXXXXXXXXXXX\n"
+                                                      "XXXXXXXXXXXXXXXXXXXXXXXXXXX\n"
+                                                      "XXXXXXXXXXXXXXXXXXXXXXXXXXX\n"
+                                                      "-----END RSA PRIVATE KEY-----"), }
+                              ))
+
     def __init__(self, *args, **kwargs):
         super(InstallationForm, self).__init__(*args, **kwargs)
-
-        self.fields['url'] = forms.CharField(widget=forms.TextInput(
-            attrs={
-                'label': "Installation Url",
-                'placeholder': _('https://github.example.com'),
-            }
-        ))
-        self.fields['id'] = forms.CharField(widget=forms.TextInput(
-            attrs={
-                'label': "Github App ID",
-                'placeholder': _('1'),
-            }
-        ))
-        self.fields['name'] = forms.CharField(widget=forms.TextInput(
-            attrs={
-                'label': "Github App Name",
-                'placeholder': _('sentry-app'),
-            }
-        ))
-        self.fields['client_id'] = forms.CharField(widget=forms.TextInput(
-            attrs={
-                'label': "Github App Client ID",
-                'placeholder': _('1'),
-            }
-        ))
-        self.fields['client_secret'] = forms.CharField(widget=forms.TextInput(
-            attrs={
-                'label': "Github App Client Secret",
-                'placeholder': _('XXXXXXXXXXXXXXXXXXXXXXXXXXX'),
-            }
-        ))
-        self.fields['webhook_secret'] = forms.CharField(required=False, widget=forms.TextInput(
-            attrs={
-                'label': "Github App Webhook Secret",
-                'placeholder': _('XXXXXXXXXXXXXXXXXXXXXXXXXXX'),
-            }
-        ))
-        self.fields['private_key'] = forms.CharField(
-            widget=forms.Textarea(attrs={'rows': '60',
-                                         'label': "Github App Private Key",
-                                         'placeholder': _("-----BEGIN RSA PRIVATE KEY-----\n"
-                                                          "XXXXXXXXXXXXXXXXXXXXXXXXXXX\n"
-                                                          "XXXXXXXXXXXXXXXXXXXXXXXXXXX\n"
-                                                          "XXXXXXXXXXXXXXXXXXXXXXXXXXX\n"
-                                                          "XXXXXXXXXXXXXXXXXXXXXXXXXXX\n"
-                                                          "-----END RSA PRIVATE KEY-----"), }
-                                  ))
 
 
 class InstallationConfigView(PipelineView):
