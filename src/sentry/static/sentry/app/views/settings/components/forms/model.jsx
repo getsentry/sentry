@@ -129,9 +129,21 @@ class FormModel {
    */
   setFieldDescriptor(id, props) {
     this.fieldDescriptor.set(id, props);
+
+    // Set default value iff initialData for field is undefined
+    // This must take place before checking for `props.setValue` so that it can
+    // be applied to `defaultValue`
+    if (
+      typeof props.defaultValue !== 'undefined' &&
+      typeof this.initialData[id] === 'undefined'
+    ) {
+      this.initialData[id] = props.defaultValue;
+      this.fields.set(id, this.initialData[id]);
+    }
+
     if (typeof props.setValue === 'function') {
       this.initialData[id] = props.setValue(this.initialData[id], props);
-      this.setValue(id, this.initialData[id]);
+      this.fields.set(id, this.initialData[id]);
     }
   }
 

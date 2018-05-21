@@ -1,0 +1,405 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`FormField + model renders with Form 1`] = `
+<Form
+  allowUndo={false}
+  cancelLabel="Cancel"
+  className="form-stacked"
+  footerClass="form-actions align-right"
+  model={
+    FormModel {
+      "api": Client {},
+      "errors": Object {},
+      "fieldDescriptor": Map {
+        "fieldName" => Object {
+          "children": [Function],
+          "className": undefined,
+          "field": [Function],
+          "flexibleControlStateSize": false,
+          "hideErrorMessage": false,
+          "name": "fieldName",
+          "type": "text",
+        },
+      },
+      "fieldState": Object {},
+      "fields": Object {},
+      "formState": undefined,
+      "initialData": Object {},
+      "options": Object {
+        "allowUndo": false,
+        "apiEndpoint": undefined,
+        "apiMethod": undefined,
+        "onFieldChange": undefined,
+        "onSubmitError": [Function],
+        "onSubmitSuccess": [Function],
+        "resetOnError": undefined,
+        "saveOnBlur": false,
+      },
+      "snapshots": Array [
+        Map {},
+      ],
+    }
+  }
+  onSubmitError={[Function]}
+  onSubmitSuccess={[Function]}
+  requireChanges={false}
+  saveOnBlur={false}
+  submitDisabled={false}
+  submitLabel="Save Changes"
+  submitPriority="primary"
+>
+  <form
+    className="form-stacked"
+    onSubmit={[Function]}
+  >
+    <div>
+      <TextField
+        name="fieldName"
+      >
+        <InputField
+          field={[Function]}
+          name="fieldName"
+          type="text"
+        >
+          <FormField
+            field={[Function]}
+            flexibleControlStateSize={false}
+            hideErrorMessage={false}
+            name="fieldName"
+            type="text"
+          >
+            <Field
+              alignRight={false}
+              disabled={false}
+              field={[Function]}
+              id="fieldName"
+              inline={true}
+              name="fieldName"
+              required={false}
+              type="text"
+              visible={true}
+            >
+              <FieldWrapper
+                hasControlState={true}
+                inline={true}
+              >
+                <Component
+                  className="css-mq954e-FieldWrapper-inlineStyle etqqcs20"
+                  hasControlState={true}
+                  inline={true}
+                >
+                  <Flex
+                    className="css-mq954e-FieldWrapper-inlineStyle etqqcs20"
+                  >
+                    <Base
+                      className="etqqcs20 css-14yamts-FieldWrapper-inlineStyle"
+                    >
+                      <div
+                        className="etqqcs20 css-14yamts-FieldWrapper-inlineStyle"
+                        is={null}
+                      >
+                        <FieldControl
+                          alignRight={false}
+                          controlState={
+                            <ControlState
+                              model={
+                                FormModel {
+                                  "api": Client {},
+                                  "errors": Object {},
+                                  "fieldDescriptor": Map {
+                                    "fieldName" => Object {
+                                      "children": [Function],
+                                      "className": undefined,
+                                      "field": [Function],
+                                      "flexibleControlStateSize": false,
+                                      "hideErrorMessage": false,
+                                      "name": "fieldName",
+                                      "type": "text",
+                                    },
+                                  },
+                                  "fieldState": Object {},
+                                  "fields": Object {},
+                                  "formState": undefined,
+                                  "initialData": Object {},
+                                  "options": Object {
+                                    "allowUndo": false,
+                                    "apiEndpoint": undefined,
+                                    "apiMethod": undefined,
+                                    "onFieldChange": undefined,
+                                    "onSubmitError": [Function],
+                                    "onSubmitSuccess": [Function],
+                                    "resetOnError": undefined,
+                                    "saveOnBlur": false,
+                                  },
+                                  "snapshots": Array [
+                                    Map {},
+                                  ],
+                                }
+                              }
+                              name="fieldName"
+                            />
+                          }
+                          disabled={false}
+                          errorState={
+                            <Observer>
+                              [Function]
+                            </Observer>
+                          }
+                          flexibleControlStateSize={false}
+                          inline={true}
+                        >
+                          <FieldControlErrorWrapper
+                            inline={true}
+                          >
+                            <Component
+                              className="css-1xbxyck-FieldControlErrorWrapper e78b1iv0"
+                              inline={true}
+                            >
+                              <Box
+                                className="css-1xbxyck-FieldControlErrorWrapper e78b1iv0"
+                              >
+                                <Base
+                                  className="e78b1iv0 css-1kkovz0-FieldControlErrorWrapper"
+                                >
+                                  <div
+                                    className="e78b1iv0 css-1kkovz0-FieldControlErrorWrapper"
+                                    is={null}
+                                  >
+                                    <FieldControlWrapper>
+                                      <Component
+                                        className="css-1ke1xob-FieldControlWrapper e78b1iv2"
+                                      >
+                                        <Flex
+                                          className="css-1ke1xob-FieldControlWrapper e78b1iv2"
+                                        >
+                                          <Base
+                                            className="e78b1iv2 css-w4o1g8-FieldControlWrapper"
+                                          >
+                                            <div
+                                              className="e78b1iv2 css-w4o1g8-FieldControlWrapper"
+                                              is={null}
+                                            >
+                                              <FieldControlStyled
+                                                alignRight={false}
+                                              >
+                                                <Component
+                                                  alignRight={false}
+                                                  className="css-1pkvhmy-FieldControlStyled e78b1iv1"
+                                                >
+                                                  <Box
+                                                    className="css-1pkvhmy-FieldControlStyled e78b1iv1"
+                                                  >
+                                                    <Base
+                                                      className="e78b1iv1 css-wkkbba-FieldControlStyled"
+                                                    >
+                                                      <div
+                                                        className="e78b1iv1 css-wkkbba-FieldControlStyled"
+                                                        is={null}
+                                                      >
+                                                        <Observer>
+                                                          <Component
+                                                            disabled={false}
+                                                            error={false}
+                                                            field={[Function]}
+                                                            id="fieldName"
+                                                            initialData={Object {}}
+                                                            innerRef={[Function]}
+                                                            name="fieldName"
+                                                            onBlur={[Function]}
+                                                            onChange={[Function]}
+                                                            onKeyDown={[Function]}
+                                                            type="text"
+                                                            value=""
+                                                          >
+                                                            <Input
+                                                              disabled={false}
+                                                              error={false}
+                                                              field={[Function]}
+                                                              id="fieldName"
+                                                              initialData={Object {}}
+                                                              innerRef={[Function]}
+                                                              name="fieldName"
+                                                              onBlur={[Function]}
+                                                              onChange={[Function]}
+                                                              onKeyDown={[Function]}
+                                                              type="text"
+                                                              value=""
+                                                            >
+                                                              <input
+                                                                className="css-1m7xmcf-Input-inputStyles e1xej46s0"
+                                                                disabled={false}
+                                                                id="fieldName"
+                                                                name="fieldName"
+                                                                onBlur={[Function]}
+                                                                onChange={[Function]}
+                                                                onKeyDown={[Function]}
+                                                                type="text"
+                                                                value=""
+                                                              />
+                                                            </Input>
+                                                          </Component>
+                                                        </Observer>
+                                                      </div>
+                                                    </Base>
+                                                  </Box>
+                                                </Component>
+                                              </FieldControlStyled>
+                                              <FieldControlState
+                                                flexibleControlStateSize={false}
+                                              >
+                                                <Component
+                                                  className="css-1j6hng-FieldControlState e1rziqw00"
+                                                  flexibleControlStateSize={false}
+                                                >
+                                                  <Flex
+                                                    className="css-1j6hng-FieldControlState e1rziqw00"
+                                                  >
+                                                    <Base
+                                                      className="e1rziqw00 css-1fqbh7r-FieldControlState"
+                                                    >
+                                                      <div
+                                                        className="e1rziqw00 css-1fqbh7r-FieldControlState"
+                                                        is={null}
+                                                      >
+                                                        <ControlState
+                                                          model={
+                                                            FormModel {
+                                                              "api": Client {},
+                                                              "errors": Object {},
+                                                              "fieldDescriptor": Map {
+                                                                "fieldName" => Object {
+                                                                  "children": [Function],
+                                                                  "className": undefined,
+                                                                  "field": [Function],
+                                                                  "flexibleControlStateSize": false,
+                                                                  "hideErrorMessage": false,
+                                                                  "name": "fieldName",
+                                                                  "type": "text",
+                                                                },
+                                                              },
+                                                              "fieldState": Object {},
+                                                              "fields": Object {},
+                                                              "formState": undefined,
+                                                              "initialData": Object {},
+                                                              "options": Object {
+                                                                "allowUndo": false,
+                                                                "apiEndpoint": undefined,
+                                                                "apiMethod": undefined,
+                                                                "onFieldChange": undefined,
+                                                                "onSubmitError": [Function],
+                                                                "onSubmitSuccess": [Function],
+                                                                "resetOnError": undefined,
+                                                                "saveOnBlur": false,
+                                                              },
+                                                              "snapshots": Array [
+                                                                Map {},
+                                                              ],
+                                                            }
+                                                          }
+                                                          name="fieldName"
+                                                        >
+                                                          <Observer />
+                                                          <Observer />
+                                                        </ControlState>
+                                                      </div>
+                                                    </Base>
+                                                  </Flex>
+                                                </Component>
+                                              </FieldControlState>
+                                            </div>
+                                          </Base>
+                                        </Flex>
+                                      </Component>
+                                    </FieldControlWrapper>
+                                    <Observer />
+                                  </div>
+                                </Base>
+                              </Box>
+                            </Component>
+                          </FieldControlErrorWrapper>
+                        </FieldControl>
+                      </div>
+                    </Base>
+                  </Flex>
+                </Component>
+              </FieldWrapper>
+            </Field>
+          </FormField>
+        </InputField>
+      </TextField>
+    </div>
+    <div
+      className="form-actions align-right"
+      style={
+        Object {
+          "marginTop": 25,
+        }
+      }
+    >
+      <Observer>
+        <Button
+          data-test-id="form-submit"
+          disabled={false}
+          priority="primary"
+          type="submit"
+        >
+          <StyledButton
+            aria-label="Save Changes"
+            data-test-id="form-submit"
+            disabled={false}
+            onClick={[Function]}
+            priority="primary"
+            role="button"
+            type="submit"
+          >
+            <Component
+              aria-label="Save Changes"
+              className="css-1msljz8-StyledButton-getColors e17811v30"
+              data-test-id="form-submit"
+              disabled={false}
+              onClick={[Function]}
+              priority="primary"
+              role="button"
+              type="submit"
+            >
+              <button
+                aria-label="Save Changes"
+                className="css-1msljz8-StyledButton-getColors e17811v30"
+                data-test-id="form-submit"
+                disabled={false}
+                onClick={[Function]}
+                priority="primary"
+                role="button"
+                type="submit"
+              >
+                <ButtonLabel>
+                  <Component
+                    className="css-1lzmoq1-ButtonLabel e17811v31"
+                  >
+                    <Flex
+                      align="center"
+                      className="css-1lzmoq1-ButtonLabel e17811v31"
+                    >
+                      <Base
+                        align="center"
+                        className="e17811v31 css-1br8hoo-ButtonLabel"
+                      >
+                        <div
+                          className="e17811v31 css-1br8hoo-ButtonLabel"
+                          is={null}
+                        >
+                          Save Changes
+                        </div>
+                      </Base>
+                    </Flex>
+                  </Component>
+                </ButtonLabel>
+              </button>
+            </Component>
+          </StyledButton>
+        </Button>
+      </Observer>
+    </div>
+  </form>
+</Form>
+`;
