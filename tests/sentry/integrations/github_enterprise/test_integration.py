@@ -17,17 +17,16 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         'url': 'https://35.232.149.196',
         'id': 2,
         'name': 'test-app',
-        'client-id': 'client-id',
-        'client-secret': 'client-secret',
-        'webhook-secret': 'webhook-secret',
-        'private-key': 'private-key'
+        'client_id': 'client_id',
+        'client_secret': 'client_secret',
+        'webhook_secret': 'webhook_secret',
+        'private_key': 'private_key'
     }
 
     @patch('sentry.integrations.github_enterprise.integration.get_jwt', return_value='jwt_token_1')
     def assert_setup_flow(self, get_jwt, installation_id='install_id_1', user_id='user_id_1'):
         responses.reset()
         resp = self.client.get(self.init_path)
-        # /organizations/foo/integrations/github-enterprise/setup/
         assert resp.status_code == 200
         resp = self.client.post(self.init_path, data=self.config)
         assert resp.status_code == 302
@@ -52,7 +51,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         assert params['state']
         assert params['redirect_uri'] == ['http://testserver/extensions/github-enterprise/setup/']
         assert params['response_type'] == ['code']
-        assert params['client_id'] == ['client-id']
+        assert params['client_id'] == ['client_id']
         # once we've asserted on it, switch to a singular values to make life
         # easier
         authorize_params = {k: v[0] for k, v in six.iteritems(params)}
@@ -103,8 +102,8 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         assert req_params['code'] == ['oauth-code']
         assert req_params['redirect_uri'] == [
             'http://testserver/extensions/github-enterprise/setup/']
-        assert req_params['client_id'] == ['client-id']
-        assert req_params['client_secret'] == ['client-secret']
+        assert req_params['client_id'] == ['client_id']
+        assert req_params['client_secret'] == ['client_secret']
 
         assert resp.status_code == 200
 
@@ -127,13 +126,13 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
             'icon': 'https://35.232.149.196/avatar.png',
             'domain_name': '35.232.149.196/Test-Organization',
             'installation': {
-                'client-id': 'client-id',
-                'client-secret': 'client-secret',
+                'client_id': 'client_id',
+                'client_secret': 'client_secret',
                 'id': '2',
                 'name': 'test-app',
-                'private-key': 'private-key',
+                'private_key': 'private_key',
                 'url': '35.232.149.196',
-                'webhook-secret': 'webhook-secret',
+                'webhook_secret': 'webhook_secret',
             }
         }
         oi = OrganizationIntegration.objects.get(
