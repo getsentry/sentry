@@ -110,7 +110,6 @@ const ProjectInstallPlatform = createReactClass({
   },
 
   inInstallExperiment() {
-    return true;
     let {experimentPlatforms} = this.state;
     let currentPlatform = this.state.integration.id;
     let installExperiment =
