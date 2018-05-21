@@ -127,7 +127,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
         identity_pipeline_config = dict(
             oauth_scopes=(),
             redirect_url=absolute_uri('/extensions/github-enterprise/setup/'),
-            urlopen_options={'verify_ssl': False},
+            verify_ssl=False,
             **self.pipeline.fetch_state('oauth_config_information')
         )
 
