@@ -69,6 +69,10 @@ class OrganizationIntegrationSerializer(Serializer):
         }
 
     def serialize(self, obj, attrs, user, organization=None, project=None):
+        # XXX(epurkhiser): This is O(n) for integrations, especially since
+        # we're using the IntegrationConfigSerializer which pulls in the
+        # integration installation config object which very well may be making
+        # API request for config options.
         integration = serialize(obj.integration, user, IntegrationConfigSerializer())
         integration.update({
             'config_data': obj.config,
