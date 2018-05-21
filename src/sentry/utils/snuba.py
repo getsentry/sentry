@@ -203,7 +203,7 @@ def get_related_project_ids(column, ids):
     mappings = {
         'environment': (Environment, 'id', 'project_id'),
         'issue': (Group, 'id', 'project_id'),
-        'sentry:release': (ReleaseProject, 'release_id', 'project_id'),
+        'tags[sentry:release]': (ReleaseProject, 'release_id', 'project_id'),
     }
     if ids:
         if column == "project_id":
