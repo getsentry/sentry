@@ -9,11 +9,11 @@ from six.moves.urllib.parse import urlparse
 from sentry.utils.cache import cache
 from django.utils.encoding import force_bytes
 
+from sentry.integrations.atlassian_connect import get_query_hash
 from sentry.integrations.exceptions import ApiError
 from sentry.integrations.client import ApiClient
 from sentry.utils.http import absolute_uri
 
-from .utils import get_query_hash
 
 JIRA_KEY = '%s.jira' % (urlparse(absolute_uri()).hostname, )
 
