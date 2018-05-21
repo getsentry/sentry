@@ -198,6 +198,7 @@ const ProjectInstallPlatform = createReactClass({
               priority="primary"
               size="large"
               to={`/${orgId}/${projectId}/#welcome`}
+              style={{marginTop: 20}}
             >
               {t('Got it! Take me to the Issue Stream.')}
             </Button>
