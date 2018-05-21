@@ -34,14 +34,15 @@ class IntegrationConfigSerializer(IntegrationSerializer):
 
         try:
             install = obj.get_installation()
-            data.update({
-                'config_organization': install.get_organization_config(),
-                'config_project': install.get_project_config(),
-            })
         except NotImplementedError:
             # The integration may not implement a Installed Integration object
             # representation.
             pass
+        else:
+            data.update({
+                'config_organization': install.get_organization_config(),
+                'config_project': install.get_project_config(),
+            })
 
         return data
 
