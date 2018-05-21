@@ -41,7 +41,7 @@ script:
   - make travis-scan-$TEST_SUITE
 
 before_cache:
-  - find -type f -iname '*.egg-link' -delete
+  - find "${HOME}/virtualenv" -type f -iname '*.egg-link' -print -delete
 
 after_success:
   - pip install codecov
