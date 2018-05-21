@@ -126,7 +126,7 @@ const ProjectChart = createReactClass({
       });
 
     return (
-      <Panel className="m-b-2">
+      <Panel className="chart-wrapper m-b-2">
         <PanelBody disablePadding={false}>
           <BarChart
             points={points}
