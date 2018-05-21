@@ -179,8 +179,8 @@ class OAuth2CallbackView(PipelineView):
             code=code,
             redirect_uri=absolute_uri(pipeline.redirect_url()),
         )
-        urlopen_config_options = pipeline.config['urlopen_config_options']
-        req = safe_urlopen(self.access_token_url, data=data, **urlopen_config_options)
+        urlopen_options = pipeline.config['urlopen_options']
+        req = safe_urlopen(self.access_token_url, data=data, **urlopen_options)
         body = safe_urlread(req)
         if req.headers['Content-Type'].startswith('application/x-www-form-urlencoded'):
             return dict(parse_qsl(body))
