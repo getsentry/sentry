@@ -58,6 +58,24 @@ class ProjectKeyCredentials extends React.Component {
           </Field>
         )}
 
+        {showDsn && (
+          <Field
+            label={t('DSN (Deprecated)')}
+            help={t(
+              'This DSN includes the secret which is no longer required by Sentry or newer versions of SDKs.'
+            )}
+            inline={false}
+            flexibleControlStateSize
+          >
+            <TextCopyInput>
+              {getDynamicText({
+                value: data.dsn.secret,
+                fixed: '__DSN_DEPRECATED__',
+              })}
+            </TextCopyInput>
+          </Field>
+        )}
+
         {showSecurityEndpoint && (
           <Field
             label={t('Security Header Endpoint')}
@@ -96,22 +114,6 @@ class ProjectKeyCredentials extends React.Component {
               {getDynamicText({
                 value: data.dsn.minidump,
                 fixed: '__MINIDUMP_ENDPOINT__',
-              })}
-            </TextCopyInput>
-          </Field>
-        )}
-
-        {showDsn && (
-          <Field
-            label={t('DSN (Legacy)')}
-            help={t('Use this DSN with server-side SDKs in older versions of Sentry.')}
-            inline={false}
-            flexibleControlStateSize
-          >
-            <TextCopyInput>
-              {getDynamicText({
-                value: data.dsn.secret,
-                fixed: '__DSN_LEGACY__',
               })}
             </TextCopyInput>
           </Field>
