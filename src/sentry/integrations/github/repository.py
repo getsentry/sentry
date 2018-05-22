@@ -12,7 +12,7 @@ from uuid import uuid4
 WEBHOOK_EVENTS = ['push', 'pull_request']
 
 
-class GitHubRepositoryProvider(providers.RepositoryProvider):
+class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
     name = 'GitHub Apps'
     auth_provider = 'github'
     logger = logging.getLogger('sentry.plugins.github')
@@ -28,6 +28,7 @@ class GitHubRepositoryProvider(providers.RepositoryProvider):
                 'label': 'Github Installation',
                 'type': 'choice',
                 'choices': choices,
+                'initial': choices[0][0],
                 'placeholder': 'i dk yet',
                 'help': 'Enter your repository name, including the owner.',
                 'required': True,
@@ -50,8 +51,9 @@ class GitHubRepositoryProvider(providers.RepositoryProvider):
         return config
         ```
         """
-        if config.get('name'):
-            client = self.get_client(actor)
+        if config.get('name') and config.get('installation'):
+            # this doesn't work yet, need github client
+            client = self.get_client()
             try:
                 repo = client.get_repo(config['name'])
             except Exception as e:

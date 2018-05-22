@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from django.core.urlresolvers import reverse
 from django.db import IntegrityError, transaction
 from rest_framework.response import Response
 
@@ -12,25 +11,25 @@ from sentry.plugins.config import ConfigValidator
 from .base import ProviderMixin
 
 
-class RepositoryProvider(ProviderMixin):
+class IntegrationRepositoryProvider(ProviderMixin):
     name = None
 
     def __init__(self, id):
         self.id = id
 
     def dispatch(self, request, organization, **kwargs):
-        if self.needs_auth(request.user):
-            # TODO(dcramer): this should be a 401
-            return Response(
-                {
-                    'error_type': 'auth',
-                    'auth_url': reverse('socialauth_associate', args=[self.auth_provider]),
-                },
-                status=400
-            )
+        # if self.needs_auth(request.user):
+        #     # TODO(dcramer): this should be a 401
+        #     return Response(
+        #         {
+        #             'error_type': 'auth',
+        #             'auth_url': reverse('socialauth_associate', args=[self.auth_provider]),
+        #         },
+        #         status=400
+        #     )
 
         try:
-            fields = self.get_config()
+            fields = self.get_config(organization)
         except Exception as e:
             return self.handle_api_error(e)
 
@@ -97,7 +96,7 @@ class RepositoryProvider(ProviderMixin):
 
         return Response(serialize(repo, request.user), status=201)
 
-    def get_config(self):
+    def get_config(self, organization):
         raise NotImplementedError
 
     def validate_config(self, organization, config, actor=None):

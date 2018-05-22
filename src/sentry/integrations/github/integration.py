@@ -107,7 +107,10 @@ class GitHubIntegrationProvider(IntegrationProvider):
 
     def setup(self):
         from sentry.plugins import bindings
-        bindings.add('repository.provider', GitHubRepositoryProvider, id='integrations:github')
+        bindings.add(
+            'integration-repository.provider',
+            GitHubRepositoryProvider,
+            id='integrations:github')
 
 
 class GitHubInstallationRedirect(PipelineView):
