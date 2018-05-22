@@ -105,7 +105,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
           >
              
             <span
-              className="icon-checkmark"
+              className="icon-checkmark hidden-xs"
               style={
                 Object {
                   "marginRight": 5,
@@ -545,7 +545,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
           onClick={[Function]}
         >
           <span
-            className="icon-checkmark"
+            className="icon-checkmark hidden-xs"
             style={
               Object {
                 "marginRight": 5,

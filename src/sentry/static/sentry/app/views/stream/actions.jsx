@@ -352,7 +352,7 @@ const StreamActions = createReactClass({
             </div>
             <div className="btn-group hidden-xs">
               <ActionLink
-                className={'btn btn-default btn-sm action-bookmark'}
+                className={'btn btn-default btn-sm action-bookmark hidden-sm hidden-xs'}
                 onAction={() => this.onUpdate({isBookmarked: true})}
                 shouldConfirm={this.shouldConfirm('bookmark')}
                 message={confirm('bookmark', false)}
@@ -368,9 +368,37 @@ const StreamActions = createReactClass({
                 key="actions"
                 btnGroup={true}
                 caret={false}
-                className="btn btn-sm btn-default hidden-xs action-more"
+                className="btn btn-sm btn-default action-more"
                 title={<span className="icon-ellipsis" />}
               >
+                <MenuItem noAnchor={true}>
+                  <ActionLink
+                    className={'action-merge hidden-md hidden-lg hidden-xl'}
+                    disabled={!multiSelected}
+                    onAction={this.onMerge}
+                    shouldConfirm={this.shouldConfirm('merge')}
+                    message={confirm('merge', false)}
+                    confirmLabel={label('merge')}
+                    title={t('Merge Selected Issues')}
+                  >
+                    {t('Merge')}
+                  </ActionLink>
+                </MenuItem>
+                <MenuItem divider={true} className={'hidden-md hidden-lg hidden-xl'} />
+                <MenuItem noAnchor={true}>
+                  <ActionLink
+                    className={'action-bookmark hidden-md hidden-lg hidden-xl'}
+                    disabled={!anySelected}
+                    onAction={() => this.onUpdate({isBookmarked: true})}
+                    shouldConfirm={this.shouldConfirm('bookmark')}
+                    message={confirm('bookmark', false)}
+                    confirmLabel={label('bookmark')}
+                    title={t('Add to Bookmarks')}
+                  >
+                    {t('Add to Bookmarks')}
+                  </ActionLink>
+                  <MenuItem divider={true} className={'hidden-md hidden-lg hidden-xl'} />
+                </MenuItem>
                 <MenuItem noAnchor={true}>
                   <ActionLink
                     className="action-remove-bookmark"

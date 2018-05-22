@@ -256,7 +256,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
           >
              
             <span
-              className="icon-ban"
+              className="icon-ban hidden-xs"
               style={
                 Object {
                   "marginRight": 5,
@@ -5290,7 +5290,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
           onClick={[Function]}
         >
           <span
-            className="icon-ban"
+            className="icon-ban hidden-xs"
             style={
               Object {
                 "marginRight": 5,
