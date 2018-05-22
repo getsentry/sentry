@@ -19,7 +19,6 @@ class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
         for provider in integrations.all():
             metadata = provider.metadata
             metadata = metadata and metadata._asdict() or None
-
             if not has_catchall and provider.key in settings.SENTRY_INTERNAL_INTEGRATIONS:
                 continue
             providers.append(

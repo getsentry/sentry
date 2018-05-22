@@ -14,10 +14,10 @@ class PipelineStep(PipelineView):
 
 class DummyProvider(PipelineProvider):
     key = 'dummy'
-    pipeline = [PipelineStep(), PipelineStep()]
+    pipeline_views = [PipelineStep(), PipelineStep()]
 
     def get_pipeline_views(self):
-        return self.pipeline
+        return self.pipeline_views
 
 
 class DummyPipeline(Pipeline):
@@ -78,11 +78,11 @@ class PipelineTestCase(TestCase):
 
         # Mutate the provider, Remove an item from the pipeline, thus
         # invalidating the pipeline.
-        prev_pipeline = DummyProvider.pipeline
-        DummyProvider.pipeline = [PipelineStep()]
+        prev_pipeline_views = DummyProvider.pipeline_views
+        DummyProvider.pipeline_views = [PipelineStep()]
 
         pipeline = DummyPipeline.get_for_request(request)
 
         assert not pipeline.is_valid()
 
-        DummyProvider.pipeline = prev_pipeline
+        DummyProvider.pipeline_views = prev_pipeline_views
