@@ -15,12 +15,20 @@ class OrganizationConfigRepositoriesEndpoint(OrganizationEndpoint):
         for provider_id in provider_bindings:
             provider = provider_bindings.get(provider_id)(id=provider_id)
             # TODO(jess): figure out better way to exclude this
-            if provider_id != 'github_apps':
+            if provider_id != 'github_apps' and provider_id != 'integrations:github':
                 providers.append(
                     {
                         'id': provider_id,
                         'name': provider.name,
                         'config': provider.get_config(),
+                    }
+                )
+            if provider_id == 'integrations:github':
+                providers.append(
+                    {
+                        'id': provider_id,
+                        'name': provider.name,
+                        'config': provider.get_config(organization=organization),
                     }
                 )
 

@@ -30,7 +30,7 @@ class RepositoryProvider(ProviderMixin):
             )
 
         try:
-            fields = self.get_config()
+            fields = self.get_config(organization)
         except Exception as e:
             return self.handle_api_error(e)
 
