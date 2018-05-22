@@ -103,6 +103,7 @@ class JiraIntegrationTest(APITestCase):
                 'label': 'Issue Type'
             }]
 
+
 class JiraSearchEndpointTest(APITestCase):
     def test_simple(self):
         org = self.organization
@@ -128,4 +129,3 @@ class JiraSearchEndpointTest(APITestCase):
                 )
             }
         ]
-
