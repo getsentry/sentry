@@ -70,7 +70,7 @@ class ProjectKeyCredentials extends React.Component {
             <TextCopyInput>
               {getDynamicText({
                 value: data.dsn.secret,
-                fixed: '__DSN_DEPRECATED__',,
+                fixed: '__DSN_DEPRECATED__',
               })}
             </TextCopyInput>
           </Field>
