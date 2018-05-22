@@ -161,33 +161,25 @@ class BasicResolvingIntegrationTest(TestCase):
             }
         }
 
+        # We do a preflight post, because there are many queries polluting the array
+        # before the actual "processing" happens (like, auth_user)
+        self._postWithHeader(event_data)
         with self.assertWriteQueries({
             'nodestore_node': 2,
-            'sentry_environment': 1,
             'sentry_environmentproject': 1,
             'sentry_eventtag': 1,
             'sentry_eventuser': 1,
-            'sentry_featureadoption': 2,
-            'sentry_filterkey': 7,
-            'sentry_filtervalue': 14,
+            'sentry_filtervalue': 7,
             'sentry_groupedmessage': 1,
-            'sentry_groupemailthread': 1,
-            'sentry_groupenvironment': 1,
-            'sentry_grouphash': 2,
-            'sentry_grouprulestatus': 2,
-            'sentry_grouptagkey': 14,
             'sentry_message': 1,
-            'sentry_messagefiltervalue': 14,
-            'sentry_organizationonboardingtask': 2,
-            'sentry_project': 1,
-            'sentry_projectcounter': 2,
+            'sentry_messagefiltervalue': 7,
             'sentry_userreport': 1
         }):
             resp = self._postWithHeader(event_data)
 
         assert resp.status_code == 200
 
-        event = Event.objects.get()
+        event = Event.objects.first()
 
         bt = event.interfaces['sentry.interfaces.Exception'].values[0].stacktrace
         frames = bt.frames

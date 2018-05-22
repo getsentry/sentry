@@ -341,6 +341,7 @@ class _AssertQueriesContext(CaptureQueriesContext):
 
         if (self.debug):
             import pprint
+            pprint.pprint("====================== Raw Queries ======================")
             pprint.pprint(self.captured_queries)
             pprint.pprint("====================== Table writes ======================")
             pprint.pprint(parsed_queries)
@@ -350,6 +351,14 @@ class _AssertQueriesContext(CaptureQueriesContext):
             self.test_case.assertTrue(
                 num == expected, "%d write queries expected on `%s`, got %d, add debug=True to see all the queries" % (
                     expected, table, num
+                )
+            )
+
+        for table, num in self.queries.items():
+            executed = parsed_queries.get(table, None)
+            self.test_case.assertFalse(
+                executed is None, "no query against %s emitted, add debug=True to see all the queries" % (
+                    table
                 )
             )
 

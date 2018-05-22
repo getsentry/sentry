@@ -43,44 +43,24 @@ class JavascriptIntegrationTest(TestCase):
             }
         }
 
+        # We do a preflight post, because there are many queries polluting the array
+        # before the actual "processing" happens (like, auth_user)
+        self._postWithHeader(data)
         with self.assertWriteQueries({
-            'auth_user': 1,
             'nodestore_node': 2,
-            'sentry_email': 1,
-            'sentry_environment': 1,
             'sentry_environmentproject': 1,
             'sentry_eventtag': 1,
             'sentry_eventuser': 1,
-            'sentry_featureadoption': 2,
-            'sentry_filterkey': 6,
-            'sentry_filtervalue': 12,
+            'sentry_filtervalue': 6,
             'sentry_groupedmessage': 1,
-            'sentry_groupemailthread': 1,
-            'sentry_groupenvironment': 1,
-            'sentry_grouphash': 2,
-            'sentry_grouprulestatus': 2,
-            'sentry_grouptagkey': 12,
             'sentry_message': 1,
-            'sentry_messagefiltervalue': 12,
-            'sentry_organization': 1,
-            'sentry_organizationmember': 1,
-            'sentry_organizationmember_teams': 1,
-            'sentry_organizationonboardingtask': 2,
-            'sentry_project': 2,
-            'sentry_projectcounter': 2,
-            'sentry_projectkey': 1,
-            'sentry_projectoptions': 4,
-            'sentry_projectteam': 1,
-            'sentry_rule': 1,
-            'sentry_savedsearch': 5,
-            'sentry_team': 1,
-            'sentry_useremail': 2,
-            'sentry_userreport': 1,
+            'sentry_messagefiltervalue': 6,
+            'sentry_userreport': 1
         }, debug=True):  # debug=True is for coverage
             resp = self._postWithHeader(data)
         assert resp.status_code, 200
 
-        event = Event.objects.get()
+        event = Event.objects.first()
         contexts = event.interfaces['contexts'].to_json()
         assert contexts.get('os') == {
             'name': 'Windows 8',
