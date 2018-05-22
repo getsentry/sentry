@@ -59,7 +59,7 @@ class OAuth2Provider(Provider):
         if model and model.config.get(parameter_name) is not None:
             return model.config.get(parameter_name)
 
-        raise KeyError
+        raise KeyError(u'Unable to resolve OAuth parameter "{}"'.format(parameter_name))
 
     def get_oauth_access_token_url(self):
         return self._get_oauth_parameter('access_token_url')
@@ -78,12 +78,12 @@ class OAuth2Provider(Provider):
 
     def get_pipeline_views(self):
         return [
-            lambda: OAuth2LoginView(
+            OAuth2LoginView(
                 authorize_url=self.get_oauth_authorize_url(),
                 client_id=self.get_oauth_client_id(),
                 scope=' '.join(self.get_oauth_scopes()),
             ),
-            lambda: OAuth2CallbackView(
+            OAuth2CallbackView(
                 access_token_url=self.get_oauth_access_token_url(),
                 client_id=self.get_oauth_client_id(),
                 client_secret=self.get_oauth_client_secret(),
