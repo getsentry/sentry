@@ -185,7 +185,7 @@ def get_snuba_map(column, ids):
     """
     mappings = {
         'environment': (Environment, 'name'),
-        'sentry:release': (Release, 'version'),
+        'tags[sentry:release]': (Release, 'version'),
     }
     if column in mappings and ids:
         model, field = mappings[column]
@@ -219,7 +219,7 @@ def get_related_project_ids(column, ids):
     mappings = {
         'environment': (Environment, 'id', 'project_id'),
         'issue': (Group, 'id', 'project_id'),
-        'sentry:release': (ReleaseProject, 'release_id', 'project_id'),
+        'tags[sentry:release]': (ReleaseProject, 'release_id', 'project_id'),
     }
     if ids:
         if column == "project_id":
