@@ -168,7 +168,7 @@ const KeyRow = createReactClass({
         </PanelHeader>
 
         <ClippedBox
-          clipHeight={150}
+          clipHeight={300}
           defaultClipped={true}
           btnClassName="btn btn-default btn-sm"
           btnText={t('Expand')}
