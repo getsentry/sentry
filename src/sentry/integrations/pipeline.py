@@ -91,6 +91,9 @@ class IntegrationPipeline(Pipeline):
                 },
             )
 
+        if 'has_callback' in data:
+            self.provider.finish_integration(data, integration)
+
         return self._dialog_response(serialize(integration, self.request.user), True)
 
     def _dialog_response(self, data, success):
