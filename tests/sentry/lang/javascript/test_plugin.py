@@ -2,10 +2,12 @@
 
 from __future__ import absolute_import
 
-import responses
+import pytest
 import os.path
+import responses
 
 from mock import patch
+from django.conf import settings
 
 from sentry.models import Event, File, Release, ReleaseFile
 from sentry.testutils import TestCase
@@ -27,6 +29,10 @@ def load_fixture(name):
 
 
 class JavascriptIntegrationTest(TestCase):
+    @pytest.mark.skipif(
+        settings.SENTRY_TAGSTORE == 'sentry.tagstore.v2.V2TagStorage',
+        reason='Queries are completly different when using tagstore'
+    )
     def test_adds_contexts_without_device(self):
         data = {
             'message': 'hello',
