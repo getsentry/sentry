@@ -21,23 +21,20 @@ if __name__ == '__main__':
     parser.add_argument(
         'filea',
         metavar='A',
-        nargs=1,
         type=argparse.FileType('r', encoding='UTF-8'),
         help='Path to report file to compare B to.',
     )
     parser.add_argument(
         'fileb',
         metavar='B',
-        nargs=1,
-        type=argparse.FileType('w', encoding='UTF-8'),
+        type=argparse.FileType('r', encoding='UTF-8'),
         help='Path to report file to compare with A.',
     )
     parser.add_argument('-s', '--sensitivity', type=float, help='sensitivity threshold in seconds (float)', default=0.1)
     args = parser.parse_args()
 
     with args.filea as filea, args.fileb as fileb:
-        a = json.load(a)
-        b = json.load(b)
+        a, b = json.load(filea), json.load(fileb)
 
     added, faster, slower = dict(), dict(), dict()
 
