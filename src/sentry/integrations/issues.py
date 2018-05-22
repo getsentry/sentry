@@ -61,3 +61,21 @@ class IssueSyncMixin(object):
                 'type': 'string',
             }
         ]
+
+    def create_issue(self, data, **kwargs):
+        """
+        Create an issue via the provider's API and return the issue key,
+        title and description.
+
+        Should also handle API client exceptions and reraise as an
+        IntegrationError (using the `message_from_error` helper).
+
+        >>> def create_issue(self, data, **kwargs):
+        >>>     resp = self.get_client().create_issue(data)
+        >>>     return {
+        >>>         'key': resp['id'],
+        >>>         'title': resp['title'],
+        >>>         'description': resp['description'],
+        >>>     }
+        """
+        raise NotImplementedError
