@@ -468,6 +468,7 @@ window.TestStubs = {
       key: 'github',
       name: 'GitHub',
       canAdd: true,
+      canAddProject: false,
       config: [],
       setupDialog: {
         url: '/github-integration-setup-uri/',
@@ -493,7 +494,7 @@ window.TestStubs = {
 
   GitHubIntegration: params => {
     return {
-      domain_name: 'gtithub.com/test-integration',
+      domainName: 'gtithub.com/test-integration',
       icon: 'http://example.com/integration_icon.png',
       id: '1',
       name: 'Test Integration',
@@ -501,6 +502,10 @@ window.TestStubs = {
         name: 'GitHub',
         key: 'github',
       },
+      configOrganization: [],
+      configProject: [],
+      configData: {},
+      configDataProjects: {},
       ...params,
     };
   },
