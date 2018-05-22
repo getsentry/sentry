@@ -27,6 +27,8 @@ def parse_queries(captured_queries):
                     table_name = parsed[0].get_real_name()
                     if parsed[0].get_real_name() == "*":  # DELETE * FROM ...
                         table_name = parsed[0].get_name()
+                    # there is ` in mysql queries
+                    table_name = table_name.replace('`', '')
                     if real_queries.get(table_name) is None:
                         real_queries[table_name] = 0
                     real_queries[table_name] += 1
