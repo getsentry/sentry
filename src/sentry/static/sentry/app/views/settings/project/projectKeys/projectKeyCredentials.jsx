@@ -47,9 +47,20 @@ class ProjectKeyCredentials extends React.Component {
 
     return (
       <React.Fragment>
+        {showDsnPublic && (
+          <Field label={t('DSN')} inline={false} flexibleControlStateSize>
+            <TextCopyInput>
+              {getDynamicText({
+                value: data.dsn.public,
+                fixed: '__DSN__',
+              })}
+            </TextCopyInput>
+          </Field>
+        )}
+
         {showDsn && (
           <Field
-            label={t('DSN (Legacy)')}
+            label={t('DSN (Deprecated)')}
             help={t(
               'This DSN includes the secret which is no longer required by Sentry or newer versions of SDKs.'
             )}
@@ -63,17 +74,6 @@ class ProjectKeyCredentials extends React.Component {
                   new RegExp(`\/${projectId}$`),
                   '/<<projectId>>'
                 ),
-              })}
-            </TextCopyInput>
-          </Field>
-        )}
-
-        {showDsnPublic && (
-          <Field label={t('DSN')} inline={false} flexibleControlStateSize>
-            <TextCopyInput>
-              {getDynamicText({
-                value: data.dsn.public,
-                fixed: '__DSN__',
               })}
             </TextCopyInput>
           </Field>
