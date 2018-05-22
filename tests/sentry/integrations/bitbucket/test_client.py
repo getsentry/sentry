@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
 import responses
+
+from mock import Mock
 from .test_client_utils import COMPARE_COMMITS_EXAMPLE, COMMIT_DIFF_PATCH
 
 from sentry.testutils import APITestCase
@@ -71,3 +73,34 @@ class TestBitbucketClient(APITestCase):
                 'patch_set': [{'path': u'README.md', 'type': 'M'}]
             }
         ]
+
+
+class TestRealBitbucketClient(APITestCase):
+    def setUp(self):
+        self.integration = Mock()
+        self.integration.name = 'laurynsentry'
+        self.integration.metadata = {
+            u'public_key': u'MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCBFq+6Iq5J9AZzTZQfZEba9udHTIJToJnoDvWVHk8jKZIrMrVT1oJoAec84+nBhiO/8neqvbTlD7MeIb5aTDZo8YVhBKmQuEJ5RY56EakoR4x5oILsz/Ki5O4nGWSeTCCG1hj4heVsUi77umkYG5sZyHKNO+P+SwctTH1GEBDwswIDAQAB',
+            u'icon': u'https://bitbucket.org/account/laurynsentry/avatar/32/',
+            u'domain_name': u'bitbucket.org/laurynsentry/',
+            u'shared_secret': u'cygeH67wplcmRkEN5ZiNNUMeCdiEZCtiWp52wA59E8A',
+            u'base_url': u'https://api.bitbucket.org'
+        }
+
+        self.repo_slug = 'helloworld'
+        self.client = BitbucketAPI(
+            self.integration.metadata['base_url'],
+            self.integration.metadata['shared_secret'])
+
+    def test_get_issue(self):
+        issue = self.client.get_issue(
+            username=self.integration.name,
+            repo_slug=self.repo_slug,
+            issue_id='#1'
+        )
+        assert issue['values'][0]['type']
+        assert issue['values'][0]['id']
+        assert issue['values'][0]['repository']['name'] == 'HelloWorld'
+
+    def test_create_issue(self):
+        pass

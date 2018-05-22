@@ -17,12 +17,20 @@ metadata = IntegrationMetadata(
     source_url='https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/bitbucket',
     aspects={},
 )
+scopes = (
+    'account',
+    'issue:write',
+    'repository',
+    'team',
+    'webhook',
+)
 
 
 class BitbucketIntegrationProvider(IntegrationProvider):
     key = 'bitbucket'
     name = 'Bitbucket'
     metadata = metadata
+    scopes = scopes
 
     def get_pipeline_views(self):
         identity_pipeline_config = {
@@ -50,6 +58,7 @@ class BitbucketIntegrationProvider(IntegrationProvider):
                     'base_url': state['baseApiUrl'],
                     'domain_name': principal_data['links']['html']['href'].replace('https://', ''),
                     'icon': principal_data['links']['avatar']['href'],
+                    'scopes': self.scopes
                 },
             }
         return {

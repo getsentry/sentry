@@ -1,4 +1,7 @@
 from __future__ import absolute_import
+
+from collections import OrderedDict
+
 # TODO(LB): Just copy and paste is very likely wrong!
 
 PUSH_EVENT_EXAMPLE = b"""{
@@ -272,3 +275,83 @@ index 89821ce..9e09a8a 100644
 \ No newline at end of file
 +A twitter bot to when words are said by the NYT for the first time.sdfsdf
 \ No newline at end of file"""
+
+# -----------------
+# Get an issue
+GET_ISSUE = {
+    u'pagelen': 20,
+    u'values': [OrderedDict([
+        (u'priority', u'major'),
+        (u'kind', u'bug'),
+        (u'repository', OrderedDict([
+            (u'links', OrderedDict([
+                (u'self', OrderedDict(
+                    [(u'href', u'https://api.bitbucket.org/2.0/repositories/laurynsentry/helloworld')])),
+                (u'html', OrderedDict(
+                    [(u'href', u'https://bitbucket.org/laurynsentry/helloworld')])),
+                (u'avatar', OrderedDict([(u'href', u'https://bitbucket.org/laurynsentry/helloworld/avatar/32/')]))])
+             ),
+            (u'type', u'repository'),
+            (u'name', u'HelloWorld'),
+            (u'full_name', u'laurynsentry/helloworld'),
+            (u'uuid', u'{2a47ac11-098a-4054-8496-193754cae14b}')])
+         ),
+        (u'links', OrderedDict([
+            (u'attachments', OrderedDict(
+                [(u'href', u'https://api.bitbucket.org/2.0/repositories/laurynsentry/helloworld/issues/1/attachments')])),
+            (u'self', OrderedDict(
+                [(u'href', u'https://api.bitbucket.org/2.0/repositories/laurynsentry/helloworld/issues/1')])),
+            (u'watch', OrderedDict(
+                [(u'href', u'https://api.bitbucket.org/2.0/repositories/laurynsentry/helloworld/issues/1/watch')])),
+            (u'comments', OrderedDict(
+                [(u'href', u'https://api.bitbucket.org/2.0/repositories/laurynsentry/helloworld/issues/1/comments')])),
+            (u'html', OrderedDict(
+                [(u'href', u'https://bitbucket.org/laurynsentry/helloworld/issues/1/hello-world-issue')])),
+            (u'vote', OrderedDict([(u'href', u'https://api.bitbucket.org/2.0/repositories/laurynsentry/helloworld/issues/1/vote')]))])
+         ),
+        (u'reporter', OrderedDict([
+            (u'username', u'laurynsentry'),
+            (u'display_name', u'Lauryn Brown'),
+            (u'type', u'user'),
+            (u'uuid', u'{e50a27fe-0686-4d75-ba44-d27608bbb718}'),
+            (u'links', OrderedDict([(u'self', OrderedDict([(u'href', u'https://api.bitbucket.org/2.0/users/laurynsentry')])),
+                                    (u'html', OrderedDict(
+                                        [(u'href', u'https://bitbucket.org/laurynsentry/')])),
+                                    (u'avatar', OrderedDict([(u'href', u'https://bitbucket.org/account/laurynsentry/avatar/32/')]))]))])
+         ),
+        (u'title', u'Hello World Issue'),
+        (u'component', None),
+        (u'votes', 0),
+        (u'watches', 1),
+        (u'content', OrderedDict(
+            [(u'raw', u''), (u'markup', u'markdown'), (u'html', u''), (u'type', u'rendered')])),
+        (u'assignee',
+         OrderedDict([(u'username',
+                       u'laurynsentry'),
+                      (u'display_name',
+                       u'Lauryn Brown'),
+                      (u'type',
+                       u'user'),
+                      (u'uuid',
+                       u'{e50a27fe-0686-4d75-ba44-d27608bbb718}'),
+                      (u'links',
+                       OrderedDict([(u'self',
+                                     OrderedDict([(u'href',
+                                                   u'https://api.bitbucket.org/2.0/users/laurynsentry')])),
+                                    (u'html',
+                                     OrderedDict([(u'href',
+                                                   u'https://bitbucket.org/laurynsentry/')])),
+                                    (u'avatar',
+                                     OrderedDict([(u'href',
+                                                   u'https://bitbucket.org/account/laurynsentry/avatar/32/')]))]))])),
+        (u'state', u'new'),
+        (u'version', None),
+        (u'edited_on', None),
+        (u'created_on', u'2018-05-21T21:34:53.339059+00:00'),
+        (u'milestone', None),
+        (u'updated_on', u'2018-05-21T21:34:53.339059+00:00'),
+        (u'type', u'issue'),
+        (u'id', 1)])],
+    u'page': 1,
+    u'size': 1
+}

@@ -34,10 +34,12 @@ class BitbucketAPIPath(object):
 
 class BitbucketAPI(ApiClient):
 
-    def __init__(self, base_url, shared_secret):
+    def __init__(self, base_url, shared_secret, subject):
+        # subject is probably the clientKey
         super(BitbucketAPI, self).__init__(verify_ssl=False)
         self.base_url = base_url
         self.shared_secret = shared_secret
+        self.subject = subject
 
     # TODO(LB): do has_auth and bind_auth belong here?
 
@@ -47,13 +49,14 @@ class BitbucketAPI(ApiClient):
             'iat': datetime.datetime.utcnow(),
             'exp': datetime.datetime.utcnow() + datetime.timedelta(seconds=5 * 60),
             'qsh': get_query_hash(path, method.upper(), params),
+            'sub': self.subject,
         }
         encoded_jwt = jwt.encode(jwt_payload, self.shared_secret)
-        params = dict(
-            jwt=encoded_jwt,
-            **(params or {})
-        )
-        return self._request(method, path, data=data, params=params, **kwargs)
+        params = dict(**(params or {}))
+        headers = {
+            'Authorization': 'JWT %s' % encoded_jwt
+        }
+        return self._request(method, path, data=data, params=params, headers=headers, **kwargs)
 
     def get_issue(self, username, repo_slug, issue_id):
         return self.get(BitbucketAPIPath.issue.format(
@@ -63,7 +66,7 @@ class BitbucketAPI(ApiClient):
         ))
 
     def create_issue(self, username, repo_slug, data):
-        return self.put(
+        return self.post(
             path=BitbucketAPIPath.issues.format(
                 username=username,
                 repo_slug=repo_slug,
@@ -72,15 +75,20 @@ class BitbucketAPI(ApiClient):
         )
 
     def search_issues(self, username, repo_slug, query):
+        # Query filters can be found here:
+        # https://developer.atlassian.com/bitbucket/api/2/reference/meta/filtering#supp-endpoints
         return self.get(
             path=BitbucketAPIPath.issues.format(
                 username=username,
                 repo_slug=repo_slug,
             ),
-            params={'search': query},
+            params={'q': query},
         )
 
     def create_comment(self, username, repo_slug, issue_id, data):
+        # Call the method as below:
+        # client.create_comment('username', 'repo_slug', '1', {"content": {"raw": "Whatever you're commenting."}})
+        # https://developer.atlassian.com/bitbucket/api/2/reference/resource/repositories/%7Busername%7D/%7Brepo_slug%7D/issues/%7Bissue_id%7D/comments#post
         return self.post(
             path=BitbucketAPIPath.issue_comments.format(
                 username=username,
@@ -95,6 +103,8 @@ class BitbucketAPI(ApiClient):
             username=username,
             repo_slug=repo_slug,
         ))
+# ----------------------------------------------------------------
+# Still in the process of checking these below
 
     def create_hook(self, username, repo_slug, data):
         return self.post(

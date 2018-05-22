@@ -39,7 +39,7 @@ def get_query_hash(uri, method, query_params=None):
     return hashlib.sha256(query_string.encode('utf8')).hexdigest()
 
 
-def get_integration_from_request(request):
+def get_integration_from_request(request, provider):
     # https://developer.atlassian.com/static/connect/docs/latest/concepts/authentication.html
     # Extract the JWT token from the request's jwt query
     # parameter or the authorization header.
@@ -57,7 +57,7 @@ def get_integration_from_request(request):
     # by the add-on during the installation handshake
     try:
         integration = Integration.objects.get(
-            provider='jira',
+            provider=provider,
             external_id=issuer,
         )
     except Integration.DoesNotExist:
@@ -73,3 +73,6 @@ def get_integration_from_request(request):
         raise AtlassianConnectValidationError('Query hash mismatch')
 
     return integration
+
+# def refresh_jwt_token(token):
+#    decoded = jwt.decode(token, verify=False)
