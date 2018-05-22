@@ -198,6 +198,7 @@ const ProjectInstallPlatform = createReactClass({
               priority="primary"
               size="large"
               to={`/${orgId}/${projectId}/#welcome`}
+              style={{marginTop: 20}}
             >
               {t('Got it! Take me to the Issue Stream.')}
             </Button>
@@ -210,6 +211,7 @@ const ProjectInstallPlatform = createReactClass({
   renderTestBody() {
     let {integration, platform} = this.state;
     let {dsnPublic} = this.props.platformData;
+    let {orgId, projectId} = this.props.params;
 
     if (!integration || !platform) {
       return <NotFound />;
@@ -231,6 +233,16 @@ const ProjectInstallPlatform = createReactClass({
             <LoadingError onRetry={this.fetchData} />
           ) : (
             <InstallReactTest dsn={dsnPublic} />
+          )}
+          {this.isGettingStarted() && (
+            <Button
+              priority="primary"
+              size="large"
+              to={`/${orgId}/${projectId}/#welcome`}
+              style={{marginTop: 20}}
+            >
+              {t('Got it! Take me to the Issue Stream.')}
+            </Button>
           )}
         </PanelBody>
       </Panel>
