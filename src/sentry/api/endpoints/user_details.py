@@ -100,7 +100,7 @@ class AdminUserSerializer(BaseUserSerializer):
 
 
 class OrganizationsSerializer(serializers.Serializer):
-    organizations = ListField(child=serializers.CharField(), required=True)
+    organizations = ListField(child=serializers.CharField(required=False), required=True)
 
 
 class UserDetailsEndpoint(UserEndpoint):
