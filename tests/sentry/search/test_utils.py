@@ -404,6 +404,9 @@ class ParseQueryTest(TestCase):
         result = self.parse_query('has:foo')
         assert result['tags']['foo'] == ANY
 
+        result = self.parse_query('has:foo foo:value')
+        assert result['tags']['foo'] == 'value'
+
     def test_has_user(self):
         result = self.parse_query('has:user')
         assert result['tags']['sentry:user'] == ANY
