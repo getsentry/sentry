@@ -312,7 +312,7 @@ class BaseTestCase(Fixtures, Exam):
             microsecond=0) == original_object.date_added.replace(microsecond=0)
         assert deleted_log.date_deleted >= deleted_log.date_created
 
-    def assertMaxWriteQueries(self, queries, debug=False, *args, **kwargs):
+    def assertWriteQueries(self, queries, debug=False, *args, **kwargs):
         func = kwargs.pop('func', None)
         using = kwargs.pop("using", DEFAULT_DB_ALIAS)
         conn = connections[using]
@@ -347,8 +347,8 @@ class _AssertQueriesContext(CaptureQueriesContext):
 
         for table, num in parsed_queries.items():
             expected = self.queries.get(table, 0)
-            self.test_case.assertFalse(
-                num > expected, "%d max write queries expected on `%s`, got %d, add debug=True to see all the queries" % (
+            self.test_case.assertTrue(
+                num == expected, "%d write queries expected on `%s`, got %d, add debug=True to see all the queries" % (
                     expected, table, num
                 )
             )

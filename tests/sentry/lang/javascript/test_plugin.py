@@ -43,7 +43,7 @@ class JavascriptIntegrationTest(TestCase):
             }
         }
 
-        with self.assertMaxWriteQueries({
+        with self.assertWriteQueries({
             'auth_user': 1,
             'nodestore_node': 2,
             'sentry_email': 1,
@@ -76,7 +76,7 @@ class JavascriptIntegrationTest(TestCase):
             'sentry_team': 1,
             'sentry_useremail': 2,
             'sentry_userreport': 1,
-        }):
+        }, debug=True):  # debug=True is for coverage
             resp = self._postWithHeader(data)
         assert resp.status_code, 200
 

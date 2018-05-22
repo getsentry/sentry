@@ -161,7 +161,7 @@ class BasicResolvingIntegrationTest(TestCase):
             }
         }
 
-        with self.assertMaxWriteQueries({
+        with self.assertWriteQueries({
             'nodestore_node': 2,
             'sentry_environment': 1,
             'sentry_environmentproject': 1,
