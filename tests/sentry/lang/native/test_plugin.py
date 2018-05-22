@@ -1349,8 +1349,7 @@ class ExceptionMechanismIntegrationTest(TestCase):
                                 "signal": {
                                     "number": 6,
                                     "code": 0,
-                                    "name": "SIGABRT",
-                                    "code_name": None
+                                    "name": "SIGABRT"
                                 },
                                 "mach_exception": {
                                     "subcode": 0,
@@ -1380,7 +1379,70 @@ class ExceptionMechanismIntegrationTest(TestCase):
         assert mechanism.meta['signal']['number'] == 6
         assert mechanism.meta['signal']['code'] == 0
         assert mechanism.meta['signal']['name'] == 'SIGABRT'
-        assert mechanism.meta['signal']['code_name'] is None
+        assert mechanism.meta['mach_exception']['exception'] == 10
+        assert mechanism.meta['mach_exception']['code'] == 0
+        assert mechanism.meta['mach_exception']['subcode'] == 0
+        assert mechanism.meta['mach_exception']['name'] == 'EXC_CRASH'
+
+    def test_mechanism_name_expansion(self):
+        event_data = {
+            "sentry.interfaces.User": {
+                "ip_address": "31.172.207.97"
+            },
+            "extra": {},
+            "project": self.project.id,
+            "platform": "cocoa",
+            "debug_meta": {
+                "sdk_info": {
+                    "dsym_type": "macho",
+                    "sdk_name": "iOS",
+                    "version_major": 9,
+                    "version_minor": 3,
+                    "version_patchlevel": 0
+                }
+            },
+            "sentry.interfaces.Exception": {
+                "values": [
+                    {
+                        "stacktrace": {
+                            "frames": []
+                        },
+                        "type": "NSRangeException",
+                        "mechanism": {
+                            "type": "mach",
+                            "meta": {
+                                "signal": {
+                                    "number": 10,
+                                    "code": 0
+                                },
+                                "mach_exception": {
+                                    "subcode": 0,
+                                    "code": 0,
+                                    "exception": 10
+                                }
+                            }
+                        },
+                        "value": (
+                            "*** -[__NSArray0 objectAtIndex:]: index 3 "
+                            "beyond bounds for empty NSArray"
+                        )
+                    }
+                ]
+            }
+        }
+
+        resp = self._postWithHeader(event_data)
+        assert resp.status_code == 200
+
+        event = Event.objects.get()
+
+        mechanism = event.interfaces['sentry.interfaces.Exception'].values[0].mechanism
+
+        assert mechanism.type == 'mach'
+        assert mechanism.meta['signal']['number'] == 10
+        assert mechanism.meta['signal']['code'] == 0
+        assert mechanism.meta['signal']['name'] == 'SIGBUS'
+        assert mechanism.meta['signal']['code_name'] == 'BUS_NOOP'
         assert mechanism.meta['mach_exception']['exception'] == 10
         assert mechanism.meta['mach_exception']['code'] == 0
         assert mechanism.meta['mach_exception']['subcode'] == 0
@@ -1414,8 +1476,7 @@ class ExceptionMechanismIntegrationTest(TestCase):
                             "posix_signal": {
                                 "signal": 6,
                                 "code": 0,
-                                "name": "SIGABRT",
-                                "code_name": None
+                                "name": "SIGABRT"
                             },
                             "mach_exception": {
                                 "subcode": 0,
@@ -1445,7 +1506,6 @@ class ExceptionMechanismIntegrationTest(TestCase):
         assert mechanism.meta['signal']['number'] == 6
         assert mechanism.meta['signal']['code'] == 0
         assert mechanism.meta['signal']['name'] == 'SIGABRT'
-        assert mechanism.meta['signal']['code_name'] is None
         assert mechanism.meta['mach_exception']['exception'] == 10
         assert mechanism.meta['mach_exception']['code'] == 0
         assert mechanism.meta['mach_exception']['subcode'] == 0

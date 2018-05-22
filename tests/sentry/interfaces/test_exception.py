@@ -4,7 +4,8 @@ from __future__ import absolute_import
 
 from exam import fixture
 
-from sentry.interfaces.exception import (SingleException, Exception, slim_exception_data)
+from sentry.interfaces.exception import (SingleException, Exception, slim_exception_data,
+                                         Mechanism, upgrade_legacy_mechanism)
 from sentry.testutils import TestCase
 from sentry.stacktraces import normalize_in_app
 
@@ -429,3 +430,130 @@ class SlimExceptionDataTest(TestCase):
                     assert frame.vars is None
                     assert frame.pre_context is None
                     assert frame.post_context is None
+
+
+class MechanismTest(TestCase):
+    def test_empty_mechanism(self):
+        data = {'type': 'generic'}
+        assert Mechanism.to_python(data).to_json() == data
+
+    def test_data(self):
+        data = {
+            'type': 'generic',
+            'data': {'relevant_address': '0x1'},
+        }
+        assert Mechanism.to_python(data).to_json() == data
+
+    def test_min_mach_meta(self):
+        data = {
+            'type': 'generic',
+            'meta': {
+                'mach_exception': {
+                    'exception': 10,
+                    'code': 0,
+                    'subcode': 0,
+                }
+            }
+        }
+        assert Mechanism.to_python(data).to_json() == data
+
+    def test_full_mach_meta(self):
+        data = {
+            'type': 'generic',
+            'meta': {
+                'mach_exception': {
+                    'exception': 10,
+                    'code': 0,
+                    'subcode': 0,
+                    'name': 'EXC_CRASH'
+                }
+            }
+        }
+        assert Mechanism.to_python(data).to_json() == data
+
+    def test_min_signal_meta(self):
+        data = {
+            'type': 'generic',
+            'meta': {
+                'signal': {
+                    'number': 10,
+                    'code': 0,
+                }
+            }
+        }
+        assert Mechanism.to_python(data).to_json() == data
+
+    def test_full_signal_meta(self):
+        data = {
+            'type': 'generic',
+            'meta': {
+                'signal': {
+                    'number': 10,
+                    'code': 0,
+                    'name': 'SIGBUS',
+                    'code_name': 'BUS_NOOP',
+                }
+            }
+        }
+        assert Mechanism.to_python(data).to_json() == data
+
+    def test_min_errno_meta(self):
+        data = {
+            'type': 'generic',
+            'meta': {
+                'errno': {
+                    'number': 2,
+                }
+            }
+        }
+        assert Mechanism.to_python(data).to_json() == data
+
+    def test_full_errno_meta(self):
+        data = {
+            'type': 'generic',
+            'meta': {
+                'errno': {
+                    'number': 2,
+                    'name': 'ENOENT',
+                }
+            }
+        }
+        assert Mechanism.to_python(data).to_json() == data
+
+    def test_upgrade(self):
+        data = {
+            "posix_signal": {
+                "name": "SIGSEGV",
+                "code_name": "SEGV_NOOP",
+                "signal": 11,
+                "code": 0
+            },
+            "relevant_address": "0x1",
+            "mach_exception": {
+                "exception": 1,
+                "exception_name": "EXC_BAD_ACCESS",
+                "subcode": 8,
+                "code": 1
+            }
+        }
+
+        assert upgrade_legacy_mechanism(data) == {
+            "type": "generic",
+            "data": {
+                "relevant_address": "0x1"
+            },
+            "meta": {
+                "mach_exception": {
+                    "exception": 1,
+                    "subcode": 8,
+                    "code": 1,
+                    "name": "EXC_BAD_ACCESS"
+                },
+                "signal": {
+                    "number": 11,
+                    "code": 0,
+                    "name": "SIGSEGV",
+                    "code_name": "SEGV_NOOP"
+                }
+            }
+        }

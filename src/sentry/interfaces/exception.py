@@ -165,7 +165,7 @@ WELL_KNOWN_ERRNO = {
 
         133: 'EHWPOISON',  # Memory page has hardware error
     },
-    'macos': {
+    'darwin': {
         1: 'EPERM',  # Operation not permitted
         2: 'ENOENT',  # No such file or directory
         3: 'ESRCH',  # No such process
@@ -423,7 +423,7 @@ WELL_KNOWN_SIGNALS = {
         30: 'SIGPWR',
         31: 'SIGSYS',
     },
-    'macos': {
+    'darwin': {
         1: 'SIGHUP',  # hangup
         2: 'SIGINT',  # interrupt
         3: 'SIGQUIT',  # quit
@@ -461,7 +461,7 @@ WELL_KNOWN_SIGNALS = {
     },
 }
 
-# Codes for darwin `si_code` (iOS and macOS)
+# Codes for Darwin `si_code`
 WELL_KNOWN_SIGNAL_CODES = {
     # Codes for SIGILL
     4: {
@@ -532,7 +532,7 @@ WELL_KNOWN_SIGNAL_CODES = {
     },
 }
 
-# Mach exception codes used on macOS and iOS.
+# Mach exception codes used in Darwin.
 WELL_KNOWN_MACH_EXCEPTIONS = {
     1: 'EXC_BAD_ACCESS',  # Could not access memory
     2: 'EXC_BAD_INSTRUCTION',  # Instruction failed
@@ -550,28 +550,28 @@ WELL_KNOWN_MACH_EXCEPTIONS = {
 }
 
 
-def normalize_mechanism_errno(errno, sdk_name):
-    if not sdk_name:
+def normalize_mechanism_errno(errno, sdk):
+    if not sdk:
         return
 
     if 'name' not in errno:
-        errnos = WELL_KNOWN_ERRNO.get(sdk_name, {})
+        errnos = WELL_KNOWN_ERRNO.get(sdk, {})
         name = errnos.get(errno['number'])
         if name:
             errno['name'] = name
 
 
-def normalize_mechanism_signal(signal, sdk_name):
-    if sdk_name:
+def normalize_mechanism_signal(signal, sdk):
+    if not sdk:
         return
 
     if 'name' not in signal:
-        signals = WELL_KNOWN_SIGNALS.get(sdk_name, {})
+        signals = WELL_KNOWN_SIGNALS.get(sdk, {})
         name = signals.get(signal['number'])
         if name:
             signal['name'] = name
 
-    if sdk_name != 'macos':
+    if sdk != 'darwin':
         return
 
     if 'code' in signal and 'code_name' not in signal:
@@ -593,13 +593,22 @@ def normalize_mechanism_meta(mechanism, sdk_info=None):
         return
 
     meta = mechanism['meta']
+
     sdk_name = sdk_info['sdk_name'].lower() if sdk_info else ''
+    if sdk_name in ('ios', 'watchos', 'tvos', 'macos'):
+        sdk = 'darwin'
+    elif sdk_name in ('linux', 'android'):
+        sdk = 'linux'
+    elif sdk_name in ('windows',):
+        sdk = 'windows'
+    else:
+        sdk = None
 
     if 'errno' in meta:
-        normalize_mechanism_errno(meta['errno'], sdk_name)
+        normalize_mechanism_errno(meta['errno'], sdk)
 
     if 'signal' in meta:
-        normalize_mechanism_signal(meta['signal'], sdk_name)
+        normalize_mechanism_signal(meta['signal'], sdk)
 
     if 'mach_exception' in meta:
         normalize_mechanism_mach_exception(meta['mach_exception'])
@@ -630,8 +639,7 @@ def upgrade_legacy_mechanism(data):
 
     Example normalization:
     >>> {
-    >>>     "type": "mach",
-    >>>     "description": "TODO",
+    >>>     "type": "generic",
     >>>     "data": {
     >>>         "relevant_address": "0x1"
     >>>     },
@@ -665,21 +673,21 @@ def upgrade_legacy_mechanism(data):
 
     posix_signal = data.pop('posix_signal', None)
     if posix_signal and posix_signal.get('signal'):
-        result.setdefault('meta', {})['signal'] = {
+        result.setdefault('meta', {})['signal'] = prune_empty_keys({
             'number': posix_signal.get('signal'),
             'code': posix_signal.get('code'),
             'name': posix_signal.get('name'),
             'code_name': posix_signal.get('code_name'),
-        }
+        })
 
     mach_exception = data.pop('mach_exception', None)
     if mach_exception:
-        result.setdefault('meta', {})['mach_exception'] = {
+        result.setdefault('meta', {})['mach_exception'] = prune_empty_keys({
             'exception': mach_exception.get('exception'),
             'code': mach_exception.get('code'),
             'subcode': mach_exception.get('subcode'),
             'name': mach_exception.get('exception_name'),
-        }
+        })
 
     # All remaining data has to be moved to the "data" key. We assume that even
     # if someone accidentally sent a corret top-level key (such as "handled"),
