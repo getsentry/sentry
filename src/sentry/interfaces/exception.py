@@ -755,28 +755,28 @@ class Mechanism(Interface):
         meta = data.get('meta', {})
         mach_exception = meta.get('mach_exception')
         if mach_exception is not None:
-            mach_exception = {
+            mach_exception = prune_empty_keys({
                 'exception': mach_exception['exception'],
                 'code': mach_exception['code'],
                 'subcode': mach_exception['subcode'],
-                'name': mach_exception['name'],
-            }
+                'name': mach_exception.get('name'),
+            })
 
         signal = meta.get('signal')
         if signal is not None:
-            signal = {
+            signal = prune_empty_keys({
                 'number': signal['number'],
                 'code': signal.get('code'),
                 'name': signal.get('name'),
                 'code_name': signal.get('code_name'),
-            }
+            })
 
         errno = meta.get('errno')
         if errno is not None:
-            errno = {
+            errno = prune_empty_keys({
                 'number': errno['number'],
                 'name': errno.get('name'),
-            }
+            })
 
         kwargs = {
             'type': trim(data['type'], 128),
