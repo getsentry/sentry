@@ -103,7 +103,7 @@ class BasicResolvingIntegrationTest(TestCase):
                         },
                         "type": "NSRangeException",
                         "mechanism": {
-                            "type": "cocoa",
+                            "type": "mach",
                             "meta": {
                                 "signal": {
                                     "number": 6,
@@ -314,7 +314,7 @@ class BasicResolvingIntegrationTest(TestCase):
                         },
                         "type": "NSRangeException",
                         "mechanism": {
-                            "type": "cocoa",
+                            "type": "mach",
                             "meta": {
                                 "signal": {
                                     "number": 6,
@@ -480,7 +480,7 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
                         },
                         "type": "NSRangeException",
                         "mechanism": {
-                            "type": "cocoa",
+                            "type": "mach",
                             "meta": {
                                 "signal": {
                                     "number": 6,
@@ -676,7 +676,7 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
                         },
                         "type": "NSRangeException",
                         "mechanism": {
-                            "type": "cocoa",
+                            "type": "mach",
                             "meta": {
                                 "signal": {
                                     "number": 6,
@@ -866,10 +866,10 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
                         },
                         "type": "NSRangeException",
                         "mechanism": {
-                            "type": "cocoa",
+                            "type": "mach",
                             "meta": {
                                 "signal": {
-                                    "signal": 6,
+                                    "number": 6,
                                     "code": 0,
                                     "name": "SIGABRT",
                                     "code_name": None
@@ -1003,10 +1003,10 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
                         },
                         "type": "NSRangeException",
                         "mechanism": {
-                            "type": "cocoa",
+                            "type": "mach",
                             "meta": {
                                 "signal": {
-                                    "signal": 6,
+                                    "number": 6,
                                     "code": 0,
                                     "name": "SIGABRT",
                                     "code_name": None
@@ -1344,7 +1344,7 @@ class ExceptionMechanismIntegrationTest(TestCase):
                         },
                         "type": "NSRangeException",
                         "mechanism": {
-                            "type": "cocoa",
+                            "type": "mach",
                             "meta": {
                                 "signal": {
                                     "number": 6,
@@ -1376,7 +1376,7 @@ class ExceptionMechanismIntegrationTest(TestCase):
 
         mechanism = event.interfaces['sentry.interfaces.Exception'].values[0].mechanism
 
-        assert mechanism.type == 'cocoa'
+        assert mechanism.type == 'mach'
         assert mechanism.meta['signal']['number'] == 6
         assert mechanism.meta['signal']['code'] == 0
         assert mechanism.meta['signal']['name'] == 'SIGABRT'

@@ -168,7 +168,7 @@ class Mechanism(Interface):
     >>>              "subcode": 8,
     >>>              "code": 1
     >>>         },
-    >>>         "signal": 11
+    >>>         "signal": {
     >>>             "number": 11
     >>>         }
     >>>     }

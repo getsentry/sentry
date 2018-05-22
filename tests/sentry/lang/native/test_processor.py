@@ -131,10 +131,10 @@ class BasicResolvingFileTest(TestCase):
                         "type":
                         "NSRangeException",
                         "mechanism": {
-                            "type": "cocoa",
+                            "type": "mach",
                             "meta": {
                                 "signal": {
-                                    "signal": 6,
+                                    "number": 6,
                                     "code": 0,
                                     "name": "SIGABRT",
                                     "code_name": None

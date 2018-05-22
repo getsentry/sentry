@@ -677,13 +677,13 @@ def test__get_exception_info():
             {
                 "value": "Attempted to dereference garbage pointer 0x10.",
                 "mechanism": {
-                    "type": "cocoa",
+                    "type": "mach",
                     "data": {
                         "relevant_address": "0x10"
                     },
                     "meta": {
                         "signal": {
-                            "signal": 10,
+                            "number": 10,
                             "code": 0,
                             "name": "SIGBUS",
                             "code_name": "BUS_NOOP"
