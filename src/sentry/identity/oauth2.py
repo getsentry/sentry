@@ -5,6 +5,7 @@ __all__ = ['OAuth2Provider', 'OAuth2CallbackView', 'OAuth2LoginView']
 from six.moves.urllib.parse import parse_qsl, urlencode
 from uuid import uuid4
 from time import time
+from django.views.decorators.csrf import csrf_exempt
 
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.utils import json
@@ -30,11 +31,47 @@ class OAuth2Provider(Provider):
 
     oauth_scopes = ()
 
+    def _get_oauth_parameter(self, parameter_name):
+        """
+        Lookup an OAuth parameter for the provider. Depending on the context of the
+        pipeline using the provider, the parameter may come from 1 of 3 places:
+
+        1. Check the class property of the provider for the parameter.
+
+        2. If the provider has the parameters made available within the ``config``.
+
+        3. If provided, check the pipeline's ``provider_model`` for the oauth parameter
+           in the config field.
+
+        If the parameter cannot be found a KeyError will be raised.
+        """
+        try:
+            prop = getattr(self, u'oauth_{}'.format(parameter_name))
+            if prop is not '':
+                return prop
+        except AttributeError:
+            pass
+
+        if self.config.get(parameter_name):
+            return self.config.get(parameter_name)
+
+        model = self.pipeline.provider_model
+        if model and model.config.get(parameter_name) is not None:
+            return model.config.get(parameter_name)
+
+        raise KeyError(u'Unable to resolve OAuth parameter "{}"'.format(parameter_name))
+
+    def get_oauth_access_token_url(self):
+        return self._get_oauth_parameter('access_token_url')
+
+    def get_oauth_authorize_url(self):
+        return self._get_oauth_parameter('authorize_url')
+
     def get_oauth_client_id(self):
-        raise NotImplementedError
+        return self._get_oauth_parameter('client_id')
 
     def get_oauth_client_secret(self):
-        raise NotImplementedError
+        return self._get_oauth_parameter('client_secret')
 
     def get_oauth_scopes(self):
         return self.config.get('oauth_scopes', self.oauth_scopes)
@@ -42,12 +79,12 @@ class OAuth2Provider(Provider):
     def get_pipeline_views(self):
         return [
             OAuth2LoginView(
-                authorize_url=self.oauth_authorize_url,
+                authorize_url=self.get_oauth_authorize_url(),
                 client_id=self.get_oauth_client_id(),
                 scope=' '.join(self.get_oauth_scopes()),
             ),
             OAuth2CallbackView(
-                access_token_url=self.oauth_access_token_url,
+                access_token_url=self.get_oauth_access_token_url(),
                 client_id=self.get_oauth_client_id(),
                 client_secret=self.get_oauth_client_secret(),
             ),
@@ -95,6 +132,7 @@ class OAuth2LoginView(PipelineView):
             'redirect_uri': redirect_uri,
         }
 
+    @csrf_exempt
     def dispatch(self, request, pipeline):
         if 'code' in request.GET:
             return pipeline.next_step()
@@ -141,7 +179,8 @@ class OAuth2CallbackView(PipelineView):
             code=code,
             redirect_uri=absolute_uri(pipeline.redirect_url()),
         )
-        req = safe_urlopen(self.access_token_url, data=data)
+        verify_ssl = pipeline.config.get('verify_ssl', True)
+        req = safe_urlopen(self.access_token_url, data=data, verify_ssl=verify_ssl)
         body = safe_urlread(req)
         if req.headers['Content-Type'].startswith('application/x-www-form-urlencoded'):
             return dict(parse_qsl(body))

@@ -65,6 +65,7 @@ class IntegrationPipeline(Pipeline):
         # Does this integration provide a user identity for the user setting up
         # the integration?
         identity = data.get('user_identity')
+        identity_config = data.get('identity_config', {})
 
         if identity:
             # Create identity provider for this integration if necessary
@@ -72,7 +73,11 @@ class IntegrationPipeline(Pipeline):
                 external_id=data['external_id'],
                 organization=self.organization,
                 type=identity['type'],
+                defaults={'config': identity_config},
             )
+
+            if created:
+                idp.update(config=identity_config)
 
             identity, created = Identity.objects.get_or_create(
                 idp=idp,
