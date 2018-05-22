@@ -11,7 +11,7 @@ from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry import features, search
+from sentry import analytics, features, search
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.fields import ActorField, Actor
@@ -365,6 +365,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         if results and query not in SAVED_SEARCH_QUERIES:
             advanced_search.send(project=project, sender=request.user)
+            analytics.record('project_issue.searched', user_id=request.user.id,
+                             organization_id=project.organization_id, project_id=project.id,
+                             query=query)
 
         return response
 
