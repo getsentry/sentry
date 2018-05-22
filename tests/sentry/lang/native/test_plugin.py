@@ -106,7 +106,7 @@ class BasicResolvingIntegrationTest(TestCase):
                             "type": "cocoa",
                             "meta": {
                                 "signal": {
-                                    "signal": 6,
+                                    "number": 6,
                                     "code": 0,
                                     "name": "SIGABRT",
                                     "code_name": None
@@ -317,7 +317,7 @@ class BasicResolvingIntegrationTest(TestCase):
                             "type": "cocoa",
                             "meta": {
                                 "signal": {
-                                    "signal": 6,
+                                    "number": 6,
                                     "code": 0,
                                     "name": "SIGABRT",
                                     "code_name": None
@@ -483,7 +483,7 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
                             "type": "cocoa",
                             "meta": {
                                 "signal": {
-                                    "signal": 6,
+                                    "number": 6,
                                     "code": 0,
                                     "name": "SIGABRT",
                                     "code_name": None
@@ -679,7 +679,7 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
                             "type": "cocoa",
                             "meta": {
                                 "signal": {
-                                    "signal": 6,
+                                    "number": 6,
                                     "code": 0,
                                     "name": "SIGABRT",
                                     "code_name": None
@@ -1315,3 +1315,138 @@ class RealResolvingIntegrationTest(TestCase):
         assert frames[0].filename == 'c:\\projects\\breakpad-tools\\windows\\crash\\main.cpp'
         assert frames[0].abs_path == 'c:\\projects\\breakpad-tools\\windows\\crash\\main.cpp'
         assert frames[0].lineno == 35
+
+
+class ExceptionMechanismIntegrationTest(TestCase):
+
+    def test_full_mechanism(self):
+        event_data = {
+            "sentry.interfaces.User": {
+                "ip_address": "31.172.207.97"
+            },
+            "extra": {},
+            "project": self.project.id,
+            "platform": "cocoa",
+            "debug_meta": {
+                "sdk_info": {
+                    "dsym_type": "macho",
+                    "sdk_name": "iOS",
+                    "version_major": 9,
+                    "version_minor": 3,
+                    "version_patchlevel": 0
+                }
+            },
+            "sentry.interfaces.Exception": {
+                "values": [
+                    {
+                        "stacktrace": {
+                            "frames": []
+                        },
+                        "type": "NSRangeException",
+                        "mechanism": {
+                            "type": "cocoa",
+                            "meta": {
+                                "signal": {
+                                    "number": 6,
+                                    "code": 0,
+                                    "name": "SIGABRT",
+                                    "code_name": None
+                                },
+                                "mach_exception": {
+                                    "subcode": 0,
+                                    "code": 0,
+                                    "exception": 10,
+                                    "name": "EXC_CRASH"
+                                }
+                            }
+                        },
+                        "value": (
+                            "*** -[__NSArray0 objectAtIndex:]: index 3 "
+                            "beyond bounds for empty NSArray"
+                        )
+                    }
+                ]
+            }
+        }
+
+        resp = self._postWithHeader(event_data)
+        assert resp.status_code == 200
+
+        event = Event.objects.get()
+
+        mechanism = event.interfaces['sentry.interfaces.Exception'].values[0].mechanism
+
+        assert mechanism.type == 'cocoa'
+        assert mechanism.meta['signal']['number'] == 6
+        assert mechanism.meta['signal']['code'] == 0
+        assert mechanism.meta['signal']['name'] == 'SIGABRT'
+        assert mechanism.meta['signal']['code_name'] is None
+        assert mechanism.meta['mach_exception']['exception'] == 10
+        assert mechanism.meta['mach_exception']['code'] == 0
+        assert mechanism.meta['mach_exception']['subcode'] == 0
+        assert mechanism.meta['mach_exception']['name'] == 'EXC_CRASH'
+
+    def test_legacy_mechanism(self):
+        event_data = {
+            "sentry.interfaces.User": {
+                "ip_address": "31.172.207.97"
+            },
+            "extra": {},
+            "project": self.project.id,
+            "platform": "cocoa",
+            "debug_meta": {
+                "sdk_info": {
+                    "dsym_type": "macho",
+                    "sdk_name": "iOS",
+                    "version_major": 9,
+                    "version_minor": 3,
+                    "version_patchlevel": 0
+                }
+            },
+            "sentry.interfaces.Exception": {
+                "values": [
+                    {
+                        "stacktrace": {
+                            "frames": []
+                        },
+                        "type": "NSRangeException",
+                        "mechanism": {
+                            "posix_signal": {
+                                "signal": 6,
+                                "code": 0,
+                                "name": "SIGABRT",
+                                "code_name": None
+                            },
+                            "mach_exception": {
+                                "subcode": 0,
+                                "code": 0,
+                                "exception": 10,
+                                "exception_name": "EXC_CRASH"
+                            }
+                        },
+                        "value": (
+                            "*** -[__NSArray0 objectAtIndex:]: index 3 "
+                            "beyond bounds for empty NSArray"
+                        )
+                    }
+                ]
+            }
+        }
+
+        resp = self._postWithHeader(event_data)
+        assert resp.status_code == 200
+
+        event = Event.objects.get()
+
+        mechanism = event.interfaces['sentry.interfaces.Exception'].values[0].mechanism
+
+        # NOTE: legacy mechanisms are always classified "generic"
+        assert mechanism.type == 'generic'
+        assert mechanism.meta['signal']['number'] == 6
+        assert mechanism.meta['signal']['code'] == 0
+        assert mechanism.meta['signal']['name'] == 'SIGABRT'
+        assert mechanism.meta['signal']['code_name'] is None
+        assert mechanism.meta['mach_exception']['exception'] == 10
+        assert mechanism.meta['mach_exception']['code'] == 0
+        assert mechanism.meta['mach_exception']['subcode'] == 0
+        assert mechanism.meta['mach_exception']['name'] == 'EXC_CRASH'
