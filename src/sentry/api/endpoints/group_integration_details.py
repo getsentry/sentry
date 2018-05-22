@@ -7,7 +7,8 @@ from rest_framework.response import Response
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.integration import IntegrationIssueConfigSerializer
-from sentry.integrations.base import IntegrationFeatures
+from sentry.integrations import IntegrationFeatures
+from sentry.integrations.exceptions import IntegrationError
 from sentry.models import ExternalIssue, GroupLink, OrganizationIntegration
 
 
@@ -89,4 +90,51 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
 
         # TODO(jess): would be helpful to return serialized external issue
         # once we have description, title, etc
+        return Response(status=201)
+
+    def post(self, request, group, integration_id):
+        organization_id = group.project.organization_id
+        try:
+            # check org permissions
+            # TODO(jess): should this eventually check ProjectIntegration?
+            integration = OrganizationIntegration.objects.filter(
+                integration_id=integration_id,
+                organization_id=organization_id,
+            ).select_related('integration').get().integration
+        except OrganizationIntegration.DoesNotExist:
+            return Response(status=404)
+
+        if not integration.has_feature(IntegrationFeatures.ISSUE_SYNC):
+            return Response(
+                {'detail': 'This feature is not supported for this integration.'}, status=400)
+
+        installation = integration.get_installation()
+        try:
+            data = installation.create_issue(request.DATA)
+        except IntegrationError as exc:
+            return Response({'detail': exc.message}, status=400)
+
+        external_issue = ExternalIssue.objects.get_or_create(
+            organization_id=organization_id,
+            integration_id=integration.id,
+            key=data['key'],
+            defaults={
+                'title': data.get('title'),
+                'description': data.get('description'),
+            }
+        )[0]
+
+        try:
+            with transaction.atomic():
+                GroupLink.objects.create(
+                    group_id=group.id,
+                    project_id=group.project_id,
+                    linked_type=GroupLink.LinkedType.issue,
+                    linked_id=external_issue.id,
+                    relationship=GroupLink.Relationship.references,
+                )
+        except IntegrityError:
+            return Response({'detail': 'That issue is already linked'}, status=400)
+
+        # TODO(jess): return serialized issue
         return Response(status=201)
