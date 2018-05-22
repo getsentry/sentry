@@ -1,0 +1,34 @@
+#!/usr/bin/env python3
+
+import sys
+import json
+import argparse
+
+from parse import extract_tests
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Generates a JSON-serialized test duration REPORT file from a `pytest --durations=0` LOGFILE.')
+    parser.add_argument(
+        'logfile',
+        metavar='LOGFILE',
+        nargs='?',
+        type=argparse.FileType('r', encoding='UTF-8'),
+        default=sys.stdin,
+        help='The logfile to read. If empty, stdin is used.',
+    )
+    parser.add_argument(
+        'reportfile',
+        metavar='REPORT',
+        nargs='?',
+        type=argparse.FileType('w', encoding='UTF-8'),
+        default=sys.stdout,
+        help='The filepath to write the report to. If empty, stdout is used.',
+    )
+    args = parser.parse_args()
+
+    with args.logfile as infile, args.reportfile as outfile:
+        report = dict()
+        for path, duration in extract_tests(infile.readlines()):
+            report['/'.join(path)] = duration
+        json.dump(report, outfile, separators=(',', ':'))
