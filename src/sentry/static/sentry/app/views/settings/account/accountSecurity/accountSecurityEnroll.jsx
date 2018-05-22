@@ -10,6 +10,7 @@ import {
   addSuccessMessage,
 } from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
+import {openRecoveryOptions} from 'app/actionCreators/modal';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/buttons/button';
 import CircleIndicator from 'app/components/circleIndicator';
@@ -237,7 +238,9 @@ class AccountSecurityEnroll extends AsyncView {
     let authenticatorName =
       (this.state.authenticator && this.state.authenticator.name) || 'Authenticator';
     this.props.router.push('/settings/account/security');
-    addSuccessMessage(t('%s has been added', authenticatorName));
+    openRecoveryOptions({
+      authenticatorName,
+    });
   };
 
   // Handler when we failed to add a 2fa device
