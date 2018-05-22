@@ -3,11 +3,14 @@
 from __future__ import absolute_import
 
 import six
+import datetime
+from django.utils import timezone
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import (
-    ProjectWithOrganizationSerializer, ProjectWithTeamSerializer
+    ProjectWithOrganizationSerializer, ProjectWithTeamSerializer, ProjectSummarySerializer
 )
+from sentry.models import Deploy, Environment, Release, ReleaseProjectEnvironment
 from sentry.testutils import TestCase
 
 
@@ -143,6 +146,45 @@ class ProjectWithTeamSerializerTest(TestCase):
                 team.id),
             'slug': team.slug,
             'name': team.name}
+
+
+class ProjectSummarySerializerTest(TestCase):
+    def test_simple(self):
+        date = datetime.datetime(2018, 1, 12, 3, 8, 25, tzinfo=timezone.utc)
+        user = self.create_user(username='foo')
+        organization = self.create_organization(owner=user)
+        team = self.create_team(organization=organization)
+        project = self.create_project(teams=[team], organization=organization, name='foo')
+
+        release = Release.objects.create(
+            organization_id=organization.id,
+            version='1',
+        )
+
+        environment = Environment.objects.create(
+            organization_id=organization.id,
+            name='production',
+        )
+
+        deploy = Deploy.objects.create(
+            environment_id=environment.id,
+            organization_id=organization.id,
+            release=release,
+            date_finished=date
+        )
+
+        ReleaseProjectEnvironment.objects.create(
+            project_id=project.id,
+            release_id=release.id,
+            environment_id=environment.id,
+            last_deploy_id=deploy.id
+        )
+
+        result = serialize(project, user, ProjectSummarySerializer())
+
+        assert result['latestDeploys'] == {
+            'production': {'dateFinished': date, 'version': '1'}
+        }
 
 
 class ProjectWithOrganizationSerializerTest(TestCase):
