@@ -41,8 +41,6 @@ class BitbucketAPI(ApiClient):
         self.shared_secret = shared_secret
         self.subject = subject
 
-    # TODO(LB): do has_auth and bind_auth belong here?
-
     def request(self, method, path, data=None, params=None, **kwargs):
         jwt_payload = {
             'iss': BITBUCKET_KEY,
