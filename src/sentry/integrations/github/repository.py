@@ -6,6 +6,8 @@ import six
 from sentry.models import Integration
 from sentry.plugins import providers
 
+from .client import GitHubAppsClient
+
 WEBHOOK_EVENTS = ['push', 'pull_request']
 
 
@@ -76,10 +78,25 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
             'integration_id': data['integration_id']
         }
 
+    def _format_commits(self, repo, commit_list):
+        return [
+            {
+                'id': c['sha'],
+                'repository': repo.name,
+                'author_email': c['commit']['author'].get('email'),
+                'author_name': c['commit']['author'].get('name'),
+                'message': c['commit']['message'],
+            } for c in commit_list
+        ]
+
     def compare_commits(self, repo, start_sha, end_sha, actor=None):
-        if actor is None:
-            raise NotImplementedError('Cannot fetch commits anonymously')
-        client = self.get_client(actor)
+        integration_id = repo.integration_id
+        if integration_id is None:
+            raise NotImplementedError('GitHub apps requires an integration id to fetch commits')
+
+        client = GitHubAppsClient(
+            Integration.objects.get(id=integration_id),
+        )
 
         # use config name because that is kept in sync via webhooks
         name = repo.config['name']
@@ -100,9 +117,13 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
 
         def get_pr_commits(self, repo, number, actor=None):
             # (not currently used by sentry)
-            if actor is None:
-                raise NotImplementedError('Cannot fetch commits anonymously')
-            client = self.get_client(actor)
+            integration_id = repo.integration_id
+            if integration_id is None:
+                raise NotImplementedError('GitHub apps requires an integration id to fetch commits')
+
+            client = GitHubAppsClient(
+                Integration.objects.get(id=integration_id),
+            )
 
             # use config name because that is kept in sync via webhooks
             name = repo.config['name']
