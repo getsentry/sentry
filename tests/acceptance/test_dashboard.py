@@ -57,9 +57,11 @@ class DashboardTest(AcceptanceTestCase):
         self.path = '/{}/'.format(self.org.slug)
 
     def test_no_issues(self):
+        # I think no "activity" would be more accurate?
         self.project.update(first_event=None)
         self.browser.get(self.path)
         self.browser.wait_until_not('.loading-indicator')
+        self.browser.wait_until('[data-test-id] figure')
         self.browser.snapshot('org dash no issues')
 
     def test_one_issue(self):
