@@ -5,13 +5,12 @@ import datetime
 import jwt
 import time
 
-from django.conf import settings
 from sentry import options
 
-from integrations.client import ApiClient, AuthApiClient
+from sentry.integrations.client import ApiClient
 
 
-class GitHubClientMixin(AuthApiClient):
+class GitHubClientMixin(ApiClient):
     allow_redirects = True
 
     base_url = 'https://api.github.com'
@@ -45,91 +44,10 @@ class GitHubClientMixin(AuthApiClient):
         ))
 
 
-class GitHubClient(GitHubClientMixin, AuthApiClient):
-    def __init__(self, url=None, auth=None):
-        if url is not None:
-            self.base_url = url.rstrip('/')
-        super(GitHubClient, self).__init__(auth=auth)
+class GitHubAppsClient(GitHubClientMixin):
 
-    def request_no_auth(self, method, path, data=None, params=None):
-        if params is None:
-            params = {}
-
-        params.update(
-            {
-                'client_id': settings.GITHUB_APP_ID,
-                'client_secret': settings.GITHUB_API_SECRET,
-            }
-        )
-
-        return self._request(method, path, auth=None, data=data, params=params)
-
-    def get_repo(self, repo):
-        return self.get('/repos/{}'.format(repo))
-
-    def get_issue(self, repo, issue_id):
-        return self.get('/repos/{}/issues/{}'.format(repo, issue_id))
-
-    def create_issue(self, repo, data):
-        return self.post(
-            '/repos/{}/issues'.format(repo),
-            data=data,
-        )
-
-    def create_comment(self, repo, issue_id, data):
-        return self.post(
-            '/repos/{}/issues/{}/comments'.format(
-                repo,
-                issue_id,
-            ),
-            data=data,
-        )
-
-    def list_assignees(self, repo):
-        return self.get('/repos/{}/assignees?per_page=100'.format(repo))
-
-    def search_issues(self, query):
-        return self.get(
-            '/search/issues',
-            params={'q': query},
-        )
-
-    def create_hook(self, repo, data):
-        return self.post(
-            '/repos/{}/hooks'.format(
-                repo,
-            ),
-            data=data,
-        )
-
-    def update_hook(self, repo, hook_id, data):
-        return self.patch(
-            '/repos/{}/hooks/{}'.format(
-                repo,
-                hook_id,
-            ),
-            data=data,
-        )
-
-    def delete_hook(self, repo, id):
-        return self.delete('/repos/{}/hooks/{}'.format(repo, id))
-
-    def get_installations(self):
-        # TODO(jess): remove this whenever it's out of preview
-        headers = {
-            'Accept': 'application/vnd.github.machine-man-preview+json',
-        }
-
-        params = {
-            'access_token': self.auth.tokens['access_token'],
-        }
-
-        return self._request('GET', '/user/installations', headers=headers, params=params)
-
-
-class GitHubAppsClient(GitHubClientMixin, ApiClient):
-    def __init__(self, integration):
-        self.integration = integration
+    def __init__(self, external_id):
+        self.external_id = external_id
         self.token = None
         self.expires_at = None
         super(GitHubAppsClient, self).__init__()
@@ -155,11 +73,11 @@ class GitHubAppsClient(GitHubClientMixin, ApiClient):
             # JWT expiration time (10 minute maximum)
             'exp': exp,
             # Integration's GitHub identifier
-            'iss': options.get('github.integration-app-id'),
+            'iss': options.get('github-app.id'),
         }
 
         return jwt.encode(
-            payload, options.get('github.integration-private-key'), algorithm='RS256'
+            payload, options.get('github-app.private-key'), algorithm='RS256'
         )
 
     def request(self, method, path, headers=None, data=None, params=None):
@@ -174,7 +92,7 @@ class GitHubAppsClient(GitHubClientMixin, ApiClient):
     def create_token(self):
         return self.post(
             '/installations/{}/access_tokens'.format(
-                self.integration.external_id,
+                self.external_id,
             ),
             headers={
                 'Authorization': 'Bearer %s' % self.get_jwt(),
