@@ -36,17 +36,15 @@ export default class Deploys extends React.Component {
 
     if (deploys.length) {
       return (
-        <DeployBox p={2} pb={0}>
-          <div>
-            {deploys.map(deploy => (
-              <Deploy
-                key={deploy.version}
-                deploy={deploy}
-                projectId={projectId}
-                orgId={orgId}
-              />
-            ))}
-          </div>
+        <DeployBox p={2} pt={1}>
+          {deploys.map(deploy => (
+            <Deploy
+              key={deploy.version}
+              deploy={deploy}
+              projectId={projectId}
+              orgId={orgId}
+            />
+          ))}
         </DeployBox>
       );
     } else {
@@ -128,7 +126,7 @@ class NoDeploys extends React.Component {
 }
 
 const DeployBox = styled(Box)`
-  height: 84px;
+  height: 92px;
 `;
 
 const Background = styled(Flex)`

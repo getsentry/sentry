@@ -392,11 +392,11 @@ exports[`ProjectCard renders 1`] = `
                   p={2}
                 >
                   <Base
-                    className="css-1y9r07b-DeployBox eltxe6c4"
+                    className="css-1y6xtyw-DeployBox eltxe6c4"
                     p={2}
                   >
                     <div
-                      className="css-1y9r07b-DeployBox eltxe6c4"
+                      className="css-1y6xtyw-DeployBox eltxe6c4"
                       is={null}
                     >
                       <Background
