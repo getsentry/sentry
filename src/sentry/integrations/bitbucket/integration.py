@@ -59,8 +59,8 @@ class BitbucketIntegrationProvider(IntegrationProvider):
                     'domain_name': principal_data['links']['html']['href'].replace('https://', ''),
                     'icon': principal_data['links']['avatar']['href'],
                     'scopes': self.scopes,
-                    'uuid': state['uuid'],
-                    'type': state['type'],  # team or user account
+                    'uuid': principal_data['uuid'],
+                    'type': principal_data['type'],  # team or user account
                 },
             }
         return {

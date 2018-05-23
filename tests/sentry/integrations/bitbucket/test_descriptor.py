@@ -16,5 +16,5 @@ class BitbucketDescriptorEndpointTest(APITestCase):
         assert response.status_code == 200
 
         assert response.data['key'] == BITBUCKET_KEY
-        assert response.data['authentication']['type'] == 'jwt'
+        assert response.data['authentication']['type'] == 'JWT'
         assert response.data['baseUrl'] == 'http://testserver'
