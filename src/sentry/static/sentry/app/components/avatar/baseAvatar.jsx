@@ -36,6 +36,7 @@ class BaseAvatar extends React.Component {
     letterId: PropTypes.string,
     title: PropTypes.string,
     tooltip: PropTypes.string,
+    tooltipOptions: PropTypes.object,
   };
 
   static defaultProps = {
@@ -127,7 +128,7 @@ class BaseAvatar extends React.Component {
   }
 
   render() {
-    let {className, hasTooltip, size, tooltip, style} = this.props;
+    let {className, hasTooltip, size, tooltip, tooltipOptions, style} = this.props;
     let sizeStyle = {};
 
     if (size) {
@@ -138,7 +139,7 @@ class BaseAvatar extends React.Component {
     }
 
     return (
-      <Tooltip title={tooltip} disabled={!hasTooltip}>
+      <Tooltip title={tooltip} tooltipOptions={tooltipOptions} disabled={!hasTooltip}>
         <StyledBaseAvatar
           className={classNames('avatar', className)}
           style={{
