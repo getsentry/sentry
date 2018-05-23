@@ -17,22 +17,30 @@ BITBUCKET_KEY = '%s.bitbucket' % urlparse(absolute_uri()).hostname
 class BitbucketAPIPath(object):
     """
     All UUID's must be surrounded by culybraces.
+
+    repo_name is username/repo_slug due to legacy reasons
+
     repo_slug - repository slug or UUID
     username - username or UUID
     """
 
-    issue = u'/2.0/repositories/{username}/{repo_slug}/issues/{issue_id}'
-    issues = u'/2.0/repositories/{username}/{repo_slug}/issues'
-    issue_comments = u'/2.0/repositories/{username}/{repo_slug}/issues/{issue_id}/comments'
+    issue = u'/2.0/repositories/{repo_name}/issues/{issue_id}'
+    issues = u'/2.0/repositories/{repo_name}/issues'
+    issue_comments = u'/2.0/repositories/{repo_name}/issues/{issue_id}/comments'
 
-    repository = u'/2.0/repositories/{username}/{repo_slug}'
-    repository_commits = u'/2.0/repositories/{username}/{repo_slug}/commits/{revision}'
-    repository_diff = u'/2.0/repositories/{username}/{repo_slug}/diff/{spec}'
-    repository_hook = u'/2.0/repositories/{username}/{repo_slug}/hooks/{uid}'
-    repository_hooks = u'/2.0/repositories/{username}/{repo_slug}/hooks'
+    repository = u'/2.0/repositories/{repo_name}'
+    repository_commits = u'/2.0/repositories/{repo_name}/commits/{revision}'
+    repository_diff = u'/2.0/repositories/{repo_name}/diff/{spec}'
+    repository_hook = u'/2.0/repositories/{repo_name}/hooks/{uid}'
+    repository_hooks = u'/2.0/repositories/{repo_name}/hooks'
 
 
 class BitbucketAPI(ApiClient):
+    """
+    The API Client for the Bitbucket Integraiton
+
+    NOTE: the repo_name is 'username/repo_slug'
+    """
 
     def __init__(self, base_url, shared_secret, subject):
         # subject is probably the clientKey
@@ -55,65 +63,58 @@ class BitbucketAPI(ApiClient):
         }
         return self._request(method, path, data=data, params=params, headers=headers, **kwargs)
 
-    def get_issue(self, username, repo_slug, issue_id):
+    def get_issue(self, repo_name, issue_id):
         return self.get(BitbucketAPIPath.issue.format(
-            username=username,
-            repo_slug=repo_slug,
+            repo_name=repo_name,
             issue_id=issue_id,
         ))
 
-    def create_issue(self, username, repo_slug, data):
+    def create_issue(self, repo_name, data):
         return self.post(
             path=BitbucketAPIPath.issues.format(
-                username=username,
-                repo_slug=repo_slug,
+                repo_name=repo_name,
             ),
             data=data,
         )
 
-    def search_issues(self, username, repo_slug, query):
+    def search_issues(self, repo_name, query):
         # Query filters can be found here:
         # https://developer.atlassian.com/bitbucket/api/2/reference/meta/filtering#supp-endpoints
         return self.get(
             path=BitbucketAPIPath.issues.format(
-                username=username,
-                repo_slug=repo_slug,
+                repo_name=repo_name,
             ),
             params={'q': query},
         )
 
-    def create_comment(self, username, repo_slug, issue_id, data):
+    def create_comment(self, repo_name, issue_id, data):
         # Call the method as below:
-        # client.create_comment('username', 'repo_slug', '1', {"content": {"raw": "Whatever you're commenting."}})
+        # client.create_comment('repo_name', '1', {"content": {"raw": "Whatever you're commenting."}})
         # https://developer.atlassian.com/bitbucket/api/2/reference/resource/repositories/%7Busername%7D/%7Brepo_slug%7D/issues/%7Bissue_id%7D/comments#post
         return self.post(
             path=BitbucketAPIPath.issue_comments.format(
-                username=username,
-                repo_slug=repo_slug,
+                repo_name=repo_name,
                 issue_id=issue_id,
             ),
             data=data,
         )
 
-    def get_repo(self, username, repo_slug):
+    def get_repo(self, repo_name):
         return self.get(BitbucketAPIPath.repository.format(
-            username=username,
-            repo_slug=repo_slug,
+            repo_name=repo_name,
         ))
 
-    def create_hook(self, username, repo_slug, data):
+    def create_hook(self, repo_name, data):
         return self.post(
             path=BitbucketAPIPath.repository_hooks.format(
-                username=username,
-                repo_slug=repo_slug,
+                repo_name=repo_name,
             ),
             data=data
         )
 
-    def delete_hook(self, username, repo_slug, hook_id):
+    def delete_hook(self, repo_name, hook_id):
         return self.delete(path=BitbucketAPIPath.repository_hook.format(
-            username=username,
-            repo_slug=repo_slug,
+            repo_name=repo_name,
             uid=hook_id,
         ))
 
@@ -139,12 +140,11 @@ class BitbucketAPI(ApiClient):
 
         return file_changes
 
-    def get_commit_filechanges(self, username, repo_slug, sha):
+    def get_commit_filechanges(self, repo_name, sha):
         resp = self.get(
             BitbucketAPIPath.repository_diff.format(
-                username=username,
-                repo_slug=repo_slug,
-                spec=sha,  # TODO(LB): sha vs spec????
+                repo_name=repo_name,
+                spec=sha,
             ),
             allow_text=True,
         )
@@ -152,24 +152,23 @@ class BitbucketAPI(ApiClient):
         ps = PatchSet.from_string(diff_file)
         return self.transform_patchset(ps)
 
-    def zip_commit_data(self, username, repo_slug, commit_list):
+    def zip_commit_data(self, repo_name, commit_list):
         for commit in commit_list:
             commit.update(
-                {'patch_set': self.get_commit_filechanges(username, repo_slug, commit['hash'])})
+                {'patch_set': self.get_commit_filechanges(repo_name, commit['hash'])})
         return commit_list
 
-    def get_last_commits(self, username, repo_slug, end_sha):
+    def get_last_commits(self, repo_name, end_sha):
         # return api request that fetches last ~30 commits
         # see https://developer.atlassian.com/bitbucket/api/2/reference/resource/repositories/%7Busername%7D/%7Brepo_slug%7D/commits/%7Brevision%7D
         # using end_sha as parameter
         data = self.get(BitbucketAPIPath.repository_commits.format(
-            username=username,
-            repo_slug=repo_slug,
+            repo_name=repo_name,
             revision=end_sha,
         ))
-        return self.zip_commit_data(username, repo_slug, data['values'])
+        return self.zip_commit_data(repo_name, data['values'])
 
-    def compare_commits(self, username, repo_slug, start_sha, end_sha):
+    def compare_commits(self, repo_name, start_sha, end_sha):
         # where start_sha is oldest and end_sha is most recent
         # see
         # https://developer.atlassian.com/bitbucket/api/2/reference/resource/repositories/%7Busername%7D/%7Brepo_slug%7D/commits/%7Brevision%7D
@@ -177,8 +176,7 @@ class BitbucketAPI(ApiClient):
         done = False
 
         url = BitbucketAPIPath.repository_commits.format(
-            username=username,
-            repo_slug=repo_slug,
+            repo_name=repo_name,
             revision=end_sha,
         )
 
@@ -197,4 +195,4 @@ class BitbucketAPI(ApiClient):
             except KeyError:
                 break
 
-        return self.zip_commit_data(username, repo_slug, commits)
+        return self.zip_commit_data(repo_name, commits)
