@@ -8,7 +8,7 @@ from unidiff import PatchSet
 from six.moves.urllib.parse import urlparse
 
 from sentry.utils.http import absolute_uri
-from sentry.integrations.jira.utils import get_query_hash  # TODO(LB): Change to common place
+from sentry.integrations.atlassian_connect import get_query_hash
 from sentry.integrations.client import ApiClient
 
 BITBUCKET_KEY = '%s.bitbucket' % urlparse(absolute_uri()).hostname
@@ -121,7 +121,6 @@ class BitbucketAPI(ApiClient):
         ))
 
     def transform_patchset(self, patch_set):
-        # TODO(LB): copy and paste not sure what this does
         file_changes = []
         for patched_file in patch_set.added_files:
             file_changes.append({
@@ -144,7 +143,6 @@ class BitbucketAPI(ApiClient):
         return file_changes
 
     def get_commit_filechanges(self, username, repo_slug, sha):
-        # TODO(LB): This is a bit more complicated not complete
         resp = self.get(
             BitbucketAPIPath.repository_diff.format(
                 username=username,
@@ -158,15 +156,12 @@ class BitbucketAPI(ApiClient):
         return self.transform_patchset(ps)
 
     def zip_commit_data(self, username, repo_slug, commit_list):
-        # TODO(LB): copy and paste
         for commit in commit_list:
             commit.update(
                 {'patch_set': self.get_commit_filechanges(username, repo_slug, commit['hash'])})
         return commit_list
 
     def get_last_commits(self, username, repo_slug, end_sha):
-        # TODO(LB): check this works as intended
-
         # return api request that fetches last ~30 commits
         # see https://developer.atlassian.com/bitbucket/api/2/reference/resource/repositories/%7Busername%7D/%7Brepo_slug%7D/commits/%7Brevision%7D
         # using end_sha as parameter
