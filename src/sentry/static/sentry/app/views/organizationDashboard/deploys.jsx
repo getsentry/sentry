@@ -112,7 +112,7 @@ const StyledLink = styled(Link)`
 class NoDeploys extends React.Component {
   render() {
     return (
-      <DeployBox p={2} pb={0}>
+      <DeployBox p={2}>
         <Background align="center" justify="center">
           <Button
             size="xsmall"
