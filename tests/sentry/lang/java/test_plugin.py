@@ -1,10 +1,12 @@
 from __future__ import absolute_import
 
 import zipfile
+import pytest
 from six import BytesIO
 
-from django.core.files.uploadedfile import SimpleUploadedFile
+from django.conf import settings
 from django.core.urlresolvers import reverse
+from django.core.files.uploadedfile import SimpleUploadedFile
 
 from sentry.models import Event
 from sentry.testutils import TestCase
@@ -22,6 +24,10 @@ PROGUARD_BUG_SOURCE = b'x'
 
 
 class BasicResolvingIntegrationTest(TestCase):
+    @pytest.mark.skipif(
+        settings.SENTRY_TAGSTORE == 'sentry.tagstore.v2.V2TagStorage',
+        reason='Queries are completly different when using tagstore'
+    )
     def test_basic_resolving(self):
         url = reverse(
             'sentry-api-0-dsym-files',
@@ -42,7 +48,10 @@ class BasicResolvingIntegrationTest(TestCase):
         response = self.client.post(
             url, {
                 'file':
-                SimpleUploadedFile('symbols.zip', out.getvalue(), content_type='application/zip'),
+                SimpleUploadedFile(
+                    'symbols.zip',
+                    out.getvalue(),
+                    content_type='application/zip'),
             },
             format='multipart'
         )
@@ -90,10 +99,25 @@ class BasicResolvingIntegrationTest(TestCase):
             },
         }
 
-        resp = self._postWithHeader(event_data)
+        # We do a preflight post, because there are many queries polluting the array
+        # before the actual "processing" happens (like, auth_user)
+        self._postWithHeader(event_data)
+        with self.assertWriteQueries({
+            'nodestore_node': 2,
+            'sentry_environmentproject': 1,
+            'sentry_eventtag': 1,
+            'sentry_eventuser': 1,
+            'sentry_filtervalue': 2,
+            'sentry_groupedmessage': 1,
+            'sentry_message': 1,
+            'sentry_messagefiltervalue': 2,
+            'sentry_userip': 1,
+            'sentry_userreport': 1
+        }):
+            resp = self._postWithHeader(event_data)
         assert resp.status_code == 200
 
-        event = Event.objects.get()
+        event = Event.objects.first()
 
         bt = event.interfaces['sentry.interfaces.Exception'].values[0].stacktrace
         frames = bt.frames
