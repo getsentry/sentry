@@ -22,7 +22,7 @@ class AccountIdentityTest(TestCase):
         IdentityProvider.objects.create(
             type='dummy',
             external_id='1234',
-            organization=organization,
+            organization_id=organization.id,
             config={},
         )
 

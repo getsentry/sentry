@@ -71,7 +71,7 @@ class IntegrationPipeline(Pipeline):
             # Create identity provider for this integration if necessary
             idp, created = IdentityProvider.objects.get_or_create(
                 external_id=data['external_id'],
-                organization=self.organization,
+                organization_id=self.organization.id,
                 type=identity['type'],
                 defaults={'config': identity_config},
             )
