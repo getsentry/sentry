@@ -44,10 +44,7 @@ describe('Project Ownership Input', function() {
     submit.simulate('click');
     expect(put).not.toHaveBeenCalled();
 
-    wrapper
-      .find(OwnerInput)
-      .instance()
-      .onChange({target: {value: 'new'}});
+    wrapper.find('StyledTextArea').simulate('change', {target: {value: 'new'}});
 
     submit.simulate('click');
 
