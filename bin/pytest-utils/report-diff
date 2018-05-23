@@ -3,6 +3,7 @@
 import sys
 import json
 import argparse
+from operator import itemgetter
 
 
 def _humanize(mode, tests_dict):
@@ -11,7 +12,7 @@ def _humanize(mode, tests_dict):
     if not tests_dict:
         print('Nothing to see here.\n')
         return
-    for testpath, duration in sorted(tests_dict.items(), reverse=(mode=='slower')):
+    for testpath, duration in sorted(tests_dict.items(), key=itemgetter(1), reverse=(mode=='slower')):
         print('({:+.2f}s) '.format(duration) if duration else '', testpath, sep='')
     print('\n')
 
