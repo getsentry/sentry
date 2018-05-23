@@ -195,11 +195,12 @@ const SuggestedOwners = createReactClass({
     let group = this.getGroup();
     let project = this.getProject();
     let org = this.getOrganization();
+    let access = new Set(org.access);
 
     let orgFeatures = new Set(org.features);
     let showOwners = orgFeatures.has('code-owners');
 
-    let showCreateRule = showOwners && orgFeatures.has('internal-catchall');
+    let showCreateRule = showOwners && access.has('project:write');
 
     let showSuggestedAssignees =
       committers.length > 0 || (showOwners && owners.length > 0);
