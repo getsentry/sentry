@@ -6,7 +6,7 @@ from django.utils.translation import ugettext_lazy as _
 from sentry.integrations import (
     Integration, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
 )
-from sentry.integrations.exceptions import ApiUnauthorized, IntegrationError
+from sentry.integrations.exceptions import ApiUnauthorized, ApiError, IntegrationError
 from sentry.integrations.issues import IssueSyncMixin
 
 from .client import JiraApiClient
@@ -40,6 +40,59 @@ JIRA_CUSTOM_FIELD_TYPES = {
 
 
 class JiraIntegration(Integration, IssueSyncMixin):
+    def get_project_config(self):
+        configuration = [
+            {
+                'name': 'resolve_status',
+                'type': 'choice',
+                'allowEmpty': True,
+                'label': _('JIRA Resolved Status'),
+                'placeholder': _('Select a Status'),
+                'help': _('Declares what the linked JIRA ticket workflow status should be transitioned to when the Sentry issue is resolved.'),
+            },
+            {
+                'name': 'resolve_when',
+                'type': 'choice',
+                'allowEmpty': True,
+                'label': _('Resolve in Sentry When'),
+                'placeholder': _('Select a Status'),
+                'help': _('When a JIRA ticket is transitioned to this status, trigger resolution of the Sentry issue.'),
+            },
+            {
+                'name': 'sync_comments',
+                'type': 'boolean',
+                'label': _('Post Comments to JIRA'),
+                'help': _('Synchronize comments from Sentry issues to linked JIRA tickets.'),
+            },
+            {
+                'name': 'sync_forward_assignment',
+                'type': 'boolean',
+                'label': _('Synchronize Assignment to JIRA'),
+                'help': _('When assigning something in Sentry, the linked JIRA ticket will have the associated JIRA user assigned.'),
+            },
+            {
+                'name': 'sync_reverse_assignment',
+                'type': 'boolean',
+                'label': _('Synchronize Assignment to Sentry'),
+                'help': _('When assigning a user to a Linked JIRA ticket, the associated Sentry user will be assigned to the Sentry issue.'),
+            },
+        ]
+
+        client = self.get_client()
+
+        try:
+            statuses = [(c['id'], c['name']) for c in client.get_valid_statuses()]
+            configuration[0]['choices'] = statuses
+            configuration[1]['choices'] = statuses
+        except ApiError:
+            # TODO(epurkhsier): Maybe disabling the inputs for the resolve
+            # statuses is a little heavy handed. Is there something better we
+            # can fall back to?
+            configuration[0]['disabled'] = True
+            configuration[1]['disabled'] = True
+
+        return configuration
+
     def get_link_issue_config(self, group, **kwargs):
         fields = super(JiraIntegration, self).get_link_issue_config(group, **kwargs)
         org = group.organization
