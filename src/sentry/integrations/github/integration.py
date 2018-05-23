@@ -5,10 +5,12 @@ from django.utils.translation import ugettext_lazy as _
 from sentry import http, options
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.identity.github import get_user_info
-from sentry.integrations import IntegrationProvider, IntegrationMetadata
+from sentry.integrations import Integration, IntegrationProvider, IntegrationMetadata
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.utils.http import absolute_uri
 
+from .client import GitHubAppsClient
+from .repository import GitHubRepositoryProvider
 from .utils import get_jwt
 
 
@@ -27,10 +29,17 @@ metadata = IntegrationMetadata(
 )
 
 
+class GitHubIntegration(Integration):
+
+    def get_client(self):
+        return GitHubAppsClient(external_id=self.model.external_id)
+
+
 class GitHubIntegrationProvider(IntegrationProvider):
     key = 'github'
     name = 'GitHub'
     metadata = metadata
+    integration_cls = GitHubIntegration
 
     setup_dialog_config = {
         'width': 1030,
@@ -103,6 +112,14 @@ class GitHubIntegrationProvider(IntegrationProvider):
                 'data': {'access_token': identity['access_token']},
             },
         }
+
+    def setup(self):
+        from sentry.plugins import bindings
+        bindings.add(
+            'integration-repository.provider',
+            GitHubRepositoryProvider,
+            id='integrations:github',
+        )
 
 
 class GitHubInstallationRedirect(PipelineView):

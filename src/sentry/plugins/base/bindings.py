@@ -33,9 +33,14 @@ class RepositoryProviderManager(ProviderManager):
     type = providers.RepositoryProvider
 
 
+class IntegrationRepositoryProviderManager(ProviderManager):
+    type = providers.IntegrationRepositoryProvider
+
+
 class BindingManager(object):
     BINDINGS = {
         'repository.provider': RepositoryProviderManager,
+        'integration-repository.provider': IntegrationRepositoryProviderManager
     }
 
     def __init__(self):

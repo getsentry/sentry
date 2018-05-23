@@ -32,10 +32,18 @@ class AddRepositoryLink extends PluginComponentBase {
   }
 
   getDefaultState() {
+    let formData = {};
+    // makes sure default choice field is saved
+    // if a user doesn't choose a different option
+    this.props.provider.config.forEach(field => {
+      if (field.initial) {
+        formData[field.name] = field.initial;
+      }
+    });
     return {
       isModalOpen: false,
       error: {},
-      formData: {},
+      formData,
     };
   }
 
