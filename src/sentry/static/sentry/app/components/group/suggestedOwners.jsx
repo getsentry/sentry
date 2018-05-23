@@ -199,8 +199,6 @@ const SuggestedOwners = createReactClass({
     let orgFeatures = new Set(org.features);
     let showOwners = orgFeatures.has('code-owners');
 
-    let showCreateRule = showOwners && orgFeatures.has('internal-catchall');
-
     let showSuggestedAssignees =
       committers.length > 0 || (showOwners && owners.length > 0);
 
@@ -219,7 +217,7 @@ const SuggestedOwners = createReactClass({
             </div>
           </div>
         )}
-        {showCreateRule && (
+        {showOwners && (
           <div className="m-b-1">
             <h6>
               <span>{t('Ownership Rules')}</span>

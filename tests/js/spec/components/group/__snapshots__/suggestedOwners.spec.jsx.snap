@@ -140,5 +140,20 @@ exports[`SuggestedOwners render() should show owners when enable 1`] = `
       </span>
     </div>
   </div>
+  <div
+    className="m-b-1"
+  >
+    <h6>
+      <span>
+        Ownership Rules
+      </span>
+    </h6>
+    <a
+      className="btn btn-default btn-sm btn-create-ownership-rule"
+      onClick={[Function]}
+    >
+      Create Ownership Rule
+    </a>
+  </div>
 </SuggestedOwners>
 `;
