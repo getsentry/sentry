@@ -442,3 +442,22 @@ class SensitiveDataFilterTest(TestCase):
         assert 'sentry.interfaces.Csp' in data
         csp = data['sentry.interfaces.Csp']
         assert csp['blocked_uri'] == 'https://example.com/?foo=[Filtered]&bar=baz'
+
+    def test_message(self):
+        data = {
+            'sentry.interfaces.Message': {
+                'message': 'foo 4571234567890111 bar',
+                'formatted': 'foo 4571234567890111 bar',
+                'params': [1, 'foo 4571234567890111 bar'],
+            },
+        }
+
+        proc = SensitiveDataFilter()
+        proc.apply(data)
+        assert data == {
+            'sentry.interfaces.Message': {
+                'message': FILTER_MASK,
+                'formatted': FILTER_MASK,
+                'params': [1, FILTER_MASK],
+            },
+        }
