@@ -127,6 +127,16 @@ class JiraIntegration(Integration, IssueSyncMixin):
     def make_choices(self, x):
         return [(y['id'], y['name'] if 'name' in y else y['value']) for y in x] if x else []
 
+    def error_message_from_json(self, data):
+        message = ''
+        if data.get('errorMessages'):
+            message = ' '.join(data['errorMessages'])
+        if data.get('errors'):
+            if message:
+                message += ' '
+            message += ' '.join(['%s: %s' % (k, v) for k, v in data.get('errors').items()])
+        return message
+
     def build_dynamic_field(self, group, field_meta):
         """
         Builds a field based on JIRA's meta field information
@@ -283,6 +293,92 @@ class JiraIntegration(Integration, IssueSyncMixin):
                 field['choices'] = self.make_choices(client.get_versions(meta['key']))
 
         return fields
+
+    def create_issue(self, data, **kwargs):
+        client = self.get_client()
+        cleaned_data = {}
+        # protect against mis-configured plugin submitting a form without an
+        # issuetype assigned.
+        if not data.get('issuetype'):
+            raise IntegrationError('Issue Type is required.')
+
+        jira_project = data.get('project')
+        if not jira_project:
+            raise IntegrationError('JIRA project is required.')
+
+        meta = client.get_create_meta_for_project(jira_project)
+
+        if not meta:
+            raise IntegrationError('Something went wrong. Check your plugin configuration.')
+
+        issue_type_meta = self.get_issue_type_meta(data['issuetype'], meta)
+
+        fs = issue_type_meta['fields']
+        for field in fs.keys():
+            f = fs[field]
+            if field == 'description':
+                cleaned_data[field] = data[field]
+                continue
+            elif field == 'summary':
+                cleaned_data['summary'] = data['title']
+                continue
+            if field in data.keys():
+                v = data.get(field)
+                if v:
+                    schema = f['schema']
+                    if schema.get('type') == 'string' and not schema.get('custom'):
+                        cleaned_data[field] = v
+                        continue
+                    if schema['type'] == 'user' or schema.get('items') == 'user':
+                        v = {'name': v}
+                    elif schema.get('custom') == JIRA_CUSTOM_FIELD_TYPES.get('multiuserpicker'):
+                        # custom multi-picker
+                        v = [{'name': v}]
+                    elif schema['type'] == 'array' and schema.get('items') != 'string':
+                        v = [{'id': vx} for vx in v]
+                    elif schema['type'] == 'array' and schema.get('items') == 'string':
+                        v = [v]
+                    elif schema.get('custom') == JIRA_CUSTOM_FIELD_TYPES.get('textarea'):
+                        v = v
+                    elif schema['type'] == 'number' or \
+                            schema.get('custom') == JIRA_CUSTOM_FIELD_TYPES['tempo_account']:
+                        try:
+                            if '.' in v:
+                                v = float(v)
+                            else:
+                                v = int(v)
+                        except ValueError:
+                            pass
+                    elif (schema.get('type') != 'string'
+                            or (schema.get('items') and schema.get('items') != 'string')
+                            or schema.get('custom') == JIRA_CUSTOM_FIELD_TYPES.get('select')):
+                        v = {'id': v}
+                    cleaned_data[field] = v
+
+        if not (isinstance(cleaned_data['issuetype'], dict) and 'id' in cleaned_data['issuetype']):
+            # something fishy is going on with this field, working on some JIRA
+            # instances, and some not.
+            # testing against 5.1.5 and 5.1.4 does not convert (perhaps is no longer included
+            # in the projectmeta API call, and would normally be converted in the
+            # above clean method.)
+            cleaned_data['issuetype'] = {'id': cleaned_data['issuetype']}
+
+        try:
+            response = client.create_issue(cleaned_data)
+        except Exception as e:
+            self.raise_error(e)
+
+        issue_key = response.get('key')
+        if not issue_key:
+            raise IntegrationError('There was an error creating the issue.')
+
+        issue = client.get_issue(issue_key)
+
+        return {
+            'title': issue['fields']['summary'],
+            'description': issue['fields']['description'],
+            'key': issue_key,
+        }
 
 
 class JiraIntegrationProvider(IntegrationProvider):
