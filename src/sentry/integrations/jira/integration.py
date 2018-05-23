@@ -68,13 +68,13 @@ class JiraIntegration(Integration, IssueSyncMixin):
                 'name': 'sync_forward_assignment',
                 'type': 'boolean',
                 'label': _('Synchronize Assignment to JIRA'),
-                'help': _('When assiging something in sentry, the linked JIRA ticket will have the associated JIRA user assigned.'),
+                'help': _('When assigning something in Sentry, the linked JIRA ticket will have the associated JIRA user assigned.'),
             },
             {
                 'name': 'sync_reverse_assignment',
                 'type': 'boolean',
                 'label': _('Synchronize Assignment to Sentry'),
-                'help': _('When assiging a user to a Linked JIRA ticket, the associated Sentry user will be assigned to the Sentry issue.'),
+                'help': _('When assigning a user to a Linked JIRA ticket, the associated Sentry user will be assigned to the Sentry issue.'),
             },
         ]
 
