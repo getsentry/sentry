@@ -54,7 +54,7 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
             integration = Integration.objects.get(
                 id=config['installation'], organizations=organization)
             installation = integration.get_installation()
-            client = installation.get_client(integration)
+            client = installation.get_client()
             try:
                 repo = client.get_repo(config['name'])
             except Exception as e:

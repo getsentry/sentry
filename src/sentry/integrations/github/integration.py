@@ -31,8 +31,8 @@ metadata = IntegrationMetadata(
 
 class GitHubIntegration(Integration):
 
-    def get_client(self, integration):
-        return GitHubAppsClient(external_id=integration.external_id)
+    def get_client(self):
+        return GitHubAppsClient(external_id=self.model.external_id)
 
 
 class GitHubIntegrationProvider(IntegrationProvider):
