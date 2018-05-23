@@ -130,7 +130,7 @@ export default class ResolveActions extends React.Component {
             className={buttonClass}
             onAction={() => onUpdate({status: 'resolved'})}
           >
-            <span className="icon-checkmark" style={{marginRight: 5}} />
+            <span className="icon-checkmark hidden-xs" style={{marginRight: 5}} />
             <GuideAnchor target="resolve" type="text" />
             {t('Resolve')}
           </ActionLink>
