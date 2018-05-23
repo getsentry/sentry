@@ -97,10 +97,10 @@ class TestRealBitbucketClient(APITestCase):
             username=self.integration.name,
             repo_slug=self.repo_slug,
             issue_id='#1'
-        )
-        assert issue['values'][0]['type']
-        assert issue['values'][0]['id']
-        assert issue['values'][0]['repository']['name'] == 'HelloWorld'
+        )['values'][0]
+        assert issue['type']
+        assert issue['id']
+        assert issue['repository']['name'] == 'HelloWorld'
 
     def test_create_issue(self):
         pass
