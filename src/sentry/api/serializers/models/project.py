@@ -272,14 +272,21 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
                 'id',
                 'date_finished'))
 
-        deploys_by_project = defaultdict(list)
+        deploys_by_project = defaultdict(dict)
 
         for rpe in release_project_envs:
-            deploys_by_project[rpe['project__id']].append({
-                'version': rpe['release__version'],
-                'environment': rpe['environment__name'],
-                'dateFinished': deploys[rpe['last_deploy_id']],
-            })
+            env_name = rpe['environment__name']
+            project_id = rpe['project__id']
+            date_finished = deploys[rpe['last_deploy_id']]
+
+            if (
+                env_name not in deploys_by_project[project_id] or
+                deploys_by_project[project_id][env_name]['dateFinished'] < date_finished
+            ):
+                deploys_by_project[project_id][env_name] = {
+                    'version': rpe['release__version'],
+                    'dateFinished': date_finished
+                }
 
         for item in item_list:
             attrs[item]['deploys'] = deploys_by_project.get(item.id)
