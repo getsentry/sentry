@@ -40,7 +40,7 @@ class IntegrationRepositoryProviderManager(ProviderManager):
 class BindingManager(object):
     BINDINGS = {
         'repository.provider': RepositoryProviderManager,
-        'integration-repository': IntegrationRepositoryProviderManager
+        'integration-repository.provider': IntegrationRepositoryProviderManager
     }
 
     def __init__(self):
