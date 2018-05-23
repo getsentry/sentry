@@ -149,9 +149,7 @@ class JiraIntegrationTest(APITestCase):
                 'label': 'Issue Type'
             }]
 
-
-class JiraSearchEndpointTest(APITestCase):
-    def test_simple(self):
+    def test_get_link_issue_config(self):
         org = self.organization
         self.login_as(self.user)
         group = self.create_group()
