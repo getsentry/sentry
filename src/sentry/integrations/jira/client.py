@@ -24,6 +24,7 @@ def md5(*bits):
 
 class JiraApiClient(ApiClient):
     COMMENT_URL = '/rest/api/2/issue/%s/comment'
+    STATUS_URL = '/rest/api/2/status'
     CREATE_URL = '/rest/api/2/issue'
     ISSUE_URL = '/rest/api/2/issue/%s'
     META_URL = '/rest/api/2/issue/createmeta'
@@ -121,3 +122,6 @@ class JiraApiClient(ApiClient):
     def create_issue(self, raw_form_data):
         data = {'fields': raw_form_data}
         return self.post(self.CREATE_URL, data=data)
+
+    def get_valid_statuses(self):
+        return self.request('GET', self.STATUS_URL)
