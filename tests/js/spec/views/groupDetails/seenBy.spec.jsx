@@ -43,7 +43,9 @@ describe('GroupSeenBy', function() {
         },
       });
 
-      expect(wrapper.find('li')).toHaveLength(3); // +1 for "icon-eye"
+      expect(wrapper.find('EyeIcon')).toHaveLength(1);
+      expect(wrapper.find('AvatarList')).toHaveLength(1);
+      expect(wrapper.find('AvatarList').prop('users')).toHaveLength(2);
     });
   });
 });

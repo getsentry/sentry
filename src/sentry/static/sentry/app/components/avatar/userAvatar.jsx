@@ -9,6 +9,7 @@ class UserAvatar extends React.Component {
   static propTypes = {
     user: SentryTypes.User,
     gravatar: PropTypes.bool,
+    renderTooltip: PropTypes.func,
     ...BaseAvatar.propTypes,
   };
 
@@ -28,7 +29,7 @@ class UserAvatar extends React.Component {
   };
 
   render() {
-    let {user, gravatar, ...props} = this.props;
+    let {user, gravatar, renderTooltip, ...props} = this.props;
 
     if (!user) return null;
 
@@ -42,7 +43,11 @@ class UserAvatar extends React.Component {
         uploadId={user.avatar && user.avatar.avatarUuid}
         gravatarId={user && user.email && user.email.toLowerCase()}
         letterId={user.email || user.username || user.id || user.ip_address}
-        tooltip={userDisplayName(user)}
+        tooltip={
+          typeof renderTooltip === 'function'
+            ? renderTooltip(user)
+            : userDisplayName(user)
+        }
         title={user.name || user.email || user.username || ''}
       />
     );
