@@ -1117,8 +1117,10 @@ class Exception(Interface):
         if not self.values:
             return
 
-        for tag in self.values[0].mechanism.iter_tags():
-            yield tag
+        mechanism = self.values[0].mechanism
+        if mechanism:
+            for tag in mechanism.iter_tags():
+                yield tag
 
 
 def slim_exception_data(instance, frame_allowance=settings.SENTRY_MAX_STACKTRACE_FRAMES):
