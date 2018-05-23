@@ -78,7 +78,7 @@ class Deploy extends React.Component {
             {deploy.version}
           </StyledLink>
         </Version>
-        <Box w={80}>{moment(deploy.dateFinished).fromNow()}</Box>
+        <Box w={100}>{moment(deploy.dateFinished).fromNow()}</Box>
       </DeployRow>
     );
   }
