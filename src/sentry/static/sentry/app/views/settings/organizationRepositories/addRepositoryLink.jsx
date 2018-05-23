@@ -32,10 +32,16 @@ class AddRepositoryLink extends PluginComponentBase {
   }
 
   getDefaultState() {
+    let formData = {};
+    this.props.provider.config.forEach(field => {
+      if (field.initial) {
+        formData[field.name] = field.initial;
+      }
+    });
     return {
       isModalOpen: false,
       error: {},
-      formData: {},
+      formData,
     };
   }
 
