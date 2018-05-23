@@ -818,7 +818,7 @@ class Mechanism(Interface):
         yield (self.path, self.type)
 
         if self.handled is not None:
-            yield ('handled', self.handled)
+            yield ('handled', self.handled and 'yes' or 'no')
 
 
 class SingleException(Interface):
