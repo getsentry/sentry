@@ -12,7 +12,7 @@ def _humanize(mode, tests_dict):
     if not tests_dict:
         print('Nothing to see here.\n')
         return
-    for testpath, duration in sorted(tests_dict.items(), key=itemgetter(1), reverse=(mode=='slower')):
+    for testpath, duration in sorted(tests_dict.items(), key=itemgetter(1), reverse=(mode!='faster')):
         print('({:+.2f}s) '.format(duration) if duration else '', testpath, sep='')
     print('\n')
 
