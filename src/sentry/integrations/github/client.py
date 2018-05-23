@@ -39,6 +39,9 @@ class GitHubClientMixin(ApiClient):
             num
         ))
 
+    def get_repo(self, repo):
+        return self.get('/repos/{}'.format(repo))
+
 
 class GitHubAppsClient(GitHubClientMixin):
 
