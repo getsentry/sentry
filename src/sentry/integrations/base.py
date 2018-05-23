@@ -162,6 +162,8 @@ class Integration(object):
     core functionality of the integration.
     """
 
+    logger = logging.getLogger('sentry.integrations')
+
     def __init__(self, model):
         self.model = model
 
