@@ -36,7 +36,7 @@ class BitbucketAPI(ApiClient):
 
     def __init__(self, base_url, shared_secret, subject):
         # subject is probably the clientKey
-        super(BitbucketAPI, self).__init__(verify_ssl=False)
+        super(BitbucketAPI, self).__init__()
         self.base_url = base_url
         self.shared_secret = shared_secret
         self.subject = subject
