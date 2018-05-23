@@ -52,7 +52,6 @@ class BitbucketAPI(ApiClient):
             'sub': self.subject,
         }
         encoded_jwt = jwt.encode(jwt_payload, self.shared_secret)
-        params = dict(**(params or {}))
         headers = {
             'Authorization': 'JWT %s' % encoded_jwt
         }
