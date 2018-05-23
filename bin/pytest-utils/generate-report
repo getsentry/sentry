@@ -25,10 +25,14 @@ if __name__ == '__main__':
         default=sys.stdout,
         help='The filepath to write the report to. If empty, stdout is used.',
     )
+    parser.add_argument('-p', '--pretty', action='store_true', help='write pretty JSON')
     args = parser.parse_args()
 
     with args.logfile as infile, args.reportfile as outfile:
         report = dict()
         for path, duration in extract_tests(infile.readlines()):
             report['/'.join(path)] = duration
-        json.dump(report, outfile, separators=(',', ':'))
+        if args.pretty:
+            json.dump(report, outfile, indent=4, sort_keys=True)
+        else:
+            json.dump(report, outfile, separators=(',', ':'))
