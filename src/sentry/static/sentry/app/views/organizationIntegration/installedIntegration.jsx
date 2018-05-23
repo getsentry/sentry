@@ -32,11 +32,11 @@ const DomainName = styled.div`
 export default class InstalledIntegration extends React.Component {
   static propTypes = {
     orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequred,
+    projectId: PropTypes.string.isRequired,
     provider: PropTypes.object.isRequired,
     integration: PropTypes.object.isRequired,
     onRemove: PropTypes.func.isRequired,
-    onToggleEnabled: PropTypes.func.isRequred,
+    onToggleEnabled: PropTypes.func.isRequired,
   };
 
   constructor() {

@@ -69,7 +69,10 @@ describe('OrganizationIntegration', function() {
       });
 
       it('renders', function() {
-        const wrapper = mount(<OrganizationIntegration params={params} />, routerContext);
+        const wrapper = shallow(
+          <OrganizationIntegration params={params} />,
+          routerContext
+        );
         expect(wrapper).toMatchSnapshot();
       });
 
