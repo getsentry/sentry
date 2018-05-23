@@ -40,7 +40,7 @@ class RecoveryCodes extends React.Component {
 
     if (!isEnrolled || !codes) return null;
 
-    let formattedCodes = codes.join('\n');
+    let formattedCodes = codes.join(' \n');
 
     return (
       <Panel css={{marginTop: 30}}>
