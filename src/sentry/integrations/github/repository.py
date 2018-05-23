@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import logging
 import six
 
-from sentry.models import Integration, Organization
+from sentry.models import Integration
 from sentry.plugins import providers
 
 WEBHOOK_EVENTS = ['push', 'pull_request']
@@ -11,13 +11,15 @@ WEBHOOK_EVENTS = ['push', 'pull_request']
 
 class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
     name = 'GitHub Apps'
-    auth_provider = 'github'
     logger = logging.getLogger('sentry.plugins.github')
 
     def get_config(self, organization):
         choices = []
         for i in Integration.objects.filter(organizations=organization, provider='github'):
             choices.append((i.id, i.name))
+
+        if not choices:
+            choices = [('', '')]
 
         return [
             {
@@ -26,8 +28,7 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
                 'type': 'choice',
                 'choices': choices,
                 'initial': choices[0][0],
-                'placeholder': 'i dk yet',
-                'help': 'Enter your repository name, including the owner.',
+                'help': 'Select which GitHub installation to authenticate with.',
                 'required': True,
             },
             {
@@ -50,13 +51,18 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
         """
         if config.get('name') and config.get('installation'):
             # this doesn't work yet, need github client
-            client = self.get_client()
+            integration = Integration.objects.get(
+                id=config['installation'], organizations=organization)
+            installation = integration.get_installation()
+            client = installation.get_client(integration)
             try:
                 repo = client.get_repo(config['name'])
             except Exception as e:
                 self.raise_error(e)
             else:
                 config['external_id'] = six.text_type(repo['id'])
+                config['integration_id'] = six.text_type(integration.id)
+
         return config
 
     def create_repository(self, organization, data, actor=None):
@@ -66,42 +72,9 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
             'url': 'https://github.com/{}'.format(data['name']),
             'config': {
                 'name': data['name'],
-            }
+            },
+            'integration_id': data['integration_id']
         }
-
-    # TODO(dcramer): let's make this core functionality and move the actual database
-    # updates into Sentry core
-    def update_repository(self, repo, actor=None):
-        if actor is None:
-            raise NotImplementedError('Cannot update a repository anonymously')
-
-        client = self.get_client(actor)
-        org = Organization.objects.get(id=repo.organization_id)
-        webhook_id = repo.config.get('webhook_id')
-        if not webhook_id:
-            resp = self._create_webhook(client, org, repo.config['name'])
-        else:
-            resp = self._update_webhook(
-                client,
-                org,
-                repo.config['name'],
-                repo.config['webhook_id'])
-        repo.config.update({
-            'webhook_id': resp['id'],
-            'webhook_events': resp['events'],
-        })
-        repo.update(config=repo.config)
-
-    def _format_commits(self, repo, commit_list):
-        return [
-            {
-                'id': c['sha'],
-                'repository': repo.name,
-                'author_email': c['commit']['author'].get('email'),
-                'author_name': c['commit']['author'].get('name'),
-                'message': c['commit']['message'],
-            } for c in commit_list
-        ]
 
     def compare_commits(self, repo, start_sha, end_sha, actor=None):
         if actor is None:

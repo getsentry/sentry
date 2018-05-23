@@ -75,7 +75,7 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
         provider_id = request.DATA.get('provider')
 
         if features.has('organizations:internal-catchall', organization, actor=request.user):
-            if provider_id.startswith('integrations:'):
+            if provider_id is not None and provider_id.startswith('integrations:'):
                 try:
                     provider_cls = bindings.get('integration-repository.provider').get(provider_id)
                 except KeyError:
