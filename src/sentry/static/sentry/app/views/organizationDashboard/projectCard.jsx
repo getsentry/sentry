@@ -16,7 +16,7 @@ import {t} from 'app/locale';
 import {update, loadStatsForProject} from 'app/actionCreators/projects';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import PlatformIcon from 'app/components/platformicon';
+import Platformicon from 'app/components/platformicon';
 
 import Chart from './chart';
 import NoEvents from './noEvents';
@@ -67,7 +67,7 @@ class ProjectCard extends React.Component {
           <StyledProjectCard>
             <Flex justify="space-between" align="center">
               <Box ml={2}>
-                <PlatformIcon size="24" platform={project.platform || 'generic'} />
+                <StyledPlatformicon size="24" platform={project.platform || 'generic'} />
               </Box>
               <StyledLink to={`/${params.orgId}/${slug}/`}>
                 <strong>{slug}</strong>
@@ -93,6 +93,13 @@ class ProjectCard extends React.Component {
     );
   }
 }
+
+const StyledPlatformicon = styled(Platformicon)`
+  display: block;
+  color: white;
+  border-radius: 3px;
+  max-width: 24px;
+`;
 
 const ProjectCardContainer = createReactClass({
   propTypes: {

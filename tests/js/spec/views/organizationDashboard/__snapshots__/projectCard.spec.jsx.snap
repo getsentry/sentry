@@ -42,7 +42,7 @@ exports[`ProjectCard renders 1`] = `
     }
   >
     <Base
-      className="css-3jemnr-ProjectCardWrapper efesc7i2"
+      className="css-3jemnr-ProjectCardWrapper efesc7i3"
       data-test-id="project-slug"
       width={
         Array [
@@ -54,13 +54,13 @@ exports[`ProjectCard renders 1`] = `
       }
     >
       <div
-        className="css-3jemnr-ProjectCardWrapper efesc7i2"
+        className="css-3jemnr-ProjectCardWrapper efesc7i3"
         data-test-id="project-slug"
         is={null}
       >
         <StyledProjectCard>
           <div
-            className="css-18be1td-StyledProjectCard efesc7i3"
+            className="css-18be1td-StyledProjectCard efesc7i4"
           >
             <Flex
               align="center"
@@ -86,23 +86,30 @@ exports[`ProjectCard renders 1`] = `
                         className="css-1dvsqd3"
                         is={null}
                       >
-                        <Platformicon
+                        <StyledPlatformicon
                           platform="javascript"
                           size="24"
                         >
-                          <img
-                            height="24"
-                            src={
-                              Object {
-                                "default": Object {
-                                  "id": "test",
-                                  "viewBox": Object {},
-                                },
+                          <Platformicon
+                            className="css-12pxqdy-StyledPlatformicon efesc7i0"
+                            platform="javascript"
+                            size="24"
+                          >
+                            <img
+                              className="css-12pxqdy-StyledPlatformicon efesc7i0"
+                              height="24"
+                              src={
+                                Object {
+                                  "default": Object {
+                                    "id": "test",
+                                    "viewBox": Object {},
+                                  },
+                                }
                               }
-                            }
-                            width="24"
-                          />
-                        </Platformicon>
+                              width="24"
+                            />
+                          </Platformicon>
+                        </StyledPlatformicon>
                       </div>
                     </Base>
                   </Box>
@@ -110,17 +117,17 @@ exports[`ProjectCard renders 1`] = `
                     to="/org-slug/project-slug/"
                   >
                     <Link
-                      className="css-1c2wmv-StyledLink efesc7i1"
+                      className="css-1c2wmv-StyledLink efesc7i2"
                       to="/org-slug/project-slug/"
                     >
                       <Link
-                        className="css-1c2wmv-StyledLink efesc7i1"
+                        className="css-1c2wmv-StyledLink efesc7i2"
                         onlyActiveOnIndex={false}
                         style={Object {}}
                         to="/org-slug/project-slug/"
                       >
                         <a
-                          className="css-1c2wmv-StyledLink efesc7i1"
+                          className="css-1c2wmv-StyledLink efesc7i2"
                           onClick={[Function]}
                           style={Object {}}
                         >
@@ -141,7 +148,7 @@ exports[`ProjectCard renders 1`] = `
                       title="Add to bookmarks"
                     >
                       <a
-                        className="tip project-select-bookmark icon icon-star-solid css-31kf5u-Star efesc7i4"
+                        className="tip project-select-bookmark icon icon-star-solid css-31kf5u-Star efesc7i5"
                         onClick={[Function]}
                         title="Add to bookmarks"
                       />
@@ -152,7 +159,7 @@ exports[`ProjectCard renders 1`] = `
             </Flex>
             <ChartContainer>
               <div
-                className="css-1s8o1vf-ChartContainer efesc7i0"
+                className="css-1s8o1vf-ChartContainer efesc7i1"
               >
                 <Chart
                   noEvents={true}
