@@ -33,8 +33,10 @@ from django.contrib.auth.models import AnonymousUser
 from django.core import signing
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
+from django.db import connections, DEFAULT_DB_ALIAS
 from django.http import HttpRequest
 from django.test import TestCase, TransactionTestCase
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from django.utils.importlib import import_module
 from exam import before, fixture, Exam
@@ -59,7 +61,9 @@ from sentry.utils import json
 from sentry.utils.auth import SSO_SESSION_KEY
 
 from .fixtures import Fixtures
-from .helpers import AuthProvider, Feature, get_auth_header, TaskRunner, override_options
+from .helpers import (
+    AuthProvider, Feature, get_auth_header, TaskRunner, override_options, parse_queries
+)
 
 DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'
 
@@ -307,6 +311,62 @@ class BaseTestCase(Fixtures, Exam):
         assert deleted_log.date_created.replace(
             microsecond=0) == original_object.date_added.replace(microsecond=0)
         assert deleted_log.date_deleted >= deleted_log.date_created
+
+    def assertWriteQueries(self, queries, debug=False, *args, **kwargs):
+        func = kwargs.pop('func', None)
+        using = kwargs.pop("using", DEFAULT_DB_ALIAS)
+        conn = connections[using]
+
+        context = _AssertQueriesContext(self, queries, debug, conn)
+        if func is None:
+            return context
+
+        with context:
+            func(*args, **kwargs)
+
+
+class _AssertQueriesContext(CaptureQueriesContext):
+    def __init__(self, test_case, queries, debug, connection):
+        self.test_case = test_case
+        self.queries = queries
+        self.debug = debug
+        super(_AssertQueriesContext, self).__init__(connection)
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        super(_AssertQueriesContext, self).__exit__(exc_type, exc_value, traceback)
+        if exc_type is not None:
+            return
+
+        parsed_queries = parse_queries(self.captured_queries)
+
+        if (self.debug):
+            import pprint
+            pprint.pprint("====================== Raw Queries ======================")
+            pprint.pprint(self.captured_queries)
+            pprint.pprint("====================== Table writes ======================")
+            pprint.pprint(parsed_queries)
+
+        for table, num in parsed_queries.items():
+            expected = self.queries.get(table, 0)
+            if expected == 0:
+                import pprint
+                pprint.pprint("WARNING: no query against %s emitted, add debug=True to see all the queries" % (
+                    table
+                ))
+            else:
+                self.test_case.assertTrue(
+                    num == expected, "%d write queries expected on `%s`, got %d, add debug=True to see all the queries" % (
+                        expected, table, num
+                    )
+                )
+
+        for table, num in self.queries.items():
+            executed = parsed_queries.get(table, None)
+            self.test_case.assertFalse(
+                executed is None, "no query against %s emitted, add debug=True to see all the queries" % (
+                    table
+                )
+            )
 
 
 class TestCase(BaseTestCase, TestCase):

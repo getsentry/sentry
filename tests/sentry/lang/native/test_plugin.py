@@ -1,22 +1,28 @@
 from __future__ import absolute_import
 
 import os
+import pytest
 import zipfile
 from mock import patch
 from six import BytesIO
 
-from django.core.files.uploadedfile import SimpleUploadedFile
+from django.conf import settings
 from django.core.urlresolvers import reverse
+from django.core.files.uploadedfile import SimpleUploadedFile
 
-from sentry.models import Event, File, ProjectDSymFile
 from sentry.testutils import TestCase
 from sentry.lang.native.symbolizer import Symbolizer
+from sentry.models import Event, File, ProjectDSymFile
 
 from symbolic import parse_addr, Object, SymbolicError
 
 
 class BasicResolvingIntegrationTest(TestCase):
 
+    @pytest.mark.skipif(
+        settings.SENTRY_TAGSTORE == 'sentry.tagstore.v2.V2TagStorage',
+        reason='Queries are completly different when using tagstore'
+    )
     @patch('sentry.lang.native.symbolizer.Symbolizer._symbolize_app_frame')
     def test_frame_resolution(self, symbolize_frame):
         object_name = (
@@ -161,10 +167,25 @@ class BasicResolvingIntegrationTest(TestCase):
             }
         }
 
-        resp = self._postWithHeader(event_data)
+        # We do a preflight post, because there are many queries polluting the array
+        # before the actual "processing" happens (like, auth_user)
+        self._postWithHeader(event_data)
+        with self.assertWriteQueries({
+            'nodestore_node': 2,
+            'sentry_environmentproject': 1,
+            'sentry_eventtag': 1,
+            'sentry_eventuser': 1,
+            'sentry_filtervalue': 7,
+            'sentry_groupedmessage': 1,
+            'sentry_message': 1,
+            'sentry_messagefiltervalue': 7,
+            'sentry_userreport': 1
+        }):
+            resp = self._postWithHeader(event_data)
+
         assert resp.status_code == 200
 
-        event = Event.objects.get()
+        event = Event.objects.first()
 
         bt = event.interfaces['sentry.interfaces.Exception'].values[0].stacktrace
         frames = bt.frames
