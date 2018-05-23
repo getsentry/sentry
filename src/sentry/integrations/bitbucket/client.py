@@ -119,8 +119,6 @@ class BitbucketAPI(ApiClient):
             repo_slug=repo_slug,
             uid=hook_id,
         ))
-# ----------------------------------------------------------------
-# Still in the process of checking these below
 
     def transform_patchset(self, patch_set):
         # TODO(LB): copy and paste not sure what this does
