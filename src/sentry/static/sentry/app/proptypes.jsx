@@ -65,6 +65,12 @@ export const Config = PropTypes.shape({
   }),
 });
 
+export const Deploy = PropTypes.shape({
+  environment: PropTypes.string,
+  dateFinished: PropTypes.string,
+  version: PropTypes.string,
+});
+
 /**
  * A Member is someone that was invited to Sentry but may
  * not have registered for an account yet
@@ -295,12 +301,13 @@ let SentryTypes = {
   }),
   Actor,
   Config,
-  Group,
+  Deploy,
   Environment,
   Event,
   Organization: PropTypes.shape({
     id: PropTypes.string.isRequired,
   }),
+  Group,
   Tag,
   PageLinks,
   Project,
