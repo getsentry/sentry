@@ -121,7 +121,7 @@ class NoDeploys extends React.Component {
           <Button
             size="xsmall"
             href="https://blog.sentry.io/2017/05/09/release-deploys"
-            target="_blank"
+            external={true}
           >
             {t('Track deploys')}
           </Button>

@@ -389,68 +389,81 @@ exports[`ProjectCard renders 1`] = `
                           >
                             <Button
                               disabled={false}
+                              external={true}
                               href="https://blog.sentry.io/2017/05/09/release-deploys"
                               size="xsmall"
-                              target="_blank"
                             >
                               <StyledButton
                                 aria-label="Track deploys"
                                 disabled={false}
+                                external={true}
                                 href="https://blog.sentry.io/2017/05/09/release-deploys"
                                 onClick={[Function]}
                                 role="button"
                                 size="xsmall"
-                                target="_blank"
                               >
                                 <Component
                                   aria-label="Track deploys"
                                   className="css-dkprmi-StyledButton-getColors e17811v30"
                                   disabled={false}
+                                  external={true}
                                   href="https://blog.sentry.io/2017/05/09/release-deploys"
                                   onClick={[Function]}
                                   role="button"
                                   size="xsmall"
-                                  target="_blank"
                                 >
-                                  <a
+                                  <ExternalLink
                                     aria-label="Track deploys"
                                     className="css-dkprmi-StyledButton-getColors e17811v30"
                                     disabled={false}
                                     href="https://blog.sentry.io/2017/05/09/release-deploys"
                                     onClick={[Function]}
+                                    rel="noreferrer noopener"
                                     role="button"
                                     size="xsmall"
                                     target="_blank"
                                   >
-                                    <ButtonLabel
+                                    <a
+                                      aria-label="Track deploys"
+                                      className="css-dkprmi-StyledButton-getColors e17811v30"
+                                      disabled={false}
+                                      href="https://blog.sentry.io/2017/05/09/release-deploys"
+                                      onClick={[Function]}
+                                      rel="noreferrer noopener"
+                                      role="button"
                                       size="xsmall"
+                                      target="_blank"
                                     >
-                                      <Component
-                                        className="css-9vplug-ButtonLabel e17811v31"
+                                      <ButtonLabel
                                         size="xsmall"
                                       >
-                                        <Flex
-                                          align="center"
+                                        <Component
                                           className="css-9vplug-ButtonLabel e17811v31"
                                           size="xsmall"
                                         >
-                                          <Base
+                                          <Flex
                                             align="center"
-                                            className="e17811v31 css-esdzbq-ButtonLabel"
+                                            className="css-9vplug-ButtonLabel e17811v31"
                                             size="xsmall"
                                           >
-                                            <div
+                                            <Base
+                                              align="center"
                                               className="e17811v31 css-esdzbq-ButtonLabel"
-                                              is={null}
                                               size="xsmall"
                                             >
-                                              Track deploys
-                                            </div>
-                                          </Base>
-                                        </Flex>
-                                      </Component>
-                                    </ButtonLabel>
-                                  </a>
+                                              <div
+                                                className="e17811v31 css-esdzbq-ButtonLabel"
+                                                is={null}
+                                                size="xsmall"
+                                              >
+                                                Track deploys
+                                              </div>
+                                            </Base>
+                                          </Flex>
+                                        </Component>
+                                      </ButtonLabel>
+                                    </a>
+                                  </ExternalLink>
                                 </Component>
                               </StyledButton>
                             </Button>
