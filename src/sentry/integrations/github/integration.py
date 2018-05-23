@@ -110,7 +110,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
         bindings.add(
             'integration-repository',
             GitHubRepositoryProvider,
-            id='integrations:github'
+            id='integrations:github',
         )
 
 

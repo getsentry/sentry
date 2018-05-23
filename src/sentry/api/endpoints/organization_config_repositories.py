@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.plugins import bindings
 
@@ -25,15 +26,16 @@ class OrganizationConfigRepositoriesEndpoint(OrganizationEndpoint):
                     }
                 )
 
-        for provider_id in integrations_provider_bindings:
-            provider = integrations_provider_bindings.get(provider_id)(id=provider_id)
-            providers.append(
-                {
-                    'id': provider_id,
-                    'name': provider.name,
-                    'config': provider.get_config(organization),
-                }
-            )
+        if features.has('organizations:internal-catchall', organization, actor=request.user):
+            for provider_id in integrations_provider_bindings:
+                provider = integrations_provider_bindings.get(provider_id)(id=provider_id)
+                providers.append(
+                    {
+                        'id': provider_id,
+                        'name': provider.name,
+                        'config': provider.get_config(organization),
+                    }
+                )
 
         return Response({
             'providers': providers,
