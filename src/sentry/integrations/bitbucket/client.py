@@ -18,7 +18,7 @@ class BitbucketAPIPath(object):
     """
     All UUID's must be surrounded by culybraces.
 
-    repo is username/repo_slug due to legacy reasons
+    repo is the fully qualified slug containing 'username/repo_slug'
 
     repo_slug - repository slug or UUID
     username - username or UUID
@@ -39,7 +39,7 @@ class BitbucketAPI(ApiClient):
     """
     The API Client for the Bitbucket Integraiton
 
-    NOTE: the repo is 'username/repo_slug'
+    NOTE: repo is the fully qualified slug containing 'username/repo_slug'
     """
 
     def __init__(self, base_url, shared_secret, subject):
