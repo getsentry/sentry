@@ -100,31 +100,6 @@ class IntegrationProvider(PipelineProvider):
         """
         raise NotImplementedError
 
-    # XXX(dcramer): this is not yet exposed anywhere in the UI
-    def get_config(self):
-        """
-        Return a list of configuration attributes for this integration.
-
-        The results of this are stored per-organization per-integration.
-
-        >>> def get_config(self):
-        >>>     return [{
-        >>>         'name': 'instance',
-        >>>         'label': 'Instance',
-        >>>         'type': 'text',
-        >>>         'placeholder': 'e.g. https://example.atlassian.net',
-        >>>         'required': True,
-        >>>     }]
-        """
-        return []
-
-    def is_configured(self):
-        """
-        Return a boolean describing whether this integration should be made
-        available (e.g. per system-configuration).
-        """
-        return True
-
     def build_integration(self, state):
         """
         Given state captured during the setup pipeline, return a dictionary
