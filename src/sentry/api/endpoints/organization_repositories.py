@@ -73,6 +73,19 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
             }, status=403)
 
         provider_id = request.DATA.get('provider')
+
+        if provider_id == 'integrations:github':
+            try:
+                provider_cls = bindings.get('integration-repository.provider').get(provider_id)
+            except KeyError:
+                return Response(
+                    {
+                        'error_type': 'validation',
+                    }, status=400
+                )
+            provider = provider_cls(id=provider_id)
+            return provider.dispatch(request, organization)
+
         try:
             provider_cls = bindings.get('repository.provider').get(provider_id)
         except KeyError:

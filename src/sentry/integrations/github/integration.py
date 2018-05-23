@@ -9,6 +9,7 @@ from sentry.integrations import IntegrationProvider, IntegrationMetadata
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.utils.http import absolute_uri
 
+from .repository import GitHubRepositoryProvider
 from .utils import get_jwt
 
 
@@ -103,6 +104,14 @@ class GitHubIntegrationProvider(IntegrationProvider):
                 'data': {'access_token': identity['access_token']},
             },
         }
+
+    def setup(self):
+        from sentry.plugins import bindings
+        bindings.add(
+            'integration-repository',
+            GitHubRepositoryProvider,
+            id='integrations:github'
+        )
 
 
 class GitHubInstallationRedirect(PipelineView):
