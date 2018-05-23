@@ -26,7 +26,7 @@ class ProjectIssuesTest(AcceptanceTestCase):
         # TODO(dcramer): we should add basic assertions around "i wanted this
         # URL but was sent somewhere else"
         self.browser.get(self.path)
-        self.browser.wait_until('.awaiting-events')
+        self.browser.wait_until('[data-test-id="awaiting-events"]')
         self.browser.snapshot('project issues not configured')
 
     def test_with_issues(self):
