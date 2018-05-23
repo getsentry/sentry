@@ -3,12 +3,18 @@ from __future__ import absolute_import
 __all__ = ['Integration', 'IntegrationFeatures', 'IntegrationProvider', 'IntegrationMetadata']
 
 import logging
+import six
+import sys
+
 from collections import namedtuple
 from enum import Enum
 
+from sentry.exceptions import InvalidIdentity
 from sentry.pipeline import PipelineProvider
 
-from .exceptions import ApiHostError, ApiError, ApiUnauthorized, UnsupportedResponseType
+from .exceptions import (
+    ApiHostError, ApiError, ApiUnauthorized, IntegrationError, UnsupportedResponseType
+)
 
 
 ERR_INTERNAL = (
@@ -196,10 +202,33 @@ class Integration(object):
                 msg = 'unknown error'
             return (
                 'Error Communicating with %s (HTTP %s): %s' % (
-                    self.title,
+                    self.model.get_provider().name,
                     exc.code,
                     msg
                 )
             )
         else:
             return ERR_INTERNAL
+
+    def raise_error(self, exc, identity=None):
+        if isinstance(exc, ApiUnauthorized):
+            six.reraise(
+                InvalidIdentity,
+                InvalidIdentity(self.message_from_error(exc), identity=identity),
+                sys.exc_info()[2]
+            )
+        elif isinstance(exc, ApiError):
+            six.reraise(
+                IntegrationError,
+                IntegrationError(self.message_from_error(exc)),
+                sys.exc_info()[2]
+            )
+        elif isinstance(exc, IntegrationError):
+            raise
+        else:
+            self.logger.exception(six.text_type(exc))
+            six.reraise(
+                IntegrationError,
+                IntegrationError(self.message_from_error(exc)),
+                sys.exc_info()[2]
+            )
