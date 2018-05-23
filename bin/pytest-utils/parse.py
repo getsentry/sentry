@@ -18,5 +18,5 @@ def extract_tests(lines):
             # call times are a much more consistent and reliable metric
             # than setup or teardown times, which vary depending on what
             # tests are called and how pytest caches fixtures and such
-            if float(d['duration']) > 0.0 and d['type'] == 'call':
+            if d['type'] == 'call':
                 yield _split_path(d.pop('path')), float(d['duration'])
