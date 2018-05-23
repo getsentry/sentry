@@ -86,7 +86,7 @@ class JiraApiClient(ApiClient):
     def get_create_meta(self, project=None):
         params = {'expand': 'projects.issuetypes.fields'}
         if project is not None:
-            params['projectKeys'] = project
+            params['projectIds'] = project
         return self.get(
             self.META_URL,
             params=params,

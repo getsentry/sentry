@@ -50,10 +50,56 @@ SAMPLE_CREATE_META_RESPONSE = """
 }
 """
 
+SAMPLE_PROJECT_LIST_RESPONSE = """
+[
+  {
+    "self": "http://www.example.com/jira/rest/api/2/project/EX",
+    "id": "10000",
+    "key": "EX",
+    "name": "Example",
+    "avatarUrls": {
+      "48x48": "http://www.example.com/jira/secure/projectavatar?size=large&pid=10000",
+      "24x24": "http://www.example.com/jira/secure/projectavatar?size=small&pid=10000",
+      "16x16": "http://www.example.com/jira/secure/projectavatar?size=xsmall&pid=10000",
+      "32x32": "http://www.example.com/jira/secure/projectavatar?size=medium&pid=10000"
+    },
+    "projectCategory": {
+      "self": "http://www.example.com/jira/rest/api/2/projectCategory/10000",
+      "id": "10000",
+      "name": "FIRST",
+      "description": "First Project Category"
+    },
+    "simplified": false
+  },
+  {
+    "self": "http://www.example.com/jira/rest/api/2/project/ABC",
+    "id": "10001",
+    "key": "ABC",
+    "name": "Alphabetical",
+    "avatarUrls": {
+      "48x48": "http://www.example.com/jira/secure/projectavatar?size=large&pid=10001",
+      "24x24": "http://www.example.com/jira/secure/projectavatar?size=small&pid=10001",
+      "16x16": "http://www.example.com/jira/secure/projectavatar?size=xsmall&pid=10001",
+      "32x32": "http://www.example.com/jira/secure/projectavatar?size=medium&pid=10001"
+    },
+    "projectCategory": {
+      "self": "http://www.example.com/jira/rest/api/2/projectCategory/10000",
+      "id": "10000",
+      "name": "FIRST",
+      "description": "First Project Category"
+    },
+    "simplified": false
+  }
+]
+"""
+
 
 class MockJiraApiClient(object):
     def get_create_meta(self, project=None):
         return json.loads(SAMPLE_CREATE_META_RESPONSE)
+
+    def get_projects_list(self):
+        return json.loads(SAMPLE_PROJECT_LIST_RESPONSE)
 
 
 class JiraIntegrationTest(APITestCase):
@@ -76,8 +122,8 @@ class JiraIntegrationTest(APITestCase):
 
         with mock.patch.object(installation, 'get_client', get_client):
             assert installation.get_create_issue_config(group) == [{
-                'default': 'EX',
-                'choices': ('EX', 'EX'),
+                'default': '10000',
+                'choices': [('10000', 'EX'), ('10001', 'ABC')],
                 'type': 'select',
                 'name': 'project',
                 'label': 'Jira Project',

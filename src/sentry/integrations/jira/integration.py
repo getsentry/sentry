@@ -193,7 +193,6 @@ class JiraIntegration(Integration, IssueSyncMixin):
 
         return issue_type_meta
 
-    # def get_new_issue_fields(self, request, group, event, **kwargs):
     def get_create_issue_config(self, group, **kwargs):
         fields = super(JiraIntegration, self).get_create_issue_config(group, **kwargs)
         params = kwargs.get('params', {})
@@ -202,7 +201,7 @@ class JiraIntegration(Integration, IssueSyncMixin):
 
         client = self.get_client()
         try:
-            resp = client.get_create_meta(params.get('projectKey'))
+            resp = client.get_create_meta(params.get('project'))
         except ApiUnauthorized:
             raise IntegrationError(
                 'JIRA returned: Unauthorized. '
@@ -235,8 +234,8 @@ class JiraIntegration(Integration, IssueSyncMixin):
             {
                 'name': 'project',
                 'label': 'Jira Project',
-                'choices': ((meta['key']), (meta['key'])),
-                'default': meta['key'],
+                'choices': [(p['id'], p['key']) for p in client.get_projects_list()],
+                'default': meta['id'],
                 'type': 'select',
             }
         ] + fields + [
