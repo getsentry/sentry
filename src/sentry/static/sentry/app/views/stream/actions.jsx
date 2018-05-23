@@ -446,6 +446,7 @@ const StreamActions = createReactClass({
                   '%s real-time updates',
                   realtimeActive ? t('Pause') : t('Enable')
                 )}
+                tooltipOptions={{container: 'body'}}
               >
                 <a
                   className="btn btn-default btn-sm hidden-xs realtime-control"
