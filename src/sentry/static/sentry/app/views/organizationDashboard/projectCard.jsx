@@ -67,7 +67,7 @@ class ProjectCard extends React.Component {
           <StyledProjectCard>
             <Flex justify="space-between" align="center">
               <Box ml={2}>
-                <PlatformIcon size="24" platform={project.platform} />
+                <PlatformIcon size="24" platform={project.platform || 'generic'} />
               </Box>
               <StyledLink to={`/${params.orgId}/${slug}/`}>
                 <strong>{slug}</strong>
