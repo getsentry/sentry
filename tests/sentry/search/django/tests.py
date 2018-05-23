@@ -331,6 +331,15 @@ class DjangoSearchBackendTest(TestCase):
 
         results = self.backend.query(
             self.project,
+            environment=self.environments['staging'],
+            tags={
+                'environment': ANY,
+                'server': ANY,
+            })
+        assert set(results) == set([self.group2])
+
+        results = self.backend.query(
+            self.project,
             environment=self.environments['production'],
             tags={'url': 'http://example.com'})
         assert set(results) == set([])
