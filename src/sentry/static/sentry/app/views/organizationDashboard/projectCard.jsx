@@ -164,7 +164,7 @@ const Star = styled.a`
 const LoadingCard = styled('div')`
   border: 1px solid transparent;
   background-color: ${p => p.theme.offWhite};
-  height: 290px;
+  height: 266px;
 `;
 
 export {ProjectCard};

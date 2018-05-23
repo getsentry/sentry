@@ -9,6 +9,7 @@ import Button from 'app/components/buttons/button';
 import Link from 'app/components/link';
 import {t} from 'app/locale';
 import TextOverflow from 'app/components/textOverflow';
+import {getShortVersion} from 'app/utils';
 
 const DEPLOY_COUNT = 2;
 
@@ -36,7 +37,6 @@ export default class Deploys extends React.Component {
     if (deploys.length) {
       return (
         <DeployBox p={2} pb={0}>
-          <Heading>{t('Latest deploys')}</Heading>
           <div>
             {deploys.map(deploy => (
               <Deploy
@@ -55,12 +55,6 @@ export default class Deploys extends React.Component {
   }
 }
 
-const Heading = styled.div`
-  color: ${p => p.theme.gray2};
-  text-transform: uppercase;
-  font-size: 14px;
-`;
-
 class Deploy extends React.Component {
   static propTypes = {
     deploy: SentryTypes.Deploy.isRequired,
@@ -75,10 +69,12 @@ class Deploy extends React.Component {
         <Environment>{deploy.environment}</Environment>
         <Version>
           <StyledLink to={`/${orgId}/${projectId}/releases/${deploy.version}/`}>
-            {deploy.version}
+            {getShortVersion(deploy.version)}
           </StyledLink>
         </Version>
-        <Box w={100}>{moment(deploy.dateFinished).fromNow()}</Box>
+        <Flex w={90} justify="flex-end">
+          {moment(deploy.dateFinished).fromNow()}
+        </Flex>
       </DeployRow>
     );
   }
@@ -86,7 +82,7 @@ class Deploy extends React.Component {
 
 const DeployRow = styled(Flex)`
   color: ${p => p.theme.gray2};
-  font-size: 13px;
+  font-size: 12px;
   margin-top: 8px;
 `;
 
@@ -132,7 +128,7 @@ class NoDeploys extends React.Component {
 }
 
 const DeployBox = styled(Box)`
-  height: 108px;
+  height: 84px;
 `;
 
 const Background = styled(Flex)`
