@@ -23,29 +23,52 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
         disablePadding={false}
         flex={false}
       >
-        <p>
+        <Block>
           Define rules here to configure automated ownership for new issues and direct email alerts
-        </p>
-        <p>
-          Rules follow the pattern type:glob owner owner
-        </p>
-        <p>
-          Owners can be team identifiers starting with #, or user emails
-        </p>
-        <p>
+        </Block>
+        <Block>
+          Rules follow the pattern: 
+          <code>
+            type:glob owner owner
+          </code>
+        </Block>
+        <Block>
+          <span
+            key="4"
+          >
+            <span
+              key="0"
+            >
+              Owners can be team identifiers starting with 
+            </span>
+            <code
+              key="1"
+            >
+              #
+            </code>
+            <span
+              key="2"
+            >
+              , or user emails
+            </span>
+          </span>
+        </Block>
+        <Block>
           Globbing Syntax:
           <CodeBlock>
             * matches everything
 ? matches any single character
           </CodeBlock>
-        </p>
-        Examples:
-        <CodeBlock>
-          path:src/example/pipeline/* person@sentry.io #infrastructure
-          
+        </Block>
+        <Block>
+          Examples:
+          <CodeBlock>
+            path:src/example/pipeline/* person@sentry.io #infrastructure
+            
 
-          url:http://example.com/settings/* #product
-        </CodeBlock>
+            url:http://example.com/settings/* #product
+          </CodeBlock>
+        </Block>
         <OwnerInput
           initialText="url:src @dummy@example.com"
           organization={

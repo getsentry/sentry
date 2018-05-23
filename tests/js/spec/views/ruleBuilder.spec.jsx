@@ -90,6 +90,7 @@ describe('RuleBuilder', function() {
 
     let text = wrapper.find('BuilderInput');
     text.simulate('change', {target: {value: 'some/path/*'}});
+    expect(wrapper.find('RuleAddButton').prop('disabled')).toBe(true);
 
     add.simulate('click');
     expect(handleAdd).not.toHaveBeenCalled();
@@ -98,9 +99,13 @@ describe('RuleBuilder', function() {
     wrapper.find('SelectOwners .Select-control').simulate('keyDown', {keyCode: 40});
     wrapper.find('SelectOwners .Select-control').simulate('keyDown', {keyCode: 13});
 
+    expect(wrapper.find('RuleAddButton').prop('disabled')).toBe(false);
     add.simulate('click');
     expect(handleAdd).toHaveBeenCalled();
 
+    // This is because after selecting, react-select (async) reloads
+    await tick();
+    wrapper.update();
     expect(wrapper.find(RuleBuilder)).toMatchSnapshot();
   });
 
@@ -152,6 +157,9 @@ describe('RuleBuilder', function() {
     let ruleCandidate = wrapper.find('RuleCandidate').first();
     ruleCandidate.simulate('click');
 
+    // This is because after selecting, react-select (async) reloads
+    await tick();
+    wrapper.update();
     expect(wrapper.find(RuleBuilder)).toMatchSnapshot();
 
     wrapper.find('RuleAddButton').simulate('click');

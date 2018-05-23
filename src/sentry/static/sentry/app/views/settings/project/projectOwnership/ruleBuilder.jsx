@@ -18,6 +18,7 @@ const initialState = {
   text: '',
   type: 'path',
   owners: [],
+  isValid: false,
 };
 
 class RuleBuilder extends React.Component {
@@ -34,22 +35,31 @@ class RuleBuilder extends React.Component {
     this.state = initialState;
   }
 
+  checkIsValid = () => {
+    this.setState(state => ({
+      isValid: !!state.text && state.owners && !!state.owners.length,
+    }));
+  };
+
   handleTypeChange = val => {
     this.setState({type: val});
+    this.checkIsValid();
   };
 
   handleChangeValue = e => {
     this.setState({text: e.target.value});
+    this.checkIsValid();
   };
 
   handleChangeOwners = owners => {
     this.setState({owners});
+    this.checkIsValid();
   };
 
   handleAddRule = () => {
-    let {type, text, owners} = this.state;
+    let {type, text, owners, isValid} = this.state;
 
-    if (!text || owners.length == 0) {
+    if (!isValid) {
       addErrorMessage('A Rule needs a type, a value, and one or more owners.');
       return;
     }
@@ -68,9 +78,14 @@ class RuleBuilder extends React.Component {
     this.setState(initialState);
   };
 
+  handleSelectCandidate = (text, type) => {
+    this.setState({text, type});
+    this.checkIsValid();
+  };
+
   render() {
     let {urls, paths, project, organization} = this.props;
-    let {type, text, owners} = this.state;
+    let {type, text, owners, isValid} = this.state;
 
     return (
       <React.Fragment>
@@ -80,7 +95,7 @@ class RuleBuilder extends React.Component {
               paths.map(v => (
                 <RuleCandidate
                   key={v}
-                  onClick={() => this.setState({text: v, type: 'path'})}
+                  onClick={() => this.handleSelectCandidate(v, 'path')}
                 >
                   <AddIcon src="icon-circle-add" />
                   <StyledTextOverflow>{v}</StyledTextOverflow>
@@ -91,7 +106,7 @@ class RuleBuilder extends React.Component {
               urls.map(v => (
                 <RuleCandidate
                   key={v}
-                  onClick={() => this.setState({text: v, type: 'url'})}
+                  onClick={() => this.handleSelectCandidate(v, 'url')}
                 >
                   <AddIcon src="icon-circle-add" />
                   <StyledTextOverflow>{v}</StyledTextOverflow>
@@ -130,6 +145,7 @@ class RuleBuilder extends React.Component {
 
           <RuleAddButton
             priority="primary"
+            disabled={!isValid}
             onClick={this.handleAddRule}
             icon="icon-circle-add"
             size="zero"

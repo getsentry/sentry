@@ -567,7 +567,7 @@ exports[`RuleBuilder renders 1`] = `
                           ignoreAccents={true}
                           ignoreCase={true}
                           inputProps={Object {}}
-                          isLoading={true}
+                          isLoading={false}
                           joinValues={false}
                           labelKey="label"
                           loadOptions={[Function]}
@@ -577,7 +577,7 @@ exports[`RuleBuilder renders 1`] = `
                           menuBuffer={0}
                           menuRenderer={[Function]}
                           multi={true}
-                          noResultsText="Loading..."
+                          noResultsText="Type to search"
                           onBlurResetsInput={true}
                           onChange={[Function]}
                           onCloseResetsInput={true}
@@ -585,9 +585,150 @@ exports[`RuleBuilder renders 1`] = `
                           onSelectResetsInput={true}
                           openOnClick={true}
                           optionComponent={[Function]}
-                          options={Array []}
+                          options={
+                            Array [
+                              Object {
+                                "actor": Object {
+                                  "id": "1",
+                                  "name": "Jane Doe",
+                                  "type": "user",
+                                },
+                                "label": <IdBadge
+                                  avatarSize={24}
+                                  hideEmail={true}
+                                  useLink={false}
+                                  user={
+                                    Object {
+                                      "email": "janedoe@example.com",
+                                      "flags": Object {
+                                        "newsletter_consent_prompt": false,
+                                      },
+                                      "hasPasswordAuth": true,
+                                      "id": "1",
+                                      "isAuthenticated": true,
+                                      "name": "Jane Doe",
+                                      "options": Object {
+                                        "timezone": "UTC",
+                                      },
+                                      "user": Object {
+                                        "email": "janedoe@example.com",
+                                        "id": "1",
+                                        "name": "Jane Doe",
+                                      },
+                                      "username": "foo@example.com",
+                                    }
+                                  }
+                                />,
+                                "searchKey": "janedoe@example.com jane doe",
+                                "value": "user:1",
+                              },
+                              Object {
+                                "actor": Object {
+                                  "id": "3",
+                                  "name": "cool-team",
+                                  "type": "team",
+                                },
+                                "label": <IdBadge
+                                  team={
+                                    Object {
+                                      "id": "3",
+                                      "isMember": true,
+                                      "name": "COOL TEAM",
+                                      "slug": "cool-team",
+                                    }
+                                  }
+                                />,
+                                "searchKey": "#cool-team",
+                                "value": "team:3",
+                              },
+                              Object {
+                                "actor": Object {
+                                  "id": "4",
+                                  "name": "team-not-in-project",
+                                  "type": "team",
+                                },
+                                "disabled": true,
+                                "label": <Flex
+                                  justify="space-between"
+                                >
+                                  <DisabledLabel>
+                                    <Tooltip
+                                      title="#team-not-in-project is not a member of project"
+                                      tooltipOptions={
+                                        Object {
+                                          "container": "body",
+                                          "placement": "left",
+                                        }
+                                      }
+                                    >
+                                      <IdBadge
+                                        team={
+                                          Object {
+                                            "id": "4",
+                                            "isMember": true,
+                                            "name": "TEAM NOT IN PROJECT",
+                                            "slug": "team-not-in-project",
+                                          }
+                                        }
+                                      />
+                                    </Tooltip>
+                                  </DisabledLabel>
+                                  <Tooltip
+                                    title="Add #team-not-in-project to project"
+                                  >
+                                    <AddToProjectButton
+                                      borderless={true}
+                                      disabled={false}
+                                      onClick={[Function]}
+                                      size="zero"
+                                    >
+                                      <InlineSvg
+                                        src="icon-circle-add"
+                                      />
+                                    </AddToProjectButton>
+                                  </Tooltip>
+                                </Flex>,
+                                "searchKey": "#team-not-in-project",
+                                "value": "team:4",
+                              },
+                              Object {
+                                "actor": Object {
+                                  "id": "2",
+                                  "name": "John Smith",
+                                  "type": "user",
+                                },
+                                "disabled": true,
+                                "label": <DisabledLabel>
+                                  <Tooltip
+                                    title="John Smith is not a member of project"
+                                    tooltipOptions={
+                                      Object {
+                                        "container": "body",
+                                        "placement": "left",
+                                      }
+                                    }
+                                  >
+                                    <IdBadge
+                                      avatarSize={24}
+                                      hideEmail={true}
+                                      useLink={false}
+                                      user={
+                                        Object {
+                                          "email": "johnsmith@example.com",
+                                          "id": "2",
+                                          "name": "John Smith",
+                                        }
+                                      }
+                                    />
+                                  </Tooltip>
+                                </DisabledLabel>,
+                                "searchKey": "johnsmith@example.com john smith",
+                                "value": "user:2",
+                              },
+                            ]
+                          }
                           pageSize={5}
-                          placeholder="Loading..."
+                          placeholder="Add Owners"
                           removeSelected={true}
                           required={false}
                           rtl={false}
@@ -602,7 +743,7 @@ exports[`RuleBuilder renders 1`] = `
                           valueKey="value"
                         >
                           <div
-                            className="Select css-11osmt1-StyledSelect eho28m20 is-clearable is-loading is-searchable Select--multi"
+                            className="Select css-11osmt1-StyledSelect eho28m20 is-clearable is-searchable Select--multi"
                           >
                             <div
                               className="Select-control"
@@ -619,7 +760,7 @@ exports[`RuleBuilder renders 1`] = `
                                 <div
                                   className="Select-placeholder"
                                 >
-                                  Loading...
+                                  Add Owners
                                 </div>
                                 <AutosizeInput
                                   aria-activedescendant="react-select-3--value"
@@ -679,14 +820,6 @@ exports[`RuleBuilder renders 1`] = `
                                 </AutosizeInput>
                               </span>
                               <span
-                                aria-hidden="true"
-                                className="Select-loading-zone"
-                              >
-                                <span
-                                  className="Select-loading"
-                                />
-                              </span>
-                              <span
                                 className="Select-arrow-zone"
                                 onMouseDown={[Function]}
                               >
@@ -707,6 +840,7 @@ exports[`RuleBuilder renders 1`] = `
         </Base>
       </Flex>
       <RuleAddButton
+        disabled={true}
         icon="icon-circle-add"
         onClick={[Function]}
         priority="primary"
@@ -714,7 +848,7 @@ exports[`RuleBuilder renders 1`] = `
       >
         <Button
           className="css-3daogo-RuleAddButton e1hyuoc79"
-          disabled={false}
+          disabled={true}
           icon="icon-circle-add"
           onClick={[Function]}
           priority="primary"
@@ -722,27 +856,33 @@ exports[`RuleBuilder renders 1`] = `
         >
           <StyledButton
             className="css-3daogo-RuleAddButton e1hyuoc79"
-            disabled={false}
+            disabled={true}
+            href={null}
             onClick={[Function]}
             priority="primary"
             role="button"
             size="zero"
+            to={null}
           >
             <Component
-              className="e1hyuoc79 css-1gabw8k-StyledButton-getColors-RuleAddButton e17811v30"
-              disabled={false}
+              className="e1hyuoc79 css-18qh3k2-StyledButton-getColors-RuleAddButton e17811v30"
+              disabled={true}
+              href={null}
               onClick={[Function]}
               priority="primary"
               role="button"
               size="zero"
+              to={null}
             >
               <button
-                className="e1hyuoc79 css-1gabw8k-StyledButton-getColors-RuleAddButton e17811v30"
-                disabled={false}
+                className="e1hyuoc79 css-18qh3k2-StyledButton-getColors-RuleAddButton e17811v30"
+                disabled={true}
+                href={null}
                 onClick={[Function]}
                 priority="primary"
                 role="button"
                 size="zero"
+                to={null}
               >
                 <ButtonLabel
                   size="zero"
@@ -1846,7 +1986,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                           ignoreAccents={true}
                           ignoreCase={true}
                           inputProps={Object {}}
-                          isLoading={true}
+                          isLoading={false}
                           joinValues={false}
                           labelKey="label"
                           loadOptions={[Function]}
@@ -1856,7 +1996,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                           menuBuffer={0}
                           menuRenderer={[Function]}
                           multi={true}
-                          noResultsText="Loading..."
+                          noResultsText="Type to search"
                           onBlurResetsInput={true}
                           onChange={[Function]}
                           onCloseResetsInput={true}
@@ -1864,9 +2004,150 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                           onSelectResetsInput={true}
                           openOnClick={true}
                           optionComponent={[Function]}
-                          options={Array []}
+                          options={
+                            Array [
+                              Object {
+                                "actor": Object {
+                                  "id": "1",
+                                  "name": "Jane Doe",
+                                  "type": "user",
+                                },
+                                "label": <IdBadge
+                                  avatarSize={24}
+                                  hideEmail={true}
+                                  useLink={false}
+                                  user={
+                                    Object {
+                                      "email": "janedoe@example.com",
+                                      "flags": Object {
+                                        "newsletter_consent_prompt": false,
+                                      },
+                                      "hasPasswordAuth": true,
+                                      "id": "1",
+                                      "isAuthenticated": true,
+                                      "name": "Jane Doe",
+                                      "options": Object {
+                                        "timezone": "UTC",
+                                      },
+                                      "user": Object {
+                                        "email": "janedoe@example.com",
+                                        "id": "1",
+                                        "name": "Jane Doe",
+                                      },
+                                      "username": "foo@example.com",
+                                    }
+                                  }
+                                />,
+                                "searchKey": "janedoe@example.com jane doe",
+                                "value": "user:1",
+                              },
+                              Object {
+                                "actor": Object {
+                                  "id": "3",
+                                  "name": "cool-team",
+                                  "type": "team",
+                                },
+                                "label": <IdBadge
+                                  team={
+                                    Object {
+                                      "id": "3",
+                                      "isMember": true,
+                                      "name": "COOL TEAM",
+                                      "slug": "cool-team",
+                                    }
+                                  }
+                                />,
+                                "searchKey": "#cool-team",
+                                "value": "team:3",
+                              },
+                              Object {
+                                "actor": Object {
+                                  "id": "4",
+                                  "name": "team-not-in-project",
+                                  "type": "team",
+                                },
+                                "disabled": true,
+                                "label": <Flex
+                                  justify="space-between"
+                                >
+                                  <DisabledLabel>
+                                    <Tooltip
+                                      title="#team-not-in-project is not a member of project"
+                                      tooltipOptions={
+                                        Object {
+                                          "container": "body",
+                                          "placement": "left",
+                                        }
+                                      }
+                                    >
+                                      <IdBadge
+                                        team={
+                                          Object {
+                                            "id": "4",
+                                            "isMember": true,
+                                            "name": "TEAM NOT IN PROJECT",
+                                            "slug": "team-not-in-project",
+                                          }
+                                        }
+                                      />
+                                    </Tooltip>
+                                  </DisabledLabel>
+                                  <Tooltip
+                                    title="Add #team-not-in-project to project"
+                                  >
+                                    <AddToProjectButton
+                                      borderless={true}
+                                      disabled={false}
+                                      onClick={[Function]}
+                                      size="zero"
+                                    >
+                                      <InlineSvg
+                                        src="icon-circle-add"
+                                      />
+                                    </AddToProjectButton>
+                                  </Tooltip>
+                                </Flex>,
+                                "searchKey": "#team-not-in-project",
+                                "value": "team:4",
+                              },
+                              Object {
+                                "actor": Object {
+                                  "id": "2",
+                                  "name": "John Smith",
+                                  "type": "user",
+                                },
+                                "disabled": true,
+                                "label": <DisabledLabel>
+                                  <Tooltip
+                                    title="John Smith is not a member of project"
+                                    tooltipOptions={
+                                      Object {
+                                        "container": "body",
+                                        "placement": "left",
+                                      }
+                                    }
+                                  >
+                                    <IdBadge
+                                      avatarSize={24}
+                                      hideEmail={true}
+                                      useLink={false}
+                                      user={
+                                        Object {
+                                          "email": "johnsmith@example.com",
+                                          "id": "2",
+                                          "name": "John Smith",
+                                        }
+                                      }
+                                    />
+                                  </Tooltip>
+                                </DisabledLabel>,
+                                "searchKey": "johnsmith@example.com john smith",
+                                "value": "user:2",
+                              },
+                            ]
+                          }
                           pageSize={5}
-                          placeholder="Loading..."
+                          placeholder="Add Owners"
                           removeSelected={true}
                           required={false}
                           rtl={false}
@@ -1919,7 +2200,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                           valueKey="value"
                         >
                           <div
-                            className="Select css-11osmt1-StyledSelect eho28m20 has-value is-clearable is-focused is-loading is-searchable Select--multi"
+                            className="Select css-11osmt1-StyledSelect eho28m20 has-value is-clearable is-focused is-searchable Select--multi"
                           >
                             <div
                               className="Select-control"
@@ -1940,7 +2221,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                   key="value-0-user:1"
                                   onClick={null}
                                   onRemove={[Function]}
-                                  placeholder="Loading..."
+                                  placeholder="Add Owners"
                                   value={
                                     Object {
                                       "actor": Object {
@@ -2157,11 +2438,21 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                 Press backspace to remove [object Object]
                               </span>
                               <span
-                                aria-hidden="true"
-                                className="Select-loading-zone"
+                                aria-label="Clear all"
+                                className="Select-clear-zone"
+                                onMouseDown={[Function]}
+                                onTouchEnd={[Function]}
+                                onTouchMove={[Function]}
+                                onTouchStart={[Function]}
+                                title="Clear all"
                               >
                                 <span
-                                  className="Select-loading"
+                                  className="Select-clear"
+                                  dangerouslySetInnerHTML={
+                                    Object {
+                                      "__html": "&times;",
+                                    }
+                                  }
                                 />
                               </span>
                               <span
@@ -2185,6 +2476,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
         </Base>
       </Flex>
       <RuleAddButton
+        disabled={false}
         icon="icon-circle-add"
         onClick={[Function]}
         priority="primary"
