@@ -814,6 +814,12 @@ class Mechanism(Interface):
     def get_path(self):
         return self.path
 
+    def iter_tags(self):
+        yield (self.path, self.type)
+
+        if self.handled is not None:
+            yield ('handled', self.handled)
+
 
 class SingleException(Interface):
     """
@@ -1106,6 +1112,13 @@ class Exception(Interface):
         if exc.stacktrace:
             return exc.stacktrace.get_stacktrace(*args, **kwargs)
         return ''
+
+    def iter_tags(self):
+        if not self.values:
+            return
+
+        for tag in self.values[0].mechanism.iter_tags():
+            yield tag
 
 
 def slim_exception_data(instance, frame_allowance=settings.SENTRY_MAX_STACKTRACE_FRAMES):
