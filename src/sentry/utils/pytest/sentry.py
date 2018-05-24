@@ -198,12 +198,15 @@ def register_extensions():
     plugins.register(TestIssuePlugin2)
 
     from sentry import integrations
+    from sentry.integrations.bitbucket import BitbucketIntegrationProvider
     from sentry.integrations.example import ExampleIntegrationProvider
     from sentry.integrations.github import GitHubIntegrationProvider
     from sentry.integrations.github_enterprise import GitHubEnterpriseIntegrationProvider
     from sentry.integrations.jira import JiraIntegrationProvider
     from sentry.integrations.slack import SlackIntegrationProvider
     from sentry.integrations.vsts import VSTSIntegrationProvider
+
+    integrations.register(BitbucketIntegrationProvider)
     integrations.register(ExampleIntegrationProvider)
     integrations.register(GitHubIntegrationProvider)
     integrations.register(GitHubEnterpriseIntegrationProvider)

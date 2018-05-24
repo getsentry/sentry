@@ -50,10 +50,19 @@ class BitbucketIntegrationProvider(IntegrationProvider):
                     'base_url': state['baseApiUrl'],
                     'domain_name': principal_data['links']['html']['href'].replace('https://', ''),
                     'icon': principal_data['links']['avatar']['href'],
+                    'uuid': state['uuid'],
+                    'type': state['type'],  # team or user account
                 },
             }
         return {
             'provider': 'bitbucket',
             'external_id': state['identity']['bitbucket_client_key'],
             'expect_exists': True,
+            'has_callback': True,
         }
+
+    def finish_integration(self, state, integration):
+        # Because clientKey appears to be temporary for this connection,
+        # it is fine for the unique case of bitbucket, but should be switched
+        # at the end to have a persistent external_id
+        integration.update(external_id=integration.metadata['uuid'])
