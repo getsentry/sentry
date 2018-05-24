@@ -58,7 +58,7 @@ class InstallationRepositoryEventWebhook(Webhook):
 
         integration = Integration.objects.get(
             external_id=installation['id'],
-            provider='github_apps',
+            provider='integrations:github',
         )
 
         repos_added = event['repositories_added']
@@ -72,7 +72,7 @@ class InstallationRepositoryEventWebhook(Webhook):
                     repo, created = Repository.objects.get_or_create(
                         organization_id=org_id,
                         name=r['full_name'],
-                        provider='github_apps',
+                        provider='integrations:github',
                         external_id=r['id'],
                         defaults={
                             'url': 'https://github.com/%s' % (r['full_name'], ),
@@ -253,7 +253,7 @@ class PushEventWebhook(Webhook):
                 return
             integration = Integration.objects.get(
                 external_id=event['installation']['id'],
-                provider='github',
+                provider='integrations:github',
             )
             organizations = list(integration.organizations.all())
         else:
@@ -271,7 +271,7 @@ class PullRequestEventWebhook(Webhook):
         try:
             repo = Repository.objects.get(
                 organization_id=organization.id,
-                provider='github_apps' if is_apps else 'github',
+                provider='integrations:github' if is_apps else 'github',
                 external_id=six.text_type(event['repository']['id']),
             )
 
