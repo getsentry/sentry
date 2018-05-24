@@ -9,6 +9,7 @@ import Button from 'app/components/buttons/button';
 import Link from 'app/components/link';
 import {t} from 'app/locale';
 import TextOverflow from 'app/components/textOverflow';
+import DynamicWrapper from 'app/components/dynamicWrapper';
 import {getShortVersion} from 'app/utils';
 
 const DEPLOY_COUNT = 2;
@@ -71,7 +72,10 @@ class Deploy extends React.Component {
           </StyledLink>
         </Version>
         <Flex w={90} justify="flex-end">
-          {moment(deploy.dateFinished).fromNow()}
+          <DynamicWrapper
+            value={moment(deploy.dateFinished).fromNow()}
+            fixed="3 hours ago"
+          />
         </Flex>
       </DeployRow>
     );
