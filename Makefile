@@ -1,4 +1,4 @@
-STATIC_DIR = src/sentry/static/sentry
+SHELL=/bin/bash -o pipefail
 
 ifneq "$(wildcard /usr/local/opt/libxmlsec1/lib)" ""
 	LDFLAGS += -L/usr/local/opt/libxmlsec1/lib
@@ -120,19 +120,25 @@ test-styleguide:
 
 test-python: build-platform-assets
 	@echo "--> Running Python tests"
-	$(PYTEST) tests/integration tests/sentry --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml" || exit 1
+	$(PYTEST) tests/integration tests/sentry --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml" \
+		| tee /dev/tty \
+		| bin/pytest-utils/generate-report -p > pytest.json
 	@echo ""
 
 test-snuba:
 	@echo "--> Running snuba tests"
-	$(PYTEST) tests/snuba -vv --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml"
+	$(PYTEST) tests/snuba -vv --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml" \
+		| tee /dev/tty \
+		| bin/pytest-utils/generate-report -p > pytest.json
 	@echo ""
 
 test-acceptance: build-platform-assets node-version-check
 	@echo "--> Building static assets"
 	@$(WEBPACK) --display errors-only
 	@echo "--> Running acceptance tests"
-	$(PYTEST) tests/acceptance --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml" --html="pytest.html"
+	$(PYTEST) tests/acceptance --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml" --html="pytest.html" \
+		| tee /dev/tty \
+		| bin/pytest-utils/generate-report -p > pytest.json
 	@echo ""
 
 lint: lint-python lint-js
