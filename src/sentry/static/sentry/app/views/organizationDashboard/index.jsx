@@ -64,12 +64,7 @@ class Dashboard extends React.Component {
           const showBorder = index !== teamSlugs.length - 1;
           const team = teamsMap.get(slug);
           return (
-            <LazyLoad
-              key={slug}
-              once
-              debounce={50}
-              placeholder={<TeamSectionPlaceholder />}
-            >
+            <LazyLoad key={slug} once debounce={50} height={300} offset={300}>
               <TeamSection
                 orgId={params.orgId}
                 team={team}
@@ -117,11 +112,6 @@ const OrganizationDashboard = createReactClass({
     }
   },
 });
-
-// This placeholder height will mean that we query for the first `window.height / 180` components
-const TeamSectionPlaceholder = styled('div')`
-  height: 180px;
-`;
 
 const TeamLink = styled(Link)`
   display: flex;
