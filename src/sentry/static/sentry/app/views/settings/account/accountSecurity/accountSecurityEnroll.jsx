@@ -178,7 +178,9 @@ class AccountSecurityEnroll extends AsyncView {
           } else {
             // OTP was accepted and SMS was added as a 2fa method
             this.props.router.push('/settings/account/security/');
-            addSuccessMessage(t('Added authenticator %s', authenticator.name));
+            openRecoveryOptions({
+              authenticatorName: authenticator.name,
+            });
           }
         },
         error => {

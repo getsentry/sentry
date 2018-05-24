@@ -337,6 +337,7 @@ window.TestStubs = {
         authId: '16',
         canValidateOtp: true,
         isBackupInterface: true,
+        codes: ['ABCD-1234', 'EFGH-5678'],
         ...params,
       }),
     };
