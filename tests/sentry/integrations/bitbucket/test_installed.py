@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from sentry.testutils import APITestCase
 from sentry.integrations.bitbucket.installed import BitbucketInstalledEndpoint
+from sentry.integrations.bitbucket.integration import scopes
 from sentry.models import Integration
 
 
@@ -19,13 +20,6 @@ class BitbucketInstalledEndpointTest(APITestCase):
         self.display_name = u'Sentry User'
         self.icon = u'https://bitbucket.org/account/sentryuser/avatar/32/'
 
-        self.metadata = {
-            'public_key': self.public_key,
-            'shared_secret': self.shared_secret,
-            'base_url': self.base_url,
-            'domain_name': self.domain_name,
-            'icon': self.icon
-        }
         self.user_data = {
             u'username': self.username,
             u'display_name': self.display_name,
@@ -40,6 +34,17 @@ class BitbucketInstalledEndpointTest(APITestCase):
             u'type': u'user',
             u'uuid': u'{e123-f456-g78910}'
         }
+        self.metadata = {
+            'public_key': self.public_key,
+            'shared_secret': self.shared_secret,
+            'base_url': self.base_url,
+            'domain_name': self.domain_name,
+            'icon': self.icon,
+            'scopes': list(scopes),
+            'type': self.user_data['type'],
+            'uuid': self.user_data['uuid'],
+        }
+
         self.data_from_bitbucket = {
             u'key': u'sentry-bitbucket',
             u'eventType': u'installed',
