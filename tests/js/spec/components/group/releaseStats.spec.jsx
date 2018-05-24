@@ -18,7 +18,11 @@ describe('GroupReleaseStats', function() {
     });
 
     component = mount(
-      <GroupReleaseStats group={TestStubs.Group()} location={TestStubs.location()} />,
+      <GroupReleaseStats
+        group={TestStubs.Group()}
+        allEnvironments={TestStubs.Group()}
+        location={TestStubs.location()}
+      />,
       {
         context: {
           organization: TestStubs.Organization(),
