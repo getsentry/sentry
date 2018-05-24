@@ -77,6 +77,9 @@ class IntegrationProvider(PipelineProvider):
     # whether or not the integration installation be initiated from Sentry
     can_add = True
 
+    # can the integration be enabled specifically for projects?
+    can_add_project = False
+
     # can be any number of IntegrationFeatures
     features = frozenset()
 

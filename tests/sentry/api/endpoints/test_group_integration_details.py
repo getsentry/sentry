@@ -26,7 +26,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             'id': six.text_type(integration.id),
             'name': integration.name,
             'icon': integration.metadata.get('icon'),
-            'domain_name': integration.metadata.get('domain_name'),
+            'domainName': integration.metadata.get('domain_name'),
             'provider': {
                 'key': integration.get_provider().key,
                 'name': integration.get_provider().name,
@@ -58,7 +58,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             'id': six.text_type(integration.id),
             'name': integration.name,
             'icon': integration.metadata.get('icon'),
-            'domain_name': integration.metadata.get('domain_name'),
+            'domainName': integration.metadata.get('domain_name'),
             'provider': {
                 'key': integration.get_provider().key,
                 'name': integration.get_provider().name,

@@ -89,6 +89,17 @@ export default class OrganizationIntegration extends AsyncView {
     ];
   }
 
+  mergeIntegration(integration) {
+    // Merge the new integration into the list. If we're updating an
+    // integration overwrite the old integration.
+    const keyedItems = keyBy(this.state.integrations, i => i.id);
+    const integrations = sortArray(
+      Object.values({...keyedItems, [integration.id]: integration}),
+      i => i.name
+    );
+    this.setState({integrations});
+  }
+
   handleAddIntegration = provider => {
     const name = 'sentryAddIntegration';
 
@@ -122,16 +133,8 @@ export default class OrganizationIntegration extends AsyncView {
       return;
     }
 
-    // Merge the new integration into the list. If we're updating an
-    // integration ovewrrite the old integration.
-    const keyedItems = keyBy(this.state.integrations, i => i.id);
-    const integrations = sortArray(
-      Object.values({...keyedItems, [data.id]: data}),
-      i => i.name
-    );
-
+    this.mergeIntegration(data);
     IndicatorStore.addSuccess(t('Integration Added'));
-    this.setState({integrations});
   };
 
   handleDeleteIntegration = integration => {
@@ -153,6 +156,64 @@ export default class OrganizationIntegration extends AsyncView {
     };
 
     this.api.request(`/organizations/${orgId}/integrations/${integration.id}/`, options);
+  };
+
+  handleRemoveProjectIntegration = integration => {
+    const {orgId, projectId} = this.props.params;
+    const saveIndicator = IndicatorStore.add(t('Disabling integration for project'));
+
+    const options = {
+      method: 'DELETE',
+      success: () => {
+        delete integration.configDataProjects[projectId];
+        this.mergeIntegration(integration);
+
+        IndicatorStore.addSuccess(t('Integration disabled for project'));
+      },
+      error: () =>
+        IndicatorStore.addError(t('Failed to disable integration for project')),
+      complete: () => IndicatorStore.remove(saveIndicator),
+    };
+
+    this.api.request(
+      `/projects/${orgId}/${projectId}/integrations/${integration.id}/`,
+      options
+    );
+  };
+
+  handleEnableProjectIntegration = integration => {
+    const {orgId, projectId} = this.props.params;
+    const saveIndicator = IndicatorStore.add(t('Enabling integration for project'));
+
+    const options = {
+      method: 'PUT',
+      success: () => {
+        // XXX(epurkhiser): Right now we just add the project to the
+        // configDataProjects list within the integration object. Later this
+        // may have been populated and we actually need to reload the
+        // integration. Probably when the integration has an enabled field and
+        // PUTing enables or disables the ProjectIntegration.
+        integration.configDataProjects[projectId] = {};
+        this.mergeIntegration(integration);
+
+        IndicatorStore.addSuccess(t('Integration enabled for project'));
+      },
+      error: () => IndicatorStore.addError(t('Failed to enable integration for project')),
+      complete: () => IndicatorStore.remove(saveIndicator),
+    };
+
+    this.api.request(
+      `/projects/${orgId}/${projectId}/integrations/${integration.id}/`,
+      options
+    );
+  };
+
+  handleToggleProjectIntegration = (integration, enabled) => {
+    if (enabled) {
+      this.handleEnableProjectIntegration(integration);
+    } else {
+      this.handleRemoveProjectIntegration(integration);
+    }
   };
 
   renderAlertLink(provider) {
@@ -201,6 +262,8 @@ export default class OrganizationIntegration extends AsyncView {
       </PanelHeader>
     );
 
+    const {orgId, projectId} = this.props.params;
+
     const integrationList =
       integrations.length === 0 ? (
         <EmptyMessage>{t('No %s integrations configured.', provider.name)}</EmptyMessage>
@@ -208,8 +271,11 @@ export default class OrganizationIntegration extends AsyncView {
         integrations.map(integration => (
           <InstalledIntegration
             key={integration.id}
+            orgId={orgId}
+            projectId={projectId}
             provider={provider}
             integration={integration}
+            onToggleEnabled={e => this.handleToggleProjectIntegration(integration, e)}
             onRemove={() => this.handleDeleteIntegration(integration)}
           />
         ))

@@ -25,7 +25,7 @@ class OrganizationIntegrationDetailsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data['id'] == six.text_type(self.integration.id)
-        assert response.data['config_data'] == {'setting': 'value'}
+        assert response.data['configData'] == {'setting': 'value'}
 
     def test_removal(self):
         team = self.create_team(organization=self.org, name='Mariachi Band')

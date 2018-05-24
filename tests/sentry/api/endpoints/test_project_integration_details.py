@@ -36,7 +36,7 @@ class ProjectIntegrationDetailsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data['id'] == six.text_type(self.integration.id)
-        assert response.data['config_data'] == config
+        assert response.data['configData'] == config
 
     def test_enable(self):
         response = self.client.put(self.path, format='json')
