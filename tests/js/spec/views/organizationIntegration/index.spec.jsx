@@ -12,10 +12,12 @@ describe('OrganizationIntegration', function() {
 
   describe('render()', function() {
     const org = TestStubs.Organization();
+    const project = TestStubs.Project();
     const provider = TestStubs.GitHubIntegrationProvider();
     const integration = TestStubs.GitHubIntegration();
     const params = {
       orgId: org.slug,
+      projectId: project.slug,
       providerKey: provider.key,
     };
     const routerContext = TestStubs.routerContext();
@@ -67,7 +69,10 @@ describe('OrganizationIntegration', function() {
       });
 
       it('renders', function() {
-        const wrapper = mount(<OrganizationIntegration params={params} />, routerContext);
+        const wrapper = shallow(
+          <OrganizationIntegration params={params} />,
+          routerContext
+        );
         expect(wrapper).toMatchSnapshot();
       });
 
@@ -94,13 +99,12 @@ describe('OrganizationIntegration', function() {
           origin: 'null',
           data: {
             success: true,
-            data: {
+            data: Object.assign({}, integration, {
               id: '2',
               domain_name: 'new-integration.github.com',
               icon: 'http://example.com/new-integration-icon.png',
               name: 'New Integration',
-              provider: integration.provider,
-            },
+            }),
           },
         });
 
@@ -110,13 +114,12 @@ describe('OrganizationIntegration', function() {
       it('Merges existing integrations', function() {
         const wrapper = mount(<OrganizationIntegration params={params} />, routerContext);
 
-        const updatedIntegration = {
+        const updatedIntegration = Object.assign({}, integration, {
           id: '1',
           domain_name: 'updated-integration.github.com',
           icon: 'http://example.com/updated-integration-icon.png',
           name: 'Updated Integration',
-          provider: integration.provider,
-        };
+        });
 
         wrapper.instance().receiveMessage({
           source: null,

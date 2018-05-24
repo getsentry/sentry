@@ -15,7 +15,7 @@ class IntegrationSerializer(Serializer):
             'id': six.text_type(obj.id),
             'name': obj.name,
             'icon': obj.metadata.get('icon'),
-            'domain_name': obj.metadata.get('domain_name'),
+            'domainName': obj.metadata.get('domain_name'),
             'provider': {
                 'key': provider.key,
                 'name': provider.name,
@@ -28,8 +28,8 @@ class IntegrationConfigSerializer(IntegrationSerializer):
         data = super(IntegrationConfigSerializer, self).serialize(obj, attrs, user)
 
         data.update({
-            'config_organization': [],
-            'config_project': [],
+            'configOrganization': [],
+            'configProject': [],
         })
 
         try:
@@ -40,8 +40,8 @@ class IntegrationConfigSerializer(IntegrationSerializer):
             pass
         else:
             data.update({
-                'config_organization': install.get_organization_config(),
-                'config_project': install.get_project_config(),
+                'configOrganization': install.get_organization_config(),
+                'configProject': install.get_project_config(),
             })
 
         return data
@@ -75,8 +75,8 @@ class OrganizationIntegrationSerializer(Serializer):
         # API request for config options.
         integration = serialize(obj.integration, user, IntegrationConfigSerializer())
         integration.update({
-            'config_data': obj.config,
-            'config_data_projects': attrs['project_configs'],
+            'configData': obj.config,
+            'configDataProjects': attrs['project_configs'],
         })
 
         return integration
@@ -87,7 +87,7 @@ class ProjectIntegrationSerializer(Serializer):
     def serialize(self, obj, attrs, user, organization=None, project=None):
         integration = serialize(obj.integration, user, IntegrationConfigSerializer())
         integration.update({
-            'config_data': obj.config,
+            'configData': obj.config,
         })
 
         return integration
