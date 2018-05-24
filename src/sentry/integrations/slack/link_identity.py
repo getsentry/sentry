@@ -99,8 +99,11 @@ class SlackLinkIdentitiyView(BaseView):
                 status=IdentityStatus.VALID,
             )
         else:
-            assert id_by_user == id_by_external_id
-            id_by_user.update(status=IdentityStatus.VALID)
+            updates = {'status': IdentityStatus.VALID}
+            if id_by_user != id_by_external_id:
+                id_by_external_id.delete()
+                updates['external_id'] = params['slack_id']
+            id_by_user.update(**updates)
 
         payload = {
             'replace_original': False,
