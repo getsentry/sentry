@@ -99,5 +99,17 @@ describe('AccountSecurityDetails', function() {
 
       expect(deleteMock).toHaveBeenCalled();
     });
+
+    it('has copy, print and download buttons', function() {
+      let codes = 'ABCD-1234 \nEFGH-5678';
+
+      let downloadCodes = `Button[href="data:text/plain;charset=utf-8,${codes}"]`;
+      expect(wrapper.find(downloadCodes)).toHaveLength(1);
+      wrapper.find(downloadCodes).simulate('click');
+
+      expect(wrapper.find('Button InlineSvg[src="icon-print"]')).toHaveLength(1);
+      expect(wrapper.find('iframe[name="printable"]')).toHaveLength(1);
+      expect(wrapper.find(`Clipboard[value="${codes}"]`)).toHaveLength(1);
+    });
   });
 });
