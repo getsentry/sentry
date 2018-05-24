@@ -1,4 +1,4 @@
-SHELL=/bin/bash -o pipefail
+SHELL=/bin/bash -eo pipefail
 
 ifneq "$(wildcard /usr/local/opt/libxmlsec1/lib)" ""
 	LDFLAGS += -L/usr/local/opt/libxmlsec1/lib
@@ -139,7 +139,7 @@ lint: lint-python lint-js
 
 lint-python:
 	@echo "--> Linting python"
-	bash -eo pipefail -c "bin/lint --python --parseable | tee flake8.pycodestyle.log"
+	bin/lint --python --parseable | tee flake8.pycodestyle.log
 
 lint-js:
 	@echo "--> Linting javascript"
