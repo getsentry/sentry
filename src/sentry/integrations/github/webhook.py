@@ -23,8 +23,8 @@ from sentry.models import (
 from sentry.plugins.providers import RepositoryProvider
 from sentry.utils import json
 
-from sentry_plugins.exceptions import ApiError
-from sentry_plugins.github.client import GitHubClient
+from sentry.integrations.exceptions import ApiError
+from .client import GitHubAppsClient
 
 logger = logging.getLogger('sentry.webhooks')
 
@@ -91,7 +91,7 @@ class InstallationRepositoryEventWebhook(Webhook):
 class PushEventWebhook(Webhook):
     def _handle(self, event, organization, is_apps):
         authors = {}
-        client = GitHubClient()
+        client = GitHubAppsClient()
         gh_username_cache = {}
 
         try:
@@ -145,7 +145,7 @@ class PushEventWebhook(Webhook):
                             gh_username_cache[gh_username] = author_email
                         else:
                             try:
-                                gh_user = client.request_no_auth('GET', '/users/%s' % gh_username)
+                                gh_user = client.get('/users/%s' % gh_username)
                             except ApiError as exc:
                                 logger.exception(six.text_type(exc))
                             else:
