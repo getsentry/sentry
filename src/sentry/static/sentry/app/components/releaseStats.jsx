@@ -3,8 +3,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
-import Avatar from 'app/components/avatar';
-import Tooltip from 'app/components/tooltip';
+import AvatarList from 'app/components/avatar/avatarList';
 import {t} from 'app/locale';
 
 const ReleaseStats = createReactClass({
@@ -33,15 +32,7 @@ const ReleaseStats = createReactClass({
       <div className="release-stats">
         <ReleaseSummaryHeading>{releaseSummary}</ReleaseSummaryHeading>
         <div className="avatar-grid">
-          {release.authors.map((author, i) => {
-            return (
-              <Tooltip key={i} title={`${author.name} ${author.email}`}>
-                <span className="avatar-grid-item">
-                  <Avatar user={author} />
-                </span>
-              </Tooltip>
-            );
-          })}
+          <AvatarList users={release.authors} avatarSize={25} />
         </div>
       </div>
     );
