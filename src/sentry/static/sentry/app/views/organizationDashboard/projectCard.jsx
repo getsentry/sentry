@@ -16,8 +16,8 @@ import {t} from 'app/locale';
 import {update, loadStatsForProject} from 'app/actionCreators/projects';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import Platformicon from 'app/components/platformicon';
 
-import PlatformList from './platformList';
 import Chart from './chart';
 import NoEvents from './noEvents';
 import Deploys from './deploys';
@@ -66,6 +66,9 @@ class ProjectCard extends React.Component {
         {stats ? (
           <StyledProjectCard>
             <Flex justify="space-between" align="center">
+              <Box ml={2}>
+                <StyledPlatformicon size="24" platform={project.platform || 'generic'} />
+              </Box>
               <StyledLink to={`/${params.orgId}/${slug}/`}>
                 <strong>{slug}</strong>
               </StyledLink>
@@ -82,7 +85,6 @@ class ProjectCard extends React.Component {
               {!firstEvent && <NoEvents />}
             </ChartContainer>
             <Deploys project={project} orgId={params.orgId} />
-            <PlatformList project={project} orgId={params.orgId} />
           </StyledProjectCard>
         ) : (
           <LoadingCard />
@@ -91,6 +93,13 @@ class ProjectCard extends React.Component {
     );
   }
 }
+
+const StyledPlatformicon = styled(Platformicon)`
+  display: block;
+  color: white;
+  border-radius: 3px;
+  max-width: 24px;
+`;
 
 const ProjectCardContainer = createReactClass({
   propTypes: {
@@ -138,7 +147,7 @@ const ChartContainer = styled.div`
 
 const StyledLink = styled(Link)`
   ${overflowEllipsis};
-  padding: 16px;
+  padding: 16px 8px;
 `;
 
 const ProjectCardWrapper = styled(Box)`
@@ -164,7 +173,7 @@ const Star = styled.a`
 const LoadingCard = styled('div')`
   border: 1px solid transparent;
   background-color: ${p => p.theme.offWhite};
-  height: 290px;
+  height: 210px;
 `;
 
 export {ProjectCard};

@@ -14,7 +14,7 @@ describe('ProjectCard', function() {
       <ProjectCard
         project={TestStubs.Project({
           stats: [[1525042800, 1], [1525046400, 2]],
-          platforms: ['javascript'],
+          platform: 'javascript',
         })}
         params={{orgId: 'org-slug'}}
       />,
@@ -24,7 +24,7 @@ describe('ProjectCard', function() {
     projectMock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/',
       method: 'PUT',
-      data: TestStubs.Project({isBookmarked: false, platforms: ['javascript']}),
+      data: TestStubs.Project({isBookmarked: false, platform: 'javascript'}),
     });
   });
 
@@ -74,7 +74,7 @@ describe('ProjectCard', function() {
       <ProjectCard
         project={TestStubs.Project({
           stats: [[1525042800, 1], [1525046400, 2]],
-          platforms: ['javascript'],
+          platform: 'javascript',
           latestDeploys,
         })}
         params={{orgId: 'org-slug'}}
@@ -93,11 +93,8 @@ describe('ProjectCard', function() {
     expect(wrapper.find('NoDeploys')).toHaveLength(1);
   });
 
-  it('renders with one platform', function() {
-    const platformList = wrapper.find('PlatformList');
-    expect(platformList.find('StyledPlatformicon[platform="javascript"]')).toHaveLength(
-      1
-    );
+  it('renders with platform', function() {
+    expect(wrapper.find('Platformicon[platform="javascript"]')).toHaveLength(1);
   });
 
   it('renders loading placeholder card if there are no stats', function() {
@@ -107,24 +104,5 @@ describe('ProjectCard', function() {
     );
 
     expect(wrapper.find('LoadingCard')).toHaveLength(1);
-  });
-
-  it('renders empty platform state if no event has ever been sent', function() {
-    wrapper = mount(
-      <ProjectCard
-        project={TestStubs.Project({
-          platforms: [],
-          firstEvent: null,
-          platform: 'csharp',
-          stats: [],
-        })}
-        params={{orgId: 'org-slug'}}
-      />,
-      TestStubs.routerContext()
-    );
-
-    expect(wrapper.find('NoEvents')).toHaveLength(1);
-    const button = wrapper.find('Button[children="Install an SDK"]');
-    expect(button.prop('to')).toBe('/org-slug/project-slug/getting-started/csharp/');
   });
 });
