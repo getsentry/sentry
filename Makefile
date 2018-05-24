@@ -38,19 +38,16 @@ clean:
 	find . -name "*.pyc" -delete
 	@echo "--> Cleaning python build artifacts"
 	rm -rf build/ dist/ src/sentry/assets.json
-	@echo ""
 
 setup-git:
 	@echo "--> Installing git hooks"
 	git config branch.autosetuprebase always
 	cd .git/hooks && ln -sf ../../config/hooks/* ./
-	@echo ""
 
 update-submodules:
 	@echo "--> Updating git submodules"
 	git submodule init
 	git submodule update
-	@echo ""
 
 node-version-check:
 	@test "$$(node -v)" = v"$$(cat .nvmrc)" || (echo 'node version does not match .nvmrc. Recommended to use https://github.com/creationix/nvm'; exit 1)
@@ -103,34 +100,29 @@ test-cli:
 	cd test_cli && sentry --config=test_conf upgrade --traceback --noinput > /dev/null
 	cd test_cli && sentry --config=test_conf help 2>&1 | grep start > /dev/null
 	rm -r test_cli
-	@echo ""
 
 test-js: node-version-check
 	@echo "--> Building static assets"
 	@$(WEBPACK) --profile --json > webpack-stats.json
 	@echo "--> Running JavaScript tests"
 	@npm run test-ci
-	@echo ""
 
 # builds and creates percy snapshots
 test-styleguide:
 	@echo "--> Building and snapshotting styleguide"
 	@npm run snapshot
-	@echo ""
 
 test-python: build-platform-assets
 	@echo "--> Running Python tests"
 	$(PYTEST) tests/integration tests/sentry --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml" \
 		| tee /dev/tty \
 		| bin/pytest-utils/generate-report -p > pytest.json
-	@echo ""
 
 test-snuba:
 	@echo "--> Running snuba tests"
 	$(PYTEST) tests/snuba -vv --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml" \
 		| tee /dev/tty \
 		| bin/pytest-utils/generate-report -p > pytest.json
-	@echo ""
 
 test-acceptance: build-platform-assets node-version-check
 	@echo "--> Building static assets"
@@ -139,25 +131,21 @@ test-acceptance: build-platform-assets node-version-check
 	$(PYTEST) tests/acceptance --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml" --html="pytest.html" \
 		| tee /dev/tty \
 		| bin/pytest-utils/generate-report -p > pytest.json
-	@echo ""
 
 lint: lint-python lint-js
 
 lint-python:
 	@echo "--> Linting python"
 	bash -eo pipefail -c "bin/lint --python --parseable | tee flake8.pycodestyle.log"
-	@echo ""
 
 lint-js:
 	@echo "--> Linting javascript"
 	bin/lint --js --parseable
-	@echo ""
 
 scan-python:
 	@echo "--> Running Python vulnerability scanner"
 	python -m pip install -q safety
 	bin/scan
-	@echo ""
 
 publish:
 	python setup.py sdist bdist_wheel upload
