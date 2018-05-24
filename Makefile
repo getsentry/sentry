@@ -9,6 +9,7 @@ endif
 
 PIP = LDFLAGS="$(LDFLAGS)" pip -q
 WEBPACK = NODE_ENV=production ./node_modules/.bin/webpack
+PYTEST = py.test --cache-clear --durations=0
 
 test: develop lint test-js test-python test-cli
 develop: setup-git develop-only
@@ -119,19 +120,19 @@ test-styleguide:
 
 test-python: build-platform-assets
 	@echo "--> Running Python tests"
-	py.test tests/integration tests/sentry --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml" || exit 1
+	$(PYTEST) tests/integration tests/sentry --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml" || exit 1
 	@echo ""
 
 test-snuba:
 	@echo "--> Running snuba tests"
-	py.test tests/snuba -vv --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml"
+	$(PYTEST) tests/snuba -vv --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml"
 	@echo ""
 
 test-acceptance: build-platform-assets node-version-check
 	@echo "--> Building static assets"
 	@$(WEBPACK) --display errors-only
 	@echo "--> Running acceptance tests"
-	py.test tests/acceptance --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml" --html="pytest.html"
+	$(PYTEST) tests/acceptance --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml" --html="pytest.html"
 	@echo ""
 
 lint: lint-python lint-js
