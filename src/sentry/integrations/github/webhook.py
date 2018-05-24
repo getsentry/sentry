@@ -91,7 +91,7 @@ class InstallationRepositoryEventWebhook(Webhook):
 class PushEventWebhook(Webhook):
     def _handle(self, event, organization, is_apps):
         authors = {}
-        client = GitHubAppsClient()
+        client = GitHubAppsClient(options.get('github-app.id'))
         gh_username_cache = {}
 
         try:
