@@ -217,22 +217,28 @@ class SlackActionEndpoint(Endpoint):
         try:
             identity = Identity.objects.get(
                 external_id=user_id,
-                idp__organization_id=group.organization.id,
+                idp__organization_id=0,
             )
         except Identity.DoesNotExist:
-            associate_url = build_linking_url(
-                integration,
-                group.organization,
-                user_id,
-                channel_id,
-                data.get('response_url')
-            )
+            try:
+                identity = Identity.objects.get(
+                    external_id=user_id,
+                    idp__organization_id=group.organization.id,
+                )
+            except Identity.DoesNotExist:
+                associate_url = build_linking_url(
+                    integration,
+                    group.organization,
+                    user_id,
+                    channel_id,
+                    data.get('response_url')
+                )
 
-            return self.respond({
-                'response_type': 'ephemeral',
-                'replace_original': False,
-                'text': LINK_IDENTITY_MESSAGE.format(associate_url=associate_url)
-            })
+                return self.respond({
+                    'response_type': 'ephemeral',
+                    'replace_original': False,
+                    'text': LINK_IDENTITY_MESSAGE.format(associate_url=associate_url)
+                })
 
         # Handle status dialog submission
         if data['type'] == 'dialog_submission' and 'resolve_type' in data['submission']:

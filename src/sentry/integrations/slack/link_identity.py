@@ -53,10 +53,17 @@ class SlackLinkIdentitiyView(BaseView):
             idp = IdentityProvider.objects.get(
                 external_id=integration.external_id,
                 type='slack',
-                organization_id=organization.id,
+                organization_id=0,
             )
         except IdentityProvider.DoesNotExist:
-            raise Http404
+            try:
+                idp = IdentityProvider.objects.get(
+                    external_id=integration.external_id,
+                    type='slack',
+                    organization_id=organization.id,
+                )
+            except IdentityProvider.DoesNotExist:
+                raise Http404
 
         if request.method != 'POST':
             return render_to_response('sentry/auth-link-identity.html', request=request, context={
@@ -67,22 +74,33 @@ class SlackLinkIdentitiyView(BaseView):
         # TODO(epurkhiser): We could do some fancy slack querying here to
         # render a nice linking page with info about the user their linking.
 
-        identity, created = Identity.objects.get_or_create(
-            user=request.user,
-            idp=idp,
-            defaults={
-                'external_id': params['slack_id'],
-                'status': IdentityStatus.VALID,
-            },
-        )
+        # Link the user with the identity. Handle the case where the user is linked to a
+        # different identity or the identity is linked to a different user.
+        id_by_user = Identity.objects.get(user=request.user, idp=idp)
+        id_by_external_id = Identity.objects.get(external_id=params['slack_id'], idp=idp)
 
-        if not created:
+        if not id_by_user and not id_by_external_id:
+            Identity.objects.create(
+                user=request.user,
+                external_id=params['slack_id'],
+                idp=idp,
+                status=IdentityStatus.VALID,
+            )
+        elif id_by_user and not id_by_external_id:
             # TODO(epurkhiser): In this case we probably want to prompt and
             # warn them that they had a previous identity linked to slack.
-            identity.update(
+            id_by_user.update(
                 external_id=params['slack_id'],
-                status=IdentityStatus.VALID
+                status=IdentityStatus.VALID,
             )
+        elif id_by_external_id and not id_by_user:
+            id_by_external_id.update(
+                user=request.user,
+                status=IdentityStatus.VALID,
+            )
+        else:
+            assert id_by_user == id_by_external_id
+            id_by_user.update(status=IdentityStatus.VALID)
 
         payload = {
             'replace_original': False,
