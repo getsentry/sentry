@@ -46,20 +46,9 @@ class InstallationEventWebhook(Webhook):
     # https://developer.github.com/v3/activity/events/types/#installationevent
     def __call__(self, event, organization=None):
         action = event['action']
-        # installation = event['installation']
         # TODO(jess): handle uninstalls
         if action == 'created':
-            try:
-                with transaction.atomic():
-                    pass
-                    # integration = Integration.objects.create(
-                    #     provider='github_apps',
-                    #     external_id=installation['id'],
-                    #     name=installation['account']['login'],
-                    # )
-                    # integration.add_organization(organization)
-            except IntegrityError:
-                pass
+            pass
 
 
 class InstallationRepositoryEventWebhook(Webhook):
