@@ -93,10 +93,16 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
             )
             continue
 
-        try:
-            provider_cls = bindings.get('repository.provider').get(repo.provider)
-        except KeyError:
-            continue
+        if repo.provider.startswith('integrations:'):
+            try:
+                provider_cls = bindings.get('integration-repository.provider').get(repo.provider)
+            except KeyError:
+                continue
+        else:
+            try:
+                provider_cls = bindings.get('repository.provider').get(repo.provider)
+            except KeyError:
+                continue
 
         # if previous commit isn't provided, try to get from
         # previous release otherwise, try to get

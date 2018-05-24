@@ -63,7 +63,7 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
                 self.raise_error(e)
             else:
                 config['external_id'] = six.text_type(repo['id'])
-                config['integration_id'] = six.text_type(integration.id)
+                config['integration_id'] = integration.id
 
         return config
 
@@ -95,7 +95,7 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
             raise NotImplementedError('GitHub apps requires an integration id to fetch commits')
 
         client = GitHubAppsClient(
-            Integration.objects.get(id=integration_id),
+            Integration.objects.get(id=integration_id).external_id,
         )
 
         # use config name because that is kept in sync via webhooks
