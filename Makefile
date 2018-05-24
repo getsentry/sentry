@@ -115,25 +115,25 @@ test-styleguide:
 test-python: build-platform-assets
 	@echo "--> Running Python tests"
 	$(PYTEST) tests/integration tests/sentry --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml" \
-		| tee /tmp/pytest-python.log \
+		| egrep -v 's [teardown|setup]' \
+		| tee /dev/tty \
 		| bin/pytest-utils/generate-report -p > pytest.json
-	head -n 1000 /tmp/pytest-python.log
 
 test-snuba:
 	@echo "--> Running snuba tests"
 	$(PYTEST) tests/snuba -vv --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml" \
-		| tee /tmp/pytest-snuba.log \
+		| egrep -v 's [teardown|setup]' \
+		| tee /dev/tty \
 		| bin/pytest-utils/generate-report -p > pytest.json
-	head -n 1000 /tmp/pytest-snuba.log
 
 test-acceptance: build-platform-assets node-version-check
 	@echo "--> Building static assets"
 	@$(WEBPACK) --display errors-only
 	@echo "--> Running acceptance tests"
 	$(PYTEST) tests/acceptance --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml" --html="pytest.html" \
-		| tee /tmp/pytest-acceptance.log \
+		| egrep -v 's [teardown|setup]' \
+		| tee /dev/tty \
 		| bin/pytest-utils/generate-report -p > pytest.json
-	head -n 1000 /tmp/pytest-acceptance.log
 
 lint: lint-python lint-js
 
