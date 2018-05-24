@@ -24,21 +24,31 @@ exports[`OrganizationIntegration render() with one integration renders 1`] = `
         >
           Installation
         </Box>
-        <Box
-          mr={1}
+        <Tooltip
+          disabled={true}
+          title="Integration cannot be added on Sentry. Enable this integration via the GitHub instance."
+          tooltipOptions={
+            Object {
+              "placement": "left",
+            }
+          }
         >
-          <Button
-            disabled={false}
-            onClick={[Function]}
-            size="xsmall"
+          <Box
+            mr={1}
           >
-            <span
-              className="icon icon-add"
-            />
-             
-            Add Installation
-          </Button>
-        </Box>
+            <Button
+              disabled={false}
+              onClick={[Function]}
+              size="xsmall"
+            >
+              <span
+                className="icon icon-add"
+              />
+
+              Add Installation
+            </Button>
+          </Box>
+        </Tooltip>
       </PanelHeader>
       <PanelBody
         direction="column"
