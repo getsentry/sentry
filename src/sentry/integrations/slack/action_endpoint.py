@@ -217,7 +217,7 @@ class SlackActionEndpoint(Endpoint):
         try:
             identity = Identity.objects.get(
                 external_id=user_id,
-                idp__organization=group.organization,
+                idp__organization_id=group.organization.id,
             )
         except Identity.DoesNotExist:
             associate_url = build_linking_url(
