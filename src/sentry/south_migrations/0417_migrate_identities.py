@@ -11,7 +11,7 @@ class Migration(DataMigration):
 
     # Flag to indicate if this migration is too risky
     # to run online and needs to be coordinated for offline
-    is_dangerous = False
+    is_dangerous = True
 
     def forwards(self, orm):
         db.commit_transaction()
@@ -28,14 +28,14 @@ class Migration(DataMigration):
         # Use orm.ModelName to refer to models in this application,
         # and orm['appname.ModelName'] for models in other applications.
 
-        dry_run = True
+        dry_run = False
 
         bad_idps = orm.IdentityProvider.objects.filter(external_id__isnull=True)
         print("Deleting %d idps with no external_id" % bad_idps.count())
         if not dry_run:
             bad_idps.delete()
 
-        idps = orm.IdentityProvider.objects.all()
+        idps = orm.IdentityProvider.objects.exclude(organization_id=0)
         print("%d idps left" % idps.count())
         grouped_idps = defaultdict(list)
         for idp in idps:
@@ -45,7 +45,7 @@ class Migration(DataMigration):
         # other identities.
         ids_by_ext = defaultdict(list)
         ids_by_user = defaultdict(list)
-        identities = orm.Identity.objects.select_related('idp')
+        identities = orm.Identity.objects.exclude(idp__organization_id=0).select_related('idp')
         print("%d identities" % identities.count())
         bad_ids = set()
         for i in identities:
@@ -73,19 +73,22 @@ class Migration(DataMigration):
 
         # Copy remaining IDPs and Identities.
         num_new_idps = 0
-        new_ids = defaultdict(list)
+        num_new_ids = 0
         for (typ, ext_id), idps in grouped_idps.items():
-            new_idp = orm.IdentityProvider(
+            date_added = None
+            for i in idps:
+                if i.date_added and (not date_added or i.date_added > date_added):
+                    date_added = i.date_added
+            kwargs = dict(
                 type=typ,
                 organization_id=0,
                 external_id=ext_id,
-                date_added=idps[0].date_added)
-            for idp in idps:
-                if idp.date_added and (
-                        not new_idp.date_added or idp.date_added > new_idp.date_added):
-                    new_idp.date_added = idp.date_added
-            if not dry_run:
-                new_idp.save()
+            )
+            if dry_run:
+                new_idp = orm.IdentityProvider(date_added=date_added, **kwargs)
+            else:
+                new_idp, _ = orm.IdentityProvider.objects.get_or_create(
+                    defaults={'date_added': date_added}, **kwargs)
             num_new_idps += 1
 
             filtered = [i for i in remaining_identities
@@ -97,28 +100,34 @@ class Migration(DataMigration):
             ext_ids = set(i.external_id for i in filtered)
             users = set(i.user_id for i in filtered)
             assert len(ext_ids) == len(users)
+            new_ids = {}
             for f in filtered:
                 key = (typ, ext_id, f.external_id)
                 if key in new_ids:
                     print("Sample new id: %s" % f.external_id)
                     new_id = new_ids[key]
-                    assert new_id.user_id == f.user_id and new_id.external_id == f.external_id
-                    new_id.date_verified = max(new_id.date_verified, f.date_verified)
-                    new_id.date_added = max(new_id.date_added, f.date_added)
+                    assert new_id['user_id'] == f.user_id and new_id['external_id'] == f.external_id
+                    new_id['defaults']['date_verified'] = max(
+                        new_id['defaults']['date_verified'], f.date_verified)
+                    new_id['defaults']['date_added'] = max(
+                        new_id['defaults']['date_added'], f.date_added)
                 else:
-                    new_ids[key] = orm.Identity(
+                    new_ids[key] = dict(
                         idp=new_idp,
                         user_id=f.user_id,
                         external_id=f.external_id,
-                        status=1,  # IdentityStatus.VALID
-                        date_verified=f.date_verified,
-                        date_added=f.date_added,
+                        defaults=dict(
+                            status=1,  # IdentityStatus.VALID
+                            date_verified=f.date_verified,
+                            date_added=f.date_added,
+                        )
                     )
+            for i in new_ids.values():
+                if not dry_run:
+                    orm.Identity.objects.get_or_create(**i)
+                num_new_ids += 1
 
-        print("%d new IDPs and %d new IDs" % (num_new_idps, len(new_ids)))
-
-        if not dry_run:
-            orm.Identity.objects.bulk_create(new_ids.values())
+        print("%d new IDPs and %d new IDs" % (num_new_idps, num_new_ids))
 
     def backwards(self, orm):
         "Write your backwards methods here."
