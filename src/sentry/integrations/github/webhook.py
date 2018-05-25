@@ -91,7 +91,7 @@ class PushEventWebhook(Webhook):
 
     def _handle(self, event, organization, repo):
         authors = {}
-        client = GitHubAppsClient(options.get('github-app.id'))
+        client = GitHubAppsClient(event['installation']['id'])
         gh_username_cache = {}
 
         for commit in event['commits']:
@@ -240,6 +240,7 @@ class PullRequestEventWebhook(Webhook):
         title = pull_request['title']
         body = pull_request['body']
         user = pull_request['user']
+
         # The value of the merge_commit_sha attribute changes depending on the state of the pull request. Before a pull request is merged, the merge_commit_sha attribute holds the SHA of the test merge commit. After a pull request is merged, the attribute changes depending on how the pull request was merged:
         # - If the pull request was merged as a merge commit, the attribute represents the SHA of the merge commit.
         # - If the pull request was merged via a squash, the attribute represents the SHA of the squashed commit on the base branch.
