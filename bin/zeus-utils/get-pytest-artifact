@@ -1,0 +1,42 @@
+#!/usr/bin/env python
+
+import os
+import sys
+import requests
+
+def usage():
+    sys.exit("Downloads this test suite's pytest JSON artifact.\nUSAGE: {} filepath".format(sys.argv[0]))
+
+try:
+    dl_fp = sys.argv[1]
+except IndexError:
+    usage()
+
+TOKEN = os.environ['ZEUS_TOKEN']
+TEST_SUITE = os.environ['TEST_SUITE']
+
+def rget(url, **kwargs):
+    r = requests.get(url, headers={'Authorization': 'Bearer {}'.format(TOKEN)}, **kwargs)
+    r.raise_for_status()
+    return r
+
+def good(build):
+    # TODO: zeus is a little slow at updating build status and results
+    return \
+        build['status'] == 'finished' and \
+        build['result'] == 'passed' and \
+        build['provider'] == 'travis' and \
+        not build['label'].startswith('PR #')  # zeus build schema does not contain repository branch information
+
+builds = rget('https://zeus.ci/api/repos/gh/getsentry/sentry/builds').json()
+# if its not a PR then safe to assume its master because we only have branch master enabled in Travis
+latest_good_master_build = [b for b in builds if good(b)][0]
+
+build_number = latest_good_master_build['number']
+artifacts = rget('https://zeus.ci/api/repos/gh/getsentry/sentry/builds/{}/artifacts'.format(build_number)).json()
+
+target = [a for a in artifacts if a['name'] == 'pytest-{}.json'.format(TEST_SUITE)][0]
+r = rget('https://zeus.ci' + target['download_url'], stream=True)
+with open(dl_fp, 'wb') as f:
+    for chunk in r.iter_content(1024):
+        f.write(chunk)

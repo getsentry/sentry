@@ -35,6 +35,8 @@ env:
     - DJANGO_VERSION=">=1.6.11,<1.7"
     - NODE_VERSION="8.9.1"
     - YARN_VERSION="1.3.2"
+    # josh's zeus token (env ZEUS_TOKEN), used for downloading pytest artifacts in after_success
+    - secure: "Ao141K1zzXtucYH0VxMvZ2KJDgmYJBqw72+Ais1Ycm3Nwxpway4LEXE96fCW2klGQr6jBSl/HZSKntzvOnXMcpG8Qg5UzsKlFNPmXp0sUW2JwxenSB2bAvWfAXRJE8WrHHD3GpBfyGxPp8oT+Uz45dU4uKNZCjIqjmiHaYwVBIo="
 
 script:
   - make travis-lint-$TEST_SUITE
@@ -45,9 +47,8 @@ after_success:
   - pip install codecov
   - codecov -e TEST_SUITE
   - mv pytest.json pytest-$TEST_SUITE.json
-# TODO encrypt ZEUS_TOKEN in travis config then test this out
-#  - bin/zeus-utils/get-pytest-artifact /tmp/pytest-master.json
-#  - bin/pytest-utils/report-diff /tmp/pytest-master.json pytest-$TEST_SUITE.json
+  - bin/zeus-utils/get-pytest-artifact /tmp/pytest-master.json
+  - bin/pytest-utils/report-diff /tmp/pytest-master.json pytest-$TEST_SUITE.json
 
 after_failure:
   - dmesg | tail -n 100
