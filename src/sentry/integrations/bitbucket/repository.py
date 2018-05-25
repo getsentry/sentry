@@ -59,6 +59,7 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
                 self.raise_error(e, identity=client.auth)
             else:
                 config['external_id'] = six.text_type(repo['uuid'])
+                config['integration_id'] = six.text_type(repo['integration_id'])
         return config
 
     def get_webhook_secret(self, organization):
