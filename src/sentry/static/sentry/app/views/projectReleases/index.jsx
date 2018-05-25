@@ -3,6 +3,8 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
 import {Box} from 'grid-emotion';
+import {omit, isEqual} from 'lodash';
+import qs from 'query-string';
 
 import SentryTypes from 'app/proptypes';
 import ApiMixin from 'app/mixins/apiMixin';
@@ -50,10 +52,12 @@ const ProjectReleases = createReactClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    const queryHasChanged =
-      nextProps.location.query.query !== this.props.location.query.query;
+    const searchHasChanged = !isEqual(
+      omit(qs.parse(nextProps.location.search), 'environment'),
+      omit(qs.parse(this.props.location.search), 'environment')
+    );
 
-    if (queryHasChanged) {
+    if (searchHasChanged) {
       let queryParams = nextProps.location.query;
       this.setState(
         {
