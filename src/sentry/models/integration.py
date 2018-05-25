@@ -73,7 +73,7 @@ class Integration(Model):
         """
         Add an organization to this integration.
 
-        Returns True if the OrganizationIntegration was created
+        Returns False if the OrganizationIntegration was not created
         """
         try:
             with transaction.atomic():
@@ -91,7 +91,7 @@ class Integration(Model):
         Add a project to this integration. Requires that a
         OrganizationIntegration must exist before the project can be added.
 
-        Returns True if the ProjectIntegration was created
+        Returns False iff the ProjectIntegration was not created
         """
         from sentry.models import Project
         org_id_queryset = Project.objects \
