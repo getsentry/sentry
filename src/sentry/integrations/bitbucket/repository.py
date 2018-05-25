@@ -23,16 +23,33 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
         raise error
 
     def get_client(self, integration_id):
-        from .integration import BitbucketIntegration
-
         if integration_id is None:
             raise ValueError('Bitbucket version 2 requires an integration id.')
 
-        model = Integration.objects.get(id=integration_id)
-        return BitbucketIntegration(model).get_client()
+        try:
+            integration_model = Integration.objects.get(id=integration_id)
+        except Integration.DoesNotExistError as error:
+            self.raise_error(error)
+
+        return integration_model.get_installation().get_client()
 
     def get_config(self, organization):
+        choices = []
+        for i in Integration.objects.filter(organizations=organization, provider='bitbucket'):
+            choices.append((i.id, i.name))
+
+        if not choices:
+            choices = [('', '')]
         return [
+            {
+                'name': 'integration_id',
+                'label': 'Bitbucket Integration',
+                'type': 'choice',
+                'choices': choices,
+                'initial': choices[0][0],
+                'help': 'Select which Bitbucket integration to authenticate with.',
+                'required': True,
+            },
             {
                 'name': 'name',
                 'label': 'Repository Name',
@@ -40,10 +57,10 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
                 'placeholder': 'e.g. getsentry/sentry',
                 'help': 'Enter your repository name, including the owner.',
                 'required': True,
-            }
+            },
         ]
 
-    def validate_config(self, organization, config):
+    def validate_config(self, organization, config, actor=None):
         """
         ```
         if config['foo'] and not config['bar']:
@@ -56,10 +73,9 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
             try:
                 repo = client.get_repo(config['name'])
             except Exception as e:
-                self.raise_error(e, identity=client.auth)
+                self.raise_error(e)
             else:
                 config['external_id'] = six.text_type(repo['uuid'])
-                config['integration_id'] = six.text_type(repo['integration_id'])
         return config
 
     def get_webhook_secret(self, organization):
@@ -78,14 +94,14 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
                 )
         return secret
 
-    def create_repository(self, organization, data):
+    def create_repository(self, organization, data, actor=None):
         client = self.get_client(data['integration_id'])
         try:
             resp = client.create_hook(
                 data['name'], {
                     'description': 'sentry-bitbucket-repo-hook',
                     'url': absolute_uri(
-                        '/plugins/bitbucket/organizations/{}/webhook/'.format(organization.id)
+                        '/extensions/bitbucket/organizations/{}/webhook/'.format(organization.id)
                     ),
                     'active': True,
                     'events': ['repo:push'],
@@ -127,7 +143,7 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
             } for c in commit_list
         ]
 
-    def compare_commits(self, repo, start_sha, end_sha):
+    def compare_commits(self, repo, start_sha, end_sha, actor=None):
         client = self.get_client(repo.integration_id)
         # use config name because that is kept in sync via webhooks
         name = repo.config['name']

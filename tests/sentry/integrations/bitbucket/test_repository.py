@@ -13,10 +13,10 @@ class BitbucketPluginTest(TestCase):
     def setUp(self):
         self.base_url = 'https://api.bitbucket.org'
         self.shared_secret = '234567890'
-        self.subject = 'clientKey'
+        self.subject = 'connect:1234567'
         self.integration = Integration.objects.create(
             provider='bitbucket',
-            external_id='connect:1234567',
+            external_id=self.subject,
             name='MyBitBucket',
             metadata={
                 'base_url': self.base_url,

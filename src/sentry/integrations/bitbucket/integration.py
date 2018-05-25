@@ -34,7 +34,7 @@ class BitbucketIntegration(Integration):
         return BitbucketApiClient(
             self.model.metadata['base_url'],
             self.model.metadata['shared_secret'],
-            self.model.metadata['subject'],
+            self.model.external_id,
         )
 
 
