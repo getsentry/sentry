@@ -44,6 +44,10 @@ script:
 after_success:
   - pip install codecov
   - codecov -e TEST_SUITE
+  - mv pytest.json pytest-$TEST_SUITE.json
+# TODO encrypt ZEUS_TOKEN in travis config then test this out
+#  - bin/zeus-utils/get-pytest-artifact /tmp/pytest-master.json
+#  - bin/pytest-utils/report-diff /tmp/pytest-master.json pytest-$TEST_SUITE.json
 
 after_failure:
   - dmesg | tail -n 100
@@ -60,7 +64,7 @@ after_script:
     -t "text/plain+pycodestyle" flake8.pycodestyle.log
     -t "text/xml+checkstyle" eslint.checkstyle.xml
     -t "application/webpack-stats+json" webpack-stats.json
-    -t "application/json" pytest.json
+    -t "application/json" pytest-$TEST_SUITE.json
 
 # each job in the matrix inherits `env/global` and uses everything above,
 # but custom `services`, `before_install`, `install`, and `before_script` directives
