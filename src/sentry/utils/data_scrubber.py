@@ -95,9 +95,6 @@ class SensitiveDataFilter(object):
         if 'sentry.interfaces.Csp' in data:
             self.filter_csp(data['sentry.interfaces.Csp'])
 
-        if 'sentry.interfaces.Message' in data:
-            self.filter_message(data['sentry.interfaces.Message'])
-
         if 'extra' in data:
             data['extra'] = varmap(self.sanitize, data['extra'])
 
@@ -200,9 +197,3 @@ class SensitiveDataFilter(object):
                     querybits.append(chunk)
             query = '&'.join('='.join(k) for k in querybits)
             data[key] = urlunsplit((scheme, netloc, path, query, fragment))
-
-    def filter_message(self, data):
-        for key in 'message', 'formatted', 'params':
-            val = data.get(key)
-            if val:
-                data[key] = varmap(self.sanitize, val)
