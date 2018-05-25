@@ -1,22 +1,29 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
 import os
 import sys
 import requests
 
 def usage():
-    sys.exit("Downloads this test suite's pytest JSON artifact.\nUSAGE: {} filepath".format(sys.argv[0]))
+    sys.exit("Downloads this test suite's pytest JSON artifact to filepath.\nUSAGE: {} filepath".format(sys.argv[0]))
 
 try:
     dl_fp = sys.argv[1]
 except IndexError:
     usage()
 
+ZEUS_BASE_URL = 'https://zeus.ci'
 TOKEN = os.environ['ZEUS_TOKEN']
 TEST_SUITE = os.environ['TEST_SUITE']
+print('test suite:', TEST_SUITE)
 
-def rget(url, **kwargs):
-    r = requests.get(url, headers={'Authorization': 'Bearer {}'.format(TOKEN)}, **kwargs)
+def rget(path, **kwargs):
+    r = requests.get(
+        ZEUS_BASE_URL + path,
+        headers={'Authorization': 'Bearer {}'.format(TOKEN)},
+        **kwargs
+    )
     r.raise_for_status()
     return r
 
@@ -27,16 +34,16 @@ def good(build):
         build['result'] == 'passed' and \
         build['provider'] == 'travis' and \
         not build['label'].startswith('PR #')  # zeus build schema does not contain repository branch information
+        # if its not a PR then safe to assume its master because we only have branch master enabled in Travis
 
-builds = rget('https://zeus.ci/api/repos/gh/getsentry/sentry/builds').json()
-# if its not a PR then safe to assume its master because we only have branch master enabled in Travis
-latest_good_master_build = [b for b in builds if good(b)][0]
+builds = rget('/api/repos/gh/getsentry/sentry/builds').json()
+target_build = next(b for b in builds if good(b))  # latest good master build
+print('found good build:', target_build['label'])
+artifacts = rget('/api/repos/gh/getsentry/sentry/builds/{}/artifacts'.format(target_build['number'])).json()
+print('found artifacts:', ' '.join([a['name'] for a in artifacts]))
+target_artifact = next(a for a in artifacts if a['name'] == 'pytest-{}.json'.format(TEST_SUITE))
 
-build_number = latest_good_master_build['number']
-artifacts = rget('https://zeus.ci/api/repos/gh/getsentry/sentry/builds/{}/artifacts'.format(build_number)).json()
-
-target = [a for a in artifacts if a['name'] == 'pytest-{}.json'.format(TEST_SUITE)][0]
-r = rget('https://zeus.ci' + target['download_url'], stream=True)
+r = rget(target_artifact['download_url'], stream=True)
 with open(dl_fp, 'wb') as f:
     for chunk in r.iter_content(1024):
         f.write(chunk)
