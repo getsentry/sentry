@@ -5,8 +5,12 @@ import os
 import sys
 import requests
 
+
 def usage():
-    sys.exit("Downloads this test suite's pytest JSON artifact to filepath.\nUSAGE: {} filepath".format(sys.argv[0]))
+    sys.exit(
+        'Downloads this test suite\'s pytest JSON artifact to filepath.\n'
+        'USAGE: {} filepath'.format(sys.argv[0])
+    )
 
 try:
     dl_fp = sys.argv[1]
@@ -14,35 +18,47 @@ except IndexError:
     usage()
 
 ZEUS_BASE_URL = 'https://zeus.ci'
-TOKEN = os.environ['ZEUS_TOKEN']
+ZEUS_TOKEN = os.environ['ZEUS_TOKEN']
 TEST_SUITE = os.environ['TEST_SUITE']
-print('test suite:', TEST_SUITE)
 
 def rget(path, **kwargs):
     r = requests.get(
         ZEUS_BASE_URL + path,
-        headers={'Authorization': 'Bearer {}'.format(TOKEN)},
+        headers={'Authorization': 'Bearer {}'.format(ZEUS_TOKEN)},
         **kwargs
     )
     r.raise_for_status()
     return r
 
 def good(build):
-    # TODO: zeus is a little slow at updating build status and results
-    return \
-        build['status'] == 'finished' and \
-        build['result'] == 'passed' and \
-        build['provider'] == 'travis' and \
-        not build['label'].startswith('PR #')  # zeus build schema does not contain repository branch information
-        # if its not a PR then safe to assume its master because we only have branch master enabled in Travis
+    return build['status'] == 'finished' and \
+        build['result'] == 'passed'
 
-builds = rget('/api/repos/gh/getsentry/sentry/builds').json()
-target_build = next(b for b in builds if good(b))  # latest good master build
-print('found good build:', target_build['label'])
-artifacts = rget('/api/repos/gh/getsentry/sentry/builds/{}/artifacts'.format(target_build['number'])).json()
-print('found artifacts:', ' '.join([a['name'] for a in artifacts]))
-target_artifact = next(a for a in artifacts if a['name'] == 'pytest-{}.json'.format(TEST_SUITE))
+# get latest 50 (default) revisions/commits on master (default)
+revisions = rget('/api/repos/gh/getsentry/sentry/revisions').json()
 
+try:
+    target_build = next(r for r in revisions if good(r['latest_build']))['latest_build']
+except StopIteration:
+    sys.exit(
+        'Not a single successful build on master found in the last '
+        '{} commits. Nice one!'.format(len(revisions))
+    )
+
+print('Retrieving artifact list for build #{} ({})'.format(
+    target_build['number'], target_build['label']))
+artifacts = rget('/api/repos/gh/getsentry/sentry/builds/{}/artifacts'.format(
+    target_build['number'])).json()
+
+try:
+    # TODO cannot fully rely on identifying unique artifact by naming after test_suite
+    # like, theres two postgres but one is using tagstore v2
+    target_artifact_name = 'pytest-{}.json'.format(TEST_SUITE)
+    target_artifact = next(a for a in artifacts if a['name'] == target_artifact_name)
+except StopIteration:
+    sys.exit('Could not find artifact {}.'.format(target_artifact_name))
+
+print('Artifact {} found. Downloading to {}.'.format(target_artifact_name, dl_fp))
 r = rget(target_artifact['download_url'], stream=True)
 with open(dl_fp, 'wb') as f:
     for chunk in r.iter_content(1024):
