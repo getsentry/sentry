@@ -93,8 +93,10 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
             )
             continue
 
+        binding_key = 'integration-repository.provider' if repo.provider and repo.provider.startswith(
+            'integrations:') else 'repository.provider'
         try:
-            provider_cls = bindings.get('repository.provider').get(repo.provider)
+            provider_cls = bindings.get(binding_key).get(repo.provider)
         except KeyError:
             continue
 

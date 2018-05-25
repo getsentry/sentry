@@ -64,6 +64,7 @@ class IntegrationRepositoryProvider(ProviderMixin):
                     url=result.get('url'),
                     config=result.get('config') or {},
                     provider=self.id,
+                    integration_id=result.get('integration_id'),
                 )
         except IntegrityError:
             # Try to delete webhook we just created
