@@ -12,9 +12,14 @@ def _humanize(mode, tests_dict):
     if not tests_dict:
         print('Nothing to see here.\n')
         return
-    for testpath, duration in sorted(tests_dict.items(), key=itemgetter(1), reverse=(mode!='faster')):
-        print('({:+.2f}s) '.format(duration) if duration else '', testpath, sep='')
-    print('\n')
+    for testpath, durations in sorted(tests_dict.items(), key=itemgetter(1), reverse=(mode!='faster')):
+        delta, orig = durations
+        pdelta = 100 * delta / orig
+        print(
+            '({:+.2f}s [{:+.0f}%] from {:.2f}s) '.format(delta, pdelta, orig) if duration else '',
+            testpath, sep=''
+        )
+    print()
 
 
 if __name__ == '__main__':
@@ -46,9 +51,9 @@ if __name__ == '__main__':
         else:
             delta = duration - a_duration
             if delta > args.sensitivity:
-                slower[testpath] = delta
+                slower[testpath] = (delta, a_duration)
             elif delta < -args.sensitivity:
-                faster[testpath] = delta
+                faster[testpath] = (delta, a_duration)
 
     removed = { t: None for t in a.keys() }
 
