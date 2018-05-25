@@ -118,7 +118,7 @@ const GroupTags = createReactClass({
           <Box key={tagIdx} px={1} width={0.5}>
             <Panel>
               <PanelHeader hasButtons style={{textTransform: 'none'}}>
-                <div style={{fontSize: 16}}>{tag.name}</div>
+                <div style={{fontSize: 16}}>{tag.key}</div>
                 <Flex>
                   <Link
                     className="btn btn-default btn-sm"

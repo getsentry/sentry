@@ -1,6 +1,5 @@
 import {Box, Flex} from 'grid-emotion';
 import React from 'react';
-import styled from 'react-emotion';
 
 import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
@@ -11,12 +10,6 @@ import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import Tooltip from 'app/components/tooltip';
-
-const Description = styled.span`
-  font-size: 0.8em;
-  color: ${p => p.theme.gray1};
-  margin-left: 8px;
-`;
 
 export default class ProjectTags extends AsyncView {
   getEndpoints() {
@@ -93,12 +86,11 @@ export default class ProjectTags extends AsyncView {
             )}
 
             {!isEmpty &&
-              tags.map(({key, name, canDelete}, idx) => {
+              tags.map(({key, canDelete}, idx) => {
                 return (
                   <PanelItem p={0} align="center" key={key} className="ref-tag-row">
                     <Box align="flex-end" flex="1" p={2}>
-                      <span>{name}</span>
-                      <Description>{key}</Description>
+                      <span>{key}</span>
                     </Box>
                     <Flex align="center" p={2}>
                       {canDelete ? (
