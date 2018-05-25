@@ -46,7 +46,7 @@ script:
 after_success:
   - pip install codecov
   - codecov -e TEST_SUITE
-  - mv pytest.json pytest-$TEST_SUITE.json
+  - mv -v pytest.json pytest-$TEST_SUITE.json
   - bin/zeus-utils/get-pytest-artifact /tmp/pytest-master.json
   - bin/pytest-utils/report-diff /tmp/pytest-master.json pytest-$TEST_SUITE.json
 

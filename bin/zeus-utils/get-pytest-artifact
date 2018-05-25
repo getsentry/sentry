@@ -24,8 +24,10 @@ TEST_SUITE = os.environ['TEST_SUITE']
 def rget(path, **kwargs):
     r = requests.get(
         ZEUS_BASE_URL + path,
-        headers={'Authorization': 'Bearer {}'.format(ZEUS_TOKEN)},
-        **kwargs
+        headers={
+            'Authorization': 'Bearer {}'.format(ZEUS_TOKEN),
+            'User-Agent': 'zeus-utils-get-pytest-artifact-' + requests.utils.default_user_agent()
+        }, **kwargs
     )
     r.raise_for_status()
     return r
@@ -34,6 +36,7 @@ def good(build):
     return build['status'] == 'finished' and \
         build['result'] == 'passed'
 
+'''
 # get latest 50 (default) revisions/commits on master (default)
 revisions = rget('/api/repos/gh/getsentry/sentry/revisions').json()
 
@@ -44,11 +47,14 @@ except StopIteration:
         'Not a single successful build on master found in the last '
         '{} commits. Nice one!'.format(len(revisions))
     )
+'''
 
-print('Retrieving artifact list for build #{} ({})'.format(
-    target_build['number'], target_build['label']))
+print('getting artifact for build 9464')
+#print('Retrieving artifact list for build #{} ({})'.format(
+#    target_build['number'], target_build['label']))
 artifacts = rget('/api/repos/gh/getsentry/sentry/builds/{}/artifacts'.format(
-    target_build['number'])).json()
+    9464)).json()
+#    target_build['number'])).json()
 
 try:
     # TODO cannot fully rely on identifying unique artifact by naming after test_suite
