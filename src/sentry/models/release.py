@@ -336,12 +336,11 @@ class Release(Model):
             ReleaseCommit, ReleaseHeadCommit, Repository, PullRequest
         )
         from sentry.plugins.providers.repository import RepositoryProvider
-
+        # todo(meredith): implement for IntegrationRepositoryProvider
         commit_list = [
             c for c in commit_list
             if not RepositoryProvider.should_ignore_commit(c.get('message', ''))
         ]
-
         lock_key = type(self).get_lock_key(self.organization_id, self.id)
         lock = locks.get(lock_key, duration=10)
         with TimedRetryPolicy(10)(lock.acquire):
