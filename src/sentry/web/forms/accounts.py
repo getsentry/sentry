@@ -213,9 +213,14 @@ class RegistrationForm(forms.ModelForm):
         else:
             # NOTE: the text here is duplicated within the ``NewsletterConsent`` component
             # in the UI
-            self.fields['subscribe'].help_text = mark_safe("We'd love to keep you updated via email with product and feature announcements, promotions, educational materials, and events. Our updates focus on relevant information and never sell your data to marketing companies. See our <a href=\"%(privacy_link)s\">Privacy Policy</a> for more details.".format(
-                privacy_link=settings.PRIVACY_URL,
-            ))
+            notice = (
+                "We'd love to keep you updated via email with product and feature "
+                "announcements, promotions, educational materials, and events. "
+                "Our updates focus on relevant information, and we'll never sell "
+                "your data to third parties. See our "
+                "<a href=\"{privacy_link}\">Privacy Policy</a> for more details."
+            )
+            self.fields['subscribe'].help_text = mark_safe(notice.format(privacy_link=settings.PRIVACY_URL))
 
     class Meta:
         fields = ('username', 'name')
