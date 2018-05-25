@@ -60,7 +60,8 @@ class IntegrationPipeline(Pipeline):
             )
         else:
             integration = ensure_integration(self.provider.key, data)
-        integration.add_organization(self.organization.id)
+
+        org_integration = integration.add_organization(self.organization.id)
 
         # Does this integration provide a user identity for the user setting up
         # the integration?
@@ -91,7 +92,7 @@ class IntegrationPipeline(Pipeline):
                 },
             )
 
-        return self._dialog_response(serialize(integration, self.request.user), True)
+        return self._dialog_response(serialize(org_integration, self.request.user), True)
 
     def _dialog_response(self, data, success):
         return HttpResponse(
