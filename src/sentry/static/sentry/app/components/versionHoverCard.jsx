@@ -161,7 +161,7 @@ const VersionHoverCard = createReactClass({
               <div className="count-since">{release.newGroups}</div>
             </div>
             <div className="col-xs-8">
-              <h6>
+              <h6 style={{textAlign: 'right'}}>
                 {release.commitCount}{' '}
                 {release.commitCount !== 1 ? t('commits ') : t('commit ')} {t('by ')}{' '}
                 {release.authors.length}{' '}

@@ -31,7 +31,9 @@ const ReleaseStats = createReactClass({
     return (
       <div className="release-stats">
         <ReleaseSummaryHeading>{releaseSummary}</ReleaseSummaryHeading>
-        <AvatarList users={release.authors} avatarSize={25} />
+        <span style={{display: 'inline-block'}}>
+          <AvatarList users={release.authors} avatarSize={25} />
+        </span>
       </div>
     );
   },
