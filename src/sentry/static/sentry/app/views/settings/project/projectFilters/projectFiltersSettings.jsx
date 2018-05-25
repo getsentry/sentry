@@ -31,15 +31,20 @@ const LEGACY_BROWSER_SUBFILTERS = {
     helpText: 'Version 10',
     title: 'Internet Explorer',
   },
+  safari_pre_6: {
+    icon: 'safari',
+    helpText: 'Version 5 and lower',
+    title: 'Safari',
+  },
   opera_pre_15: {
     icon: 'opera',
     helpText: 'Version 14 and lower',
     title: 'Opera',
   },
-  safari_pre_6: {
-    icon: 'safari',
-    helpText: 'Version 5 and lower',
-    title: 'Safari',
+  opera_mini_pre_8: {
+    icon: 'opera',
+    helpText: 'Version 8 and lower',
+    title: 'Opera Mini',
   },
   android_pre_4: {
     icon: 'android',
@@ -291,7 +296,7 @@ const FilterGridItem = styled.div`
 // We want this wrapper to maining 30% width
 const FilterGridItemWrapper = styled.div`
   padding: 12px;
-  flex: 1;
+  width: 50%;
 `;
 
 const FilterGridIcon = styled.div`

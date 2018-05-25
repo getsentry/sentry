@@ -124,7 +124,7 @@ describe('ProjectFilters', function() {
     let mock = createFilterMock(filter);
 
     // default stubs ie_pre_9 and ie9 selected (first 2 switches)
-    const Switch = wrapper.find('LegacyBrowserFilterRow Switch').at(3);
+    const Switch = wrapper.find('LegacyBrowserFilterRow Switch').at(4);
 
     // Toggle filter on
     Switch.simulate('click');
@@ -139,7 +139,7 @@ describe('ProjectFilters', function() {
     // Toggle filter off
     wrapper
       .find('LegacyBrowserFilterRow Switch')
-      .at(4)
+      .at(3)
       .simulate('click');
     expect(Array.from(mock.mock.calls[1][1].data.subfilters)).toEqual([
       'ie_pre_9',
@@ -179,8 +179,9 @@ describe('ProjectFilters', function() {
       'ie_pre_9',
       'ie9',
       'ie10',
-      'opera_pre_15',
       'safari_pre_6',
+      'opera_pre_15',
+      'opera_mini_pre_8',
       'android_pre_4',
     ]);
 

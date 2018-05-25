@@ -19,13 +19,21 @@ MIN_VERSIONS = {
     'Edge': 0,
     'Opera': 15,
     'Android': 4,
+    'Opera Mini': 8
 }
 
 
 class LegacyBrowserFilterSerializer(serializers.Serializer):
     active = serializers.BooleanField()
     subfilters = MultipleChoiceField(
-        choices=['ie_pre_9', 'ie9', 'ie10', 'opera_pre_15', 'android_pre_4', 'safari_pre_6']
+        choices=[
+            'ie_pre_9',
+            'ie9',
+            'ie10',
+            'opera_pre_15',
+            'android_pre_4',
+            'safari_pre_6',
+            'opera_mini_pre_8']
     )
 
 
@@ -136,6 +144,20 @@ class LegacyBrowsersFilter(Filter):
             return False
 
         if major_browser_version < 4:
+            return True
+
+        return False
+
+    def filter_opera_mini_pre_8(self, browser):
+        if not browser['family'] == "Opera Mini":
+            return False
+
+        try:
+            major_browser_version = int(browser['major'])
+        except (TypeError, ValueError):
+            return False
+
+        if major_browser_version < 8:
             return True
 
         return False
