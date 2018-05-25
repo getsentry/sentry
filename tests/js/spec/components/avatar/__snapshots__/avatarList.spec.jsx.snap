@@ -4,6 +4,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
 <AvatarList
   avatarSize={28}
   maxVisibleAvatars={5}
+  typeMembers="users"
   users={
     Array [
       Object {
@@ -698,6 +699,7 @@ exports[`AvatarList renders with user avatars 1`] = `
 <AvatarList
   avatarSize={28}
   maxVisibleAvatars={5}
+  typeMembers="users"
   users={
     Array [
       Object {
