@@ -3,7 +3,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import _ from 'lodash';
 
-import Avatar from 'app/components/avatar';
+import AvatarList from 'app/components/avatar/avatarList';
 
 import LastCommit from 'app/components/lastCommit';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -106,7 +106,8 @@ const VersionHoverCard = createReactClass({
 
   toggleHovercard() {
     this.setState({
-      visible: !this.state.visible,
+      visible: true,
+      // visible: !this.state.visible,
     });
   },
 
@@ -166,19 +167,11 @@ const VersionHoverCard = createReactClass({
                 {release.authors.length}{' '}
                 {release.authors.length !== 1 ? t('authors') : t('author')}{' '}
               </h6>
-              <div className="avatar-grid">
-                {release.authors.map((author, idx) => {
-                  return (
-                    <span
-                      className="avatar-grid-item tip"
-                      title={author.name + ' ' + author.email}
-                      key={idx}
-                    >
-                      <Avatar user={author} />
-                    </span>
-                  );
-                })}
-              </div>
+              <AvatarList
+                users={release.authors}
+                avatarSize={25}
+                tooltipOptions={{container: 'body'}}
+              />
             </div>
           </div>
           {lastCommit && <LastCommit commit={lastCommit} headerClass="commit-heading" />}

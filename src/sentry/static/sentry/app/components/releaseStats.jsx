@@ -31,9 +31,7 @@ const ReleaseStats = createReactClass({
     return (
       <div className="release-stats">
         <ReleaseSummaryHeading>{releaseSummary}</ReleaseSummaryHeading>
-        <div className="avatar-grid">
-          <AvatarList users={release.authors} avatarSize={25} />
-        </div>
+        <AvatarList users={release.authors} avatarSize={25} />
       </div>
     );
   },
