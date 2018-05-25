@@ -53,7 +53,7 @@ class SlackLinkIdentitiyView(BaseView):
             idp = IdentityProvider.objects.get(
                 external_id=integration.external_id,
                 type='slack',
-                organization=organization,
+                organization_id=organization.id,
             )
         except IdentityProvider.DoesNotExist:
             raise Http404

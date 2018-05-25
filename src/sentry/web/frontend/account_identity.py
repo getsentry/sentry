@@ -14,7 +14,7 @@ class AccountIdentityAssociateView(OrganizationView):
     def handle(self, request, organization, provider_key, external_id):
         try:
             provider_model = IdentityProvider.objects.get(
-                organization=organization,
+                organization_id=organization.id,
                 type=provider_key,
                 external_id=external_id,
             )

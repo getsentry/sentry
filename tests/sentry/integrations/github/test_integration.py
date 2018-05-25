@@ -123,7 +123,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         idp = IdentityProvider.objects.get(
             type='github',
-            organization=self.organization,
+            organization_id=self.organization.id,
         )
         identity = Identity.objects.get(
             idp=idp,
