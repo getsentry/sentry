@@ -190,15 +190,8 @@ exports[`ProjectTags renders 1`] = `
                                 is={null}
                               >
                                 <span>
-                                  Browser
+                                  browser
                                 </span>
-                                <Description>
-                                  <span
-                                    className="css-ecmgih-Description e6a8kyc0"
-                                  >
-                                    browser
-                                  </span>
-                                </Description>
                               </div>
                             </Base>
                           </Box>
@@ -337,15 +330,8 @@ exports[`ProjectTags renders 1`] = `
                                 is={null}
                               >
                                 <span>
-                                  Device
+                                  device
                                 </span>
-                                <Description>
-                                  <span
-                                    className="css-ecmgih-Description e6a8kyc0"
-                                  >
-                                    device
-                                  </span>
-                                </Description>
                               </div>
                             </Base>
                           </Box>
@@ -484,15 +470,8 @@ exports[`ProjectTags renders 1`] = `
                                 is={null}
                               >
                                 <span>
-                                  URL
+                                  url
                                 </span>
-                                <Description>
-                                  <span
-                                    className="css-ecmgih-Description e6a8kyc0"
-                                  >
-                                    url
-                                  </span>
-                                </Description>
                               </div>
                             </Base>
                           </Box>
@@ -631,15 +610,8 @@ exports[`ProjectTags renders 1`] = `
                                 is={null}
                               >
                                 <span>
-                                  Environment
+                                  environment
                                 </span>
-                                <Description>
-                                  <span
-                                    className="css-ecmgih-Description e6a8kyc0"
-                                  >
-                                    environment
-                                  </span>
-                                </Description>
                               </div>
                             </Base>
                           </Box>

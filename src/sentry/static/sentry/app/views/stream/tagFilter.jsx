@@ -114,7 +114,7 @@ class StreamTagFilter extends React.Component {
     let tag = this.props.tag;
     return (
       <div className="stream-tag-filter">
-        <h6 className="nav-header">{tag.name}</h6>
+        <h6 className="nav-header">{tag.key}</h6>
 
         {this.props.tag.predefined ? (
           <select ref="select" onChange={function() {}}>
