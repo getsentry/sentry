@@ -49,11 +49,11 @@ except StopIteration:
     )
 '''
 
-print('getting artifact for build 9464')
+print('getting artifact for build 9505')
 #print('Retrieving artifact list for build #{} ({})'.format(
 #    target_build['number'], target_build['label']))
 artifacts = rget('/api/repos/gh/getsentry/sentry/builds/{}/artifacts'.format(
-    9495)).json()
+    9505)).json()
 #    target_build['number'])).json()
 
 try:

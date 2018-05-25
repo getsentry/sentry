@@ -14,7 +14,7 @@ def _humanize(mode, tests_dict):
         return
     for testpath, durations in sorted(tests_dict.items(), key=itemgetter(1), reverse=(mode!='faster')):
         delta, orig = durations
-        pdelta = 100 * delta / orig
+        pdelta = (100 * delta / orig) if orig else 100
         print(
             '({:+.2f}s [{:+.0f}%] from {:.2f}s) '.format(delta, pdelta, orig) if duration else '',
             testpath, sep=''
@@ -36,7 +36,7 @@ if __name__ == '__main__':
         type=argparse.FileType('r'),
         help='Path to report file to compare with A.',
     )
-    parser.add_argument('-s', '--sensitivity', type=float, help='sensitivity threshold in seconds (float)', default=0.1)
+    parser.add_argument('-s', '--sensitivity', type=float, help='delta sensitivity threshold in seconds (float)', default=0.1)
     args = parser.parse_args()
 
     with args.filea as filea, args.fileb as fileb:
@@ -47,7 +47,7 @@ if __name__ == '__main__':
     for testpath, duration in b.items():
         a_duration = a.pop(testpath, None)
         if a_duration is None:
-            added[testpath] = duration
+            added[testpath] = (duration, 0.0)
         else:
             delta = duration - a_duration
             if delta > args.sensitivity:
@@ -55,7 +55,7 @@ if __name__ == '__main__':
             elif delta < -args.sensitivity:
                 faster[testpath] = (delta, a_duration)
 
-    removed = { t: None for t in a.keys() }
+    removed = { testpath: (duration, 0.0) for testpath, duration in a.items() }
 
     _humanize('added', added)
     _humanize('removed', removed)
