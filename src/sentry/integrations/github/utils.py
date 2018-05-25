@@ -24,5 +24,4 @@ def get_jwt(github_id=None, github_private_key=None):
         # Integration's GitHub identifier
         'iss': github_id,
     }
-
     return jwt.encode(payload, github_private_key, algorithm='RS256')
