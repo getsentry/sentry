@@ -108,11 +108,27 @@ class AddRepositoryLink extends PluginComponentBase {
   renderForm() {
     let errors = this.state.error.errors || {};
     let provider = this.props.provider;
+    let hasIntegration = true;
+    provider.config.forEach(field => {
+      if (field.initial == '') hasIntegration = false;
+    });
     return (
       <form onSubmit={this.formSubmit}>
         {errors.__all__ && (
           <div className="alert alert-error alert-block" key="_errors">
             <p>{errors.__all__}</p>
+          </div>
+        )}
+        {!hasIntegration && (
+          <div
+            className="alert alert-error alert-block"
+            style={{display: 'flex', alignItems: 'center'}}
+          >
+            <p>
+              {'You need to configure ' +
+                provider.name +
+                ' in your integrations before you can add repositories with this service.'}
+            </p>
           </div>
         )}
         {provider.config.map(field => {
