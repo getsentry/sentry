@@ -53,7 +53,7 @@ print('getting artifact for build 9464')
 #print('Retrieving artifact list for build #{} ({})'.format(
 #    target_build['number'], target_build['label']))
 artifacts = rget('/api/repos/gh/getsentry/sentry/builds/{}/artifacts'.format(
-    9464)).json()
+    9493)).json()
 #    target_build['number'])).json()
 
 try:
