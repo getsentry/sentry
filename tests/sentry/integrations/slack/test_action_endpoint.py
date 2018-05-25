@@ -38,6 +38,7 @@ class BaseEventTest(APITestCase):
 
         self.idp = IdentityProvider.objects.create(
             type='slack',
+            external_id='TXXXXXXX1',
             organization_id=self.org.id,
             config={},
         )
