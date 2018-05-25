@@ -6,8 +6,8 @@ from sentry.models import Commit, CommitAuthor, Repository
 from sentry.testutils import APITestCase, TestCase
 
 
-from sentry_plugins.bitbucket.endpoints.webhook import parse_raw_user_email, parse_raw_user_name
-from sentry_plugins.bitbucket.testutils import PUSH_EVENT_EXAMPLE
+from sentry.integrations.bitbucket.webhook import parse_raw_user_email, parse_raw_user_name
+from .testutils import PUSH_EVENT_EXAMPLE
 
 BAD_IP = '109.111.111.10'
 BITBUCKET_IP_IN_RANGE = '104.192.143.10'
@@ -29,9 +29,9 @@ class WebhookTest(APITestCase):
     def setUp(self):
         super(WebhookTest, self).setUp()
         project = self.project  # force creation
-        self.url = '/plugins/bitbucket/organizations/%s/webhook/' % project.organization.id
+        self.url = '/extensions/bitbucket/organizations/%s/webhook/' % project.organization_id
 
-    def test_get(self):
+    def test_get_request_fails(self):
         response = self.client.get(self.url)
         assert response.status_code == 405
 
@@ -72,7 +72,7 @@ class PushEventWebhookTest(APITestCase):
     def setUp(self):
         super(PushEventWebhookTest, self).setUp()
         project = self.project  # force creation
-        self.url = '/plugins/bitbucket/organizations/%s/webhook/' % project.organization.id
+        self.url = '/extensions/bitbucket/organizations/%s/webhook/' % project.organization.id
 
     def test_simple(self):
         Repository.objects.create(
