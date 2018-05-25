@@ -57,6 +57,8 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
             data=request.DATA,
             partial=True
         )
+        if request.DATA['conditions'] == []:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         if serializer.is_valid():
             rule = serializer.save(rule=rule)
