@@ -10,7 +10,7 @@ from sentry.plugins import providers
 from sentry.models import Integration
 from sentry.utils.http import absolute_uri
 
-from .exceptions import ApiError
+from sentry.integrations.exceptions import ApiError
 
 from .webhook import parse_raw_user_email, parse_raw_user_name
 
@@ -79,6 +79,7 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
         return config
 
     def get_webhook_secret(self, organization):
+        # TODO(LB): Revisit whether Integrations V3 should be using OrganizationOption for storage
         lock = locks.get('bitbucket:webhook-secret:{}'.format(organization.id), duration=60)
         with lock.acquire():
             secret = OrganizationOption.objects.get_value(
