@@ -76,6 +76,7 @@ class IntegrationRepositoryProvider(ProviderMixin):
                     url=result.get('url'),
                     config=result.get('config') or {},
                     provider=self.id,
+                    integration_id=result.get('integration_id'),
                 )
                 self.delete_repository(repo, actor=request.user)
             except PluginError:

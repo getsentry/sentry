@@ -1,10 +1,13 @@
 from __future__ import absolute_import
 
-from sentry.integrations import IntegrationProvider, IntegrationMetadata
+from sentry.integrations import Integration, IntegrationProvider, IntegrationMetadata
 from sentry.pipeline import NestedPipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from django.utils.translation import ugettext_lazy as _
 from sentry.utils.http import absolute_uri
+
+from .repository import BitbucketRepositoryProvider
+from .client import BitbucketApiClient
 
 DESCRIPTION = """
 Bitbucket for Sentry.io
@@ -26,11 +29,21 @@ scopes = (
 )
 
 
+class BitbucketIntegration(Integration):
+    def get_client(self):
+        return BitbucketApiClient(
+            self.model.metadata['base_url'],
+            self.model.metadata['shared_secret'],
+            self.model.metadata['subject'],
+        )
+
+
 class BitbucketIntegrationProvider(IntegrationProvider):
     key = 'bitbucket'
     name = 'Bitbucket'
     metadata = metadata
     scopes = scopes
+    integration_cls = BitbucketIntegration
 
     def get_pipeline_views(self):
         identity_pipeline_config = {
@@ -68,3 +81,11 @@ class BitbucketIntegrationProvider(IntegrationProvider):
             'external_id': state['identity']['bitbucket_client_key'],
             'expect_exists': True,
         }
+
+    def setup(self):
+        from sentry.plugins import bindings
+        bindings.add(
+            'integration-repository.provider',
+            BitbucketRepositoryProvider,
+            id='integrations:bitbucket',
+        )

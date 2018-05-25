@@ -35,16 +35,16 @@ class BitbucketAPIPath(object):
     repository_hooks = u'/2.0/repositories/{repo}/hooks'
 
 
-class BitbucketAPI(ApiClient):
+class BitbucketApiClient(ApiClient):
     """
     The API Client for the Bitbucket Integraiton
 
     NOTE: repo is the fully qualified slug containing 'username/repo_slug'
     """
 
-    def __init__(self, base_url, shared_secret, subject):
+    def __init__(self, base_url, shared_secret, subject, *args, **kwargs):
         # subject is probably the clientKey
-        super(BitbucketAPI, self).__init__()
+        super(BitbucketApiClient, self).__init__(*args, **kwargs)
         self.base_url = base_url
         self.shared_secret = shared_secret
         self.subject = subject
