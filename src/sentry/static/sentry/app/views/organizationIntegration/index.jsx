@@ -13,6 +13,7 @@ import LoadingError from 'app/components/loadingError';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import Tooltip from 'app/components/tooltip';
 import marked from 'app/utils/marked';
 
 import IntegrationDetails from './integrationDetails';
@@ -250,15 +251,23 @@ export default class OrganizationIntegration extends AsyncView {
     const titleIcon = <PluginIcon size={28} pluginId={provider.key} />;
 
     const header = (
-      <PanelHeader disablePadding hasButtons={provider.canAdd}>
+      <PanelHeader disablePadding hasButtons>
         <Box px={2}>{provider.metadata.noun}</Box>
-        {provider.canAdd && (
+        <Tooltip
+          disabled={provider.canAdd}
+          tooltipOptions={{placement: 'left'}}
+          title={`Integration cannot be added on Sentry. Enable this integration via the ${provider.name} instance.`}
+        >
           <Box mr={1}>
-            <Button size="xsmall" onClick={() => this.handleAddIntegration(provider)}>
+            <Button
+              disabled={!provider.canAdd}
+              size="xsmall"
+              onClick={() => this.handleAddIntegration(provider)}
+            >
               <span className="icon icon-add" /> {t('Add') + ' ' + provider.metadata.noun}
             </Button>
           </Box>
-        )}
+        </Tooltip>
       </PanelHeader>
     );
 
