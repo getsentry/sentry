@@ -9,7 +9,7 @@ from sentry.integrations.bitbucket.repository import BitbucketRepositoryProvider
 from .testutils import COMPARE_COMMITS_EXAMPLE, COMMIT_DIFF_PATCH
 
 
-class BitbucketPluginTest(TestCase):
+class BitbucketRepositoryProviderTest(TestCase):
     def setUp(self):
         self.base_url = 'https://api.bitbucket.org'
         self.shared_secret = '234567890'
