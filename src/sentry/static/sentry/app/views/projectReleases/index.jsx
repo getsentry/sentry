@@ -50,7 +50,10 @@ const ProjectReleases = createReactClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    if (nextProps.location.search !== this.props.location.search) {
+    const queryHasChanged =
+      nextProps.location.query.query !== this.props.location.query.query;
+
+    if (queryHasChanged) {
       let queryParams = nextProps.location.query;
       this.setState(
         {
