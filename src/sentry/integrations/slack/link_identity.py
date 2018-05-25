@@ -76,8 +76,14 @@ class SlackLinkIdentitiyView(BaseView):
 
         # Link the user with the identity. Handle the case where the user is linked to a
         # different identity or the identity is linked to a different user.
-        id_by_user = Identity.objects.get(user=request.user, idp=idp)
-        id_by_external_id = Identity.objects.get(external_id=params['slack_id'], idp=idp)
+        try:
+            id_by_user = Identity.objects.get(user=request.user, idp=idp)
+        except Identity.DoesNotExist:
+            id_by_user = None
+        try:
+            id_by_external_id = Identity.objects.get(external_id=params['slack_id'], idp=idp)
+        except Identity.DoesNotExist:
+            id_by_external_id = None
 
         if not id_by_user and not id_by_external_id:
             Identity.objects.create(
