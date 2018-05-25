@@ -477,7 +477,6 @@ class Release(Model):
         pr_ids_by_merge_commit = list(PullRequest.objects.filter(
             merge_commit_sha__in=[rc['commit__key'] for rc in release_commits],
             organization_id=self.organization_id,
-            repository_id__in=[r.id for r in repos.values()],
         ).values_list('id', flat=True))
 
         pull_request_resolutions = list(
