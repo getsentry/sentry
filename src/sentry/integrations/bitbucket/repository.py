@@ -10,7 +10,7 @@ from sentry.plugins import providers
 from sentry.models import Integration
 from sentry.utils.http import absolute_uri
 
-from sentry_plugins.exceptions import ApiError
+from .exceptions import ApiError
 
 from .webhook import parse_raw_user_email, parse_raw_user_name
 
