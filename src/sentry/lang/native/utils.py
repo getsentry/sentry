@@ -220,6 +220,7 @@ def merge_minidump_event(data, minidump):
         'stacktrace': crashed_thread.pop('stacktrace'),
         'mechanism': {
             'type': 'minidump',
+            'handled': False,
             # We cannot extract exception codes or signals with the breakpad
             # extractor just yet. Once these capabilities are added to symbolic,
             # these values should go in the mechanism here.
