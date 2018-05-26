@@ -177,10 +177,10 @@ class BasicResolvingIntegrationTest(TestCase):
             'sentry_environmentproject': 1,
             'sentry_eventtag': 1,
             'sentry_eventuser': 1,
-            'sentry_filtervalue': 7,
+            'sentry_filtervalue': 8,
             'sentry_groupedmessage': 1,
             'sentry_message': 1,
-            'sentry_messagefiltervalue': 7,
+            'sentry_messagefiltervalue': 8,
             'sentry_userreport': 1
         }):
             resp = self._postWithHeader(event_data)
