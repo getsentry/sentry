@@ -50,7 +50,7 @@ exports[`ExceptionMechanism basic attributes should add the help_link to the des
         header={
           <span>
             Details
-
+             
             <a
               className="external-icon"
               href="https://example.org/help"
@@ -89,7 +89,7 @@ exports[`ExceptionMechanism basic attributes should render a description hoverca
         header={
           <span>
             Details
-
+             
           </span>
         }
       >
