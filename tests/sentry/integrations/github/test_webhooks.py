@@ -15,7 +15,6 @@ from sentry.testutils import APITestCase
 from uuid import uuid4
 
 from .testutils import (
-    INSTALLATION_EVENT_EXAMPLE, INSTALLATION_REPO_EVENT,
     PUSH_EVENT_EXAMPLE_INSTALLATION, PULL_REQUEST_OPENED_EVENT_EXAMPLE,
     PULL_REQUEST_EDITED_EVENT_EXAMPLE, PULL_REQUEST_CLOSED_EVENT_EXAMPLE
 )
@@ -26,7 +25,6 @@ from mock import patch
 
 class WebhookTest(APITestCase):
     def test_get(self):
-        project = self.project  # force creation
 
         url = '/extensions/github/webhook/'
 
@@ -56,7 +54,6 @@ class WebhookTest(APITestCase):
         assert response.status_code == 204
 
     def test_invalid_signature_event(self):
-        project = self.project  # force creation
 
         url = '/extensions/github/webhook/'
 
