@@ -697,22 +697,6 @@ def upgrade_legacy_mechanism(data):
     return result
 
 
-def to_hex_code(code):
-    if code is None:
-        return None
-    elif isinstance(code, six.integer_types):
-        rv = '0x%x' % code
-    elif isinstance(code, six.string_types):
-        if code[:2] == '0x':
-            code = int(code[2:], 16)
-        rv = '0x%x' % int(code)
-    else:
-        raise ValueError('Unsupported format %r' % (code, ))
-    if len(rv) > 24:
-        raise ValueError('Value too long %r' % (rv, ))
-    return rv
-
-
 def prune_empty_keys(obj):
     if obj is None:
         return None
