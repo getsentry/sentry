@@ -11,7 +11,7 @@ from mock import patch
 
 from sentry import tagstore
 from sentry.models import (
-    Activity, EventMapping, Group, GroupAssignee, GroupBookmark, GroupHash, GroupResolution,
+    Activity, ApiToken, EventMapping, Group, GroupAssignee, GroupBookmark, GroupHash, GroupResolution,
     GroupSeen, GroupSnooze, GroupStatus, GroupSubscription,
     GroupTombstone, Release, UserOption, GroupShare,
 )
@@ -308,6 +308,15 @@ class GroupListTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
+
+    def test_token_auth(self):
+        token = ApiToken.objects.create(user=self.user, scopes=256)
+        response = self.client.get(
+            self.path,
+            format='json',
+            HTTP_AUTHORIZATION='Bearer %s' %
+            token.token)
+        assert response.status_code == 200, response.content
 
 
 class GroupUpdateTest(APITestCase):

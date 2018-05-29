@@ -4,6 +4,8 @@ from django.http import HttpResponse
 from sentry.integrations import (
     Integration, IntegrationFeatures, IntegrationMetadata, IntegrationProvider
 )
+from sentry.integrations.exceptions import IntegrationError
+from sentry.integrations.issues import IssueSyncMixin
 from sentry.pipeline import PipelineView
 
 
@@ -40,19 +42,18 @@ metadata = IntegrationMetadata(
 )
 
 
-class ExampleIntegration(Integration):
+class ExampleIntegration(Integration, IssueSyncMixin):
     def create_comment(self):
         pass
 
-    def get_link_issue_config(self, group):
-        return [
-            {
-                'name': 'externalIssue',
-                'label': 'Issue',
-                'default': '',
-                'type': 'string',
-            }
-        ]
+    def create_issue(self, data, **kwargs):
+        if 'assignee' not in data:
+            raise IntegrationError('Assignee is required')
+        return {
+            'key': 'APP-123',
+            'title': 'This is a test external issue title',
+            'description': 'This is a test external issue description',
+        }
 
 
 class ExampleIntegrationProvider(IntegrationProvider):

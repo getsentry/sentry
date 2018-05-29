@@ -8,6 +8,22 @@ from enum import Enum
 
 from sentry.pipeline import PipelineProvider
 
+from .exceptions import ApiHostError, ApiError, ApiUnauthorized, UnsupportedResponseType
+
+
+ERR_INTERNAL = (
+    'An internal error occurred with the integration and the Sentry team has'
+    ' been notified'
+)
+
+ERR_UNAUTHORIZED = (
+    'Unauthorized: either your access token was invalid or you do not have'
+    ' access'
+)
+
+ERR_UNSUPPORTED_RESPONSE_TYPE = (
+    'An unsupported response type was returned: {content_type}'
+)
 
 IntegrationMetadata = namedtuple('IntegrationMetadata', [
     'description',  # A markdown description of the integration
@@ -61,6 +77,9 @@ class IntegrationProvider(PipelineProvider):
     # whether or not the integration installation be initiated from Sentry
     can_add = True
 
+    # can the integration be enabled specifically for projects?
+    can_add_project = False
+
     # can be any number of IntegrationFeatures
     features = frozenset()
 
@@ -84,31 +103,6 @@ class IntegrationProvider(PipelineProvider):
         """
         raise NotImplementedError
 
-    # XXX(dcramer): this is not yet exposed anywhere in the UI
-    def get_config(self):
-        """
-        Return a list of configuration attributes for this integration.
-
-        The results of this are stored per-organization per-integration.
-
-        >>> def get_config(self):
-        >>>     return [{
-        >>>         'name': 'instance',
-        >>>         'label': 'Instance',
-        >>>         'type': 'text',
-        >>>         'placeholder': 'e.g. https://example.atlassian.net',
-        >>>         'required': True,
-        >>>     }]
-        """
-        return []
-
-    def is_configured(self):
-        """
-        Return a boolean describing whether this integration should be made
-        available (e.g. per system-configuration).
-        """
-        return True
-
     def build_integration(self, state):
         """
         Given state captured during the setup pipeline, return a dictionary
@@ -130,6 +124,17 @@ class IntegrationProvider(PipelineProvider):
         >>>         'name': state['name'],
         >>>         'metadata': {url': state['url']},
         >>>     }
+
+        This can return the 'expect_exists' flag, and this method  will expect
+        that the passed 'external_id' exists and will not attempt to recreate
+        or update the integration.
+
+        >>> def build_integration(self, state):
+        >>>    return {
+        >>>        'external_id': state['id'],
+        >>>        'expect_exists': True,
+        >>>    }
+
         """
         raise NotImplementedError
 
@@ -141,6 +146,9 @@ class IntegrationProvider(PipelineProvider):
         >>>     bindings.add('repository.provider', GitHubRepositoryProvider, key='github')
         """
 
+    def has_feature(self, feature):
+        return feature in self.features
+
 
 class Integration(object):
     """
@@ -151,6 +159,47 @@ class Integration(object):
     def __init__(self, model):
         self.model = model
 
+    def get_organization_config(self):
+        """
+        Returns a list of JSONForm configuration object descriptors used to
+        configure the integration per-organization. This simply represents the
+        configuration structure.
+
+        See the JSONForm react component for structure details.
+        """
+        return []
+
+    def get_project_config(self):
+        """
+        Provides configuration for the integration on a per-project
+        level. See ``get_config_organization``.
+        """
+        return []
+
     def get_client(self):
         # Return the api client for a given provider
         raise NotImplementedError
+
+    def message_from_error(self, exc):
+        if isinstance(exc, ApiUnauthorized):
+            return ERR_UNAUTHORIZED
+        elif isinstance(exc, ApiHostError):
+            return exc.text
+        elif isinstance(exc, UnsupportedResponseType):
+            return ERR_UNSUPPORTED_RESPONSE_TYPE.format(
+                content_type=exc.content_type,
+            )
+        elif isinstance(exc, ApiError):
+            if exc.json:
+                msg = self.error_message_from_json(exc.json) or 'unknown error'
+            else:
+                msg = 'unknown error'
+            return (
+                'Error Communicating with %s (HTTP %s): %s' % (
+                    self.title,
+                    exc.code,
+                    msg
+                )
+            )
+        else:
+            return ERR_INTERNAL

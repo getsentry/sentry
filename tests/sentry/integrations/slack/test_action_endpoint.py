@@ -38,7 +38,7 @@ class BaseEventTest(APITestCase):
 
         self.idp = IdentityProvider.objects.create(
             type='slack',
-            organization=self.org,
+            organization_id=self.org.id,
             config={},
         )
         self.identity = Identity.objects.create(
@@ -268,7 +268,7 @@ class StatusActionTest(BaseEventTest):
 
         idp2 = IdentityProvider.objects.create(
             type='slack',
-            organization=org2,
+            organization_id=org2.id,
             config={},
         )
         Identity.objects.create(

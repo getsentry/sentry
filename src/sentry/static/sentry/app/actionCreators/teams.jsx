@@ -37,6 +37,10 @@ export function fetchTeamDetails(api, params, options) {
   });
 }
 
+export function updateTeamSuccess(teamId, data) {
+  TeamActions.updateSuccess(teamId, data);
+}
+
 export function updateTeam(api, params, options) {
   let endpoint = `/teams/${params.orgId}/${params.teamId}/`;
   TeamActions.update(params.teamId, params.data);
@@ -45,7 +49,7 @@ export function updateTeam(api, params, options) {
     method: 'PUT',
     data: params.data,
     success: data => {
-      TeamActions.updateSuccess(params.teamId, data);
+      updateTeamSuccess(params.teamId, data);
       doCallback(options, 'success', data);
     },
     error: error => {

@@ -19,7 +19,6 @@ class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
         for provider in integrations.all():
             metadata = provider.metadata
             metadata = metadata and metadata._asdict() or None
-
             if not has_catchall and provider.key in settings.SENTRY_INTERNAL_INTEGRATIONS:
                 continue
             providers.append(
@@ -27,8 +26,8 @@ class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
                     'key': provider.key,
                     'name': provider.name,
                     'metadata': metadata,
-                    'config': provider.get_config(),
                     'canAdd': provider.can_add,
+                    'canAddProject': provider.can_add_project,
                     'setupDialog': dict(
                         url='/organizations/{}/integrations/{}/setup/'.format(
                             organization.slug,

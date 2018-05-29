@@ -31,6 +31,12 @@ class PipelineProvider(object):
         """
         self.config = config
 
+    def set_pipeline(self, pipeline):
+        """
+        Used by the pipeline to give the provider access to the executing pipeline.
+        """
+        self.pipeline = pipeline
+
 
 class PipelineView(BaseView):
     """
@@ -81,6 +87,7 @@ class NestedPipelineView(PipelineView):
         )
 
         nested_pipeline.set_parent_pipeline(pipeline)
+        # nested_pipeline.bind_state('_parent', pipeline.fetch_state())
 
         if not nested_pipeline.is_valid():
             nested_pipeline.initialize()
@@ -148,6 +155,7 @@ class Pipeline(object):
         self.provider_model = provider_model
 
         self.config = config
+        self.provider.set_pipeline(self)
         self.provider.set_config(config)
 
         self.pipeline_views = self.get_pipeline_views()

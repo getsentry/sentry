@@ -20,5 +20,4 @@ class OrganizationConfigIntegrationsTest(APITestCase):
         assert len(provider) == 1
         provider = provider[0]
         assert provider['name'] == 'Example'
-        assert provider['config']
         assert provider['setupDialog']['url']

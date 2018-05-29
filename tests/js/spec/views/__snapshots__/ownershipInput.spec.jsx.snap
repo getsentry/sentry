@@ -195,7 +195,7 @@ exports[`Project Ownership Input renders 1`] = `
                     required={false}
                     value="path"
                   >
-                    <Component
+                    <SelectPicker
                       arrowRenderer={[Function]}
                       className="css-16280ey-StyledSelect eho28m20"
                       clearable={false}
@@ -389,7 +389,7 @@ exports[`Project Ownership Input renders 1`] = `
                           </div>
                         </div>
                       </Select>
-                    </Component>
+                    </SelectPicker>
                   </StyledSelect>
                 </SelectControl>
               </div>
@@ -534,7 +534,7 @@ exports[`Project Ownership Input renders 1`] = `
                       value={Array []}
                       valueComponent={[Function]}
                     >
-                      <Component
+                      <SelectPicker
                         arrowRenderer={[Function]}
                         async={true}
                         cache={false}
@@ -722,7 +722,7 @@ exports[`Project Ownership Input renders 1`] = `
                             </div>
                           </Select>
                         </Async>
-                      </Component>
+                      </SelectPicker>
                     </StyledSelect>
                   </SelectControl>
                 </MultiSelectControl>
@@ -731,6 +731,7 @@ exports[`Project Ownership Input renders 1`] = `
           </Base>
         </Flex>
         <RuleAddButton
+          disabled={true}
           icon="icon-circle-add"
           onClick={[Function]}
           priority="primary"
@@ -738,7 +739,7 @@ exports[`Project Ownership Input renders 1`] = `
         >
           <Button
             className="css-3daogo-RuleAddButton e1hyuoc79"
-            disabled={false}
+            disabled={true}
             icon="icon-circle-add"
             onClick={[Function]}
             priority="primary"
@@ -746,27 +747,33 @@ exports[`Project Ownership Input renders 1`] = `
           >
             <StyledButton
               className="css-3daogo-RuleAddButton e1hyuoc79"
-              disabled={false}
+              disabled={true}
+              href={null}
               onClick={[Function]}
               priority="primary"
               role="button"
               size="zero"
+              to={null}
             >
               <Component
-                className="e1hyuoc79 css-1gabw8k-StyledButton-getColors-RuleAddButton e17811v30"
-                disabled={false}
+                className="e1hyuoc79 css-18qh3k2-StyledButton-getColors-RuleAddButton e17811v30"
+                disabled={true}
+                href={null}
                 onClick={[Function]}
                 priority="primary"
                 role="button"
                 size="zero"
+                to={null}
               >
                 <button
-                  className="e1hyuoc79 css-1gabw8k-StyledButton-getColors-RuleAddButton e17811v30"
-                  disabled={false}
+                  className="e1hyuoc79 css-18qh3k2-StyledButton-getColors-RuleAddButton e17811v30"
+                  disabled={true}
+                  href={null}
                   onClick={[Function]}
                   priority="primary"
                   role="button"
                   size="zero"
+                  to={null}
                 >
                   <ButtonLabel
                     size="zero"
@@ -882,7 +889,7 @@ url:http://example.com/settings/* #product"
         autoCapitalize="off"
         autoComplete="off"
         autoCorrect="off"
-        className="css-19bz115-StyledTextArea-inputStyles en3n9di2"
+        className="css-18yzq2g-StyledTextArea-inputStyles en3n9di2"
         onChange={[Function]}
         placeholder="#example usage
 path:src/example/pipeline/* person@sentry.io #infra
@@ -895,7 +902,7 @@ url:http://example.com/settings/* #product"
           autoCapitalize="off"
           autoComplete="off"
           autoCorrect="off"
-          className="css-19bz115-StyledTextArea-inputStyles en3n9di2"
+          className="css-18yzq2g-StyledTextArea-inputStyles en3n9di2"
           onChange={[Function]}
           placeholder="#example usage
 path:src/example/pipeline/* person@sentry.io #infra
@@ -906,76 +913,93 @@ url:http://example.com/settings/* #product"
         />
       </TextareaAutosize>
     </StyledTextArea>
-    <SaveButton>
-      <div
-        className="css-5zvod-SaveButton en3n9di1"
+    <Flex
+      align="center"
+      justify="space-between"
+    >
+      <Base
+        align="center"
+        className="css-v7pzd9"
+        justify="space-between"
       >
-        <Button
-          disabled={false}
-          onClick={[Function]}
-          priority="primary"
-          size="small"
+        <div
+          className="css-v7pzd9"
+          is={null}
         >
-          <StyledButton
-            aria-label="Save Changes"
-            disabled={false}
-            onClick={[Function]}
-            priority="primary"
-            role="button"
-            size="small"
-          >
-            <Component
-              aria-label="Save Changes"
-              className="css-zvpqlo-StyledButton-getColors e17811v30"
-              disabled={false}
-              onClick={[Function]}
-              priority="primary"
-              role="button"
-              size="small"
+          <div />
+          <SaveButton>
+            <div
+              className="css-5zvod-SaveButton en3n9di1"
             >
-              <button
-                aria-label="Save Changes"
-                className="css-zvpqlo-StyledButton-getColors e17811v30"
+              <Button
                 disabled={false}
                 onClick={[Function]}
                 priority="primary"
-                role="button"
                 size="small"
               >
-                <ButtonLabel
+                <StyledButton
+                  aria-label="Save Changes"
+                  disabled={false}
+                  onClick={[Function]}
+                  priority="primary"
+                  role="button"
                   size="small"
                 >
                   <Component
-                    className="css-179w01k-ButtonLabel e17811v31"
+                    aria-label="Save Changes"
+                    className="css-zvpqlo-StyledButton-getColors e17811v30"
+                    disabled={false}
+                    onClick={[Function]}
+                    priority="primary"
+                    role="button"
                     size="small"
                   >
-                    <Flex
-                      align="center"
-                      className="css-179w01k-ButtonLabel e17811v31"
+                    <button
+                      aria-label="Save Changes"
+                      className="css-zvpqlo-StyledButton-getColors e17811v30"
+                      disabled={false}
+                      onClick={[Function]}
+                      priority="primary"
+                      role="button"
                       size="small"
                     >
-                      <Base
-                        align="center"
-                        className="e17811v31 css-8mahft-ButtonLabel"
+                      <ButtonLabel
                         size="small"
                       >
-                        <div
-                          className="e17811v31 css-8mahft-ButtonLabel"
-                          is={null}
+                        <Component
+                          className="css-179w01k-ButtonLabel e17811v31"
                           size="small"
                         >
-                          Save Changes
-                        </div>
-                      </Base>
-                    </Flex>
+                          <Flex
+                            align="center"
+                            className="css-179w01k-ButtonLabel e17811v31"
+                            size="small"
+                          >
+                            <Base
+                              align="center"
+                              className="e17811v31 css-8mahft-ButtonLabel"
+                              size="small"
+                            >
+                              <div
+                                className="e17811v31 css-8mahft-ButtonLabel"
+                                is={null}
+                                size="small"
+                              >
+                                Save Changes
+                              </div>
+                            </Base>
+                          </Flex>
+                        </Component>
+                      </ButtonLabel>
+                    </button>
                   </Component>
-                </ButtonLabel>
-              </button>
-            </Component>
-          </StyledButton>
-        </Button>
-      </div>
-    </SaveButton>
+                </StyledButton>
+              </Button>
+            </div>
+          </SaveButton>
+        </div>
+      </Base>
+    </Flex>
   </div>
 </OwnerInput>
 `;

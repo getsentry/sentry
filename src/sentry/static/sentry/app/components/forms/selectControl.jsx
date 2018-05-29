@@ -19,9 +19,26 @@ export default class SelectControl extends React.Component {
   }
 }
 
-const StyledSelect = styled(
-  ({async, ...props}) => (async ? <Async {...props} /> : <ReactSelect {...props} />)
-)`
+// We're making this class because we pass `innerRef` from `FormField`
+// And react yells at us if this picker is a stateless function component
+// (since you can't attach refs to them)
+class SelectPicker extends React.Component {
+  static propTypes = {
+    async: PropTypes.bool,
+  };
+
+  render() {
+    let {async, ...props} = this.props;
+
+    if (async) {
+      return <Async {...props} />;
+    }
+
+    return <ReactSelect {...props} />;
+  }
+}
+
+const StyledSelect = styled(SelectPicker)`
   font-size: 15px;
 
   .Select-control,

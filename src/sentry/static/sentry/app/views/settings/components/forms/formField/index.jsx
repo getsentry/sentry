@@ -167,6 +167,9 @@ class FormField extends React.Component {
      */
     flexibleControlStateSize: PropTypes.bool,
 
+    // Default value to use for form field if value is not specified in `<Form>` parent
+    defaultValue: PropTypes.string,
+
     // the following should only be used without form context
     onChange: PropTypes.func,
     onBlur: PropTypes.func,
@@ -215,7 +218,10 @@ class FormField extends React.Component {
 
       if (hash !== `#${this.props.name}`) return;
 
-      ref.focus();
+      // Not all form fields have this (e.g. Select fields)
+      if (typeof ref.focus === 'function') {
+        ref.focus();
+      }
     }
 
     this.input = ref;
@@ -295,6 +301,10 @@ class FormField extends React.Component {
       saveOnBlur,
       saveMessage,
       saveMessageAlertType,
+
+      // Don't pass `defaultValue` down to input fields, will be handled in form model
+      // eslint-disable-next-line no-unused-vars
+      defaultValue,
       ...props
     } = this.props;
     let id = this.getId();

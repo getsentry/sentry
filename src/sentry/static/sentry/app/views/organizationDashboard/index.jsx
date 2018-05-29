@@ -20,6 +20,7 @@ import OldDashboard from './oldDashboard';
 import ProjectNav from './projectNav';
 import TeamSection from './teamSection';
 import EmptyState from './emptyState';
+import Resources from './resources';
 
 class Dashboard extends React.Component {
   static propTypes = {
@@ -63,12 +64,7 @@ class Dashboard extends React.Component {
           const showBorder = index !== teamSlugs.length - 1;
           const team = teamsMap.get(slug);
           return (
-            <LazyLoad
-              key={slug}
-              once
-              debounce={50}
-              placeholder={<TeamSectionPlaceholder />}
-            >
+            <LazyLoad key={slug} once debounce={50} height={300} offset={300}>
               <TeamSection
                 orgId={params.orgId}
                 team={team}
@@ -87,6 +83,10 @@ class Dashboard extends React.Component {
         {teamSlugs.length === 0 &&
           favorites.length === 0 && (
             <EmptyState projects={projects} teams={teams} organization={organization} />
+          )}
+        {projects.length === 1 &&
+          !projects[0].firstEvent && (
+            <Resources org={organization} project={projects[0]} />
           )}
       </React.Fragment>
     );
@@ -112,11 +112,6 @@ const OrganizationDashboard = createReactClass({
     }
   },
 });
-
-// This placeholder height will mean that we query for the first `window.height / 180` components
-const TeamSectionPlaceholder = styled('div')`
-  height: 180px;
-`;
 
 const TeamLink = styled(Link)`
   display: flex;

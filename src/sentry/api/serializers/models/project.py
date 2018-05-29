@@ -18,7 +18,7 @@ from sentry.constants import StatsPeriod
 from sentry.digests import backend as digests
 from sentry.models import (
     Project, ProjectAvatar, ProjectBookmark, ProjectOption, ProjectPlatform,
-    ProjectStatus, ProjectTeam, Release, UserOption, DEFAULT_SUBJECT_TEMPLATE
+    ProjectStatus, ProjectTeam, Release, ReleaseProjectEnvironment, Deploy, UserOption, DEFAULT_SUBJECT_TEMPLATE
 )
 from sentry.utils.data_filters import FilterTypes
 
@@ -256,6 +256,43 @@ class ProjectWithTeamSerializer(ProjectSerializer):
 
 
 class ProjectSummarySerializer(ProjectWithTeamSerializer):
+    def get_attrs(self, item_list, user):
+        attrs = super(ProjectSummarySerializer,
+                      self).get_attrs(item_list, user)
+
+        release_project_envs = list(ReleaseProjectEnvironment.objects.filter(
+            project__in=item_list,
+            last_deploy_id__isnull=False
+        ).values('release__version', 'environment__name', 'last_deploy_id', 'project__id'))
+
+        deploys = dict(
+            Deploy.objects.filter(
+                id__in=[
+                    rpe['last_deploy_id'] for rpe in release_project_envs]).values_list(
+                'id',
+                'date_finished'))
+
+        deploys_by_project = defaultdict(dict)
+
+        for rpe in release_project_envs:
+            env_name = rpe['environment__name']
+            project_id = rpe['project__id']
+            date_finished = deploys[rpe['last_deploy_id']]
+
+            if (
+                env_name not in deploys_by_project[project_id] or
+                deploys_by_project[project_id][env_name]['dateFinished'] < date_finished
+            ):
+                deploys_by_project[project_id][env_name] = {
+                    'version': rpe['release__version'],
+                    'dateFinished': date_finished
+                }
+
+        for item in item_list:
+            attrs[item]['deploys'] = deploys_by_project.get(item.id)
+
+        return attrs
+
     def serialize(self, obj, attrs, user):
         context = {
             'team': attrs['teams'][0] if attrs['teams'] else None,
@@ -270,6 +307,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             'firstEvent': obj.first_event,
             'platform': obj.platform,
             'platforms': attrs['platforms'],
+            'latestDeploys': attrs['deploys']
         }
         if 'stats' in attrs:
             context['stats'] = attrs['stats']

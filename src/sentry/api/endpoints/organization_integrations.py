@@ -5,17 +5,24 @@ from sentry.api.bases.organization import (
 )
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.models import Integration
+from sentry.models import OrganizationIntegration
 
 
 class OrganizationIntegrationsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationIntegrationsPermission, )
 
     def get(self, request, organization):
+        integrations = OrganizationIntegration.objects.filter(organization=organization)
+
+        if 'provider_key' in request.GET:
+            integrations = integrations.filter(
+                integration__provider=request.GET['provider_key']
+            )
+
         return self.paginate(
-            queryset=Integration.objects.filter(organizations=organization),
+            queryset=integrations,
             request=request,
-            order_by='name',
+            order_by='integration__name',
             on_results=lambda x: serialize(x, request.user),
             paginator_cls=OffsetPaginator,
         )

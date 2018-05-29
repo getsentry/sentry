@@ -1,12 +1,13 @@
 import React from 'react';
 import styled from 'react-emotion';
 
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import SentryTypes from 'app/proptypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TextBlock from 'app/views/settings/components/text/textBlock';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import OwnerInput from 'app/views/settings/project/projectOwnership/ownerInput';
@@ -50,26 +51,41 @@ class ProjectOwnership extends AsyncView {
         <Panel>
           <PanelHeader>{t('Ownership Rules')}</PanelHeader>
           <PanelBody disablePadding={false}>
-            <p>
+            <Block>
               {t(
                 'Define rules here to configure automated ownership for new issues and direct email alerts'
               )}
-            </p>
-            <p>{t('Rules follow the pattern type:glob owner owner')}</p>
-            <p>{t('Owners can be team identifiers starting with #, or user emails')}</p>
-            <p>
+            </Block>
+            <Block>
+              {t('Rules follow the pattern: ')}
+              <code>type:glob owner owner</code>
+            </Block>
+
+            <Block>
+              {tct(
+                'Owners can be team identifiers starting with [pound], or user emails',
+                {
+                  pound: <code>#</code>,
+                }
+              )}
+            </Block>
+
+            <Block>
               {t('Globbing Syntax:')}
               <CodeBlock>
                 {`* matches everything
 ? matches any single character`}
               </CodeBlock>
-            </p>
-            Examples:
-            <CodeBlock>
-              path:src/example/pipeline/* person@sentry.io #infrastructure
-              {'\n'}
-              url:http://example.com/settings/* #product
-            </CodeBlock>
+            </Block>
+
+            <Block>
+              {t('Examples:')}
+              <CodeBlock>
+                path:src/example/pipeline/* person@sentry.io #infrastructure
+                {'\n'}
+                url:http://example.com/settings/* #product
+              </CodeBlock>
+            </Block>
             <OwnerInput {...this.props} initialText={ownership.raw || ''} />
           </PanelBody>
         </Panel>
@@ -105,3 +121,7 @@ class ProjectOwnership extends AsyncView {
 }
 
 export default ProjectOwnership;
+
+const Block = styled(TextBlock)`
+  margin-bottom: 16px;
+`;

@@ -53,20 +53,32 @@ class IntegrationPipeline(Pipeline):
         return response
 
     def _finish_pipeline(self, data):
-        integration = ensure_integration(self.provider.key, data)
-        integration.add_organization(self.organization.id)
+        if 'expect_exists' in data:
+            integration = Integration.objects.get(
+                provider=self.provider.key,
+                external_id=data['external_id'],
+            )
+        else:
+            integration = ensure_integration(self.provider.key, data)
+
+        org_integration = integration.add_organization(self.organization.id)
 
         # Does this integration provide a user identity for the user setting up
         # the integration?
         identity = data.get('user_identity')
+        identity_config = data.get('identity_config', {})
 
         if identity:
             # Create identity provider for this integration if necessary
             idp, created = IdentityProvider.objects.get_or_create(
                 external_id=data['external_id'],
-                organization=self.organization,
+                organization_id=self.organization.id,
                 type=identity['type'],
+                defaults={'config': identity_config},
             )
+
+            if created:
+                idp.update(config=identity_config)
 
             identity, created = Identity.objects.get_or_create(
                 idp=idp,
@@ -80,7 +92,7 @@ class IntegrationPipeline(Pipeline):
                 },
             )
 
-        return self._dialog_response(serialize(integration, self.request.user), True)
+        return self._dialog_response(serialize(org_integration, self.request.user), True)
 
     def _dialog_response(self, data, success):
         return HttpResponse(

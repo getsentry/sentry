@@ -16,10 +16,11 @@ import {t} from 'app/locale';
 import {update, loadStatsForProject} from 'app/actionCreators/projects';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import Platformicon from 'app/components/platformicon';
 
-import PlatformList from './platformList';
 import Chart from './chart';
 import NoEvents from './noEvents';
+import Deploys from './deploys';
 
 class ProjectCard extends React.Component {
   static propTypes = {
@@ -54,36 +55,36 @@ class ProjectCard extends React.Component {
 
   render() {
     const {project, params} = this.props;
-    const {stats} = project;
+    const {firstEvent, isBookmarked, stats, slug} = project;
 
-    const bookmarkText = project.isBookmarked
+    const bookmarkText = isBookmarked
       ? t('Remove from bookmarks')
       : t('Add to bookmarks');
 
     return (
-      <ProjectCardWrapper
-        data-test-id={project.slug}
-        width={['100%', '50%', '33%', '25%']}
-      >
+      <ProjectCardWrapper data-test-id={slug} width={['100%', '50%', '33%', '25%']}>
         {stats ? (
           <StyledProjectCard>
             <Flex justify="space-between" align="center">
-              <StyledLink to={`/${params.orgId}/${project.slug}/`}>
-                <strong>{project.slug}</strong>
+              <Box ml={2}>
+                <StyledPlatformicon size="24" platform={project.platform || 'generic'} />
+              </Box>
+              <StyledLink to={`/${params.orgId}/${slug}/`}>
+                <strong>{slug}</strong>
               </StyledLink>
               <Tooltip title={bookmarkText}>
                 <Star
-                  active={project.isBookmarked}
+                  active={isBookmarked}
                   className="project-select-bookmark icon icon-star-solid"
                   onClick={this.toggleProjectBookmark}
                 />
               </Tooltip>
             </Flex>
             <ChartContainer>
-              <Chart stats={stats} noEvents={!project.firstEvent} />
-              {!project.firstEvent && <NoEvents />}
+              <Chart stats={stats} noEvents={!firstEvent} />
+              {!firstEvent && <NoEvents />}
             </ChartContainer>
-            <PlatformList project={project} orgId={params.orgId} />
+            <Deploys project={project} orgId={params.orgId} />
           </StyledProjectCard>
         ) : (
           <LoadingCard />
@@ -92,6 +93,13 @@ class ProjectCard extends React.Component {
     );
   }
 }
+
+const StyledPlatformicon = styled(Platformicon)`
+  display: block;
+  color: white;
+  border-radius: 3px;
+  max-width: 24px;
+`;
 
 const ProjectCardContainer = createReactClass({
   propTypes: {
@@ -139,7 +147,7 @@ const ChartContainer = styled.div`
 
 const StyledLink = styled(Link)`
   ${overflowEllipsis};
-  padding: 16px;
+  padding: 16px 8px;
 `;
 
 const ProjectCardWrapper = styled(Box)`
@@ -165,7 +173,7 @@ const Star = styled.a`
 const LoadingCard = styled('div')`
   border: 1px solid transparent;
   background-color: ${p => p.theme.offWhite};
-  height: 180px;
+  height: 210px;
 `;
 
 export {ProjectCard};

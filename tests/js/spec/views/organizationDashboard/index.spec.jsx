@@ -50,7 +50,7 @@ describe('OrganizationDashboard', function() {
   describe('empty state', function() {
     beforeEach(function() {});
 
-    it('renders', function() {
+    it('renders with no projects', function() {
       const projects = [];
 
       const wrapper = shallow(
@@ -64,6 +64,30 @@ describe('OrganizationDashboard', function() {
       );
       const emptyState = wrapper.find('EmptyState');
       expect(emptyState).toHaveLength(1);
+    });
+
+    it('renders with 1 project, with no first event', function() {
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/issues/',
+        body: [{id: 'sampleIssueId'}],
+      });
+      const projects = [TestStubs.Project()];
+
+      const wrapper = mount(
+        <Dashboard
+          teams={teams}
+          projects={projects}
+          organization={TestStubs.Organization()}
+          params={{orgId: 'org-slug'}}
+        />,
+        TestStubs.routerContext()
+      );
+      const emptyState = wrapper.find('ErrorRobot');
+      expect(emptyState).toHaveLength(1);
+
+      expect(
+        wrapper.find('Link[to="/org-slug/project-slug/issues/sampleIssueId/?sample"]')
+      ).toHaveLength(1);
     });
   });
 
@@ -191,6 +215,7 @@ describe('OrganizationDashboard', function() {
           teams: [],
           isBookmarked: true,
           stats: [],
+          firstEvent: true,
         }),
       ];
       MockApiClient.addMockResponse({

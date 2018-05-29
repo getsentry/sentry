@@ -326,7 +326,7 @@ window.TestStubs = {
         lastUsedAt: null,
         enrollButton: 'Activate',
         description:
-          'Recovery codes can be used to access your account in the event you lose access to your device and cannot receive two-factor authentication codes.',
+          'Recovery codes are the only way to access your account if you lose your device and cannot receive two factor authentication codes.',
         isEnrolled: true,
         removeButton: null,
         id: 'recovery',
@@ -337,6 +337,7 @@ window.TestStubs = {
         authId: '16',
         canValidateOtp: true,
         isBackupInterface: true,
+        codes: ['ABCD-1234', 'EFGH-5678'],
         ...params,
       }),
     };
@@ -468,6 +469,7 @@ window.TestStubs = {
       key: 'github',
       name: 'GitHub',
       canAdd: true,
+      canAddProject: false,
       config: [],
       setupDialog: {
         url: '/github-integration-setup-uri/',
@@ -493,7 +495,7 @@ window.TestStubs = {
 
   GitHubIntegration: params => {
     return {
-      domain_name: 'gtithub.com/test-integration',
+      domainName: 'gtithub.com/test-integration',
       icon: 'http://example.com/integration_icon.png',
       id: '1',
       name: 'Test Integration',
@@ -501,6 +503,10 @@ window.TestStubs = {
         name: 'GitHub',
         key: 'github',
       },
+      configOrganization: [],
+      configProject: [],
+      configData: {},
+      configDataProjects: {},
       ...params,
     };
   },

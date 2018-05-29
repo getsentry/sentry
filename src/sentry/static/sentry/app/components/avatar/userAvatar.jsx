@@ -9,11 +9,16 @@ class UserAvatar extends React.Component {
   static propTypes = {
     user: SentryTypes.User,
     gravatar: PropTypes.bool,
+    renderTooltip: PropTypes.func,
     ...BaseAvatar.propTypes,
   };
 
   static defaultProps = {
-    gravatar: true,
+    // Default gravatar to false in order to support transparent avatars
+    // Avatar falls through to letter avatars if a remote image fails to load,
+    // however gravatar sends back a transparent image when it does not find a gravatar,
+    // so there's little we have to control whether we need to fallback to letter avatar
+    gravatar: false,
   };
 
   getType = (user, gravatar) => {
@@ -28,7 +33,7 @@ class UserAvatar extends React.Component {
   };
 
   render() {
-    let {user, gravatar, ...props} = this.props;
+    let {user, gravatar, renderTooltip, ...props} = this.props;
 
     if (!user) return null;
 
@@ -38,11 +43,17 @@ class UserAvatar extends React.Component {
       <BaseAvatar
         {...props}
         type={type}
+        uploadPath="avatar"
         uploadId={user.avatar && user.avatar.avatarUuid}
         gravatarId={user && user.email && user.email.toLowerCase()}
         letterId={user.email || user.username || user.id || user.ip_address}
-        tooltip={userDisplayName(user)}
+        tooltip={
+          typeof renderTooltip === 'function'
+            ? renderTooltip(user)
+            : userDisplayName(user)
+        }
         title={user.name || user.email || user.username || ''}
+        round
       />
     );
   }

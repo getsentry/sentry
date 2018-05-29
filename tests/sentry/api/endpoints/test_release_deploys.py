@@ -6,7 +6,7 @@ import datetime
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import Deploy, Environment, Release
+from sentry.models import Deploy, Environment, Release, ReleaseProjectEnvironment
 from sentry.testutils import APITestCase
 
 
@@ -106,3 +106,8 @@ class ReleaseDeploysCreateTest(APITestCase):
         release = Release.objects.get(id=release.id)
         assert release.total_deploys == 1
         assert release.last_deploy_id == deploy.id
+
+        rpe = ReleaseProjectEnvironment.objects.get(
+            project=project, release=release, environment=environment
+        )
+        assert rpe.last_deploy_id == deploy.id

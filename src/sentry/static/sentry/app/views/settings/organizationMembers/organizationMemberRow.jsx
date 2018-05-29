@@ -106,7 +106,7 @@ export default class OrganizationMemberRow extends React.PureComponent {
     return (
       <PanelItem align="center" p={0} py={2}>
         <Box pl={2}>
-          <Avatar size={32} user={user ? user : {email}} />
+          <Avatar size={32} user={user ? user : {id: email, email}} />
         </Box>
 
         <Box pl={1} pr={2} flex="1">

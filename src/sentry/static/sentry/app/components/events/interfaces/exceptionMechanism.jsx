@@ -3,74 +3,96 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import Pills from 'app/components/pills';
 import Pill from 'app/components/pill';
+import Hovercard from 'app/components/hovercard';
+import InlineSvg from 'app/components/inlineSvg';
+import {t} from 'app/locale';
 
 class ExceptionMechanism extends React.Component {
   static propTypes = {
-    data: PropTypes.object.isRequired,
-    platform: PropTypes.string,
+    data: PropTypes.shape({
+      type: PropTypes.string.isRequired,
+      description: PropTypes.string,
+      help_link: PropTypes.string,
+      handled: PropTypes.bool,
+      meta: PropTypes.shape({
+        errno: PropTypes.shape({
+          number: PropTypes.number.isRequired,
+          name: PropTypes.string,
+        }),
+        mach_exception: PropTypes.shape({
+          exception: PropTypes.number.isRequired,
+          code: PropTypes.number.isRequired,
+          subcode: PropTypes.number.isRequired,
+          name: PropTypes.string,
+        }),
+        signal: PropTypes.shape({
+          number: PropTypes.number.isRequired,
+          code: PropTypes.nubmer,
+          name: PropTypes.string,
+          code_name: PropTypes.string,
+        }),
+      }),
+      data: PropTypes.object,
+    }).isRequired,
   };
 
   render() {
-    let pills = [];
+    let mechanism = this.props.data;
+    let {type, description, help_link, handled, meta = {}, data = {}} = mechanism;
+    let {errno, signal, mach_exception} = meta;
 
-    if (this.props.data.mach_exception) {
-      const {mach_exception} = this.props.data;
-      if (mach_exception.exception_name) {
-        pills.push(
-          <Pill
-            key="mach-exception"
-            name="mach exception"
-            value={mach_exception.exception_name}
-          />
-        );
-      }
-      if (mach_exception.code_name) {
-        pills.push(
-          <Pill key="mach-code" name="mach code" value={mach_exception.code_name} />
-        );
-      }
-    }
-    if (this.props.data.posix_signal) {
-      const {posix_signal} = this.props.data;
-      pills.push(
-        <Pill key="signal" name="signal">
-          {posix_signal.name} <em>({posix_signal.signal})</em>
-        </Pill>
-      );
-    }
+    let linkElement = help_link && (
+      <a href={help_link} className="external-icon">
+        <em className="icon-open" />
+      </a>
+    );
 
-    if (this.props.data.type && this.props.data.description) {
-      pills.push(
-        <Pill
-          key="generic"
-          name={this.props.data.type}
-          value={this.props.data.description}
-        />
-      );
-      if (this.props.data.extra && _.isObject(this.props.data.extra)) {
-        let counter = 0;
-        _.forOwn(this.props.data.extra, function(value, key) {
-          if (!_.isObject(value)) {
-            pills.push(
-              <Pill key={`generic-extra-${counter++}`} name={key} value={value} />
-            );
-          }
-        });
-      }
-      if (this.props.data.handled !== undefined) {
-        pills.push(
-          <Pill
-            key="generic-extra-handled"
-            name="handled"
-            value={this.props.data.handled}
-          />
-        );
-      }
+    let descriptionElement = description && (
+      <Hovercard
+        header={
+          <span>
+            {t('Details')} {linkElement}
+          </span>
+        }
+        body={description}
+        containerClassName="pill-icon"
+      >
+        <InlineSvg src="icon-circle-info" size="14px" />
+      </Hovercard>
+    );
+
+    let pills = [
+      <Pill key="mechanism" name="mechanism" value={type}>
+        {descriptionElement || linkElement}
+      </Pill>,
+    ];
+
+    if (!_.isNil(handled)) {
+      pills.push(<Pill key="handled" name="handled" value={handled} />);
     }
 
-    if (pills.length === 0) {
-      return null;
+    if (errno) {
+      let value = errno.name || errno.number;
+      pills.push(<Pill key="errno" name="errno" value={value} />);
     }
+
+    if (mach_exception) {
+      let value = mach_exception.name || mach_exception.exception;
+      pills.push(<Pill key="mach" name="mach exception" value={value} />);
+    }
+
+    if (signal) {
+      let code = signal.code_name || `${t('code')} ${signal.code}`;
+      let name = signal.name || signal.number;
+      let value = _.isNil(signal.code) ? name : `${name} (${code})`;
+      pills.push(<Pill key="signal" name="signal" value={value} />);
+    }
+
+    _.forOwn(data, (value, key) => {
+      if (!_.isObject(value)) {
+        pills.push(<Pill key={`data:${key}`} name={key} value={value} />);
+      }
+    });
 
     return (
       <div className="exception-mechanism">

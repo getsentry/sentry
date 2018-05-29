@@ -40,7 +40,7 @@ export default class BackfillNotice extends React.Component {
         <InfoIcon src="icon-circle-info" />
         {tct(
           `You can now filter by environment!
-          Some data before [backfillDate] may be temporarily unavailable.`,
+          Environment-specific data may not be available for issues created before [backfillDate].`,
           {
             backfillDate: moment(BACKFILL_DATE).format('MMM D'),
           }
@@ -57,7 +57,7 @@ const StyledCallout = styled.div`
   background-color: ${p => p.theme.offWhite2};
   border-radius: ${p => p.theme.borderRadius};
   animation: 0.5s ${slideInRight};
-  width: 325px;
+  width: 400px;
   padding: ${space(1)};
   position: absolute;
   right: calc(100% + ${space(2)});

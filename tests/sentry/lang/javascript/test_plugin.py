@@ -2,13 +2,16 @@
 
 from __future__ import absolute_import
 
-import responses
+import pytest
 import os.path
+import responses
 
 from mock import patch
+from django.conf import settings
 
 from sentry.models import Event, File, Release, ReleaseFile
 from sentry.testutils import TestCase
+
 
 BASE64_SOURCEMAP = 'data:application/json;base64,' + (
     '{"version":3,"file":"generated.js","sources":["/test.js"],"names":[],"mappings":"AAAA","sourcesContent":["console.log(\\"hello, World!\\")"]}'.
@@ -26,6 +29,10 @@ def load_fixture(name):
 
 
 class JavascriptIntegrationTest(TestCase):
+    @pytest.mark.skipif(
+        settings.SENTRY_TAGSTORE == 'sentry.tagstore.v2.V2TagStorage',
+        reason='Queries are completly different when using tagstore'
+    )
     def test_adds_contexts_without_device(self):
         data = {
             'message': 'hello',
@@ -42,10 +49,24 @@ class JavascriptIntegrationTest(TestCase):
             }
         }
 
-        resp = self._postWithHeader(data)
+        # We do a preflight post, because there are many queries polluting the array
+        # before the actual "processing" happens (like, auth_user)
+        self._postWithHeader(data)
+        with self.assertWriteQueries({
+            'nodestore_node': 2,
+            'sentry_environmentproject': 1,
+            'sentry_eventtag': 1,
+            'sentry_eventuser': 1,
+            'sentry_filtervalue': 6,
+            'sentry_groupedmessage': 1,
+            'sentry_message': 1,
+            'sentry_messagefiltervalue': 6,
+            'sentry_userreport': 1
+        }, debug=True):  # debug=True is for coverage
+            resp = self._postWithHeader(data)
         assert resp.status_code, 200
 
-        event = Event.objects.get()
+        event = Event.objects.first()
         contexts = event.interfaces['contexts'].to_json()
         assert contexts.get('os') == {
             'name': 'Windows 8',

@@ -17,7 +17,7 @@ from django.utils import timezone
 
 from sentry import quotas, tagstore
 from sentry.api.paginator import DateTimePaginator, Paginator, SequencePaginator
-from sentry.search.base import SearchBackend
+from sentry.search.base import ANY, SearchBackend
 from sentry.search.django.constants import (
     MSSQL_ENGINES, MSSQL_SORT_CLAUSES, MYSQL_SORT_CLAUSES, ORACLE_SORT_CLAUSES, SORT_CLAUSES,
     SQLITE_SORT_CLAUSES
@@ -295,11 +295,10 @@ class DjangoSearchBackend(SearchBackend):
 
         if environment is not None:
             if 'environment' in tags:
-                # TODO: This should probably just overwrite the existing tag,
-                # rather than asserting on it, but...?
-                assert Environment.objects.get(
+                environment_name = tags.pop('environment')
+                assert environment_name is ANY or Environment.objects.get(
                     projects=project,
-                    name=tags.pop('environment'),
+                    name=environment_name,
                 ).id == environment.id
 
             event_queryset_builder = QuerySetBuilder({

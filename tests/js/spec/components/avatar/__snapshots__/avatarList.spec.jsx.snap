@@ -104,6 +104,30 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
         className="css-1go71fn"
         is={null}
       >
+        <Tooltip
+          title="1 other users"
+        >
+          <CollapsedUsers
+            className="tip"
+            size={28}
+            title="1 other users"
+          >
+            <div
+              className="tip css-1831z2i-CollapsedUsers-Circle e1axh4r51"
+              size={28}
+              title="1 other users"
+            >
+              <Plus>
+                <span
+                  className="css-sduhlv-Plus e1axh4r52"
+                >
+                  +
+                </span>
+              </Plus>
+              1
+            </div>
+          </CollapsedUsers>
+        </Tooltip>
         <StyledAvatar
           hasTooltip={true}
           key="1"
@@ -125,8 +149,8 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
             }
           }
         >
-          <Component
-            className="css-5o5its-StyledAvatar e1axh4r50"
+          <Avatar
+            className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
             hasTooltip={true}
             size={28}
             user={
@@ -146,8 +170,9 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
               }
             }
           >
-            <Avatar
-              className="css-5o5its-StyledAvatar e1axh4r50"
+            <UserAvatar
+              className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
+              gravatar={false}
               hasTooltip={true}
               size={28}
               user={
@@ -167,45 +192,35 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 }
               }
             >
-              <UserAvatar
-                className="css-5o5its-StyledAvatar e1axh4r50"
-                gravatar={true}
+              <BaseAvatar
+                className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
+                gravatarId="foo@example.com"
                 hasTooltip={true}
+                letterId="foo@example.com"
+                round={true}
                 size={28}
-                user={
-                  Object {
-                    "email": "foo@example.com",
-                    "flags": Object {
-                      "newsletter_consent_prompt": false,
-                    },
-                    "hasPasswordAuth": true,
-                    "id": "1",
-                    "isAuthenticated": true,
-                    "name": "Foo Bar",
-                    "options": Object {
-                      "timezone": "UTC",
-                    },
-                    "username": "foo@example.com",
-                  }
-                }
+                style={Object {}}
+                title="Foo Bar"
+                tooltip="Foo Bar (foo@example.com)"
+                type="letter_avatar"
+                uploadPath="avatar"
               >
-                <BaseAvatar
-                  className="css-5o5its-StyledAvatar e1axh4r50"
-                  gravatarId="foo@example.com"
-                  hasTooltip={true}
-                  letterId="foo@example.com"
-                  size={28}
-                  style={Object {}}
-                  title="Foo Bar"
-                  tooltip="Foo Bar (foo@example.com)"
-                  type="gravatar"
+                <Tooltip
+                  disabled={false}
+                  title="Foo Bar (foo@example.com)"
                 >
-                  <Tooltip
-                    disabled={false}
+                  <StyledBaseAvatar
+                    className="tip avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
+                    style={
+                      Object {
+                        "height": "28px",
+                        "width": "28px",
+                      }
+                    }
                     title="Foo Bar (foo@example.com)"
                   >
-                    <StyledBaseAvatar
-                      className="tip avatar css-5o5its-StyledAvatar e1axh4r50"
+                    <span
+                      className="tip avatar e1axh4r50 css-1a6phbt-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
                       style={
                         Object {
                           "height": "28px",
@@ -214,28 +229,51 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                       }
                       title="Foo Bar (foo@example.com)"
                     >
-                      <span
-                        className="tip avatar e1axh4r50 css-dnah9z-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
-                        style={
-                          Object {
-                            "height": "28px",
-                            "width": "28px",
-                          }
-                        }
-                        title="Foo Bar (foo@example.com)"
+                      <LetterAvatar
+                        displayName="Foo Bar"
+                        identifier="foo@example.com"
+                        round={true}
                       >
-                        <img
-                          onError={[Function]}
-                          onLoad={[Function]}
-                          src="undefined/avatar/b48def645758b95537d4424c84d1a9ff?d=blank&s=32"
-                        />
-                      </span>
-                    </StyledBaseAvatar>
-                  </Tooltip>
-                </BaseAvatar>
-              </UserAvatar>
-            </Avatar>
-          </Component>
+                        <Svg
+                          round={true}
+                          viewBox="0 0 120 120"
+                        >
+                          <svg
+                            className="css-1r4mnb9-Svg e1knxa8x0"
+                            viewBox="0 0 120 120"
+                          >
+                            <rect
+                              fill="#315cac"
+                              height="120"
+                              rx="15"
+                              ry="15"
+                              width="120"
+                              x="0"
+                              y="0"
+                            />
+                            <text
+                              fill="#FFFFFF"
+                              fontSize="65"
+                              style={
+                                Object {
+                                  "dominantBaseline": "central",
+                                }
+                              }
+                              textAnchor="middle"
+                              x="50%"
+                              y="50%"
+                            >
+                              FB
+                            </text>
+                          </svg>
+                        </Svg>
+                      </LetterAvatar>
+                    </span>
+                  </StyledBaseAvatar>
+                </Tooltip>
+              </BaseAvatar>
+            </UserAvatar>
+          </Avatar>
         </StyledAvatar>
         <StyledAvatar
           hasTooltip={true}
@@ -258,8 +296,8 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
             }
           }
         >
-          <Component
-            className="css-5o5its-StyledAvatar e1axh4r50"
+          <Avatar
+            className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
             hasTooltip={true}
             size={28}
             user={
@@ -279,8 +317,9 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
               }
             }
           >
-            <Avatar
-              className="css-5o5its-StyledAvatar e1axh4r50"
+            <UserAvatar
+              className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
+              gravatar={false}
               hasTooltip={true}
               size={28}
               user={
@@ -300,45 +339,35 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 }
               }
             >
-              <UserAvatar
-                className="css-5o5its-StyledAvatar e1axh4r50"
-                gravatar={true}
+              <BaseAvatar
+                className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
+                gravatarId="foo@example.com"
                 hasTooltip={true}
+                letterId="foo@example.com"
+                round={true}
                 size={28}
-                user={
-                  Object {
-                    "email": "foo@example.com",
-                    "flags": Object {
-                      "newsletter_consent_prompt": false,
-                    },
-                    "hasPasswordAuth": true,
-                    "id": "2",
-                    "isAuthenticated": true,
-                    "name": "Foo Bar",
-                    "options": Object {
-                      "timezone": "UTC",
-                    },
-                    "username": "foo@example.com",
-                  }
-                }
+                style={Object {}}
+                title="Foo Bar"
+                tooltip="Foo Bar (foo@example.com)"
+                type="letter_avatar"
+                uploadPath="avatar"
               >
-                <BaseAvatar
-                  className="css-5o5its-StyledAvatar e1axh4r50"
-                  gravatarId="foo@example.com"
-                  hasTooltip={true}
-                  letterId="foo@example.com"
-                  size={28}
-                  style={Object {}}
-                  title="Foo Bar"
-                  tooltip="Foo Bar (foo@example.com)"
-                  type="gravatar"
+                <Tooltip
+                  disabled={false}
+                  title="Foo Bar (foo@example.com)"
                 >
-                  <Tooltip
-                    disabled={false}
+                  <StyledBaseAvatar
+                    className="tip avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
+                    style={
+                      Object {
+                        "height": "28px",
+                        "width": "28px",
+                      }
+                    }
                     title="Foo Bar (foo@example.com)"
                   >
-                    <StyledBaseAvatar
-                      className="tip avatar css-5o5its-StyledAvatar e1axh4r50"
+                    <span
+                      className="tip avatar e1axh4r50 css-1a6phbt-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
                       style={
                         Object {
                           "height": "28px",
@@ -347,28 +376,51 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                       }
                       title="Foo Bar (foo@example.com)"
                     >
-                      <span
-                        className="tip avatar e1axh4r50 css-dnah9z-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
-                        style={
-                          Object {
-                            "height": "28px",
-                            "width": "28px",
-                          }
-                        }
-                        title="Foo Bar (foo@example.com)"
+                      <LetterAvatar
+                        displayName="Foo Bar"
+                        identifier="foo@example.com"
+                        round={true}
                       >
-                        <img
-                          onError={[Function]}
-                          onLoad={[Function]}
-                          src="undefined/avatar/b48def645758b95537d4424c84d1a9ff?d=blank&s=32"
-                        />
-                      </span>
-                    </StyledBaseAvatar>
-                  </Tooltip>
-                </BaseAvatar>
-              </UserAvatar>
-            </Avatar>
-          </Component>
+                        <Svg
+                          round={true}
+                          viewBox="0 0 120 120"
+                        >
+                          <svg
+                            className="css-1r4mnb9-Svg e1knxa8x0"
+                            viewBox="0 0 120 120"
+                          >
+                            <rect
+                              fill="#315cac"
+                              height="120"
+                              rx="15"
+                              ry="15"
+                              width="120"
+                              x="0"
+                              y="0"
+                            />
+                            <text
+                              fill="#FFFFFF"
+                              fontSize="65"
+                              style={
+                                Object {
+                                  "dominantBaseline": "central",
+                                }
+                              }
+                              textAnchor="middle"
+                              x="50%"
+                              y="50%"
+                            >
+                              FB
+                            </text>
+                          </svg>
+                        </Svg>
+                      </LetterAvatar>
+                    </span>
+                  </StyledBaseAvatar>
+                </Tooltip>
+              </BaseAvatar>
+            </UserAvatar>
+          </Avatar>
         </StyledAvatar>
         <StyledAvatar
           hasTooltip={true}
@@ -391,8 +443,8 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
             }
           }
         >
-          <Component
-            className="css-5o5its-StyledAvatar e1axh4r50"
+          <Avatar
+            className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
             hasTooltip={true}
             size={28}
             user={
@@ -412,8 +464,9 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
               }
             }
           >
-            <Avatar
-              className="css-5o5its-StyledAvatar e1axh4r50"
+            <UserAvatar
+              className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
+              gravatar={false}
               hasTooltip={true}
               size={28}
               user={
@@ -433,45 +486,35 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 }
               }
             >
-              <UserAvatar
-                className="css-5o5its-StyledAvatar e1axh4r50"
-                gravatar={true}
+              <BaseAvatar
+                className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
+                gravatarId="foo@example.com"
                 hasTooltip={true}
+                letterId="foo@example.com"
+                round={true}
                 size={28}
-                user={
-                  Object {
-                    "email": "foo@example.com",
-                    "flags": Object {
-                      "newsletter_consent_prompt": false,
-                    },
-                    "hasPasswordAuth": true,
-                    "id": "3",
-                    "isAuthenticated": true,
-                    "name": "Foo Bar",
-                    "options": Object {
-                      "timezone": "UTC",
-                    },
-                    "username": "foo@example.com",
-                  }
-                }
+                style={Object {}}
+                title="Foo Bar"
+                tooltip="Foo Bar (foo@example.com)"
+                type="letter_avatar"
+                uploadPath="avatar"
               >
-                <BaseAvatar
-                  className="css-5o5its-StyledAvatar e1axh4r50"
-                  gravatarId="foo@example.com"
-                  hasTooltip={true}
-                  letterId="foo@example.com"
-                  size={28}
-                  style={Object {}}
-                  title="Foo Bar"
-                  tooltip="Foo Bar (foo@example.com)"
-                  type="gravatar"
+                <Tooltip
+                  disabled={false}
+                  title="Foo Bar (foo@example.com)"
                 >
-                  <Tooltip
-                    disabled={false}
+                  <StyledBaseAvatar
+                    className="tip avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
+                    style={
+                      Object {
+                        "height": "28px",
+                        "width": "28px",
+                      }
+                    }
                     title="Foo Bar (foo@example.com)"
                   >
-                    <StyledBaseAvatar
-                      className="tip avatar css-5o5its-StyledAvatar e1axh4r50"
+                    <span
+                      className="tip avatar e1axh4r50 css-1a6phbt-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
                       style={
                         Object {
                           "height": "28px",
@@ -480,28 +523,51 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                       }
                       title="Foo Bar (foo@example.com)"
                     >
-                      <span
-                        className="tip avatar e1axh4r50 css-dnah9z-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
-                        style={
-                          Object {
-                            "height": "28px",
-                            "width": "28px",
-                          }
-                        }
-                        title="Foo Bar (foo@example.com)"
+                      <LetterAvatar
+                        displayName="Foo Bar"
+                        identifier="foo@example.com"
+                        round={true}
                       >
-                        <img
-                          onError={[Function]}
-                          onLoad={[Function]}
-                          src="undefined/avatar/b48def645758b95537d4424c84d1a9ff?d=blank&s=32"
-                        />
-                      </span>
-                    </StyledBaseAvatar>
-                  </Tooltip>
-                </BaseAvatar>
-              </UserAvatar>
-            </Avatar>
-          </Component>
+                        <Svg
+                          round={true}
+                          viewBox="0 0 120 120"
+                        >
+                          <svg
+                            className="css-1r4mnb9-Svg e1knxa8x0"
+                            viewBox="0 0 120 120"
+                          >
+                            <rect
+                              fill="#315cac"
+                              height="120"
+                              rx="15"
+                              ry="15"
+                              width="120"
+                              x="0"
+                              y="0"
+                            />
+                            <text
+                              fill="#FFFFFF"
+                              fontSize="65"
+                              style={
+                                Object {
+                                  "dominantBaseline": "central",
+                                }
+                              }
+                              textAnchor="middle"
+                              x="50%"
+                              y="50%"
+                            >
+                              FB
+                            </text>
+                          </svg>
+                        </Svg>
+                      </LetterAvatar>
+                    </span>
+                  </StyledBaseAvatar>
+                </Tooltip>
+              </BaseAvatar>
+            </UserAvatar>
+          </Avatar>
         </StyledAvatar>
         <StyledAvatar
           hasTooltip={true}
@@ -524,8 +590,8 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
             }
           }
         >
-          <Component
-            className="css-5o5its-StyledAvatar e1axh4r50"
+          <Avatar
+            className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
             hasTooltip={true}
             size={28}
             user={
@@ -545,8 +611,9 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
               }
             }
           >
-            <Avatar
-              className="css-5o5its-StyledAvatar e1axh4r50"
+            <UserAvatar
+              className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
+              gravatar={false}
               hasTooltip={true}
               size={28}
               user={
@@ -566,45 +633,35 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 }
               }
             >
-              <UserAvatar
-                className="css-5o5its-StyledAvatar e1axh4r50"
-                gravatar={true}
+              <BaseAvatar
+                className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
+                gravatarId="foo@example.com"
                 hasTooltip={true}
+                letterId="foo@example.com"
+                round={true}
                 size={28}
-                user={
-                  Object {
-                    "email": "foo@example.com",
-                    "flags": Object {
-                      "newsletter_consent_prompt": false,
-                    },
-                    "hasPasswordAuth": true,
-                    "id": "4",
-                    "isAuthenticated": true,
-                    "name": "Foo Bar",
-                    "options": Object {
-                      "timezone": "UTC",
-                    },
-                    "username": "foo@example.com",
-                  }
-                }
+                style={Object {}}
+                title="Foo Bar"
+                tooltip="Foo Bar (foo@example.com)"
+                type="letter_avatar"
+                uploadPath="avatar"
               >
-                <BaseAvatar
-                  className="css-5o5its-StyledAvatar e1axh4r50"
-                  gravatarId="foo@example.com"
-                  hasTooltip={true}
-                  letterId="foo@example.com"
-                  size={28}
-                  style={Object {}}
-                  title="Foo Bar"
-                  tooltip="Foo Bar (foo@example.com)"
-                  type="gravatar"
+                <Tooltip
+                  disabled={false}
+                  title="Foo Bar (foo@example.com)"
                 >
-                  <Tooltip
-                    disabled={false}
+                  <StyledBaseAvatar
+                    className="tip avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
+                    style={
+                      Object {
+                        "height": "28px",
+                        "width": "28px",
+                      }
+                    }
                     title="Foo Bar (foo@example.com)"
                   >
-                    <StyledBaseAvatar
-                      className="tip avatar css-5o5its-StyledAvatar e1axh4r50"
+                    <span
+                      className="tip avatar e1axh4r50 css-1a6phbt-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
                       style={
                         Object {
                           "height": "28px",
@@ -613,28 +670,51 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                       }
                       title="Foo Bar (foo@example.com)"
                     >
-                      <span
-                        className="tip avatar e1axh4r50 css-dnah9z-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
-                        style={
-                          Object {
-                            "height": "28px",
-                            "width": "28px",
-                          }
-                        }
-                        title="Foo Bar (foo@example.com)"
+                      <LetterAvatar
+                        displayName="Foo Bar"
+                        identifier="foo@example.com"
+                        round={true}
                       >
-                        <img
-                          onError={[Function]}
-                          onLoad={[Function]}
-                          src="undefined/avatar/b48def645758b95537d4424c84d1a9ff?d=blank&s=32"
-                        />
-                      </span>
-                    </StyledBaseAvatar>
-                  </Tooltip>
-                </BaseAvatar>
-              </UserAvatar>
-            </Avatar>
-          </Component>
+                        <Svg
+                          round={true}
+                          viewBox="0 0 120 120"
+                        >
+                          <svg
+                            className="css-1r4mnb9-Svg e1knxa8x0"
+                            viewBox="0 0 120 120"
+                          >
+                            <rect
+                              fill="#315cac"
+                              height="120"
+                              rx="15"
+                              ry="15"
+                              width="120"
+                              x="0"
+                              y="0"
+                            />
+                            <text
+                              fill="#FFFFFF"
+                              fontSize="65"
+                              style={
+                                Object {
+                                  "dominantBaseline": "central",
+                                }
+                              }
+                              textAnchor="middle"
+                              x="50%"
+                              y="50%"
+                            >
+                              FB
+                            </text>
+                          </svg>
+                        </Svg>
+                      </LetterAvatar>
+                    </span>
+                  </StyledBaseAvatar>
+                </Tooltip>
+              </BaseAvatar>
+            </UserAvatar>
+          </Avatar>
         </StyledAvatar>
         <StyledAvatar
           hasTooltip={true}
@@ -657,8 +737,8 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
             }
           }
         >
-          <Component
-            className="css-5o5its-StyledAvatar e1axh4r50"
+          <Avatar
+            className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
             hasTooltip={true}
             size={28}
             user={
@@ -678,8 +758,9 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
               }
             }
           >
-            <Avatar
-              className="css-5o5its-StyledAvatar e1axh4r50"
+            <UserAvatar
+              className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
+              gravatar={false}
               hasTooltip={true}
               size={28}
               user={
@@ -699,45 +780,35 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 }
               }
             >
-              <UserAvatar
-                className="css-5o5its-StyledAvatar e1axh4r50"
-                gravatar={true}
+              <BaseAvatar
+                className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
+                gravatarId="foo@example.com"
                 hasTooltip={true}
+                letterId="foo@example.com"
+                round={true}
                 size={28}
-                user={
-                  Object {
-                    "email": "foo@example.com",
-                    "flags": Object {
-                      "newsletter_consent_prompt": false,
-                    },
-                    "hasPasswordAuth": true,
-                    "id": "5",
-                    "isAuthenticated": true,
-                    "name": "Foo Bar",
-                    "options": Object {
-                      "timezone": "UTC",
-                    },
-                    "username": "foo@example.com",
-                  }
-                }
+                style={Object {}}
+                title="Foo Bar"
+                tooltip="Foo Bar (foo@example.com)"
+                type="letter_avatar"
+                uploadPath="avatar"
               >
-                <BaseAvatar
-                  className="css-5o5its-StyledAvatar e1axh4r50"
-                  gravatarId="foo@example.com"
-                  hasTooltip={true}
-                  letterId="foo@example.com"
-                  size={28}
-                  style={Object {}}
-                  title="Foo Bar"
-                  tooltip="Foo Bar (foo@example.com)"
-                  type="gravatar"
+                <Tooltip
+                  disabled={false}
+                  title="Foo Bar (foo@example.com)"
                 >
-                  <Tooltip
-                    disabled={false}
+                  <StyledBaseAvatar
+                    className="tip avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
+                    style={
+                      Object {
+                        "height": "28px",
+                        "width": "28px",
+                      }
+                    }
                     title="Foo Bar (foo@example.com)"
                   >
-                    <StyledBaseAvatar
-                      className="tip avatar css-5o5its-StyledAvatar e1axh4r50"
+                    <span
+                      className="tip avatar e1axh4r50 css-1a6phbt-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
                       style={
                         Object {
                           "height": "28px",
@@ -746,44 +817,52 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                       }
                       title="Foo Bar (foo@example.com)"
                     >
-                      <span
-                        className="tip avatar e1axh4r50 css-dnah9z-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
-                        style={
-                          Object {
-                            "height": "28px",
-                            "width": "28px",
-                          }
-                        }
-                        title="Foo Bar (foo@example.com)"
+                      <LetterAvatar
+                        displayName="Foo Bar"
+                        identifier="foo@example.com"
+                        round={true}
                       >
-                        <img
-                          onError={[Function]}
-                          onLoad={[Function]}
-                          src="undefined/avatar/b48def645758b95537d4424c84d1a9ff?d=blank&s=32"
-                        />
-                      </span>
-                    </StyledBaseAvatar>
-                  </Tooltip>
-                </BaseAvatar>
-              </UserAvatar>
-            </Avatar>
-          </Component>
+                        <Svg
+                          round={true}
+                          viewBox="0 0 120 120"
+                        >
+                          <svg
+                            className="css-1r4mnb9-Svg e1knxa8x0"
+                            viewBox="0 0 120 120"
+                          >
+                            <rect
+                              fill="#315cac"
+                              height="120"
+                              rx="15"
+                              ry="15"
+                              width="120"
+                              x="0"
+                              y="0"
+                            />
+                            <text
+                              fill="#FFFFFF"
+                              fontSize="65"
+                              style={
+                                Object {
+                                  "dominantBaseline": "central",
+                                }
+                              }
+                              textAnchor="middle"
+                              x="50%"
+                              y="50%"
+                            >
+                              FB
+                            </text>
+                          </svg>
+                        </Svg>
+                      </LetterAvatar>
+                    </span>
+                  </StyledBaseAvatar>
+                </Tooltip>
+              </BaseAvatar>
+            </UserAvatar>
+          </Avatar>
         </StyledAvatar>
-        <CollapsedUsers
-          size={28}
-        >
-          <Component
-            className="css-n3i1n8-CollapsedUsers e1axh4r51"
-            size={28}
-          >
-            <div
-              className="css-n3i1n8-CollapsedUsers e1axh4r51"
-              size={28}
-            >
-              1
-            </div>
-          </Component>
-        </CollapsedUsers>
       </div>
     </Base>
   </Flex>
@@ -859,8 +938,8 @@ exports[`AvatarList renders with user avatars 1`] = `
             }
           }
         >
-          <Component
-            className="css-5o5its-StyledAvatar e1axh4r50"
+          <Avatar
+            className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
             hasTooltip={true}
             size={28}
             user={
@@ -880,8 +959,9 @@ exports[`AvatarList renders with user avatars 1`] = `
               }
             }
           >
-            <Avatar
-              className="css-5o5its-StyledAvatar e1axh4r50"
+            <UserAvatar
+              className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
+              gravatar={false}
               hasTooltip={true}
               size={28}
               user={
@@ -901,45 +981,35 @@ exports[`AvatarList renders with user avatars 1`] = `
                 }
               }
             >
-              <UserAvatar
-                className="css-5o5its-StyledAvatar e1axh4r50"
-                gravatar={true}
+              <BaseAvatar
+                className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
+                gravatarId="foo@example.com"
                 hasTooltip={true}
+                letterId="foo@example.com"
+                round={true}
                 size={28}
-                user={
-                  Object {
-                    "email": "foo@example.com",
-                    "flags": Object {
-                      "newsletter_consent_prompt": false,
-                    },
-                    "hasPasswordAuth": true,
-                    "id": "1",
-                    "isAuthenticated": true,
-                    "name": "Foo Bar",
-                    "options": Object {
-                      "timezone": "UTC",
-                    },
-                    "username": "foo@example.com",
-                  }
-                }
+                style={Object {}}
+                title="Foo Bar"
+                tooltip="Foo Bar (foo@example.com)"
+                type="letter_avatar"
+                uploadPath="avatar"
               >
-                <BaseAvatar
-                  className="css-5o5its-StyledAvatar e1axh4r50"
-                  gravatarId="foo@example.com"
-                  hasTooltip={true}
-                  letterId="foo@example.com"
-                  size={28}
-                  style={Object {}}
-                  title="Foo Bar"
-                  tooltip="Foo Bar (foo@example.com)"
-                  type="gravatar"
+                <Tooltip
+                  disabled={false}
+                  title="Foo Bar (foo@example.com)"
                 >
-                  <Tooltip
-                    disabled={false}
+                  <StyledBaseAvatar
+                    className="tip avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
+                    style={
+                      Object {
+                        "height": "28px",
+                        "width": "28px",
+                      }
+                    }
                     title="Foo Bar (foo@example.com)"
                   >
-                    <StyledBaseAvatar
-                      className="tip avatar css-5o5its-StyledAvatar e1axh4r50"
+                    <span
+                      className="tip avatar e1axh4r50 css-1a6phbt-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
                       style={
                         Object {
                           "height": "28px",
@@ -948,28 +1018,51 @@ exports[`AvatarList renders with user avatars 1`] = `
                       }
                       title="Foo Bar (foo@example.com)"
                     >
-                      <span
-                        className="tip avatar e1axh4r50 css-dnah9z-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
-                        style={
-                          Object {
-                            "height": "28px",
-                            "width": "28px",
-                          }
-                        }
-                        title="Foo Bar (foo@example.com)"
+                      <LetterAvatar
+                        displayName="Foo Bar"
+                        identifier="foo@example.com"
+                        round={true}
                       >
-                        <img
-                          onError={[Function]}
-                          onLoad={[Function]}
-                          src="undefined/avatar/b48def645758b95537d4424c84d1a9ff?d=blank&s=32"
-                        />
-                      </span>
-                    </StyledBaseAvatar>
-                  </Tooltip>
-                </BaseAvatar>
-              </UserAvatar>
-            </Avatar>
-          </Component>
+                        <Svg
+                          round={true}
+                          viewBox="0 0 120 120"
+                        >
+                          <svg
+                            className="css-1r4mnb9-Svg e1knxa8x0"
+                            viewBox="0 0 120 120"
+                          >
+                            <rect
+                              fill="#315cac"
+                              height="120"
+                              rx="15"
+                              ry="15"
+                              width="120"
+                              x="0"
+                              y="0"
+                            />
+                            <text
+                              fill="#FFFFFF"
+                              fontSize="65"
+                              style={
+                                Object {
+                                  "dominantBaseline": "central",
+                                }
+                              }
+                              textAnchor="middle"
+                              x="50%"
+                              y="50%"
+                            >
+                              FB
+                            </text>
+                          </svg>
+                        </Svg>
+                      </LetterAvatar>
+                    </span>
+                  </StyledBaseAvatar>
+                </Tooltip>
+              </BaseAvatar>
+            </UserAvatar>
+          </Avatar>
         </StyledAvatar>
         <StyledAvatar
           hasTooltip={true}
@@ -992,8 +1085,8 @@ exports[`AvatarList renders with user avatars 1`] = `
             }
           }
         >
-          <Component
-            className="css-5o5its-StyledAvatar e1axh4r50"
+          <Avatar
+            className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
             hasTooltip={true}
             size={28}
             user={
@@ -1013,8 +1106,9 @@ exports[`AvatarList renders with user avatars 1`] = `
               }
             }
           >
-            <Avatar
-              className="css-5o5its-StyledAvatar e1axh4r50"
+            <UserAvatar
+              className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
+              gravatar={false}
               hasTooltip={true}
               size={28}
               user={
@@ -1034,45 +1128,35 @@ exports[`AvatarList renders with user avatars 1`] = `
                 }
               }
             >
-              <UserAvatar
-                className="css-5o5its-StyledAvatar e1axh4r50"
-                gravatar={true}
+              <BaseAvatar
+                className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
+                gravatarId="foo@example.com"
                 hasTooltip={true}
+                letterId="foo@example.com"
+                round={true}
                 size={28}
-                user={
-                  Object {
-                    "email": "foo@example.com",
-                    "flags": Object {
-                      "newsletter_consent_prompt": false,
-                    },
-                    "hasPasswordAuth": true,
-                    "id": "2",
-                    "isAuthenticated": true,
-                    "name": "Foo Bar",
-                    "options": Object {
-                      "timezone": "UTC",
-                    },
-                    "username": "foo@example.com",
-                  }
-                }
+                style={Object {}}
+                title="Foo Bar"
+                tooltip="Foo Bar (foo@example.com)"
+                type="letter_avatar"
+                uploadPath="avatar"
               >
-                <BaseAvatar
-                  className="css-5o5its-StyledAvatar e1axh4r50"
-                  gravatarId="foo@example.com"
-                  hasTooltip={true}
-                  letterId="foo@example.com"
-                  size={28}
-                  style={Object {}}
-                  title="Foo Bar"
-                  tooltip="Foo Bar (foo@example.com)"
-                  type="gravatar"
+                <Tooltip
+                  disabled={false}
+                  title="Foo Bar (foo@example.com)"
                 >
-                  <Tooltip
-                    disabled={false}
+                  <StyledBaseAvatar
+                    className="tip avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
+                    style={
+                      Object {
+                        "height": "28px",
+                        "width": "28px",
+                      }
+                    }
                     title="Foo Bar (foo@example.com)"
                   >
-                    <StyledBaseAvatar
-                      className="tip avatar css-5o5its-StyledAvatar e1axh4r50"
+                    <span
+                      className="tip avatar e1axh4r50 css-1a6phbt-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
                       style={
                         Object {
                           "height": "28px",
@@ -1081,28 +1165,51 @@ exports[`AvatarList renders with user avatars 1`] = `
                       }
                       title="Foo Bar (foo@example.com)"
                     >
-                      <span
-                        className="tip avatar e1axh4r50 css-dnah9z-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
-                        style={
-                          Object {
-                            "height": "28px",
-                            "width": "28px",
-                          }
-                        }
-                        title="Foo Bar (foo@example.com)"
+                      <LetterAvatar
+                        displayName="Foo Bar"
+                        identifier="foo@example.com"
+                        round={true}
                       >
-                        <img
-                          onError={[Function]}
-                          onLoad={[Function]}
-                          src="undefined/avatar/b48def645758b95537d4424c84d1a9ff?d=blank&s=32"
-                        />
-                      </span>
-                    </StyledBaseAvatar>
-                  </Tooltip>
-                </BaseAvatar>
-              </UserAvatar>
-            </Avatar>
-          </Component>
+                        <Svg
+                          round={true}
+                          viewBox="0 0 120 120"
+                        >
+                          <svg
+                            className="css-1r4mnb9-Svg e1knxa8x0"
+                            viewBox="0 0 120 120"
+                          >
+                            <rect
+                              fill="#315cac"
+                              height="120"
+                              rx="15"
+                              ry="15"
+                              width="120"
+                              x="0"
+                              y="0"
+                            />
+                            <text
+                              fill="#FFFFFF"
+                              fontSize="65"
+                              style={
+                                Object {
+                                  "dominantBaseline": "central",
+                                }
+                              }
+                              textAnchor="middle"
+                              x="50%"
+                              y="50%"
+                            >
+                              FB
+                            </text>
+                          </svg>
+                        </Svg>
+                      </LetterAvatar>
+                    </span>
+                  </StyledBaseAvatar>
+                </Tooltip>
+              </BaseAvatar>
+            </UserAvatar>
+          </Avatar>
         </StyledAvatar>
       </div>
     </Base>

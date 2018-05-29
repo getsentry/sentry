@@ -364,7 +364,9 @@ def parse_query(project, query, user):
                     value = 'sentry:user'
                 elif value == 'release':
                     value = 'sentry:release'
-                results['tags'][value] = ANY
+                # `has:x` query should not take precedence over `x:value` queries
+                if value not in results['tags']:
+                    results['tags'][value] = ANY
             elif key in ('age', 'firstSeen'):
                 results.update(get_date_params(value, 'age_from', 'age_to'))
             elif key in ('last_seen', 'lastSeen'):

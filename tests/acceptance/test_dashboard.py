@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from django.utils import timezone
 
 from sentry.testutils import AcceptanceTestCase
-from sentry.models import GroupAssignee
+from sentry.models import GroupAssignee, Release, Environment, Deploy, ReleaseProjectEnvironment
 from sentry.utils.samples import create_sample_event
 from datetime import datetime
 
@@ -28,13 +28,40 @@ class DashboardTest(AcceptanceTestCase):
             role='owner',
             teams=[self.team],
         )
+
+        release = Release.objects.create(
+            organization_id=self.org.id,
+            version='1',
+        )
+
+        environment = Environment.objects.create(
+            organization_id=self.org.id,
+            name='production',
+        )
+
+        deploy = Deploy.objects.create(
+            environment_id=environment.id,
+            organization_id=self.org.id,
+            release=release,
+            date_finished='2018-05-23'
+        )
+
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project.id,
+            release_id=release.id,
+            environment_id=environment.id,
+            last_deploy_id=deploy.id
+        )
+
         self.login_as(self.user)
         self.path = '/{}/'.format(self.org.slug)
 
     def test_no_issues(self):
+        # I think no "activity" would be more accurate?
         self.project.update(first_event=None)
         self.browser.get(self.path)
         self.browser.wait_until_not('.loading-indicator')
+        self.browser.wait_until('[data-test-id] figure')
         self.browser.snapshot('org dash no issues')
 
     def test_one_issue(self):
@@ -56,6 +83,7 @@ class DashboardTest(AcceptanceTestCase):
         self.project.update(first_event=timezone.now())
         self.browser.get(self.path)
         self.browser.wait_until_not('.loading-indicator')
+        self.browser.wait_until('[data-test-id] figure')
         self.browser.snapshot('org dash one issue')
 
 

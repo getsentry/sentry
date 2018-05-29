@@ -4,9 +4,10 @@ import React from 'react';
 
 import {Panel, PanelHeader} from 'app/components/panels';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {removeTeam} from 'app/actionCreators/teams';
+import {removeTeam, updateTeamSuccess} from 'app/actionCreators/teams';
 import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
+import AvatarChooser from 'app/components/avatarChooser';
 import Button from 'app/components/buttons/button';
 import Confirm from 'app/components/confirm';
 import Field from 'app/views/settings/components/forms/field';
@@ -46,6 +47,7 @@ export default class TeamSettings extends AsyncView {
   }
 
   handleSubmitSuccess = (resp, model, id, change) => {
+    updateTeamSuccess(resp.slug, resp);
     if (id === 'slug') {
       addSuccessMessage(t('Team name changed'));
       this.props.router.push(
@@ -85,6 +87,16 @@ export default class TeamSettings extends AsyncView {
             <JsonForm location={location} forms={teamSettingsFields} />
           </Box>
         </Form>
+
+        {organization.features.includes('internal-catchall') && (
+          <AvatarChooser
+            type="team"
+            allowGravatar={false}
+            endpoint={`/teams/${organization.slug}/${team.slug}/avatar/`}
+            model={team}
+            onSave={this.handleSubmitSuccess}
+          />
+        )}
 
         {access.has('team:admin') && (
           <Panel>

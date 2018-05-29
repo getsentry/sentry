@@ -259,14 +259,13 @@ class SnubaTagStorage(TagStorage):
         filters = {
             'project_id': [project_id],
         }
-        # XXX: This should be `sentry:release`?
-        conditions = [['release', 'IS NOT NULL', None]]
+        conditions = [['tags[sentry:release]', 'IS NOT NULL', None]]
         if group_id is not None:
             filters['issue'] = [group_id]
         aggregations = [['min' if first else 'max', SEEN_COLUMN, 'seen']]
         orderby = 'seen' if first else '-seen'
 
-        result = snuba.query(start, end, ['release'], conditions, filters,
+        result = snuba.query(start, end, ['tags[sentry:release]'], conditions, filters,
                              aggregations, limit=1, orderby=orderby,
                              referrer='tagstore.__get_release')
         if not result:
@@ -289,8 +288,7 @@ class SnubaTagStorage(TagStorage):
         # NB we add release as a condition rather than a filter because
         # this method is already dealing with version strings rather than
         # release ids which would need to be translated by the snuba util.
-        # XXX: This should also be `sentry:release`
-        key = 'release'
+        key = 'tags[sentry:release]'
         conditions = [[key, 'IN', versions]]
         aggregations = [
             ['count()', '', 'times_seen'],

@@ -52,10 +52,25 @@ class ProjectKeyCredentials extends React.Component {
             <TextCopyInput>
               {getDynamicText({
                 value: data.dsn.public,
-                fixed: data.dsn.public.replace(
-                  new RegExp(`\/${projectId}$`),
-                  '/<<projectId>>'
-                ),
+                fixed: '__DSN__',
+              })}
+            </TextCopyInput>
+          </Field>
+        )}
+
+        {showDsn && (
+          <Field
+            label={t('DSN (Deprecated)')}
+            help={t(
+              'This DSN includes the secret which is no longer required by Sentry or newer versions of SDKs.'
+            )}
+            inline={false}
+            flexibleControlStateSize
+          >
+            <TextCopyInput>
+              {getDynamicText({
+                value: data.dsn.secret,
+                fixed: '__DSN_DEPRECATED__',
               })}
             </TextCopyInput>
           </Field>
@@ -73,10 +88,7 @@ class ProjectKeyCredentials extends React.Component {
             <TextCopyInput>
               {getDynamicText({
                 value: data.dsn.security,
-                fixed: data.dsn.security.replace(
-                  new RegExp(`\/${projectId}$`),
-                  '/<<projectId>>'
-                ),
+                fixed: '__SECURITY_HEADER_ENDPOINT__',
               })}
             </TextCopyInput>
           </Field>
@@ -101,29 +113,7 @@ class ProjectKeyCredentials extends React.Component {
             <TextCopyInput>
               {getDynamicText({
                 value: data.dsn.minidump,
-                fixed: data.dsn.minidump.replace(
-                  new RegExp(`\/${projectId}$`),
-                  '/<<projectId>>'
-                ),
-              })}
-            </TextCopyInput>
-          </Field>
-        )}
-
-        {showDsn && (
-          <Field
-            label={t('DSN (Legacy)')}
-            help={t('Use this DSN with server-side SDKs in older versions of Sentry.')}
-            inline={false}
-            flexibleControlStateSize
-          >
-            <TextCopyInput>
-              {getDynamicText({
-                value: data.dsn.secret,
-                fixed: data.dsn.secret.replace(
-                  new RegExp(`\/${projectId}$`),
-                  '/<<projectId>>'
-                ),
+                fixed: '__MINIDUMP_ENDPOINT__',
               })}
             </TextCopyInput>
           </Field>

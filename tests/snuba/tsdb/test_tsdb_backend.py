@@ -72,6 +72,7 @@ class SnubaTSDBTest(TestCase):
                     'foo': 'bar',
                     'baz': 'quux',
                     'environment': self.proj1env1.name,
+                    'sentry:user': 'id:user{}'.format(r // 3300),
                     'sentry:release': six.text_type(r // 3600) * 10,  # 1 per hour
                 },
                 'sentry.interfaces.User': {

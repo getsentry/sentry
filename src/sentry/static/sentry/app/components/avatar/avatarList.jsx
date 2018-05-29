@@ -1,16 +1,19 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import styled from 'react-emotion';
+import styled, {css} from 'react-emotion';
 import {Flex} from 'grid-emotion';
 
 import SentryTypes from 'app/proptypes';
 import Avatar from 'app/components/avatar';
+import Tooltip from 'app/components/tooltip';
 
 export default class AvatarList extends React.Component {
   static propTypes = {
     users: PropTypes.arrayOf(SentryTypes.User).isRequired,
     avatarSize: PropTypes.number,
     maxVisibleAvatars: PropTypes.number,
+    renderTooltip: PropTypes.func,
+    tooltipOptions: PropTypes.object,
   };
 
   static defaultProps = {
@@ -19,31 +22,63 @@ export default class AvatarList extends React.Component {
   };
 
   render() {
-    const {users, avatarSize, maxVisibleAvatars} = this.props;
+    const {
+      users,
+      avatarSize,
+      maxVisibleAvatars,
+      tooltipOptions,
+      renderTooltip,
+    } = this.props;
     const visibleUsers = users.slice(0, maxVisibleAvatars);
     const numCollapsedUsers = users.length - visibleUsers.length;
 
     return (
       <Flex direction="row-reverse">
-        {visibleUsers.map(user => {
-          return <StyledAvatar key={user.id} user={user} size={avatarSize} hasTooltip />;
-        })}
         {!!numCollapsedUsers && (
-          <CollapsedUsers size={avatarSize}>{numCollapsedUsers}</CollapsedUsers>
+          <Tooltip title={`${numCollapsedUsers} other users`}>
+            <CollapsedUsers size={avatarSize}>
+              {numCollapsedUsers < 99 && <Plus>+</Plus>}
+              {numCollapsedUsers}
+            </CollapsedUsers>
+          </Tooltip>
         )}
+        {visibleUsers.map(user => {
+          return (
+            <StyledAvatar
+              key={user.id}
+              user={user}
+              size={avatarSize}
+              renderTooltip={renderTooltip}
+              tooltipOptions={tooltipOptions}
+              hasTooltip
+            />
+          );
+        })}
       </Flex>
     );
   }
 }
 
-const StyledAvatar = styled(props => <Avatar {...props} />)`
+const Circle = css`
   border-radius: 50%;
-  overflow: hidden;
   border: 2px solid white;
-  margin-left: -${p => p.size / 2}px;
+  margin-left: -8px;
+  cursor: default;
+
+  &:hover {
+    z-index: 1;
+  }
 `;
 
-const CollapsedUsers = styled(props => <div {...props} />)`
+const StyledAvatar = styled(Avatar)`
+  overflow: hidden;
+  ${Circle};
+`;
+
+const CollapsedUsers = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
   position: relative;
   text-align: center;
   font-weight: 600;
@@ -52,6 +87,11 @@ const CollapsedUsers = styled(props => <div {...props} />)`
   font-size: ${p => p.theme.fontSizeSmall};
   width: ${p => p.size}px;
   height: ${p => p.size}px;
-  border-radius: 50%;
-  border: 2px solid white;
+  ${Circle};
+`;
+
+const Plus = styled('span')`
+  font-size: 10px;
+  margin-left: 1px;
+  margin-right: -1px;
 `;

@@ -1,16 +1,18 @@
-import MD5 from 'crypto-js/md5';
 import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
 import qs from 'query-string';
 import styled from 'react-emotion';
 
-import ConfigStore from 'app/stores/configStore';
 import LetterAvatar from 'app/components/letterAvatar';
 import Tooltip from 'app/components/tooltip';
 
+import {imageStyle} from './styles';
+import Gravatar from './gravatar';
+
 const DEFAULT_GRAVATAR_SIZE = 64;
 const ALLOWED_SIZES = [20, 32, 36, 48, 52, 64, 80, 96, 120];
+const DEFAULT_REMOTE_SIZE = 120;
 
 class BaseAvatar extends React.Component {
   static propTypes = {
@@ -19,14 +21,31 @@ class BaseAvatar extends React.Component {
      * This is the size of the remote image to request.
      */
     remoteImageSize: PropTypes.oneOf(ALLOWED_SIZES),
+    /**
+     * Default gravatar to display
+     */
     default: PropTypes.string,
     hasTooltip: PropTypes.bool,
     type: PropTypes.string,
+    /**
+     * Path to uploaded avatar (differs based on model type)
+     */
+    uploadPath: PropTypes.oneOf([
+      'avatar',
+      'team-avatar',
+      'organization-avatar',
+      'project-avatar',
+    ]),
     uploadId: PropTypes.string,
     gravatarId: PropTypes.string,
     letterId: PropTypes.string,
     title: PropTypes.string,
     tooltip: PropTypes.string,
+    tooltipOptions: PropTypes.object,
+    /**
+     * Should avatar be round instead of a square
+     */
+    round: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -35,10 +54,12 @@ class BaseAvatar extends React.Component {
     style: {},
     hasTooltip: false,
     type: 'letter_avatar',
+    uploadPath: 'avatar',
   };
 
-  constructor(...args) {
-    super(...args);
+  constructor(props) {
+    super(props);
+
     this.state = {
       showBackupAvatar: false,
       loadError: false,
@@ -57,30 +78,16 @@ class BaseAvatar extends React.Component {
     return remoteImageSize || allowed || DEFAULT_GRAVATAR_SIZE;
   };
 
-  buildGravatarUrl = () => {
-    let {gravatarId} = this.props;
-    let url = ConfigStore.getConfig().gravatarBaseUrl + '/avatar/';
-
-    url += MD5(gravatarId);
-
-    let query = {
-      s: this.getRemoteImageSize() || undefined,
-      d: this.props.default || 'blank',
-    };
-
-    url += '?' + qs.stringify(query);
-
-    return url;
-  };
-
   buildUploadUrl = () => {
-    let {uploadId} = this.props;
+    let {uploadPath, uploadId} = this.props;
 
-    return `/avatar/${uploadId}/?${qs.stringify({s: this.getRemoteImageSize()})}`;
+    return `/${uploadPath || 'avatar'}/${uploadId}/?${qs.stringify({
+      s: DEFAULT_REMOTE_SIZE,
+    })}`;
   };
 
   handleLoad = () => {
-    this.setState({showBackupAvatar: true});
+    this.setState({showBackupAvatar: false});
   };
 
   handleError = () => {
@@ -92,30 +99,39 @@ class BaseAvatar extends React.Component {
       return null;
     }
 
-    let {type} = this.props;
+    let {type, round, gravatarId} = this.props;
 
-    let props = {
+    let eventProps = {
       onError: this.handleError,
       onLoad: this.handleLoad,
     };
+
     if (type === 'gravatar') {
-      return <img src={this.buildGravatarUrl()} {...props} />;
+      return (
+        <Gravatar
+          placeholder={this.props.default}
+          gravatarId={gravatarId}
+          round={round}
+          remoteSize={DEFAULT_REMOTE_SIZE}
+          {...eventProps}
+        />
+      );
     }
 
     if (type === 'upload') {
-      return <img src={this.buildUploadUrl()} {...props} />;
+      return <Image round={round} src={this.buildUploadUrl()} {...eventProps} />;
     }
 
     return this.renderLetterAvatar();
   };
 
   renderLetterAvatar() {
-    let {title, letterId} = this.props;
-    return <LetterAvatar displayName={title} identifier={letterId} />;
+    let {title, letterId, round} = this.props;
+    return <LetterAvatar round={round} displayName={title} identifier={letterId} />;
   }
 
   render() {
-    let {className, hasTooltip, size, tooltip, style} = this.props;
+    let {className, hasTooltip, size, tooltip, tooltipOptions, style} = this.props;
     let sizeStyle = {};
 
     if (size) {
@@ -126,7 +142,7 @@ class BaseAvatar extends React.Component {
     }
 
     return (
-      <Tooltip title={tooltip} disabled={!hasTooltip}>
+      <Tooltip title={tooltip} tooltipOptions={tooltipOptions} disabled={!hasTooltip}>
         <StyledBaseAvatar
           className={classNames('avatar', className)}
           style={{
@@ -148,4 +164,8 @@ export default BaseAvatar;
 // sensible default.
 const StyledBaseAvatar = styled('span')`
   flex-shrink: 0;
+`;
+
+const Image = styled('img')`
+  ${imageStyle};
 `;

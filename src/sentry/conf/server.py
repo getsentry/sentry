@@ -450,6 +450,7 @@ CELERY_QUEUES = [
     Queue('digests.delivery', routing_key='digests.delivery'),
     Queue('digests.scheduling', routing_key='digests.scheduling'),
     Queue('email', routing_key='email'),
+    Queue('events.index_event_tags', routing_key='events.index_event_tags'),
     Queue('events.preprocess_event', routing_key='events.preprocess_event'),
     Queue(
         'events.reprocessing.preprocess_event', routing_key='events.reprocessing.preprocess_event'
@@ -1055,6 +1056,7 @@ SENTRY_SCOPES = set(
         'project:write',
         'project:admin',
         'project:releases',
+        'project:integrations',
         'event:read',
         'event:write',
         'event:admin',
@@ -1068,6 +1070,7 @@ SENTRY_SCOPE_SETS = (
         ('org:read', 'Read access to organization details.'),
     ), (
         ('org:integrations', 'Read, write, and admin access to organization integrations.'),
+        ('project:integrations', 'Read, write, and admin access to project integrations.'),
     ), (
         ('member:admin', 'Read, write, and admin access to organization members.'),
         ('member:write', 'Read and write access to organization members.'),
@@ -1126,6 +1129,7 @@ SENTRY_ROLES = (
                 'project:write',
                 'project:admin',
                 'project:releases',
+                'project:integrations'
                 'team:read',
                 'team:write',
                 'team:admin',
@@ -1149,6 +1153,7 @@ SENTRY_ROLES = (
                 'project:write',
                 'project:admin',
                 'project:releases',
+                'project:integrations',
                 'team:read',
                 'team:write',
                 'team:admin',
@@ -1238,14 +1243,18 @@ SENTRY_ONPREMISE = True
 SENTRY_USE_X_FORWARDED_FOR = True
 
 SENTRY_DEFAULT_INTEGRATIONS = (
+    'sentry.integrations.bitbucket.BitbucketIntegrationProvider',
     'sentry.integrations.slack.SlackIntegrationProvider',
     'sentry.integrations.github.GitHubIntegrationProvider',
+    'sentry.integrations.github_enterprise.GitHubEnterpriseIntegrationProvider',
     'sentry.integrations.jira.JiraIntegrationProvider',
     'sentry.integrations.vsts.VSTSIntegrationProvider',
 )
 
 SENTRY_INTERNAL_INTEGRATIONS = (
+    'bitbucket',
     'github',
+    'github-enterprise',
     'jira',
     'vsts',
 )
