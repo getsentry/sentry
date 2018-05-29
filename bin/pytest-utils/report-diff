@@ -1,0 +1,59 @@
+#!/usr/bin/env python
+
+from __future__ import print_function
+import json
+import argparse
+from operator import itemgetter
+
+
+def _humanize(mode, tests_dict):
+    assert mode in ('added', 'removed', 'faster', 'slower')
+    print('=== tests: {} ===\n'.format(mode))
+    if not tests_dict:
+        print('Nothing to see here.\n')
+        return
+    for testpath, duration in sorted(tests_dict.items(), key=itemgetter(1), reverse=(mode!='faster')):
+        print('({:+.2f}s) '.format(duration) if duration else '', testpath, sep='')
+    print('\n')
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Compares `generate-report`-generated pytest report file B to A.')
+    parser.add_argument(
+        'filea',
+        metavar='A',
+        type=argparse.FileType('r'),
+        help='Path to report file to compare B to.',
+    )
+    parser.add_argument(
+        'fileb',
+        metavar='B',
+        type=argparse.FileType('r'),
+        help='Path to report file to compare with A.',
+    )
+    parser.add_argument('-s', '--sensitivity', type=float, help='sensitivity threshold in seconds (float)', default=0.1)
+    args = parser.parse_args()
+
+    with args.filea as filea, args.fileb as fileb:
+        a, b = json.load(filea), json.load(fileb)
+
+    added, faster, slower = dict(), dict(), dict()
+
+    for testpath, duration in b.items():
+        a_duration = a.pop(testpath, None)
+        if a_duration is None:
+            added[testpath] = duration
+        else:
+            delta = duration - a_duration
+            if delta > args.sensitivity:
+                slower[testpath] = delta
+            elif delta < -args.sensitivity:
+                faster[testpath] = delta
+
+    removed = { t: None for t in a.keys() }
+
+    _humanize('added', added)
+    _humanize('removed', removed)
+    _humanize('slower', slower)
+    _humanize('faster', faster)
+

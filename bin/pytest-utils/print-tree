@@ -1,0 +1,87 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from __future__ import print_function
+import sys
+import fileinput
+
+from parse import extract_tests
+
+# only colorize tests that take longer than this (seconds)
+COLOR_THRESHOLD = 1.0
+
+
+def _usage():
+    sys.exit('''USAGE: py.test --durations=0 path/to/tests | {bin}\n
+Alternatively, you can pass in a filepath:\n
+py.test --durations=0 path/to/tests > pytest-log
+{bin} pytest-log'''.format(bin=sys.argv[0]))
+
+
+class Node(object):
+
+    def __init__(self, pathpart, duration=0.0, parent=None):
+        self.pathpart = pathpart
+        self.duration = duration
+        self.children = []
+        self.parent = parent
+
+    def pretty_duration(self):
+        # pretty print duration, time severity coloring is calculated relative to siblings
+        ansi_seq = '\033[1;30m'  # dark grey: default
+        if self.duration > COLOR_THRESHOLD:
+            ratio = self.duration / sum([n.duration for n in self.parent.children])
+            if 0.33 <= ratio < 0.5:
+                ansi_seq = '\033[1;33m'  # yellow
+            if 0.5 <= ratio < 1.0:  # if ratio is 1, then ignore because its the only child
+                ansi_seq = '\033[1;31m'  # red
+        return ansi_seq + '({:.2f}s)\033[0m'.format(self.duration)
+
+
+class Tree(object):
+
+    def __init__(self):
+        self.root = Node('')
+
+    def insert(self, path, duration):
+        cur = self.root
+        while path:
+            pathpart = path.pop(0)
+            found = False
+            for c in cur.children:
+                if c.pathpart == pathpart:
+                    c.duration += duration
+                    cur, found = c, True
+                    break
+            if not found:
+                n = Node(pathpart, duration, cur)
+                cur.children.append(n)
+                cur = n
+
+    def display(self):
+        def preorder(node, fullpath=None):
+            if not fullpath:
+                fullpath = node.pathpart
+            else:
+                fullpath += ' │ ' + node.pathpart
+            if not node:
+                return
+            if node.pathpart:  # ignore the fake root node
+                time_label_prefix = '┌─ ' if node.children else ''
+                print('{} {}{}'.format(fullpath, time_label_prefix, node.pretty_duration()))
+            for c in node.children:
+                preorder(c, fullpath)
+        preorder(self.root)
+
+
+if __name__ == '__main__':
+    if len(sys.argv) > 1 and sys.argv[1] in ('-h', '--help'):
+        _usage()
+    t = Tree()
+    try:
+        for path, duration in extract_tests(fileinput.input()):
+           t.insert(path, duration)
+    except FileNotFoundError as e:
+        print('File {} not found.\n'.format(sys.argv[1]))
+        _usage()
+    t.display()
