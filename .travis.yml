@@ -71,8 +71,6 @@ matrix:
         - memcached
         - riak
         - redis-server
-      before_install:
-        - pip uninstall -y mock
       install:
         - pip install -e ".[dev,tests,optional]"
 
@@ -82,8 +80,6 @@ matrix:
         - memcached
         - redis-server
         - postgresql
-      before_install:
-        - pip uninstall -y mock
       install:
         - pip install -e ".[dev,tests,optional]"
       before_script:
@@ -95,8 +91,6 @@ matrix:
         - memcached
         - mysql
         - redis-server
-      before_install:
-        - pip uninstall -y mock
       install:
         - pip install -e ".[dev,tests,optional]"
         - pip install mysqlclient
@@ -110,7 +104,6 @@ matrix:
         - redis-server
         - postgresql
       before_install:
-        - pip uninstall -y mock
         - nvm install "$NODE_VERSION"
         - npm install -g "yarn@${YARN_VERSION}"
       install:
@@ -137,8 +130,6 @@ matrix:
       services:
         - postgresql
         - redis-server
-      before_install:
-        - pip uninstall -y mock
       install:
         - pip install -e .
       before_script:
@@ -153,8 +144,6 @@ matrix:
         - memcached
         - redis-server
         - postgresql
-      before_install:
-        - pip uninstall -y mock
       install:
         - pip install -e ".[dev,tests,optional]"
       before_script:
@@ -167,8 +156,6 @@ matrix:
         - memcached
         - redis-server
         - postgresql
-      before_install:
-        - pip uninstall -y mock
       install:
         - pip install -e ".[dev,tests,optional]"
       before_script:
@@ -183,7 +170,6 @@ matrix:
         - redis-server
         - postgresql
       before_install:
-        - pip uninstall -y mock
         - docker run -d --name clickhouse-server -p 9000:9000 -p 9009:9009 -p 8123:8123 --ulimit nofile=262144:262144 yandex/clickhouse-server
         - docker run -d --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=clickhouse-server:9000 --name snuba -p 1218:1218 --link clickhouse-server:clickhouse-server getsentry/snuba
         - docker ps -a
