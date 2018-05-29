@@ -326,19 +326,19 @@ class GithubWebhookBase(View):
 
         return super(GithubWebhookBase, self).dispatch(request, *args, **kwargs)
 
-    def get_logging_data(self, organization):
+    def get_logging_data(self):
         pass
 
-    def get_secret(self, organization):
+    def get_secret(self):
         raise NotImplementedError
 
-    def handle(self, request, organization=None):
-        secret = self.get_secret(organization)
+    def handle(self, request):
+        secret = self.get_secret()
 
         if secret is None:
             logger.error(
                 'github.webhook.missing-secret',
-                extra=self.get_logging_data(organization),
+                extra=self.get_logging_data(),
             )
             return HttpResponse(status=401)
 
@@ -346,7 +346,7 @@ class GithubWebhookBase(View):
         if not body:
             logger.error(
                 'github.webhook.missing-body',
-                extra=self.get_logging_data(organization),
+                extra=self.get_logging_data(),
             )
             return HttpResponse(status=400)
 
@@ -355,7 +355,7 @@ class GithubWebhookBase(View):
         except KeyError:
             logger.error(
                 'github.webhook.missing-event',
-                extra=self.get_logging_data(organization),
+                extra=self.get_logging_data(),
             )
             return HttpResponse(status=400)
 
@@ -367,14 +367,14 @@ class GithubWebhookBase(View):
         except (KeyError, IndexError):
             logger.error(
                 'github.webhook.missing-signature',
-                extra=self.get_logging_data(organization),
+                extra=self.get_logging_data(),
             )
             return HttpResponse(status=400)
 
-        if not self.is_valid_signature(method, body, self.get_secret(organization), signature):
+        if not self.is_valid_signature(method, body, self.get_secret(), signature):
             logger.error(
                 'github.webhook.invalid-signature',
-                extra=self.get_logging_data(organization),
+                extra=self.get_logging_data(),
             )
             return HttpResponse(status=401)
 
@@ -383,12 +383,12 @@ class GithubWebhookBase(View):
         except JSONDecodeError:
             logger.error(
                 'github.webhook.invalid-json',
-                extra=self.get_logging_data(organization),
+                extra=self.get_logging_data(),
                 exc_info=True,
             )
             return HttpResponse(status=400)
 
-        handler()(event, organization=organization)
+        handler()(event)
         return HttpResponse(status=204)
 
 
@@ -407,7 +407,7 @@ class GithubIntegrationsWebhookEndpoint(GithubWebhookBase):
 
         return super(GithubIntegrationsWebhookEndpoint, self).dispatch(request, *args, **kwargs)
 
-    def get_secret(self, organization):
+    def get_secret(self):
         return options.get('github-app.webhook-secret')
 
     def post(self, request):
