@@ -36,15 +36,15 @@ const ProjectChooser = createReactClass({
   redirectNoMultipleProjects() {
     let org = this.getOrganization();
     let projects = org.projects;
-    let task = TodoList.TASKS.filter(
+    let tasks = TodoList.TASKS.filter(
       task_inst => task_inst.task == this.props.location.query.task
-    )[0];
+    );
 
     if (projects.length === 0) {
       browserHistory.push(`/organizations/${org.slug}/projects/new/`);
-    } else if (projects.length === 1) {
+    } else if (projects.length === 1 && tasks.length === 1) {
       let project = projects[0];
-      browserHistory.push(`/${org.slug}/${project.slug}/${task.location}`);
+      browserHistory.push(`/${org.slug}/${project.slug}/${tasks[0].location}`);
     }
   },
 
