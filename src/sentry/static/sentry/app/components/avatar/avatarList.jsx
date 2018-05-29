@@ -14,11 +14,13 @@ export default class AvatarList extends React.Component {
     maxVisibleAvatars: PropTypes.number,
     renderTooltip: PropTypes.func,
     tooltipOptions: PropTypes.object,
+    typeMembers: PropTypes.string,
   };
 
   static defaultProps = {
     avatarSize: 28,
     maxVisibleAvatars: 5,
+    typeMembers: 'users',
   };
 
   render() {
@@ -28,14 +30,14 @@ export default class AvatarList extends React.Component {
       maxVisibleAvatars,
       tooltipOptions,
       renderTooltip,
+      typeMembers,
     } = this.props;
     const visibleUsers = users.slice(0, maxVisibleAvatars);
     const numCollapsedUsers = users.length - visibleUsers.length;
-
     return (
       <Flex direction="row-reverse">
         {!!numCollapsedUsers && (
-          <Tooltip title={`${numCollapsedUsers} other users`}>
+          <Tooltip title={`${numCollapsedUsers} other ${typeMembers}`}>
             <CollapsedUsers size={avatarSize}>
               {numCollapsedUsers < 99 && <Plus>+</Plus>}
               {numCollapsedUsers}
@@ -84,7 +86,7 @@ const CollapsedUsers = styled('div')`
   font-weight: 600;
   background-color: ${p => p.theme.borderLight};
   color: ${p => p.theme.gray2};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => Math.floor(p.size / 2.3)}px;
   width: ${p => p.size}px;
   height: ${p => p.size}px;
   ${Circle};
