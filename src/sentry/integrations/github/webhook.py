@@ -41,7 +41,7 @@ class Webhook(object):
     def _handle(self, event, organization, repo):
         raise NotImplementedError
 
-    def __call__(self, event, organization=None):
+    def __call__(self, event):
         integration = Integration.objects.get(
             external_id=event['installation']['id'],
             provider='github',
