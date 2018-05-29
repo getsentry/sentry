@@ -12,7 +12,7 @@ from sentry.rules.conditions.base import EventCondition
 
 
 class FirstSeenEventCondition(EventCondition):
-    label = 'An event is first seen'
+    label = 'An issue is first seen'
 
     def passes(self, event, state):
         if self.rule.environment_id is None:
