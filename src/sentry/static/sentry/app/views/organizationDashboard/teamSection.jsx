@@ -14,13 +14,16 @@ class TeamSection extends React.Component {
     team: SentryTypes.Team,
     orgId: PropTypes.string,
     showBorder: PropTypes.bool,
-    hasTeamAccess: PropTypes.bool,
+    access: PropTypes.object,
     title: PropTypes.node,
     projects: PropTypes.array,
   };
 
   render() {
-    const {team, projects, title, showBorder, orgId, hasTeamAccess} = this.props;
+    const {team, projects, title, showBorder, orgId, access} = this.props;
+
+    const hasTeamAccess = access.has('team:read');
+    const hasProjectAccess = access.has('project:read');
 
     return (
       <TeamSectionWrapper data-test-id="team" showBorder={showBorder}>
@@ -34,6 +37,7 @@ class TeamSection extends React.Component {
               data-test-id={project.slug}
               key={project.slug}
               project={project}
+              hasProjectAccess={hasProjectAccess}
             />
           ))}
         </ProjectCards>
