@@ -26,7 +26,9 @@ from sentry.constants import (
     DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH, VALID_PLATFORMS
 )
 from sentry.interfaces.base import get_interface, InterfaceValidationError
+from sentry.interfaces.exception import normalize_mechanism_meta
 from sentry.interfaces.schemas import validate_and_default_interface
+from sentry.lang.native.utils import get_sdk_from_event
 from sentry.models import (
     Activity, Environment, Event, EventError, EventMapping, EventUser, Group,
     GroupEnvironment, GroupHash, GroupRelease, GroupResolution, GroupStatus,
@@ -476,6 +478,17 @@ class EventManager(object):
         if exception and len(exception['values']) == 1 and stacktrace:
             exception['values'][0]['stacktrace'] = stacktrace
             del data['sentry.interfaces.Stacktrace']
+
+        # Exception mechanism needs SDK information to resolve proper names in
+        # exception meta (such as signal names). "SDK Information" really means
+        # the operating system version the event was generated on. Some
+        # normalization still works without sdk_info, such as mach_exception
+        # names (they can only occur on macOS).
+        if exception:
+            sdk_info = get_sdk_from_event(data)
+            for ex in exception['values']:
+                if 'mechanism' in ex:
+                    normalize_mechanism_meta(ex['mechanism'], sdk_info)
 
         # If there is no User ip_addres, update it either from the Http interface
         # or the client_ip of the request.

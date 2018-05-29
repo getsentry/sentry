@@ -1,250 +1,122 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {shallow} from 'enzyme';
 
 import ExceptionMechanism from 'app/components/events/interfaces/exceptionMechanism';
 
-describe('ExceptionMechanism', function() {
-  let sandbox;
-  let mechanism;
-  let platform;
-  let elem;
+describe('ExceptionMechanism', () => {
+  describe('basic attributes', () => {
+    it('should render the exception mechanism', () => {
+      let mechanism = {type: 'generic'};
+      let wrapper = shallow(<ExceptionMechanism data={mechanism} />);
+      expect(wrapper).toMatchSnapshot();
+    });
 
-  beforeEach(function() {
-    platform = 'cocoa';
+    it('should render a help_link icon', () => {
+      let mechanism = {type: 'generic', help_link: 'https://example.org/help'};
+      let wrapper = shallow(<ExceptionMechanism data={mechanism} />);
+      expect(wrapper).toMatchSnapshot();
+    });
 
-    sandbox = sinon.sandbox.create();
+    it('should render a description hovercard', () => {
+      let mechanism = {type: 'generic', description: 'Nothing to see here.'};
+      let wrapper = shallow(<ExceptionMechanism data={mechanism} />);
+      expect(wrapper).toMatchSnapshot();
+    });
+
+    it('should add the help_link to the description hovercard', () => {
+      let mechanism = {
+        type: 'generic',
+        description: 'Nothing to see here.',
+        help_link: 'https://example.org/help',
+      };
+      let wrapper = shallow(<ExceptionMechanism data={mechanism} />);
+      expect(wrapper).toMatchSnapshot();
+    });
+
+    it('should render the handled pill', () => {
+      let mechanism = {type: 'generic', handled: false};
+      let wrapper = shallow(<ExceptionMechanism data={mechanism} />);
+      expect(wrapper).toMatchSnapshot();
+    });
   });
 
-  afterEach(function() {
-    sandbox.restore();
+  describe('errno meta', () => {
+    it('should render the errno number', () => {
+      let mechanism = {type: 'generic', meta: {errno: {number: 7}}};
+      let wrapper = shallow(<ExceptionMechanism data={mechanism} />);
+      expect(wrapper).toMatchSnapshot();
+    });
+
+    it('should prefer the errno name if present', () => {
+      let mechanism = {type: 'generic', meta: {errno: {number: 7, name: 'E2BIG'}}};
+      let wrapper = shallow(<ExceptionMechanism data={mechanism} />);
+      expect(wrapper).toMatchSnapshot();
+    });
   });
 
-  describe('render', function() {
-    it('should render no Pills on empty', function() {
-      mechanism = {};
-      elem = mount(<ExceptionMechanism data={mechanism} platform={platform} />);
-      expect(elem.find('li')).toHaveLength(0);
-    });
-
-    it('should not render generic pills if description is missing', function() {
-      mechanism = {
-        type: 'promise',
+  describe('mach_exception meta', () => {
+    it('should render the mach exception number', () => {
+      let mechanism = {
+        type: 'generic',
+        meta: {mach_exception: {exception: 1, subcode: 8, code: 1}},
       };
-      elem = mount(<ExceptionMechanism data={mechanism} platform={platform} />);
-      expect(elem.find('li')).toHaveLength(0);
+      let wrapper = shallow(<ExceptionMechanism data={mechanism} />);
+      expect(wrapper).toMatchSnapshot();
     });
 
-    it('should render one mach_exception', function() {
-      mechanism = {
-        mach_exception: {
-          exception_name: 'EXC_!',
+    it('should prefer the exception name if present', () => {
+      let mechanism = {
+        type: 'generic',
+        meta: {
+          mach_exception: {exception: 1, subcode: 8, code: 1, name: 'EXC_BAD_ACCESS'},
         },
       };
-      elem = mount(<ExceptionMechanism data={mechanism} platform={platform} />);
-      expect(elem.find('li')).toHaveLength(1);
-      expect(
-        elem
-          .find('li')
-          .find('span')
-          .first()
-          .text()
-      ).toEqual('mach exception');
-      expect(
-        elem
-          .find('li')
-          .find('span')
-          .last()
-          .text()
-      ).toEqual('EXC_!');
+      let wrapper = shallow(<ExceptionMechanism data={mechanism} />);
+      expect(wrapper).toMatchSnapshot();
+    });
+  });
+
+  describe('signal meta', () => {
+    it('should render the signal number', () => {
+      let mechanism = {type: 'generic', meta: {signal: {number: 11}}};
+      let wrapper = shallow(<ExceptionMechanism data={mechanism} />);
+      expect(wrapper).toMatchSnapshot();
     });
 
-    it('should render one posix_signal', function() {
-      mechanism = {
-        posix_signal: {
-          name: 'SIG_',
-          signal: '01',
+    it('should add the signal code if present', () => {
+      let mechanism = {type: 'generic', meta: {signal: {number: 11, code: 0}}};
+      let wrapper = shallow(<ExceptionMechanism data={mechanism} />);
+      expect(wrapper).toMatchSnapshot();
+    });
+
+    it('should prefer signal and code names if present', () => {
+      let mechanism = {
+        type: 'generic',
+        meta: {signal: {number: 11, code: 0, name: 'SIGSEGV', code_name: 'SEGV_NOOP'}},
+      };
+      let wrapper = shallow(<ExceptionMechanism data={mechanism} />);
+      expect(wrapper).toMatchSnapshot();
+    });
+  });
+
+  describe('additional data', () => {
+    it('should render all fields in the data object', () => {
+      let mechanism = {type: 'generic', data: {relevant_address: '0x1'}};
+      let wrapper = shallow(<ExceptionMechanism data={mechanism} />);
+      expect(wrapper).toMatchSnapshot();
+    });
+
+    it('should skip object-like values', () => {
+      let mechanism = {
+        type: 'generic',
+        data: {
+          a: {x: 11},
+          b: [4, 2],
+          c: new Date(),
         },
       };
-      elem = mount(<ExceptionMechanism data={mechanism} platform={platform} />);
-      expect(elem.find('li')).toHaveLength(1);
-      expect(
-        elem
-          .find('li')
-          .find('span')
-          .first()
-          .text()
-      ).toEqual('signal');
-      expect(
-        elem
-          .find('li')
-          .find('span')
-          .last()
-          .text()
-      ).toEqual('SIG_ (01)');
-    });
-
-    it('should render posix_signal and mach_exception', function() {
-      mechanism = {
-        posix_signal: {
-          name: 'SIG_',
-          signal: '01',
-        },
-        mach_exception: {
-          exception_name: 'EXC_!',
-        },
-      };
-      elem = mount(<ExceptionMechanism data={mechanism} platform={platform} />);
-      expect(elem.find('li')).toHaveLength(2);
-      expect(
-        elem
-          .find('li')
-          .first()
-          .find('span')
-          .first()
-          .text()
-      ).toEqual('mach exception');
-      expect(
-        elem
-          .find('li')
-          .first()
-          .find('span')
-          .last()
-          .text()
-      ).toEqual('EXC_!');
-      expect(
-        elem
-          .find('li')
-          .last()
-          .find('span')
-          .first()
-          .text()
-      ).toEqual('signal');
-      expect(
-        elem
-          .find('li')
-          .last()
-          .find('span')
-          .last()
-          .text()
-      ).toEqual('SIG_ (01)');
-    });
-
-    it('should render generic mechanism', function() {
-      mechanism = {
-        type: 'promise',
-        description: 'unhandledPromiseRejection',
-      };
-      elem = mount(<ExceptionMechanism data={mechanism} platform={platform} />);
-      expect(elem.find('li')).toHaveLength(1);
-      expect(
-        elem
-          .find('li')
-          .find('span')
-          .first()
-          .text()
-      ).toEqual('promise');
-      expect(
-        elem
-          .find('li')
-          .find('span')
-          .last()
-          .text()
-      ).toEqual('unhandledPromiseRejection');
-    });
-
-    it('should render generic mechanism with extra', function() {
-      mechanism = {
-        type: 'promise',
-        description: 'unhandledPromiseRejection',
-        extra: {
-          pid: 0,
-          or: 'anything really',
-        },
-      };
-      elem = mount(<ExceptionMechanism data={mechanism} platform={platform} />);
-      expect(elem.find('li')).toHaveLength(3);
-      expect(
-        elem
-          .find('li')
-          .first()
-          .find('span')
-          .first()
-          .text()
-      ).toEqual('promise');
-      expect(
-        elem
-          .find('li')
-          .first()
-          .find('span')
-          .last()
-          .text()
-      ).toEqual('unhandledPromiseRejection');
-      expect(
-        elem
-          .find('li')
-          .last()
-          .find('span')
-          .first()
-          .text()
-      ).toEqual('or');
-      expect(
-        elem
-          .find('li')
-          .last()
-          .find('span')
-          .last()
-          .text()
-      ).toEqual('anything really');
-    });
-
-    it('should not render generic mechanism with extra containing object', function() {
-      mechanism = {
-        type: 'promise',
-        description: 'unhandledPromiseRejection',
-        extra: {
-          pid: 0,
-          or: 'anything really',
-          ob: {iam: 'an object'},
-        },
-      };
-      elem = mount(<ExceptionMechanism data={mechanism} platform={platform} />);
-      expect(elem.find('li')).toHaveLength(3);
-    });
-
-    it('should render generic mechanism with unhandled flag true', function() {
-      mechanism = {
-        type: 'promise',
-        description: 'unhandledPromiseRejection',
-        handled: false,
-      };
-      elem = mount(<ExceptionMechanism data={mechanism} platform={platform} />);
-      expect(elem.find('li')).toHaveLength(2);
-      expect(
-        elem
-          .find('li')
-          .last()
-          .find('span')
-          .last()
-          .text()
-      ).toEqual('no');
-    });
-
-    it('should render generic mechanism with unhandled flag false', function() {
-      mechanism = {
-        type: 'promise',
-        description: 'unhandledPromiseRejection',
-        handled: true,
-      };
-      elem = mount(<ExceptionMechanism data={mechanism} platform={platform} />);
-      expect(elem.find('li')).toHaveLength(2);
-      expect(
-        elem
-          .find('li')
-          .last()
-          .find('span')
-          .last()
-          .text()
-      ).toEqual('yes');
+      let wrapper = shallow(<ExceptionMechanism data={mechanism} />);
+      expect(wrapper).toMatchSnapshot();
     });
   });
 });

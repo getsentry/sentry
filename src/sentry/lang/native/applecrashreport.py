@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import posixpath
 
+from sentry.interfaces.exception import upgrade_legacy_mechanism
 from sentry.lang.native.utils import image_name
 from sentry.utils.compat import implements_to_string
 from sentry.constants import NATIVE_UNKNOWN_STRING
@@ -42,11 +43,11 @@ class AppleCrashReport(object):
         if self.exceptions and self.exceptions[0]:
             # We only have one exception at a time
             exception = self.exceptions[0] or {}
-            mechanism = exception.get('mechanism') or {}
+            mechanism = upgrade_legacy_mechanism(exception.get('mechanism')) or {}
+            mechanism_meta = mechanism.get('meta', {})
 
-            signal = (mechanism.get('posix_signal') or {}).get('name')
-            name = (mechanism.get('mach_exception')
-                    or {}).get('exception_name')
+            signal = mechanism_meta.get('signal', {}).get('name')
+            name = mechanism_meta.get('mach_exception', {}).get('name')
 
             if name or signal:
                 rv.append(
@@ -54,8 +55,8 @@ class AppleCrashReport(object):
                     (name or 'Unknown', signal and (' (%s)' % signal) or '', )
                 )
 
-            exc_name = (mechanism.get('posix_signal') or {}).get('code_name')
-            exc_addr = mechanism.get('relevant_address')
+            exc_name = (mechanism_meta.get('signal', {})).get('code_name')
+            exc_addr = mechanism.get('data', {}).get('relevant_address')
             if exc_name:
                 rv.append(
                     'Exception Codes: %s%s' %

@@ -677,6 +677,44 @@ def test__get_exception_info():
             {
                 "value": "Attempted to dereference garbage pointer 0x10.",
                 "mechanism": {
+                    "type": "mach",
+                    "data": {
+                        "relevant_address": "0x10"
+                    },
+                    "meta": {
+                        "signal": {
+                            "number": 10,
+                            "code": 0,
+                            "name": "SIGBUS",
+                            "code_name": "BUS_NOOP"
+                        },
+                        "mach_exception": {
+                            "exception": 1,
+                            "name": "EXC_BAD_ACCESS",
+                            "subcode": 8,
+                            "code": 16
+                        }
+                    }
+                },
+                "type": "EXC_BAD_ACCESS",
+                "thread_id": 0
+            }
+        ]
+    )
+    exception_info = acr._get_exception_info()
+    assert exception_info == 'Exception Type: EXC_BAD_ACCESS (SIGBUS)\n\
+Exception Codes: BUS_NOOP at 0x10\n\
+Crashed Thread: 0\n\n\
+Application Specific Information:\n\
+Attempted to dereference garbage pointer 0x10.'
+
+
+def test__get_exception_info_legacy_mechanism():
+    acr = AppleCrashReport(
+        exceptions=[
+            {
+                "value": "Attempted to dereference garbage pointer 0x10.",
+                "mechanism": {
                     "posix_signal": {
                         "name": "SIGBUS",
                         "code_name": "BUS_NOOP",
@@ -709,10 +747,6 @@ def test__get_exception_info_partial():
         exceptions=[
             {
                 "value": "Attempted to dereference garbage pointer 0x10.",
-                "mechanism": {
-                    "posix_signal": None,
-                    "mach_exception": None,
-                },
                 "type": "EXC_BAD_ACCESS",
                 "thread_id": 0
             }

@@ -98,14 +98,13 @@ class DebugMeta(Interface):
 
     @classmethod
     def to_python(cls, data):
-        if 'images' not in data:
-            raise InterfaceValidationError('Missing key "images"')
+        images = data.get('images', [])
         is_debug_build = data.get('is_debug_build')
         if is_debug_build is not None and not isinstance(is_debug_build, bool):
             raise InterfaceValidationError('Invalid value for "is_debug_build"')
 
         return cls(
-            images=[cls.normalize_image(x) for x in data['images']],
+            images=[cls.normalize_image(x) for x in images],
             sdk_info=cls.normalize_sdk_info(data.get('sdk_info')),
             is_debug_build=is_debug_build,
         )
@@ -119,7 +118,7 @@ class DebugMeta(Interface):
         if func is None:
             raise InterfaceValidationError('Unknown image type %r' % image)
         rv = func(image)
-        assert 'uuid' in rv or 'id' in rv, 'debug image normalizer did not produce a UUID'
+        assert 'uuid' in rv or 'id' in rv, 'debug image normalizer did not produce an identifier'
         rv['type'] = ty
         return rv
 

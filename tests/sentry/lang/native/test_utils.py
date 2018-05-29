@@ -189,6 +189,10 @@ def test_minidump_linux():
             ]
         },
         'exception': {
+            'mechanism': {
+                'type': 'minidump',
+                'handled': False
+            },
             'stacktrace': {
                 'frames': [
                     {
@@ -337,6 +341,10 @@ def test_minidump_macos():
             ]
         },
         'exception': {
+            'mechanism': {
+                'type': 'minidump',
+                'handled': False
+            },
             'stacktrace': {
                 'frames': [
                     {
@@ -436,6 +444,10 @@ def test_minidump_windows():
             ]
         },
         'exception': {
+            'mechanism': {
+                'type': 'minidump',
+                'handled': False
+            },
             'stacktrace': {
                 'frames': [
                     {
