@@ -428,7 +428,7 @@ class DjangoSearchBackend(SearchBackend):
 
             group_tag_value_queryset = tagstore.get_group_tag_value_qs(
                 project_id=project.id,
-                group_id=set(group_queryset.values_list('id', flat=True)),  # TODO: Limit?,
+                group_id=set(group_queryset.values_list('id', flat=True)[:10000]),
                 environment_id=environment.id,
                 key='environment',
                 value=environment.name,
