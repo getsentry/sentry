@@ -15,7 +15,7 @@ from django.views.generic import View
 from django.utils import timezone
 from simplejson import JSONDecodeError
 from sentry.models import (Commit, CommitAuthor, Organization, Repository)
-from sentry.plugins.providers import RepositoryProvider
+from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.utils import json
 
 logger = logging.getLogger('sentry.webhooks')
@@ -69,7 +69,7 @@ class PushEventWebhook(Webhook):
 
         for change in event['push']['changes']:
             for commit in change.get('commits', []):
-                if RepositoryProvider.should_ignore_commit(commit['message']):
+                if IntegrationRepositoryProvider.should_ignore_commit(commit['message']):
                     continue
 
                 author_email = parse_raw_user_email(commit['author']['raw'])
