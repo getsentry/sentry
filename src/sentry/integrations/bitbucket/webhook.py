@@ -28,6 +28,7 @@ BITBUCKET_IPS = [
     u'34.198.178.64',
     u'34.198.32.85'
 ]
+PROVIDER_NAME = 'integrations:bitbucket'
 
 
 class Webhook(object):
@@ -56,7 +57,7 @@ class PushEventWebhook(Webhook):
         try:
             repo = Repository.objects.get(
                 organization_id=organization.id,
-                provider='bitbucket',
+                provider=PROVIDER_NAME,
                 external_id=six.text_type(event['repository']['uuid']),
             )
         except Repository.DoesNotExist:
@@ -125,7 +126,7 @@ class BitbucketWebhookEndpoint(View):
             )
         except Organization.DoesNotExist:
             logger.error(
-                'bitbucket.webhook.invalid-organization',
+                PROVIDER_NAME + '.webhook.invalid-organization',
                 extra={
                     'organization_id': organization_id,
                 }
@@ -135,7 +136,7 @@ class BitbucketWebhookEndpoint(View):
         body = six.binary_type(request.body)
         if not body:
             logger.error(
-                'bitbucket.webhook.missing-body', extra={
+                PROVIDER_NAME + '.webhook.missing-body', extra={
                     'organization_id': organization.id,
                 }
             )
@@ -145,7 +146,7 @@ class BitbucketWebhookEndpoint(View):
             handler = self.get_handler(request.META['HTTP_X_EVENT_KEY'])
         except KeyError:
             logger.error(
-                'bitbucket.webhook.missing-event', extra={
+                PROVIDER_NAME + '.webhook.missing-event', extra={
                     'organization_id': organization.id,
                 }
             )
@@ -158,7 +159,7 @@ class BitbucketWebhookEndpoint(View):
         if not (ipaddress.ip_address(address_string) in BITBUCKET_IP_RANGE or
                 address_string in BITBUCKET_IPS):
             logger.error(
-                'bitbucket.webhook.invalid-ip-range', extra={
+                PROVIDER_NAME + '.webhook.invalid-ip-range', extra={
                     'organization_id': organization.id,
                 }
             )
@@ -168,7 +169,7 @@ class BitbucketWebhookEndpoint(View):
             event = json.loads(body.decode('utf-8'))
         except JSONDecodeError:
             logger.error(
-                'bitbucket.webhook.invalid-json',
+                PROVIDER_NAME + '.webhook.invalid-json',
                 extra={
                     'organization_id': organization.id,
                 },
