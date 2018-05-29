@@ -143,7 +143,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
 
         idp = IdentityProvider.objects.get(
             type='github-enterprise',
-            organization_id=self.organization.id,
+            organization_id=0,
         )
         identity = Identity.objects.get(
             idp=idp,
