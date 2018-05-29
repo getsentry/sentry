@@ -14,12 +14,19 @@ class AccountIdentityAssociateView(OrganizationView):
     def handle(self, request, organization, provider_key, external_id):
         try:
             provider_model = IdentityProvider.objects.get(
-                organization_id=organization.id,
+                organization_id=0,
                 type=provider_key,
                 external_id=external_id,
             )
         except IdentityProvider.DoesNotExist:
-            return self.redirect(reverse('sentry-account-settings-identities'))
+            try:
+                provider_model = IdentityProvider.objects.get(
+                    organization_id=organization.id,
+                    type=provider_key,
+                    external_id=external_id,
+                )
+            except IdentityProvider.DoesNotExist:
+                return self.redirect(reverse('sentry-account-settings-identities'))
 
         pipeline = IdentityProviderPipeline(
             organization=organization,
