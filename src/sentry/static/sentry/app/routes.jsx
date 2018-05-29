@@ -25,6 +25,7 @@ import MyIssuesBookmarked from 'app/views/myIssues/bookmarked';
 import MyIssuesViewed from 'app/views/myIssues/viewed';
 import NewProject from 'app/views/projectInstall/newProject';
 import OnboardingConfigure from 'app/views/onboarding/configure/index';
+import OrganizationDiscover from 'app/views/organizationDiscover';
 import OnboardingWizard from 'app/views/onboarding/index';
 import OrganizationActivity from 'app/views/organizationActivity';
 import OrganizationContext from 'app/views/organizationContext';
@@ -733,6 +734,11 @@ function routes() {
       <Route path="/:orgId/" component={errorHandler(OrganizationDetails)}>
         <Route component={errorHandler(OrganizationRoot)}>
           <IndexRoute component={errorHandler(OrganizationDashboard)} />
+
+          <Route
+            path="/organizations/:orgId/discover/"
+            component={errorHandler(OrganizationDiscover)}
+          />
           <Route
             path="/organizations/:orgId/activity/"
             component={errorHandler(OrganizationActivity)}
