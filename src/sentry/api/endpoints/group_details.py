@@ -14,14 +14,18 @@ from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import serialize, GroupSerializer
 from sentry.api.serializers.models.plugin import PluginSerializer
+from sentry.api.serializers.models.grouprelease import (GroupReleaseWithStatsSerializer)
 from sentry.models import (
     Activity,
     Environment,
     Group,
     GroupHash,
+    GroupRelease,
     GroupSeen,
     GroupStatus,
     Release,
+    ReleaseEnvironment,
+    ReleaseProject,
     User,
     UserReport,
 )
@@ -262,6 +266,35 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 }
             }
         )
+
+        # the current release is the 'latest seen' release within the
+        # environment even if it hasnt affected this issue
+
+        try:
+            environment = self._get_environment_from_request(
+                request,
+                group.project.organization_id,
+            )
+        except Environment.DoesNotExist:
+            environment = None
+
+        if environment is not None:
+            current_release = GroupRelease.objects.filter(
+                group_id=group.id,
+                environment=environment.name,
+                release_id=ReleaseEnvironment.objects.filter(
+                    release_id__in=ReleaseProject.objects.filter(project_id=group.project_id
+                                                                 ).values_list('release_id', flat=True),
+                    organization_id=group.project.organization_id,
+                    environment_id=environment.id,
+                ).order_by('-first_seen').values_list('release_id', flat=True).first(),
+            ).first()
+
+            data.update({
+                'currentRelease': serialize(
+                    current_release, request.user, GroupReleaseWithStatsSerializer()
+                )
+            })
 
         return Response(data)
 
