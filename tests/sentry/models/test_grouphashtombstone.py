@@ -29,6 +29,7 @@ class GroupHashTombstoneTest(TestCase):
         )
 
         assert GroupHashTombstone.objects.filter(hash=hash1, deleted_at=mock_now.return_value).exists()
+        assert not GroupHash.objects.filter(group=group, hash=hash1).exists()
 
         mock_now.return_value = datetime(2011, 1, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
 
@@ -52,4 +53,6 @@ class GroupHashTombstoneTest(TestCase):
         )
 
         assert GroupHashTombstone.objects.filter(hash=hash1, deleted_at=mock_now.return_value).exists()
+        assert not GroupHash.objects.filter(group=group, hash=hash1).exists()
         assert GroupHashTombstone.objects.filter(hash=hash2, deleted_at=mock_now.return_value).exists()
+        assert not GroupHash.objects.filter(group=group, hash=hash2).exists()
