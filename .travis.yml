@@ -2,13 +2,13 @@ filter_secrets: false
 
 dist: trusty
 sudo: required
-group: deprecated-2017Q4
 language: python
 python: 2.7
 
 branches:
   only:
   - master
+  - build/finishing-touches
 
 cache:
   yarn: true
