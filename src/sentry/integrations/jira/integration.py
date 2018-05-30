@@ -297,7 +297,7 @@ class JiraIntegration(Integration, IssueSyncMixin):
     def create_issue(self, data, **kwargs):
         client = self.get_client()
         cleaned_data = {}
-        # protect against mis-configured plugin submitting a form without an
+        # protect against mis-configured integration submitting a form without an
         # issuetype assigned.
         if not data.get('issuetype'):
             raise IntegrationError('Issue Type is required.')
@@ -324,37 +324,39 @@ class JiraIntegration(Integration, IssueSyncMixin):
                 continue
             if field in data.keys():
                 v = data.get(field)
-                if v:
-                    schema = f.get('schema')
-                    if schema:
-                        if schema.get('type') == 'string' and not schema.get('custom'):
-                            cleaned_data[field] = v
-                            continue
-                        if schema['type'] == 'user' or schema.get('items') == 'user':
-                            v = {'name': v}
-                        elif schema.get('custom') == JIRA_CUSTOM_FIELD_TYPES.get('multiuserpicker'):
-                            # custom multi-picker
-                            v = [{'name': v}]
-                        elif schema['type'] == 'array' and schema.get('items') != 'string':
-                            v = [{'id': vx} for vx in v]
-                        elif schema['type'] == 'array' and schema.get('items') == 'string':
-                            v = [v]
-                        elif schema.get('custom') == JIRA_CUSTOM_FIELD_TYPES.get('textarea'):
-                            v = v
-                        elif schema['type'] == 'number' or \
-                                schema.get('custom') == JIRA_CUSTOM_FIELD_TYPES['tempo_account']:
-                            try:
-                                if '.' in v:
-                                    v = float(v)
-                                else:
-                                    v = int(v)
-                            except ValueError:
-                                pass
-                        elif (schema.get('type') != 'string'
-                                or (schema.get('items') and schema.get('items') != 'string')
-                                or schema.get('custom') == JIRA_CUSTOM_FIELD_TYPES.get('select')):
-                            v = {'id': v}
-                    cleaned_data[field] = v
+                if not v:
+                    continue
+
+                schema = f.get('schema')
+                if schema:
+                    if schema.get('type') == 'string' and not schema.get('custom'):
+                        cleaned_data[field] = v
+                        continue
+                    if schema['type'] == 'user' or schema.get('items') == 'user':
+                        v = {'name': v}
+                    elif schema.get('custom') == JIRA_CUSTOM_FIELD_TYPES.get('multiuserpicker'):
+                        # custom multi-picker
+                        v = [{'name': v}]
+                    elif schema['type'] == 'array' and schema.get('items') != 'string':
+                        v = [{'id': vx} for vx in v]
+                    elif schema['type'] == 'array' and schema.get('items') == 'string':
+                        v = [v]
+                    elif schema.get('custom') == JIRA_CUSTOM_FIELD_TYPES.get('textarea'):
+                        v = v
+                    elif (schema['type'] == 'number' or
+                          schema.get('custom') == JIRA_CUSTOM_FIELD_TYPES['tempo_account']):
+                        try:
+                            if '.' in v:
+                                v = float(v)
+                            else:
+                                v = int(v)
+                        except ValueError:
+                            pass
+                    elif (schema.get('type') != 'string'
+                            or (schema.get('items') and schema.get('items') != 'string')
+                            or schema.get('custom') == JIRA_CUSTOM_FIELD_TYPES.get('select')):
+                        v = {'id': v}
+                cleaned_data[field] = v
 
         if not (isinstance(cleaned_data['issuetype'], dict) and 'id' in cleaned_data['issuetype']):
             # something fishy is going on with this field, working on some JIRA
