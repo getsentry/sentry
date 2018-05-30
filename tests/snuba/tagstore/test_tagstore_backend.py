@@ -90,7 +90,7 @@ class TagStorage(TestCase):
             self.proj1env1.id,
         )
         tags = [r['key'] for r in result]
-        assert set(tags) == set(['foo', 'baz', 'environment', 'release'])
+        assert set(tags) == set(['foo', 'baz', 'environment', 'release', 'user'])
 
         result.sort(key=lambda r: r['key'])
         assert result[0]['key'] == 'baz'
@@ -151,12 +151,12 @@ class TagStorage(TestCase):
                 environment_id=self.proj1env1.id,
             )
         }
-        assert len(keys) == 4
-        assert set(keys) == set(['baz', 'environment', 'foo', 'sentry:release'])
+        assert set(keys) == set(['baz', 'environment', 'foo', 'sentry:release', 'sentry:user'])
         for k in keys.values():
-            if k.key != 'sentry:release':
+            if k.key not in set(['sentry:release', 'sentry:user']):
                 assert k.values_seen == 1, 'expected {!r} to have 1 unique value'.format(k.key)
-        assert keys['sentry:release'].values_seen == 2
+            else:
+                assert k.values_seen == 2
 
     def test_get_group_tag_value(self):
         with pytest.raises(GroupTagValueNotFound):
