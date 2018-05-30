@@ -25,7 +25,7 @@ ipaddress>=1.0.16,<1.1.0
 loremipsum>=1.0.5,<1.1.0
 jsonschema==2.6.0
 lxml>=3.4.1
-mock>=0.8.0,<1.1
+mock==2.0.0
 mmh3>=2.3.1,<2.4
 oauth2>=1.5.167
 parsimonious==0.8.0

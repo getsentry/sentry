@@ -85,7 +85,7 @@ class RedisBufferTest(TestCase):
             'e+foo': "S'bar'\np1\n.",
             'f': "(dp1\nS'pk'\np2\nI1\ns.",
             'i+times_seen': '1',
-            'm': 'mock.Mock',
+            'm': 'mock.mock.Mock',
         }
         pending = client.zrange('b:p', 0, -1)
         assert pending == ['foo']
@@ -95,7 +95,7 @@ class RedisBufferTest(TestCase):
             'e+foo': "S'bar'\np1\n.",
             'f': "(dp1\nS'pk'\np2\nI1\ns.",
             'i+times_seen': '2',
-            'm': 'mock.Mock',
+            'm': 'mock.mock.Mock',
         }
         pending = client.zrange('b:p', 0, -1)
         assert pending == ['foo']
