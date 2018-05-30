@@ -882,10 +882,8 @@ class SingleException(Interface):
         return cls(**kwargs)
 
     def to_json(self):
-        if self.mechanism:
-            mechanism = self.mechanism.to_json()
-        else:
-            mechanism = None
+        mechanism = isinstance(self.mechanism, Mechanism) and \
+            self.mechanism.to_json() or self.mechanism or None
 
         if self.stacktrace:
             stacktrace = self.stacktrace.to_json()
@@ -908,10 +906,8 @@ class SingleException(Interface):
         }
 
     def get_api_context(self, is_public=False):
-        if self.mechanism:
-            mechanism = self.mechanism.to_json()
-        else:
-            mechanism = None
+        mechanism = isinstance(self.mechanism, Mechanism) and \
+            self.mechanism.to_json() or self.mechanism or None
 
         if self.stacktrace:
             stacktrace = self.stacktrace.get_api_context(is_public=is_public)
