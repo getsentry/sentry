@@ -110,12 +110,12 @@ matrix:
         - nvm install
         - npm install -g "yarn@${YARN_VERSION}"
       install:
+        - yarn install --pure-lockfile
         - pip install -e ".[dev,tests,optional]"
         - wget -N "http://chromedriver.storage.googleapis.com/$(curl https://chromedriver.storage.googleapis.com/LATEST_RELEASE)/chromedriver_linux64.zip" -P ~/
         - unzip ~/chromedriver_linux64.zip -d ~/
         - rm ~/chromedriver_linux64.zip
         - sudo install -m755 ~/chromedriver /usr/local/bin/
-        - yarn install --pure-lockfile
       before_script:
         - psql -c 'create database sentry;' -U postgres
 
@@ -126,6 +126,7 @@ matrix:
         - npm install -g "yarn@${YARN_VERSION}"
       install:
         - yarn install --pure-lockfile
+        # TODO https://github.com/getsentry/sentry/issues/8451
         - pip install $(cat requirements*.txt | grep -E 'click|pycodestyle')
 
     - python: 2.7
