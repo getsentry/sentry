@@ -374,7 +374,7 @@ class SnubaTagStorage(TagStorage):
             'environment': [environment_id],
             'issue': group_ids,
         }
-        aggregations = [['uniq', 'user_id', 'count']]
+        aggregations = [['uniq', 'tags[sentry:user]', 'count']]
 
         result = snuba.query(start, end, ['issue'], None, filters, aggregations,
                              referrer='tagstore.get_groups_user_counts')
