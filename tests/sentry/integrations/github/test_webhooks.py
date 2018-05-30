@@ -201,6 +201,70 @@ class PushEventWebhookTest(APITestCase):
         assert commit.author.email == 'baxterthehacker@example.com'
         assert commit.date_added == datetime(2015, 5, 5, 23, 40, 15, tzinfo=timezone.utc)
 
+    @patch('sentry.integrations.github.client.get_jwt')
+    def test_multiple_orgs(self, mock_get_jwt):
+        mock_get_jwt.return_value = ""
+
+        project = self.project  # force creation
+
+        url = '/extensions/github/webhook/'
+
+        secret = 'b3002c3e321d4b7880360d397db2ccfd'
+
+        options.set('github-app.webhook-secret', secret)
+        Repository.objects.create(
+            organization_id=project.organization.id,
+            external_id='35129377',
+            provider='integrations:github',
+            name='baxterthehacker/public-repo',
+        )
+        integration = Integration.objects.create(
+            external_id="12345",
+            provider='github',
+        )
+        integration.add_organization(project.organization.id)
+
+        org2 = self.create_organization()
+        project2 = self.create_project(organization=org2, name='bar')
+
+        Repository.objects.create(
+            organization_id=project2.organization.id,
+            external_id='77',
+            provider='integrations:github',
+            name='another/repo',
+        )
+        integration = Integration.objects.create(
+            external_id="99",
+            provider='github',
+        )
+        integration.add_organization(org2.id)
+
+        response = self.client.post(
+            path=url,
+            data=PUSH_EVENT_EXAMPLE_INSTALLATION,
+            content_type='application/json',
+            HTTP_X_GITHUB_EVENT='push',
+            HTTP_X_HUB_SIGNATURE='sha1=56a3df597e02adbc17fb617502c70e19d96a6136',
+            HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4())
+        )
+
+        assert response.status_code == 204
+
+        commit_list = list(
+            Commit.objects.filter(
+                organization_id=project.organization_id,
+            ).select_related('author').order_by('-date_added')
+        )
+
+        assert len(commit_list) == 2
+
+        commit_list = list(
+            Commit.objects.filter(
+                organization_id=org2.id,
+            ).select_related('author').order_by('-date_added')
+        )
+        assert len(commit_list) == 0
+
 
 class PullRequestEventWebhook(APITestCase):
     def test_opened(self):

@@ -48,26 +48,19 @@ class Webhook(object):
         )
 
         if 'repository' in event:
-            # TODO(maxbittker) select org directly to make this pattern scale to many
-            # orgs on one integration
-            organizations = list(integration.organizations.all())
-            for org in organizations:
-                try:
-                    repo = Repository.objects.get(
-                        organization_id=org.id,
-                        provider='integrations:github',
-                        external_id=six.text_type(event['repository']['id']),
-                    )
-                except Repository.DoesNotExist:
-                    continue
-
+            repos = Repository.objects.filter(
+                organization_id__in=integration.organizations.all().values_list('id', flat=True),
+                provider='integrations:github',
+                external_id=six.text_type(event['repository']['id']),
+            )
+            for repo in repos:
                 # We need to track GitHub's "full_name" which is the repository slug.
                 # This is needed to access the API since `external_id` isn't sufficient.
                 if repo.config.get('name') != event['repository']['full_name']:
                     repo.config['name'] = event['repository']['full_name']
                     repo.save()
 
-                self._handle(event, org, repo)
+                self._handle(event, integration.organizations.get(id=repo.organization_id), repo)
 
 
 class InstallationEventWebhook(Webhook):
