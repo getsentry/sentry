@@ -13,9 +13,10 @@ branches:
 cache:
   yarn: true
   directories:
-    - node_modules
     - "${HOME}/virtualenv/python$(python -c 'import platform; print(platform.python_version())')"
-    - $HOME/google-cloud-sdk
+    - "${HOME}/.nvm/versions/node/v$(< .nvmrc)"
+    - node_modules
+    - "${HOME}/google-cloud-sdk"
 
 addons:
   apt:
@@ -32,7 +33,7 @@ env:
     - SENTRY_SKIP_BACKEND_VALIDATION=1
     - SOUTH_TESTS_MIGRATE=1
     - DJANGO_VERSION=">=1.6.11,<1.7"
-    - NODE_VERSION="8.9.1"
+    # node's version is pinned by .nvmrc and is autodetected by `nvm install`.
     - YARN_VERSION="1.3.2"
 
 script:
@@ -104,7 +105,7 @@ matrix:
         - redis-server
         - postgresql
       before_install:
-        - nvm install "$NODE_VERSION"
+        - nvm install
         - npm install -g "yarn@${YARN_VERSION}"
       install:
         - pip install -e ".[dev,tests,optional]"
@@ -119,7 +120,7 @@ matrix:
     - python: 2.7
       env: TEST_SUITE=js
       before_install:
-        - nvm install "$NODE_VERSION"
+        - nvm install
         - npm install -g "yarn@${YARN_VERSION}"
       install:
         - yarn install --pure-lockfile
@@ -189,8 +190,6 @@ matrix:
         - tar -xzf credentials.tar.gz
         # Use the decrypted service account credentials to authenticate the command line tool
         - gcloud auth activate-service-account --key-file client-secret.json
-        # Travis doesn't "inherit" steps like before_install in the build matrix, so we have to explicitly install our package managers
-        - nvm install "$NODE_VERSION"
         - npm install -g "yarn@${YARN_VERSION}"
       install:
         - yarn install --pure-lockfile
