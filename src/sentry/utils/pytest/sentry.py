@@ -51,6 +51,7 @@ def pytest_configure(config):
                     'ENGINE': 'sentry.db.postgres',
                     'USER': 'postgres',
                     'NAME': 'sentry',
+                    'HOST': '127.0.0.1',
                 }
             )
             # postgres requires running full migration all the time
