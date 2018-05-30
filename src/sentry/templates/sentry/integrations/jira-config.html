@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="{{ ac_js_src }}"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+    <script src="//aui-cdn.atlassian.com/aui-adg/6.0.9/js/aui.min.js"></script>
+    <link rel="stylesheet" href="//aui-cdn.atlassian.com/aui-adg/6.0.9/css/aui.min.css" media="all">
+    <style>
+    body {
+      background: transparent;
+      margin-left: 10px;
+    }
+
+    form ul {
+      margin: 0;
+      padding: 0;
+    }
+
+    form.aui ul label {
+      color: #333
+    }
+
+    .description {
+      max-width: 400px;
+    }
+    </style>
+</head>
+<body>
+  <h3>Sentry Integration Configuration</h3>
+
+  <form class="aui top-label" action="" method="post">
+    {% csrf_token %}
+    {% for field in form %}
+      <div class="field-group top-label">
+        {{ field.errors }}
+        {{ field.label_tag }} {{ field }}
+        <div class="description">{{ field.help_text }}</div>
+      </div>
+    {% endfor %}
+    <div class="field-group">
+      <button class="aui-button aui-button-primary" type="submit">
+          Save Settings
+      </button>
+    </div>
+  </form>
+</body>
+</html>
