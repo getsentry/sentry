@@ -6,7 +6,6 @@ python: 2.7
 branches:
   only:
   - master
-  - build/finishing-touches
 
 cache:
   yarn: true
