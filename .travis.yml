@@ -40,9 +40,10 @@ script:
   - make travis-lint-$TEST_SUITE
   - make travis-test-$TEST_SUITE
   - make travis-scan-$TEST_SUITE
-  # installing codecov here ensures it gets cached in the virtualenv
-  # since after_success runs after travis `store build cache`
+  # installing dependencies for after_* steps here ensures they get cached
+  # since those steps execute after travis runs `store build cache`
   - pip install codecov
+  - npm install -g @zeus-ci/cli
 
 after_success:
   - codecov -e TEST_SUITE
@@ -51,7 +52,6 @@ after_failure:
   - dmesg | tail -n 100
 
 after_script:
-  - npm install -g @zeus-ci/cli
   - zeus upload -t "text/xml+xunit" junit.xml
     -t "text/xml+xunit" jest.junit.xml
     -t "text/xml+coverage" coverage.xml
