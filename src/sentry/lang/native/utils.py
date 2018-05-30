@@ -86,7 +86,7 @@ def get_sdk_from_os(data):
     if 'name' not in data or 'version' not in data:
         return
     try:
-        version = data['version'].split('-', 1)[0] + '.0' * 3
+        version = six.text_type(data['version']).split('-', 1)[0] + '.0' * 3
         system_version = tuple(int(x) for x in version.split('.')[:3])
     except ValueError:
         return
