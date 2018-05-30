@@ -40,9 +40,11 @@ script:
   - make travis-lint-$TEST_SUITE
   - make travis-test-$TEST_SUITE
   - make travis-scan-$TEST_SUITE
+  # installing codecov here ensures it gets cached in the virtualenv
+  # since after_success runs after travis `store build cache`
+  - pip install codecov
 
 after_success:
-  - pip install codecov
   - codecov -e TEST_SUITE
 
 after_failure:
