@@ -26,6 +26,7 @@ class ProjectCard extends React.Component {
   static propTypes = {
     project: SentryTypes.Project.isRequired,
     params: PropTypes.object,
+    hasProjectAccess: PropTypes.bool,
   };
 
   componentDidMount() {
@@ -54,7 +55,7 @@ class ProjectCard extends React.Component {
   };
 
   render() {
-    const {project, params} = this.props;
+    const {project, hasProjectAccess, params} = this.props;
     const {firstEvent, isBookmarked, stats, slug} = project;
 
     const bookmarkText = isBookmarked
@@ -69,9 +70,15 @@ class ProjectCard extends React.Component {
               <Box ml={2}>
                 <StyledPlatformicon size="24" platform={project.platform || 'generic'} />
               </Box>
-              <StyledLink to={`/${params.orgId}/${slug}/`}>
-                <strong>{slug}</strong>
-              </StyledLink>
+              <StyledTitle>
+                {hasProjectAccess ? (
+                  <Link to={`/${params.orgId}/${slug}/`}>
+                    <strong>{slug}</strong>
+                  </Link>
+                ) : (
+                  <div>{slug}</div>
+                )}
+              </StyledTitle>
               <Tooltip title={bookmarkText}>
                 <Star
                   active={isBookmarked}
@@ -145,7 +152,7 @@ const ChartContainer = styled.div`
   padding-top: ${space(1)};
 `;
 
-const StyledLink = styled(Link)`
+const StyledTitle = styled.div`
   ${overflowEllipsis};
   padding: 16px 8px;
 `;
