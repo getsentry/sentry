@@ -806,7 +806,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
             </button>
           </div>
           <p>
-            Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects your API server and frontend client.
+            Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects for your API server and frontend client.
           </p>
         </div>
       </div>
@@ -1202,7 +1202,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
             </button>
           </div>
           <p>
-            Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects your API server and frontend client.
+            Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects for your API server and frontend client.
           </p>
         </div>
       </div>
@@ -1988,7 +1988,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
             </button>
           </div>
           <p>
-            Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects your API server and frontend client.
+            Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects for your API server and frontend client.
           </p>
         </div>
       </div>

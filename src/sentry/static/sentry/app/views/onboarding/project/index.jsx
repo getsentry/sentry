@@ -103,7 +103,7 @@ class OnboardingProject extends React.Component {
           </div>
           <p>
             {t(
-              'Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects your API server and frontend client.'
+              'Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects for your API server and frontend client.'
             )}
           </p>
         </div>
