@@ -124,7 +124,7 @@ class JiraSearchEndpointTest(APITestCase):
                 'label': 'Issue',
                 'default': '',
                 'type': 'string',
-                'autocompleteUrl': reverse(
+                'url': reverse(
                     'sentry-extensions-jira-search', args=[org.slug, integration.id],
                 )
             }
