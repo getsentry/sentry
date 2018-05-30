@@ -53,6 +53,7 @@ class TagStorage(TestCase):
                     'baz': 'quux',
                     'environment': self.proj1env1.name,
                     'sentry:release': 100 * r,
+                    'sentry:user': "id:user{}".format(r),
                 },
                 'sentry.interfaces.User': {
                     'id': "user{}".format(r),
@@ -71,6 +72,7 @@ class TagStorage(TestCase):
                 'tags': {
                     'browser': 'chrome',
                     'environment': self.proj1env1.name,
+                    'sentry:user': "id:user1",
                 },
                 'sentry.interfaces.User': {
                     'id': "user1"
