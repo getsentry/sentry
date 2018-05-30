@@ -121,13 +121,13 @@ class AddRepositoryLink extends PluginComponentBase {
         )}
         {!hasIntegration && (
           <div
-            className="alert alert-error alert-block"
+            className="alert alert-info alert-block"
             style={{display: 'flex', alignItems: 'center'}}
           >
             <p>
-              {'You need to configure ' +
+              {'You must install at least one ' +
                 provider.name +
-                ' in your integrations before you can add repositories with this service.'}
+                '  Integration to connect a repository.'}
             </p>
           </div>
         )}
