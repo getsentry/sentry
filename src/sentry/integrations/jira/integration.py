@@ -52,6 +52,9 @@ def sync_metadata(installation):
 
     installation.model.name = server_info['serverTitle']
 
+    # There is no JIRA instance icon (there is a favicon, but it doesn't seem
+    # possible to query that with the API). So instead we just use the first
+    # project Icon.
     if len(projects) > 0:
         avatar = projects[0]['avatarUrls']['48x48'],
         installation.model.metadata.update({'icon': avatar})
