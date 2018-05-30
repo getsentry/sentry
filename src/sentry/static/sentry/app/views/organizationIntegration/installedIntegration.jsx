@@ -11,11 +11,12 @@ import Switch from 'app/components/switch';
 import Tooltip from 'app/components/tooltip';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
 import Form from 'app/views/settings/components/forms/form';
+import PluginIcon from 'app/plugins/components/pluginIcon';
 
 const IntegrationIcon = styled.img`
   height: 32px;
   width: 32px;
-  border-radius: 3px;
+  border-radius: 2px;
   display: block;
 `;
 
@@ -118,7 +119,11 @@ export default class InstalledIntegration extends React.Component {
       <React.Fragment>
         <PanelItem p={0} py={2} key={integration.id} align="center">
           <Box pl={2}>
-            <IntegrationIcon src={integration.icon} />
+            {integration.icon ? (
+              <IntegrationIcon src={integration.icon} />
+            ) : (
+              <PluginIcon size={32} pluginId={provider.key} />
+            )}
           </Box>
           <Box px={2} flex={1}>
             <IntegrationName>{integration.name}</IntegrationName>
