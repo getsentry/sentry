@@ -4,7 +4,7 @@ from sentry import analytics
 from sentry import http, options
 from sentry.api import client
 from sentry.api.base import Endpoint
-from sentry.models import Group, Integration, Project, Identity, ApiKey
+from sentry.models import Group, Integration, Project, Identity, IdentityProvider, ApiKey
 from sentry.utils import json
 
 from .link_identity import build_linking_url
@@ -215,11 +215,36 @@ class SlackActionEndpoint(Endpoint):
 
         # Determine the acting user by slack identity
         try:
-            identity = Identity.objects.get(
-                external_id=user_id,
-                idp__organization_id=group.organization.id,
+            idp_new = IdentityProvider.objects.get(
+                type='slack',
+                external_id=team_id,
+                organization_id=0,
             )
-        except Identity.DoesNotExist:
+        except IdentityProvider.DoesNotExist:
+            idp_new = None
+
+        try:
+            idp_old = IdentityProvider.objects.get(
+                type='slack',
+                external_id=team_id,
+                organization_id=group.organization.id,
+            )
+        except IdentityProvider.DoesNotExist:
+            idp_old = None
+
+        if not idp_new and not idp_old:
+            logger.error('slack.action.invalid-team-id', extra=logging_data)
+            return self.respond(status=403)
+
+        for idp in filter(None, (idp_new, idp_old)):
+            try:
+                identity = Identity.objects.get(idp=idp, external_id=user_id)
+            except Identity.DoesNotExist:
+                identity = None
+            else:
+                break
+
+        if not identity:
             associate_url = build_linking_url(
                 integration,
                 group.organization,

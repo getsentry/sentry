@@ -74,7 +74,7 @@ def resolve_actors(owners, project_id):
     from sentry.models import User, Team
 
     if not owners:
-        return []
+        return {}
 
     users, teams = [], []
 
