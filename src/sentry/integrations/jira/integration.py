@@ -8,6 +8,7 @@ from sentry.integrations import (
 )
 from sentry.integrations.exceptions import ApiUnauthorized, ApiError, IntegrationError
 from sentry.integrations.issues import IssueSyncMixin
+from sentry.tasks.base import instrumented_task
 
 from .client import JiraApiClient
 
@@ -37,6 +38,25 @@ JIRA_CUSTOM_FIELD_TYPES = {
     'multiuserpicker': 'com.atlassian.jira.plugin.system.customfieldtypes:multiuserpicker',
     'tempo_account': 'com.tempoplugin.tempo-accounts:accounts.customfield'
 }
+
+
+@instrumented_task(
+    name='sentry.integrations.jira.sync_metadata',
+    autoretry_for=(ApiError,),
+    retry_kwargs={'max_retries': 5},
+)
+def sync_metadata(installation):
+    client = installation.get_client()
+    server_info = client.get_server_info()
+    projects = client.get_projects()
+
+    installation.model.name = server_info['serverTitle']
+
+    if len(projects) > 0:
+        avatar = projects[0]['avatarUrls']['48x48'],
+        installation.model.metadata.update({'icon': avatar})
+
+    installation.model.save()
 
 
 class JiraIntegration(Integration, IssueSyncMixin):
