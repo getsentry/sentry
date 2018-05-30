@@ -108,20 +108,10 @@ def build_assigned_text(group, identity, assignee):
                 user=assigned_actor,
                 idp__type='slack',
                 idp__external_id=identity.idp.external_id,
-                idp__organization_id=0,
             )
             assignee_text = u'<@{}>'.format(assignee_ident.external_id)
         except Identity.DoesNotExist:
-            try:
-                assignee_ident = Identity.objects.get(
-                    user=assigned_actor,
-                    idp__type='slack',
-                    idp__external_id=identity.idp.external_id,
-                    idp__organization_id=group.project.organization_id,
-                )
-                assignee_text = u'<@{}>'.format(assignee_ident.external_id)
-            except Identity.DoesNotExist:
-                assignee_text = assigned_actor.get_display_name()
+            assignee_text = assigned_actor.get_display_name()
     else:
         raise NotImplementedError
 

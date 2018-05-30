@@ -50,24 +50,11 @@ class SlackLinkIdentitiyView(BaseView):
             raise Http404
 
         try:
-            idp_new = IdentityProvider.objects.get(
+            idp = IdentityProvider.objects.get(
                 external_id=integration.external_id,
                 type='slack',
-                organization_id=0,
             )
         except IdentityProvider.DoesNotExist:
-            idp_new = None
-
-        try:
-            idp_old = IdentityProvider.objects.get(
-                external_id=integration.external_id,
-                type='slack',
-                organization_id=organization.id,
-            )
-        except IdentityProvider.DoesNotExist:
-            idp_old = None
-
-        if not idp_new and not idp_old:
             raise Http404
 
         if request.method != 'POST':
@@ -81,42 +68,40 @@ class SlackLinkIdentitiyView(BaseView):
 
         # Link the user with the identity. Handle the case where the user is linked to a
         # different identity or the identity is linked to a different user.
-        # NOTE: during the IDP migration update both the old and new sets of identities.
-        for idp in filter(None, (idp_new, idp_old)):
-            try:
-                id_by_user = Identity.objects.get(user=request.user, idp=idp)
-            except Identity.DoesNotExist:
-                id_by_user = None
-            try:
-                id_by_external_id = Identity.objects.get(external_id=params['slack_id'], idp=idp)
-            except Identity.DoesNotExist:
-                id_by_external_id = None
+        try:
+            id_by_user = Identity.objects.get(user=request.user, idp=idp)
+        except Identity.DoesNotExist:
+            id_by_user = None
+        try:
+            id_by_external_id = Identity.objects.get(external_id=params['slack_id'], idp=idp)
+        except Identity.DoesNotExist:
+            id_by_external_id = None
 
-            if not id_by_user and not id_by_external_id:
-                Identity.objects.create(
-                    user=request.user,
-                    external_id=params['slack_id'],
-                    idp=idp,
-                    status=IdentityStatus.VALID,
-                )
-            elif id_by_user and not id_by_external_id:
-                # TODO(epurkhiser): In this case we probably want to prompt and
-                # warn them that they had a previous identity linked to slack.
-                id_by_user.update(
-                    external_id=params['slack_id'],
-                    status=IdentityStatus.VALID,
-                )
-            elif id_by_external_id and not id_by_user:
-                id_by_external_id.update(
-                    user=request.user,
-                    status=IdentityStatus.VALID,
-                )
-            else:
-                updates = {'status': IdentityStatus.VALID}
-                if id_by_user != id_by_external_id:
-                    id_by_external_id.delete()
-                    updates['external_id'] = params['slack_id']
-                id_by_user.update(**updates)
+        if not id_by_user and not id_by_external_id:
+            Identity.objects.create(
+                user=request.user,
+                external_id=params['slack_id'],
+                idp=idp,
+                status=IdentityStatus.VALID,
+            )
+        elif id_by_user and not id_by_external_id:
+            # TODO(epurkhiser): In this case we probably want to prompt and
+            # warn them that they had a previous identity linked to slack.
+            id_by_user.update(
+                external_id=params['slack_id'],
+                status=IdentityStatus.VALID,
+            )
+        elif id_by_external_id and not id_by_user:
+            id_by_external_id.update(
+                user=request.user,
+                status=IdentityStatus.VALID,
+            )
+        else:
+            updates = {'status': IdentityStatus.VALID}
+            if id_by_user != id_by_external_id:
+                id_by_external_id.delete()
+                updates['external_id'] = params['slack_id']
+            id_by_user.update(**updates)
 
         payload = {
             'replace_original': False,
