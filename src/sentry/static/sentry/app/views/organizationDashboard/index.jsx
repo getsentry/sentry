@@ -44,7 +44,6 @@ class Dashboard extends React.Component {
     const teamSlugs = Object.keys(projectsByTeam).sort();
     const favorites = projects.filter(project => project.isBookmarked);
     const access = new Set(organization.access);
-    const hasTeamAccess = access.has('team:read');
     const teamsMap = new Map(teams.map(teamObj => [teamObj.slug, teamObj]));
 
     return (
@@ -57,6 +56,7 @@ class Dashboard extends React.Component {
             team={null}
             title={t('Bookmarked projects')}
             projects={favorites}
+            access={access}
           />
         )}
 
@@ -68,7 +68,6 @@ class Dashboard extends React.Component {
               <TeamSection
                 orgId={params.orgId}
                 team={team}
-                hasTeamAccess={hasTeamAccess}
                 showBorder={showBorder}
                 title={
                   <TeamLink to={`/settings/${organization.slug}/teams/${team.slug}/`}>
@@ -76,6 +75,7 @@ class Dashboard extends React.Component {
                   </TeamLink>
                 }
                 projects={projectsByTeam[slug]}
+                access={access}
               />
             </LazyLoad>
           );

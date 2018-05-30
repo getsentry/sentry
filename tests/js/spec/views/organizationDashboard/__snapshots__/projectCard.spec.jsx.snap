@@ -113,31 +113,15 @@ exports[`ProjectCard renders 1`] = `
                       </div>
                     </Base>
                   </Box>
-                  <StyledLink
-                    to="/org-slug/project-slug/"
-                  >
-                    <Link
-                      className="css-1c2wmv-StyledLink efesc7i2"
-                      to="/org-slug/project-slug/"
+                  <StyledTitle>
+                    <div
+                      className="css-zq8dzg-StyledTitle efesc7i2"
                     >
-                      <Link
-                        className="css-1c2wmv-StyledLink efesc7i2"
-                        onlyActiveOnIndex={false}
-                        style={Object {}}
-                        to="/org-slug/project-slug/"
-                      >
-                        <a
-                          className="css-1c2wmv-StyledLink efesc7i2"
-                          onClick={[Function]}
-                          style={Object {}}
-                        >
-                          <strong>
-                            project-slug
-                          </strong>
-                        </a>
-                      </Link>
-                    </Link>
-                  </StyledLink>
+                      <div>
+                        project-slug
+                      </div>
+                    </div>
+                  </StyledTitle>
                   <Tooltip
                     title="Add to bookmarks"
                   >
