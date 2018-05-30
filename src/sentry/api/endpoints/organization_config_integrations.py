@@ -26,6 +26,9 @@ class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
                 i for i in settings.SENTRY_INTERNAL_INTEGRATIONS if i != 'github' or not has_github_apps}
             if not has_catchall and provider.key in internal_integrations:
                 continue
+            if provider.key == 'bitbucket' and not features.has(
+                    'organizations:bitbucket-integration', organization, actor=request.user):
+                continue
             providers.append(
                 {
                     'key': provider.key,

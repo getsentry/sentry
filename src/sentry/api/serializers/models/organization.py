@@ -129,7 +129,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             feature_list.append('unreleased-changes')
         if features.has('organizations:relay', obj, actor=user):
             feature_list.append('relay')
-        if feature_list.has('organizations:bitbucket-integration', obj, actor=user):
+        if features.has('organizations:bitbucket-integration', obj, actor=user):
             feature_list.append('bitbucket-integration')
 
         if getattr(obj.flags, 'allow_joinleave'):
