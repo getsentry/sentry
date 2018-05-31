@@ -13,7 +13,7 @@ cache:
   yarn: true
   directories:
     - "${HOME}/virtualenv/python$(python -c 'import platform; print(platform.python_version())')"
-    - "${HOME}/.nvm/versions/node/v$(< .nvmrc)"
+    - "$NODE_DIR"
     - node_modules
     - "${HOME}/google-cloud-sdk"
 
@@ -33,8 +33,8 @@ env:
     - SOUTH_TESTS_MIGRATE=1
     - DJANGO_VERSION=">=1.6.11,<1.7"
     # node's version is pinned by .nvmrc and is autodetected by `nvm install`.
+    - NODE_DIR="${HOME}/.nvm/versions/node/v$(< .nvmrc)"
     - YARN_VERSION="1.3.2"
-    - PATH="${PATH}:${HOME}/.nvm/versions/node/v$(< .nvmrc)/bin"
 
 script:
   - make travis-lint-$TEST_SUITE
@@ -107,11 +107,8 @@ matrix:
         - redis-server
         - postgresql
       before_install:
-        - ls -lah "${HOME}/.nvm/versions/node/v$(< .nvmrc)" || true
-        - which npm || true
+        - find "$NODE_DIR" -type d -empty -delete
         - nvm install
-        - ls -lah "${HOME}/.nvm/versions/node/v$(< .nvmrc)"
-        - which npm || true
         - npm install -g "yarn@${YARN_VERSION}"
       install:
         - yarn install --pure-lockfile
@@ -126,11 +123,8 @@ matrix:
     - python: 2.7
       env: TEST_SUITE=js
       before_install:
-        - ls -lah "${HOME}/.nvm/versions/node/v$(< .nvmrc)" || true
-        - which npm || true
+        - find "$NODE_DIR" -type d -empty -delete
         - nvm install
-        - ls -lah "${HOME}/.nvm/versions/node/v$(< .nvmrc)"
-        - which npm || true
         - npm install -g "yarn@${YARN_VERSION}"
       install:
         - yarn install --pure-lockfile
