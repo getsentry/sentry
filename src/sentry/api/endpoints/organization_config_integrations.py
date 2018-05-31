@@ -15,28 +15,30 @@ class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
         has_catchall = features.has('organizations:internal-catchall',
                                     organization,
                                     actor=request.user)
+        has_github_apps = features.has('organizations:github-apps',
+                                       organization,
+                                       actor=request.user)
 
         for provider in integrations.all():
             metadata = provider.metadata
             metadata = metadata and metadata._asdict() or None
-            if not has_catchall and provider.key in settings.SENTRY_INTERNAL_INTEGRATIONS:
-                continue
-            providers.append(
-                {
-                    'key': provider.key,
-                    'name': provider.name,
-                    'metadata': metadata,
-                    'canAdd': provider.can_add,
-                    'canAddProject': provider.can_add_project,
-                    'setupDialog': dict(
-                        url='/organizations/{}/integrations/{}/setup/'.format(
-                            organization.slug,
-                            provider.key,
-                        ),
-                        **provider.setup_dialog_config
-                    )
-                }
-            )
+            if has_github_apps or has_catchall and provider.key in settings.SENTRY_INTERNAL_INTEGRATIONS:
+                providers.append(
+                    {
+                        'key': provider.key,
+                        'name': provider.name,
+                        'metadata': metadata,
+                        'canAdd': provider.can_add,
+                        'canAddProject': provider.can_add_project,
+                        'setupDialog': dict(
+                            url='/organizations/{}/integrations/{}/setup/'.format(
+                                organization.slug,
+                                provider.key,
+                            ),
+                            **provider.setup_dialog_config
+                        )
+                    }
+                )
 
         return Response({
             'providers': providers,
