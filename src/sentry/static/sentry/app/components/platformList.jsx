@@ -9,12 +9,14 @@ import {t} from 'app/locale';
 import Button from 'app/components/buttons/button';
 import Platformicon from 'app/components/platformicon';
 
-const MAX_PLATFORMS = 5;
+const MAX_PLATFORMS = 3;
 
 class PlatformList extends React.Component {
   static propTypes = {
     project: SentryTypes.Project,
     orgId: PropTypes.string,
+    buttonSDK: PropTypes.bool,
+    subtextOn: PropTypes.bool,
   };
 
   getIcon(platform) {
@@ -36,7 +38,7 @@ class PlatformList extends React.Component {
     );
   }
   render() {
-    const {project, orgId} = this.props;
+    const {project, orgId, buttonSDK, subtextOn} = this.props;
     const platforms =
       project && project.platforms && project.platforms.slice(0, MAX_PLATFORMS);
 
@@ -44,7 +46,7 @@ class PlatformList extends React.Component {
       ? project.platform + '/'
       : ''}`;
 
-    if (!platforms || !platforms.length) {
+    if (!platforms || (!platforms.length && buttonSDK)) {
       return (
         <NoPlatforms align="center" p={2}>
           {project.firstEvent ? (
@@ -60,8 +62,8 @@ class PlatformList extends React.Component {
 
     return (
       <Flex align="center">
-        <div className="org-dashboard-platform-list">{this.getIcons(platforms)}</div>
-        <PlatformText>{platforms.join(', ')}</PlatformText>
+        <div className="client-platform-list">{this.getIcons(platforms)}</div>
+        {subtextOn ? <PlatformText>{platforms.join(', ')}</PlatformText> : null}
       </Flex>
     );
   }

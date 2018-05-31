@@ -10,9 +10,11 @@ import ProjectLabel from 'app/components/projectLabel';
 import DropdownLink from 'app/components/dropdownLink';
 import MenuItem from 'app/components/menuItem';
 import Link from 'app/components/link';
+import PlatformList from 'app/components/platformList';
 
 import {sortArray} from 'app/utils';
 import {t} from 'app/locale';
+import styled from 'react-emotion';
 
 const ProjectSelector = createReactClass({
   displayName: 'ProjectSelector',
@@ -199,6 +201,13 @@ const ProjectSelector = createReactClass({
   getProjectNode(team, project, highlightText, hasSingleTeam, isSelected) {
     let projectId = project.slug;
     let label = this.getProjectLabel(team, project, hasSingleTeam, highlightText);
+    // const platforms = project && project.platforms.slice(0, 3);
+    let platforms;
+    if (typeof project.platforms !== 'undefined') {
+      platforms = project && project.platforms.slice(0, 3);
+    } else {
+      platforms = false;
+    }
 
     let menuItemProps = {
       key: projectId, // TODO: what if two projects w/ same name under diff orgs?
@@ -212,10 +221,22 @@ const ProjectSelector = createReactClass({
       ...this.getProjectUrlProps(project),
     };
 
+    if (typeof platforms.length === 'undefined') {
+      console.log(platforms.length, platforms);
+    }
+
     return (
       <MenuItem {...menuItemProps}>
-        {project.isBookmarked && <span className="icon-star-solid bookmark " />}
-        {label}
+        {/*ideally an icon here...*/}
+        <ProjectBadge>
+          {platforms || platforms.length ? (
+            <PlatformList project={project} />
+          ) : (
+            <EmptyPlatformicon />
+          )}
+          {project.isBookmarked && <span className="icon-star-solid bookmark " />}
+          {label}
+        </ProjectBadge>
       </MenuItem>
     );
   },
@@ -399,5 +420,15 @@ const ProjectSelector = createReactClass({
     );
   },
 });
+
+const ProjectBadge = styled.div`
+  display: flex;
+  align-items: center;
+`;
+
+const EmptyPlatformicon = styled.div`
+  display: flex;
+  padding-left: 16px;
+`;
 
 export default ProjectSelector;

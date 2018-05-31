@@ -173,14 +173,25 @@ exports[`ProjectSelector render() can filter projects by project name 1`] = `
                     onClick={[Function]}
                     tabIndex="-1"
                   >
-                    <span>
-                      <strong
-                        className="highlight"
+                    <ProjectBadge>
+                      <div
+                        className="css-39c7ei-ProjectBadge et07ovj0"
                       >
-                        Another
-                      </strong>
-                       Project
-                    </span>
+                        <EmptyPlatformicon>
+                          <div
+                            className="css-1kns10t-EmptyPlatformicon et07ovj1"
+                          />
+                        </EmptyPlatformicon>
+                        <span>
+                          <strong
+                            className="highlight"
+                          >
+                            Another
+                          </strong>
+                           Project
+                        </span>
+                      </div>
+                    </ProjectBadge>
                   </a>
                 </li>
               </MenuItem>
@@ -366,7 +377,18 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
                     onClick={[Function]}
                     tabIndex="-1"
                   >
-                    Another Project
+                    <ProjectBadge>
+                      <div
+                        className="css-39c7ei-ProjectBadge et07ovj0"
+                      >
+                        <EmptyPlatformicon>
+                          <div
+                            className="css-1kns10t-EmptyPlatformicon et07ovj1"
+                          />
+                        </EmptyPlatformicon>
+                        Another Project
+                      </div>
+                    </ProjectBadge>
                   </a>
                 </li>
               </MenuItem>
@@ -388,14 +410,25 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
                     onClick={[Function]}
                     tabIndex="-1"
                   >
-                    <span>
-                      <strong
-                        className="highlight"
+                    <ProjectBadge>
+                      <div
+                        className="css-39c7ei-ProjectBadge et07ovj0"
                       >
-                        Test
-                      </strong>
-                       Project
-                    </span>
+                        <EmptyPlatformicon>
+                          <div
+                            className="css-1kns10t-EmptyPlatformicon et07ovj1"
+                          />
+                        </EmptyPlatformicon>
+                        <span>
+                          <strong
+                            className="highlight"
+                          >
+                            Test
+                          </strong>
+                           Project
+                        </span>
+                      </div>
+                    </ProjectBadge>
                   </a>
                 </li>
               </MenuItem>
@@ -464,9 +497,12 @@ exports[`ProjectSelector render() lists projects and has filter 1`] = `
         key="another-project"
         linkClassName=""
       >
-        <span>
-          Another Project
-        </span>
+        <ProjectBadge>
+          <EmptyPlatformicon />
+          <span>
+            Another Project
+          </span>
+        </ProjectBadge>
       </MenuItem>
       <MenuItem
         className=""
@@ -474,9 +510,12 @@ exports[`ProjectSelector render() lists projects and has filter 1`] = `
         key="test-project"
         linkClassName=""
       >
-        <span>
-          Test Project
-        </span>
+        <ProjectBadge>
+          <EmptyPlatformicon />
+          <span>
+            Test Project
+          </span>
+        </ProjectBadge>
       </MenuItem>
     </DropdownLink>
   </h3>
