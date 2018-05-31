@@ -9,6 +9,7 @@ import ApiMixin from 'app/mixins/apiMixin';
 import DropdownLink from 'app/components/dropdownLink';
 import GroupActions from 'app/actions/groupActions';
 import GroupState from 'app/mixins/groupState';
+import ErrorBoundary from 'app/components/errorBoundary';
 import ExternalIssueActions from 'app/components/group/externalIssues';
 import HookStore from 'app/stores/hookStore';
 import IndicatorStore from 'app/stores/indicatorStore';
@@ -310,7 +311,11 @@ const GroupDetailsActions = createReactClass({
             </a>
           </GuideAnchor>
         )}
-        {orgFeatures.has('internal-catchall') && <ExternalIssueActions group={group} />}
+        {orgFeatures.has('internal-catchall') && (
+          <ErrorBoundary mini>
+            <ExternalIssueActions group={group} />
+          </ErrorBoundary>
+        )}
       </div>
     );
   },
