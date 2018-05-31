@@ -33,6 +33,7 @@ let NewSettingsWarning = ({location = {}}) => {
 
   if (isAccount) {
     oldLocation = location.pathname
+      .replace('settings/account/notifications/alerts', 'account/settings/notifications')
       .replace(accountRegex, '/account/settings/$1/')
       .replace('details/', '')
       .replace('settings/close-account/', 'remove/')
