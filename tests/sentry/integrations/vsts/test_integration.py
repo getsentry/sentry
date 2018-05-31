@@ -5,7 +5,7 @@ import responses
 from mock import Mock
 from django.http import HttpRequest
 
-from sentry.integrations.vsts import VSTSIntegrationProvider, ProjectConfigView, ProjectForm, get_projects
+from sentry.integrations.vsts import VstsIntegrationProvider, ProjectConfigView, ProjectForm, get_projects
 from sentry.identity.vsts import VSTSIdentityProvider
 from sentry.testutils import TestCase
 
@@ -66,7 +66,7 @@ class ProjectConfigViewTest(TestCase):
 
 class VSTSIntegrationTest(TestCase):
     def setUp(self):
-        self.integration = VSTSIntegrationProvider()
+        self.integration = VstsIntegrationProvider()
 
     def test_build_integration(self):
         state = {
