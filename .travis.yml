@@ -107,10 +107,10 @@ matrix:
         - redis-server
         - postgresql
       before_install:
-        - ls -lah "${HOME}/.nvm/versions/node/v$(< .nvmrc)/bin" || true
+        - ls -lah "${HOME}/.nvm/versions/node/v$(< .nvmrc)" || true
         - which npm || true
         - nvm install
-        - ls -lah "${HOME}/.nvm/versions/node/v$(< .nvmrc)/bin"
+        - ls -lah "${HOME}/.nvm/versions/node/v$(< .nvmrc)"
         - which npm || true
         - npm install -g "yarn@${YARN_VERSION}"
       install:
@@ -126,10 +126,10 @@ matrix:
     - python: 2.7
       env: TEST_SUITE=js
       before_install:
-        - ls -lah "${HOME}/.nvm/versions/node/v$(< .nvmrc)/bin" || true
+        - ls -lah "${HOME}/.nvm/versions/node/v$(< .nvmrc)" || true
         - which npm || true
         - nvm install
-        - ls -lah "${HOME}/.nvm/versions/node/v$(< .nvmrc)/bin"
+        - ls -lah "${HOME}/.nvm/versions/node/v$(< .nvmrc)"
         - which npm || true
         - npm install -g "yarn@${YARN_VERSION}"
       install:
