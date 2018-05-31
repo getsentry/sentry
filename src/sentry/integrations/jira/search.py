@@ -28,11 +28,13 @@ class JiraSearchEndpoint(OrganizationEndpoint):
 
         installation = integration.get_installation()
 
-        if field == 'issue_id':
+        if field == 'externalIssue':
+            if not query:
+                return Response([])
             resp = installation.search_issues(query)
             return Response([{
-                'text': '(%s) %s' % (i['key'], i['fields']['summary']),
-                'id': i['key']
+                'label': '(%s) %s' % (i['key'], i['fields']['summary']),
+                'value': i['key']
             } for i in resp.get('issues', [])])
 
         # TODO(jess): handle other autocomplete urls

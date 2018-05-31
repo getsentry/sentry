@@ -102,6 +102,7 @@ class JiraIntegration(Integration, IssueSyncMixin):
         for field in fields:
             if field['name'] == 'externalIssue':
                 field['url'] = autocomplete_url
+                field['type'] = 'select'
         return fields
 
     def get_client(self):
