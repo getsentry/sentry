@@ -1,5 +1,3 @@
-filter_secrets: false
-
 dist: trusty
 sudo: required
 group: deprecated-2017Q4
@@ -13,9 +11,10 @@ branches:
 cache:
   yarn: true
   directories:
-    - node_modules
     - "${HOME}/virtualenv/python$(python -c 'import platform; print(platform.python_version())')"
-    - $HOME/google-cloud-sdk
+    - "${HOME}/.nvm/versions/node/v$(< .nvmrc)"
+    - node_modules
+    - "${HOME}/google-cloud-sdk"
 
 addons:
   apt:
@@ -32,31 +31,33 @@ env:
     - SENTRY_SKIP_BACKEND_VALIDATION=1
     - SOUTH_TESTS_MIGRATE=1
     - DJANGO_VERSION=">=1.6.11,<1.7"
-    - NODE_VERSION="8.9.1"
+    # node's version is pinned by .nvmrc and is autodetected by `nvm install`.
     - YARN_VERSION="1.3.2"
 
 script:
   - make travis-lint-$TEST_SUITE
   - make travis-test-$TEST_SUITE
   - make travis-scan-$TEST_SUITE
+  # installing dependencies for after_* steps here ensures they get cached
+  # since those steps execute after travis runs `store build cache`
+  - pip install codecov
+  - npm install -g @zeus-ci/cli
 
 after_success:
-  - pip install codecov
   - codecov -e TEST_SUITE
 
 after_failure:
   - dmesg | tail -n 100
 
 after_script:
-  - npm install -g @zeus-ci/cli
   - zeus upload -t "text/xml+xunit" junit.xml
-  - zeus upload -t "text/xml+xunit" jest.junit.xml
-  - zeus upload -t "text/xml+coverage" coverage.xml
-  - zeus upload -t "text/xml+coverage" coverage/cobertura-coverage.xml
-  - zeus upload -t "text/html+pytest" pytest.html
-  - zeus upload -t "text/plain+pycodestyle" flake8.pycodestyle.log
-  - zeus upload -t "text/xml+checkstyle" eslint.checkstyle.xml
-  - zeus upload -t "application/webpack-stats+json" webpack-stats.json
+    -t "text/xml+xunit" jest.junit.xml
+    -t "text/xml+coverage" coverage.xml
+    -t "text/xml+coverage" coverage/cobertura-coverage.xml
+    -t "text/html+pytest" pytest.html
+    -t "text/plain+pycodestyle" flake8.pycodestyle.log
+    -t "text/xml+checkstyle" eslint.checkstyle.xml
+    -t "application/webpack-stats+json" webpack-stats.json
 
 # each job in the matrix inherits `env/global` and uses everything above,
 # but custom `services`, `before_install`, `install`, and `before_script` directives
@@ -104,25 +105,26 @@ matrix:
         - redis-server
         - postgresql
       before_install:
-        - nvm install "$NODE_VERSION"
+        - nvm install
         - npm install -g "yarn@${YARN_VERSION}"
       install:
+        - yarn install --pure-lockfile
         - pip install -e ".[dev,tests,optional]"
         - wget -N "http://chromedriver.storage.googleapis.com/$(curl https://chromedriver.storage.googleapis.com/LATEST_RELEASE)/chromedriver_linux64.zip" -P ~/
         - unzip ~/chromedriver_linux64.zip -d ~/
         - rm ~/chromedriver_linux64.zip
         - sudo install -m755 ~/chromedriver /usr/local/bin/
-        - yarn install --pure-lockfile
       before_script:
         - psql -c 'create database sentry;' -U postgres
 
     - python: 2.7
       env: TEST_SUITE=js
       before_install:
-        - nvm install "$NODE_VERSION"
+        - nvm install
         - npm install -g "yarn@${YARN_VERSION}"
       install:
         - yarn install --pure-lockfile
+        # TODO https://github.com/getsentry/sentry/issues/8451
         - pip install $(cat requirements*.txt | grep -E 'click|pycodestyle')
 
     - python: 2.7
@@ -189,8 +191,6 @@ matrix:
         - tar -xzf credentials.tar.gz
         # Use the decrypted service account credentials to authenticate the command line tool
         - gcloud auth activate-service-account --key-file client-secret.json
-        # Travis doesn't "inherit" steps like before_install in the build matrix, so we have to explicitly install our package managers
-        - nvm install "$NODE_VERSION"
         - npm install -g "yarn@${YARN_VERSION}"
       install:
         - yarn install --pure-lockfile
