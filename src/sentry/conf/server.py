@@ -761,7 +761,6 @@ SENTRY_FEATURES = {
     'organizations:new-teams': True,
     'organizations:code-owners': True,
     'organizations:unreleased-changes': False,
-    'organizations:dashboard': True,
     'organizations:suggested-commits': True,
     'organizations:relay': False,
     'projects:global-events': False,
