@@ -60,7 +60,7 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
             try:
                 repo = client.get_repo(config['name'])
             except Exception as e:
-                self.raise_error(e)
+                installation.raise_error(e)
             else:
                 config['external_id'] = six.text_type(repo['id'])
                 config['integration_id'] = integration.id
