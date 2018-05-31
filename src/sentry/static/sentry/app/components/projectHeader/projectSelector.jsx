@@ -224,10 +224,10 @@ const ProjectSelector = createReactClass({
       <MenuItem {...menuItemProps}>
         {/*ideally an icon here...*/}
         <ProjectBadge>
-          {platforms || platforms.length ? (
-            <PlatformList project={project} />
-          ) : (
+          {!platforms || !platforms.length ? (
             <EmptyPlatformicon />
+          ) : (
+            <PlatformList project={project} />
           )}
           {project.isBookmarked && <span className="icon-star-solid bookmark " />}
           {label}
