@@ -22,23 +22,26 @@ class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
         for provider in integrations.all():
             metadata = provider.metadata
             metadata = metadata and metadata._asdict() or None
-            if has_github_apps or has_catchall and provider.key in settings.SENTRY_INTERNAL_INTEGRATIONS:
-                providers.append(
-                    {
-                        'key': provider.key,
-                        'name': provider.name,
-                        'metadata': metadata,
-                        'canAdd': provider.can_add,
-                        'canAddProject': provider.can_add_project,
-                        'setupDialog': dict(
-                            url='/organizations/{}/integrations/{}/setup/'.format(
-                                organization.slug,
-                                provider.key,
-                            ),
-                            **provider.setup_dialog_config
-                        )
-                    }
-                )
+            internal_integrations = {
+                i for i in settings.SENTRY_INTERNAL_INTEGRATIONS if i != 'github' or not has_github_apps}
+            if not has_catchall and provider.key in internal_integrations:
+                continue
+            providers.append(
+                {
+                    'key': provider.key,
+                    'name': provider.name,
+                    'metadata': metadata,
+                    'canAdd': provider.can_add,
+                    'canAddProject': provider.can_add_project,
+                    'setupDialog': dict(
+                        url='/organizations/{}/integrations/{}/setup/'.format(
+                            organization.slug,
+                            provider.key,
+                        ),
+                        **provider.setup_dialog_config
+                    )
+                }
+            )
 
         return Response({
             'providers': providers,
