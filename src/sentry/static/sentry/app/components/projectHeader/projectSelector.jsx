@@ -201,7 +201,6 @@ const ProjectSelector = createReactClass({
   getProjectNode(team, project, highlightText, hasSingleTeam, isSelected) {
     let projectId = project.slug;
     let label = this.getProjectLabel(team, project, hasSingleTeam, highlightText);
-    // const platforms = project && project.platforms.slice(0, 3);
     let platforms;
     if (typeof project.platforms !== 'undefined') {
       platforms = project && project.platforms.slice(0, 3);
@@ -220,10 +219,6 @@ const ProjectSelector = createReactClass({
 
       ...this.getProjectUrlProps(project),
     };
-
-    if (typeof platforms.length === 'undefined') {
-      console.log(platforms.length, platforms);
-    }
 
     return (
       <MenuItem {...menuItemProps}>
