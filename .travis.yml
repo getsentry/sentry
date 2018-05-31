@@ -107,9 +107,11 @@ matrix:
         - redis-server
         - postgresql
       before_install:
-        - ls -lah "${HOME}/.nvm/versions/node/v$(< .nvmrc)/bin"/n*
+        - ls -lah "${HOME}/.nvm/versions/node/v$(< .nvmrc)/bin" || true
         - which npm || true
         - nvm install
+        - ls -lah "${HOME}/.nvm/versions/node/v$(< .nvmrc)/bin"
+        - which npm || true
         - npm install -g "yarn@${YARN_VERSION}"
       install:
         - yarn install --pure-lockfile
@@ -124,9 +126,11 @@ matrix:
     - python: 2.7
       env: TEST_SUITE=js
       before_install:
-        - ls -lah "${HOME}/.nvm/versions/node/v$(< .nvmrc)/bin"/n*
+        - ls -lah "${HOME}/.nvm/versions/node/v$(< .nvmrc)/bin" || true
         - which npm || true
         - nvm install
+        - ls -lah "${HOME}/.nvm/versions/node/v$(< .nvmrc)/bin"
+        - which npm || true
         - npm install -g "yarn@${YARN_VERSION}"
       install:
         - yarn install --pure-lockfile
