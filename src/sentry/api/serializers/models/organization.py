@@ -105,6 +105,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             feature_list.append('api-keys')
         if features.has('organizations:group-unmerge', obj, actor=user):
             feature_list.append('group-unmerge')
+        if features.has('organizations:github-apps', obj, actor=user):
+            feature_list.append('github-apps')
         if features.has('organizations:integrations-v3', obj, actor=user):
             feature_list.append('integrations-v3')
         if features.has('organizations:new-settings', obj, actor=user):

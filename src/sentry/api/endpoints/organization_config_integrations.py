@@ -15,11 +15,16 @@ class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
         has_catchall = features.has('organizations:internal-catchall',
                                     organization,
                                     actor=request.user)
+        has_github_apps = features.has('organizations:github-apps',
+                                       organization,
+                                       actor=request.user)
 
         for provider in integrations.all():
             metadata = provider.metadata
             metadata = metadata and metadata._asdict() or None
-            if not has_catchall and provider.key in settings.SENTRY_INTERNAL_INTEGRATIONS:
+            internal_integrations = {
+                i for i in settings.SENTRY_INTERNAL_INTEGRATIONS if i != 'github' or not has_github_apps}
+            if not has_catchall and provider.key in internal_integrations:
                 continue
             providers.append(
                 {
