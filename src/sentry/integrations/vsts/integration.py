@@ -5,7 +5,8 @@ from django import forms
 
 from django.utils.translation import ugettext_lazy as _
 from sentry.web.helpers import render_to_response
-from sentry.integrations import IntegrationProvider, IntegrationMetadata
+from sentry.integrations import Integration, IntegrationProvider, IntegrationMetadata
+from .client import VstsApiClient
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.identity.vsts import VSTSIdentityProvider
@@ -66,7 +67,12 @@ class ProjectForm(forms.Form):
         )
 
 
-class VSTSIntegrationProvider(IntegrationProvider):
+class VstsIntegration(Integration):
+    def get_client(self):
+        return VstsApiClient()
+
+
+class VstsIntegrationProvider(IntegrationProvider):
     key = 'vsts'
     name = 'Visual Studio Team Services'
     metadata = metadata
