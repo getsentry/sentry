@@ -14,7 +14,7 @@ from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import serialize, GroupSerializer
 from sentry.api.serializers.models.plugin import PluginSerializer
-from sentry.api.serializers.models.grouprelease import (GroupReleaseWithStatsSerializer)
+from sentry.api.serializers.models.grouprelease import GroupReleaseWithStatsSerializer
 from sentry.models import (
     Activity,
     Environment,
@@ -279,16 +279,19 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             environment = None
 
         if environment is not None:
-            current_release = GroupRelease.objects.filter(
-                group_id=group.id,
-                environment=environment.name,
-                release_id=ReleaseEnvironment.objects.filter(
-                    release_id__in=ReleaseProject.objects.filter(project_id=group.project_id
-                                                                 ).values_list('release_id', flat=True),
-                    organization_id=group.project.organization_id,
-                    environment_id=environment.id,
-                ).order_by('-first_seen').values_list('release_id', flat=True).first(),
-            ).first()
+            try:
+                current_release = GroupRelease.objects.filter(
+                    group_id=group.id,
+                    environment=environment.name,
+                    release_id=ReleaseEnvironment.objects.filter(
+                        release_id__in=ReleaseProject.objects.filter(project_id=group.project_id
+                                                                     ).values_list('release_id', flat=True),
+                        organization_id=group.project.organization_id,
+                        environment_id=environment.id,
+                    ).order_by('-first_seen').values_list('release_id', flat=True)[:1],
+                )[0]
+            except IndexError:
+                current_release = None
 
             data.update({
                 'currentRelease': serialize(
