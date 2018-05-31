@@ -227,7 +227,7 @@ const ProjectSelector = createReactClass({
           {!platforms || !platforms.length ? (
             <EmptyPlatformicon />
           ) : (
-            <PlatformList project={project} />
+            <PlatformList platforms={platforms} />
           )}
           {project.isBookmarked && <span className="icon-star-solid bookmark " />}
           {label}

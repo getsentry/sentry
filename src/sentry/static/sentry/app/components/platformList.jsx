@@ -1,21 +1,15 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {withRouter} from 'react-router';
 import styled from 'react-emotion';
 import {Flex} from 'grid-emotion';
 
-import SentryTypes from 'app/proptypes';
-import {t} from 'app/locale';
-import Button from 'app/components/buttons/button';
 import Platformicon from 'app/components/platformicon';
 
 const MAX_PLATFORMS = 3;
 
 class PlatformList extends React.Component {
   static propTypes = {
-    project: SentryTypes.Project,
-    orgId: PropTypes.string,
-    buttonSDK: PropTypes.bool,
+    platforms: PropTypes.array,
     subtextOn: PropTypes.bool,
   };
 
@@ -38,32 +32,13 @@ class PlatformList extends React.Component {
     );
   }
   render() {
-    const {project, orgId, buttonSDK, subtextOn} = this.props;
-    const platforms =
-      project && project.platforms && project.platforms.slice(0, MAX_PLATFORMS);
-
-    const link = `/${orgId}/${project.slug}/getting-started/${project.platform
-      ? project.platform + '/'
-      : ''}`;
-
-    if (!platforms || (!platforms.length && buttonSDK)) {
-      return (
-        <NoPlatforms align="center" p={2}>
-          {project.firstEvent ? (
-            t('No platforms yet')
-          ) : (
-            <Button size="small" to={link}>
-              {t('Install an SDK')}
-            </Button>
-          )}
-        </NoPlatforms>
-      );
-    }
+    const {platforms, subtextOn} = this.props;
+    const platformsPreview = platforms.slice(0, MAX_PLATFORMS);
 
     return (
       <Flex align="center">
-        <div className="client-platform-list">{this.getIcons(platforms)}</div>
-        {subtextOn ? <PlatformText>{platforms.join(', ')}</PlatformText> : null}
+        <div className="client-platform-list">{this.getIcons(platformsPreview)}</div>
+        {subtextOn ? <PlatformText>{platformsPreview.join(', ')}</PlatformText> : null}
       </Flex>
     );
   }
@@ -89,9 +64,4 @@ const PlatformText = styled.div`
   line-height: 13px;
 `;
 
-const NoPlatforms = styled(Flex)`
-  color: ${p => p.theme.gray2};
-  height: 56px;
-`;
-
-export default withRouter(PlatformList);
+export default PlatformList;
