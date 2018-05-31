@@ -22,17 +22,6 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
         # TODO(LB): This used to do a lot more. Not sure it's important to handle atm
         raise error
 
-    def get_client(self, integration_id):
-        if integration_id is None:
-            raise ValueError('Bitbucket version 2 requires an integration id.')
-
-        try:
-            integration_model = Integration.objects.get(id=integration_id)
-        except Integration.DoesNotExistError as error:
-            self.raise_error(error)
-
-        return integration_model.get_installation().get_client()
-
     def get_config(self, organization):
         choices = []
         for i in Integration.objects.filter(organizations=organization, provider='bitbucket'):
