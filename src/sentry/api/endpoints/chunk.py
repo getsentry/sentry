@@ -56,7 +56,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
                 'maxRequestSize': MAX_REQUEST_SIZE,
                 'concurrency': MAX_CONCURRENCY,
                 'hashAlgorithm': HASH_ALGORITHM,
-                'compression': 'gzip',
+                'compression': ['gzip'],
             }
         )
 
