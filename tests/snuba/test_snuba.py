@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from datetime import datetime, timedelta
+import pytest
 import time
 
 from sentry.testutils import SnubaTestCase
@@ -33,3 +34,13 @@ class SnubaTest(SnubaTestCase):
             groupby=['project_id'],
             filter_keys={'project_id': [100]},
         ) == {100: 1}
+
+    def test_fail(self):
+        now = datetime.now()
+        with pytest.raises(snuba.SnubaError):
+            snuba.query(
+                start=now - timedelta(days=1),
+                end=now + timedelta(days=1),
+                filter_keys={'project_id': [100]},
+                groupby=[")("],
+            )
