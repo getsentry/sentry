@@ -6,6 +6,8 @@ from sentry import http, options
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.identity.github import get_user_info
 from sentry.integrations import Integration, IntegrationProvider, IntegrationMetadata
+from sentry.integrations.exceptions import ApiError
+from sentry.integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.utils.http import absolute_uri
 
@@ -28,11 +30,30 @@ metadata = IntegrationMetadata(
     aspects={}
 )
 
+API_ERRORS = {
+    404: 'GitHub returned a 404 Not Found error.',
+    401: ERR_UNAUTHORIZED,
+}
+
 
 class GitHubIntegration(Integration):
 
     def get_client(self):
         return GitHubAppsClient(external_id=self.model.external_id)
+
+    def message_from_error(self, exc):
+        if isinstance(exc, ApiError):
+            message = API_ERRORS.get(exc.code)
+            if message:
+                return message
+            return (
+                'Error Communicating with GitHub (HTTP %s): %s' % (
+                    exc.code, exc.json.get('message', 'unknown error')
+                    if exc.json else 'unknown error',
+                )
+            )
+        else:
+            return ERR_INTERNAL
 
 
 class GitHubIntegrationProvider(IntegrationProvider):
