@@ -15,21 +15,7 @@ from sentry.pipeline import PipelineProvider
 from .exceptions import (
     ApiHostError, ApiError, ApiUnauthorized, IntegrationError, UnsupportedResponseType
 )
-
-
-ERR_INTERNAL = (
-    'An internal error occurred with the integration and the Sentry team has'
-    ' been notified'
-)
-
-ERR_UNAUTHORIZED = (
-    'Unauthorized: either your access token was invalid or you do not have'
-    ' access'
-)
-
-ERR_UNSUPPORTED_RESPONSE_TYPE = (
-    'An unsupported response type was returned: {content_type}'
-)
+from .constants import ERR_UNAUTHORIZED, ERR_INTERNAL, ERR_UNSUPPORTED_RESPONSE_TYPE
 
 IntegrationMetadata = namedtuple('IntegrationMetadata', [
     'description',  # A markdown description of the integration
@@ -187,6 +173,9 @@ class Integration(object):
     def get_client(self):
         # Return the api client for a given provider
         raise NotImplementedError
+
+    def error_message_from_json(self, data):
+        return data.get('message', 'unknown error')
 
     def message_from_error(self, exc):
         if isinstance(exc, ApiUnauthorized):
