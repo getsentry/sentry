@@ -215,36 +215,17 @@ class SlackActionEndpoint(Endpoint):
 
         # Determine the acting user by slack identity
         try:
-            idp_new = IdentityProvider.objects.get(
+            idp = IdentityProvider.objects.get(
                 type='slack',
                 external_id=team_id,
-                organization_id=0,
             )
         except IdentityProvider.DoesNotExist:
-            idp_new = None
-
-        try:
-            idp_old = IdentityProvider.objects.get(
-                type='slack',
-                external_id=team_id,
-                organization_id=group.organization.id,
-            )
-        except IdentityProvider.DoesNotExist:
-            idp_old = None
-
-        if not idp_new and not idp_old:
             logger.error('slack.action.invalid-team-id', extra=logging_data)
             return self.respond(status=403)
 
-        for idp in filter(None, (idp_new, idp_old)):
-            try:
-                identity = Identity.objects.get(idp=idp, external_id=user_id)
-            except Identity.DoesNotExist:
-                identity = None
-            else:
-                break
-
-        if not identity:
+        try:
+            identity = Identity.objects.get(idp=idp, external_id=user_id)
+        except Identity.DoesNotExist:
             associate_url = build_linking_url(
                 integration,
                 group.organization,

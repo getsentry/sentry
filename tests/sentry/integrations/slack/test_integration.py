@@ -94,7 +94,7 @@ class SlackIntegrationTest(IntegrationTestCase):
 
         idp = IdentityProvider.objects.get(
             type='slack',
-            organization_id=0,
+            external_id='TXXXXXXX1',
         )
         identity = Identity.objects.get(
             idp=idp,
@@ -120,10 +120,7 @@ class SlackIntegrationTest(IntegrationTestCase):
         )
         assert oi.config == {}
 
-        idps = IdentityProvider.objects.filter(
-            type='slack',
-            organization_id=0,
-        )
+        idps = IdentityProvider.objects.filter(type='slack')
 
         assert idps.count() == 2
 

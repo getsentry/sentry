@@ -121,10 +121,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
         assert oi.config == {}
 
-        idp = IdentityProvider.objects.get(
-            type='github',
-            organization_id=0,
-        )
+        idp = IdentityProvider.objects.get(type='github')
         identity = Identity.objects.get(
             idp=idp,
             user=self.user,
