@@ -79,3 +79,21 @@ class IssueSyncMixin(object):
         >>>     }
         """
         raise NotImplementedError
+
+    def get_issue(self, issue_id, **kwargs):
+        """
+        Get an issue via the provider's API and return the issue key,
+        title and description.
+
+        Should also handle API client exceptions and reraise as an
+        IntegrationError (using the `message_from_error` helper).
+
+        >>> def get_issue(self, data, **kwargs):
+        >>>     resp = self.get_client().get_issue(issue_id)
+        >>>     return {
+        >>>         'key': resp['id'],
+        >>>         'title': resp['title'],
+        >>>         'description': resp['description'],
+        >>>     }
+        """
+        raise NotImplementedError

@@ -104,6 +104,8 @@ class GroupIntegrationDetailsTest(APITestCase):
             integration_id=integration.id,
             organization_id=org.id,
         )
+        assert external_issue.title == 'This is a test external issue title'
+        assert external_issue.description == 'This is a test external issue description'
         assert GroupLink.objects.filter(
             linked_type=GroupLink.LinkedType.issue,
             group_id=group.id,

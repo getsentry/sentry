@@ -114,6 +114,7 @@ class JiraIntegration(Integration, IssueSyncMixin):
         client = self.get_client()
         issue = client.get_issue(issue_id)
         return {
+            'key': issue_id,
             'title': issue['fields']['summary'],
             'description': issue['fields']['description'],
         }

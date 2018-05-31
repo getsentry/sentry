@@ -55,6 +55,13 @@ class ExampleIntegration(Integration, IssueSyncMixin):
             'description': 'This is a test external issue description',
         }
 
+    def get_issue(self, issue_id):
+        return {
+            'key': issue_id,
+            'title': 'This is a test external issue title',
+            'description': 'This is a test external issue description',
+        }
+
 
 class ExampleIntegrationProvider(IntegrationProvider):
     """

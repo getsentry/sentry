@@ -66,14 +66,18 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             return Response(
                 {'detail': 'This feature is not supported for this integration.'}, status=400)
 
-        # TODO(jess): some validation from provider to ensure this
-        # issue id is valid and also maybe to fetch the title/description
-        # should go here
+        installation = integration.get_installation()
+        try:
+            data = installation.get_issue(external_issue_id)
+        except IntegrationError as exc:
+            return Response({'detail': exc.message}, status=400)
 
         external_issue = ExternalIssue.objects.get_or_create(
             organization_id=organization_id,
             integration_id=integration.id,
             key=external_issue_id,
+            title=data.get('title'),
+            description=data.get('description'),
         )[0]
 
         try:
