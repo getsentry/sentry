@@ -8,7 +8,7 @@ import DropdownLink from 'app/components/dropdownLink';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
 import Form from 'app/views/settings/components/forms/form';
 import MenuItem from 'app/components/menuItem';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 
 const MESSAGES_BY_ACTION = {
   link: t('Successfully linked issue.'),
@@ -19,7 +19,7 @@ class ExternalIssueForm extends AsyncComponent {
   static propTypes = {
     group: PropTypes.object.isRequired,
     integration: PropTypes.object.isRequired,
-    action: PropTypes.string.isRequired,
+    action: PropTypes.oneOf(['link', 'create']),
     onSubmitSuccess: PropTypes.func.isRequired,
   };
 
@@ -35,7 +35,7 @@ class ExternalIssueForm extends AsyncComponent {
 
   onSubmitSuccess = () => {
     addSuccessMessage(MESSAGES_BY_ACTION[this.props.action]);
-    this.props.onSubmitSuccess && this.props.onSubmitSuccess();
+    this.props.onSubmitSuccess();
   };
 
   renderBody() {
@@ -93,7 +93,7 @@ class ExternalIssueActionList extends AsyncComponent {
           return (
             <MenuItem key={integration.id} noAnchor={true}>
               <a onClick={this.openModal.bind(this, integration)}>
-                Link {integration.provider.name} issue
+                {tct('Link [provider] issue', {provider: integration.provider.name})}
               </a>
             </MenuItem>
           );
