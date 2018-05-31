@@ -90,7 +90,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                     relationship=GroupLink.Relationship.references,
                 )
         except IntegrityError:
-            return Response({'detail': 'That issue is already linked'}, status=400)
+            return Response({'non_field_errors': ['That issue is already linked']}, status=400)
 
         # TODO(jess): would be helpful to return serialized external issue
         # once we have description, title, etc
@@ -116,7 +116,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         try:
             data = installation.create_issue(request.DATA)
         except IntegrationError as exc:
-            return Response({'detail': exc.message}, status=400)
+            return Response({'non_field_errors': exc.message}, status=400)
 
         external_issue = ExternalIssue.objects.get_or_create(
             organization_id=organization_id,

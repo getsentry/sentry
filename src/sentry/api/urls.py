@@ -968,7 +968,7 @@ urlpatterns = patterns(
         name='sentry-api-0-group-integrations'
     ),
     url(
-        r'^(?:issues|groups)/(?P<issue_id>\d+)/integrations/(?P<integration_id>[^\/]+)/$',
+        r'^(?:issues|groups)/(?P<issue_id>\d+)/integrations/(?P<integration_id>\d+)/$',
         GroupIntegrationDetailsEndpoint.as_view(),
         name='sentry-api-0-group-integration-details'
     ),
