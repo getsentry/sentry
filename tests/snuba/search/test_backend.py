@@ -787,6 +787,7 @@ class SnubaSearchTest(SnubaTestCase):
                 'project_id': [self.project.id],
                 'primary_hash': [u'513772ee53011ad9f4dc374b2d34d0e9']
             },
+            'referrer': 'search',
             'groupby': ['primary_hash'],
             'conditions': [],
             'limit': Any(int),
