@@ -17,9 +17,16 @@ from .utils import get_jwt
 
 
 DESCRIPTION = """
-    Fill me out
+Define a relationship between Sentry and GitHub.
+
+ * Authorize repositories to be added for syncing commit data.
+ * Create or link existing GitHub issues.
 """
 
+alert_link = {
+    'text': 'Looking to add one of your repositories to sync commit data? Add a **Repo** for your organization.',
+    'link': '/settings/{orgId}/repos/'
+}
 
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
@@ -27,7 +34,9 @@ metadata = IntegrationMetadata(
     noun=_('Installation'),
     issue_url='https://github.com/getsentry/sentry/issues/new?title=GitHub%20Integration:%20&labels=Component%3A%20Integrations',
     source_url='https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/github',
-    aspects={}
+    aspects={
+        'alert_link': alert_link,
+    }
 )
 
 API_ERRORS = {
