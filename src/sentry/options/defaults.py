@@ -122,7 +122,9 @@ register('slack.client-id', flags=FLAG_PRIORITIZE_DISK)
 register('slack.client-secret', flags=FLAG_PRIORITIZE_DISK)
 register('slack.verification-token', flags=FLAG_PRIORITIZE_DISK)
 
-# Github Integration
+# GitHub Integration
+# When setting up a GitHub App: User authorization callback and Setup URL fields:
+# <domain>/extensions/github/setup/
 register('github-app.id', default=0)
 register('github-app.name', default='')
 register('github-app.webhook-secret', default='')

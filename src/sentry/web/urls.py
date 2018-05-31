@@ -51,7 +51,7 @@ from sentry.web.frontend.restore_organization import RestoreOrganizationView
 from sentry.web.frontend.remove_project import RemoveProjectView
 from sentry.web.frontend.transfer_project import TransferProjectView
 from sentry.web.frontend.team_avatar import TeamAvatarPhotoView
-from sentry.web.frontend.account_identity import AccountIdentityAssociateView, AccountIdentityLinkView
+from sentry.web.frontend.account_identity import AccountIdentityAssociateView, IdentityAuthView, IdentityCallbackView
 from sentry.web.frontend.remove_team import RemoveTeamView
 from sentry.web.frontend.sudo import SudoView
 from sentry.web.frontend.unsubscribe_issue_notifications import \
@@ -272,9 +272,14 @@ urlpatterns += patterns(
         name='sentry-account-associate-identity'
     ),
     url(
-        r'^account/settings/identities/associate/$',
-        AccountIdentityLinkView.as_view(),
-        name='sentry-account-link-identity'
+        r'^identity/callback/(?P<provider_key>[^\/]+)/$',
+        IdentityCallbackView.as_view(),
+        name='sentry-identity-callback'
+    ),
+    url(
+        r'^identity/auth/(?P<provider_key>[^\/]+)/$',
+        IdentityAuthView.as_view(),
+        name='sentry-identity-auth'
     ),
     url(
         r'^account/settings/notifications/$',
