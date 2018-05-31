@@ -13,10 +13,16 @@ class CommitLink extends React.Component {
 
   getCommitUrl = () => {
     // TODO(jess): move this to plugins
-    if (this.props.repository.provider.id === 'github') {
+    if (
+      ['github', 'integrations:github'].indexOf(this.props.repository.provider.id) != -1
+    ) {
       return this.props.repository.url + '/commit/' + this.props.commitId;
     }
-    if (this.props.repository.provider.id === 'bitbucket') {
+    if (
+      ['bitbucket', 'integrations:bitbucket'].indexOf(
+        this.props.repository.provider.id
+      ) != -1
+    ) {
       return this.props.repository.url + '/commits/' + this.props.commitId;
     }
     return undefined;
@@ -38,16 +44,22 @@ class CommitLink extends React.Component {
         href={commitUrl}
         target="_blank"
       >
-        {repository.provider.id == 'github' && (
-          <InlineSvg src="icon-github" style={{verticalAlign: 'text-top'}} size="14px" />
-        )}
-        {repository.provider.id == 'bitbucket' && (
-          <InlineSvg
-            src="icon-bitbucket"
-            style={{verticalAlign: 'text-top'}}
-            size="14px"
-          />
-        )}
+        {repository.provider.id == 'github' ||
+          (repository.provider.id == 'integrations:github' && (
+            <InlineSvg
+              src="icon-github"
+              style={{verticalAlign: 'text-top'}}
+              size="14px"
+            />
+          ))}
+        {repository.provider.id == 'bitbucket' ||
+          (repository.provider.id == 'integrations:bitbucket' && (
+            <InlineSvg
+              src="icon-bitbucket"
+              style={{verticalAlign: 'text-top'}}
+              size="14px"
+            />
+          ))}
         &nbsp;
         {inline ? '' : ' '}
         {shortId}
