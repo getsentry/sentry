@@ -18,6 +18,13 @@ from .imports import import_string
 logger = logging.getLogger(__name__)
 
 
+def raises(exceptions):
+    def decorator(function):
+        function.__raises__ = exceptions
+        return function
+    return decorator
+
+
 class Service(object):
     __all__ = ()
 
