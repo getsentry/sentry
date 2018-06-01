@@ -24,8 +24,8 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
 
         try:
             integration_model = Integration.objects.get(id=integration_id)
-        except Integration.DoesNotExistError as error:
-            self.handle_error(error)
+        except Integration.DoesNotExist as error:
+            self.handle_api_error(error)
 
         return integration_model.get_installation()
 
