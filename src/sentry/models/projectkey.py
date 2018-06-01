@@ -205,7 +205,7 @@ class ProjectKey(Model):
 
     @property
     def js_sdk_loader_cdn_url(self):
-        return '%s%s.js' % (CDN_URL, self.public_key)
+        return '%s%s.min.js' % (CDN_URL, self.public_key)
 
     def get_allowed_origins(self):
         from sentry.utils.http import get_origins

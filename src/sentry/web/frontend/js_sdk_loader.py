@@ -36,8 +36,6 @@ class JavaScriptSdkLoader(BaseView):
                                       content_type="text/javascript")
 
         response['Cache-Control'] = CACHE_CONTROL
-        # Make sure we Vary: Accept-Encoding for gzipped responses
-        response['Vary'] = 'Accept-Encoding'
         response['Surrogate-Key'] = 'project/%s sdk/%s sdk-loader' % (key.project_id, SDK_VERSION)
 
         return response
