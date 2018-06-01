@@ -20,7 +20,7 @@ DESCRIPTION = """
 Define a relationship between Sentry and GitHub.
 
  * Authorize repositories to be added for syncing commit data.
- * Create or link existing GitHub issues.
+ * Create or link existing GitHub issues. (coming soon)
 """
 
 alert_link = {
