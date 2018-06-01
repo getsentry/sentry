@@ -214,7 +214,6 @@ MIDDLEWARE_CLASSES = (
     'sentry.middleware.stats.ResponseCodeMiddleware',
     'sentry.middleware.health.HealthCheck',  # Must exist before CommonMiddleware
     'django.middleware.common.CommonMiddleware',
-    'sentry.middleware.cdn.CdnMiddleware',  # Must exist before SessionMiddleware
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'sentry.middleware.auth.AuthenticationMiddleware',
@@ -269,6 +268,7 @@ STATIC_URL = '/_static/{version}/'
 # cookies
 ANONYMOUS_STATIC_PREFIXES = (
     '/_static/', '/avatar/', '/organization-avatar/', '/team-avatar/', '/project-avatar/',
+    '/js-sdk-loader/'
 )
 
 STATICFILES_FINDERS = (

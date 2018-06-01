@@ -14,14 +14,15 @@ CACHE_CONTROL = 'public, max-age=30, s-maxage=60, stale-while-revalidate=3153600
 class JavaScriptSdkLoader(BaseView):
     auth_required = False
 
-    def get(self, request, public_key):
+    def get(self, request, public_key, minified):
         """Returns a js file that can be integrated into a website"""
         key = ProjectKey.objects.get(
             public_key=public_key
         )
 
-        minified = True
-        if request.GET.get('unminified'):
+        if minified is not None:
+            minified = True
+        else:
             minified = False
 
         config = Config(key.project)
@@ -35,6 +36,8 @@ class JavaScriptSdkLoader(BaseView):
                                       content_type="text/javascript")
 
         response['Cache-Control'] = CACHE_CONTROL
+        # Make sure we Vary: Accept-Encoding for gzipped responses
+        response['Vary'] = 'Accept-Encoding'
         response['Surrogate-Key'] = 'project/%s sdk/%s sdk-loader' % (key.project_id, SDK_VERSION)
 
         return response

@@ -138,7 +138,7 @@ urlpatterns += patterns(
     # Javascript SDK Loader
 
     url(
-        r'^js-sdk-loader/(?P<public_key>[^/]+)\.js$',
+        r'^js-sdk-loader/(?P<public_key>[^/\.]+)(?:(?P<minified>\.min))?\.js$',
         JavaScriptSdkLoader.as_view(),
         name='sentry-js-sdk-loader'
     ),

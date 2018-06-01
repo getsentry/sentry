@@ -12,6 +12,7 @@ class UserActiveMiddleware(object):
         'sentry.web.frontend.project_avatar',
         'sentry.web.frontend.team_avatar',
         'sentry.web.frontend.user_avatar',
+        'sentry.web.frontend.js_sdk_loader',
     )
 
     def process_view(self, request, view_func, view_args, view_kwargs):
