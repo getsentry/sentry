@@ -4,9 +4,9 @@ from contextlib import contextmanager
 from dateutil.parser import parse as parse_datetime
 from itertools import chain
 import json
-import requests
 import six
 import time
+import urllib3
 
 from django.conf import settings
 
@@ -26,6 +26,13 @@ def timer(name, prefix='snuba.client'):
         yield
     finally:
         metrics.timing('{}.{}'.format(prefix, name), time.time() - t)
+
+_snuba_pool = urllib3.connectionpool.connection_from_url(
+    settings.SENTRY_SNUBA,
+    retries=False,
+    timeout=30,
+    maxsize=10,
+)
 
 
 def query(start, end, groupby, conditions=None, filter_keys=None,
@@ -92,7 +99,6 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
     with timer('get_project_issues'):
         issues = get_project_issues(project_ids, filter_keys.get('issue')) if get_issues else None
 
-    url = '{0}/query'.format(settings.SENTRY_SNUBA)
     request = {k: v for k, v in six.iteritems({
         'from_date': start.isoformat(),
         'to_date': end.isoformat(),
@@ -114,31 +120,37 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
 
     try:
         with timer('snuba_query'):
-            response = requests.post(url, data=json.dumps(request), headers=headers)
-        response.raise_for_status()
-    except requests.RequestException as re:
-        raise SnubaError(re)
+            response = _snuba_pool.urlopen(
+                'POST', '/query', body=json.dumps(request), headers=headers)
+    except urllib3.exceptions.HTTPError as err:
+        raise SnubaError(err)
 
     try:
-        response = json.loads(response.text)
+        body = json.loads(response.data)
     except ValueError:
-        raise SnubaError("Could not decode JSON response: {}".format(response.text))
+        raise SnubaError("Could not decode JSON response: {}".format(response.data))
+
+    if response.status != 200:
+        if body.get('error'):
+            raise SnubaError(body['error'])
+        else:
+            raise SnubaError('HTTP {}'.format(response.status))
 
     # Validate and scrub response, and translate snuba keys back to IDs
     aggregate_cols = [a[2] for a in aggregations]
     expected_cols = set(groupby + aggregate_cols)
-    got_cols = set(c['name'] for c in response['meta'])
+    got_cols = set(c['name'] for c in body['meta'])
 
     assert expected_cols == got_cols
 
     with timer('process_result'):
-        for d in response['data']:
+        for d in body['data']:
             if 'time' in d:
                 d['time'] = int(to_timestamp(parse_datetime(d['time'])))
             for col in rev_snuba_map:
                 if col in d:
                     d[col] = rev_snuba_map[col][d[col]]
-        return nest_groups(response['data'], groupby, aggregate_cols)
+        return nest_groups(body['data'], groupby, aggregate_cols)
 
 
 def nest_groups(data, groups, aggregate_cols):

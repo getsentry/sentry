@@ -21,9 +21,8 @@ class IdentityProvider(Model):
     """
     An IdentityProvider is an instance of a provider.
 
-    The IdentityProvider is unique on the type of provider (eg gtihub, slack,
-    google, etc) and the organization which has configured that provider for
-    it's users.
+    The IdentityProvider is unique on the type of provider (eg github, slack,
+    google, etc).
 
     A SAML identity provide might look like this, type: onelogin, instance:
     acme-org.onelogin.com.
@@ -31,7 +30,6 @@ class IdentityProvider(Model):
     __core__ = False
 
     type = models.CharField(max_length=64)
-    organization_id = BoundedPositiveIntegerField(default=0)
     config = EncryptedJsonField()
     date_added = models.DateTimeField(default=timezone.now, null=True)
     external_id = models.CharField(max_length=64, null=True)
@@ -39,7 +37,7 @@ class IdentityProvider(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_identityprovider'
-        unique_together = (('type', 'organization_id', 'external_id'),)
+        unique_together = (('type', 'external_id'),)
 
 
 class Identity(Model):

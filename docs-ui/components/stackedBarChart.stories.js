@@ -24,7 +24,7 @@ storiesOf('StackedBarChart', module).add(
             label: 'blacklisted',
           },
         ]}
-        className="dashboard-barchart standard-barchart"
+        className="standard-barchart"
         height="100%"
         label="events"
         barClasses={['received', 'blacklisted', 'rejected']}

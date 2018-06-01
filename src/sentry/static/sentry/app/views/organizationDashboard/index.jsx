@@ -16,7 +16,6 @@ import withTeams from 'app/utils/withTeams';
 import withProjects from 'app/utils/withProjects';
 import {t} from 'app/locale';
 
-import OldDashboard from './oldDashboard';
 import ProjectNav from './projectNav';
 import TeamSection from './teamSection';
 import EmptyState from './emptyState';
@@ -98,18 +97,12 @@ const OrganizationDashboard = createReactClass({
   mixins: [OrganizationState],
 
   render() {
-    const hasNewDashboardFeature = this.getFeatures().has('dashboard');
-
-    if (hasNewDashboardFeature) {
-      return (
-        <Flex flex="1" direction="column">
-          <ProjectNav />
-          <Dashboard organization={this.context.organization} {...this.props} />
-        </Flex>
-      );
-    } else {
-      return <OldDashboard {...this.props} />;
-    }
+    return (
+      <Flex flex="1" direction="column">
+        <ProjectNav />
+        <Dashboard organization={this.context.organization} {...this.props} />
+      </Flex>
+    );
   },
 });
 

@@ -9,7 +9,6 @@ import OrganizationContext from 'app/views/organizationContext';
 import NarrowLayout from 'app/components/narrowLayout';
 import Footer from 'app/components/footer';
 import LazyLoad from 'app/components/lazyLoad';
-import OldSidebar from 'app/components/sidebar.old'; // #NEW-SETTINGS
 import {t, tct} from 'app/locale';
 
 class DeletionInProgress extends Component {
@@ -127,8 +126,6 @@ class OrganizationDetailsBody extends Component {
 
   render() {
     let {organization} = this.context;
-    let hasNewDashboardFeatures =
-      organization && organization.features.indexOf('dashboard') > -1;
 
     if (organization.status)
       if (organization.status.id === 'pending_deletion') {
@@ -138,18 +135,15 @@ class OrganizationDetailsBody extends Component {
       }
     return (
       <React.Fragment>
-        {hasNewDashboardFeatures ? (
-          <LazyLoad
-            component={() =>
-              import(/*webpackChunkName: "NewSidebar"*/ 'app/components/sidebar').then(
-                mod => mod.default
-              )}
-            {...this.props}
-            organization={organization}
-          />
-        ) : (
-          <OldSidebar />
-        )}
+        <LazyLoad
+          component={() =>
+            import(/*webpackChunkName: "NewSidebar"*/ 'app/components/sidebar').then(
+              mod => mod.default
+            )}
+          {...this.props}
+          organization={organization}
+        />
+
         <ErrorBoundary>{this.props.children}</ErrorBoundary>
         <Footer />
       </React.Fragment>

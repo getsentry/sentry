@@ -104,6 +104,8 @@ class GroupIntegrationDetailsTest(APITestCase):
             integration_id=integration.id,
             organization_id=org.id,
         )
+        assert external_issue.title == 'This is a test external issue title'
+        assert external_issue.description == 'This is a test external issue description'
         assert GroupLink.objects.filter(
             linked_type=GroupLink.LinkedType.issue,
             group_id=group.id,
@@ -124,7 +126,7 @@ class GroupIntegrationDetailsTest(APITestCase):
 
         response = self.client.post(path, data={})
         assert response.status_code == 400
-        assert response.data['detail'] == 'Assignee is required'
+        assert response.data['non_field_errors'] == 'Assignee is required'
 
         response = self.client.post(path, data={'assignee': 'foo@sentry.io'})
         assert response.status_code == 201

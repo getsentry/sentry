@@ -39,7 +39,7 @@ export default class OrganizationIntegrations extends AsyncComponent {
   renderBody() {
     let {orgId, projectId} = this.props;
     let orgFeatures = new Set(this.state.organization.features);
-    let internalIntegrations = new Set(['jira', 'github']);
+    let internalIntegrations = new Set(['jira']);
 
     const integrations = this.state.config.providers
       .filter(provider => {

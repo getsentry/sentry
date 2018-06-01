@@ -16,6 +16,7 @@ default_manager.add('organizations:repos', OrganizationFeature)  # NOQA
 default_manager.add('organizations:release-commits', OrganizationFeature)  # NOQA
 default_manager.add('organizations:suggested-commits', OrganizationFeature)  # NOQA
 default_manager.add('organizations:group-unmerge', OrganizationFeature)  # NOQA
+default_manager.add('organizations:github-apps', OrganizationFeature)  # NOQA
 default_manager.add('organizations:invite-members', OrganizationFeature)  # NOQA
 default_manager.add('organizations:new-settings', OrganizationFeature)  # NOQA
 default_manager.add('organizations:integrations-v3', OrganizationFeature)  # NOQA
@@ -27,7 +28,6 @@ default_manager.add('organizations:unreleased-changes', OrganizationFeature)  # 
 default_manager.add('organizations:relay', OrganizationFeature)  # NOQA
 default_manager.add('projects:similarity-view', ProjectFeature)  # NOQA
 default_manager.add('organizations:environments', OrganizationFeature)  # NOQA
-default_manager.add('organizations:dashboard', OrganizationFeature)  # NOQA
 default_manager.add('projects:global-events', ProjectFeature)  # NOQA
 default_manager.add('projects:plugins', ProjectPluginFeature)  # NOQA
 default_manager.add('projects:data-forwarding', ProjectFeature)  # NOQA

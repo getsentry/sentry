@@ -1,18 +1,20 @@
 from __future__ import absolute_import
 
+import six
+
 from django.db import IntegrityError, transaction
 from rest_framework.response import Response
 
 from sentry.api.serializers import serialize
+from sentry.integrations.exceptions import IntegrationError
 from sentry.exceptions import PluginError
 from sentry.models import Repository
 from sentry.plugins.config import ConfigValidator
 
-from .base import ProviderMixin
 
-
-class IntegrationRepositoryProvider(ProviderMixin):
+class IntegrationRepositoryProvider(object):
     name = None
+    logger = None
 
     def __init__(self, id):
         self.id = id
@@ -87,6 +89,25 @@ class IntegrationRepositoryProvider(ProviderMixin):
             )
 
         return Response(serialize(repo, request.user), status=201)
+
+    def handle_api_error(self, error):
+        context = {
+            'error_type': 'unknown',
+        }
+        if isinstance(error, IntegrationError):
+            # TODO(dcramer): we should have a proper validation error
+            context.update({
+                'error_type': 'validation',
+                'errors': {
+                    '__all__': error.message
+                },
+            })
+            status = 400
+        else:
+            if self.logger:
+                self.logger.exception(six.text_type(error))
+            status = 500
+        return Response(context, status=status)
 
     def get_config(self, organization):
         raise NotImplementedError
