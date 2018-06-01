@@ -96,10 +96,13 @@ class IntegrationPipeline(Pipeline):
                 )
             except IntegrityError:
                 # If the external_id is already used for a different user or
-                # the user already has a different external_id, reparent it
+                # the user already has a different external_id remove those
+                # identities and recreate it.
                 lookup = Q(external_id=identity['external_id']) | Q(user=self.request.user)
+                Identity.objects.filter(lookup, idp=idp).delete()
 
-                Identity.objects.filter(lookup, idp=idp).update(
+                Identity.objects.create(
+                    idp=idp,
                     user=self.request.user,
                     external_id=identity['external_id'],
                     **identity_data
