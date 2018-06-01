@@ -91,7 +91,7 @@ class BaseEventFrequencyCondition(EventCondition):
 
 
 class EventFrequencyCondition(BaseEventFrequencyCondition):
-    label = 'An event is seen more than {value} times in {interval}'
+    label = 'An issue is seen more than {value} times in {interval}'
 
     def query(self, event, start, end, environment_id):
         return self.tsdb.get_sums(
@@ -104,7 +104,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
 
 
 class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
-    label = 'An event is seen by more than {value} users in {interval}'
+    label = 'An issue is seen by more than {value} users in {interval}'
 
     def query(self, event, start, end, environment_id):
         return self.tsdb.get_distinct_counts_totals(
