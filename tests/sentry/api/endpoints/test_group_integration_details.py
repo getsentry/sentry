@@ -144,3 +144,37 @@ class GroupIntegrationDetailsTest(APITestCase):
             group_id=group.id,
             linked_id=external_issue.id,
         ).exists()
+
+    def test_simple_delete(self):
+        self.login_as(user=self.user)
+        org = self.organization
+        group = self.create_group()
+        integration = Integration.objects.create(
+            provider='example',
+            name='Example',
+        )
+        integration.add_organization(org.id)
+
+        external_issue = ExternalIssue.objects.get_or_create(
+            organization_id=org.id,
+            integration_id=integration.id,
+            key='APP-123',
+        )[0]
+
+        group_link = GroupLink.objects.get_or_create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id=external_issue.id,
+            relationship=GroupLink.Relationship.references,
+        )[0]
+
+        path = '/api/0/issues/{}/integrations/{}/?externalIssue={}'.format(
+            group.id, integration.id, external_issue.id,
+        )
+
+        response = self.client.delete(path)
+
+        assert response.status_code == 204
+        assert not ExternalIssue.objects.filter(id=external_issue.id).exists()
+        assert not GroupLink.objects.filter(id=group_link.id).exists()

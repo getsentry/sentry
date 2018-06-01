@@ -148,3 +148,52 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
 
         # TODO(jess): return serialized issue
         return Response(status=201)
+
+    def delete(self, request, group, integration_id):
+        # note here externalIssue refers to `ExternalIssue.id` wheras above
+        # it refers to the id from the provider
+        external_issue_id = request.GET.get('externalIssue')
+        if not external_issue_id:
+            return Response({'detail': 'External ID required'}, status=400)
+
+        organization_id = group.project.organization_id
+        try:
+            # check org permissions
+            integration = OrganizationIntegration.objects.filter(
+                integration_id=integration_id,
+                organization_id=organization_id,
+            ).select_related('integration').get().integration
+        except OrganizationIntegration.DoesNotExist:
+            return Response(status=404)
+
+        if not integration.has_feature(IntegrationFeatures.ISSUE_SYNC):
+            return Response(
+                {'detail': 'This feature is not supported for this integration.'}, status=400)
+
+        try:
+            external_issue = ExternalIssue.objects.get(
+                organization_id=organization_id,
+                integration_id=integration.id,
+                id=external_issue_id,
+            )
+        except ExternalIssue.DoesNotExist:
+            return Response(status=404)
+
+        with transaction.atomic():
+            GroupLink.objects.filter(
+                group_id=group.id,
+                project_id=group.project_id,
+                linked_type=GroupLink.LinkedType.issue,
+                linked_id=external_issue_id,
+                relationship=GroupLink.Relationship.references,
+            ).delete()
+
+            # check if other groups reference this external issue
+            # and delete if not
+            if not GroupLink.objects.filter(
+                linked_type=GroupLink.LinkedType.issue,
+                linked_id=external_issue_id,
+            ).exists():
+                external_issue.delete()
+
+        return Response(status=204)
