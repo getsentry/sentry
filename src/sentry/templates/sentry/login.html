@@ -41,6 +41,10 @@
         <fieldset class="form-actions">
           <button type="submit" class="btn btn-primary">{% trans "Continue" %}</button> <a class="pull-right" style="margin-top: 7px" href="{% url 'sentry-account-recover' %}">{% trans "Lost your password?" %}</a>
         </fieldset>
+
+        {% if github_login_template %}
+          {% include github_login_template %}<p>
+        {% endif %}
       </form>
     </div>
     <div class="tab-pane{% if op == "register" %} active{% endif %}" id="register">
