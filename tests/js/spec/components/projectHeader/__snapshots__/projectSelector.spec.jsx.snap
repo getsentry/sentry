@@ -74,19 +74,6 @@ exports[`ProjectSelector render() can filter projects by project name 1`] = `
     className="project-select"
   >
     <h3>
-      <Link
-        className="home-crumb"
-        to="/org/"
-      >
-        <a
-          className="home-crumb"
-          href="/org/"
-        >
-          <span
-            className="icon-home"
-          />
-        </a>
-      </Link>
       <span
         onClick={[Function]}
         role="button"
@@ -173,25 +160,14 @@ exports[`ProjectSelector render() can filter projects by project name 1`] = `
                     onClick={[Function]}
                     tabIndex="-1"
                   >
-                    <ProjectBadge>
-                      <div
-                        className="css-39c7ei-ProjectBadge et07ovj0"
+                    <span>
+                      <strong
+                        className="highlight"
                       >
-                        <EmptyPlatformicon>
-                          <div
-                            className="css-1kns10t-EmptyPlatformicon et07ovj1"
-                          />
-                        </EmptyPlatformicon>
-                        <span>
-                          <strong
-                            className="highlight"
-                          >
-                            Another
-                          </strong>
-                           Project
-                        </span>
-                      </div>
-                    </ProjectBadge>
+                        Another
+                      </strong>
+                       Project
+                    </span>
                   </a>
                 </li>
               </MenuItem>
@@ -278,19 +254,6 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
     className="project-select"
   >
     <h3>
-      <Link
-        className="home-crumb"
-        to="/org/"
-      >
-        <a
-          className="home-crumb"
-          href="/org/"
-        >
-          <span
-            className="icon-home"
-          />
-        </a>
-      </Link>
       <span
         onClick={[Function]}
         role="button"
@@ -377,18 +340,7 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
                     onClick={[Function]}
                     tabIndex="-1"
                   >
-                    <ProjectBadge>
-                      <div
-                        className="css-39c7ei-ProjectBadge et07ovj0"
-                      >
-                        <EmptyPlatformicon>
-                          <div
-                            className="css-1kns10t-EmptyPlatformicon et07ovj1"
-                          />
-                        </EmptyPlatformicon>
-                        Another Project
-                      </div>
-                    </ProjectBadge>
+                    Another Project
                   </a>
                 </li>
               </MenuItem>
@@ -410,25 +362,14 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
                     onClick={[Function]}
                     tabIndex="-1"
                   >
-                    <ProjectBadge>
-                      <div
-                        className="css-39c7ei-ProjectBadge et07ovj0"
+                    <span>
+                      <strong
+                        className="highlight"
                       >
-                        <EmptyPlatformicon>
-                          <div
-                            className="css-1kns10t-EmptyPlatformicon et07ovj1"
-                          />
-                        </EmptyPlatformicon>
-                        <span>
-                          <strong
-                            className="highlight"
-                          >
-                            Test
-                          </strong>
-                           Project
-                        </span>
-                      </div>
-                    </ProjectBadge>
+                        Test
+                      </strong>
+                       Project
+                    </span>
                   </a>
                 </li>
               </MenuItem>
@@ -446,14 +387,6 @@ exports[`ProjectSelector render() lists projects and has filter 1`] = `
   className="project-select"
 >
   <h3>
-    <Link
-      className="home-crumb"
-      to="/org/"
-    >
-      <span
-        className="icon-home"
-      />
-    </Link>
     <span
       onClick={[Function]}
       role="button"
@@ -497,12 +430,9 @@ exports[`ProjectSelector render() lists projects and has filter 1`] = `
         key="another-project"
         linkClassName=""
       >
-        <ProjectBadge>
-          <EmptyPlatformicon />
-          <span>
-            Another Project
-          </span>
-        </ProjectBadge>
+        <span>
+          Another Project
+        </span>
       </MenuItem>
       <MenuItem
         className=""
@@ -510,12 +440,9 @@ exports[`ProjectSelector render() lists projects and has filter 1`] = `
         key="test-project"
         linkClassName=""
       >
-        <ProjectBadge>
-          <EmptyPlatformicon />
-          <span>
-            Test Project
-          </span>
-        </ProjectBadge>
+        <span>
+          Test Project
+        </span>
       </MenuItem>
     </DropdownLink>
   </h3>
@@ -527,14 +454,6 @@ exports[`ProjectSelector render() should show empty message and create project b
   className="project-select"
 >
   <h3>
-    <Link
-      className="home-crumb"
-      to="/org-slug/"
-    >
-      <span
-        className="icon-home"
-      />
-    </Link>
     <span
       onClick={[Function]}
       role="button"
@@ -594,14 +513,6 @@ exports[`ProjectSelector render() should show empty message with no projects but
   className="project-select"
 >
   <h3>
-    <Link
-      className="home-crumb"
-      to="/org-slug/"
-    >
-      <span
-        className="icon-home"
-      />
-    </Link>
     <span
       onClick={[Function]}
       role="button"
@@ -714,19 +625,6 @@ exports[`ProjectSelector render() shows empty filter message when filtering has 
     className="project-select"
   >
     <h3>
-      <Link
-        className="home-crumb"
-        to="/org/"
-      >
-        <a
-          className="home-crumb"
-          href="/org/"
-        >
-          <span
-            className="icon-home"
-          />
-        </a>
-      </Link>
       <span
         onClick={[Function]}
         role="button"
