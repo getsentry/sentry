@@ -9,9 +9,10 @@ from sentry.integrations.github.client import GitHubClientMixin
 class GitHubEnterpriseAppsClient(GitHubClientMixin):
     base_url = None
 
-    def __init__(self, base_url, external_id, private_key):
-        self.base_url = "https://{}".format(base_url)
+    def __init__(self, base_url, app_id, external_id, private_key):
+        self.base_url = "https://{}/api/v3".format(base_url)
         self.external_id = external_id
+        self.app_id = app_id
         self.private_key = private_key
         self.token = None
         self.expires_at = None
@@ -40,11 +41,11 @@ class GitHubEnterpriseAppsClient(GitHubClientMixin):
 
     def create_token(self):
         return self.post(
-            '/api/v3/installations/{}/access_tokens'.format(
+            '/installations/{}/access_tokens'.format(
                 self.external_id,
             ),
             headers={
-                'Authorization': 'Bearer %s' % get_jwt(github_id=self.external_id, github_private_key=self.private_key),
+                'Authorization': 'Bearer %s' % get_jwt(github_id=self.app_id, github_private_key=self.private_key),
                 # TODO(jess): remove this whenever it's out of preview
                 'Accept': 'application/vnd.github.machine-man-preview+json',
             },

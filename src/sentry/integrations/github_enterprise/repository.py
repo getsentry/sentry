@@ -68,10 +68,14 @@ class GitHubEnterpriseRepositoryProvider(providers.IntegrationRepositoryProvider
         return config
 
     def create_repository(self, organization, data, actor=None):
+        integration = Integration.objects.get(
+            id=data['integration_id'], provider="github-enterprise")
+
+        base_url = integration.metadata.get('domain_name')
         return {
             'name': data['name'],
             'external_id': data['external_id'],
-            'url': 'https://github.com/{}'.format(data['name']),
+            'url': 'https://{}/{}'.format(base_url, data['name']),
             'config': {
                 'name': data['name'],
             },

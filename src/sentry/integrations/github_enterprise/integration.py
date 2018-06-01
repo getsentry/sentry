@@ -44,9 +44,10 @@ API_ERRORS = {
 class GitHubEnterpriseIntegration(Integration):
     def get_client(self):
         return GitHubEnterpriseAppsClient(
-            base_url=self.model.metadata.get('domain_name').split("/")[0],
+            base_url=self.model.metadata.get('domain_name'),
             external_id=self.model.external_id,
             private_key=self.model.metadata.get('installation').get('private_key'),
+            app_id=self.model.metadata.get('installation').get('id'),
         )
 
     def message_from_error(self, exc):
