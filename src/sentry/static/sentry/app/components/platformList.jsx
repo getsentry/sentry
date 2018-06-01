@@ -10,7 +10,10 @@ const MAX_PLATFORMS = 3;
 class PlatformList extends React.Component {
   static propTypes = {
     platforms: PropTypes.array,
-    subtextOn: PropTypes.bool,
+  };
+
+  static defaultProps = {
+    platforms: [],
   };
 
   getIcon(platform) {
@@ -32,20 +35,20 @@ class PlatformList extends React.Component {
     );
   }
   render() {
-    const {platforms, subtextOn} = this.props;
+    const {platforms} = this.props;
     const platformsPreview = platforms.slice(0, MAX_PLATFORMS);
 
     return (
       <Flex align="center">
-        <div className="client-platform-list">{this.getIcons(platformsPreview)}</div>
-        {subtextOn ? <PlatformText>{platformsPreview.join(', ')}</PlatformText> : null}
+        {platforms.length > 0 && (
+          <div className="client-platform-list">{this.getIcons(platformsPreview)}</div>
+        )}
       </Flex>
     );
   }
 }
 
-const StyledPlatformiconWrapper = styled.span`
-  display: block;
+const StyledPlatformiconWrapper = styled.div`
   margin-right: -8px;
 `;
 
@@ -56,12 +59,6 @@ const StyledPlatformicon = styled(Platformicon)`
   border-radius: 4px;
   box-shadow: 0 0 0 2px #fff;
   max-width: 24px;
-`;
-
-const PlatformText = styled.div`
-  color: ${p => p.theme.gray2};
-  font-size: 13px;
-  line-height: 13px;
 `;
 
 export default PlatformList;
