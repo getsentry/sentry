@@ -18,20 +18,16 @@ from .webhook import parse_raw_user_email, parse_raw_user_name
 class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
     name = 'Bitbucket v2'
 
-    def raise_error(self, error, identity):
-        # TODO(LB): This used to do a lot more. Not sure it's important to handle atm
-        raise error
-
-    def get_client(self, integration_id):
+    def get_installation(self, integration_id):
         if integration_id is None:
             raise ValueError('Bitbucket version 2 requires an integration id.')
 
         try:
             integration_model = Integration.objects.get(id=integration_id)
         except Integration.DoesNotExistError as error:
-            self.raise_error(error)
+            self.handle_error(error)
 
-        return integration_model.get_installation().get_client()
+        return integration_model.get_installation()
 
     def get_config(self, organization):
         choices = []
@@ -69,11 +65,12 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
         ```
         """
         if config.get('name'):
-            client = self.get_client(config['integration_id'])
+            installation = self.get_installation(config['integration_id'])
+            client = installation.get_client()
             try:
                 repo = client.get_repo(config['name'])
             except Exception as e:
-                self.raise_error(e)
+                installation.raise_error(e)
             else:
                 config['external_id'] = six.text_type(repo['uuid'])
         return config
@@ -96,7 +93,8 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
         return secret
 
     def create_repository(self, organization, data, actor=None):
-        client = self.get_client(data['integration_id'])
+        installation = self.get_installation(data['integration_id'])
+        client = installation.get_client()
         try:
             resp = client.create_hook(
                 data['name'], {
@@ -109,7 +107,7 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
                 }
             )
         except Exception as e:
-            self.raise_error(e, identity=client.auth)
+            installation.raise_error(e, identity=client.auth)
         else:
             return {
                 'name': data['name'],
@@ -123,7 +121,8 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
             }
 
     def delete_repository(self, repo, actor=None):
-        client = self.get_client(repo.integration_id)
+        installation = self.get_installation(repo.integration_id)
+        client = installation.get_client()
 
         try:
             client.delete_hook(repo.config['name'], repo.config['webhook_id'])
@@ -145,20 +144,21 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
         ]
 
     def compare_commits(self, repo, start_sha, end_sha, actor=None):
-        client = self.get_client(repo.integration_id)
+        installation = self.get_installation(repo.integration_id)
+        client = installation.get_client()
         # use config name because that is kept in sync via webhooks
         name = repo.config['name']
         if start_sha is None:
             try:
                 res = client.get_last_commits(name, end_sha)
             except Exception as e:
-                self.raise_error(e, identity=client.auth)
+                installation.raise_error(e, identity=client.auth)
             else:
                 return self._format_commits(repo, res[:10])
         else:
             try:
                 res = client.compare_commits(name, start_sha, end_sha)
             except Exception as e:
-                self.raise_error(e, identity=client.auth)
+                installation.raise_error(e, identity=client.auth)
             else:
                 return self._format_commits(repo, res)

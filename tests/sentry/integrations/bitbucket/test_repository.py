@@ -40,7 +40,8 @@ class BitbucketRepositoryProviderTest(TestCase):
         return BitbucketRepositoryProvider('bitbucket')
 
     def test_get_client(self):
-        client = self.provider.get_client(self.repo.integration_id)
+        installation = self.provider.get_installation(self.repo.integration_id)
+        client = installation.get_client()
         assert client.base_url == self.base_url
         assert client.shared_secret == self.shared_secret
         assert client.subject == self.subject
