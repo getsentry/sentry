@@ -40,18 +40,11 @@ class UserSerializerTest(TestCase):
         result = serialize(user)
         assert len(result['emails']) == 0
 
-    def test_self_permissions(self):
-        user = self.create_user()
-        UserPermission.objects.create(user=user, permission='foo')
-
-        result = serialize(user, user)
-        assert result['id'] == six.text_type(user.id)
-        assert result['permissions'] == ['foo']
-
 
 class DetailedUserSerializerTest(TestCase):
     def test_simple(self):
         user = self.create_user()
+        UserPermission.objects.create(user=user, permission='foo')
 
         org = self.create_organization(owner=user)
 
@@ -82,3 +75,4 @@ class DetailedUserSerializerTest(TestCase):
         assert 'authenticators' in result
         assert len(result['authenticators']) == 1
         assert result['authenticators'][0]['id'] == six.text_type(auth.id)
+        assert result['permissions'] == ['foo']
