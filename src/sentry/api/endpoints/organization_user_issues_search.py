@@ -17,7 +17,7 @@ class OrganizationUserIssuesSearchEndpoint(OrganizationEndpoint, EnvironmentMixi
         if email is None:
             return Response(status=400)
 
-        limit = request.GET.get('limit', 100)
+        limit = int(request.GET.get('limit', 100))
 
         # limit to only teams user has opted into
         project_ids = list(
