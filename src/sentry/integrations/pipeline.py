@@ -75,7 +75,7 @@ class IntegrationPipeline(Pipeline):
                 type=identity['type'],
                 defaults={'config': identity_config},
             )
-            if created:
+            if not created:
                 idp.update(config=identity_config)
 
             Identity.objects.get_or_create(
