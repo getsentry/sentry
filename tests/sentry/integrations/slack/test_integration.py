@@ -129,3 +129,13 @@ class SlackIntegrationTest(IntegrationTestCase):
         assert identities.count() == 2
         assert identities[0].external_id != identities[1].external_id
         assert identities[0].idp != identities[1].idp
+
+    @responses.activate
+    def test_reassign_user(self):
+        self.assert_setup_flow()
+        identity = Identity.objects.get()
+        assert identity.external_id == 'UXXXXXXX1'
+
+        self.assert_setup_flow(authorizing_user_id='UXXXXXXX2')
+        identity = Identity.objects.get()
+        assert identity.external_id == 'UXXXXXXX2'
