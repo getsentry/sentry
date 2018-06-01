@@ -40,7 +40,7 @@ class GitHubEnterpriseAppsClient(GitHubClientMixin):
 
     def create_token(self):
         return self.post(
-            '/api/installations/{}/access_tokens'.format(
+            '/api/v3/installations/{}/access_tokens'.format(
                 self.external_id,
             ),
             headers={
