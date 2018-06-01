@@ -27,7 +27,7 @@ class JavaScriptSdkLoader(BaseView):
         config = Config(key.project)
         context = {
             'config': config.get_project_key_config(key),
-            'jsSdkUrl': key.data.get('js_sdk_url', DEFAULT_SDK_URL),
+            'jsSdkUrl': DEFAULT_SDK_URL,
             'minified': minified
         }
 
