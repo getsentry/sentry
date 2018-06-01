@@ -2,6 +2,8 @@ from __future__ import absolute_import, print_function
 
 __all__ = ['IntegrationPipeline']
 
+from django.db import IntegrityError
+from django.db.models import Q
 from django.http import HttpResponse
 from django.utils import timezone
 
@@ -78,17 +80,33 @@ class IntegrationPipeline(Pipeline):
             if not created:
                 idp.update(config=identity_config)
 
-            Identity.objects.get_or_create(
-                idp=idp,
-                user=self.request.user,
-                external_id=identity['external_id'],
-                defaults={
-                    'status': IdentityStatus.VALID,
-                    'scopes': identity['scopes'],
-                    'data': identity['data'],
-                    'date_verified': timezone.now(),
-                },
-            )
+            identity_data = {
+                'status': IdentityStatus.VALID,
+                'scopes': identity['scopes'],
+                'data': identity['data'],
+                'date_verified': timezone.now(),
+            }
+
+            try:
+                Identity.objects.get_or_create(
+                    idp=idp,
+                    user=self.request.user,
+                    external_id=identity['external_id'],
+                    defaults=identity_data,
+                )
+            except IntegrityError:
+                # If the external_id is already used for a different user or
+                # the user already has a different external_id remove those
+                # identities and recreate it.
+                lookup = Q(external_id=identity['external_id']) | Q(user=self.request.user)
+                Identity.objects.filter(lookup, idp=idp).delete()
+
+                Identity.objects.create(
+                    idp=idp,
+                    user=self.request.user,
+                    external_id=identity['external_id'],
+                    **identity_data
+                )
 
         return self._dialog_response(serialize(org_integration, self.request.user), True)
 
