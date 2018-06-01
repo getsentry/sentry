@@ -30,7 +30,6 @@ class IdentityProvider(Model):
     __core__ = False
 
     type = models.CharField(max_length=64)
-    organization_id = BoundedPositiveIntegerField(default=0)
     config = EncryptedJsonField()
     date_added = models.DateTimeField(default=timezone.now, null=True)
     external_id = models.CharField(max_length=64, null=True)
@@ -38,8 +37,7 @@ class IdentityProvider(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_identityprovider'
-        # TODO(adhiraj): Remove organization_id index when it's no longer used.
-        unique_together = (('type', 'organization_id', 'external_id'), ('type', 'external_id'))
+        unique_together = (('type', 'external_id'),)
 
 
 class Identity(Model):
