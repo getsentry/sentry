@@ -1344,3 +1344,8 @@ SENTRY_MINIDUMP_PATH = '/tmp/minidump'
 # Relay
 # List of PKs whitelisted by Sentry
 SENTRY_RELAY_WHITELIST_PK = []
+
+# CDN
+JS_SDK_LOADER_CDN_URL = 'https://js.sentry-cdn.com/'
+JS_SDK_LOADER_SDK_VERSION = '0.5.2'
+JS_SDK_LOADER_DEFAULT_SDK_URL = 'https://s3.amazonaws.com/getsentry-cdn/@sentry/browser/%s/bundle.min.js' % JS_SDK_LOADER_SDK_VERSION

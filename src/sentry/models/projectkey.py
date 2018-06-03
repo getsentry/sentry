@@ -28,7 +28,6 @@ from sentry.db.models import (
 )
 
 _uuid4_re = re.compile(r'^[a-f0-9]{32}$')
-CDN_URL = 'https://js.sentry-cdn.com/'
 
 # TODO(dcramer): pull in enum library
 
@@ -205,7 +204,7 @@ class ProjectKey(Model):
 
     @property
     def js_sdk_loader_cdn_url(self):
-        return '%s%s.min.js' % (CDN_URL, self.public_key)
+        return '%s%s.min.js' % (settings.JS_SDK_LOADER_CDN_URL, self.public_key)
 
     def get_allowed_origins(self):
         from sentry.utils.http import get_origins
