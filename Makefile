@@ -10,10 +10,10 @@ endif
 PIP = LDFLAGS="$(LDFLAGS)" pip
 WEBPACK = NODE_ENV=production ./node_modules/.bin/webpack
 
-test: develop lint test-js test-python test-cli
 develop: setup-git develop-only
-# Used by https://github.com/getsentry/sentry-docs/blob/master/bin/extract-docs
+# develop-only is used by https://github.com/getsentry/sentry-docs/blob/master/bin/extract-docs
 develop-only: update-submodules install-system-pkgs install-yarn-pkgs install-sentry-dev
+test: develop lint test-js test-python test-cli
 
 build: locale
 
@@ -150,14 +150,18 @@ publish:
 	python setup.py sdist bdist_wheel upload
 
 
+.PHONY: develop develop-only test build dev-docs test reset-db clean setup-git update-submodules node-version-check install-system-pkgs install-yarn-pkgs install-sentry-dev build-js-po locale update-transifex build-platform-assets test-cli test-js test-styleguide test-python test-snuba test-acceptance lint lint-python lint-js publish
+
+
 ############################
 # Halt, Travis stuff below #
 ############################
 
+.PHONY: travis-noop
 travis-noop:
 	@echo "nothing to do here."
 
-# Lint steps
+.PHONY: travis-lint-sqlite travis-lint-postgres travis-lint-mysql travis-lint-acceptance travis-lint-snuba travis-lint-js travis-lint-cli travis-lint-dist
 travis-lint-sqlite: lint-python
 travis-lint-postgres: lint-python
 travis-lint-mysql: lint-python
@@ -167,7 +171,7 @@ travis-lint-js: lint-js
 travis-lint-cli: travis-noop
 travis-lint-dist: travis-noop
 
-# Test steps
+.PHONY: travis-test-sqlite travis-test-postgres travis-test-mysql travis-test-acceptance travis-test-snuba travis-test-js travis-test-cli travis-test-dist
 travis-test-sqlite: test-python
 travis-test-postgres: test-python
 travis-test-mysql: test-python
@@ -179,7 +183,7 @@ travis-test-dist:
 	SENTRY_BUILD=$(TRAVIS_COMMIT) SENTRY_LIGHT_BUILD=0 python setup.py sdist bdist_wheel
 	@ls -lh dist/
 
-# Scan steps
+.PHONY: scan-python travis-scan-sqlite travis-scan-postgres travis-scan-mysql travis-scan-acceptance travis-scan-snuba travis-scan-js travis-scan-cli travis-scan-dist
 scan-python:
 	@echo "--> Running Python vulnerability scanner"
 	$(PIP) install safety
@@ -194,5 +198,3 @@ travis-scan-snuba: scan-python
 travis-scan-js: travis-noop
 travis-scan-cli: travis-noop
 travis-scan-dist: travis-noop
-
-.PHONY: all develop develop-only build dev-docs test testloop reset-db clean setup-git update-submodules node-version-check install-system-pkgs install-yarn-pkgs install-sentry install-sentry-dev build-js-po locale update-transifex build-platform-assets test-cli test-js test-styleguide test-python test-snuba test-acceptance lint lint-python lint-js scan-python coverage publish extract-api-docs travis-noop travis-setup-cassandra travis-lint-sqlite travis-lint-postgres travis-lint-mysql travis-lint-acceptance travis-lint-snuba travis-lint-js travis-lint-cli travis-lint-dist travis-test-sqlite travis-test-postgres travis-test-mysql travis-test-acceptance travis-test-snuba travis-test-js travis-test-cli travis-test-dist travis-scan-sqlite travis-scan-postgres travis-scan-mysql travis-scan-acceptance travis-scan-snuba travis-scan-js travis-scan-cli travis-scan-dist
