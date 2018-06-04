@@ -64,6 +64,7 @@ class ExternalIssueActionList extends AsyncComponent {
     super(props, context);
     this.state.showModal = false;
     this.state.selectedIntegration = null;
+    this.state.action = null;
   }
 
   getEndpoints() {
@@ -71,10 +72,11 @@ class ExternalIssueActionList extends AsyncComponent {
     return [['integrations', `/groups/${group.id}/integrations/`]];
   }
 
-  openModal = integration => {
+  openModal = (integration, action) => {
     this.setState({
       showModal: true,
       selectedIntegration: integration,
+      action,
     });
   };
 
@@ -82,20 +84,28 @@ class ExternalIssueActionList extends AsyncComponent {
     this.setState({
       showModal: false,
       selectedIntegration: null,
+      action: null,
     });
   };
 
   renderBody() {
-    let {selectedIntegration} = this.state;
+    let {selectedIntegration, action} = this.state;
     return (
       <React.Fragment>
         {this.state.integrations.map(integration => {
           return (
-            <MenuItem key={integration.id} noAnchor={true}>
-              <a onClick={this.openModal.bind(this, integration)}>
-                {tct('Link [provider] issue', {provider: integration.provider.name})}
-              </a>
-            </MenuItem>
+            <React.Fragment key={integration.id}>
+              <MenuItem noAnchor={true}>
+                <a onClick={this.openModal.bind(this, integration, 'link')}>
+                  {tct('Link [provider] issue', {provider: integration.provider.name})}
+                </a>
+              </MenuItem>
+              <MenuItem noAnchor={true}>
+                <a onClick={this.openModal.bind(this, integration, 'create')}>
+                  {tct('Create [provider] issue', {provider: integration.provider.name})}
+                </a>
+              </MenuItem>
+            </React.Fragment>
           );
         })}
         {selectedIntegration && (
@@ -113,7 +123,7 @@ class ExternalIssueActionList extends AsyncComponent {
               <ExternalIssueForm
                 group={this.props.group}
                 integration={selectedIntegration}
-                action="link"
+                action={action}
                 onSubmitSuccess={this.closeModal}
               />
             </Modal.Body>
