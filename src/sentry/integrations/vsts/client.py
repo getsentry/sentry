@@ -31,10 +31,10 @@ class VstsApiClient(ApiClient):
 
     def request(self, method, path, data=None, params=None):
         headers = {
-            # 'Accept': 'application/json; api-version={}'.format(self.api_version),
-            # 'Content-Type': 'application/json-patch+json' if method == 'PATCH' else 'application/json',
-            # 'X-HTTP-Method-Override': method,
-            # 'X-TFS-FedAuthRedirect': 'Suppress',
+            'Accept': 'application/json; api-version={}'.format(self.api_version),
+            'Content-Type': 'application/json-patch+json' if method == 'PATCH' else 'application/json',
+            'X-HTTP-Method-Override': method,
+            'X-TFS-FedAuthRedirect': 'Suppress',
             'Authorization': 'Bearer {}'.format(self.access_token)
         }
         return self._request(method, path, headers=headers, data=data, params=params)
