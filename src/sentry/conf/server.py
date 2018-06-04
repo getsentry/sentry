@@ -1346,6 +1346,9 @@ SENTRY_MINIDUMP_PATH = '/tmp/minidump'
 SENTRY_RELAY_WHITELIST_PK = []
 
 # CDN
-JS_SDK_LOADER_CDN_URL = 'https://js.sentry-cdn.com/'
+# If this is an absolute url like e.g.: https://js.sentry-cdn.com/
+# the full url will look like this: https://js.sentry-cdn.com/<public_key>.min.js
+# otherwise django reverse url lookup will be used.
+JS_SDK_LOADER_CDN_URL = ''
 JS_SDK_LOADER_SDK_VERSION = '0.5.2'
 JS_SDK_LOADER_DEFAULT_SDK_URL = 'https://s3.amazonaws.com/getsentry-cdn/@sentry/browser/%s/bundle.min.js' % JS_SDK_LOADER_SDK_VERSION
