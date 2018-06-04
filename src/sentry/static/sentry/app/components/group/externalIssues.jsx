@@ -41,13 +41,19 @@ class ExternalIssueForm extends AsyncComponent {
   renderBody() {
     let {integrationDetails} = this.state;
     let {action, group, integration} = this.props;
+    let config = integrationDetails[`${action}IssueConfig`];
+    let initialData = {};
+    config.forEach(field => {
+      initialData[field.name] = field.default;
+    });
     return (
       <Form
         apiEndpoint={`/groups/${group.id}/integrations/${integration.id}/`}
         apiMethod={action === 'create' ? 'POST' : 'PUT'}
         onSubmitSuccess={this.onSubmitSuccess}
+        initialData={initialData}
       >
-        {integrationDetails[`${action}IssueConfig`].map(field => {
+        {config.map(field => {
           return <FieldFromConfig key={field.name} field={field} />;
         })}
       </Form>
