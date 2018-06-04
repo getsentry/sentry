@@ -44,7 +44,8 @@ class ExternalIssueForm extends AsyncComponent {
     let config = integrationDetails[`${action}IssueConfig`];
     let initialData = {};
     config.forEach(field => {
-      initialData[field.name] = field.default;
+      // passing an empty array breaks multi select
+      initialData[field.name] = field.multiple ? '' : field.default;
     });
     return (
       <Form
