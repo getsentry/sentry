@@ -74,7 +74,10 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
         if col in snuba_map:
             keys = [snuba_map[col][k] for k in keys if k in snuba_map[col]]
         if keys:
-            conditions.append((col, 'IN', keys))
+            if len(keys) == 1 and keys[0] is None:
+                conditions.append((col, 'IS NULL', None))
+            else:
+                conditions.append((col, 'IN', keys))
 
     if 'project_id' in filter_keys:
         # If we are given a set of project ids, use those directly.
@@ -196,12 +199,13 @@ def get_snuba_map(column, ids):
     equivalent ones in snuba.
     """
     mappings = {
-        'environment': (Environment, 'name'),
-        'tags[sentry:release]': (Release, 'version'),
+        'environment': (Environment, 'name', lambda name: None if name == '' else name),
+        'tags[sentry:release]': (Release, 'version', lambda name: name),
     }
     if column in mappings and ids:
-        model, field = mappings[column]
-        return dict(model.objects.filter(id__in=ids).values_list('id', field))
+        model, field, transform = mappings[column]
+        objects = model.objects.filter(id__in=ids).values_list('id', field)
+        return {k: transform(v) for k, v in objects}
     return None
 
 

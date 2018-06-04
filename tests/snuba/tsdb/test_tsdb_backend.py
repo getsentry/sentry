@@ -67,6 +67,7 @@ class SnubaTSDBTest(TestCase):
         self.proj1 = self.create_project()
         self.proj1env1 = self.create_environment(project=self.proj1, name='test')
         self.proj1env2 = self.create_environment(project=self.proj1, name='dev')
+        self.proj1defaultenv = self.create_environment(project=self.proj1, name='')
 
         self.proj1group1 = self.create_group(self.proj1)
         self.proj1group2 = self.create_group(self.proj1)
@@ -91,7 +92,7 @@ class SnubaTSDBTest(TestCase):
 
         data = json.dumps([{
             'event_id': (six.text_type(r) * 32)[:32],
-            'primary_hash': [hash1, hash2][(r // 600) % 2],
+            'primary_hash': [hash1, hash2][(r // 600) % 2],  # Switch every 10 mins
             'project_id': self.proj1.id,
             'message': 'message 1',
             'platform': 'python',
@@ -101,7 +102,8 @@ class SnubaTSDBTest(TestCase):
                 'tags': {
                     'foo': 'bar',
                     'baz': 'quux',
-                    'environment': self.proj1env1.name,
+                    # Switch every 2 hours
+                    'environment': [self.proj1env1.name, None][(r // 7200) % 2],
                     'sentry:user': 'id:user{}'.format(r // 3300),
                     'sentry:release': six.text_type(r // 3600) * 10,  # 1 per hour
                 },
@@ -184,6 +186,8 @@ class SnubaTSDBTest(TestCase):
             ]
         }
 
+    def test_range_environment_filter(self):
+        dts = [self.now + timedelta(hours=i) for i in range(4)]
         assert self.db.get_range(
             TSDBModel.project,
             [self.proj1.id],
@@ -194,8 +198,8 @@ class SnubaTSDBTest(TestCase):
             self.proj1.id: [
                 (timestamp(dts[0]), 6),
                 (timestamp(dts[1]), 6),
-                (timestamp(dts[2]), 6),
-                (timestamp(dts[3]), 6),
+                (timestamp(dts[2]), 0),
+                (timestamp(dts[3]), 0),
             ]
         }
 
@@ -212,6 +216,22 @@ class SnubaTSDBTest(TestCase):
                 (timestamp(dts[1]), 0),
                 (timestamp(dts[2]), 0),
                 (timestamp(dts[3]), 0),
+            ]
+        }
+
+        # Events submitted with no environment should match default environment
+        assert self.db.get_range(
+            TSDBModel.project,
+            [self.proj1.id],
+            dts[0], dts[-1],
+            rollup=3600,
+            environment_id=self.proj1defaultenv.id
+        ) == {
+            self.proj1.id: [
+                (timestamp(dts[0]), 0),
+                (timestamp(dts[1]), 0),
+                (timestamp(dts[2]), 6),
+                (timestamp(dts[3]), 6),
             ]
         }
 
