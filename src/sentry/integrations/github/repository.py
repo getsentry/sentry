@@ -12,7 +12,7 @@ WEBHOOK_EVENTS = ['push', 'pull_request']
 
 
 class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
-    name = 'GitHub Apps'
+    name = 'GitHub'
     logger = logging.getLogger('sentry.plugins.github')
 
     def get_config(self, organization):
@@ -26,7 +26,7 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
         return [
             {
                 'name': 'installation',
-                'label': 'Github Installation',
+                'label': 'GitHub Installation',
                 'type': 'choice',
                 'choices': choices,
                 'initial': choices[0][0],
