@@ -48,8 +48,14 @@ class Webhook(object):
         )
 
         if 'repository' in event:
+
+            orgs = {
+                org.id: org
+                for org in integration.organizations.all()
+            }
+
             repos = Repository.objects.filter(
-                organization_id__in=integration.organizations.all().values_list('id', flat=True),
+                organization_id__in=orgs.keys(),
                 provider='integrations:github',
                 external_id=six.text_type(event['repository']['id']),
             )
@@ -60,7 +66,7 @@ class Webhook(object):
                     repo.config['name'] = event['repository']['full_name']
                     repo.save()
 
-                self._handle(event, integration.organizations.get(id=repo.organization_id), repo)
+                self._handle(event, orgs[repo.organization_id], repo)
 
 
 class InstallationEventWebhook(Webhook):
