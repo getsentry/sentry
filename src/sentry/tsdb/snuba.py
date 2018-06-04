@@ -81,20 +81,48 @@ class SnubaTSDB(BaseTSDB):
 
         if group_on_time:
             keys_map['time'] = series
+
         self.zerofill(result, groupby, keys_map)
+        self.trim(result, groupby, keys)
 
         return result
 
-    def zerofill(self, result, groups, group_keys):
+    def zerofill(self, result, groups, flat_keys):
+        """
+        Fills in missing keys in the nested result with zeroes.
+        `result` is the nested result
+        `groups` is the order in which the result is nested, eg: ['project', 'time']
+        `flat_keys` is a map from groups to lists of required keys for that group.
+                    eg: {'project': [1,2]}
+        """
         if len(groups) > 0:
-            for k in group_keys[groups[0]]:
+            group, subgroups = groups[0], groups[1:]
+            # Zerofill missing keys
+            for k in flat_keys[group]:
                 if k not in result:
                     result[k] = 0 if len(groups) == 1 else {}
 
-            if len(groups) > 1:
-                subgroups = groups[1:]
+            if subgroups:
                 for v in result.values():
-                    self.zerofill(v, subgroups, group_keys)
+                    self.zerofill(v, subgroups, flat_keys)
+
+    def trim(self, result, groups, keys):
+        """
+        Similar to zerofill, but removes keys that should not exist.
+        Uses the non-flattened version of keys, so that different sets
+        of keys can exist in different branches at the same nesting level.
+        """
+        if len(groups) > 0:
+            group, subgroups = groups[0], groups[1:]
+            if isinstance(result, dict):
+                for rk in result.keys():
+                    if group == 'time':  # Skip over time group
+                        self.trim(result[rk], subgroups, keys)
+                    elif rk in keys:
+                        if isinstance(keys, dict):
+                            self.trim(result[rk], subgroups, keys[rk])
+                    else:
+                        del result[rk]
 
     def get_range(self, model, keys, start, end, rollup=None, environment_id=None):
         result = self.get_data(model, keys, start, end, rollup, environment_id,

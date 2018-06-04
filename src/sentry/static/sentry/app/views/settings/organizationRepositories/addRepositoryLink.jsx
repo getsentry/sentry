@@ -105,9 +105,31 @@ class AddRepositoryLink extends PluginComponentBase {
     }));
   }
 
+  renderNote(provider) {
+    if (['integrations:github', 'integrations:bitbucket'].includes(provider.id)) {
+      return (
+        <div
+          className="alert alert-info alert-block"
+          style={{display: 'flex', alignItems: 'center'}}
+        >
+          <p>
+            {'You must install at least one ' +
+              provider.name +
+              '  Integration to connect a repository.'}
+          </p>
+        </div>
+      );
+    }
+    return false;
+  }
+
   renderForm() {
     let errors = this.state.error.errors || {};
     let provider = this.props.provider;
+    let hasIntegration = true;
+    provider.config.forEach(field => {
+      if (field.initial == '') hasIntegration = false;
+    });
     return (
       <form onSubmit={this.formSubmit}>
         {errors.__all__ && (
@@ -115,6 +137,7 @@ class AddRepositoryLink extends PluginComponentBase {
             <p>{errors.__all__}</p>
           </div>
         )}
+        {!hasIntegration && this.renderNote(provider)}
         {provider.config.map(field => {
           return (
             <div key={field.name}>

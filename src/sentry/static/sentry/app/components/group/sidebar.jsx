@@ -223,9 +223,10 @@ const GroupSidebar = createReactClass({
     return (
       <div className="group-stats">
         <SuggestedOwners event={this.props.event} />
-        {this.state.allEnvironmentsGroupData && (
-          <GroupReleaseStats group={this.state.allEnvironmentsGroupData} />
-        )}
+        <GroupReleaseStats
+          group={this.props.group}
+          allEnvironments={this.state.allEnvironmentsGroupData}
+        />
 
         {this.renderPluginIssue()}
 
