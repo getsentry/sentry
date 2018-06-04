@@ -45,6 +45,8 @@ class Dashboard extends React.Component {
     const access = new Set(organization.access);
     const teamsMap = new Map(teams.map(teamObj => [teamObj.slug, teamObj]));
 
+    const hasTeamAdminAccess = access.has('team:admin');
+
     return (
       <React.Fragment>
         {favorites.length > 0 && (
@@ -69,9 +71,13 @@ class Dashboard extends React.Component {
                 team={team}
                 showBorder={showBorder}
                 title={
-                  <TeamLink to={`/settings/${organization.slug}/teams/${team.slug}/`}>
+                  hasTeamAdminAccess ? (
+                    <TeamLink to={`/settings/${organization.slug}/teams/${team.slug}/`}>
+                      <IdBadge team={team} />
+                    </TeamLink>
+                  ) : (
                     <IdBadge team={team} />
-                  </TeamLink>
+                  )
                 }
                 projects={projectsByTeam[slug]}
                 access={access}
