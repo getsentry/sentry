@@ -71,14 +71,16 @@ class ExternalIssueForm extends AsyncComponent {
         {integrationDetails[`${action}IssueConfig`].map(field => {
           let props = {};
           if (field.url) {
-            props.loadOptions = input => {
-              return this.getOptions(field, input);
+            props = {
+              loadOptions: input => {
+                return this.getOptions(field, input);
+              },
+              async: true,
+              cache: false,
+              onSelectResetsInput: false,
+              onCloseResetsInput: false,
+              onBlurResetsInput: false,
             };
-            props.async = true;
-            props.cache = false;
-            props.onSelectResetsInput = false;
-            props.onCloseResetsInput = false;
-            props.onBlurResetsInput = false;
           }
           return <FieldFromConfig key={field.name} field={field} {...props} />;
         })}
