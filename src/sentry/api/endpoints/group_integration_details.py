@@ -72,13 +72,19 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         except IntegrationError as exc:
             return Response({'detail': exc.message}, status=400)
 
-        external_issue = ExternalIssue.objects.get_or_create(
+        defaults = {
+            'title': data.get('title'),
+            'description': data.get('description'),
+        }
+        external_issue, created = ExternalIssue.objects.get_or_create(
             organization_id=organization_id,
             integration_id=integration.id,
             key=external_issue_id,
-            title=data.get('title'),
-            description=data.get('description'),
-        )[0]
+            defaults=defaults,
+        )
+
+        if not created:
+            external_issue.update(**defaults)
 
         try:
             with transaction.atomic():
