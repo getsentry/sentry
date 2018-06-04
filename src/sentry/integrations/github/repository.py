@@ -6,8 +6,6 @@ import six
 from sentry.models import Integration
 from sentry.plugins import providers
 
-from .client import GitHubAppsClient
-
 WEBHOOK_EVENTS = ['push', 'pull_request']
 
 
@@ -103,10 +101,9 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
         integration_id = repo.integration_id
         if integration_id is None:
             raise NotImplementedError('GitHub apps requires an integration id to fetch commits')
-
-        client = GitHubAppsClient(
-            Integration.objects.get(id=integration_id).external_id,
-        )
+        integration = Integration.objects.get(id=integration_id)
+        installation = integration.get_installation()
+        client = installation.get_client()
 
         # use config name because that is kept in sync via webhooks
         name = repo.config['name']
@@ -114,14 +111,14 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
             try:
                 res = client.get_last_commits(name, end_sha)
             except Exception as e:
-                self.raise_error(e)
+                installation.raise_error(e)
             else:
                 return self._format_commits(repo, res[:10])
         else:
             try:
                 res = client.compare_commits(name, start_sha, end_sha)
             except Exception as e:
-                self.raise_error(e)
+                installation.raise_error(e)
             else:
                 return self._format_commits(repo, res['commits'])
 
@@ -130,16 +127,15 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
             integration_id = repo.integration_id
             if integration_id is None:
                 raise NotImplementedError('GitHub apps requires an integration id to fetch commits')
-
-            client = GitHubAppsClient(
-                Integration.objects.get(id=integration_id).external_id,
-            )
+            integration = Integration.objects.get(id=integration_id)
+            installation = integration.get_installation()
+            client = installation.get_client()
 
             # use config name because that is kept in sync via webhooks
             name = repo.config['name']
             try:
                 res = client.get_pr_commits(name, number)
             except Exception as e:
-                self.raise_error(e)
+                installation.raise_error(e)
             else:
                 return self._format_commits(repo, res)
