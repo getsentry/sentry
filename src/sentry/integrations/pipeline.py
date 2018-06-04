@@ -39,8 +39,11 @@ def ensure_integration(key, data):
         defaults=defaults
     )
     if not created:
+        default_identity_id = integration.metadata.get('default_identity_id')
         integration.update(**defaults)
-
+        if default_identity_id:
+            integration.metadata['default_identity_id'] = default_identity_id
+            integration.update(metadata=integration.metadata)
     return integration
 
 
@@ -88,7 +91,7 @@ class IntegrationPipeline(Pipeline):
             }
 
             try:
-                ident, created = Identity.objects.get_or_create(
+                identity_model, created = Identity.objects.get_or_create(
                     idp=idp,
                     user=self.request.user,
                     external_id=identity['external_id'],
@@ -96,7 +99,7 @@ class IntegrationPipeline(Pipeline):
                 )
 
                 if not created:
-                    ident.update(data=identity['data'], scopes=identity['scopes'])
+                    identity_model.update(data=identity['data'], scopes=identity['scopes'])
             except IntegrityError:
                 # If the external_id is already used for a different user or
                 # the user already has a different external_id remove those
@@ -104,12 +107,17 @@ class IntegrationPipeline(Pipeline):
                 lookup = Q(external_id=identity['external_id']) | Q(user=self.request.user)
                 Identity.objects.filter(lookup, idp=idp).delete()
 
-                Identity.objects.create(
+                identity_model = Identity.objects.create(
                     idp=idp,
                     user=self.request.user,
                     external_id=identity['external_id'],
                     **identity_data
                 )
+
+            if self.provider.needs_default_identity and not integration.metadata.get(
+                    'default_identity_id'):
+                integration.metadata['default_identity_id'] = identity_model.id
+                integration.update(metadata=integration.metadata)
 
         return self._dialog_response(serialize(org_integration, self.request.user), True)
 

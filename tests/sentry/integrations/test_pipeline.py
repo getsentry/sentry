@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.models import Integration, OrganizationIntegration
+from sentry.models import Identity, Integration, OrganizationIntegration
 from sentry.testutils import IntegrationTestCase
 from sentry.integrations.example import ExampleIntegrationProvider
 
@@ -88,3 +88,72 @@ class FinishPipelineTestCase(IntegrationTestCase):
             organization_id=self.organization.id,
             integration_id=integration.id,
         ).exists()
+
+    def test_with_default_id(self):
+        self.provider.needs_default_identity = True
+        data = {
+            'external_id': self.external_id,
+            'name': 'Name',
+            'metadata': {'url': 'https://example.com'},
+            'user_identity': {
+                'type': 'plugin',
+                'external_id': 'AccountId',
+                'scopes': [],
+                'data': {
+                    'access_token': 'token12345',
+                    'expires_in': '123456789',
+                    'refresh_token': 'refresh12345',
+                    'token_type': 'typetype',
+                },
+            }
+        }
+        self.pipeline.state.data = data
+        resp = self.pipeline.finish_pipeline()
+
+        self.assertDialogSuccess(resp)
+
+        integration = Integration.objects.get(
+            provider=self.provider.key,
+            external_id=self.external_id,
+        )
+        default_id = integration.metadata.get('default_identity_id')
+        assert default_id and Identity.objects.get(
+            id=default_id).data == data['user_identity']['data']
+
+    def test_default_identity_does_not_update(self):
+        self.provider.needs_default_identity = True
+        old_identity_id = 234567
+        Integration.objects.create(
+            provider=self.provider.key,
+            external_id=self.external_id,
+            metadata={
+                'url': 'https://example.com',
+                'default_identity_id': old_identity_id,
+            },
+        )
+        self.pipeline.state.data = {
+            'external_id': self.external_id,
+            'name': 'Name',
+            'metadata': {'url': 'https://example.com'},
+            'user_identity': {
+                'type': 'plugin',
+                'external_id': 'AccountId',
+                'scopes': [],
+                'data': {
+                    'access_token': 'token12345',
+                    'expires_in': '123456789',
+                    'refresh_token': 'refresh12345',
+                    'token_type': 'typetype',
+                },
+            }
+        }
+
+        resp = self.pipeline.finish_pipeline()
+        self.assertDialogSuccess(resp)
+
+        integration = Integration.objects.get(
+            provider=self.provider.key,
+            external_id=self.external_id,
+        )
+        assert integration.metadata.get('default_identity_id') == old_identity_id
+        assert Identity.objects.filter(external_id='AccountId').exists()
