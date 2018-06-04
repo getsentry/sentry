@@ -120,12 +120,12 @@ const ProjectInstallPlatform = createReactClass({
 
   recordAnalytics() {
     let {experimentPlatforms, integration} = this.state;
-    let currentPlatform = integration.id;
 
-    if (!experimentPlatforms.has(currentPlatform)) return;
+    if (!integration || !experimentPlatforms.has(integration.id)) return;
+
     analytics('experiment.installation_instructions', {
       integration: integration.id,
-      variant: this.inInstallExperiment(),
+      experiment: this.inInstallExperiment(),
     });
   },
 
