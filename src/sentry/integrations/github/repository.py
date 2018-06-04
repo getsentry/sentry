@@ -43,6 +43,20 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
             }
         ]
 
+    def _get_repo(self, client, installation, repo):
+        try:
+            repo = client.get_repo(repo)
+        except Exception as e:
+            installation.raise_error(e)
+
+        try:
+            # make sure installation has access to this specific repo
+            client.get_commits(repo)
+        except Exception as e:
+            installation.raise_error(e)
+
+        return repo
+
     def validate_config(self, organization, config, actor=None):
         """
         ```
@@ -52,18 +66,14 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
         ```
         """
         if config.get('name') and config.get('installation'):
-            # this doesn't work yet, need github client
             integration = Integration.objects.get(
                 id=config['installation'], organizations=organization)
             installation = integration.get_installation()
             client = installation.get_client()
-            try:
-                repo = client.get_repo(config['name'])
-            except Exception as e:
-                installation.raise_error(e)
-            else:
-                config['external_id'] = six.text_type(repo['id'])
-                config['integration_id'] = integration.id
+
+            repo = self._get_repo(client, installation, config['name'])
+            config['external_id'] = six.text_type(repo['id'])
+            config['integration_id'] = integration.id
 
         return config
 
@@ -122,7 +132,7 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
                 raise NotImplementedError('GitHub apps requires an integration id to fetch commits')
 
             client = GitHubAppsClient(
-                Integration.objects.get(id=integration_id),
+                Integration.objects.get(id=integration_id).external_id,
             )
 
             # use config name because that is kept in sync via webhooks
