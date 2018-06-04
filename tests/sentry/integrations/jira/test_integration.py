@@ -372,7 +372,7 @@ class JiraIntegrationTest(APITestCase):
                 'name': 'externalIssue',
                 'label': 'Issue',
                 'default': '',
-                'type': 'string',
+                'type': 'select',
                 'url': reverse(
                     'sentry-extensions-jira-search', args=[org.slug, integration.id],
                 )

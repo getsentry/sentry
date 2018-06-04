@@ -50,8 +50,8 @@ class JiraSearchEndpointTest(APITestCase):
 
         path = reverse('sentry-extensions-jira-search', args=[org.slug, integration.id])
 
-        resp = self.client.get('%s?field=issue_id&query=test' % (path,))
+        resp = self.client.get('%s?field=externalIssue&query=test' % (path,))
         assert resp.data == [
-            {'text': '(HSP-1) this is a test issue summary', 'id': 'HSP-1'}
+            {'label': '(HSP-1) this is a test issue summary', 'value': 'HSP-1'}
         ]
         mock_search_issues.assert_called_with('test')
