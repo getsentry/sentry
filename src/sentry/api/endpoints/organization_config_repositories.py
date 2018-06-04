@@ -16,9 +16,15 @@ class OrganizationConfigRepositoriesEndpoint(OrganizationEndpoint):
             'organizations:internal-catchall',
             organization,
             actor=request.user)
-        has_github_apps = features.has('organizations:github-apps',
-                                       organization,
-                                       actor=request.user)
+
+        has_integration = {
+            'integrations:github': features.has('organizations:github-apps',
+                                                organization,
+                                                actor=request.user),
+            'integrations:bitbucket': features.has('organizations:bitbucket-integration',
+                                                   organization,
+                                                   actor=request.user),
+        }
 
         providers = []
         for provider_id in provider_bindings:
@@ -26,7 +32,7 @@ class OrganizationConfigRepositoriesEndpoint(OrganizationEndpoint):
             # TODO(jess): figure out better way to exclude this
             if provider_id == 'github_apps':
                 continue
-            if has_github_apps and provider_id == 'github':
+            if has_integration.get('integrations:' + provider_id):
                 continue
             providers.append(
                 {
@@ -38,7 +44,7 @@ class OrganizationConfigRepositoriesEndpoint(OrganizationEndpoint):
 
         for provider_id in integrations_provider_bindings:
             provider = integrations_provider_bindings.get(provider_id)(id=provider_id)
-            if has_catchall or (has_github_apps and provider_id == 'integrations:github'):
+            if has_catchall or has_integration.get(provider_id):
                 providers.append(
                     {
                         'id': provider_id,
