@@ -1,3 +1,4 @@
+import $ from 'jquery';
 import React from 'react';
 import PropTypes from 'prop-types';
 import Modal from 'react-bootstrap/lib/Modal';
@@ -38,6 +39,18 @@ class ExternalIssueForm extends AsyncComponent {
     this.props.onSubmitSuccess();
   };
 
+  getOptions = (field, input) => {
+    if (!input) {
+      return Promise.resolve([]);
+    }
+    return $.ajax({
+      url: `${field.url}?field=${field.name}&query=${input}`,
+      method: 'GET',
+    }).then(data => {
+      return {options: data};
+    });
+  };
+
   renderBody() {
     let {integrationDetails} = this.state;
     let {action, group, integration} = this.props;
@@ -48,7 +61,21 @@ class ExternalIssueForm extends AsyncComponent {
         onSubmitSuccess={this.onSubmitSuccess}
       >
         {integrationDetails[`${action}IssueConfig`].map(field => {
-          return <FieldFromConfig key={field.name} field={field} />;
+          let props = {};
+          if (field.url) {
+            props = {
+              loadOptions: input => {
+                return this.getOptions(field, input);
+              },
+              async: true,
+              cache: false,
+              onSelectResetsInput: false,
+              onCloseResetsInput: false,
+              onBlurResetsInput: false,
+              autoload: false,
+            };
+          }
+          return <FieldFromConfig key={field.name} field={field} {...props} />;
         })}
       </Form>
     );
