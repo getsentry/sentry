@@ -1,13 +1,13 @@
 from __future__ import absolute_import
 
 from datetime import datetime, timedelta
-from mock import patch
+# from mock import patch
 import pytest
-import pytz
+# import pytz
 import time
-import uuid
+# import uuid
 
-from sentry.models import GroupHash, GroupHashTombstone
+# from sentry.models import GroupHash, GroupHashTombstone
 from sentry.testutils import SnubaTestCase
 from sentry.utils import snuba
 
