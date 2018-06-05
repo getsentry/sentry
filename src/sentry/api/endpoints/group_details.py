@@ -19,7 +19,7 @@ from sentry.models import (
     Activity,
     Environment,
     Group,
-    GroupHash,
+    GroupHashTombstone,
     GroupRelease,
     GroupSeen,
     GroupStatus,
@@ -389,10 +389,13 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             GroupStatus.DELETION_IN_PROGRESS,
         ]).update(status=GroupStatus.PENDING_DELETION)
         if updated:
-            GroupHash.objects.filter(group=group).delete()
+            project = group.project
+            GroupHashTombstone.tombstone_groups(
+                project_id=project.id,
+                group_ids=[group.id],
+            )
 
             transaction_id = uuid4().hex
-            project = group.project
 
             delete_group.apply_async(
                 kwargs={

@@ -198,6 +198,7 @@ def cleanup(days, project, concurrency, max_procs, silent, model, router, timed)
     # (model, datetime_field, order_by)
     BULK_QUERY_DELETES = [
         (models.EventMapping, 'date_added', '-date_added'),
+        (models.GroupHashTombstone, 'deleted_at', None),
         (models.GroupEmailThread, 'date', None),
         (models.GroupRuleStatus, 'date_added', None),
     ] + EXTRA_BULK_QUERY_DELETES
