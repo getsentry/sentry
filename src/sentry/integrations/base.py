@@ -72,7 +72,8 @@ class IntegrationProvider(PipelineProvider):
     # can the integration be enabled specifically for projects?
     can_add_project = False
 
-    # when the first identity is created, the default idenity is saved
+    # if the integration has no application-style access token, associate
+    # the installers identity to the organization integration
     needs_default_identity = False
 
     # can be any number of IntegrationFeatures
