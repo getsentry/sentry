@@ -51,6 +51,57 @@ class ExternalIssueForm extends AsyncComponent {
     });
   };
 
+  onFieldChange = (label, value) => {
+    let {integrationDetails} = this.state;
+    let {action, group, integration} = this.props;
+    let config = integrationDetails[`${action}IssueConfig`];
+    let dynamicFields = new Set(
+      config
+        .filter(field => {
+          return field.updatesForm;
+        })
+        .map(field => {
+          return field.name;
+        })
+    );
+    if (dynamicFields.has(label)) {
+      let dynamicFieldValues = this.state.dynamicFieldValues || {};
+      dynamicFieldValues[label] = value;
+
+      this.setState(
+        {
+          dynamicFieldValues,
+          loading: true,
+          error: false,
+          remainingRequests: 1,
+        },
+        () => {
+          let dynamicVals = this.state.dynamicFieldValues;
+          let endpoint = `/groups/${group.id}/integrations/${integration.id}/`;
+          let query = {
+            action,
+          };
+          Object.entries(dynamicVals).map(([key, val]) => {
+            query[key] = encodeURIComponent(val);
+          });
+          this.api.request(endpoint, {
+            method: 'GET',
+            query,
+            success: (data, _, jqXHR) => {
+              this.handleRequestSuccess(
+                {stateKey: 'integrationDetails', data, jqXHR},
+                true
+              );
+            },
+            error: error => {
+              this.handleError(error, ['integrationDetails', endpoint, null, null]);
+            },
+          });
+        }
+      );
+    }
+  };
+
   renderBody() {
     let {integrationDetails} = this.state;
     let {action, group, integration} = this.props;
@@ -67,6 +118,7 @@ class ExternalIssueForm extends AsyncComponent {
         apiMethod={action === 'create' ? 'POST' : 'PUT'}
         onSubmitSuccess={this.onSubmitSuccess}
         initialData={initialData}
+        onFieldChange={this.onFieldChange}
       >
         {config.map(field => {
           let props = {};
@@ -83,7 +135,7 @@ class ExternalIssueForm extends AsyncComponent {
               autoload: false,
             };
           }
-          return <FieldFromConfig key={field.name} field={field} {...props}/>;
+          return <FieldFromConfig key={field.name} field={field} {...props} />;
         })}
       </Form>
     );

@@ -249,6 +249,7 @@ class JiraIntegration(Integration, IssueSyncMixin):
                 'choices': [(p['id'], p['key']) for p in client.get_projects_list()],
                 'default': meta['id'],
                 'type': 'select',
+                'updatesForm': True,
             }
         ] + fields + [
             {
@@ -256,7 +257,8 @@ class JiraIntegration(Integration, IssueSyncMixin):
                 'label': 'Issue Type',
                 'default': issue_type or issue_type_meta['id'],
                 'type': 'select',
-                'choices': issue_type_choices
+                'choices': issue_type_choices,
+                'updatesForm': True,
             }
         ]
 
