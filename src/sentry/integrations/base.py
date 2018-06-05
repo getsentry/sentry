@@ -73,7 +73,7 @@ class IntegrationProvider(PipelineProvider):
     can_add_project = False
 
     # if the integration has no application-style access token, associate
-    # the installers identity to the organization integration
+    # the installer's identity to the organization integration
     needs_default_identity = False
 
     # can be any number of IntegrationFeatures
