@@ -41,9 +41,7 @@ class ExternalIssueForm extends AsyncComponent {
 
   getOptions = (field, input) => {
     if (!input) {
-      return new Promise((resolve, reject) => {
-        resolve([]);
-      });
+      return Promise.resolve([]);
     }
     return $.ajax({
       url: `${field.url}?field=${field.name}&query=${input}`,
