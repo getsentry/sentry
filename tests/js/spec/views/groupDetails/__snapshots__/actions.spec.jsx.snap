@@ -104,6 +104,11 @@ exports[`GroupActions render() renders correctly 1`] = `
     <a
       className="btn btn-default btn-sm btn-config-issue-tracking"
       href="/org/project/settings/issue-tracking/"
+      style={
+        Object {
+          "marginRight": "5px",
+        }
+      }
     >
       Link Issue Tracker
     </a>
