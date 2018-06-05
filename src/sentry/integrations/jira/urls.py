@@ -13,7 +13,7 @@ urlpatterns = patterns(
     url(r'^configure/$', JiraConfigureView.as_view()),
     url(r'^descriptor/$', JiraDescriptorEndpoint.as_view()),
     url(r'^installed/$', JiraInstalledEndpoint.as_view()),
-    url(r'^search/(?P<organization_slug>[^\/]+)/(?P<integration_id>[^\/]+)/$',
+    url(r'^search/(?P<organization_slug>[^\/]+)/(?P<integration_id>\d+)/$',
         JiraSearchEndpoint.as_view(),
         name='sentry-extensions-jira-search'
         ),
