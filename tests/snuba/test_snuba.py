@@ -1,9 +1,7 @@
 from __future__ import absolute_import
 
 from datetime import datetime, timedelta
-from mock import patch
 import pytest
-import pytz
 import time
 import uuid
 
@@ -49,10 +47,8 @@ class SnubaTest(SnubaTestCase):
                 groupby=[")("],
             )
 
-    @patch('django.utils.timezone.now')
-    def test_project_issues_with_tombstones(self, mock_time):
-        now = datetime(2018, 1, 1, 0, 0, 0, tzinfo=pytz.utc)
-        mock_time.return_value = now
+    def test_project_issues_with_tombstones(self):
+        base_time = datetime.utcnow()
         a_hash = 'a' * 32
 
         def _insert_event_for_time(ts):
@@ -70,8 +66,8 @@ class SnubaTest(SnubaTestCase):
 
         def _query_for_issue(group_id):
             return snuba.query(
-                start=now - timedelta(days=1),
-                end=now + timedelta(days=1),
+                start=base_time - timedelta(days=1),
+                end=base_time + timedelta(days=1),
                 groupby=['issue'],
                 filter_keys={
                     'project_id': [100],
@@ -90,11 +86,15 @@ class SnubaTest(SnubaTestCase):
             [(group1.id, [('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', None)])]
 
         # 1 event in the groups, no deletes have happened
-        _insert_event_for_time(now)
+        _insert_event_for_time(base_time)
         assert _query_for_issue(group1.id) == {group1.id: 1}
 
         # group is deleted and then returns (as a new group with the same hash)
         GroupHashTombstone.tombstone_groups(self.project.id, [group1.id])
+
+        ght = GroupHashTombstone.objects.get(project_id=self.project.id)
+        assert ght
+
         GroupHash.objects.create(
             project=self.project,
             group=group2,
@@ -103,16 +103,13 @@ class SnubaTest(SnubaTestCase):
 
         # tombstone time is returned as expected
         assert snuba.get_project_issues([self.project], [group2.id]) == \
-            [(group2.id, [('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', '2018-01-01 00:00:00')])]
+            [(group2.id, [('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+                           ght.deleted_at.strftime("%Y-%m-%d %H:%M:%S"))])]
 
         # events <= to the tombstone date aren't returned
-        _insert_event_for_time(now)
+        _insert_event_for_time(ght.deleted_at)
         assert _query_for_issue(group2.id) == {}
 
         # only the event > than the tombstone date is returned
-        _insert_event_for_time(now + timedelta(seconds=1))
+        _insert_event_for_time(ght.deleted_at + timedelta(seconds=1))
         assert _query_for_issue(group2.id) == {group2.id: 1}
-
-        import requests
-        from django.conf import settings
-        assert requests.post(settings.SENTRY_SNUBA + '/tests/drop').status_code == 200
