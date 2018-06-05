@@ -22,7 +22,7 @@ def post_comment(external_issue_id, data, **kwargs):
 
 
 @instrumented_task(
-    name='sentry.integrations.jira.sync_metadata',
+    name='sentry.tasks.integrations.jira.sync_metadata',
     queue='integrations',
     default_retry_delay=20,
     max_retries=5
