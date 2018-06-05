@@ -258,6 +258,8 @@ class TagStorage(TestCase):
             self.proj1group1.id,
             self.proj1group2.id,
         ])
+        from sentry.models import GroupHashTombstone
+        print(GroupHashTombstone.objects.all())
         assert result[0].last_seen == self.now - timedelta(seconds=1)
         assert result[1].last_seen == self.now - timedelta(seconds=2)
         for v in result:
