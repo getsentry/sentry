@@ -49,66 +49,66 @@ class SnubaTest(SnubaTestCase):
                 groupby=[")("],
             )
 
-    @patch('django.utils.timezone.now')
-    def test_project_issues_with_tombstones(self, mock_time):
-        now = datetime(2018, 1, 1, 0, 0, 0, tzinfo=pytz.utc)
-        mock_time.return_value = now
-        a_hash = 'a' * 32
+    # @patch('django.utils.timezone.now')
+    # def test_project_issues_with_tombstones(self, mock_time):
+    #     now = datetime(2018, 1, 1, 0, 0, 0, tzinfo=pytz.utc)
+    #     mock_time.return_value = now
+    #     a_hash = 'a' * 32
 
-        def _insert_event_for_time(ts):
-            self.snuba_insert({
-                'event_id': uuid.uuid4().hex,
-                'primary_hash': a_hash,
-                'project_id': 100,
-                'message': 'message',
-                'platform': 'python',
-                'datetime': ts.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
-                'data': {
-                    'received': time.mktime(ts.timetuple()),
-                }
-            })
+    #     def _insert_event_for_time(ts):
+    #         self.snuba_insert({
+    #             'event_id': uuid.uuid4().hex,
+    #             'primary_hash': a_hash,
+    #             'project_id': 100,
+    #             'message': 'message',
+    #             'platform': 'python',
+    #             'datetime': ts.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+    #             'data': {
+    #                 'received': time.mktime(ts.timetuple()),
+    #             }
+    #         })
 
-        def _query_for_issue(group_id):
-            return snuba.query(
-                start=now - timedelta(days=1),
-                end=now + timedelta(days=1),
-                groupby=['issue'],
-                filter_keys={
-                    'project_id': [100],
-                    'issue': [group_id]
-                },
-            )
+    #     def _query_for_issue(group_id):
+    #         return snuba.query(
+    #             start=now - timedelta(days=1),
+    #             end=now + timedelta(days=1),
+    #             groupby=['issue'],
+    #             filter_keys={
+    #                 'project_id': [100],
+    #                 'issue': [group_id]
+    #             },
+    #         )
 
-        group1 = self.create_group()
-        group2 = self.create_group()
+    #     group1 = self.create_group()
+    #     group2 = self.create_group()
 
-        GroupHash.objects.create(
-            project=self.project,
-            group=group1,
-            hash=a_hash)
-        assert snuba.get_project_issues([self.project], [group1.id]) == \
-            [(group1.id, [('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', None)])]
+    #     GroupHash.objects.create(
+    #         project=self.project,
+    #         group=group1,
+    #         hash=a_hash)
+    #     assert snuba.get_project_issues([self.project], [group1.id]) == \
+    #         [(group1.id, [('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', None)])]
 
-        # 1 event in the groups, no deletes have happened
-        _insert_event_for_time(now)
-        assert _query_for_issue(group1.id) == {group1.id: 1}
+    #     # 1 event in the groups, no deletes have happened
+    #     _insert_event_for_time(now)
+    #     assert _query_for_issue(group1.id) == {group1.id: 1}
 
-        # group is deleted and then returns (as a new group with the same hash)
-        GroupHashTombstone.tombstone_groups(self.project.id, [group1.id])
-        GroupHash.objects.create(
-            project=self.project,
-            group=group2,
-            hash=a_hash,
-        )
+    #     # group is deleted and then returns (as a new group with the same hash)
+    #     GroupHashTombstone.tombstone_groups(self.project.id, [group1.id])
+    #     GroupHash.objects.create(
+    #         project=self.project,
+    #         group=group2,
+    #         hash=a_hash,
+    #     )
 
-        # tombstone time is returned as expected
-        assert snuba.get_project_issues([self.project], [group2.id]) == \
-            [(group2.id, [('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', '2018-01-01 00:00:00')])]
+    #     # tombstone time is returned as expected
+    #     assert snuba.get_project_issues([self.project], [group2.id]) == \
+    #         [(group2.id, [('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', '2018-01-01 00:00:00')])]
 
-        # events <= to the tombstone date aren't returned
-        _insert_event_for_time(now)
-        assert _query_for_issue(group2.id) == {}
+    #     # events <= to the tombstone date aren't returned
+    #     _insert_event_for_time(now)
+    #     assert _query_for_issue(group2.id) == {}
 
-        # only the event > than the tombstone date is returned
-        _insert_event_for_time(now + timedelta(seconds=1))
-        assert _query_for_issue(group2.id) == {group2.id: 1}
+    #     # only the event > than the tombstone date is returned
+    #     _insert_event_for_time(now + timedelta(seconds=1))
+    #     assert _query_for_issue(group2.id) == {group2.id: 1}
