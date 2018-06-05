@@ -306,6 +306,7 @@ const GroupDetailsActions = createReactClass({
               href={`/${this.getOrganization().slug}/${this.getProject()
                 .slug}/settings/issue-tracking/`}
               className={'btn btn-default btn-sm btn-config-issue-tracking'}
+              style={{marginRight: '5px'}}
             >
               {t('Link Issue Tracker')}
             </a>
