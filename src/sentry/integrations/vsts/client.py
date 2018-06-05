@@ -13,13 +13,13 @@ FIELD_MAP = {
 
 
 class VstsApiPath(object):
-    commits = 'https://{account_name}/DefaultCollection/_apis/git/repositories/{repo_id}/commits'
-    commits_batch = 'https://{account_name}/DefaultCollection/_apis/git/repositories/{repo_id}/commitsBatch'
-    commits_changes = 'https://{account_name}/DefaultCollection/_apis/git/repositories/{repo_id}/commits/{commit_id}/changes'
-    projects = 'https://{account_name}/DefaultCollection/_apis/projects'
-    repositories = 'https://{account_name}/DefaultCollection/{project}_apis/git/repositories/{repo_id}'
-    work_items = 'https://{account_name}/DefaultCollection/_apis/wit/workitems/{id}'
-    work_items_create = 'https://{account_name}/{project}/_apis/wit/workitems/${type}'
+    commits = u'https://{account_name}/DefaultCollection/_apis/git/repositories/{repo_id}/commits'
+    commits_batch = u'https://{account_name}/DefaultCollection/_apis/git/repositories/{repo_id}/commitsBatch'
+    commits_changes = u'https://{account_name}/DefaultCollection/_apis/git/repositories/{repo_id}/commits/{commit_id}/changes'
+    projects = u'https://{account_name}/DefaultCollection/_apis/projects'
+    repositories = u'https://{account_name}/DefaultCollection/{project}_apis/git/repositories/{repo_id}'
+    work_items = u'https://{account_name}/DefaultCollection/_apis/wit/workitems/{id}'
+    work_items_create = u'https://{account_name}/{project}/_apis/wit/workitems/${type}'
 
 
 class VstsApiClient(ApiClient):
