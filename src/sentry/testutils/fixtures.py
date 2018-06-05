@@ -614,7 +614,7 @@ class Fixtures(object):
             )
         if 'short_id' not in kwargs:
             kwargs['short_id'] = project.next_short_id()
-        return Group.objects.create(project=project, ** kwargs)
+        return Group.objects.create(project=project, **kwargs)
 
     def create_file(self, **kwargs):
         return File.objects.create(**kwargs)
