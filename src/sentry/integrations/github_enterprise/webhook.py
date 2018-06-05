@@ -55,21 +55,8 @@ class GitHubEnterprisePushEventWebhook(PushEventWebhook):
     def get_external_id(self, username):
         return 'github_enterprise:%s' % username
 
-    def get_idp_external_id(self, host):
-        # Todo(meredith): when we have integration will return
-        # host + integration.metadata['installation']['id']
-        return
-
-    def get_client(self, event, host):
-        metadata = get_installation_metadata(event, host)
-        if metadata is None:
-            return None
-
-        return GitHubEnterpriseAppsClient(
-            metadata['url'],
-            metadata['id'],
-            event['installation']['id'],
-            metadata['private_key'])
+    def get_idp_external_id(self, integration, host):
+        return '{}:{}'.format(host, integration.metadata['installation']['id'])
 
     def should_ignore_commit(self, commit):
         return GitHubEnterpriseRepositoryProvider.should_ignore_commit(commit['message'])
@@ -86,9 +73,7 @@ class GitHubEnterprisePullRequestEventWebhook(PullRequestEventWebhook):
         return 'github_enterprise:%s' % username
 
     def get_idp_external_id(self, host):
-        # Todo(meredith): when we have integration will return
-        # host + integration.metadata['installation']['id']
-        return
+        return '{}:{}'.format(host, integration.metadata['installation']['id'])
 
 
 class GitHubEnterpriseWebhookBase(View):
