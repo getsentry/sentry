@@ -18,10 +18,10 @@ from sentry.tagstore.exceptions import (
     TagValueNotFound,
 )
 from sentry.tagstore.snuba.backend import SnubaTagStorage
-from sentry.testutils import TestCase
+from sentry.testutils import SnubaTestCase
 
 
-class TagStorage(TestCase):
+class TagStorage(SnubaTestCase):
     def setUp(self):
         assert requests.post(settings.SENTRY_SNUBA + '/tests/drop').status_code == 200
 

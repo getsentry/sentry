@@ -4,11 +4,8 @@ from datetime import datetime, timedelta
 from mock import patch
 import pytest
 import pytz
-import requests
 import time
 import uuid
-
-from django.conf import settings
 
 from sentry.models import GroupHash, GroupHashTombstone
 from sentry.testutils import SnubaTestCase
@@ -16,12 +13,6 @@ from sentry.utils import snuba
 
 
 class SnubaTest(SnubaTestCase):
-    def setUp(self):
-        assert requests.post(settings.SENTRY_SNUBA + '/tests/drop').status_code == 200
-
-    def tearDown(self):
-        assert requests.post(settings.SENTRY_SNUBA + '/tests/drop').status_code == 200
-
     def test(self):
         "This is just a simple 'hello, world' example test."
 
