@@ -18,12 +18,12 @@ from sentry.tagstore.exceptions import (
     TagValueNotFound,
 )
 from sentry.tagstore.snuba.backend import SnubaTagStorage
-from sentry.testutils import TestCase
+from sentry.testutils import SnubaTestCase
 
 
-class TagStorage(TestCase):
+class TagStorageTest(SnubaTestCase):
     def setUp(self):
-        assert requests.post(settings.SENTRY_SNUBA + '/tests/drop').status_code == 200
+        super(TagStorageTest, self).setUp()
 
         self.ts = SnubaTagStorage()
 
@@ -258,6 +258,8 @@ class TagStorage(TestCase):
             self.proj1group1.id,
             self.proj1group2.id,
         ])
+        assert set(v.last_seen for v in result) == \
+            set([self.now - timedelta(seconds=1), self.now - timedelta(seconds=2)])
         assert result[0].last_seen == self.now - timedelta(seconds=1)
         assert result[1].last_seen == self.now - timedelta(seconds=2)
         for v in result:
