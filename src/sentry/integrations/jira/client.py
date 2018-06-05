@@ -33,7 +33,7 @@ class JiraApiClient(ApiClient):
     SEARCH_URL = '/rest/api/2/search/'
     VERSIONS_URL = '/rest/api/2/project/%s/versions'
     USERS_URL = '/rest/api/2/user/assignable/search'
-    SERVER_INFO_URl = '/rest/api/2/serverInfo'
+    SERVER_INFO_URL = '/rest/api/2/serverInfo'
 
     def __init__(self, base_url, shared_secret):
         self.base_url = base_url
@@ -125,7 +125,7 @@ class JiraApiClient(ApiClient):
         return self.post(self.CREATE_URL, data=data)
 
     def get_server_info(self):
-        return self.request('GET', self.SERVER_INFO_URl)
+        return self.request('GET', self.SERVER_INFO_URL)
 
     def get_valid_statuses(self):
         return self.request('GET', self.STATUS_URL)
