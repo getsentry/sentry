@@ -82,7 +82,7 @@ class SnubaTest(SnubaTestCase):
         group1 = self.create_group()
         group2 = self.create_group()
 
-        gh1 = GroupHash.objects.create(
+        GroupHash.objects.create(
             project=self.project,
             group=group1,
             hash=a_hash)
@@ -95,7 +95,7 @@ class SnubaTest(SnubaTestCase):
 
         # group is deleted and then returns (as a new group with the same hash)
         GroupHashTombstone.tombstone_groups(self.project.id, [group1.id])
-        gh2 = GroupHash.objects.create(
+        GroupHash.objects.create(
             project=self.project,
             group=group2,
             hash=a_hash,
@@ -113,5 +113,6 @@ class SnubaTest(SnubaTestCase):
         _insert_event_for_time(now + timedelta(seconds=1))
         assert _query_for_issue(group2.id) == {group2.id: 1}
 
-        for x in [group1, group2, gh1, gh2]:
-            x.delete()
+        import requests
+        from django.conf import settings
+        assert requests.post(settings.SENTRY_SNUBA + '/tests/drop').status_code == 200
