@@ -24,7 +24,7 @@ from sentry.db.models.query import create_or_update
 from sentry.models import (
     Activity, Environment, Group, GroupAssignee, GroupBookmark, GroupHash, GroupResolution,
     GroupSeen, GroupShare, GroupSnooze, GroupStatus, GroupSubscription, GroupSubscriptionReason,
-    GroupTombstone, Release, TOMBSTONE_FIELDS_FROM_GROUP, UserOption, User, Team
+    GroupHashTombstone, GroupTombstone, Release, TOMBSTONE_FIELDS_FROM_GROUP, UserOption, User, Team
 )
 from sentry.models.event import Event
 from sentry.models.group import looks_like_short_id
@@ -924,7 +924,11 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
             GroupStatus.PENDING_DELETION,
             GroupStatus.DELETION_IN_PROGRESS,
         ]).update(status=GroupStatus.PENDING_DELETION)
-        GroupHash.objects.filter(group__id__in=group_ids).delete()
+
+        GroupHashTombstone.tombstone_groups(
+            project_id=project.id,
+            group_ids=group_ids,
+        )
 
         transaction_id = uuid4().hex
 

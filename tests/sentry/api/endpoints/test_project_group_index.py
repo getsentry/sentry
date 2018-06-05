@@ -11,9 +11,9 @@ from mock import patch
 
 from sentry import tagstore
 from sentry.models import (
-    Activity, ApiToken, EventMapping, Group, GroupAssignee, GroupBookmark, GroupHash, GroupResolution,
-    GroupSeen, GroupSnooze, GroupStatus, GroupSubscription,
-    GroupTombstone, Release, UserOption, GroupShare,
+    Activity, ApiToken, EventMapping, Group, GroupAssignee, GroupBookmark, GroupHash, GroupHashTombstone,
+    GroupResolution, GroupSeen, GroupSnooze, GroupStatus, GroupSubscription, GroupTombstone, Release,
+    UserOption, GroupShare,
 )
 from sentry.models.event import Event
 from sentry.testutils import APITestCase
@@ -1406,10 +1406,13 @@ class GroupDeleteTest(APITestCase):
             status=GroupStatus.UNRESOLVED
         )
 
+        hashes = []
         for g in group1, group2, group3, group4:
+            hash = uuid4().hex
+            hashes.append(hash)
             GroupHash.objects.create(
                 project=g.project,
-                hash=uuid4().hex,
+                hash=hash,
                 group=g,
             )
 
@@ -1420,6 +1423,9 @@ class GroupDeleteTest(APITestCase):
             group2=group2,
             group4=group4,
         )
+
+        assert set(GroupHashTombstone.objects.filter(hash__in=hashes).values_list('hash', flat=True)) == \
+            set()
 
         response = self.client.delete(url, format='json')
 
@@ -1436,6 +1442,9 @@ class GroupDeleteTest(APITestCase):
 
         assert Group.objects.get(id=group4.id).status != GroupStatus.PENDING_DELETION
         assert GroupHash.objects.filter(group_id=group4.id).exists()
+
+        assert set(GroupHashTombstone.objects.filter(hash__in=hashes).values_list('hash', flat=True)) == \
+            set([hashes[0], hashes[1]])
 
         Group.objects.filter(id__in=(group1.id, group2.id)).update(status=GroupStatus.UNRESOLVED)
 
@@ -1456,6 +1465,9 @@ class GroupDeleteTest(APITestCase):
         assert Group.objects.filter(id=group4.id).exists()
         assert GroupHash.objects.filter(group_id=group4.id).exists()
 
+        assert set(GroupHashTombstone.objects.filter(hash__in=hashes).values_list('hash', flat=True)) == \
+            set([hashes[0], hashes[1]])
+
     def test_bulk_delete(self):
         groups = []
         for i in range(10, 41):
@@ -1465,14 +1477,20 @@ class GroupDeleteTest(APITestCase):
                     checksum=six.binary_type(i) * 16,
                     status=GroupStatus.RESOLVED))
 
+        hashes = []
         for group in groups:
+            hash = uuid4().hex
+            hashes.append(hash)
             GroupHash.objects.create(
                 project=group.project,
-                hash=uuid4().hex,
+                hash=hash,
                 group=group,
             )
 
         self.login_as(user=self.user)
+
+        assert set(GroupHashTombstone.objects.filter(hash__in=hashes).values_list('hash', flat=True)) == \
+            set()
 
         # if query is '' it defaults to is:unresolved
         url = self.path + '?query='
@@ -1483,6 +1501,9 @@ class GroupDeleteTest(APITestCase):
         for group in groups:
             assert Group.objects.get(id=group.id).status == GroupStatus.PENDING_DELETION
             assert not GroupHash.objects.filter(group_id=group.id).exists()
+
+        assert set(GroupHashTombstone.objects.filter(hash__in=hashes).values_list('hash', flat=True)) == \
+            set(hashes)
 
         Group.objects.filter(
             id__in=[
@@ -1497,3 +1518,6 @@ class GroupDeleteTest(APITestCase):
         for group in groups:
             assert not Group.objects.filter(id=group.id).exists()
             assert not GroupHash.objects.filter(group_id=group.id).exists()
+
+        assert set(GroupHashTombstone.objects.filter(hash__in=hashes).values_list('hash', flat=True)) == \
+            set(hashes)
