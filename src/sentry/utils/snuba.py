@@ -3,16 +3,19 @@ from __future__ import absolute_import
 from contextlib import contextmanager
 from dateutil.parser import parse as parse_datetime
 from itertools import chain
+from operator import or_
 import json
 import six
 import time
 import urllib3
 
 from django.conf import settings
+from django.db.models import Q
 
-from sentry.models import Group, GroupHash, Environment, Release, ReleaseProject
+from sentry.models import Group, GroupHash, GroupHashTombstone, Environment, Release, ReleaseProject
 from sentry.utils import metrics
 from sentry.utils.dates import to_timestamp
+from functools import reduce
 
 
 class SnubaError(Exception):
@@ -222,9 +225,32 @@ def get_project_issues(project_ids, issue_ids=None):
         hashes = GroupHash.objects.filter(group_id__in=issue_ids)
     else:
         hashes = GroupHash.objects.filter(project__in=project_ids)
+
+    hashes = list(hashes)
+    if not hashes:
+        return []
+
+    hashes_by_project = {}
+    for h in hashes:
+        hashes_by_project.setdefault(h.project_id, []).append(h.hash)
+
+    tombstones = GroupHashTombstone.objects.filter(
+        reduce(or_, (Q(project_id=pid, hash__in=hshes)
+                    for pid, hshes in six.iteritems(hashes_by_project)))
+    )
+
+    tombstones_by_project = {}
+    for tombstone in tombstones:
+        tombstones_by_project.setdefault(
+            tombstone.project_id, {}
+        )[tombstone.hash] = tombstone.deleted_at
+
+    # return [(gid, [(hash, tombstone_date), (hash, tombstone_date), ...]), ...]
     result = {}
-    for gid, hsh in hashes.values_list('group_id', 'hash'):
-        result.setdefault(gid, []).append(hsh)
+    for h in hashes:
+        tombstone_date = tombstones_by_project.get(h.project_id, {}).get(h.hash, None)
+        pair = (h.hash, tombstone_date.strftime("%Y-%m-%d %H:%M:%S") if tombstone_date else None)
+        result.setdefault(h.group_id, []).append(pair)
     return list(result.items())
 
 
