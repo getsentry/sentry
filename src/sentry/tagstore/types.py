@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from sentry.tagstore.base import TagKeyStatus
 
 
@@ -16,6 +18,13 @@ class TagType(object):
     def __eq__(self, other):
         return type(self) == type(other) and \
             all(getattr(self, name) == getattr(other, name) for name in self.__slots__)
+
+    def __getstate__(self):
+        return {name: getattr(self, name) for name in self.__slots__}
+
+    def __setstate__(self, state):
+        for name, value in six.iteritems(state):
+            setattr(self, name, value)
 
 
 class TagKey(TagType):
