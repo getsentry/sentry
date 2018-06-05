@@ -5,8 +5,9 @@ from django.views.decorators.csrf import csrf_exempt
 
 from sentry.api.base import Endpoint
 from sentry.integrations.pipeline import ensure_integration
+from sentry.tasks.integrations import sync_metadata
 
-from .integration import JiraIntegrationProvider, sync_metadata
+from .integration import JiraIntegrationProvider
 
 
 class JiraInstalledEndpoint(Endpoint):

@@ -8,7 +8,6 @@ from sentry.integrations import (
 )
 from sentry.integrations.exceptions import ApiUnauthorized, ApiError, IntegrationError
 from sentry.integrations.issues import IssueSyncMixin
-from sentry.tasks.base import instrumented_task
 
 from .client import JiraApiClient
 
@@ -38,28 +37,6 @@ JIRA_CUSTOM_FIELD_TYPES = {
     'multiuserpicker': 'com.atlassian.jira.plugin.system.customfieldtypes:multiuserpicker',
     'tempo_account': 'com.tempoplugin.tempo-accounts:accounts.customfield'
 }
-
-
-@instrumented_task(
-    name='sentry.integrations.jira.sync_metadata',
-    autoretry_for=(ApiError,),
-    retry_kwargs={'max_retries': 5},
-)
-def sync_metadata(installation):
-    client = installation.get_client()
-    server_info = client.get_server_info()
-    projects = client.get_projects()
-
-    installation.model.name = server_info['serverTitle']
-
-    # There is no JIRA instance icon (there is a favicon, but it doesn't seem
-    # possible to query that with the API). So instead we just use the first
-    # project Icon.
-    if len(projects) > 0:
-        avatar = projects[0]['avatarUrls']['48x48'],
-        installation.model.metadata.update({'icon': avatar})
-
-    installation.model.save()
 
 
 class JiraIntegration(Integration, IssueSyncMixin):
@@ -115,6 +92,26 @@ class JiraIntegration(Integration, IssueSyncMixin):
             configuration[1]['disabled'] = True
 
         return configuration
+
+    def sync_metadata(self):
+        client = self.get_client()
+
+        try:
+            server_info = client.get_server_info()
+            projects = client.get_projects_list()
+        except ApiError as e:
+            raise IntegrationError(self.message_from_error(e))
+
+        self.model.name = server_info['serverTitle']
+
+        # There is no JIRA instance icon (there is a favicon, but it doesn't seem
+        # possible to query that with the API). So instead we just use the first
+        # project Icon.
+        if len(projects) > 0:
+            avatar = projects[0]['avatarUrls']['48x48'],
+            self.model.metadata.update({'icon': avatar})
+
+        self.model.save()
 
     def get_link_issue_config(self, group, **kwargs):
         fields = super(JiraIntegration, self).get_link_issue_config(group, **kwargs)
