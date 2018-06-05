@@ -13,9 +13,11 @@ class FinishPipelineTestCase(IntegrationTestCase):
         self.original_build_integration = self.provider.build_integration
         self.provider.build_integration = lambda self, data: data
         self.external_id = 'dummy_id-123'
+        self.provider.needs_default_identity = False
 
     def tearDown(self):
         self.provider.build_integration = self.original_build_integration
+        self.provider.needs_default_identity = False
 
     def test_with_data(self):
         data = {
@@ -116,20 +118,27 @@ class FinishPipelineTestCase(IntegrationTestCase):
             provider=self.provider.key,
             external_id=self.external_id,
         )
-        default_id = integration.metadata.get('default_identity_id')
-        assert default_id and Identity.objects.get(
-            id=default_id).data == data['user_identity']['data']
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id,
+            integration_id=integration.id,
+        )
+        assert org_integration.default_auth_id is not None
+        assert Identity.objects.filter(id=org_integration.default_auth_id).exists()
 
     def test_default_identity_does_not_update(self):
         self.provider.needs_default_identity = True
         old_identity_id = 234567
-        Integration.objects.create(
+        integration = Integration.objects.create(
             provider=self.provider.key,
             external_id=self.external_id,
             metadata={
                 'url': 'https://example.com',
-                'default_identity_id': old_identity_id,
             },
+        )
+        OrganizationIntegration.objects.create(
+            organization=self.organization,
+            integration=integration,
+            default_auth_id=old_identity_id,
         )
         self.pipeline.state.data = {
             'external_id': self.external_id,
@@ -155,5 +164,10 @@ class FinishPipelineTestCase(IntegrationTestCase):
             provider=self.provider.key,
             external_id=self.external_id,
         )
-        assert integration.metadata.get('default_identity_id') == old_identity_id
+
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id,
+            integration_id=integration.id,
+        )
+        assert org_integration.default_auth_id == old_identity_id
         assert Identity.objects.filter(external_id='AccountId').exists()

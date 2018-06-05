@@ -39,11 +39,8 @@ def ensure_integration(key, data):
         defaults=defaults
     )
     if not created:
-        default_identity_id = integration.metadata.get('default_identity_id')
         integration.update(**defaults)
-        if default_identity_id:
-            integration.metadata['default_identity_id'] = default_identity_id
-            integration.update(metadata=integration.metadata)
+
     return integration
 
 
@@ -65,8 +62,6 @@ class IntegrationPipeline(Pipeline):
             )
         else:
             integration = ensure_integration(self.provider.key, data)
-
-        org_integration = integration.add_organization(self.organization.id)
 
         # Does this integration provide a user identity for the user setting up
         # the integration?
@@ -114,10 +109,14 @@ class IntegrationPipeline(Pipeline):
                     **identity_data
                 )
 
-            if self.provider.needs_default_identity and not integration.metadata.get(
-                    'default_identity_id'):
-                integration.metadata['default_identity_id'] = identity_model.id
-                integration.update(metadata=integration.metadata)
+        org_integration_args = {}
+
+        if self.provider.needs_default_identity:
+            if not (identity and identity_model):
+                raise NotImplementedError('Integration requires an identity')
+            org_integration_args = {'default_auth_id': identity_model.id}
+
+        org_integration = integration.add_organization(self.organization.id, **org_integration_args)
 
         return self._dialog_response(serialize(org_integration, self.request.user), True)
 
