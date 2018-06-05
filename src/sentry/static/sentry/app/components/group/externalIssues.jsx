@@ -58,6 +58,7 @@ class ExternalIssueForm extends AsyncComponent {
     let initialData = {};
     config.forEach(field => {
       // passing an empty array breaks multi select
+      // TODO(jess): figure out why this is breaking and fix
       initialData[field.name] = field.multiple ? '' : field.default;
     });
     return (
