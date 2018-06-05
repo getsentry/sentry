@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from sentry.api.serializers import serialize
 from sentry.integrations.exceptions import IntegrationError
 from sentry.exceptions import PluginError
-from sentry.models import Repository
+from sentry.models import Integration, Repository
 from sentry.plugins.config import ConfigValidator
 
 
@@ -18,6 +18,17 @@ class IntegrationRepositoryProvider(object):
 
     def __init__(self, id):
         self.id = id
+
+    def get_client(self, integration_id):
+        if integration_id is None:
+            raise ValueError(self.name + 'requires an integration id.')
+
+        try:
+            integration_model = Integration.objects.get(id=integration_id)
+        except Integration.DoesNotExistError as error:
+            self.raise_error(error)
+
+        return integration_model.get_installation().get_client()
 
     def dispatch(self, request, organization, **kwargs):
         try:
