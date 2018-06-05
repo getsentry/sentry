@@ -88,12 +88,15 @@ class IntegrationPipeline(Pipeline):
             }
 
             try:
-                Identity.objects.get_or_create(
+                ident, created = Identity.objects.get_or_create(
                     idp=idp,
                     user=self.request.user,
                     external_id=identity['external_id'],
                     defaults=identity_data,
                 )
+
+                if not created:
+                    ident.update(data=identity['data'], scopes=identity['scopes'])
             except IntegrityError:
                 # If the external_id is already used for a different user or
                 # the user already has a different external_id remove those
