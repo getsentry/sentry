@@ -45,17 +45,11 @@ class ExternalIssueForm extends AsyncComponent {
         resolve([]);
       });
     }
-    return new Promise((resolve, reject) => {
-      $.ajax({
-        url: `${field.url}?field=${field.name}&query=${input}`,
-        method: 'GET',
-        success: data => {
-          resolve({options: data});
-        },
-        error: error => {
-          reject(error);
-        },
-      });
+    return $.ajax({
+      url: `${field.url}?field=${field.name}&query=${input}`,
+      method: 'GET',
+    }).then(data => {
+      return {options: data};
     });
   };
 
@@ -80,6 +74,7 @@ class ExternalIssueForm extends AsyncComponent {
               onSelectResetsInput: false,
               onCloseResetsInput: false,
               onBlurResetsInput: false,
+              autoload: false,
             };
           }
           return <FieldFromConfig key={field.name} field={field} {...props} />;
