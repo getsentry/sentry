@@ -21,9 +21,9 @@ from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.testutils import SnubaTestCase
 
 
-class TagStorage(SnubaTestCase):
+class TagStorageTest(SnubaTestCase):
     def setUp(self):
-        assert requests.post(settings.SENTRY_SNUBA + '/tests/drop').status_code == 200
+        super(TagStorageTest, self).setUp()
 
         self.ts = SnubaTagStorage()
 
