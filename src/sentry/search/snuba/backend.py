@@ -16,13 +16,15 @@ from sentry.models import Release, Group, GroupEnvironment, GroupHash
 from sentry.search.django import backend as ds
 from sentry.utils import snuba
 from sentry.utils.dates import to_timestamp
+from sentry.utils.iterators import chunked
 
 
 logger = logging.getLogger('sentry.search.snuba')
 datetime_format = '%Y-%m-%dT%H:%M:%S+00:00'
 
 
-MAX_PRE_SNUBA_CANDIDATES = 500
+MAX_PRE_SNUBA_CANDIDATES = 0
+MAX_POST_SNUBA_CHUNK = 1000
 
 
 # TODO: Would be nice if this was handled in the Snuba abstraction, but that
@@ -271,32 +273,28 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
 
         if candidate_hashes:
             # candidates were passed to Snuba, so we're done filtering
-            group_to_score = snuba_groups
+            result_groups = snuba_groups.items()
         else:
             # we didn't pass any candidates down to Snuba, so we need to do
             # post-filtering of groups to verify Sentry DB predicates
 
-            # limit = n
-            # candidates = snuba.query(...)
-            # results = []
-            # for chunk in chunked(candidates):
-            # results.extend(filter(postgres.query(limit=limit - len(results)), chunk))
-            # if len(results) >= limit:
-            #     return results[:limit]
-            # return results
+            result_groups = []
+            for chunk in chunked(snuba_groups.items(), MAX_POST_SNUBA_CHUNK):
+                filtered_group_ids = group_queryset.filter(
+                    id__in=(gid for gid, _ in chunk)
+                ).values_list('id', flat=True)
 
-            filtered_group_ids = group_queryset.filter(
-                id__in=snuba_groups.keys()
-            ).values_list('id', flat=True)
+                result_groups.extend(
+                    (group_id, snuba_groups[group_id])
+                    for group_id in filtered_group_ids
+                )
 
-            group_to_score = {
-                gid: group_to_score[gid]
-                for gid in snuba_groups.keys()
-                if gid in filtered_group_ids
-            }
+                # TODO: Reconcile this with Pagination, maybe pass a generator down instead?
+                # if len(result_groups) >= limit:
+                #     break
 
         paginator_results = SequencePaginator(
-            [(score, id) for (id, score) in group_to_score.items()],
+            [(score, id) for (id, score) in result_groups],
             reverse=True,
             **paginator_options
         ).get_result(limit, cursor, count_hits=count_hits)
