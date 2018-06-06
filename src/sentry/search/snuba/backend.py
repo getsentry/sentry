@@ -5,7 +5,7 @@ import six
 import logging
 import math
 import pytz
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from datetime import timedelta, datetime
 
 from django.utils import timezone
@@ -251,9 +251,9 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                 # and we'll do post-filtering instead
                 candidate_hashes = None
 
-        sort, extra_aggregations, calculate_cursor_for_group = sort_strategies[sort_by]
+        sort, extra_aggregations, score_fn = sort_strategies[sort_by]
 
-        group_data = do_search(
+        group_to_score = snuba_search(
             project_id=project.id,
             environment_id=environment and environment.id,
             tags=tags,
@@ -261,13 +261,10 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
             end=end,
             sort=sort,
             extra_aggregations=extra_aggregations,
+            score_fn=score_fn,
             candidate_hashes=candidate_hashes,
             **parameters
         )
-
-        group_to_score = {}
-        for group_id, data in group_data.items():
-            group_to_score[group_id] = calculate_cursor_for_group(data)
 
         if candidate_hashes is None:
             # we didn't pass any candidates down to Snuba, so we need to do
@@ -294,8 +291,8 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
         return paginator_results
 
 
-def do_search(project_id, environment_id, tags, start, end,
-              sort, extra_aggregations, candidate_hashes=None, limit=1000, **parameters):
+def snuba_search(project_id, environment_id, tags, start, end,
+                 sort, extra_aggregations, score_fn, candidate_hashes=None, **parameters):
 
     from sentry.search.base import ANY
 
@@ -402,4 +399,6 @@ def do_search(project_id, environment_id, tags, start, end,
                 },
             )
 
-    return group_data
+    return OrderedDict(
+        sorted(((gid, score_fn(data)) for gid, data in group_data.items()), key=lambda t: t[1], reverse=True)
+    )
