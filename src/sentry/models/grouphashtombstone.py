@@ -17,7 +17,7 @@ class GroupHashTombstone(Model):
 
     project = FlexibleForeignKey('sentry.Project')
     hash = models.CharField(max_length=32)
-    deleted_at = models.DateTimeField(default=timezone.now)
+    deleted_at = models.DateTimeField(default=timezone.now, db_index=True)
 
     class Meta:
         app_label = 'sentry'
