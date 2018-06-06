@@ -235,12 +235,14 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
             #
             # However, if this did filter down the number of groups significantly,
             # then passing in candidates is, of course, valuable.
-            candidate_hashes = list(
+
+            # {hash: group_id, ...}
+            candidate_hashes = dict(
                 GroupHash.objects.filter(
                     group__in=group_queryset
                 ).values_list(
-                    'hash', flat=True
-                ).distinct()[:MAX_PRE_SNUBA_CANDIDATES + 1]
+                    'hash', 'group_id'
+                )[:MAX_PRE_SNUBA_CANDIDATES + 1]
             )
 
             if not candidate_hashes:
@@ -269,6 +271,16 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
         if candidate_hashes is None:
             # we didn't pass any candidates down to Snuba, so we need to do
             # post-filtering of groups to verify Sentry DB predicates
+
+            # limit = n
+            # candidates = snuba.query(...)
+            # results = []
+            # for chunk in chunked(candidates):
+            # results.extend(filter(postgres.query(limit=limit - len(results)), chunk))
+            # if len(results) >= limit:
+            #     return results[:limit]
+            # return results
+
             filtered_group_ids = group_queryset.filter(
                 id__in=group_to_score.keys()
             ).values_list('id', flat=True)
@@ -292,7 +304,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
 
 
 def snuba_search(project_id, environment_id, tags, start, end,
-                 sort, extra_aggregations, score_fn, candidate_hashes=None, **parameters):
+                 sort, extra_aggregations, score_fn, candidate_hashes, **parameters):
 
     from sentry.search.base import ANY
 
@@ -304,7 +316,7 @@ def snuba_search(project_id, environment_id, tags, start, end,
         filters['environment'] = [environment_id]
 
     if candidate_hashes is not None:
-        filters['primary_hash'] = candidate_hashes
+        filters['primary_hash'] = candidate_hashes.keys()
 
     having = SnubaConditionBuilder({
         'age_from': ScalarCondition('first_seen', '>'),
@@ -355,14 +367,17 @@ def snuba_search(project_id, environment_id, tags, start, end,
     )
 
     # {hash -> group_id, ...}
-    hash_to_group = dict(
-        GroupHash.objects.filter(
-            project_id=project_id,
-            hash__in=snuba_results.keys()
-        ).values_list(
-            'hash', 'group_id'
+    if candidate_hashes is not None:
+        hash_to_group = candidate_hashes
+    else:
+        hash_to_group = dict(
+            GroupHash.objects.filter(
+                project_id=project_id,
+                hash__in=snuba_results.keys()
+            ).values_list(
+                'hash', 'group_id'
+            )
         )
-    )
 
     # {group_id -> {field1: [...all values from field1 for all hashes...],
     #               field2: [...all values from field2 for all hashes...]
