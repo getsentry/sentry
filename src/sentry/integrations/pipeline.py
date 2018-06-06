@@ -63,8 +63,6 @@ class IntegrationPipeline(Pipeline):
         else:
             integration = ensure_integration(self.provider.key, data)
 
-        org_integration = integration.add_organization(self.organization.id)
-
         # Does this integration provide a user identity for the user setting up
         # the integration?
         identity = data.get('user_identity')
@@ -88,7 +86,7 @@ class IntegrationPipeline(Pipeline):
             }
 
             try:
-                ident, created = Identity.objects.get_or_create(
+                identity_model, created = Identity.objects.get_or_create(
                     idp=idp,
                     user=self.request.user,
                     external_id=identity['external_id'],
@@ -96,7 +94,7 @@ class IntegrationPipeline(Pipeline):
                 )
 
                 if not created:
-                    ident.update(data=identity['data'], scopes=identity['scopes'])
+                    identity_model.update(data=identity['data'], scopes=identity['scopes'])
             except IntegrityError:
                 # If the external_id is already used for a different user or
                 # the user already has a different external_id remove those
@@ -104,12 +102,21 @@ class IntegrationPipeline(Pipeline):
                 lookup = Q(external_id=identity['external_id']) | Q(user=self.request.user)
                 Identity.objects.filter(lookup, idp=idp).delete()
 
-                Identity.objects.create(
+                identity_model = Identity.objects.create(
                     idp=idp,
                     user=self.request.user,
                     external_id=identity['external_id'],
                     **identity_data
                 )
+
+        org_integration_args = {}
+
+        if self.provider.needs_default_identity:
+            if not (identity and identity_model):
+                raise NotImplementedError('Integration requires an identity')
+            org_integration_args = {'default_auth_id': identity_model.id}
+
+        org_integration = integration.add_organization(self.organization.id, **org_integration_args)
 
         return self._dialog_response(serialize(org_integration, self.request.user), True)
 
