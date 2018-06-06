@@ -59,7 +59,7 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
         )
 
         if request.DATA['conditions'] == [] or request.DATA['actions'] == []:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
         if serializer.is_valid():
             rule = serializer.save(rule=rule)
