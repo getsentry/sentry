@@ -197,13 +197,9 @@ const SuggestedOwners = createReactClass({
     let org = this.getOrganization();
     let access = new Set(org.access);
 
-    let orgFeatures = new Set(org.features);
-    let showOwners = orgFeatures.has('code-owners');
+    let showCreateRule = access.has('project:write');
 
-    let showCreateRule = showOwners && access.has('project:write');
-
-    let showSuggestedAssignees =
-      committers.length > 0 || (showOwners && owners.length > 0);
+    let showSuggestedAssignees = committers.length > 0 || owners.length > 0;
 
     return (
       <React.Fragment>
@@ -216,7 +212,7 @@ const SuggestedOwners = createReactClass({
 
             <div className="avatar-grid">
               {committers.map(this.renderCommitter)}
-              {showOwners && owners.map(this.renderOwner)}
+              {owners.map(this.renderOwner)}
             </div>
           </div>
         )}
