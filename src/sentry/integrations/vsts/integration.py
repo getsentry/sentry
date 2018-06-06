@@ -5,7 +5,8 @@ from django import forms
 
 from django.utils.translation import ugettext_lazy as _
 from sentry.web.helpers import render_to_response
-from sentry.integrations import IntegrationProvider, IntegrationMetadata
+from sentry.integrations import Integration, IntegrationProvider, IntegrationMetadata
+from .client import VstsApiClient
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.identity.vsts import VSTSIdentityProvider
@@ -66,13 +67,29 @@ class ProjectForm(forms.Form):
         )
 
 
-class VSTSIntegrationProvider(IntegrationProvider):
+class VstsIntegration(Integration):
+    def __init__(self, *args, **kwargs):
+        super(VstsIntegration, self).__init__(*args, **kwargs)
+        self.default_identity = None
+
+    def get_client(self):
+        if self.default_identity is None:
+            self.default_identity = self.get_default_identity()
+
+        access_token = self.default_identity.data.get('access_token')
+        if access_token is None:
+            raise ValueError('Identity missing access token')
+        return VstsApiClient(access_token)
+
+
+class VstsIntegrationProvider(IntegrationProvider):
     key = 'vsts'
     name = 'Visual Studio Team Services'
     metadata = metadata
     domain = '.visualstudio.com'
     api_version = '4.1'
     needs_default_identity = True
+    integration_cls = VstsIntegration
 
     setup_dialog_config = {
         'width': 600,
