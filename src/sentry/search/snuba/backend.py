@@ -10,7 +10,7 @@ from datetime import timedelta, datetime
 
 from django.utils import timezone
 
-from sentry.api.paginator import SequencePaginator
+from sentry.api.paginator import SequencePaginator, Paginator
 from sentry.event_manager import ALLOWED_FUTURE_DELTA
 from sentry.models import Release, Group, GroupEnvironment, GroupHash
 from sentry.search.django import backend as ds
@@ -20,6 +20,9 @@ from sentry.utils.dates import to_timestamp
 
 logger = logging.getLogger('sentry.search.snuba')
 datetime_format = '%Y-%m-%dT%H:%M:%S+00:00'
+
+
+MAX_PRE_SNUBA_CANDIDATES = 500
 
 
 # TODO: Would be nice if this was handled in the Snuba abstraction, but that
@@ -219,22 +222,30 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                 parameters,
             )
 
-        # TODO: If the query didn't include anything to significantly filter
-        # down the number of groups at this point ('first_release', 'query',
-        # 'status', 'bookmarked_by', 'assigned_to', 'unassigned',
-        # 'subscribed_by', 'active_at_from', or 'active_at_to') then this
-        # queryset might return a *huge* number of groups. In this case, we
-        # probably *don't* want to pass candidates down to Snuba, and rather we
-        # want Snuba to do all the filtering/sorting it can and *then* apply
-        # this queryset to the results from Snuba.
-        #
-        # However, if this did filter down the number of groups significantly,
-        # then passing in candidates is, of course, valuable.
-        #
-        # Should we decide which way to handle it based on the number of
-        # group_ids, the number of hashes? Or should we just always start the
-        # query with Snuba? Something else?
-        candidate_group_ids = list(group_queryset.values_list('id', flat=True))
+        candidate_group_ids = None
+        if MAX_PRE_SNUBA_CANDIDATES > 0:
+            # If the query didn't include anything to significantly filter
+            # down the number of groups at this point ('first_release', 'query',
+            # 'status', 'bookmarked_by', 'assigned_to', 'unassigned',
+            # 'subscribed_by', 'active_at_from', or 'active_at_to') then this
+            # queryset might return a *huge* number of groups. In this case, we
+            # probably *don't* want to pass candidates down to Snuba, and rather we
+            # want Snuba to do all the filtering/sorting it can and *then* apply
+            # this queryset to the results from Snuba.
+            #
+            # However, if this did filter down the number of groups significantly,
+            # then passing in candidates is, of course, valuable.
+            candidate_group_ids = list(
+                group_queryset.values_list('id', flat=True)[:MAX_PRE_SNUBA_CANDIDATES + 1]
+            )
+
+            if not candidate_group_ids:
+                # no matches could possibly be found from this point on
+                return Paginator(Group.objects.none()).get_result()
+            elif len(candidate_group_ids) > MAX_PRE_SNUBA_CANDIDATES:
+                # too many candidate groups found, so we won't pass any down to Snuba
+                # and we'll do post-filtering instead
+                candidate_group_ids = None
 
         sort, extra_aggregations, calculate_cursor_for_group = sort_strategies[sort_by]
 
@@ -253,6 +264,19 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
         group_to_score = {}
         for group_id, data in group_data.items():
             group_to_score[group_id] = calculate_cursor_for_group(data)
+
+        if candidate_group_ids is None:
+            # we didn't pass any candidates down to Snuba, so we need to do
+            # post-filtering of groups to verify Sentry DB predicates
+            filtered_group_ids = group_queryset.filter(
+                id__in=group_to_score.keys()
+            ).values_list('id', flat=True)
+
+            group_to_score = {
+                gid: group_to_score[gid]
+                for gid in group_to_score.keys()
+                if gid in filtered_group_ids
+            }
 
         paginator_results = SequencePaginator(
             [(score, id) for (id, score) in group_to_score.items()],
@@ -279,8 +303,6 @@ def do_search(project_id, environment_id, tags, start, end,
         filters['environment'] = [environment_id]
 
     if candidates is not None:
-        # TODO remove this when Snuba accepts more than 500 issues
-        candidates = candidates[:500]
         hashes = list(
             GroupHash.objects.filter(
                 group_id__in=candidates
@@ -293,10 +315,6 @@ def do_search(project_id, environment_id, tags, start, end,
             return {}
 
         filters['primary_hash'] = hashes
-
-        # TODO: See TODO above about sending too many candidates to Snuba.
-        # https://github.com/getsentry/sentry/blob/63c50ec68ed4fb2314e20323198dd384487feba7/src/sentry/search/snuba/backend.py#L218
-        limit = len(hashes)
 
     having = SnubaConditionBuilder({
         'age_from': ScalarCondition('first_seen', '>'),
@@ -343,7 +361,6 @@ def do_search(project_id, environment_id, tags, start, end,
         filter_keys=filters,
         aggregations=aggregations,
         orderby='-' + sort,
-        limit=limit,
         referrer='search',
     )
 

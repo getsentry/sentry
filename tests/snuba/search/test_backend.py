@@ -790,7 +790,6 @@ class SnubaSearchTest(SnubaTestCase):
             'referrer': 'search',
             'groupby': ['primary_hash'],
             'conditions': [],
-            'limit': Any(int),
         }
 
         self.backend.query(self.project, query='foo')
