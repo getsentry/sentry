@@ -13,10 +13,10 @@ from .testutils import (
 )
 
 
-class VisualStudioRepositoryProviderPluginTest(TestCase):
+class VisualStudioRepositoryProviderTest(TestCase):
     @fixture
     def provider(self):
-        return VstsRepositoryProvider('visualstudio')
+        return VstsRepositoryProvider('integrations:vsts')
 
     @responses.activate
     def test_compare_commits(self):
@@ -35,7 +35,7 @@ class VisualStudioRepositoryProviderPluginTest(TestCase):
         repo = Repository.objects.create(
             provider='visualstudio',
             name='example',
-            organization_id=1,
+            organization_id=self.organization.id,
             config={
                 'instance': 'visualstudio.com',
                 'project': 'project-name',
@@ -43,9 +43,7 @@ class VisualStudioRepositoryProviderPluginTest(TestCase):
             }
         )
 
-        user = self.create_user()
-
-        res = self.provider.compare_commits(repo, "a", "b", user)
+        res = self.provider.compare_commits(repo, "a", "b")
 
         assert res == [{
             'patch_set': [{'path': u'/README.md',
@@ -59,8 +57,6 @@ class VisualStudioRepositoryProviderPluginTest(TestCase):
 
     @responses.activate
     def test_create_repository(self):
-
-        user = self.create_user()
         organization = self.create_organization()
 
         data = {
@@ -70,7 +66,7 @@ class VisualStudioRepositoryProviderPluginTest(TestCase):
             'instance': 'https://visualstudio.com',
             'project': 'MyFirstProject'
         }
-        data = self.provider.create_repository(organization, data, user)
+        data = self.provider.create_repository(organization, data)
 
         assert data == {
             'name': 'MyFirstProject',
