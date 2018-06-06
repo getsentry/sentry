@@ -29,6 +29,7 @@ class EventIdLookupEndpointTest(APITestCase):
         assert response.data['projectSlug'] == self.project.slug
         assert response.data['groupId'] == six.text_type(self.group.id)
         assert response.data['eventId'] == six.text_type(self.event.id)
+        assert response.data['event']['id'] == six.text_type(self.event.id)
 
     def test_missing_eventid(self):
         url = reverse(

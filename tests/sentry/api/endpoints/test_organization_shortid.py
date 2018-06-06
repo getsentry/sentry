@@ -26,3 +26,4 @@ class ShortIdLookupEndpointTest(APITestCase):
         assert response.data['organizationSlug'] == org.slug
         assert response.data['projectSlug'] == project.slug
         assert response.data['groupId'] == six.text_type(group.id)
+        assert response.data['group']['id'] == six.text_type(group.id)
