@@ -23,7 +23,6 @@ from .endpoints.event_details import EventDetailsEndpoint
 from .endpoints.event_owners import EventOwnersEndpoint
 from .endpoints.event_apple_crash_report import EventAppleCrashReportEndpoint
 from .endpoints.group_details import GroupDetailsEndpoint
-from .endpoints.group_environment_details import GroupEnvironmentDetailsEndpoint
 from .endpoints.group_events import GroupEventsEndpoint
 from .endpoints.group_events_latest import GroupEventsLatestEndpoint
 from .endpoints.group_events_oldest import GroupEventsOldestEndpoint
@@ -931,11 +930,6 @@ urlpatterns = patterns(
         r'^(?:issues|groups)/(?P<issue_id>\d+)/stats/$',
         GroupStatsEndpoint.as_view(),
         name='sentry-api-0-group-stats'
-    ),
-    url(
-        r'^(?:issues|groups)/(?P<issue_id>\d+)/environments/(?P<environment>[^/]+)/$',
-        GroupEnvironmentDetailsEndpoint.as_view(),
-        name='sentry-api-0-group-environment-details'
     ),
     url(
         r'^(?:issues|groups)/(?P<issue_id>\d+)/tags/$',
