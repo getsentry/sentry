@@ -4,6 +4,7 @@ import six
 
 from sentry.plugins import providers
 from six.moves.urllib.parse import urlparse
+from sentry.models import Integration
 
 MAX_COMMIT_DATA_REQUESTS = 90
 
@@ -12,8 +13,33 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
     name = 'Visual Studio Team Services'
     auth_provider = 'visualstudio'
 
-    def get_config(self):
+    def get_installation(self, integration_id):
+        if integration_id is None:
+            raise ValueError('%s requires an integration_id' % self.name)
+
+        try:
+            integration_model = Integration.objects.get(id=integration_id)
+        except Integration.DoesNotExist as error:
+            self.handle_api_error(error)
+
+        return integration_model.get_installation()
+
+    def get_config(self, organization):
+        choices = []
+        for i in Integration.objects.filter(organization=organization, provider='vsts'):
+            choices.append((i.id, i.name))
+
+        if not choices:
+            choices = [('', '')]
         return [
+            {
+                'name': 'integration_id',
+                'label': 'Bitbucket Integration',
+                'type': 'choice',
+                'initial': choices[0][0],
+                'help': 'Select which %s integration to authenticate with.' % self.name,
+                'required': True,
+            },
             {
                 'name': 'url',
                 'label': 'Repository URL',
@@ -33,7 +59,9 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
 
     def validate_config(self, organization, config, actor=None):
         if config.get('url'):
-            client = self.get_client(actor)
+            installation = self.get_installation(config['integration_id'])
+            client = installation.get_client()
+
             # parse out the repo name and the instance
             parts = urlparse(config['url'])
             instance = parts.netloc
@@ -43,7 +71,7 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
             try:
                 repo = client.get_repo(instance, name, project)
             except Exception as e:
-                self.raise_error(e, identity=client.auth)
+                installation.raise_error(e, identity=client.auth)
             config.update({
                 'instance': instance,
                 'project': project,
@@ -54,9 +82,6 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
         return config
 
     def create_repository(self, organization, data, actor=None):
-        if actor is None:
-            raise NotImplementedError('Cannot create a repository anonymously')
-
         return {
             'name': data['name'],
             'external_id': data['external_id'],
@@ -90,8 +115,9 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
 
         return file_changes
 
-    def zip_commit_data(self, repo, commit_list, actor):
-        client = self.get_client(actor)
+    def zip_commit_data(self, repo, commit_list):
+        installation = self.get_installation(repo.integration_id)
+        client = installation.get_client()
         n = 0
         for commit in commit_list:
             commit.update(
@@ -107,10 +133,9 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
         return commit_list
 
     def compare_commits(self, repo, start_sha, end_sha, actor=None):
-        if actor is None:
-            raise NotImplementedError('Cannot fetch commits anonymously')
 
-        client = self.get_client(actor)
+        installation = self.get_installation(repo.integration_id)
+        client = installation.get_client()
         instance = repo.config['instance']
 
         try:
@@ -119,9 +144,9 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
             else:
                 res = client.get_commit_range(instance, repo.external_id, start_sha, end_sha)
         except Exception as e:
-            self.raise_error(e, identity=client.auth)
+            installation.raise_error(e, identity=client.auth)
 
-        commits = self.zip_commit_data(repo, res['value'], actor)
+        commits = self.zip_commit_data(repo, res['value'])
         return self._format_commits(repo, commits)
 
     def _format_commits(self, repo, commit_list):
