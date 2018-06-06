@@ -222,10 +222,10 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                 parameters,
             )
 
-        candidate_group_ids = None
-        if MAX_PRE_SNUBA_CANDIDATES > 0:
+        candidate_hashes = None
+        if MAX_PRE_SNUBA_CANDIDATES:
             # If the query didn't include anything to significantly filter
-            # down the number of groups at this point ('first_release', 'query',
+            # down the number of group hashes at this point ('first_release', 'query',
             # 'status', 'bookmarked_by', 'assigned_to', 'unassigned',
             # 'subscribed_by', 'active_at_from', or 'active_at_to') then this
             # queryset might return a *huge* number of groups. In this case, we
@@ -235,17 +235,21 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
             #
             # However, if this did filter down the number of groups significantly,
             # then passing in candidates is, of course, valuable.
-            candidate_group_ids = list(
-                group_queryset.values_list('id', flat=True)[:MAX_PRE_SNUBA_CANDIDATES + 1]
+            candidate_hashes = list(
+                GroupHash.objects.filter(
+                    group__in=group_queryset
+                ).values_list(
+                    'hash', flat=True
+                ).distinct()[:MAX_PRE_SNUBA_CANDIDATES + 1]
             )
 
-            if not candidate_group_ids:
+            if not candidate_hashes:
                 # no matches could possibly be found from this point on
                 return Paginator(Group.objects.none()).get_result()
-            elif len(candidate_group_ids) > MAX_PRE_SNUBA_CANDIDATES:
-                # too many candidate groups found, so we won't pass any down to Snuba
+            elif len(candidate_hashes) > MAX_PRE_SNUBA_CANDIDATES:
+                # too many candidate hashes found, so we won't pass any down to Snuba
                 # and we'll do post-filtering instead
-                candidate_group_ids = None
+                candidate_hashes = None
 
         sort, extra_aggregations, calculate_cursor_for_group = sort_strategies[sort_by]
 
@@ -257,7 +261,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
             end=end,
             sort=sort,
             extra_aggregations=extra_aggregations,
-            candidates=candidate_group_ids,
+            candidate_hashes=candidate_hashes,
             **parameters
         )
 
@@ -265,7 +269,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
         for group_id, data in group_data.items():
             group_to_score[group_id] = calculate_cursor_for_group(data)
 
-        if candidate_group_ids is None:
+        if candidate_hashes is None:
             # we didn't pass any candidates down to Snuba, so we need to do
             # post-filtering of groups to verify Sentry DB predicates
             filtered_group_ids = group_queryset.filter(
@@ -291,7 +295,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
 
 
 def do_search(project_id, environment_id, tags, start, end,
-              sort, extra_aggregations, candidates=None, limit=1000, **parameters):
+              sort, extra_aggregations, candidate_hashes=None, limit=1000, **parameters):
 
     from sentry.search.base import ANY
 
@@ -302,19 +306,8 @@ def do_search(project_id, environment_id, tags, start, end,
     if environment_id is not None:
         filters['environment'] = [environment_id]
 
-    if candidates is not None:
-        hashes = list(
-            GroupHash.objects.filter(
-                group_id__in=candidates
-            ).values_list(
-                'hash', flat=True
-            ).distinct()
-        )
-
-        if not hashes:
-            return {}
-
-        filters['primary_hash'] = hashes
+    if candidate_hashes is not None:
+        filters['primary_hash'] = candidate_hashes
 
     having = SnubaConditionBuilder({
         'age_from': ScalarCondition('first_seen', '>'),
