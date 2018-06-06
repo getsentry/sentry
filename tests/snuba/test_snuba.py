@@ -47,6 +47,19 @@ class SnubaTest(SnubaTestCase):
                 groupby=[")("],
             )
 
+    def test_project_issues_with_legacy_hash(self):
+        a_hash = 'a' * 32
+
+        for h in [a_hash, 'A' * 8]:
+            GroupHash.objects.create(
+                project=self.project,
+                group=self.group,
+                hash=h,
+            )
+
+        assert snuba.get_project_issues([self.project], [self.group.id]) == \
+            [(self.group.id, [('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', None)])]
+
     def test_project_issues_with_tombstones(self):
         base_time = datetime.utcnow()
         a_hash = 'a' * 32
