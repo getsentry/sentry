@@ -72,6 +72,7 @@ class VSTSIntegrationProvider(IntegrationProvider):
     metadata = metadata
     domain = '.visualstudio.com'
     api_version = '4.1'
+    needs_default_identity = True
 
     setup_dialog_config = {
         'width': 600,
