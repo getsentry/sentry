@@ -4,7 +4,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import Avatar from 'app/components/avatar';
 import InlineSvg from 'app/components/inlineSvg';
 import SentryTypes from 'app/proptypes';
 import IdBadge from 'app/components/idBadge';
@@ -12,6 +11,7 @@ import highlightFuseMatches from 'app/utils/highlightFuseMatches';
 
 class SearchResult extends React.Component {
   static propTypes = {
+    highlighted: PropTypes.bool,
     item: PropTypes.shape({
       /**
      * The source of the search result (i.e. a model type)
@@ -44,37 +44,41 @@ class SearchResult extends React.Component {
   };
 
   renderContent() {
-    let {item, matches, params} = this.props;
+    let {highlighted, item, matches, params} = this.props;
     let {sourceType, title, description, model} = item;
 
-    let matchedTitle = matches && matches.find(({key}) => key === 'title');
-    let matchedDescription = matches && matches.find(({key}) => key === 'description');
-    let highlightedTitle = matchedTitle ? highlightFuseMatches(matchedTitle) : title;
-    let highlightedDescription = matchedDescription
-      ? highlightFuseMatches(matchedDescription)
-      : description;
+    if (['organization', 'member', 'project', 'team'].includes(sourceType)) {
+      let matchedTitle = matches && matches.find(({key}) => key === 'title');
+      let matchedDescription = matches && matches.find(({key}) => key === 'description');
+      let highlightedTitle = matchedTitle ? highlightFuseMatches(matchedTitle) : title;
+      let highlightedDescription = matchedDescription
+        ? highlightFuseMatches(matchedDescription)
+        : description;
 
-    if (sourceType === 'member') {
-      return (
-        <IdBadge
-          displayName={highlightedTitle}
-          displayEmail={highlightedDescription}
-          userLink={false}
-          orgId={params.orgId}
-          member={model}
-          avatarSize={32}
-        />
+      let DescriptionNode = (
+        <Description highlighted={highlighted}>{highlightedDescription}</Description>
       );
+
+      let badgeProps = {
+        displayName: highlightedTitle,
+        displayEmail: DescriptionNode,
+        description: DescriptionNode,
+        useLink: false,
+        orgId: params.orgId,
+        avatarSize: 32,
+        [sourceType]: model,
+      };
+
+      return <IdBadge {...badgeProps} />;
     }
 
     return (
       <React.Fragment>
         <div>
-          {sourceType === 'team' && <TeamAvatar team={model} size={32} />}
-          <SearchTitle>{highlightedTitle}</SearchTitle>
+          <SearchTitle>{title}</SearchTitle>
         </div>
 
-        <SearchDetail>{highlightedDescription}</SearchDetail>
+        <SearchDetail>{description}</SearchDetail>
       </React.Fragment>
     );
   }
@@ -85,6 +89,7 @@ class SearchResult extends React.Component {
 
     let isSettings = resultType === 'settings';
     let isField = resultType === 'field';
+    let isRoute = resultType === 'route';
 
     if (isSettings) {
       return <ResultTypeIcon src="icon-settings" />;
@@ -94,7 +99,11 @@ class SearchResult extends React.Component {
       return <ResultTypeIcon src="icon-input" />;
     }
 
-    return <ResultTypeIcon src="icon-location" />;
+    if (isRoute) {
+      return <ResultTypeIcon src="icon-location" />;
+    }
+
+    return null;
   }
 
   render() {
@@ -131,6 +140,6 @@ const ResultTypeIcon = styled(InlineSvg)`
   flex-shrink: 0;
 `;
 
-const TeamAvatar = styled(Avatar)`
-  margin-right: 0.5em;
+const Description = styled('div')`
+  ${p => (p.highlighted ? `color: ${p.theme.gray1};` : '')};
 `;

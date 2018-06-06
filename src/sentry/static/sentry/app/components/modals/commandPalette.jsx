@@ -55,7 +55,7 @@ class CommandPaletteModal extends React.Component {
           )}
           renderItem={({item, matches, itemProps, highlighted}) => (
             <CommandPaletteSearchResultWrapper {...itemProps} highlighted={highlighted}>
-              <SearchResult item={item} matches={matches} />
+              <SearchResult highlighted={highlighted} item={item} matches={matches} />
             </CommandPaletteSearchResultWrapper>
           )}
         />
