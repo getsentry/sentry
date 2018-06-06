@@ -18,6 +18,7 @@ import marked from 'app/utils/marked';
 
 import IntegrationDetails from './integrationDetails';
 import InstalledIntegration from './installedIntegration';
+import IntegrationRepos from './integrationRepos';
 
 const alertLinkMarkedRenderer = new marked.Renderer();
 alertLinkMarkedRenderer.paragraph = s => s;
@@ -298,6 +299,15 @@ export default class OrganizationIntegration extends AsyncView {
           {header}
           <PanelBody>{integrationList}</PanelBody>
         </Panel>
+
+        {integrations[0] && (
+          <IntegrationRepos
+            orgId={orgId}
+            provider={provider}
+            providerKey={provider.key}
+            integration={integrations[0]}
+          />
+        )}
 
         {this.renderAlertLink(provider)}
 

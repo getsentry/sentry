@@ -89,4 +89,5 @@ class GitHubAppsClient(GitHubClientMixin):
     def get_repositories(self):
         return self.get(
             '/installation/repositories',
+            params={'per_page': 100},
         )
