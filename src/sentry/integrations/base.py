@@ -81,14 +81,14 @@ class IntegrationProvider(PipelineProvider):
     features = frozenset()
 
     @classmethod
-    def get_installation(cls, model, **kwargs):
+    def get_installation(cls, model, organization_id=None, **kwargs):
         if cls.integration_cls is None:
             raise NotImplementedError
 
-        if cls.needs_default_identity is True and 'organization' not in kwargs:
-            raise NotImplementedError('%s requires an organization' % cls.name)
+        if cls.needs_default_identity is True and organization_id is None:
+            raise NotImplementedError('%s requires an organization_id' % cls.name)
 
-        return cls.integration_cls(model, **kwargs)
+        return cls.integration_cls(model, organization_id, **kwargs)
 
     def get_logger(self):
         return logging.getLogger('sentry.integration.%s' % (self.key, ))
