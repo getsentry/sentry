@@ -10,19 +10,24 @@ export function navigateTo(to, router) {
   let needProject = to.indexOf(':projectId') > -1;
 
   if (needOrg || needProject) {
-    openModal(({closeModal, Header, Body}) => (
-      <ContextPickerModal
-        Header={Header}
-        Body={Body}
-        nextPath={to}
-        needOrg={needOrg}
-        needProject={needProject}
-        onFinish={path => {
-          closeModal();
-          router.push(path);
-        }}
-      />
-    ));
+    openModal(
+      ({closeModal, Header, Body}) => (
+        <ContextPickerModal
+          Header={Header}
+          Body={Body}
+          nextPath={to}
+          needOrg={needOrg}
+          needProject={needProject}
+          onFinish={path => {
+            closeModal();
+            router.push(path);
+          }}
+        />
+      ),
+      {
+        modalClassName: 'context-picker-modal',
+      }
+    );
   } else {
     router.push(to);
   }
