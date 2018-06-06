@@ -51,6 +51,12 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
         :pparam string project_slug: the slug of the project the client keys
                                      belong to.
         """
+        if not self.has_feature(request, project):
+            return self.respond({
+                'error_type': 'unavailable_feature',
+                'detail': ['You do not have that feature enabled']
+            }, status=403)
+
         queryset = ServiceHook.objects.filter(
             project_id=project.id,
         )
@@ -95,6 +101,12 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
         """
         if not request.user.is_authenticated():
             return self.respond(status=401)
+
+        if not self.has_feature(request, project):
+            return self.respond({
+                'error_type': 'unavailable_feature',
+                'detail': ['You do not have that feature enabled']
+            }, status=403)
 
         validator = ServiceHookValidator(data=request.DATA)
         if not validator.is_valid():
