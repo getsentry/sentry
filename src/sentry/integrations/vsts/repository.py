@@ -10,8 +10,7 @@ MAX_COMMIT_DATA_REQUESTS = 90
 
 
 class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
-    name = 'Visual Studio Team Services'
-    auth_provider = 'visualstudio'
+    name = 'Visual Studio Team Services v2'
 
     def get_installation(self, integration_id):
         if integration_id is None:
@@ -26,7 +25,7 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
 
     def get_config(self, organization):
         choices = []
-        for i in Integration.objects.filter(organization=organization, provider='vsts'):
+        for i in Integration.objects.filter(organizations=organization, provider='vsts'):
             choices.append((i.id, i.name))
 
         if not choices:
@@ -34,8 +33,9 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
         return [
             {
                 'name': 'integration_id',
-                'label': 'Bitbucket Integration',
+                'label': 'Visual Studio Installation',
                 'type': 'choice',
+                'choices': choices,
                 'initial': choices[0][0],
                 'help': 'Select which %s integration to authenticate with.' % self.name,
                 'required': True,
