@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import re
-
 from django.http import Http404
 from django.conf import settings
 
@@ -11,7 +9,6 @@ from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 
 
-_js_url_re = re.compile(r'^https?:\/\/.*\.js$')
 CACHE_CONTROL = 'public, max-age=30, s-maxage=60, stale-while-revalidate=315360000, stale-if-error=315360000'
 
 
@@ -29,7 +26,7 @@ class JavaScriptSdkLoader(BaseView):
 
         sdk_url = settings.JS_SDK_LOADER_DEFAULT_SDK_URL
 
-        if bool(_js_url_re.match(sdk_url)) is False:
+        if bool(sdk_url) is False:
             tmpl = 'sentry/js-sdk-loader-noop.js.tmpl'
         elif minified is not None:
             tmpl = 'sentry/js-sdk-loader.min.js.tmpl'

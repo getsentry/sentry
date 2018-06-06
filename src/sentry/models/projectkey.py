@@ -28,7 +28,6 @@ from sentry.db.models import (
 )
 
 _uuid4_re = re.compile(r'^[a-f0-9]{32}$')
-_https_re = re.compile(r'^https?:\/\/')
 
 # TODO(dcramer): pull in enum library
 
@@ -199,7 +198,7 @@ class ProjectKey(Model):
 
     @property
     def js_sdk_loader_cdn_url(self):
-        if bool(_https_re.match(settings.JS_SDK_LOADER_CDN_URL)):
+        if settings.JS_SDK_LOADER_CDN_URL:
             return '%s%s.min.js' % (settings.JS_SDK_LOADER_CDN_URL, self.public_key)
         else:
             endpoint = self.get_endpoint()
