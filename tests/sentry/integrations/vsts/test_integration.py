@@ -7,7 +7,7 @@ from django.http import HttpRequest
 
 from sentry.integrations.vsts import VstsIntegration, VstsIntegrationProvider, ProjectConfigView, ProjectForm, get_projects
 from sentry.identity.vsts import VSTSIdentityProvider
-from sentry.models import Integration, Identity
+from sentry.models import Integration, Identity, IdentityProvider
 from sentry.testutils import TestCase
 
 
@@ -109,8 +109,12 @@ class VstsIntegrationTest(TestCase):
             external_id='vsts_external_id',
             name='vsts_name',
         )
+
         identity = Identity.objects.create(
-            idp_id=12345678,
+            idp=IdentityProvider.objects.create(
+                type='vsts',
+                config={}
+            ),
             user=user,
             external_id='vsts_id',
             data={
