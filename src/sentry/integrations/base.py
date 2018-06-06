@@ -190,17 +190,11 @@ class Integration(object):
         if self.organization_id is None:
             raise NotImplementedError
 
-        try:
-            org_integration = OrganizationIntegration.objects.get(
-                organization_id=self.organization_id,
-                integration_id=self.model.id,
-            )
-        except OrganizationIntegration.DoesNotExist as e:
-            raise e
-        try:
-            identity = Identity.objects.get(id=org_integration.default_auth_id)
-        except Identity.DoesNotExist as e:
-            raise e
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization_id,
+            integration_id=self.model.id,
+        )
+        identity = Identity.objects.get(id=org_integration.default_auth_id)
 
         return identity
 
