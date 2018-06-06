@@ -26,7 +26,7 @@ class JavaScriptSdkLoader(BaseView):
 
         sdk_url = settings.JS_SDK_LOADER_DEFAULT_SDK_URL
 
-        if bool(sdk_url) is False:
+        if not sdk_url:
             tmpl = 'sentry/js-sdk-loader-noop.js.tmpl'
         elif minified is not None:
             tmpl = 'sentry/js-sdk-loader.min.js.tmpl'
