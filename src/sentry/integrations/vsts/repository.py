@@ -12,7 +12,7 @@ MAX_COMMIT_DATA_REQUESTS = 90
 class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
     name = 'Visual Studio Team Services v2'
 
-    def get_installation(self, integration_id):
+    def get_installation(self, integration_id, organization_id):
         if integration_id is None:
             raise ValueError('%s requires an integration_id' % self.name)
 
@@ -21,7 +21,7 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
         except Integration.DoesNotExist as error:
             self.handle_api_error(error)
 
-        return integration_model.get_installation()
+        return integration_model.get_installation(organization_id)
 
     def get_config(self, organization):
         choices = []
@@ -59,7 +59,7 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
 
     def validate_config(self, organization, config, actor=None):
         if config.get('url'):
-            installation = self.get_installation(config['integration_id'])
+            installation = self.get_installation(config['integration_id'], organization.id)
             client = installation.get_client()
 
             # parse out the repo name and the instance
@@ -115,8 +115,8 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
 
         return file_changes
 
-    def zip_commit_data(self, repo, commit_list):
-        installation = self.get_installation(repo.integration_id)
+    def zip_commit_data(self, repo, commit_list, organization_id):
+        installation = self.get_installation(repo.integration_id, organization_id)
         client = installation.get_client()
         n = 0
         for commit in commit_list:
@@ -132,9 +132,9 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
 
         return commit_list
 
-    def compare_commits(self, repo, start_sha, end_sha, actor=None):
+    def compare_commits(self, repo, start_sha, end_sha, actor=None, organization_id=None):
 
-        installation = self.get_installation(repo.integration_id)
+        installation = self.get_installation(repo.integration_id, organization_id)
         client = installation.get_client()
         instance = repo.config['instance']
 
@@ -146,7 +146,7 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
         except Exception as e:
             installation.raise_error(e, identity=client.auth)
 
-        commits = self.zip_commit_data(repo, res['value'])
+        commits = self.zip_commit_data(repo, res['value'], organization_id)
         return self._format_commits(repo, commits)
 
     def _format_commits(self, repo, commit_list):

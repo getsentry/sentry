@@ -5,7 +5,7 @@ import responses
 from exam import fixture
 
 from sentry.testutils import TestCase
-from sentry.models import Repository
+from sentry.models import Identity, IdentityProvider, Integration, Repository
 from sentry.integrations.vsts.repository import VstsRepositoryProvider
 
 from .testutils import (
@@ -31,7 +31,23 @@ class VisualStudioRepositoryProviderTest(TestCase):
             'https://visualstudio.com/DefaultCollection/_apis/git/repositories/None/commits/6c36052c58bde5e57040ebe6bdb9f6a52c906fff/changes',
             body=FILE_CHANGES_EXAMPLE,
         )
-
+        integration = Integration.objects.create(
+            provider='vsts',
+            external_id='vsts_external_id',
+            name='Hello world',
+        )
+        default_auth = Identity.objects.create(
+            idp=IdentityProvider.objects.create(
+                type='vsts',
+                config={},
+            ),
+            user=self.user,
+            external_id='123',
+            data={
+                'access_token': '123456789'
+            },
+        )
+        integration.add_organization(self.organization.id, default_auth.id)
         repo = Repository.objects.create(
             provider='visualstudio',
             name='example',
@@ -40,10 +56,11 @@ class VisualStudioRepositoryProviderTest(TestCase):
                 'instance': 'visualstudio.com',
                 'project': 'project-name',
                 'name': 'example',
-            }
+            },
+            integration_id=integration.id,
         )
 
-        res = self.provider.compare_commits(repo, "a", "b")
+        res = self.provider.compare_commits(repo, "a", "b", organization_id=self.organization.id)
 
         assert res == [{
             'patch_set': [{'path': u'/README.md',
