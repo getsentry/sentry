@@ -68,7 +68,10 @@ class ProjectForm(forms.Form):
 
 
 class VstsIntegration(Integration):
-    def get_client(self, access_token):
+    def get_client(self):
+        access_token = self.default_identity.data.get('access_token')
+        if access_token is None:
+            raise ValueError('Identity missing access token')
         return VstsApiClient(access_token)
 
 
@@ -80,6 +83,7 @@ class VstsIntegrationProvider(IntegrationProvider):
     api_version = '4.1'
     needs_default_identity = True
     integration_cls = VstsIntegration
+    needs_default_identity = True
 
     setup_dialog_config = {
         'width': 600,
