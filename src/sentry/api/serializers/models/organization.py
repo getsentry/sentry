@@ -123,8 +123,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             feature_list.append('suggested-commits')
         if features.has('organizations:new-teams', obj, actor=user):
             feature_list.append('new-teams')
-        if features.has('organizations:code-owners', obj, actor=user):
-            feature_list.append('code-owners')
         if features.has('organizations:unreleased-changes', obj, actor=user):
             feature_list.append('unreleased-changes')
         if features.has('organizations:relay', obj, actor=user):

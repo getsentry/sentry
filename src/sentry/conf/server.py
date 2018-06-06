@@ -760,7 +760,6 @@ SENTRY_FEATURES = {
     'organizations:environments': False,
     'organizations:internal-catchall': False,
     'organizations:new-teams': True,
-    'organizations:code-owners': True,
     'organizations:unreleased-changes': False,
     'organizations:suggested-commits': True,
     'organizations:relay': False,
