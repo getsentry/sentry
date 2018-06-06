@@ -1248,7 +1248,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     'sentry.integrations.github.GitHubIntegrationProvider',
     'sentry.integrations.github_enterprise.GitHubEnterpriseIntegrationProvider',
     'sentry.integrations.jira.JiraIntegrationProvider',
-    'sentry.integrations.vsts.VSTSIntegrationProvider',
+    'sentry.integrations.vsts.VstsIntegrationProvider',
 )
 
 SENTRY_INTERNAL_INTEGRATIONS = (

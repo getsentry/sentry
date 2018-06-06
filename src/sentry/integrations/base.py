@@ -16,6 +16,7 @@ from .exceptions import (
     ApiHostError, ApiError, ApiUnauthorized, IntegrationError, UnsupportedResponseType
 )
 from .constants import ERR_UNAUTHORIZED, ERR_INTERNAL, ERR_UNSUPPORTED_RESPONSE_TYPE
+from sentry.models import Identity, OrganizationIntegration
 
 IntegrationMetadata = namedtuple('IntegrationMetadata', [
     'description',  # A markdown description of the integration
@@ -80,11 +81,14 @@ class IntegrationProvider(PipelineProvider):
     features = frozenset()
 
     @classmethod
-    def get_installation(cls, model, **kwargs):
+    def get_installation(cls, model, organization_id=None, **kwargs):
         if cls.integration_cls is None:
             raise NotImplementedError
 
-        return cls.integration_cls(model, **kwargs)
+        if cls.needs_default_identity is True and organization_id is None:
+            raise NotImplementedError('%s requires an organization_id' % cls.name)
+
+        return cls.integration_cls(model, organization_id, **kwargs)
 
     def get_logger(self):
         return logging.getLogger('sentry.integration.%s' % (self.key, ))
@@ -154,8 +158,9 @@ class Integration(object):
 
     logger = logging.getLogger('sentry.integrations')
 
-    def __init__(self, model):
+    def __init__(self, model, organization_id=None):
         self.model = model
+        self.organization_id = organization_id
 
     def get_organization_config(self):
         """
@@ -177,6 +182,21 @@ class Integration(object):
     def get_client(self):
         # Return the api client for a given provider
         raise NotImplementedError
+
+    def get_default_identity(self):
+        """
+        For Integrations that rely solely on user auth for authentication
+        """
+        if self.organization_id is None:
+            raise NotImplementedError
+
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization_id,
+            integration_id=self.model.id,
+        )
+        identity = Identity.objects.get(id=org_integration.default_auth_id)
+
+        return identity
 
     def error_message_from_json(self, data):
         return data.get('message', 'unknown error')
