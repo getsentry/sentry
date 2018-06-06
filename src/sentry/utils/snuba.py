@@ -13,7 +13,7 @@ from django.conf import settings
 from django.db.models import Q
 
 from sentry.event_manager import HASH_RE
-from sentry.models import Group, GroupHash, GroupHashTombstone, Environment, Release, ReleaseProject
+from sentry.models import Environment, Group, GroupHash, GroupHashTombstone, GroupRelease, Release, ReleaseProject
 from sentry.utils import metrics
 from sentry.utils.dates import to_timestamp
 from functools import reduce
@@ -41,7 +41,7 @@ _snuba_pool = urllib3.connectionpool.connection_from_url(
 
 def query(start, end, groupby, conditions=None, filter_keys=None,
           aggregations=None, rollup=None, arrayjoin=None, limit=None, orderby=None,
-          having=None, referrer=None):
+          having=None, referrer=None, is_grouprelease=False):
     """
     Sends a query to snuba.
 
@@ -68,20 +68,7 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
 
     # Forward and reverse translation maps from model ids to snuba keys, per column
     with timer('get_snuba_map'):
-        snuba_map = {col: get_snuba_map(col, keys) for col, keys in six.iteritems(filter_keys)}
-        snuba_map = {k: v for k, v in six.iteritems(snuba_map) if k is not None and v is not None}
-        rev_snuba_map = {col: dict(reversed(i) for i in keys.items())
-                         for col, keys in six.iteritems(snuba_map)}
-
-    for col, keys in six.iteritems(filter_keys):
-        keys = [k for k in keys if k is not None]
-        if col in snuba_map:
-            keys = [snuba_map[col][k] for k in keys if k in snuba_map[col]]
-        if keys:
-            if len(keys) == 1 and keys[0] is None:
-                conditions.append((col, 'IS NULL', None))
-            else:
-                conditions.append((col, 'IN', keys))
+        forward, reverse = get_snuba_translators(filter_keys, is_grouprelease=is_grouprelease)
 
     if 'project_id' in filter_keys:
         # If we are given a set of project ids, use those directly.
@@ -93,6 +80,13 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
             project_ids = list(set.union(*map(set, ids)))
     else:
         project_ids = []
+
+    for col, keys in six.iteritems(forward(filter_keys.copy())):
+        if keys:
+            if len(keys) == 1 and keys[0] is None:
+                conditions.append((col, 'IS NULL', None))
+            else:
+                conditions.append((col, 'IN', keys))
 
     if not project_ids:
         raise SnubaError("No project_id filter, or none could be inferred from other filters.")
@@ -151,12 +145,7 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
     assert expected_cols == got_cols
 
     with timer('process_result'):
-        for d in body['data']:
-            if 'time' in d:
-                d['time'] = int(to_timestamp(parse_datetime(d['time'])))
-            for col in rev_snuba_map:
-                if col in d:
-                    d[col] = rev_snuba_map[col][d[col]]
+        body['data'] = [reverse(d) for d in body['data']]
         return nest_groups(body['data'], groupby, aggregate_cols)
 
 
@@ -195,22 +184,93 @@ def flat_conditions(conditions):
 # is implemented here for simplicity.
 
 
-def get_snuba_map(column, ids):
+def get_snuba_translators(filter_keys, is_grouprelease=False):
     """
     Some models are stored differently in snuba, eg. as the environment
-    name instead of the the environment ID. Here we look up a set of keys
-    for a given model and return a lookup dictionary from those keys to the
-    equivalent ones in snuba.
+    name instead of the the environment ID. Here we create and return forward()
+    and reverse() translation functions that perform all the required changes.
+
+    forward() is designed to work on the filter_keys and so should be called
+    with a map of {column: [key1, key2], ...} and should return an updated map
+    with the filter keys replaced with the ones that Snuba expects.
+
+    reverse() is designed to work on result rows, so should be called with a row
+    in the form {column: value, ...} and will return a translated result row.
+
+    Because translation can potentially rely on combinations of different parts
+    of the result row, I decided to implement them as composable functions over the
+    row to be translated. This should make it simpler to add any other needed
+    translations as long as you can express them as forward(filters) and reverse(row)
+    functions.
     """
-    mappings = {
+
+    def identity(x):
+        return x
+
+    def compose(f, g):
+        return lambda x: f(g(x))
+
+    def replace(d, key, val):
+        return d.update({key: val}) or d
+
+    forward = identity
+    reverse = identity
+
+    map_columns = {
         'environment': (Environment, 'name', lambda name: None if name == '' else name),
-        'tags[sentry:release]': (Release, 'version', lambda name: name),
+        'tags[sentry:release]': (Release, 'version', identity),
     }
-    if column in mappings and ids:
-        model, field, transform = mappings[column]
-        objects = model.objects.filter(id__in=ids).values_list('id', field)
-        return {k: transform(v) for k, v in objects}
-    return None
+
+    for col, (model, field, fmt) in six.iteritems(map_columns):
+        fwd, rev = None, None
+        ids = filter_keys.get(col)
+        if not ids:
+            continue
+        if is_grouprelease and col == 'tags[sentry:release]':
+            # GroupRelease -> Release translation is a special case because the
+            # translation relies on both the Group and Release value in the result row.
+            gr_map = GroupRelease.objects.filter(id__in=ids)\
+                                         .values_list('id', 'group_id', 'release_id')
+            versions = dict(Release.objects.filter(id__in=[x[2] for x in gr_map])
+                                           .values_list('id', 'version'))
+
+            fwd_map = dict((gr, (group, versions[release])) for (gr, group, release) in gr_map)
+            rev_map = dict(reversed(t) for t in six.iteritems(fwd_map))
+            fwd = (
+                lambda col, trans:
+                    lambda filters: replace(filters, col, [trans[k][1] for k in filters[col]])
+            )(col, fwd_map)
+            rev = (
+                lambda col, trans:
+                    lambda row: replace(row, col, trans.get((row.get('issue'), row.get(col))))
+            )(col, rev_map)
+
+        else:
+            fwd_map = dict((k, fmt(v)) for k, v in model.objects.filter(id__in=ids)
+                                                                .values_list('id', field))
+            rev_map = dict(reversed(t) for t in six.iteritems(fwd_map))
+            fwd = (
+                lambda col, trans:
+                    lambda filters: replace(filters, col, [trans[k] for k in filters[col] if k])
+            )(col, fwd_map)
+            rev = (
+                lambda col, trans:
+                    lambda row: replace(row, col, trans.get(row[col])) if col in row else row
+            )(col, rev_map)
+
+        if fwd:
+            forward = compose(forward, fwd)
+        if rev:
+            reverse = compose(reverse, rev)
+
+    # Extra reverse translator for time column.
+    reverse = compose(
+        reverse,
+        lambda row: replace(row, 'time', int(to_timestamp(parse_datetime(row['time']))))
+        if 'time' in row else row
+    )
+
+    return (forward, reverse)
 
 
 def get_project_issues(project_ids, issue_ids=None):
@@ -237,7 +297,7 @@ def get_project_issues(project_ids, issue_ids=None):
 
     tombstones = GroupHashTombstone.objects.filter(
         reduce(or_, (Q(project_id=pid, hash__in=hshes)
-                    for pid, hshes in six.iteritems(hashes_by_project)))
+                     for pid, hshes in six.iteritems(hashes_by_project)))
     )
 
     tombstones_by_project = {}
