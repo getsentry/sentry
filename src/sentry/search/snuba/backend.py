@@ -255,7 +255,8 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
 
         sort, extra_aggregations, score_fn = sort_strategies[sort_by]
 
-        group_to_score = snuba_search(
+        # {group_id: group_score, ...}
+        snuba_groups = snuba_search(
             project_id=project.id,
             environment_id=environment and environment.id,
             tags=tags,
@@ -268,7 +269,10 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
             **parameters
         )
 
-        if candidate_hashes is None:
+        if candidate_hashes:
+            # candidates were passed to Snuba, so we're done filtering
+            group_to_score = snuba_groups
+        else:
             # we didn't pass any candidates down to Snuba, so we need to do
             # post-filtering of groups to verify Sentry DB predicates
 
@@ -282,12 +286,12 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
             # return results
 
             filtered_group_ids = group_queryset.filter(
-                id__in=group_to_score.keys()
+                id__in=snuba_groups.keys()
             ).values_list('id', flat=True)
 
             group_to_score = {
                 gid: group_to_score[gid]
-                for gid in group_to_score.keys()
+                for gid in snuba_groups.keys()
                 if gid in filtered_group_ids
             }
 
@@ -305,6 +309,13 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
 
 def snuba_search(project_id, environment_id, tags, start, end,
                  sort, extra_aggregations, score_fn, candidate_hashes, **parameters):
+    """\
+    This function doesn't strictly benefit from or require being pulled out of the main
+    query method, but the query method is already large and this function at least
+    extracts most of the Snuba-specific logic.
+
+    Returns an OrderedDict of {group_id: group_score, ...} sorted descending by score.
+    """
 
     from sentry.search.base import ANY
 
@@ -368,6 +379,7 @@ def snuba_search(project_id, environment_id, tags, start, end,
 
     # {hash -> group_id, ...}
     if candidate_hashes is not None:
+        # any hash coming back had to come from our candidate set
         hash_to_group = candidate_hashes
     else:
         hash_to_group = dict(
