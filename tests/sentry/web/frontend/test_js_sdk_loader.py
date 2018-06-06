@@ -10,11 +10,19 @@ from sentry.testutils import TestCase
 class JavaScriptSdkLoaderTest(TestCase):
     @fixture
     def path(self):
+        settings.JS_SDK_LOADER_SDK_VERSION = '0.5.2'
+        settings.JS_SDK_LOADER_DEFAULT_SDK_URL = 'https://s3.amazonaws.com/getsentry-cdn/@sentry/browser/%s/bundle.min.js' % settings.JS_SDK_LOADER_SDK_VERSION
         return reverse('sentry-js-sdk-loader', args=[self.projectkey.public_key])
 
     def test_404(self):
         resp = self.client.get(reverse('sentry-js-sdk-loader', args=['abc']))
         assert resp.status_code == 404
+
+    def test_noop(self):
+        settings.JS_SDK_LOADER_DEFAULT_SDK_URL = ''
+        resp = self.client.get(reverse('sentry-js-sdk-loader', args=[self.projectkey.public_key]))
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, 'sentry/js-sdk-loader-noop.js.tmpl')
 
     def test_renders_js_loader(self):
         resp = self.client.get(self.path)
