@@ -1,4 +1,5 @@
 import {withRouter} from 'react-router';
+import {ThemeProvider} from 'emotion-theming';
 import $ from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -310,7 +311,11 @@ const SidebarContainer = withRouter(
     },
 
     render() {
-      return <Sidebar {...this.props} collapsed={this.state.collapsed} />;
+      return (
+        <ThemeProvider theme={theme}>
+          <Sidebar {...this.props} collapsed={this.state.collapsed} />
+        </ThemeProvider>
+      );
     },
   })
 );
