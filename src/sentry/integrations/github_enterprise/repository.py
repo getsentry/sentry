@@ -11,8 +11,8 @@ WEBHOOK_EVENTS = ['push', 'pull_request']
 
 
 class GitHubEnterpriseRepositoryProvider(providers.IntegrationRepositoryProvider):
-    name = 'GitHub Enterprise Apps'
-    logger = logging.getLogger('sentry.plugins.github')
+    name = 'GitHub Enterprise'
+    logger = logging.getLogger('sentry.plugins.github_enterprise')
 
     def get_config(self, organization):
         choices = []
@@ -98,8 +98,8 @@ class GitHubEnterpriseRepositoryProvider(providers.IntegrationRepositoryProvider
         if integration_id is None:
             raise NotImplementedError('GitHub apps requires an integration id to fetch commits')
         integration = Integration.objects.get(id=integration_id)
-        client = integration.get_client()
         installation = integration.get_installation()
+        client = installation.get_client()
 
         # use config name because that is kept in sync via webhooks
         name = repo.config['name']
@@ -124,7 +124,9 @@ class GitHubEnterpriseRepositoryProvider(providers.IntegrationRepositoryProvider
             if integration_id is None:
                 raise NotImplementedError('GitHub apps requires an integration id to fetch commits')
 
-            client = Integration.objects.get(id=integration_id).get_client()
+            integration = Integration.objects.get(id=integration_id)
+            installation = integration.get_installation()
+            client = installation.get_client()
 
             # use config name because that is kept in sync via webhooks
             name = repo.config['name']
