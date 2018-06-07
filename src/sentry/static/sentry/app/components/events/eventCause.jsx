@@ -92,8 +92,6 @@ export default createReactClass({
     }
 
     let commits = this.getUniqueCommitsWithAuthors();
-    //limit to 5 commits maximum
-    // commits = commits.slice(0, 5);
 
     return (
       <div className="box">
@@ -113,7 +111,7 @@ export default createReactClass({
             </ExpandButton>
           </h3>
           <Panel>
-            {commits.slice(0, expanded ? 50 : 1).map(commit => {
+            {commits.slice(0, expanded ? 100 : 1).map(commit => {
               return <CommitRow key={commit.id} commit={commit} />;
             })}
           </Panel>
