@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {t} from '../../locale';
+import analytics from 'app/utils/analytics';
 import SidebarPanel from './sidebarPanel';
 import TodoList from '../onboardingWizard/todos';
 import Tooltip from '../tooltip';
@@ -14,6 +15,23 @@ class OnboardingStatus extends React.Component {
     showPanel: PropTypes.bool,
     hidePanel: PropTypes.func,
     collapsed: PropTypes.bool,
+  };
+
+  shouldComponentUpdate(nextProps, nextState) {
+    if (this.props.currentPanel !== nextProps.currentPanel &&
+      (this.props.currentPanel || nextProps.currentPanel == 'todos')) {
+        this.recordAnalytics(this.props.currentPanel);
+    };
+    return true;
+  };
+
+  recordAnalytics(currentPanel){
+    orgId = this.props.org.id;
+    if (currentPanel == 'todos') {
+      analytics('onboarding.wizard_closed', {org_id: orgId} );
+    }else{
+      analytics('onboarding.wizard_opened', {org_id: orgId} );
+    }
   };
 
   render() {
