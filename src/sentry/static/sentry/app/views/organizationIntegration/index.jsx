@@ -301,12 +301,7 @@ export default class OrganizationIntegration extends AsyncView {
         </Panel>
 
         {integrations[0] && (
-          <IntegrationRepos
-            orgId={orgId}
-            provider={provider}
-            providerKey={provider.key}
-            integration={integrations[0]}
-          />
+          <IntegrationRepos orgId={orgId} integration={integrations[0]} />
         )}
 
         {this.renderAlertLink(provider)}

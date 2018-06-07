@@ -36,17 +36,14 @@ export default class IntegrationRepos extends AsyncComponent {
   getDefaultState() {
     return {
       error: false,
-      integration: null,
       itemList: null,
       errors: {},
     };
   }
 
   getEndpoints() {
-    const {orgId, integration} = this.props;
     return [
-      ['integration', `/organizations/${orgId}/integrations/${integration.id}/`],
-      ['itemList', `/organizations/${orgId}/repos/`, {query: {status: ''}}],
+      ['itemList', `/organizations/${this.props.orgId}/repos/`, {query: {status: ''}}],
     ];
   }
 
@@ -71,7 +68,7 @@ export default class IntegrationRepos extends AsyncComponent {
       data: {
         installation: integration.id,
         name: selection.value,
-        provider: 'integrations:github',
+        provider: `integrations:${integration.provider.key}`,
       },
       method: 'POST',
       success: repo => {
@@ -98,9 +95,7 @@ export default class IntegrationRepos extends AsyncComponent {
             item.status = data.status;
           }
         });
-        this.setState({
-          itemList,
-        });
+        this.setState({itemList});
       },
       error: () => {
         IndicatorStore.add(t('An error occurred.'), 'error', {
@@ -126,9 +121,7 @@ export default class IntegrationRepos extends AsyncComponent {
             item.status = data.status;
           }
         });
-        this.setState({
-          itemList,
-        });
+        this.setState({itemList});
       },
       error: () => {
         IndicatorStore.add(t('An error occurred.'), 'error', {
@@ -155,29 +148,29 @@ export default class IntegrationRepos extends AsyncComponent {
         </DropdownButton>
       );
     }
-    let repositories = this.state.integration.repos.repositories;
+    let repositories = this.props.integration.repos.repositories;
     let items = (repositories || []).map(repo => {
       return {
         searchKey: `${repo.name}`,
         value: `${repo.full_name}`,
         label: (
-          <StyledUserListElement>
-            <StyledNameOrEmail>{repo.name}</StyledNameOrEmail>
-          </StyledUserListElement>
+          <StyledListElement>
+            <StyledName>{repo.name}</StyledName>
+          </StyledListElement>
         ),
       };
     });
 
-    let menuHeader = <StyledMembersLabel>{t('Repositories')}</StyledMembersLabel>;
+    let menuHeader = <StyledReposLabel>{t('Repositories')}</StyledReposLabel>;
 
     return (
       <DropdownAutoComplete
         items={items}
         onSelect={this.addRepo.bind(this)}
         menuHeader={menuHeader}
-        emptyMessage={t('No repos')}
+        emptyMessage={t('No repositories available')}
       >
-        {({isOpen, selectedItem}) => (
+        {({isOpen}) => (
           <DropdownButton isOpen={isOpen} size="xsmall">
             {t('Add Repo')}
           </DropdownButton>
@@ -264,21 +257,21 @@ export default class IntegrationRepos extends AsyncComponent {
   }
 }
 
-const StyledMembersLabel = styled('div')`
+const StyledReposLabel = styled('div')`
   width: 250px;
   font-size: 0.875em;
   padding: ${space(1)} 0;
   text-transform: uppercase;
 `;
 
-const StyledUserListElement = styled('div')`
+const StyledListElement = styled('div')`
   font-size: 0.875em;
   display: flex;
   align-items: center;
   padding: ${space(0.5)};
 `;
 
-const StyledNameOrEmail = styled('div')`
+const StyledName = styled('div')`
   flex-shrink: 1;
   min-width: 0;
   ${overflowEllipsis};
