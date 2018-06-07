@@ -51,6 +51,51 @@ class ExternalIssueForm extends AsyncComponent {
     });
   };
 
+  refetchConfig = () => {
+    let {dynamicFieldValues} = this.state;
+    let {action, group, integration} = this.props;
+    let endpoint = `/groups/${group.id}/integrations/${integration.id}/`;
+    let query = {
+      action,
+    };
+    Object.entries(dynamicFieldValues).map(([key, val]) => {
+      query[key] = encodeURIComponent(val);
+    });
+    this.api.request(endpoint, {
+      method: 'GET',
+      query,
+      success: (data, _, jqXHR) => {
+        this.handleRequestSuccess({stateKey: 'integrationDetails', data, jqXHR}, true);
+      },
+      error: error => {
+        this.handleError(error, ['integrationDetails', endpoint, null, null]);
+      },
+    });
+  };
+
+  onFieldChange = (label, value) => {
+    let {integrationDetails} = this.state;
+    let {action} = this.props;
+    let config = integrationDetails[`${action}IssueConfig`];
+    let dynamicFields = new Set(
+      config.filter(field => field.updatesForm).map(field => field.name)
+    );
+    if (dynamicFields.has(label)) {
+      let dynamicFieldValues = this.state.dynamicFieldValues || {};
+      dynamicFieldValues[label] = value;
+
+      this.setState(
+        {
+          dynamicFieldValues,
+          loading: true,
+          error: false,
+          remainingRequests: 1,
+        },
+        this.refetchConfig
+      );
+    }
+  };
+
   renderBody() {
     let {integrationDetails} = this.state;
     let {action, group, integration} = this.props;
@@ -67,6 +112,7 @@ class ExternalIssueForm extends AsyncComponent {
         apiMethod={action === 'create' ? 'POST' : 'PUT'}
         onSubmitSuccess={this.onSubmitSuccess}
         initialData={initialData}
+        onFieldChange={this.onFieldChange}
       >
         {config.map(field => {
           let props = {};
@@ -83,7 +129,7 @@ class ExternalIssueForm extends AsyncComponent {
               autoload: false,
             };
           }
-          return <FieldFromConfig key={field.name} field={field} {...props}/>;
+          return <FieldFromConfig key={field.name} field={field} {...props} />;
         })}
       </Form>
     );

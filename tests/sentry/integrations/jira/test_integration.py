@@ -332,6 +332,7 @@ class JiraIntegrationTest(APITestCase):
                 'type': 'select',
                 'name': 'project',
                 'label': 'Jira Project',
+                'updatesForm': True,
             }, {
                 'default': 'message',
                 'type': 'string',
@@ -351,7 +352,8 @@ class JiraIntegrationTest(APITestCase):
                 'choices': [('1', 'Bug')],
                 'type': 'select',
                 'name': 'issuetype',
-                'label': 'Issue Type'
+                'label': 'Issue Type',
+                'updatesForm': True,
             }]
 
     def test_get_link_issue_config(self):
