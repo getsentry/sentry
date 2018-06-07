@@ -1,10 +1,12 @@
 import {Observer} from 'mobx-react';
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import FormModel from 'app/views/settings/components/forms/model';
+import {StyledPanel} from 'app/components/panels/panel';
 
 export default class Form extends React.Component {
   static propTypes = {
@@ -42,7 +44,7 @@ export default class Form extends React.Component {
     submitLabel: t('Save Changes'),
     submitDisabled: false,
     submitPriority: 'primary',
-    footerClass: 'form-actions align-right',
+    footerClass: 'form-actions',
     className: 'form-stacked',
     requireChanges: false,
     allowUndo: false,
@@ -152,7 +154,7 @@ export default class Form extends React.Component {
         <div>{children}</div>
 
         {shouldShowFooter && (
-          <div className={footerClass} style={{marginTop: 25, ...footerStyle}}>
+          <StyledFooter className={footerClass} style={footerStyle}>
             <Observer>
               {() => (
                 <Button
@@ -185,9 +187,27 @@ export default class Form extends React.Component {
               </Observer>
             )}
             {extraButton}
-          </div>
+          </StyledFooter>
         )}
       </form>
     );
   }
 }
+
+const StyledFooter = styled('div')`
+  text-align: right;
+  margin-top: 25px;
+  border-top: 1px solid #e9ebec;
+  background: none;
+  padding: 16px 0 0;
+  margin-bottom: 16px;
+
+  ${p =>
+    !p.saveOnBlur &&
+    `
+    ${StyledPanel} & {
+      margin-top: 0;
+      padding-right: 36px;
+    }
+  `};
+`;

@@ -56,7 +56,7 @@ exports[`ProjectAlertSettings render() renders 1`] = `
     apiMethod="PUT"
     cancelLabel="Cancel"
     className="form-stacked"
-    footerClass="form-actions align-right"
+    footerClass="form-actions"
     initialData={
       Object {
         "digestsMaxDelay": 60,

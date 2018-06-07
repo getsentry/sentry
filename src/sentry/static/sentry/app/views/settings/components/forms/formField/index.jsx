@@ -364,7 +364,14 @@ class FormField extends React.Component {
 
     const makeField = extraProps => (
       <React.Fragment>
-        <Field id={id} name={name} className={className} {...props} {...extraProps}>
+        <Field
+          id={id}
+          name={name}
+          className={className}
+          flexibleControlStateSize={flexibleControlStateSize}
+          {...props}
+          {...extraProps}
+        >
           {({alignRight, inline, disabled, disabledReason}) => (
             <FieldControl
               disabled={disabled}
