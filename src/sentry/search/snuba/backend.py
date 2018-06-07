@@ -23,8 +23,8 @@ logger = logging.getLogger('sentry.search.snuba')
 datetime_format = '%Y-%m-%dT%H:%M:%S+00:00'
 
 
-MAX_PRE_SNUBA_CANDIDATES = 0
-MAX_POST_SNUBA_CHUNK = 1000
+MAX_PRE_SNUBA_CANDIDATES = 500
+MAX_POST_SNUBA_CHUNK = 10000
 
 
 # TODO: Would be nice if this was handled in the Snuba abstraction, but that
@@ -288,10 +288,6 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                     (group_id, snuba_groups[group_id])
                     for group_id in filtered_group_ids
                 )
-
-                # TODO: Reconcile this with Pagination, maybe pass a generator down instead?
-                # if len(result_groups) >= limit:
-                #     break
 
         paginator_results = SequencePaginator(
             [(score, id) for (id, score) in result_groups],
