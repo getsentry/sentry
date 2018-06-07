@@ -148,7 +148,7 @@ class ApiClient(object):
                 data=data if not json else None,
                 params=params,
                 auth=auth,
-                verify=False,
+                verify=self.verify_ssl,
                 allow_redirects=allow_redirects,
             )
             resp.raise_for_status()
