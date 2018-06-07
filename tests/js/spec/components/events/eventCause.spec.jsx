@@ -73,8 +73,21 @@ describe('EventCause', function() {
     wrapper.update();
 
     setTimeout(() => {
-      expect(wrapper.find('CommitRow')).toHaveLength(2);
+      expect(wrapper.find('CommitRow')).toHaveLength(1);
       done();
     });
+  });
+
+  it('expands', async function(done) {
+    wrapper.update();
+    wrapper.find('ExpandButton').simulate('click');
+    await tick();
+    expect(wrapper.find('CommitRow')).toHaveLength(2);
+    //and hides
+    wrapper.find('ExpandButton').simulate('click');
+    await tick();
+    expect(wrapper.find('CommitRow')).toHaveLength(1);
+
+    done();
   });
 });

@@ -2,13 +2,23 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import {uniqBy, flatMap} from 'lodash';
+import styled from 'react-emotion';
 
 import ApiMixin from 'app/mixins/apiMixin';
 import GroupState from 'app/mixins/groupState';
 import CommitRow from 'app/components/commitRow';
+import InlineSvg from 'app/components/inlineSvg';
+
 import {t} from 'app/locale';
 
 import {Panel} from 'app/components/panels';
+
+const ExpandButton = styled.span`
+  cursor: pointer;
+  position: absolute;
+  right: ${p => p.theme.grid}px;
+  top: 1px;
+`;
 
 export default createReactClass({
   displayName: 'EventCause',
@@ -22,7 +32,7 @@ export default createReactClass({
   mixins: [ApiMixin, GroupState],
 
   getInitialState() {
-    return {committers: undefined};
+    return {committers: undefined, expanded: false};
   },
 
   componentDidMount() {
@@ -76,26 +86,36 @@ export default createReactClass({
   },
 
   render() {
-    if (!(this.state.committers && this.state.committers.length)) {
+    let {committers, expanded} = this.state;
+    if (!(committers && committers.length)) {
       return null;
     }
 
     let commits = this.getUniqueCommitsWithAuthors();
-    //limit to 5 commits maximum
-    commits = commits.slice(0, 5);
 
     return (
       <div className="box">
         <div className="box-header">
           <h3>
             {t('Suspect Commits')} ({commits.length})
+            <ExpandButton onClick={() => this.setState({expanded: !expanded})}>
+              {expanded ? (
+                <React.Fragment>
+                  show less <InlineSvg src="icon-circle-subtract" size="16px" />
+                </React.Fragment>
+              ) : (
+                <React.Fragment>
+                  show more <InlineSvg src="icon-circle-add" size="16px" />
+                </React.Fragment>
+              )}
+            </ExpandButton>
           </h3>
+          <Panel>
+            {commits.slice(0, expanded ? 100 : 1).map(commit => {
+              return <CommitRow key={commit.id} commit={commit} />;
+            })}
+          </Panel>
         </div>
-        <Panel>
-          {commits.map(commit => {
-            return <CommitRow key={commit.id} commit={commit} />;
-          })}
-        </Panel>
       </div>
     );
   },
