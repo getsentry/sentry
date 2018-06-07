@@ -42,8 +42,6 @@ class ProjectHeader extends React.Component {
     let orgFeatures = new Set(org.features);
     let allEnvironmentsLabel = t('All environments');
 
-    // TODO: remove when feature is released
-    let hasEnvironmentsFeature = orgFeatures.has('environments');
     let pagesWithEnvironments = new Set([
       'stream',
       'releases',
@@ -51,8 +49,7 @@ class ProjectHeader extends React.Component {
       'events',
       'user-feedback',
     ]);
-    let pageHasEnvironments = pagesWithEnvironments.has(navSection);
-    let showEnvironmentsToggle = hasEnvironmentsFeature && pageHasEnvironments;
+    let showEnvironmentsToggle = pagesWithEnvironments.has(navSection);
 
     let activeEnvironmentTitle = activeEnvironment
       ? activeEnvironment.displayName

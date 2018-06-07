@@ -14,7 +14,7 @@ exports[`GroupSidebar renders with tags renders 1`] = `
       }
     }
   />
-  <GroupReleaseStats
+  <withEnvironment
     allEnvironments={
       Object {
         "assignedTo": null,
