@@ -121,18 +121,18 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         assert integration.external_id == 'install_id_1'
         assert integration.name == 'Test Organization'
         assert integration.metadata == {
-            'access_token': None,
-            'expires_at': None,
-            'icon': 'https://35.232.149.196/avatar.png',
-            'domain_name': '35.232.149.196/Test-Organization',
-            'installation': {
-                'client_id': 'client_id',
-                'client_secret': 'client_secret',
-                'id': '2',
-                'name': 'test-app',
-                'private_key': 'private_key',
-                'url': '35.232.149.196',
-                'webhook_secret': 'webhook_secret',
+            u'access_token': None,
+            u'expires_at': None,
+            u'icon': u'https://35.232.149.196/avatar.png',
+            u'domain_name': u'35.232.149.196',
+            u'installation': {
+                u'client_id': u'client_id',
+                u'client_secret': u'client_secret',
+                u'id': u'2',
+                u'name': u'test-app',
+                u'private_key': u'private_key',
+                u'url': u'35.232.149.196',
+                u'webhook_secret': u'webhook_secret',
             }
         }
         oi = OrganizationIntegration.objects.get(
