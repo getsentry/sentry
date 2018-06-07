@@ -247,24 +247,15 @@ const StackedBarChart = createReactClass({
     return title;
   },
 
-  renderChartColumn(point, maxval, pointWidth) {
+  renderChartColumn(point, maxval, pointWidth, index) {
     let totalY = point.y.reduce((a, b) => a + b);
     let totalPct = totalY / maxval;
     let prevPct = 0;
     let pts = point.y.map((y, i) => {
       let pct = totalY && this.floatFormat(y / totalY * totalPct * 99, 2);
+      let height = Math.random() * 200;
       let pt = (
-        <span
-          key={i}
-          className={this.props.barClasses[i]}
-          style={{
-            height: pct + '%',
-            bottom: prevPct + '%',
-            backgroundColor: this.state.series[i].color || null,
-          }}
-        >
-          {y}
-        </span>
+        <rect x={index * 100} y={100 - height} width="80" height={height} fill="#aab"/>
       );
       prevPct += pct;
       return pt;
@@ -279,9 +270,9 @@ const StackedBarChart = createReactClass({
         key={point.x}
         tooltipOptions={{html: true, placement: 'bottom'}}
       >
-        <a className="chart-column" style={{width: pointWidth, height: '100%'}}>
+        <g>
           {pts}
-        </a>
+        </g>
       </Tooltip>
     );
   },
@@ -309,12 +300,12 @@ const StackedBarChart = createReactClass({
     });
 
     let children = [];
-    points.forEach(point => {
+    points.forEach((point, index) => {
       while (markers.length && markers[0].x <= point.x) {
         children.push(this.renderMarker(markers.shift()));
       }
 
-      children.push(this.renderChartColumn(point, maxval, pointWidth));
+      children.push(this.renderChartColumn(point, maxval, pointWidth, index));
     });
 
     // in bizarre case where markers never got rendered, render them last
@@ -337,7 +328,7 @@ const StackedBarChart = createReactClass({
           <Count value={maxval} />
         </span>
         <span className="min-y">0</span>
-        <span>{this.renderChart()}</span>
+        <svg shape-rendering="geometricPrecision" viewBox={`0 0 ${Object.keys(this.state.pointIndex).length * 100} 100`} style={{width: '100%', height: '100%'}}>{this.renderChart()}</svg>
       </figure>
     );
   },
