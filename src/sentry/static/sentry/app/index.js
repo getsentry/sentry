@@ -157,8 +157,7 @@ export default {
     SettingsPageHeader: require('app/views/settings/components/settingsPageHeader')
       .default,
 
-    // #NEW-SETTINGS #SIDEBAR -- need to update this when we remove old sidebar
-    Sidebar: require('app/components/sidebar.old').default,
+    Sidebar: require('app/components/sidebar').default,
     StackedBarChart: require('app/components/stackedBarChart').default,
     TextBlock: require('app/views/settings/components/text/textBlock').default,
     TimeSince: require('app/components/timeSince').default,
