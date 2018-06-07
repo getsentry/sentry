@@ -41,7 +41,7 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
             }
         ]
 
-    def _get_repo(self, client, installation, repo):
+    def _validate_repo(self, client, installation, repo):
         try:
             repo = client.get_repo(repo)
         except Exception as e:
@@ -69,7 +69,7 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
             installation = integration.get_installation()
             client = installation.get_client()
 
-            repo = self._get_repo(client, installation, config['name'])
+            repo = self._validate_repo(client, installation, config['name'])
             config['external_id'] = six.text_type(repo['id'])
             config['integration_id'] = integration.id
 
