@@ -28,7 +28,10 @@ export default class SelectField extends React.Component {
   handleChange = (onBlur, onChange, optionObj) => {
     let value;
 
-    if (this.props.multiple) {
+    // If optionObj is empty, then it probably means that the field was "cleared"
+    if (!optionObj) {
+      value = optionObj;
+    } else if (this.props.multiple) {
       // List of optionObjs
       value = optionObj.map(({value: val}) => val);
     } else {
