@@ -47,3 +47,47 @@ FILE_CHANGES_EXAMPLE = b"""
   ]
 }
 """
+WORK_ITEM_RESPONSE = """{
+  "id": 309,
+  "rev": 1,
+  "fields": {
+    "System.AreaPath": "Fabrikam-Fiber-Git",
+    "System.TeamProject": "Fabrikam-Fiber-Git",
+    "System.IterationPath": "Fabrikam-Fiber-Git",
+    "System.WorkItemType": "Product Backlog Item",
+    "System.State": "New",
+    "System.Reason": "New backlog item",
+    "System.CreatedDate": "2015-01-07T18:13:01.807Z",
+    "System.CreatedBy": "Jamal Hartnett <fabrikamfiber4@hotmail.com>",
+    "System.ChangedDate": "2015-01-07T18:13:01.807Z",
+    "System.ChangedBy": "Jamal Hartnett <fabrikamfiber4@hotmail.com>",
+    "System.Title": "Customer can sign in using their Microsoft Account",
+    "Microsoft.VSTS.Scheduling.Effort": 8,
+    "WEF_6CB513B6E70E43499D9FC94E5BBFB784_Kanban.Column": "New",
+    "System.Description": "Our authorization logic needs to allow for users with Microsoft accounts (formerly Live Ids) - http://msdn.microsoft.com/en-us/library/live/hh826547.aspx"
+  },
+  "_links": {
+    "self": {
+      "href": "https://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_apis/wit/workItems/309"
+    },
+    "workItemUpdates": {
+      "href": "https://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_apis/wit/workItems/309/updates"
+    },
+    "workItemRevisions": {
+      "href": "https://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_apis/wit/workItems/309/revisions"
+    },
+    "workItemHistory": {
+      "href": "https://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_apis/wit/workItems/309/history"
+    },
+    "html": {
+      "href": "https://fabrikam-fiber-inc.visualstudio.com/web/wi.aspx?pcguid=d81542e4-cdfa-4333-b082-1ae2d6c3ad16&id=309"
+    },
+    "workItemType": {
+      "href": "https://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/6ce954b1-ce1f-45d1-b94d-e6bf2464ba2c/_apis/wit/workItemTypes/Product%20Backlog%20Item"
+    },
+    "fields": {
+      "href": "https://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_apis/wit/fields"
+    }
+  },
+  "url": "https://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_apis/wit/workItems/309"
+}"""
