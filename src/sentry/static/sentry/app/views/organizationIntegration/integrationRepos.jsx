@@ -47,6 +47,11 @@ export default class IntegrationRepos extends AsyncComponent {
     ];
   }
 
+  getIntegrationRepos() {
+    let provider = `integrations:${this.props.integration.provider.key}`;
+    return this.state.itemList.filter(repo => repo.provider.id == provider);
+  }
+
   getStatusLabel(repo) {
     switch (repo.status) {
       case 'pending_deletion':
@@ -180,7 +185,7 @@ export default class IntegrationRepos extends AsyncComponent {
   }
 
   renderBody() {
-    const {itemList} = this.state;
+    const itemList = this.getIntegrationRepos() || [];
     const header = (
       <PanelHeader hasButtons>
         <div>{t('Repositories')}</div>
