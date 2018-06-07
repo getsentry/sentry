@@ -58,7 +58,7 @@ from sentry.web.frontend.unsubscribe_issue_notifications import \
     UnsubscribeIssueNotificationsView
 from sentry.web.frontend.user_avatar import UserAvatarPhotoView
 from sentry.web.frontend.setup_wizard import SetupWizardView
-from sentry.web.frontend.relay_cdn import RelayJavaScriptLoader
+from sentry.web.frontend.js_sdk_loader import JavaScriptSdkLoader
 
 
 __all__ = ('urlpatterns', )
@@ -135,12 +135,12 @@ urlpatterns += patterns(
         name='sentry-media'
     ),
 
-    # Relay CDN
+    # Javascript SDK Loader
 
     url(
-        r'^cdn/(?P<public_key>[^/]+)\.js$',
-        RelayJavaScriptLoader.as_view(),
-        name='sentry-relay-cdn-loader'
+        r'^js-sdk-loader/(?P<public_key>[^/\.]+)(?:(?P<minified>\.min))?\.js$',
+        JavaScriptSdkLoader.as_view(),
+        name='sentry-js-sdk-loader'
     ),
 
     # API
