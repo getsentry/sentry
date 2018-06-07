@@ -75,13 +75,18 @@ class VisualStudioRepositoryProviderTest(TestCase):
     @responses.activate
     def test_create_repository(self):
         organization = self.create_organization()
-
+        integration = Integration.objects.create(
+            provider='vsts',
+            external_id='vsts_external_id',
+            name='Hello world',
+        )
         data = {
             'name': 'MyFirstProject',
             'external_id': '654321',
             'url': 'https://mbittker.visualstudio.com/_git/MyFirstProject/',
             'instance': 'https://visualstudio.com',
-            'project': 'MyFirstProject'
+            'project': 'MyFirstProject',
+            'integration_id': integration.id,
         }
         data = self.provider.create_repository(organization, data)
 
@@ -96,4 +101,5 @@ class VisualStudioRepositoryProviderTest(TestCase):
                 'instance': 'https://visualstudio.com'
 
             },
+            'integration_id': integration.id,
         }

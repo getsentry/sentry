@@ -71,7 +71,7 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
             try:
                 repo = client.get_repo(instance, name, project)
             except Exception as e:
-                installation.raise_error(e, identity=client.auth)
+                installation.raise_error(e)
             config.update({
                 'instance': instance,
                 'project': project,
@@ -90,7 +90,8 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
                 'instance': data['instance'],
                 'project': data['project'],
                 'name': data['name'],
-            }
+            },
+            'integration_id': data['integration_id'],
         }
 
     def delete_repository(self, repo, actor=None):
@@ -144,7 +145,7 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
             else:
                 res = client.get_commit_range(instance, repo.external_id, start_sha, end_sha)
         except Exception as e:
-            installation.raise_error(e, identity=client.auth)
+            installation.raise_error(e)
 
         commits = self.zip_commit_data(repo, res['value'], organization_id)
         return self._format_commits(repo, commits)
