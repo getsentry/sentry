@@ -50,7 +50,7 @@ class GitHubAppsProviderTest(PluginTestCase):
     def test_compare_commits_no_start(self, mock_get_last_commits):
         organization = self.create_organization()
         integration = Integration.objects.create(
-            provider='integrations:github',
+            provider='github',
             external_id='1',
         )
         repo = Repository.objects.create(
@@ -73,7 +73,7 @@ class GitHubAppsProviderTest(PluginTestCase):
     def test_compare_commits(self, mock_compare_commits):
         organization = self.create_organization()
         integration = Integration.objects.create(
-            provider='integrations:github',
+            provider='github',
             external_id='1',
         )
         repo = Repository.objects.create(
