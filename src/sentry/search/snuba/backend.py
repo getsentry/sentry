@@ -23,7 +23,14 @@ logger = logging.getLogger('sentry.search.snuba')
 datetime_format = '%Y-%m-%dT%H:%M:%S+00:00'
 
 
+# maximum number of GroupHashes to send down to Snuba,
+# if more GroupHash candidates are found, a "bare" Snuba
+# search is performed and the result groups are then
+# post-filtered via queries to the Sentry DB
 MAX_PRE_SNUBA_CANDIDATES = 500
+
+# maximum number of Groups (resulting from a Snuba query)
+# to post-filter via a query to the Sentry DB at one time
 MAX_POST_SNUBA_CHUNK = 10000
 
 
@@ -272,12 +279,12 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
         )
 
         if candidate_hashes:
-            # candidates were passed to Snuba, so we're done filtering
+            # pre-filtered candidates were passed down to Snuba,
+            # so we're finished with filtering
             result_groups = snuba_groups.items()
         else:
-            # we didn't pass any candidates down to Snuba, so we need to do
-            # post-filtering of groups to verify Sentry DB predicates
-
+            # pre-filtered candidates were *not* passed down to Snuba,
+            # so we need to do post-filtering to verify Sentry DB predicates
             result_groups = []
             for chunk in chunked(snuba_groups.items(), MAX_POST_SNUBA_CHUNK):
                 filtered_group_ids = group_queryset.filter(
@@ -303,9 +310,9 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
 
 def snuba_search(project_id, environment_id, tags, start, end,
                  sort, extra_aggregations, score_fn, candidate_hashes, **parameters):
-    """\
+    """
     This function doesn't strictly benefit from or require being pulled out of the main
-    query method, but the query method is already large and this function at least
+    query method above, but the query method is already large and this function at least
     extracts most of the Snuba-specific logic.
 
     Returns an OrderedDict of {group_id: group_score, ...} sorted descending by score.
