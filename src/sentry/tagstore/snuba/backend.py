@@ -184,13 +184,13 @@ class SnubaTagStorage(TagStorage):
     def get_group_tag_values(self, project_id, group_id, environment_id, key):
         return self.__get_tag_values(project_id, group_id, environment_id, key)
 
-    def get_group_list_tag_value(self, project_id, group_ids, environment_id, key, value):
+    def get_group_list_tag_value(self, project_id, group_id_list, environment_id, key, value):
         start, end = self.get_time_range()
         tag = 'tags[{}]'.format(key)
         filters = {
             'project_id': [project_id],
             'environment': [environment_id],
-            'issue': group_ids,
+            'issue': group_id_list,
         }
         conditions = [
             [tag, '=', value]
