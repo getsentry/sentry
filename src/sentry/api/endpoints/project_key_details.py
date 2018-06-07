@@ -40,7 +40,6 @@ class RateLimitSerializer(serializers.Serializer):
 
 class KeySerializer(serializers.Serializer):
     name = serializers.CharField(max_length=200, required=False)
-    jsSdkUrl = serializers.URLField(max_length=255, required=False)
     isActive = serializers.BooleanField(required=False)
     rateLimit = RateLimitSerializer(required=False)
 
@@ -88,11 +87,6 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
 
         if serializer.is_valid():
             result = serializer.object
-
-            if result.get('jsSdkUrl') == '':
-                key.data = {}
-            else:
-                key.data = {'js_sdk_url': result.get('jsSdkUrl', None)}
 
             if result.get('name'):
                 key.label = result['name']

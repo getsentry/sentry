@@ -5,10 +5,7 @@ import uuid
 from datetime import datetime
 from pytz import utc
 
-from django.core.urlresolvers import reverse
-
 from sentry.models import ProjectStatus, ProjectKey
-from sentry.utils.http import absolute_uri
 
 
 class Config(object):
@@ -51,7 +48,3 @@ class Config(object):
 
     def is_project_enabled(self):
         return self.project.status != ProjectStatus.VISIBLE
-
-    def get_cdn_url(self, project_key):
-        """Return the url to the js cdn file for a specific project key"""
-        return absolute_uri(reverse('sentry-relay-cdn-loader', args=[project_key.public_key]))

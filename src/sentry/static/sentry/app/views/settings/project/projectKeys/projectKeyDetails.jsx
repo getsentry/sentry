@@ -292,7 +292,7 @@ const KeySettings = createReactClass({
     data: SentryTypes.ProjectKey.isRequired,
     onRemove: PropTypes.func.isRequired,
     rateLimitsEnabled: PropTypes.bool,
-    relayEnabled: PropTypes.bool,
+    jsSdkLoaderEnabled: PropTypes.bool,
   },
 
   mixins: [ApiMixin],
@@ -332,7 +332,7 @@ const KeySettings = createReactClass({
       access,
       data,
       rateLimitsEnabled,
-      relayEnabled,
+      jsSdkLoaderEnabled,
       organization,
       project,
     } = this.props;
@@ -379,7 +379,7 @@ const KeySettings = createReactClass({
           hooksDisabled={this.state.hooksDisabled}
         />
 
-        {relayEnabled && (
+        {jsSdkLoaderEnabled && (
           <Form
             saveOnBlur
             allowUndo
@@ -390,23 +390,13 @@ const KeySettings = createReactClass({
             <Panel>
               <PanelHeader>{t('CDN')}</PanelHeader>
               <PanelBody>
-                <TextField
-                  name="jsSdkUrl"
-                  help={t(
-                    'Change this to the URL of the SDK of your choice. By default this is the latest SDK version. If you set an URL here you need to update it manually.'
-                  )}
-                  label={t('Url of SDK to be loaded')}
-                  placeholder={t('Leave empty to use default')}
-                  required={false}
-                />
-
                 <Field
                   help={t('Copy this into your website and you are good to go')}
                   inline={false}
                   flexibleControlStateSize
                 >
-                  <TextCopyInput>{`<script src='${data.relay
-                    .url}'></script>`}</TextCopyInput>
+                  <TextCopyInput>{`<script src='${data.dsn
+                    .cdn}'></script>`}</TextCopyInput>
                 </Field>
               </PanelBody>
             </Panel>
@@ -491,7 +481,7 @@ export default class ProjectKeyDetails extends AsyncView {
     let features = new Set(project.features);
     let hasRateLimitsEnabled = features.has('rate-limits');
     let orgFeatures = new Set(organization.features);
-    let hasRelayEnabled = orgFeatures.has('relay');
+    let hasjsSdkLoaderEnabled = orgFeatures.has('relay');
 
     return (
       <div className="ref-key-details">
@@ -505,7 +495,7 @@ export default class ProjectKeyDetails extends AsyncView {
           access={access}
           params={params}
           rateLimitsEnabled={hasRateLimitsEnabled}
-          relayEnabled={hasRelayEnabled}
+          jsSdkLoaderEnabled={hasjsSdkLoaderEnabled}
           data={data}
           onRemove={this.handleRemove}
         />

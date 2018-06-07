@@ -29,8 +29,9 @@ from sentry.db.models import (
 
 _uuid4_re = re.compile(r'^[a-f0-9]{32}$')
 
-
 # TODO(dcramer): pull in enum library
+
+
 class ProjectKeyStatus(object):
     ACTIVE = 0
     INACTIVE = 1
@@ -167,9 +168,7 @@ class ProjectKey(Model):
 
     @property
     def csp_endpoint(self):
-        endpoint = settings.SENTRY_PUBLIC_ENDPOINT or settings.SENTRY_ENDPOINT
-        if not endpoint:
-            endpoint = options.get('system.url-prefix')
+        endpoint = self.get_endpoint()
 
         return '%s%s?sentry_key=%s' % (
             endpoint,
@@ -179,9 +178,7 @@ class ProjectKey(Model):
 
     @property
     def security_endpoint(self):
-        endpoint = settings.SENTRY_PUBLIC_ENDPOINT or settings.SENTRY_ENDPOINT
-        if not endpoint:
-            endpoint = options.get('system.url-prefix')
+        endpoint = self.get_endpoint()
 
         return '%s%s?sentry_key=%s' % (
             endpoint,
@@ -191,15 +188,30 @@ class ProjectKey(Model):
 
     @property
     def minidump_endpoint(self):
-        endpoint = settings.SENTRY_PUBLIC_ENDPOINT or settings.SENTRY_ENDPOINT
-        if not endpoint:
-            endpoint = options.get('system.url-prefix')
+        endpoint = self.get_endpoint()
 
         return '%s%s/?sentry_key=%s' % (
             endpoint,
             reverse('sentry-api-minidump', args=[self.project_id]),
             self.public_key,
         )
+
+    @property
+    def js_sdk_loader_cdn_url(self):
+        if settings.JS_SDK_LOADER_CDN_URL:
+            return '%s%s.min.js' % (settings.JS_SDK_LOADER_CDN_URL, self.public_key)
+        else:
+            endpoint = self.get_endpoint()
+            return '%s%s' % (
+                endpoint,
+                reverse('sentry-js-sdk-loader', args=[self.public_key, '.min'])
+            )
+
+    def get_endpoint(self):
+        endpoint = settings.SENTRY_PUBLIC_ENDPOINT or settings.SENTRY_ENDPOINT
+        if not endpoint:
+            endpoint = options.get('system.url-prefix')
+        return endpoint
 
     def get_allowed_origins(self):
         from sentry.utils.http import get_origins

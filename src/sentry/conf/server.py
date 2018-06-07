@@ -268,6 +268,7 @@ STATIC_URL = '/_static/{version}/'
 # cookies
 ANONYMOUS_STATIC_PREFIXES = (
     '/_static/', '/avatar/', '/organization-avatar/', '/team-avatar/', '/project-avatar/',
+    '/js-sdk-loader/'
 )
 
 STATICFILES_FINDERS = (
@@ -1343,3 +1344,13 @@ SENTRY_MINIDUMP_PATH = '/tmp/minidump'
 # Relay
 # List of PKs whitelisted by Sentry
 SENTRY_RELAY_WHITELIST_PK = []
+
+# CDN
+# If this is an absolute url like e.g.: https://js.sentry-cdn.com/
+# the full url will look like this: https://js.sentry-cdn.com/<public_key>.min.js
+# otherwise django reverse url lookup will be used.
+JS_SDK_LOADER_CDN_URL = ''
+# Version of the SDK - Used in header Surrogate-Key sdk/JS_SDK_LOADER_SDK_VERSION
+JS_SDK_LOADER_SDK_VERSION = ''
+# This should be the url pointing to the JS SDK
+JS_SDK_LOADER_DEFAULT_SDK_URL = ''
