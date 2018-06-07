@@ -22,7 +22,7 @@ def replace_keys(html, project_key):
     html = html.replace('___PROJECT_ID___', six.text_type(project_key.project_id))
     html = html.replace('___MINIDUMP_URL___', project_key.minidump_endpoint)
     html = html.replace('___RELAY_CDN_URL___', absolute_uri(
-        reverse('sentry-relay-cdn-loader', args=[project_key.public_key])
+        reverse('sentry-js-sdk-loader', args=[project_key.public_key])
     ))
 
     # If we actually render this in the main UI we can also provide
