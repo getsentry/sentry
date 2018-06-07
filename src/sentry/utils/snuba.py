@@ -12,6 +12,7 @@ import urllib3
 from django.conf import settings
 from django.db.models import Q
 
+from sentry.event_manager import HASH_RE
 from sentry.models import Group, GroupHash, GroupHashTombstone, Environment, Release, ReleaseProject
 from sentry.utils import metrics
 from sentry.utils.dates import to_timestamp
@@ -226,7 +227,7 @@ def get_project_issues(project_ids, issue_ids=None):
     else:
         hashes = GroupHash.objects.filter(project__in=project_ids)
 
-    hashes = list(hashes)
+    hashes = [h for h in hashes if HASH_RE.match(h.hash)]
     if not hashes:
         return []
 
