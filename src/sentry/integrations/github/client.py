@@ -39,6 +39,9 @@ class GitHubClientMixin(ApiClient):
             num
         ))
 
+    def get_commits(self, repo):
+        return self.get('/repos/{}/commits'.format(repo))
+
     def get_repo(self, repo):
         return self.get('/repos/{}'.format(repo))
 
