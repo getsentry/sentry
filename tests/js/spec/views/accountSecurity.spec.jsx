@@ -5,6 +5,7 @@ import {Client} from 'app/api';
 import AccountSecurity from 'app/views/settings/account/accountSecurity';
 
 const ENDPOINT = '/users/me/authenticators/';
+const ORG_ENDPOINT = '/organizations/';
 
 describe('AccountSecurity', function() {
   beforeEach(function() {
@@ -26,6 +27,10 @@ describe('AccountSecurity', function() {
     Client.addMockResponse({
       url: ENDPOINT,
       body: [TestStubs.Authenticators().Totp({configureButton: 'Info'})],
+    });
+    Client.addMockResponse({
+      url: ORG_ENDPOINT,
+      body: TestStubs.Organizations(),
     });
 
     let wrapper = shallow(<AccountSecurity />, TestStubs.routerContext());
@@ -54,6 +59,10 @@ describe('AccountSecurity', function() {
           configureButton: 'Info',
         }),
       ],
+    });
+    Client.addMockResponse({
+      url: ORG_ENDPOINT,
+      body: TestStubs.Organizations(),
     });
 
     let deleteMock = Client.addMockResponse({
@@ -87,6 +96,10 @@ describe('AccountSecurity', function() {
       url: ENDPOINT,
       body: [TestStubs.Authenticators().Totp({isEnrolled: false})],
     });
+    Client.addMockResponse({
+      url: ORG_ENDPOINT,
+      body: TestStubs.Organizations(),
+    });
 
     let wrapper = shallow(<AccountSecurity />, TestStubs.routerContext());
 
@@ -106,6 +119,10 @@ describe('AccountSecurity', function() {
       url: ENDPOINT,
       body: [TestStubs.Authenticators().Recovery({isEnrolled: false})],
     });
+    Client.addMockResponse({
+      url: ORG_ENDPOINT,
+      body: TestStubs.Organizations(),
+    });
 
     let wrapper = shallow(<AccountSecurity />, TestStubs.routerContext());
 
@@ -120,6 +137,10 @@ describe('AccountSecurity', function() {
     Client.addMockResponse({
       url: ENDPOINT,
       body: [TestStubs.Authenticators().Recovery({isEnrolled: true})],
+    });
+    Client.addMockResponse({
+      url: ORG_ENDPOINT,
+      body: TestStubs.Organizations(),
     });
 
     let wrapper = shallow(<AccountSecurity />, TestStubs.routerContext());
@@ -140,6 +161,10 @@ describe('AccountSecurity', function() {
     Client.addMockResponse({
       url: ENDPOINT,
       body: [TestStubs.Authenticators().Recovery({isEnrolled: false})],
+    });
+    Client.addMockResponse({
+      url: ORG_ENDPOINT,
+      body: [],
     });
     let url = '/users/me/password/';
     let mock = Client.addMockResponse({
@@ -177,6 +202,10 @@ describe('AccountSecurity', function() {
     Client.addMockResponse({
       url: ENDPOINT,
       body: [TestStubs.Authenticators().Recovery({isEnrolled: false})],
+    });
+    Client.addMockResponse({
+      url: ORG_ENDPOINT,
+      body: TestStubs.Organizations(),
     });
     let url = '/users/me/password/';
     let mock = Client.addMockResponse({

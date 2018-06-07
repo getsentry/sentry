@@ -14,6 +14,7 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
+import TwoFactorRequired from 'app/views/settings/account/accountSecurity/components/twoFactorRequired';
 import RemoveConfirm from 'app/views/settings/account/accountSecurity/components/removeConfirm';
 import PasswordForm from 'app/views/settings/account/passwordForm';
 
@@ -52,17 +53,23 @@ class AccountSecurity extends AsyncView {
   };
 
   renderBody() {
-    let isEmpty = !this.state.authenticators.length;
+    let authenticators = this.state.authenticators;
+    let isEmpty = !authenticators.length;
+    let twoFactorEnrolled = authenticators.some(({isEnrolled}) => {
+      return isEnrolled === true;
+    });
 
     return (
       <div>
         <SettingsPageHeader title="Security" />
 
+        {!isEmpty && !twoFactorEnrolled && <TwoFactorRequired />}
+
         <PasswordForm />
 
         <Panel>
           <PanelHeader>
-            <Box>{t('Two Factor Authentication')}</Box>
+            <Box>{t('Two-Factor Authentication')}</Box>
           </PanelHeader>
 
           {isEmpty && (
@@ -71,7 +78,7 @@ class AccountSecurity extends AsyncView {
 
           <PanelBody>
             {!isEmpty &&
-              this.state.authenticators.map(auth => {
+              authenticators.map(auth => {
                 let {
                   id,
                   authId,

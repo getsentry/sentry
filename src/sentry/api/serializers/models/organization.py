@@ -50,6 +50,7 @@ class OrganizationSerializer(Serializer):
             'name': obj.name or obj.slug,
             'dateCreated': obj.date_added,
             'isEarlyAdopter': bool(obj.flags.early_adopter),
+            'require2FA': bool(obj.flags.require_2fa),
             'avatar': avatar,
         }
 
