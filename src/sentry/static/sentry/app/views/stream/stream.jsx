@@ -119,7 +119,7 @@ const Stream = createReactClass({
     let nextSearchId = nextProps.params.searchId || null;
 
     let searchIdChanged = this.state.isDefaultSearch
-      ? nextSearchId
+      ? nextSearchId !== null
       : nextSearchId !== this.state.searchId;
 
     // We are using qs.parse with location.search since this.props.location.query
@@ -192,8 +192,17 @@ const Stream = createReactClass({
             data.find(search => search.isDefault);
 
           if (defaultResult) {
+            // Check if there is an environment specified in the default search
+            const envName = queryString.getQueryEnvironment(defaultResult.query);
+            const env = EnvironmentStore.getByName(envName);
+            if (env) {
+              setActiveEnvironment(env);
+            }
+
             newState.searchId = defaultResult.id;
-            newState.query = defaultResult.query;
+            newState.query = queryString.getQueryStringWithoutEnvironment(
+              defaultResult.query
+            );
             newState.isDefaultSearch = true;
           }
         }
@@ -288,6 +297,10 @@ const Stream = createReactClass({
         } else {
           // Old behavior, keep the environment in the querystring
           newState.query = searchResult.query;
+        }
+
+        if (this.state.searchId && !props.params.searchId) {
+          newState.isDefaultSearch = true;
         }
       } else {
         newState.searchId = null;
