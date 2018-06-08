@@ -136,7 +136,7 @@ class VstsIntegrationProvider(IntegrationProvider):
             'name': account['AccountName'],
             'external_id': account['AccountId'],
             'metadata': {
-                'domain_name': instance,
+                'domain_name': instance,  # This has become redundant
                 'scopes': scopes,
             },
             # TODO(LB): Change this to a Microsoft account as opposed to a VSTS workspace
