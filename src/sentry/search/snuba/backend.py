@@ -14,7 +14,7 @@ from sentry.api.paginator import SequencePaginator, Paginator
 from sentry.event_manager import ALLOWED_FUTURE_DELTA
 from sentry.models import Release, Group, GroupEnvironment, GroupHash
 from sentry.search.django import backend as ds
-from sentry.utils import snuba
+from sentry.utils import snuba, metrics
 from sentry.utils.dates import to_timestamp
 from sentry.utils.iterators import chunked
 
@@ -239,9 +239,11 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                 'hash', 'group_id'
             )[:MAX_PRE_SNUBA_CANDIDATES + 1]
         )
+        metrics.incr('snuba.search.num_candidates', len(candidate_hashes))
 
         if not candidate_hashes:
             # no matches could possibly be found from this point on
+            metrics.incr('snuba.search.no_candidates')
             return Paginator(Group.objects.none()).get_result()
         elif len(candidate_hashes) > MAX_PRE_SNUBA_CANDIDATES:
             # If the pre-filter query didn't include anything to significantly
@@ -253,6 +255,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
             # want Snuba to do all the filtering/sorting it can and *then* apply
             # this queryset to the results from Snuba, which we call
             # post-filtering.
+            metrics.incr('snuba.search.too_many_candidates')
             candidate_hashes = None
 
         sort, extra_aggregations, score_fn = sort_strategies[sort_by]
@@ -270,6 +273,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
             candidate_hashes=candidate_hashes,
             **parameters
         )
+        metrics.incr('snuba.search.num_snuba_results', len(snuba_groups))
 
         if candidate_hashes:
             # pre-filtered candidates were passed down to Snuba,
@@ -279,7 +283,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
             # pre-filtered candidates were *not* passed down to Snuba,
             # so we need to do post-filtering to verify Sentry DB predicates
             result_groups = []
-            for chunk in chunked(snuba_groups.items(), MAX_POST_SNUBA_CHUNK):
+            for i, chunk in enumerate(chunked(snuba_groups.items(), MAX_POST_SNUBA_CHUNK)):
                 filtered_group_ids = group_queryset.filter(
                     id__in=list(gid for gid, _ in chunk)
                 ).values_list('id', flat=True)
@@ -288,6 +292,8 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                     (group_id, snuba_groups[group_id])
                     for group_id in filtered_group_ids
                 )
+
+            metrics.incr('snuba.search.num_post_filters', i + 1)
 
         paginator_results = SequencePaginator(
             [(score, id) for (id, score) in result_groups],
