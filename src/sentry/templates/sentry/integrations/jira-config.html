@@ -28,6 +28,15 @@
 <body>
   <h3>Sentry Integration Configuration</h3>
 
+  {% if completed %}
+  <div class="aui-message aui-message-success">
+    <p class="title">
+      <strong>Saved!</strong>
+    </p>
+    <p>The Sentry JIRA integration is now enabled for the selected organizations.</p>
+  </div>
+  {% if endfor %}
+
   <form class="aui top-label" action="" method="post">
     {% csrf_token %}
     {% for field in form %}
