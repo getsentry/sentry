@@ -145,7 +145,7 @@ const TodoItem = createReactClass({
             </a>
           )}
         </div>
-        {this.state.showConfirmation && (
+        {showConfirmation && (
           <Confirmation
             task={task.task}
             onSkip={() => this.skip(task.task)}
