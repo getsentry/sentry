@@ -19,7 +19,27 @@ const withPlugins = WrappedComponent =>
       project: SentryTypes.Project,
     },
     mixins: [ProjectState, Reflux.connect(PluginsStore, 'store')],
+
     componentDidMount() {
+      this.fetchPlugins();
+    },
+
+    componentDidUpdate(prevProps) {
+      let organization = this.props.organization || this.getOrganization();
+      let project = this.props.project || this.getProject();
+
+      if (
+        (typeof prevProps.organization === 'undefined' ||
+          prevProps.organization.slug === organization.slug) &&
+        (typeof prevProps.project === 'undefined' ||
+          prevProps.project.slug === project.slug)
+      )
+        return;
+
+      this.fetchPlugins();
+    },
+
+    fetchPlugins() {
       let organization = this.props.organization || this.getOrganization();
       let project = this.props.project || this.getProject();
 
@@ -27,6 +47,7 @@ const withPlugins = WrappedComponent =>
 
       fetchPlugins({projectId: project.slug, orgId: organization.slug});
     },
+
     render() {
       return <WrappedComponent {...this.props} plugins={this.state.store} />;
     },
