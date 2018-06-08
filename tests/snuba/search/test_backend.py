@@ -790,7 +790,6 @@ class SnubaSearchTest(SnubaTestCase):
             'referrer': 'search',
             'groupby': ['primary_hash'],
             'conditions': [],
-            'limit': Any(int),
         }
 
         self.backend.query(self.project, query='foo')
@@ -836,3 +835,29 @@ class SnubaSearchTest(SnubaTestCase):
             having=[('first_seen', '>=', Any(int))],
             **common_args
         )
+
+    def test_pre_and_post_filtering(self):
+        from sentry.search.snuba import backend as snuba_search
+
+        prev_max_pre = snuba_search.MAX_PRE_SNUBA_CANDIDATES
+        prev_max_post = snuba_search.MAX_POST_SNUBA_CHUNK
+
+        snuba_search.MAX_PRE_SNUBA_CANDIDATES = 1
+        snuba_search.MAX_POST_SNUBA_CHUNK = 1
+        try:
+            # normal queries work as expected
+            results = self.backend.query(self.project, query='foo')
+            assert set(results) == set([self.group1])
+            results = self.backend.query(self.project, query='bar')
+            assert set(results) == set([self.group2])
+
+            # no candidate matches in Sentry, immediately return empty paginator
+            results = self.backend.query(self.project, query='NO MATCHES IN SENTRY')
+            assert set(results) == set()
+
+            # too many candidates, skip pre-filter, requires >1 postfilter queries
+            results = self.backend.query(self.project)
+            assert set(results) == set([self.group1, self.group2])
+        finally:
+            snuba_search.MAX_PRE_SNUBA_CANDIDATES = prev_max_pre
+            snuba_search.MAX_POST_SNUBA_CHUNK = prev_max_post
