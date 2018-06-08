@@ -71,4 +71,4 @@ class JiraConfigureView(BaseView):
         for org_id in enabled_orgs:
             integration.add_organization(org_id)
 
-        return self.get_response({'form': form})
+        return self.get_response({'form': form, 'completed': True})
