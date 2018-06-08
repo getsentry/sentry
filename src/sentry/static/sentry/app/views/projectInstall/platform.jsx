@@ -110,8 +110,10 @@ const ProjectInstallPlatform = createReactClass({
   },
 
   inInstallExperiment() {
-    let {experimentPlatforms} = this.state;
-    let currentPlatform = this.state.integration.id;
+    let {experimentPlatforms, integration} = this.state;
+    if (!integration.id) return;
+
+    let currentPlatform = integration.id;
     let installExperiment =
       ConfigStore.get('features').has('install-experiment') &&
       experimentPlatforms.has(currentPlatform);
