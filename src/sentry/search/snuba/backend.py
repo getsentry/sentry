@@ -285,7 +285,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
             result_groups = []
             for i, chunk in enumerate(chunked(snuba_groups.items(), MAX_POST_SNUBA_CHUNK)):
                 filtered_group_ids = group_queryset.filter(
-                    id__in=list(gid for gid, _ in chunk)
+                    id__in=[gid for gid, _ in chunk]
                 ).values_list('id', flat=True)
 
                 result_groups.extend(
