@@ -36,24 +36,26 @@ const TodoItem = createReactClass({
   },
 
   formatDescription: function() {
+    let {task} = this.props;
+    let {isExpanded} = this.state;
+
     return (
       <p>
-        {this.props.task.description}{' '}
-        {this.state.isExpanded && '. ' + this.props.task.detailedDescription}
+        {task.description} {isExpanded && '. ' + task.detailedDescription}
       </p>
     );
   },
 
   learnMoreUrlCreator: function() {
     let {org} = this.state;
+    let {task} = this.props;
     let learnMoreUrl;
-    if (this.props.task.featureLocation === 'project') {
-      learnMoreUrl = `/organizations/${org.slug}/projects/choose/?onboarding=1&task=${this
-        .props.task.task}`;
-    } else if (this.props.task.featureLocation === 'organization') {
-      learnMoreUrl = `/organizations/${org.slug}/${this.props.task.location}`;
-    } else if (this.props.task.featureLocation === 'absolute') {
-      learnMoreUrl = this.props.task.location;
+    if (task.featureLocation === 'project') {
+      learnMoreUrl = `/organizations/${org.slug}/projects/choose/?onboarding=1&task=${task.task}`;
+    } else if (task.featureLocation === 'organization') {
+      learnMoreUrl = `/organizations/${org.slug}/${task.location}`;
+    } else if (task.featureLocation === 'absolute') {
+      learnMoreUrl = task.location;
     } else {
       Raven.captureMessage('No learnMoreUrl created for this featureLocation ', {
         extra: {props: this.props, state: this.state},
@@ -81,41 +83,43 @@ const TodoItem = createReactClass({
   },
 
   render: function() {
+    let {task, className} = this.props;
+    let {showConfirmation} = this.state;
     let learnMoreUrl = this.learnMoreUrlCreator();
     let description;
 
-    switch (this.props.task.status) {
+    switch (task.status) {
       case 'complete':
         description = tct('[user] completed [dateCompleted]', {
-          user: this.props.task.user,
-          dateCompleted: moment(this.props.task.dateCompleted).fromNow(),
+          user: task.user,
+          dateCompleted: moment(task.dateCompleted).fromNow(),
         });
         break;
       case 'pending':
         description = tct('[user] kicked off [dateCompleted]', {
-          user: this.props.task.user,
-          dateCompleted: moment(this.props.task.dateCompleted).fromNow(),
+          user: task.user,
+          dateCompleted: moment(task.dateCompleted).fromNow(),
         });
         break;
       case 'skipped':
         description = tct('[user] skipped [dateCompleted]', {
-          user: this.props.task.user,
-          dateCompleted: moment(this.props.task.dateCompleted).fromNow(),
+          user: task.user,
+          dateCompleted: moment(task.dateCompleted).fromNow(),
         });
         break;
       default:
         description = this.formatDescription();
     }
 
-    let classes = classNames(this.props.className, this.props.task.status, {
-      blur: this.state.showConfirmation,
+    let classes = classNames(className, task.status, {
+      blur: showConfirmation,
     });
 
     let showSkipButton =
-      this.props.task.skippable &&
-      this.props.task.status != 'skipped' &&
-      this.props.task.status != 'complete' &&
-      !this.state.showConfirmation;
+      task.skippable &&
+      task.status != 'skipped' &&
+      task.status != 'complete' &&
+      !showConfirmation;
 
     return (
       <li
@@ -123,15 +127,15 @@ const TodoItem = createReactClass({
         onMouseOver={this.toggleDescription}
         onMouseOut={this.toggleDescription}
       >
-        {this.props.task.status == 'pending' && <div className="pending-bar" />}
+        {task.status == 'pending' && <div className="pending-bar" />}
         <div className="todo-content">
           <div className="ob-checkbox">
-            {this.props.task.status == 'complete' && <span className="icon-checkmark" />}
-            {this.props.task.status == 'skipped' && <span className="icon-x" />}
-            {this.props.task.status == 'pending' && <span className="icon-ellipsis" />}
+            {task.status == 'complete' && <span className="icon-checkmark" />}
+            {task.status == 'skipped' && <span className="icon-x" />}
+            {task.status == 'pending' && <span className="icon-ellipsis" />}
           </div>
           <a href={learnMoreUrl}>
-            <h4>{this.props.task.title}</h4>
+            <h4>{task.title}</h4>
           </a>
           <div>{description}</div>
 
@@ -143,8 +147,8 @@ const TodoItem = createReactClass({
         </div>
         {this.state.showConfirmation && (
           <Confirmation
-            task={this.props.task.task}
-            onSkip={() => this.skip(this.props.task.task)}
+            task={task.task}
+            onSkip={() => this.skip(task.task)}
             dismiss={this.toggleConfirmation}
           />
         )}
