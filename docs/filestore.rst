@@ -17,7 +17,22 @@ File System Backend
       location: '/tmp/sentry-files'
 
 
-S3 Backend
+Google Cloud Storage Backend
+----------
+
+In addition to the configuration below, you'll need to make sure the shell
+environment is configured with the appropriate bucket access credentials by
+performing ``gcloud init`` then completing the authentication flow initiated
+by a ``gcloud auth application-default login``.
+
+.. code-block:: yaml
+
+    filestore.backend: 'gcs'
+    filestore.options:
+      bucket_name: '...'
+
+
+Amazon S3 Backend
 ----------
 
 .. code-block:: yaml
