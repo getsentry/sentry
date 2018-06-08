@@ -5,6 +5,7 @@ import createReactClass from 'create-react-class';
 import classNames from 'classnames';
 import {t, tct} from 'app/locale';
 
+import analytics from 'app/utils/analytics';
 import OrganizationState from 'app/mixins/organizationState';
 import Confirmation from 'app/components/onboardingWizard/confirmation';
 
@@ -60,9 +61,21 @@ const TodoItem = createReactClass({
     return learnMoreUrl;
   },
 
+  recordAnalytics() {
+    let task = this.props.task;
+    let org = this.getOrganization();
+    analytics('onboarding.wizard_clicked', {
+      org_id: parseInt(org.id, 10),
+      todo_id: parseInt(task.task, 10),
+      todo_title: task.title,
+      action: 'skipped',
+    });
+  },
+
   skip: function(task) {
     this.props.onSkip(task);
     this.setState({showConfirmation: false});
+    this.recordAnalytics();
   },
 
   render: function() {
