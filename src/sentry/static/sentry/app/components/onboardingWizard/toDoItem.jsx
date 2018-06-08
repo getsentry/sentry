@@ -23,6 +23,7 @@ const TodoItem = createReactClass({
     return {
       showConfirmation: false,
       isExpanded: false,
+      org: this.getOrganization(),
     };
   },
 
@@ -44,7 +45,7 @@ const TodoItem = createReactClass({
   },
 
   learnMoreUrlCreator: function() {
-    let org = this.getOrganization();
+    let {org} = this.state;
     let learnMoreUrl;
     if (this.props.task.featureLocation === 'project') {
       learnMoreUrl = `/organizations/${org.slug}/projects/choose/?onboarding=1&task=${this
@@ -62,8 +63,9 @@ const TodoItem = createReactClass({
   },
 
   recordAnalytics() {
-    let task = this.props.task;
-    let org = this.getOrganization();
+    let {org} = this.state;
+    let {task} = this.props;
+
     analytics('onboarding.wizard_clicked', {
       org_id: parseInt(org.id, 10),
       todo_id: parseInt(task.task, 10),
