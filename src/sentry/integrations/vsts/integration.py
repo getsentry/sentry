@@ -83,6 +83,21 @@ class VstsIntegration(Integration):
             raise ValueError('Identity missing access token')
         return VstsApiClient(access_token)
 
+    def get_organization_config(self):
+        return [
+            {
+                'name': 'default_project',
+                'label': 'Default Project Name',
+                'type': 'text',
+                'placeholder': 'MyProject',
+                'required': True,
+                'help': (
+                    'Enter the Visual Studio Team Services project name that you wish '
+                    'to use as a default for new work items'
+                ),
+            },
+        ]
+
 
 class VstsIntegrationProvider(IntegrationProvider):
     key = 'vsts'
@@ -118,23 +133,27 @@ class VstsIntegrationProvider(IntegrationProvider):
     def build_integration(self, state):
         data = state['identity']['data']
         account = state['identity']['account']
-        instance = state['identity']['instance']
         project = state['project']
 
         scopes = sorted(VSTSIdentityProvider.oauth_scopes)
         return {
-            'name': project['name'],
-            'external_id': project['id'],
+            'name': account['AccountName'],
+            'external_id': account['AccountId'],
             'metadata': {
-                'domain_name': instance,
                 'scopes': scopes,
-                # icon doesn't appear to be possible
             },
+            # TODO(LB): Change this to a Microsoft account as opposed to a VSTS workspace
             'user_identity': {
                 'type': 'vsts',
                 'external_id': account['AccountId'],
                 'scopes': [],
                 'data': self.get_oauth_data(data),
+            },
+            'config': {
+                'default_project': {
+                    'name': project['name'],
+                    'id': project['id'],
+                }
             }
         }
 
