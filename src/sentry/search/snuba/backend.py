@@ -239,7 +239,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                 'hash', 'group_id'
             )[:MAX_PRE_SNUBA_CANDIDATES + 1]
         )
-        metrics.incr('snuba.search.num_candidates', len(candidate_hashes))
+        metrics.timing('snuba.search.num_candidates', len(candidate_hashes))
 
         if not candidate_hashes:
             # no matches could possibly be found from this point on
@@ -273,7 +273,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
             candidate_hashes=candidate_hashes,
             **parameters
         )
-        metrics.incr('snuba.search.num_snuba_results', len(snuba_groups))
+        metrics.timing('snuba.search.num_snuba_results', len(snuba_groups))
 
         if candidate_hashes:
             # pre-filtered candidates were passed down to Snuba,
@@ -293,7 +293,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                     for group_id in filtered_group_ids
                 )
 
-            metrics.incr('snuba.search.num_post_filters', i + 1)
+            metrics.timing('snuba.search.num_post_filters', i + 1)
 
         paginator_results = SequencePaginator(
             [(score, id) for (id, score) in result_groups],
