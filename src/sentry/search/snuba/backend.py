@@ -231,36 +231,29 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                 parameters,
             )
 
-        candidate_hashes = None
-        if MAX_PRE_SNUBA_CANDIDATES:
-            # If the query didn't include anything to significantly filter
-            # down the number of group hashes at this point ('first_release', 'query',
+        # pre-filter query
+        candidate_hashes = dict(
+            GroupHash.objects.filter(
+                group__in=group_queryset
+            ).values_list(
+                'hash', 'group_id'
+            )[:MAX_PRE_SNUBA_CANDIDATES + 1]
+        )
+
+        if not candidate_hashes:
+            # no matches could possibly be found from this point on
+            return Paginator(Group.objects.none()).get_result()
+        elif len(candidate_hashes) > MAX_PRE_SNUBA_CANDIDATES:
+            # If the pre-filter query didn't include anything to significantly
+            # filter down the number of results (from 'first_release', 'query',
             # 'status', 'bookmarked_by', 'assigned_to', 'unassigned',
-            # 'subscribed_by', 'active_at_from', or 'active_at_to') then this
-            # queryset might return a *huge* number of groups. In this case, we
-            # probably *don't* want to pass candidates down to Snuba, and rather we
+            # 'subscribed_by', 'active_at_from', or 'active_at_to') then it
+            # might have surpassed the MAX_PRE_SNUBA_CANDIDATES. In this case,
+            # we *don't* want to pass candidates down to Snuba, and instead we
             # want Snuba to do all the filtering/sorting it can and *then* apply
-            # this queryset to the results from Snuba.
-            #
-            # However, if this did filter down the number of groups significantly,
-            # then passing in candidates is, of course, valuable.
-
-            # {hash: group_id, ...}
-            candidate_hashes = dict(
-                GroupHash.objects.filter(
-                    group__in=group_queryset
-                ).values_list(
-                    'hash', 'group_id'
-                )[:MAX_PRE_SNUBA_CANDIDATES + 1]
-            )
-
-            if not candidate_hashes:
-                # no matches could possibly be found from this point on
-                return Paginator(Group.objects.none()).get_result()
-            elif len(candidate_hashes) > MAX_PRE_SNUBA_CANDIDATES:
-                # too many candidate hashes found, so we won't pass any down to Snuba
-                # and we'll do post-filtering instead
-                candidate_hashes = None
+            # this queryset to the results from Snuba, which we call
+            # post-filtering.
+            candidate_hashes = None
 
         sort, extra_aggregations, score_fn = sort_strategies[sort_by]
 
@@ -288,7 +281,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
             result_groups = []
             for chunk in chunked(snuba_groups.items(), MAX_POST_SNUBA_CHUNK):
                 filtered_group_ids = group_queryset.filter(
-                    id__in=(gid for gid, _ in chunk)
+                    id__in=list(gid for gid, _ in chunk)
                 ).values_list('id', flat=True)
 
                 result_groups.extend(
