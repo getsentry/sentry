@@ -31,13 +31,21 @@ class TwoFactorRequired extends AsyncComponent {
     return (
       <div>
         {multipleOrgs ? (
-          <StyledAlert type="error" icon="icon-circle-exclamation">
+          <StyledAlert
+            className="require-2fa"
+            type="error"
+            icon="icon-circle-exclamation"
+          >
             {`The ${formattedNames} organizations require all members to enable
               two-factor authentication. You need to enable two-factor
               authentication to access projects under these organizations.`}
           </StyledAlert>
         ) : (
-          <StyledAlert type="error" icon="icon-circle-exclamation">
+          <StyledAlert
+            className="require-2fa"
+            type="error"
+            icon="icon-circle-exclamation"
+          >
             {`The ${formattedNames} organization requires all members to enable
               two-factor authentication. You need to enable two-factor
               authentication to access projects under this organization.`}
