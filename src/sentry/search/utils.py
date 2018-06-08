@@ -8,7 +8,7 @@ from django.db import DataError
 from django.utils import timezone
 
 from sentry.constants import STATUS_CHOICES
-from sentry.models import EventUser, User
+from sentry.models import EventUser, Team, User
 from sentry.search.base import ANY
 from sentry.utils.auth import find_users
 
@@ -119,6 +119,19 @@ def parse_datetime_expression(value):
         return parse_datetime_comparison(value)
 
     return parse_datetime_value(value)
+
+
+def parse_team_value(project, value, user):
+    return Team.objects.filter(
+        slug__iexact=value[1:],
+        projectteam__project=project,
+    ).first() or Team(id=0)
+
+
+def parse_actor_value(project, value, user):
+    if value.startswith('#'):
+        return parse_team_value(project, value, user)
+    return parse_user_value(value, user)
 
 
 def parse_user_value(value, user):
@@ -342,7 +355,7 @@ def parse_query(project, query, user):
                     except KeyError:
                         raise InvalidQuery(u"'is:' had unknown status code '{}'.".format(value))
             elif key == 'assigned':
-                results['assigned_to'] = parse_user_value(value, user)
+                results['assigned_to'] = parse_actor_value(project, value, user)
             elif key == 'bookmarks':
                 results['bookmarked_by'] = parse_user_value(value, user)
             elif key == 'subscribed':

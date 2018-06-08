@@ -5,7 +5,7 @@ import mock
 from datetime import datetime, timedelta
 from django.utils import timezone
 
-from sentry.models import EventUser, GroupStatus
+from sentry.models import EventUser, GroupStatus, Team, User
 from sentry.testutils import TestCase
 from sentry.search.base import ANY
 from sentry.search.utils import parse_query, get_numeric_field_value
@@ -269,6 +269,22 @@ class ParseQueryTest(TestCase):
 
     def test_assigned_unknown_user(self):
         result = self.parse_query('assigned:fake@example.com')
+        assert isinstance(result['assigned_to'], User)
+        assert result['assigned_to'].id == 0
+
+    def test_assigned_valid_team(self):
+        result = self.parse_query('assigned:#{}'.format(self.team.slug))
+        assert result['assigned_to'] == self.team
+
+    def test_assigned_unassociated_team(self):
+        team2 = self.create_team(organization=self.organization)
+        result = self.parse_query('assigned:#{}'.format(team2.slug))
+        assert isinstance(result['assigned_to'], Team)
+        assert result['assigned_to'].id == 0
+
+    def test_assigned_invalid_team(self):
+        result = self.parse_query('assigned:#invalid')
+        assert isinstance(result['assigned_to'], Team)
         assert result['assigned_to'].id == 0
 
     def test_bookmarks_me(self):

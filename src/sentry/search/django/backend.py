@@ -164,13 +164,16 @@ def get_sort_clause(sort_by):
         return SORT_CLAUSES[sort_by]
 
 
-def assigned_to_filter(queryset, user, project):
+def assigned_to_filter(queryset, actor, project):
     from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
+
+    if isinstance(actor, Team):
+        return queryset.filter(assignee_set__team=actor)
 
     teams = Team.objects.filter(
         id__in=OrganizationMemberTeam.objects.filter(
             organizationmember__in=OrganizationMember.objects.filter(
-                user=user,
+                user=actor,
                 organization_id=project.organization_id,
             ),
             is_active=True,
@@ -178,7 +181,7 @@ def assigned_to_filter(queryset, user, project):
     )
 
     return queryset.filter(
-        Q(assignee_set__user=user, assignee_set__project=project) |
+        Q(assignee_set__user=actor, assignee_set__project=project) |
         Q(assignee_set__team__in=teams)
     )
 
