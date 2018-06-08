@@ -164,7 +164,7 @@
     "jest-junit": "^3.4.1",
     "mockdate": "2.0.2",
     "prettier": "1.7.4",
-    "react-test-renderer": "16.2.0",
+    "react-test-renderer": "16.3.2",
     "sinon": "1.17.2",
     "sinon-chai": "2.8.0",
     "stylelint": "9.1.3",
