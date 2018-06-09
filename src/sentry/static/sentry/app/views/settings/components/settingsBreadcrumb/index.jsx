@@ -1,5 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import Reflux from 'reflux';
+import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
 import Crumb from 'app/views/settings/components/settingsBreadcrumb/crumb';
@@ -11,6 +13,10 @@ import SentryTypes from 'app/proptypes';
 import TeamCrumb from 'app/views/settings/components/settingsBreadcrumb/teamCrumb';
 import TextLink from 'app/components/textLink';
 import recreateRoute from 'app/utils/recreateRoute';
+import SettingsBreadcrumbStore from 'app/stores/settingsBreadcrumbStore';
+import SettingsBreadcrumbActions, {
+  normalizeRoutes,
+} from 'app/actions/settingsBreadcrumbActions';
 
 const MENUS = {
   Organization: OrganizationCrumb,
@@ -21,22 +27,29 @@ const MENUS = {
 class SettingsBreadcrumb extends React.Component {
   static propTypes = {
     routes: PropTypes.array,
+    pathMap: PropTypes.object,
   };
 
   static contextTypes = {
     organization: SentryTypes.Organization,
   };
 
+  componentDidUpdate(prevProps) {
+    if (this.props.routes === prevProps.routes) return;
+    SettingsBreadcrumbActions.trimMappings(this.props.routes);
+  }
+
   render() {
-    let {routes, params} = this.props;
-    let routesWithNames = routes.filter(({name}) => name);
-    let lastRouteIndex = routesWithNames.length - 1;
+    let {routes, params, pathMap = {}} = this.props;
+    let lastRouteIndex = routes.length - 1;
     return (
       <Breadcrumbs>
         <LogoLink href="/">
           <StyledInlineSvg src="icon-sentry" size="20px" />
         </LogoLink>
-        {routesWithNames.map((route, i) => {
+        {routes.map((route, i) => {
+          if (!route.name) return null;
+          let pathTitle = pathMap[normalizeRoutes(routes.slice(0, i + 1))];
           let isLast = i === lastRouteIndex;
           let createMenu = MENUS[route.name];
           let Menu = typeof createMenu === 'function' && createMenu;
@@ -46,7 +59,7 @@ class SettingsBreadcrumb extends React.Component {
             : () => (
                 <Crumb route={route} isLast={isLast}>
                   <TextLink to={recreateRoute(route, {routes, params})}>
-                    {route.name}{' '}
+                    {pathTitle || route.name}{' '}
                   </TextLink>
                   <Divider isLast={isLast} />
                 </Crumb>
@@ -67,7 +80,13 @@ class SettingsBreadcrumb extends React.Component {
   }
 }
 
-export default SettingsBreadcrumb;
+export default createReactClass({
+  displayName: 'ConnectedSettingsBreadcrumb',
+  mixins: [Reflux.connect(SettingsBreadcrumbStore, 'pathMap')],
+  render() {
+    return <SettingsBreadcrumb {...this.props} {...this.state} />;
+  },
+});
 
 const Breadcrumbs = styled.div`
   display: flex;
