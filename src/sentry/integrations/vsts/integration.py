@@ -1,13 +1,10 @@
 from __future__ import absolute_import
-from sentry import http
 from time import time
-from django import forms
 
 from django.utils.translation import ugettext_lazy as _
-from sentry.web.helpers import render_to_response
 from sentry.integrations import Integration, IntegrationProvider, IntegrationMetadata
 from .client import VstsApiClient
-from sentry.pipeline import NestedPipelineView, PipelineView
+from sentry.pipeline import NestedPipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.identity.vsts import VSTSIdentityProvider
 from sentry.utils.http import absolute_uri
@@ -27,48 +24,6 @@ metadata = IntegrationMetadata(
 )
 
 
-class ProjectConfigView(PipelineView):
-    def dispatch(self, request, pipeline):
-        if 'project' in request.POST:
-            project_id = request.POST.get('project')
-            projects = pipeline.fetch_state(key='projects')
-            project = self.get_project_from_id(project_id, projects)
-            if project is not None:
-                pipeline.bind_state('project', project)
-                return pipeline.next_step()
-
-        identity_data = pipeline.fetch_state(key='identity')
-        instance = identity_data['instance']
-        access_token = identity_data['data']['access_token']
-        projects = get_projects(instance, access_token)['value']
-        pipeline.bind_state('projects', projects)
-        project_form = ProjectForm(projects)
-
-        return render_to_response(
-            template='sentry/integrations/vsts-config.html',
-            context={
-                'form': project_form,
-            },
-            request=request,
-        )
-
-    def get_project_from_id(self, project_id, projects):
-        for project in projects:
-            if project['id'] == project_id:
-                return project
-        return None
-
-
-class ProjectForm(forms.Form):
-    def __init__(self, projects, *args, **kwargs):
-        super(ProjectForm, self).__init__(*args, **kwargs)
-        self.fields['project'] = forms.ChoiceField(
-            choices=[(project['id'], project['name']) for project in projects],
-            label='Project',
-            help_text='Enter the Visual Studio Team Services project name that you wish to use as a default for new work items'
-        )
-
-
 class VstsIntegration(Integration):
     def __init__(self, *args, **kwargs):
         super(VstsIntegration, self).__init__(*args, **kwargs)
@@ -83,19 +38,27 @@ class VstsIntegration(Integration):
             raise ValueError('Identity missing access token')
         return VstsApiClient(access_token)
 
-    def get_organization_config(self):
+    def get_project_config(self):
+        client = self.get_client()
+        projects = client.get_projects(self.model.metadata['domain_name'])
+        project_choices = [(project['id'], project['name']) for project in projects['value']]
+        default_project = self.org_integration.config.get('default_project')
+
         return [
             {
                 'name': 'default_project',
-                'label': 'Default Project Name',
-                'type': 'string',
-                'placeholder': 'MyProject',
+                'type': 'choice',
+                'allowEmpty': True,
                 'required': True,
-                'help': (
-                    'Enter the Visual Studio Team Services project name that you wish '
-                    'to use as a default for new work items'
-                ),
-            },
+                'choices': project_choices,
+                'initial': (default_project['id'], default_project['name']) if default_project is not None else ('', ''),
+                # TODO(LB): Tried using ugettext_lazy but got <django.utils.functional.__proxy__ object at 0x107fb5110> is not JSON serializable
+                # this was during the installation flow; decided to just move on instead
+                # of worrying about it
+                'label': 'Default Project Name',
+                'placeholder': 'MyProject',
+                'help': 'Enter the Visual Studio Team Services project name that you wish to use as a default for new work items',
+            }
         ]
 
 
@@ -107,6 +70,7 @@ class VstsIntegrationProvider(IntegrationProvider):
     api_version = '4.1'
     needs_default_identity = True
     integration_cls = VstsIntegration
+    can_add_project = True
 
     setup_dialog_config = {
         'width': 600,
@@ -127,19 +91,19 @@ class VstsIntegrationProvider(IntegrationProvider):
 
         return [
             identity_pipeline_view,
-            ProjectConfigView(),
         ]
 
     def build_integration(self, state):
         data = state['identity']['data']
         account = state['identity']['account']
-        project = state['project']
+        instance = state['identity']['instance']
 
         scopes = sorted(VSTSIdentityProvider.oauth_scopes)
         return {
             'name': account['AccountName'],
             'external_id': account['AccountId'],
             'metadata': {
+                'domain_name': instance,
                 'scopes': scopes,
             },
             # TODO(LB): Change this to a Microsoft account as opposed to a VSTS workspace
@@ -149,12 +113,6 @@ class VstsIntegrationProvider(IntegrationProvider):
                 'scopes': [],
                 'data': self.get_oauth_data(data),
             },
-            'config': {
-                'default_project': {
-                    'name': project['name'],
-                    'id': project['id'],
-                }
-            }
         }
 
     def get_oauth_data(self, payload):
