@@ -4,7 +4,7 @@ from __future__ import absolute_import
 from sentry.integrations.vsts import VstsIntegration, VstsIntegrationProvider
 from sentry.identity.vsts import VSTSIdentityProvider
 from sentry.models import Integration, Identity, IdentityProvider
-from sentry.testutils import TestCase
+from sentry.testutils import APITestCase, TestCase
 
 
 class VSTSIntegrationTest(TestCase):
@@ -40,11 +40,11 @@ class VSTSIntegrationTest(TestCase):
         assert integration_dict['user_identity']['data']['token_type'] == 'jwt-bearer'
 
 
-class VstsIntegrationTest(TestCase):
-    def test_get_client(self):
+class VstsIntegrationTest(APITestCase):
+    def setUp(self):
         user = self.create_user()
         organization = self.create_organization()
-        access_token = '1234567890'
+        self.access_token = '1234567890'
         model = Integration.objects.create(
             provider='integrations:vsts',
             external_id='vsts_external_id',
@@ -59,11 +59,12 @@ class VstsIntegrationTest(TestCase):
             user=user,
             external_id='vsts_id',
             data={
-                'access_token': access_token
+                'access_token': self.access_token
             }
         )
         model.add_organization(organization.id, identity.id)
-        integration = VstsIntegration(model, organization.id)
-        client = integration.get_client()
+        self.integration = VstsIntegration(model, organization.id)
 
-        assert client.access_token == access_token
+    def test_get_client(self):
+        client = self.integration.get_client()
+        assert client.access_token == self.access_token

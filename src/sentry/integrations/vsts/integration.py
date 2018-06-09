@@ -44,6 +44,8 @@ class VstsIntegration(Integration):
         project_choices = [(project['id'], project['name']) for project in projects['value']]
         default_project = self.org_integration.config.get('default_project')
 
+        # TODO(LB): This is only saving the id. That might work... but really I'd
+        # want to save the name. Help? Maybe name and id?
         return [
             {
                 'name': 'default_project',
