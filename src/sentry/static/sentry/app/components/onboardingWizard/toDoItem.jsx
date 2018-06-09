@@ -19,7 +19,7 @@ const TodoItem = createReactClass({
 
   mixins: [OrganizationState],
 
-  getInitialState: function() {
+  getInitialState() {
     return {
       showConfirmation: false,
       isExpanded: false,
@@ -31,11 +31,11 @@ const TodoItem = createReactClass({
     this.setState({isExpanded: !this.state.isExpanded});
   },
 
-  toggleConfirmation: function() {
+  toggleConfirmation() {
     this.setState({showConfirmation: !this.state.showConfirmation});
   },
 
-  formatDescription: function() {
+  formatDescription() {
     let {task} = this.props;
     let {isExpanded} = this.state;
 
@@ -46,7 +46,7 @@ const TodoItem = createReactClass({
     );
   },
 
-  learnMoreUrlCreator: function() {
+  learnMoreUrlCreator() {
     let {org} = this.state;
     let {task} = this.props;
     let learnMoreUrl;
@@ -64,25 +64,29 @@ const TodoItem = createReactClass({
     return learnMoreUrl;
   },
 
-  recordAnalytics() {
+  recordAnalytics(action) {
     let {org} = this.state;
     let {task} = this.props;
-
     analytics('onboarding.wizard_clicked', {
       org_id: parseInt(org.id, 10),
       todo_id: parseInt(task.task, 10),
       todo_title: task.title,
-      action: 'skipped',
+      action,
     });
   },
 
-  skip: function(task) {
+  onSkip(task) {
+    this.recordAnalytics('skipped');
     this.props.onSkip(task);
     this.setState({showConfirmation: false});
-    this.recordAnalytics();
   },
 
-  render: function() {
+  handleClick(e) {
+    this.recordAnalytics('clickthrough');
+    e.stopPropagation();
+  },
+
+  render() {
     let {task, className} = this.props;
     let {showConfirmation} = this.state;
     let learnMoreUrl = this.learnMoreUrlCreator();
@@ -134,11 +138,12 @@ const TodoItem = createReactClass({
             {task.status == 'skipped' && <span className="icon-x" />}
             {task.status == 'pending' && <span className="icon-ellipsis" />}
           </div>
-          <a href={learnMoreUrl}>
-            <h4>{task.title}</h4>
-          </a>
+          <div onClick={this.handleClick}>
+            <a href={learnMoreUrl}>
+              <h4>{task.title}</h4>
+            </a>
+          </div>
           <div>{description}</div>
-
           {showSkipButton && (
             <a className="skip-btn btn btn-default" onClick={this.toggleConfirmation}>
               {t('Skip')}
@@ -148,7 +153,7 @@ const TodoItem = createReactClass({
         {showConfirmation && (
           <Confirmation
             task={task.task}
-            onSkip={() => this.skip(task.task)}
+            onSkip={() => this.onSkip(task.task)}
             dismiss={this.toggleConfirmation}
           />
         )}
