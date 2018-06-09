@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {t} from '../../locale';
 import analytics from 'app/utils/analytics';
+import {t} from '../../locale';
 import SidebarPanel from './sidebarPanel';
 import TodoList from '../onboardingWizard/todos';
 import Tooltip from '../tooltip';
@@ -18,21 +18,22 @@ class OnboardingStatus extends React.Component {
   };
 
   shouldComponentUpdate(nextProps, nextState) {
-    if (this.props.currentPanel !== nextProps.currentPanel &&
-      (this.props.currentPanel || nextProps.currentPanel == 'todos')) {
-        this.recordAnalytics(this.props.currentPanel);
-    };
-    return true;
-  };
-
-  recordAnalytics(currentPanel){
-    orgId = this.props.org.id;
-    if (currentPanel == 'todos') {
-      analytics('onboarding.wizard_closed', {org_id: orgId} );
-    }else{
-      analytics('onboarding.wizard_opened', {org_id: orgId} );
+    if (
+      this.props.currentPanel !== nextProps.currentPanel &&
+      (this.props.currentPanel || nextProps.currentPanel == 'todos')
+    ) {
+      this.recordAnalytics(this.props.currentPanel, this.props.org.id);
     }
-  };
+    return true;
+  }
+
+  recordAnalytics(currentPanel, orgId) {
+    if (currentPanel == 'todos') {
+      analytics('onboarding.wizard_closed', {org_id: orgId});
+    } else {
+      analytics('onboarding.wizard_opened', {org_id: orgId});
+    }
+  }
 
   render() {
     let {collapsed, org, currentPanel, hidePanel, showPanel, onShowPanel} = this.props;
