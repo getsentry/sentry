@@ -397,6 +397,11 @@ class StoreViewTest(TestCase):
         self.project.update_option('sentry:scrub_ip_address', True)
         body = {
             "message": "foo bar",
+            "sdk": {
+                "name": "sentry-browser",
+                "version": "3.23.3",
+                "client_ip": "127.0.0.1"
+            },
             "sentry.interfaces.User": {
                 "ip_address": "127.0.0.1"
             },
@@ -414,6 +419,7 @@ class StoreViewTest(TestCase):
         call_data = mock_insert_data_to_database.call_args[0][0]
         assert not call_data['sentry.interfaces.User'].get('ip_address')
         assert not call_data['sentry.interfaces.Http']['env'].get('REMOTE_ADDR')
+        assert not call_data['sdk'].get('client_ip')
 
     @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
     def test_scrubs_org_ip_address_override(self, mock_insert_data_to_database):
