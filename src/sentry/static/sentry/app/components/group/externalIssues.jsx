@@ -43,13 +43,33 @@ class ExternalIssueForm extends AsyncComponent {
     if (!input) {
       return Promise.resolve([]);
     }
+    let {dynamicFieldValues} = this.state;
+    let additionalParams = Object.entries(dynamicFieldValues)
+      .map(([key, val]) => {
+        return `${key}=${encodeURIComponent(val)}`;
+      })
+      .join('&');
+    if (additionalParams) {
+      additionalParams = `&${additionalParams}`;
+    }
+
+    let url = field.url;
+    let separator = url.includes('?') ? '&' : '?';
     return $.ajax({
-      url: `${field.url}?field=${field.name}&query=${input}`,
+      url: `${url}${separator}field=${field.name}&query=${input}${additionalParams}`,
       method: 'GET',
     }).then(data => {
       return {options: data};
     });
   };
+
+  onRequestSuccess({stateKey, data, jqXHR}) {
+    if (stateKey === 'integrationDetails' && !this.state.dynamicFieldValues) {
+      this.setState({
+        dynamicFieldValues: this.getDynamicFields(data),
+      });
+    }
+  }
 
   refetchConfig = () => {
     let {dynamicFieldValues} = this.state;
@@ -73,14 +93,20 @@ class ExternalIssueForm extends AsyncComponent {
     });
   };
 
-  onFieldChange = (label, value) => {
-    let {integrationDetails} = this.state;
+  getDynamicFields(integrationDetails) {
+    integrationDetails = integrationDetails || this.state.integrationDetails;
     let {action} = this.props;
     let config = integrationDetails[`${action}IssueConfig`];
-    let dynamicFields = new Set(
-      config.filter(field => field.updatesForm).map(field => field.name)
-    );
-    if (dynamicFields.has(label)) {
+    let dynamicFields = {};
+    config.filter(field => field.updatesForm).forEach(field => {
+      dynamicFields[field.name] = field.default;
+    });
+    return dynamicFields;
+  }
+
+  onFieldChange = (label, value) => {
+    let dynamicFields = this.getDynamicFields();
+    if (label in dynamicFields) {
       let dynamicFieldValues = this.state.dynamicFieldValues || {};
       dynamicFieldValues[label] = value;
 
