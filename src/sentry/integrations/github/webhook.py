@@ -71,10 +71,31 @@ class Webhook(object):
 
 class InstallationEventWebhook(Webhook):
     # https://developer.github.com/v3/activity/events/types/#installationevent
-    def _handle(self, event, organization, repo):
+    def __call__(self, event):
+        installation = event['installation']
+        if installation and event['action'] == 'deleted':
+            integration = Integration.objects.get(
+                external_id=installation['id'],
+                provider='github',
+            )
+
+            self._handle(event, integration)
+
+    def _handle(self, event, integration):
         # TODO(maxbittker) these might need different behavior for missing
         # repository models in __call__
-        pass
+        orgs = {
+            org.id: org
+            for org in integration.organizations.all()
+        }
+
+        Repository.objects.filter(
+            organization_id__in=orgs.keys(),
+            provider='integrations:github',
+            integration_id=integration.id,
+        ).update(integration_id=None)
+
+        integration.delete()
 
 
 class InstallationRepositoryEventWebhook(Webhook):

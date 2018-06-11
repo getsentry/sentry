@@ -155,7 +155,7 @@ export default class InstalledIntegration extends React.Component {
           <Box mr={1} pr={2}>
             <Confirm
               message={t(
-                'Removing this inegration will disable the integration for all projects. Are you sure you want to remove this integration?'
+                'Removing this integration will disable the integration for all projects. Are you sure you want to remove this integration?'
               )}
               onConfirm={() => this.props.onRemove()}
             >
