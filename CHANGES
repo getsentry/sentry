@@ -103,6 +103,7 @@ Misc
 - Various improvements to Single Sign-On flows. You should update any external auth extensions
   you're using as part of this (sentry-auth-github, sentry-auth-google).
 - Support for SAML via sentry-auth-saml2.
+- Support for Google Cloud Storage as a storage backend.
 - A new Assistant to help onboard users.
 - Add count estimates to search results.
 - Superuser has been locked down significantlly with idle timeouts and secondary sessions.

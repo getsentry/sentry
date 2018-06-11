@@ -62,11 +62,17 @@ redis.clusters:
 ################
 
 # Uploaded media uses these `filestore` settings. The available
-# backends are either `filesystem` or `s3`.
+# backends are: `filesystem`, `gcs`, and `s3`.
 
 filestore.backend: 'filesystem'
 filestore.options:
   location: '/tmp/sentry-files'
+
+# NOTE: See docs/filestore for instructions on configuring the shell environment
+#       with authentication credentials for Google Cloud.
+# filestore.backend: 'gcs'
+# filestore.options:
+#   bucket_name: 's3-bucket-name'
 
 # filestore.backend: 's3'
 # filestore.options:
