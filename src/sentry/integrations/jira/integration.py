@@ -93,6 +93,26 @@ class JiraIntegration(Integration, IssueSyncMixin):
 
         return configuration
 
+    def sync_metadata(self):
+        client = self.get_client()
+
+        try:
+            server_info = client.get_server_info()
+            projects = client.get_projects_list()
+        except ApiError as e:
+            raise IntegrationError(self.message_from_error(e))
+
+        self.model.name = server_info['serverTitle']
+
+        # There is no JIRA instance icon (there is a favicon, but it doesn't seem
+        # possible to query that with the API). So instead we just use the first
+        # project Icon.
+        if len(projects) > 0:
+            avatar = projects[0]['avatarUrls']['48x48'],
+            self.model.metadata.update({'icon': avatar})
+
+        self.model.save()
+
     def get_link_issue_config(self, group, **kwargs):
         fields = super(JiraIntegration, self).get_link_issue_config(group, **kwargs)
         org = group.organization

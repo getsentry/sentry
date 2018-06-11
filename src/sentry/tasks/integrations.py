@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from sentry.tasks.base import instrumented_task, retry
 
 from sentry.models import ExternalIssue, Integration
+from sentry.integrations.exceptions import IntegrationError
 
 
 @instrumented_task(
@@ -18,3 +19,14 @@ def post_comment(external_issue_id, data, **kwargs):
     external_issue = ExternalIssue.objects.get(id=external_issue_id)
     integration = Integration.objects.get(id=external_issue.integration_id)
     integration.get_installation().create_comment(external_issue.key, data['text'])
+
+
+@instrumented_task(
+    name='sentry.tasks.integrations.jira.sync_metadata',
+    queue='integrations',
+    default_retry_delay=20,
+    max_retries=5
+)
+@retry(on=(IntegrationError,))
+def sync_metadata(installation):
+    installation.sync_metadata()
