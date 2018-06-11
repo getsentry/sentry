@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import os
 import mimetypes
 import posixpath
 from tempfile import SpooledTemporaryFile
@@ -207,6 +208,7 @@ class GoogleCloudStorage(Storage):
         content.name = cleaned_name
         encoded_name = self._encode_name(name)
         file = GoogleCloudFile(encoded_name, 'w', self)
+        content.seek(0, os.SEEK_SET)
         file.blob.upload_from_file(content, size=content.size,
                                    content_type=file.mime_type)
         return cleaned_name
