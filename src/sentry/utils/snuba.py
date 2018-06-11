@@ -166,7 +166,9 @@ def nest_groups(data, groups, aggregate_cols):
         inter = {}
         for d in data:
             inter.setdefault(d[g], []).append(d)
-        return {k: nest_groups(v, rest, aggregate_cols) for k, v in six.iteritems(inter)}
+        return {
+            k: nest_groups(v, rest, aggregate_cols) for k, v in six.iteritems(inter)
+        }
 
 
 def is_condition(cond_or_list):
@@ -175,6 +177,7 @@ def is_condition(cond_or_list):
 
 def flat_conditions(conditions):
     return list(chain(*[[c] if is_condition(c) else c for c in conditions]))
+
 
 # The following are functions for resolving information from sentry models
 # about projects, environments, and issues (groups). Having this snuba
@@ -204,14 +207,10 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
     functions.
     """
 
-    def identity(x):
-        return x
-
-    def compose(f, g):
-        return lambda x: f(g(x))
-
-    def replace(d, key, val):
-        return d.update({key: val}) or d
+    # Helper lambdas to compose translator functions
+    identity = (lambda x: x)
+    compose = (lambda f, g: lambda x: f(g(x)))
+    replace = (lambda d, key, val: d.update({key: val}) or d)
 
     forward = identity
     reverse = identity
@@ -226,36 +225,49 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
         ids = filter_keys.get(col)
         if not ids:
             continue
-        if is_grouprelease and col == 'tags[sentry:release]':
+        if is_grouprelease and col == "tags[sentry:release]":
             # GroupRelease -> Release translation is a special case because the
             # translation relies on both the Group and Release value in the result row.
-            gr_map = GroupRelease.objects.filter(id__in=ids)\
-                                         .values_list('id', 'group_id', 'release_id')
-            versions = dict(Release.objects.filter(id__in=[x[2] for x in gr_map])
-                                           .values_list('id', 'version'))
-
-            fwd_map = dict((gr, (group, versions[release])) for (gr, group, release) in gr_map)
+            #
+            # We create a map of {grouprelease_id: (group_id, version), ...} and the corresponding
+            # reverse map of {(group_id, version): grouprelease_id, ...}
+            # NB this does depend on `issue` being defined in the query result, and the correct
+            # set of issues being resolved, which is outside the control of this function.
+            gr_map = GroupRelease.objects.filter(id__in=ids).values_list(
+                "id", "group_id", "release_id"
+            )
+            ver = dict(Release.objects.filter(id__in=[x[2] for x in gr_map]).values_list(
+                "id", "version"
+            ))
+            fwd_map = {gr: (group, ver[release]) for (gr, group, release) in gr_map}
             rev_map = dict(reversed(t) for t in six.iteritems(fwd_map))
             fwd = (
-                lambda col, trans:
-                    lambda filters: replace(filters, col, [trans[k][1] for k in filters[col]])
+                lambda col, trans: lambda filters: replace(
+                    filters, col, [trans[k][1] for k in filters[col]]
+                )
             )(col, fwd_map)
             rev = (
-                lambda col, trans:
-                    lambda row: replace(row, col, trans.get((row.get('issue'), row.get(col))))
+                lambda col, trans: lambda row: replace(
+                    # The translate map may not have every combination of issue/release
+                    # returned by the query.
+                    row, col, trans.get((row["issue"], row[col]))
+                )
             )(col, rev_map)
 
         else:
-            fwd_map = dict((k, fmt(v)) for k, v in model.objects.filter(id__in=ids)
-                                                                .values_list('id', field))
+            fwd_map = {
+                k: fmt(v)
+                for k, v in model.objects.filter(id__in=ids).values_list("id", field)
+            }
             rev_map = dict(reversed(t) for t in six.iteritems(fwd_map))
             fwd = (
-                lambda col, trans:
-                    lambda filters: replace(filters, col, [trans[k] for k in filters[col] if k])
+                lambda col, trans: lambda filters: replace(
+                    filters, col, [trans[k] for k in filters[col] if k]
+                )
             )(col, fwd_map)
             rev = (
-                lambda col, trans:
-                    lambda row: replace(row, col, trans.get(row[col])) if col in row else row
+                lambda col, trans: lambda row: replace(
+                    row, col, trans[row[col]]) if col in row else row
             )(col, rev_map)
 
         if fwd:
@@ -266,8 +278,9 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
     # Extra reverse translator for time column.
     reverse = compose(
         reverse,
-        lambda row: replace(row, 'time', int(to_timestamp(parse_datetime(row['time']))))
-        if 'time' in row else row
+        lambda row: replace(row, "time", int(to_timestamp(parse_datetime(row["time"]))))
+        if "time" in row
+        else row,
     )
 
     return (forward, reverse)
