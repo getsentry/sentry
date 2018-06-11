@@ -243,7 +243,7 @@ exports[`ProjectTags renders 1`] = `
                                         size="xsmall"
                                       >
                                         <Component
-                                          className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                          className="css-18mzi9l-StyledButton-getColors eqrebog0"
                                           data-test-id="delete"
                                           disabled={false}
                                           onClick={[Function]}
@@ -251,7 +251,7 @@ exports[`ProjectTags renders 1`] = `
                                           size="xsmall"
                                         >
                                           <button
-                                            className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                            className="css-18mzi9l-StyledButton-getColors eqrebog0"
                                             data-test-id="delete"
                                             disabled={false}
                                             onClick={[Function]}
@@ -491,7 +491,7 @@ exports[`ProjectTags renders 1`] = `
                                         size="xsmall"
                                       >
                                         <Component
-                                          className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                          className="css-18mzi9l-StyledButton-getColors eqrebog0"
                                           data-test-id="delete"
                                           disabled={false}
                                           onClick={[Function]}
@@ -499,7 +499,7 @@ exports[`ProjectTags renders 1`] = `
                                           size="xsmall"
                                         >
                                           <button
-                                            className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                            className="css-18mzi9l-StyledButton-getColors eqrebog0"
                                             data-test-id="delete"
                                             disabled={false}
                                             onClick={[Function]}
@@ -739,7 +739,7 @@ exports[`ProjectTags renders 1`] = `
                                         size="xsmall"
                                       >
                                         <Component
-                                          className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                          className="css-18mzi9l-StyledButton-getColors eqrebog0"
                                           data-test-id="delete"
                                           disabled={false}
                                           onClick={[Function]}
@@ -747,7 +747,7 @@ exports[`ProjectTags renders 1`] = `
                                           size="xsmall"
                                         >
                                           <button
-                                            className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                            className="css-18mzi9l-StyledButton-getColors eqrebog0"
                                             data-test-id="delete"
                                             disabled={false}
                                             onClick={[Function]}
@@ -995,7 +995,7 @@ exports[`ProjectTags renders 1`] = `
                                             size="xsmall"
                                           >
                                             <Component
-                                              className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                              className="css-18mzi9l-StyledButton-getColors eqrebog0"
                                               data-test-id="delete"
                                               disabled={false}
                                               onClick={[Function]}
@@ -1003,7 +1003,7 @@ exports[`ProjectTags renders 1`] = `
                                               size="xsmall"
                                             >
                                               <button
-                                                className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                                className="css-18mzi9l-StyledButton-getColors eqrebog0"
                                                 data-test-id="delete"
                                                 disabled={false}
                                                 onClick={[Function]}

@@ -261,7 +261,7 @@ exports[`ConfirmDelete renders 1`] = `
             >
               <Component
                 aria-label="Cancel"
-                className="css-cmo08-StyledButton-getColors eqrebog0"
+                className="css-1b72vni-StyledButton-getColors eqrebog0"
                 disabled={false}
                 onClick={[Function]}
                 role="button"
@@ -273,7 +273,7 @@ exports[`ConfirmDelete renders 1`] = `
               >
                 <button
                   aria-label="Cancel"
-                  className="css-cmo08-StyledButton-getColors eqrebog0"
+                  className="css-1b72vni-StyledButton-getColors eqrebog0"
                   disabled={false}
                   onClick={[Function]}
                   role="button"
@@ -336,7 +336,7 @@ exports[`ConfirmDelete renders 1`] = `
               <Component
                 aria-label="Confirm"
                 autoFocus={true}
-                className="css-fn4jle-StyledButton-getColors eqrebog0"
+                className="css-1fid879-StyledButton-getColors eqrebog0"
                 data-test-id="confirm-modal"
                 disabled={true}
                 href={null}
@@ -348,7 +348,7 @@ exports[`ConfirmDelete renders 1`] = `
                 <button
                   aria-label="Confirm"
                   autoFocus={true}
-                  className="css-fn4jle-StyledButton-getColors eqrebog0"
+                  className="css-1fid879-StyledButton-getColors eqrebog0"
                   data-test-id="confirm-modal"
                   disabled={true}
                   href={null}

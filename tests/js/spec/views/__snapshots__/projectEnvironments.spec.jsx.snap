@@ -472,7 +472,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                             >
                               <Component
                                 aria-label="Set as default"
-                                className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                className="ezuela50 css-1kim77j-StyledButton-getColors-EnvironmentButton eqrebog0"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"
@@ -480,7 +480,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                               >
                                 <button
                                   aria-label="Set as default"
-                                  className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                  className="ezuela50 css-1kim77j-StyledButton-getColors-EnvironmentButton eqrebog0"
                                   disabled={false}
                                   onClick={[Function]}
                                   role="button"
@@ -596,7 +596,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                             >
                               <Component
                                 aria-label="Set as default"
-                                className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                className="ezuela50 css-1kim77j-StyledButton-getColors-EnvironmentButton eqrebog0"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"
@@ -604,7 +604,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                               >
                                 <button
                                   aria-label="Set as default"
-                                  className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                  className="ezuela50 css-1kim77j-StyledButton-getColors-EnvironmentButton eqrebog0"
                                   disabled={false}
                                   onClick={[Function]}
                                   role="button"
@@ -665,7 +665,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                             >
                               <Component
                                 aria-label="Hide"
-                                className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                className="ezuela50 css-1kim77j-StyledButton-getColors-EnvironmentButton eqrebog0"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"
@@ -673,7 +673,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                               >
                                 <button
                                   aria-label="Hide"
-                                  className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                  className="ezuela50 css-1kim77j-StyledButton-getColors-EnvironmentButton eqrebog0"
                                   disabled={false}
                                   onClick={[Function]}
                                   role="button"
@@ -821,7 +821,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                             >
                               <Component
                                 aria-label="Hide"
-                                className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                className="ezuela50 css-1kim77j-StyledButton-getColors-EnvironmentButton eqrebog0"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"
@@ -829,7 +829,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                               >
                                 <button
                                   aria-label="Hide"
-                                  className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                  className="ezuela50 css-1kim77j-StyledButton-getColors-EnvironmentButton eqrebog0"
                                   disabled={false}
                                   onClick={[Function]}
                                   role="button"
@@ -1360,7 +1360,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                             >
                               <Component
                                 aria-label="Show"
-                                className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                className="ezuela50 css-1kim77j-StyledButton-getColors-EnvironmentButton eqrebog0"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"
@@ -1368,7 +1368,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                               >
                                 <button
                                   aria-label="Show"
-                                  className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                  className="ezuela50 css-1kim77j-StyledButton-getColors-EnvironmentButton eqrebog0"
                                   disabled={false}
                                   onClick={[Function]}
                                   role="button"

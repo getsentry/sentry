@@ -18,40 +18,44 @@ exports[`DropdownLink renders and anchors to left by default 1`] = `
     onClose={[Function]}
     onOpen={[Function]}
   >
-    <span
+    <StyledDropdown
       className="dropdown top-level-class"
     >
-      <a
-        className="dropdown-actor dropdown-toggle"
-        onClick={[Function]}
-        onMouseEnter={[Function]}
-        onMouseLeave={[Function]}
+      <span
+        className="dropdown top-level-class css-1gzuaq9-StyledDropdown e1ev5ptt0"
       >
-        <div
-          className="dropdown-actor-title"
+        <a
+          className="dropdown-actor dropdown-toggle"
+          onClick={[Function]}
+          onMouseEnter={[Function]}
+          onMouseLeave={[Function]}
         >
-          <span>
-            test
-          </span>
-          <i
-            className="icon-arrow-down"
-          />
-        </div>
-      </a>
-      <ul
-        className="dropdown-menu"
-        onClick={[Function]}
-        onMouseEnter={[Function]}
-        onMouseLeave={[Function]}
-      >
-        <div>
-          1
-        </div>
-        <div>
-          2
-        </div>
-      </ul>
-    </span>
+          <div
+            className="dropdown-actor-title"
+          >
+            <span>
+              test
+            </span>
+            <i
+              className="icon-arrow-down"
+            />
+          </div>
+        </a>
+        <ul
+          className="dropdown-menu"
+          onClick={[Function]}
+          onMouseEnter={[Function]}
+          onMouseLeave={[Function]}
+        >
+          <div>
+            1
+          </div>
+          <div>
+            2
+          </div>
+        </ul>
+      </span>
+    </StyledDropdown>
   </DropdownMenu>
 </DropdownLink>
 `;
@@ -74,40 +78,44 @@ exports[`DropdownLink renders and anchors to right 1`] = `
     onClose={[Function]}
     onOpen={[Function]}
   >
-    <span
+    <StyledDropdown
       className="dropdown top-level-class pull-right anchor-right"
     >
-      <a
-        className="dropdown-actor dropdown-menu-right dropdown-toggle"
-        onClick={[Function]}
-        onMouseEnter={[Function]}
-        onMouseLeave={[Function]}
+      <span
+        className="dropdown top-level-class pull-right anchor-right css-1gzuaq9-StyledDropdown e1ev5ptt0"
       >
-        <div
-          className="dropdown-actor-title"
+        <a
+          className="dropdown-actor dropdown-menu-right dropdown-toggle"
+          onClick={[Function]}
+          onMouseEnter={[Function]}
+          onMouseLeave={[Function]}
         >
-          <span>
-            test
-          </span>
-          <i
-            className="icon-arrow-down"
-          />
-        </div>
-      </a>
-      <ul
-        className="dropdown-menu"
-        onClick={[Function]}
-        onMouseEnter={[Function]}
-        onMouseLeave={[Function]}
-      >
-        <div>
-          1
-        </div>
-        <div>
-          2
-        </div>
-      </ul>
-    </span>
+          <div
+            className="dropdown-actor-title"
+          >
+            <span>
+              test
+            </span>
+            <i
+              className="icon-arrow-down"
+            />
+          </div>
+        </a>
+        <ul
+          className="dropdown-menu"
+          onClick={[Function]}
+          onMouseEnter={[Function]}
+          onMouseLeave={[Function]}
+        >
+          <div>
+            1
+          </div>
+          <div>
+            2
+          </div>
+        </ul>
+      </span>
+    </StyledDropdown>
   </DropdownMenu>
 </DropdownLink>
 `;

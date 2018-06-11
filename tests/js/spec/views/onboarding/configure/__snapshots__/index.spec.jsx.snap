@@ -286,7 +286,7 @@ exports[`Configure should render correctly render() should render platform docs 
                                           >
                                             <Component
                                               aria-label="Full Documentation"
-                                              className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                              className="css-1oh8b9m-StyledButton-getColors eqrebog0"
                                               disabled={false}
                                               external={true}
                                               href="https://docs.getsentry.com/hosted/clients/csharp/"
@@ -296,7 +296,7 @@ exports[`Configure should render correctly render() should render platform docs 
                                             >
                                               <ExternalLink
                                                 aria-label="Full Documentation"
-                                                className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                                className="css-1oh8b9m-StyledButton-getColors eqrebog0"
                                                 disabled={false}
                                                 href="https://docs.getsentry.com/hosted/clients/csharp/"
                                                 onClick={[Function]}
@@ -307,7 +307,7 @@ exports[`Configure should render correctly render() should render platform docs 
                                               >
                                                 <a
                                                   aria-label="Full Documentation"
-                                                  className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                                  className="css-1oh8b9m-StyledButton-getColors eqrebog0"
                                                   disabled={false}
                                                   href="https://docs.getsentry.com/hosted/clients/csharp/"
                                                   onClick={[Function]}
@@ -610,7 +610,7 @@ exports[`Configure should render correctly render() should render platform docs 
                     >
                       <Component
                         aria-label="All done!"
-                        className="css-1msljz8-StyledButton-getColors eqrebog0"
+                        className="css-a26ia1-StyledButton-getColors eqrebog0"
                         data-test-id="configure-done"
                         disabled={false}
                         onClick={[Function]}
@@ -619,7 +619,7 @@ exports[`Configure should render correctly render() should render platform docs 
                       >
                         <button
                           aria-label="All done!"
-                          className="css-1msljz8-StyledButton-getColors eqrebog0"
+                          className="css-a26ia1-StyledButton-getColors eqrebog0"
                           data-test-id="configure-done"
                           disabled={false}
                           onClick={[Function]}

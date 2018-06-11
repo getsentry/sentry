@@ -740,7 +740,7 @@ exports[`CreateProject should render roles when available and allowed, and handl
           <Component
             aria-label="Add Member"
             busy={false}
-            className="invite-member-submit css-1msljz8-StyledButton-getColors eqrebog0"
+            className="invite-member-submit css-10dx40a-StyledButton-getColors eqrebog0"
             disabled={false}
             onClick={[Function]}
             priority="primary"
@@ -748,7 +748,7 @@ exports[`CreateProject should render roles when available and allowed, and handl
           >
             <button
               aria-label="Add Member"
-              className="invite-member-submit css-1msljz8-StyledButton-getColors eqrebog0"
+              className="invite-member-submit css-10dx40a-StyledButton-getColors eqrebog0"
               disabled={false}
               onClick={[Function]}
               priority="primary"

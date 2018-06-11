@@ -862,7 +862,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                   >
                                     <Component
                                       aria-label="Add Another"
-                                      className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                      className="css-18mzi9l-StyledButton-getColors eqrebog0"
                                       disabled={false}
                                       onClick={[Function]}
                                       role="button"
@@ -870,7 +870,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                     >
                                       <button
                                         aria-label="Add Another"
-                                        className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                        className="css-18mzi9l-StyledButton-getColors eqrebog0"
                                         disabled={false}
                                         onClick={[Function]}
                                         role="button"
@@ -1386,14 +1386,14 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                               <Component
                                                 aria-label="Remove"
                                                 borderless={true}
-                                                className="ejqw4f70 css-1rs3lxn-StyledButton-getColors-StyledButton eqrebog0"
+                                                className="ejqw4f70 css-ba8c1n-StyledButton-getColors-StyledButton eqrebog0"
                                                 disabled={false}
                                                 onClick={[Function]}
                                                 role="button"
                                               >
                                                 <button
                                                   aria-label="Remove"
-                                                  className="ejqw4f70 css-1rs3lxn-StyledButton-getColors-StyledButton eqrebog0"
+                                                  className="ejqw4f70 css-ba8c1n-StyledButton-getColors-StyledButton eqrebog0"
                                                   disabled={false}
                                                   onClick={[Function]}
                                                   role="button"
@@ -2209,7 +2209,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                   >
                                     <Component
                                       aria-label="Add Another"
-                                      className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                      className="css-18mzi9l-StyledButton-getColors eqrebog0"
                                       disabled={false}
                                       onClick={[Function]}
                                       role="button"
@@ -2217,7 +2217,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                     >
                                       <button
                                         aria-label="Add Another"
-                                        className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                        className="css-18mzi9l-StyledButton-getColors eqrebog0"
                                         disabled={false}
                                         onClick={[Function]}
                                         role="button"
@@ -2712,14 +2712,14 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                               <Component
                                                 aria-label="Remove"
                                                 borderless={true}
-                                                className="ejqw4f70 css-1rs3lxn-StyledButton-getColors-StyledButton eqrebog0"
+                                                className="ejqw4f70 css-ba8c1n-StyledButton-getColors-StyledButton eqrebog0"
                                                 disabled={false}
                                                 onClick={[Function]}
                                                 role="button"
                                               >
                                                 <button
                                                   aria-label="Remove"
-                                                  className="ejqw4f70 css-1rs3lxn-StyledButton-getColors-StyledButton eqrebog0"
+                                                  className="ejqw4f70 css-ba8c1n-StyledButton-getColors-StyledButton eqrebog0"
                                                   disabled={false}
                                                   onClick={[Function]}
                                                   role="button"
@@ -3679,7 +3679,7 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                   >
                                     <Component
                                       aria-label="Install"
-                                      className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                      className="css-18mzi9l-StyledButton-getColors eqrebog0"
                                       disabled={false}
                                       onClick={[Function]}
                                       role="button"
@@ -3687,7 +3687,7 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                     >
                                       <button
                                         aria-label="Install"
-                                        className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                        className="css-18mzi9l-StyledButton-getColors eqrebog0"
                                         disabled={false}
                                         onClick={[Function]}
                                         role="button"
@@ -4418,7 +4418,7 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                   >
                                     <Component
                                       aria-label="Install"
-                                      className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                      className="css-18mzi9l-StyledButton-getColors eqrebog0"
                                       disabled={false}
                                       onClick={[Function]}
                                       role="button"
@@ -4426,7 +4426,7 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                     >
                                       <button
                                         aria-label="Install"
-                                        className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                        className="css-18mzi9l-StyledButton-getColors eqrebog0"
                                         disabled={false}
                                         onClick={[Function]}
                                         role="button"

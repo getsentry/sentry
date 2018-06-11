@@ -338,7 +338,7 @@ exports[`FormField + model renders with Form 1`] = `
           >
             <Component
               aria-label="Save Changes"
-              className="css-1msljz8-StyledButton-getColors eqrebog0"
+              className="css-10dx40a-StyledButton-getColors eqrebog0"
               data-test-id="form-submit"
               disabled={false}
               onClick={[Function]}
@@ -348,7 +348,7 @@ exports[`FormField + model renders with Form 1`] = `
             >
               <button
                 aria-label="Save Changes"
-                className="css-1msljz8-StyledButton-getColors eqrebog0"
+                className="css-10dx40a-StyledButton-getColors eqrebog0"
                 data-test-id="form-submit"
                 disabled={false}
                 onClick={[Function]}

@@ -208,7 +208,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                             >
                               <Component
                                 aria-label="Enable Plugin"
-                                className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                className="css-1oh8b9m-StyledButton-getColors eqrebog0"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"
@@ -221,7 +221,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                               >
                                 <button
                                   aria-label="Enable Plugin"
-                                  className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                  className="css-1oh8b9m-StyledButton-getColors eqrebog0"
                                   disabled={false}
                                   onClick={[Function]}
                                   role="button"
@@ -280,7 +280,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                             >
                               <Component
                                 aria-label="Reset Configuration"
-                                className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                className="css-1oh8b9m-StyledButton-getColors eqrebog0"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"
@@ -288,7 +288,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                               >
                                 <button
                                   aria-label="Reset Configuration"
-                                  className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                  className="css-1oh8b9m-StyledButton-getColors eqrebog0"
                                   disabled={false}
                                   onClick={[Function]}
                                   role="button"

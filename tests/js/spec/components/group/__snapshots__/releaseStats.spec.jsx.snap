@@ -91,53 +91,57 @@ exports[`GroupReleaseStats renders 1`] = `
             alwaysRenderMenu={true}
             keepMenuOpen={false}
           >
-            <span
+            <StyledDropdown
               className="dropdown"
             >
-              <a
-                className="dropdown-actor dropdown-toggle"
-                onClick={[Function]}
-                onMouseEnter={[Function]}
-                onMouseLeave={[Function]}
+              <span
+                className="dropdown css-1gzuaq9-StyledDropdown e1ev5ptt0"
               >
-                <div
-                  className="dropdown-actor-title"
-                >
-                  <span>
-                    All Environments
-                  </span>
-                  <i
-                    className="icon-arrow-down"
-                  />
-                </div>
-              </a>
-              <ul
-                className="dropdown-menu"
-                onClick={[Function]}
-                onMouseEnter={[Function]}
-                onMouseLeave={[Function]}
-              >
-                <MenuItem
-                  isActive={true}
+                <a
+                  className="dropdown-actor dropdown-toggle"
                   onClick={[Function]}
+                  onMouseEnter={[Function]}
+                  onMouseLeave={[Function]}
                 >
-                  <li
-                    className="active"
-                    href={null}
-                    onClick={[Function]}
-                    role="presentation"
-                    title={null}
+                  <div
+                    className="dropdown-actor-title"
                   >
-                    <a
-                      onClick={[Function]}
-                      tabIndex="-1"
-                    >
+                    <span>
                       All Environments
-                    </a>
-                  </li>
-                </MenuItem>
-              </ul>
-            </span>
+                    </span>
+                    <i
+                      className="icon-arrow-down"
+                    />
+                  </div>
+                </a>
+                <ul
+                  className="dropdown-menu"
+                  onClick={[Function]}
+                  onMouseEnter={[Function]}
+                  onMouseLeave={[Function]}
+                >
+                  <MenuItem
+                    isActive={true}
+                    onClick={[Function]}
+                  >
+                    <li
+                      className="active"
+                      href={null}
+                      onClick={[Function]}
+                      role="presentation"
+                      title={null}
+                    >
+                      <a
+                        onClick={[Function]}
+                        tabIndex="-1"
+                      >
+                        All Environments
+                      </a>
+                    </li>
+                  </MenuItem>
+                </ul>
+              </span>
+            </StyledDropdown>
           </DropdownMenu>
         </DropdownLink>
       </span>

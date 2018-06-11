@@ -128,7 +128,7 @@ exports[`projectAlertRules renders 1`] = `
                         >
                           <Component
                             aria-label="New Alert Rule"
-                            className="css-zvpqlo-StyledButton-getColors eqrebog0"
+                            className="css-8y2c3h-StyledButton-getColors eqrebog0"
                             disabled={false}
                             onClick={[Function]}
                             priority="primary"
@@ -138,7 +138,7 @@ exports[`projectAlertRules renders 1`] = `
                           >
                             <Link
                               aria-label="New Alert Rule"
-                              className="css-zvpqlo-StyledButton-getColors eqrebog0"
+                              className="css-8y2c3h-StyledButton-getColors eqrebog0"
                               disabled={false}
                               onClick={[Function]}
                               onlyActiveOnIndex={false}
@@ -150,7 +150,7 @@ exports[`projectAlertRules renders 1`] = `
                             >
                               <a
                                 aria-label="New Alert Rule"
-                                className="css-zvpqlo-StyledButton-getColors eqrebog0"
+                                className="css-8y2c3h-StyledButton-getColors eqrebog0"
                                 disabled={false}
                                 onClick={[Function]}
                                 priority="primary"
@@ -432,7 +432,7 @@ exports[`projectAlertRules renders 1`] = `
                                 >
                                   <Component
                                     aria-label="Edit Rule"
-                                    className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                    className="css-1oh8b9m-StyledButton-getColors eqrebog0"
                                     data-test-id="edit-rule"
                                     disabled={false}
                                     onClick={[Function]}
@@ -447,7 +447,7 @@ exports[`projectAlertRules renders 1`] = `
                                   >
                                     <Link
                                       aria-label="Edit Rule"
-                                      className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                      className="css-1oh8b9m-StyledButton-getColors eqrebog0"
                                       data-test-id="edit-rule"
                                       disabled={false}
                                       onClick={[Function]}
@@ -463,7 +463,7 @@ exports[`projectAlertRules renders 1`] = `
                                     >
                                       <a
                                         aria-label="Edit Rule"
-                                        className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                        className="css-1oh8b9m-StyledButton-getColors eqrebog0"
                                         data-test-id="edit-rule"
                                         disabled={false}
                                         onClick={[Function]}
@@ -537,14 +537,14 @@ exports[`projectAlertRules renders 1`] = `
                                     size="small"
                                   >
                                     <Component
-                                      className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                      className="css-1oh8b9m-StyledButton-getColors eqrebog0"
                                       disabled={false}
                                       onClick={[Function]}
                                       role="button"
                                       size="small"
                                     >
                                       <button
-                                        className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                        className="css-1oh8b9m-StyledButton-getColors eqrebog0"
                                         disabled={false}
                                         onClick={[Function]}
                                         role="button"

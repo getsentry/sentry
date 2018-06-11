@@ -77,7 +77,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                         >
                           <Component
                             aria-label="Create Project"
-                            className="css-zvpqlo-StyledButton-getColors eqrebog0"
+                            className="css-8y2c3h-StyledButton-getColors eqrebog0"
                             disabled={false}
                             onClick={[Function]}
                             priority="primary"
@@ -87,7 +87,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                           >
                             <Link
                               aria-label="Create Project"
-                              className="css-zvpqlo-StyledButton-getColors eqrebog0"
+                              className="css-8y2c3h-StyledButton-getColors eqrebog0"
                               disabled={false}
                               onClick={[Function]}
                               onlyActiveOnIndex={false}
@@ -99,7 +99,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                             >
                               <a
                                 aria-label="Create Project"
-                                className="css-zvpqlo-StyledButton-getColors eqrebog0"
+                                className="css-8y2c3h-StyledButton-getColors eqrebog0"
                                 disabled={false}
                                 onClick={[Function]}
                                 priority="primary"
@@ -482,7 +482,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                 >
                                   <Component
                                     aria-label="View Issues"
-                                    className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                    className="css-1oh8b9m-StyledButton-getColors eqrebog0"
                                     disabled={false}
                                     onClick={[Function]}
                                     role="button"
@@ -491,7 +491,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                   >
                                     <Link
                                       aria-label="View Issues"
-                                      className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                      className="css-1oh8b9m-StyledButton-getColors eqrebog0"
                                       disabled={false}
                                       onClick={[Function]}
                                       onlyActiveOnIndex={false}
@@ -502,7 +502,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                     >
                                       <a
                                         aria-label="View Issues"
-                                        className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                        className="css-1oh8b9m-StyledButton-getColors eqrebog0"
                                         disabled={false}
                                         onClick={[Function]}
                                         role="button"

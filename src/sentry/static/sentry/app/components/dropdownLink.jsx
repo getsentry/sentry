@@ -1,8 +1,36 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
+import styled from 'react-emotion';
 
+import Button, {ButtonLabel} from 'app/components/button';
 import DropdownMenu from 'app/components/dropdownMenu';
+import ButtonGroup from 'app/components/buttonGroup';
+
+const StyledDropdown = styled('span')`
+  ${ButtonGroup} & {
+    margin-left: -1px;
+
+    &.open > .dropdown-menu {
+      left: -4px;
+    }
+  }
+`;
+
+// Use as selector
+const StyledDropdownToggle = styled(Button)`
+  ${ButtonGroup} ${StyledDropdown}:last-child:not(:first-child) & {
+    border-bottom-left-radius: 0;
+    border-top-left-radius: 0;
+  }
+
+  ${ButtonGroup} & {
+    ${ButtonLabel} {
+      padding-left: 8px;
+      padding-right: 8px;
+    }
+  }
+`;
 
 class DropdownLink extends React.Component {
   static propTypes = {
@@ -49,11 +77,14 @@ class DropdownLink extends React.Component {
       className,
       alwaysRenderMenu,
       topLevelClasses,
+      isButton,
       ...otherProps
     } = this.props;
 
     // Default anchor = left
     let isRight = anchorRight;
+
+    let DropdownToggle = isButton ? StyledDropdownToggle : 'a';
 
     // .dropdown-actor-title = flexbox to fix vertical alignment on firefox
     // Need the extra container because dropdown-menu alignment is off if `dropdown-actor` is a flexbox
@@ -74,12 +105,12 @@ class DropdownLink extends React.Component {
           });
 
           return (
-            <span
+            <StyledDropdown
               {...getRootProps({
                 className: topLevelCx,
               })}
             >
-              <a
+              <DropdownToggle
                 {...getActorProps({
                   className: cx,
                 })}
@@ -88,7 +119,7 @@ class DropdownLink extends React.Component {
                   <span>{title}</span>
                   {caret && <i className="icon-arrow-down" />}
                 </div>
-              </a>
+              </DropdownToggle>
 
               {shouldRenderMenu && (
                 <ul
@@ -99,7 +130,7 @@ class DropdownLink extends React.Component {
                   {children}
                 </ul>
               )}
-            </span>
+            </StyledDropdown>
           );
         }}
       </DropdownMenu>
@@ -108,3 +139,4 @@ class DropdownLink extends React.Component {
 }
 
 export default DropdownLink;
+export {StyledDropdownToggle};

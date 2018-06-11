@@ -6,6 +6,8 @@ import {action} from '@storybook/addon-actions';
 import {boolean} from '@storybook/addon-knobs';
 
 import Button from 'app/components/button';
+import ButtonGroup from 'app/components/buttonGroup';
+import DropdownLink from 'app/components/dropdownLink';
 import DropdownButton from 'app/components/dropdownButton';
 
 const Item = styled('span')`
@@ -143,4 +145,52 @@ storiesOf('UI|Buttons', module)
         </Item>
       </React.Fragment>
     ))
+  )
+  .add(
+    'ButtonGroups',
+    withInfo('A button group')(() => {
+      return (
+        <React.Fragment>
+          <Section>
+            <ButtonGroup>
+              <Button>Foo</Button>
+            </ButtonGroup>
+          </Section>
+
+          <Section>
+            <ButtonGroup>
+              <Button>Foo</Button>
+              <Button>Bar</Button>
+              <Button>baz</Button>
+            </ButtonGroup>
+          </Section>
+
+          <Section>
+            <ButtonGroup>
+              <Button>Foo</Button>
+              <Button>Bar</Button>
+            </ButtonGroup>
+          </Section>
+
+          <Section>
+            <ButtonGroup>
+              <Button>Foo</Button>
+              <DropdownLink caret isButton>
+                <div>hi</div>
+              </DropdownLink>
+            </ButtonGroup>
+          </Section>
+
+          <Section>
+            <div className="btn-group">
+              <button className="btn btn-default">test</button>
+              <button className="btn btn-default">test</button>
+              <DropdownLink caret className="btn btn-default">
+                <div>hi</div>
+              </DropdownLink>
+            </div>
+          </Section>
+        </React.Fragment>
+      );
+    })
   );

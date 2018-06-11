@@ -102,7 +102,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                     >
                       <Component
                         aria-label="New API Key"
-                        className="css-zvpqlo-StyledButton-getColors eqrebog0"
+                        className="css-1bo12vz-StyledButton-getColors eqrebog0"
                         disabled={false}
                         onClick={[Function]}
                         priority="primary"
@@ -111,7 +111,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                       >
                         <button
                           aria-label="New API Key"
-                          className="css-zvpqlo-StyledButton-getColors eqrebog0"
+                          className="css-1bo12vz-StyledButton-getColors eqrebog0"
                           disabled={false}
                           onClick={[Function]}
                           priority="primary"

@@ -1208,7 +1208,7 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
             >
               <Component
                 aria-label="Learn more"
-                className="css-dkprmi-StyledButton-getColors eqrebog0"
+                className="css-1oh8b9m-StyledButton-getColors eqrebog0"
                 disabled={false}
                 external={true}
                 href="https://status.sentry.io"
@@ -1218,7 +1218,7 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
               >
                 <ExternalLink
                   aria-label="Learn more"
-                  className="css-dkprmi-StyledButton-getColors eqrebog0"
+                  className="css-1oh8b9m-StyledButton-getColors eqrebog0"
                   disabled={false}
                   href="https://status.sentry.io"
                   onClick={[Function]}
@@ -1229,7 +1229,7 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
                 >
                   <a
                     aria-label="Learn more"
-                    className="css-dkprmi-StyledButton-getColors eqrebog0"
+                    className="css-1oh8b9m-StyledButton-getColors eqrebog0"
                     disabled={false}
                     href="https://status.sentry.io"
                     onClick={[Function]}

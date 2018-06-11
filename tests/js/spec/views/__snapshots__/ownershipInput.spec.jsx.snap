@@ -829,7 +829,7 @@ exports[`Project Ownership Input renders 1`] = `
               to={null}
             >
               <Component
-                className="e1hyuoc79 css-in0b2i-StyledButton-getColors-AddButton eqrebog0"
+                className="e1hyuoc79 css-3gleq8-StyledButton-getColors-AddButton eqrebog0"
                 disabled={true}
                 href={null}
                 onClick={[Function]}
@@ -839,7 +839,7 @@ exports[`Project Ownership Input renders 1`] = `
                 to={null}
               >
                 <button
-                  className="e1hyuoc79 css-in0b2i-StyledButton-getColors-AddButton eqrebog0"
+                  className="e1hyuoc79 css-3gleq8-StyledButton-getColors-AddButton eqrebog0"
                   disabled={true}
                   href={null}
                   onClick={[Function]}
@@ -1026,7 +1026,7 @@ url:http://example.com/settings/* #product"
                 >
                   <Component
                     aria-label="Save Changes"
-                    className="css-zvpqlo-StyledButton-getColors eqrebog0"
+                    className="css-8y2c3h-StyledButton-getColors eqrebog0"
                     disabled={false}
                     onClick={[Function]}
                     priority="primary"
@@ -1035,7 +1035,7 @@ url:http://example.com/settings/* #product"
                   >
                     <button
                       aria-label="Save Changes"
-                      className="css-zvpqlo-StyledButton-getColors eqrebog0"
+                      className="css-8y2c3h-StyledButton-getColors eqrebog0"
                       disabled={false}
                       onClick={[Function]}
                       priority="primary"
