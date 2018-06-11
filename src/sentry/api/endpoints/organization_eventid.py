@@ -6,8 +6,9 @@ from rest_framework.response import Response
 
 from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.models import Project, Event, EventMapping
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.serializers import serialize
+from sentry.models import Project, Event, EventMapping
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
@@ -76,6 +77,10 @@ class EventIdLookupEndpoint(OrganizationEndpoint):
                 'organizationSlug': organization.slug,
                 'projectSlug': project_slugs_by_id[event.project_id],
                 'groupId': six.text_type(event.group_id),
-                'eventId': six.text_type(event.id)
+                'eventId': six.text_type(event.id),
+                'event': serialize(
+                    event,
+                    request.user,
+                ),
             }
         )
