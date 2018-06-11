@@ -21,9 +21,9 @@ Google Cloud Storage Backend
 ----------------------------
 
 In addition to the configuration below, you'll need to make sure the shell
-environment is configured with the appropriate bucket access credentials by
-performing ``gcloud init`` then completing the authentication flow initiated
-by a ``gcloud auth application-default login``.
+environment has the variable ``GOOGLE_APPLICATION_CREDENTIALS`` set. For more
+information, refer to the `Google Cloud documentation for setting up authentication
+<https://cloud.google.com/storage/docs/reference/libraries#setting_up_authentication>`_.
 
 .. code-block:: yaml
 

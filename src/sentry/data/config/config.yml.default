@@ -68,8 +68,8 @@ filestore.backend: 'filesystem'
 filestore.options:
   location: '/tmp/sentry-files'
 
-# NOTE: See also docs/filestore; the shell environment needs to be configured with
-#       authentication credentials to the bucket via `gcloud`.
+# NOTE: See docs/filestore for instructions on configuring the shell environment
+#       with authentication credentials for Google Cloud.
 # filestore.backend: 'gcs'
 # filestore.options:
 #   bucket_name: 's3-bucket-name'
