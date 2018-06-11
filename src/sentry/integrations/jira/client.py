@@ -4,7 +4,7 @@ import datetime
 import jwt
 import re
 from hashlib import md5 as _md5
-from six.moves.urllib.parse import urlparse
+from six.moves.urllib.parse import parse_qs, urlparse, urlsplit
 
 from sentry.utils.cache import cache
 from django.utils.encoding import force_bytes
@@ -41,16 +41,21 @@ class JiraApiClient(ApiClient):
         super(JiraApiClient, self).__init__(verify_ssl=False)
 
     def request(self, method, path, data=None, params=None, **kwargs):
+        # handle params that are already part of the path
+        url_params = dict(parse_qs(urlsplit(path).query))
+        url_params.update(params or {})
+        path = path.split('?')[0]
+
         jwt_payload = {
             'iss': JIRA_KEY,
             'iat': datetime.datetime.utcnow(),
             'exp': datetime.datetime.utcnow() + datetime.timedelta(seconds=5 * 60),
-            'qsh': get_query_hash(path, method.upper(), params),
+            'qsh': get_query_hash(path, method.upper(), url_params),
         }
         encoded_jwt = jwt.encode(jwt_payload, self.shared_secret)
         params = dict(
             jwt=encoded_jwt,
-            **(params or {})
+            **(url_params or {})
         )
         return self._request(method, path, data=data, params=params, **kwargs)
 
