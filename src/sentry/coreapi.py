@@ -344,6 +344,9 @@ class ClientApiHelper(object):
         if 'sentry.interfaces.User' in data:
             data['sentry.interfaces.User'].pop('ip_address', None)
 
+        if 'sdk' in data:
+            data['sdk'].pop('client_ip', None)
+
     def insert_data_to_database(self, data, start_time=None, from_reprocessing=False):
         if start_time is None:
             start_time = time()
