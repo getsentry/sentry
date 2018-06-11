@@ -300,10 +300,6 @@ export default class OrganizationIntegration extends AsyncView {
           <PanelBody>{integrationList}</PanelBody>
         </Panel>
 
-        {integrations[0] && (
-          <IntegrationRepos orgId={orgId} integration={integrations[0]} />
-        )}
-
         {this.renderAlertLink(provider)}
 
         <hr />
