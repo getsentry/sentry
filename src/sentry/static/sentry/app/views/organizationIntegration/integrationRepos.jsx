@@ -3,7 +3,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
+import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/buttons/button';
 import Confirm from 'app/components/confirm';
@@ -44,6 +45,7 @@ export default class IntegrationRepos extends AsyncComponent {
   getEndpoints() {
     return [
       ['itemList', `/organizations/${this.props.orgId}/repos/`, {query: {status: ''}}],
+      ['integrationRepos', `/organizations/${this.props.orgId}/integrations/${this.props.integration.id}/repos/`]
     ];
   }
 
@@ -78,13 +80,15 @@ export default class IntegrationRepos extends AsyncComponent {
       method: 'POST',
       success: repo => {
         this.setState({loading: false, itemList: itemList.concat(repo)});
-        IndicatorStore.add(t('Successfully added repository.'), 'success', {
-          duration: 2000,
-        });
+        addSuccessMessage(
+          tct('[repo] has been successfully added.', {
+            repo: repo.name,
+          })
+        );
       },
       error: data => {
         this.setState({loading: false});
-        IndicatorStore.add(t('Unable to add repository.'), 'error', {duration: 2000});
+        addErrorMessage(t('Unable to add repository.'));
       },
     });
   }
@@ -103,9 +107,7 @@ export default class IntegrationRepos extends AsyncComponent {
         this.setState({itemList});
       },
       error: () => {
-        IndicatorStore.add(t('An error occurred.'), 'error', {
-          duration: 3000,
-        });
+        addErrorMessage(t('Unable to delete repository.'));
       },
       complete: () => {
         IndicatorStore.remove(indicator);
@@ -129,9 +131,7 @@ export default class IntegrationRepos extends AsyncComponent {
         this.setState({itemList});
       },
       error: () => {
-        IndicatorStore.add(t('An error occurred.'), 'error', {
-          duration: 3000,
-        });
+        addErrorMessage(t('An error occurred.'));
       },
       complete: () => {
         IndicatorStore.remove(indicator);
@@ -153,7 +153,7 @@ export default class IntegrationRepos extends AsyncComponent {
         </DropdownButton>
       );
     }
-    let repositories = this.props.integration.repos.repositories;
+    let repositories = this.state.integrationRepos.repos;
     let items = (repositories || []).map(repo => {
       return {
         searchKey: `${repo.name}`,

@@ -187,6 +187,11 @@ class ApiClient(object):
     def put(self, *args, **kwargs):
         return self.request('PUT', *args, **kwargs)
 
+    def get_repositories(self):
+        # should return a list of available repositories
+        # for a given installation. 
+        raise NotImplementedError
+
 
 class AuthApiClient(ApiClient):
     auth = None

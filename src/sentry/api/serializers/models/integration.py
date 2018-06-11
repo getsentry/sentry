@@ -39,11 +39,9 @@ class IntegrationConfigSerializer(IntegrationSerializer):
             # representation.
             pass
         else:
-            repos = install.get_client().get_repositories()
             data.update({
                 'configOrganization': install.get_organization_config(),
                 'configProject': install.get_project_config(),
-                'repos': repos,
             })
 
         return data
