@@ -60,6 +60,15 @@ class SnubaTest(SnubaTestCase):
         assert snuba.get_project_issues([self.project], [self.group.id]) == \
             [(self.group.id, [('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', None)])]
 
+        # GroupHash without a group_id, should not be included in get_project_issues
+        GroupHash.objects.create(
+            project=self.project,
+            hash='0' * 32,
+        )
+
+        assert self.group.id in dict(snuba.get_project_issues([self.project]))
+        assert None not in dict(snuba.get_project_issues([self.project]))
+
     def test_project_issues_with_tombstones(self):
         base_time = datetime.utcnow()
         a_hash = 'a' * 32
@@ -94,7 +103,8 @@ class SnubaTest(SnubaTestCase):
         GroupHash.objects.create(
             project=self.project,
             group=group1,
-            hash=a_hash)
+            hash=a_hash
+        )
         assert snuba.get_project_issues([self.project], [group1.id]) == \
             [(group1.id, [('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', None)])]
 

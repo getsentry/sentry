@@ -18,6 +18,10 @@ from sentry.utils import metrics
 from sentry.utils.dates import to_timestamp
 from functools import reduce
 
+# TODO remove this when Snuba accepts more than 500 issues
+MAX_ISSUES = 500
+MAX_HASHES = 5000
+
 
 class SnubaError(Exception):
     pass
@@ -294,11 +298,15 @@ def get_project_issues(project_ids, issue_ids=None):
     Returns a list: [(issue_id: [hash1, hash2, ...]), ...]
     """
     if issue_ids:
-        # TODO remove this when Snuba accepts more than 500 issues
-        issue_ids = issue_ids[:500]
-        hashes = GroupHash.objects.filter(group_id__in=issue_ids)
+        issue_ids = issue_ids[:MAX_ISSUES]
+        hashes = GroupHash.objects.filter(
+            group_id__in=issue_ids
+        )[:MAX_HASHES]
     else:
-        hashes = GroupHash.objects.filter(project__in=project_ids)
+        hashes = GroupHash.objects.filter(
+            project__in=project_ids,
+            group_id__isnull=False,
+        )[:MAX_HASHES]
 
     hashes = [h for h in hashes if HASH_RE.match(h.hash)]
     if not hashes:
@@ -325,7 +333,7 @@ def get_project_issues(project_ids, issue_ids=None):
         tombstone_date = tombstones_by_project.get(h.project_id, {}).get(h.hash, None)
         pair = (h.hash, tombstone_date.strftime("%Y-%m-%d %H:%M:%S") if tombstone_date else None)
         result.setdefault(h.group_id, []).append(pair)
-    return list(result.items())
+    return list(result.items())[:MAX_ISSUES]
 
 
 def get_related_project_ids(column, ids):
