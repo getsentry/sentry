@@ -76,8 +76,7 @@ const TagStore = Reflux.createStore({
       timesSeen: {
         key: 'timesSeen',
         name: 'Times Seen',
-        values: [],
-        predefined: true,
+        allowInput: true,
       },
     };
     this.trigger(this.tags);
