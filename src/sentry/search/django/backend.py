@@ -326,6 +326,7 @@ class DjangoSearchBackend(SearchBackend):
                     id__in=list(event_queryset.distinct().values_list('group_id', flat=True)[:1000])
                 )
 
+            _, group_queryset_sort_clause = sort_strategies[sort_by]
             group_queryset = QuerySetBuilder({
                 'first_release': CallbackCondition(
                     lambda queryset, version: queryset.extra(
@@ -425,7 +426,7 @@ class DjangoSearchBackend(SearchBackend):
                     tables=[GroupEnvironment._meta.db_table],
                 ),
                 parameters,
-            )
+            ).order_by(group_queryset_sort_clause)
 
             get_sort_expression, sort_value_to_cursor_value = environment_sort_strategies[sort_by]
 
