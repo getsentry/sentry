@@ -283,6 +283,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
             # pre-filtered candidates were *not* passed down to Snuba,
             # so we need to do post-filtering to verify Sentry DB predicates
             result_groups = []
+            i = 0
             for i, chunk in enumerate(chunked(snuba_groups.items(), MAX_POST_SNUBA_CHUNK), 1):
                 filtered_group_ids = group_queryset.filter(
                     id__in=[gid for gid, _ in chunk]
@@ -427,5 +428,6 @@ def snuba_search(project_id, environment_id, tags, start, end,
             )
 
     return OrderedDict(
-        sorted(((gid, score_fn(data)) for gid, data in group_data.items()), key=lambda t: t[1], reverse=True)
+        sorted(((gid, score_fn(data))
+                for gid, data in group_data.items()), key=lambda t: t[1], reverse=True)
     )
