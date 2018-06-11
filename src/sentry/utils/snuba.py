@@ -298,7 +298,10 @@ def get_project_issues(project_ids, issue_ids=None):
         issue_ids = issue_ids[:500]
         hashes = GroupHash.objects.filter(group_id__in=issue_ids)
     else:
-        hashes = GroupHash.objects.filter(project__in=project_ids)
+        hashes = GroupHash.objects.filter(
+            project__in=project_ids,
+            group_id__isnull=False,
+        )[:500]
 
     hashes = [h for h in hashes if HASH_RE.match(h.hash)]
     if not hashes:
