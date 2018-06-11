@@ -110,8 +110,6 @@ const SearchBar = createReactClass({
   },
 
   getInitialState() {
-    const hasEnvironmentsFeature = this.getFeatures().has('environments');
-
     return {
       query: this.props.query !== null ? this.props.query : this.props.defaultQuery,
 
@@ -124,7 +122,6 @@ const SearchBar = createReactClass({
 
       dropdownVisible: false,
       loading: false,
-      hasEnvironmentsFeature,
     };
   },
 
@@ -193,9 +190,8 @@ const SearchBar = createReactClass({
       .map(key => key + ':')
       .filter(key => key.indexOf(query) > -1);
 
-    // If the environment feature is active and excludeEnvironment = true
-    // then remove the environment key
-    if (this.state.hasEnvironmentsFeature && this.props.excludeEnvironment) {
+    // If excludeEnvironment = true then remove the environment key
+    if (this.props.excludeEnvironment) {
       return allKeys.filter(key => key !== 'environment:');
     } else {
       return allKeys;
@@ -325,12 +321,8 @@ const SearchBar = createReactClass({
 
       if (!tag) return undefined;
 
-      // Ignore the environment tag if the feature is active and excludeEnvironment = true
-      if (
-        this.state.hasEnvironmentsFeature &&
-        this.props.excludeEnvironment &&
-        tagName === 'environment'
-      ) {
+      // Ignore the environment tag if excludeEnvironment = true
+      if (this.props.excludeEnvironment && tagName === 'environment') {
         return undefined;
       }
 

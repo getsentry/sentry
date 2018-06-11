@@ -2,8 +2,7 @@ import React from 'react';
 import {mount} from 'enzyme';
 
 import ConfigStore from 'app/stores/configStore';
-import GroupReleaseStats from 'app/components/group/releaseStats';
-import EnvironmentStore from 'app/stores/environmentStore';
+import {GroupReleaseStats} from 'app/components/group/releaseStats';
 
 describe('GroupReleaseStats', function() {
   let component;
@@ -21,6 +20,7 @@ describe('GroupReleaseStats', function() {
       <GroupReleaseStats
         group={TestStubs.Group()}
         allEnvironments={TestStubs.Group()}
+        environment={TestStubs.Environments()[0]}
         location={TestStubs.location()}
       />,
       {
@@ -34,7 +34,6 @@ describe('GroupReleaseStats', function() {
   });
 
   it('renders', function() {
-    EnvironmentStore.loadInitialData(TestStubs.Environments());
     expect(component).toMatchSnapshot();
   });
 });
