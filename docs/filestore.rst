@@ -18,7 +18,7 @@ File System Backend
 
 
 Google Cloud Storage Backend
-----------
+----------------------------
 
 In addition to the configuration below, you'll need to make sure the shell
 environment is configured with the appropriate bucket access credentials by
@@ -33,7 +33,7 @@ by a ``gcloud auth application-default login``.
 
 
 Amazon S3 Backend
-----------
+-----------------
 
 .. code-block:: yaml
 
