@@ -77,7 +77,8 @@ class SnubaTSDB(BaseTSDB):
         end = to_datetime(series[-1] + rollup)
 
         result = snuba.query(start, end, groupby, None, keys_map,
-                             aggregations, rollup, referrer='tsdb')
+                             aggregations, rollup, referrer='tsdb',
+                             is_grouprelease=(model == TSDBModel.frequent_releases_by_group))
 
         if group_on_time:
             keys_map['time'] = series
@@ -204,8 +205,8 @@ class SnubaTSDB(BaseTSDB):
         Returns a normalized set of keys based on the various formats accepted
         by TSDB methods. The input is either just a plain list of keys for the
         top level or a `{level1_key: [level2_key, ...]}` dictionary->list map.
+        The output is a 2-tuple of ([level_1_keys], [all_level_2_keys])
         """
-        # Flatten keys
         if isinstance(items, (list, tuple)):
             return (items, None)
         elif isinstance(items, dict):

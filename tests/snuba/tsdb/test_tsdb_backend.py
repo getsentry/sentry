@@ -9,7 +9,7 @@ import six
 
 from django.conf import settings
 
-from sentry.models import GroupHash, Release
+from sentry.models import GroupHash, GroupRelease, Release
 from sentry.tsdb.base import TSDBModel
 from sentry.tsdb.snuba import SnubaTSDB
 from sentry.testutils import TestCase
@@ -89,6 +89,22 @@ class SnubaTSDBTest(TestCase):
             date_added=self.now,
         )
         self.release2.add_project(self.proj1)
+
+        self.group1release1 = GroupRelease.objects.create(
+            project_id=self.proj1.id,
+            group_id=self.proj1group1.id,
+            release_id=self.release1.id
+        )
+        self.group1release2 = GroupRelease.objects.create(
+            project_id=self.proj1.id,
+            group_id=self.proj1group1.id,
+            release_id=self.release2.id
+        )
+        self.group2release1 = GroupRelease.objects.create(
+            project_id=self.proj1.id,
+            group_id=self.proj1group2.id,
+            release_id=self.release1.id
+        )
 
         data = json.dumps([{
             'event_id': (six.text_type(r) * 32)[:32],
@@ -345,42 +361,42 @@ class SnubaTSDBTest(TestCase):
         assert self.db.get_frequency_series(
             TSDBModel.frequent_releases_by_group,
             {
-                self.proj1group1.id: (self.release1.id, self.release2.id, ),
-                self.proj1group2.id: (self.release1.id, )
+                self.proj1group1.id: (self.group1release1.id, self.group1release2.id, ),
+                self.proj1group2.id: (self.group2release1.id, )
             },
             dts[0], dts[-1],
             rollup=3600,
         ) == {
             self.proj1group1.id: [
                 (timestamp(dts[0]), {
-                    self.release1.id: 0,
-                    self.release2.id: 0,
+                    self.group1release1.id: 0,
+                    self.group1release2.id: 0,
                 }),
                 (timestamp(dts[1]), {
-                    self.release1.id: 3,
-                    self.release2.id: 0,
+                    self.group1release1.id: 3,
+                    self.group1release2.id: 0,
                 }),
                 (timestamp(dts[2]), {
-                    self.release1.id: 0,
-                    self.release2.id: 3,
+                    self.group1release1.id: 0,
+                    self.group1release2.id: 3,
                 }),
                 (timestamp(dts[3]), {
-                    self.release1.id: 0,
-                    self.release2.id: 0,
+                    self.group1release1.id: 0,
+                    self.group1release2.id: 0,
                 }),
             ],
             self.proj1group2.id: [
                 (timestamp(dts[0]), {
-                    self.release1.id: 0,
+                    self.group2release1.id: 0,
                 }),
                 (timestamp(dts[1]), {
-                    self.release1.id: 3,
+                    self.group2release1.id: 3,
                 }),
                 (timestamp(dts[2]), {
-                    self.release1.id: 0,
+                    self.group2release1.id: 0,
                 }),
                 (timestamp(dts[3]), {
-                    self.release1.id: 0,
+                    self.group2release1.id: 0,
                 }),
             ],
         }

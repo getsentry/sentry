@@ -60,15 +60,15 @@ class TagStorageTest(SnubaTestCase):
                     'email': "user{}@sentry.io".format(r)
                 }
             },
-        } for r in range(1, 3)] + [{
+        } for r in [1, 2]] + [{
             'event_id': '3' * 32,
             'primary_hash': hash2,
             'project_id': self.proj1.id,
             'message': 'message 2',
             'platform': 'python',
-            'datetime': (self.now - timedelta(seconds=r)).strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+            'datetime': (self.now - timedelta(seconds=2)).strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
             'data': {
-                'received': calendar.timegm(self.now.timetuple()) - r,
+                'received': calendar.timegm(self.now.timetuple()) - 2,
                 'tags': {
                     'browser': 'chrome',
                     'environment': self.proj1env1.name,
@@ -260,8 +260,9 @@ class TagStorageTest(SnubaTestCase):
         ])
         assert set(v.last_seen for v in result) == \
             set([self.now - timedelta(seconds=1), self.now - timedelta(seconds=2)])
-        assert result[0].last_seen == self.now - timedelta(seconds=1)
-        assert result[1].last_seen == self.now - timedelta(seconds=2)
+        result.sort(key=lambda x: x.last_seen)
+        assert result[0].last_seen == self.now - timedelta(seconds=2)
+        assert result[1].last_seen == self.now - timedelta(seconds=1)
         for v in result:
             assert v.value == 'user1'
 
