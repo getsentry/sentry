@@ -93,6 +93,7 @@ exports[`ResolutionBox render() handles inRelease 1`] = `
         key="1"
         orgId="org"
         projectId="project"
+        showShortVersion={true}
         version="1.0"
       />
       <span
@@ -151,6 +152,7 @@ exports[`ResolutionBox render() handles inRelease with actor 1`] = `
         key="2"
         orgId="org"
         projectId="project"
+        showShortVersion={true}
         version="1.0"
       />
       <span
