@@ -242,13 +242,13 @@ def cleanup(days, project, concurrency, max_procs, silent, model, router, timed)
     else:
         if not silent:
             click.echo("Removing old NodeStore values")
-        else:
-            cutoff = timezone.now() - timedelta(days=days)
-            try:
-                nodestore.cleanup(cutoff)
-            except NotImplementedError:
-                click.echo(
-                    "NodeStore backend does not support cleanup operation", err=True)
+
+        cutoff = timezone.now() - timedelta(days=days)
+        try:
+            nodestore.cleanup(cutoff)
+        except NotImplementedError:
+            click.echo(
+                "NodeStore backend does not support cleanup operation", err=True)
 
     for bqd in BULK_QUERY_DELETES:
         if len(bqd) == 4:
