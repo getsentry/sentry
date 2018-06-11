@@ -18,7 +18,6 @@ import marked from 'app/utils/marked';
 
 import IntegrationDetails from './integrationDetails';
 import InstalledIntegration from './installedIntegration';
-import IntegrationRepos from './integrationRepos';
 
 const alertLinkMarkedRenderer = new marked.Renderer();
 alertLinkMarkedRenderer.paragraph = s => s;
