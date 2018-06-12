@@ -20,22 +20,20 @@ class VstsIssueSync(IssueSyncMixin):
     def get_issue_url(self, group, issue, **kwargs):
         return issue['url']
 
-    def get_new_issue_fields(self, request, group, event, **kwargs):
-        fields = super(VstsIssueSync, self).get_new_issue_fields(
-            request, group, event, **kwargs)
-
+    def get_create_issue_config(self, group, **kwargs):
+        fields = super(VstsIssueSync, self).get_create_issue_config(group, **kwargs)
         client = self.get_client()
 
         try:
             projects = client.get_projects(self.instance)
         except Exception as e:
-            self.raise_error(e, identity=client.auth)
+            self.raise_error(e)
 
         return [
             {
                 'name': 'project',
                 'label': 'Project',
-                'default': self.default_project,
+                # 'default': self.default_project, TODO(LB): Pending config working
                 'type': 'text',
                 'choices': [i['name'] for i in projects['value']],
                 'required': True,
@@ -62,23 +60,26 @@ class VstsIssueSync(IssueSyncMixin):
             }
         ]
 
-    def create_issue(self, request, group, form_data, **kwargs):
+    def create_issue(self, form_data, **kwargs):
         """
         Creates the issue on the remote service and returns an issue ID.
         """
         project = form_data.get('project') or self.default_project
+        if project is None:
+            raise ValueError('VSTS expects project')
         client = self.get_client()
 
         title = form_data['title']
         description = form_data['description']
-        link = absolute_uri(group.get_absolute_url())
+        # TODO(LB): Why was group removed from method?
+        # link = absolute_uri(group.get_absolute_url())
         try:
             created_item = client.create_work_item(
                 instance=self.instance,
                 project=project,
                 title=title,
                 comment=markdown(description),
-                link=link,
+                # link=link,
             )
         except Exception as e:
             self.raise_error(e)
