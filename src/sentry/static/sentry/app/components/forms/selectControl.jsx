@@ -3,9 +3,27 @@ import PropTypes from 'prop-types';
 import ReactSelect, {Async} from 'react-select';
 import styled from 'react-emotion';
 
+// Converts arg from a `select2` choices array to a `react-select` `options` array
+const convertFromSelect2Choices = choices => {
+  if (!Array.isArray(choices)) return null;
+
+  // Accepts an array of strings or an array of tuples
+  return choices.map(
+    choice =>
+      Array.isArray(choice)
+        ? {value: choice[0], label: choice[1]}
+        : {value: choice, label: choice}
+  );
+};
+
 export default class SelectControl extends React.Component {
   static propTypes = {
     async: PropTypes.bool,
+    options: PropTypes.array,
+    choices: PropTypes.oneOfType([
+      PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.string, PropTypes.array])),
+      PropTypes.func,
+    ]),
   };
 
   renderArrow = () => {
@@ -13,9 +31,22 @@ export default class SelectControl extends React.Component {
   };
 
   render() {
-    let {async, ...props} = this.props;
+    let {async, options, choices, ...props} = this.props;
 
-    return <StyledSelect arrowRenderer={this.renderArrow} async={async} {...props} />;
+    // Compatibility with old select2 API
+    let choicesOrOptions =
+      convertFromSelect2Choices(
+        typeof choices === 'function' ? choices(this.props) : choices
+      ) || options;
+
+    return (
+      <StyledSelect
+        arrowRenderer={this.renderArrow}
+        async={async}
+        {...props}
+        options={choicesOrOptions}
+      />
+    );
   }
 }
 
