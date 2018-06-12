@@ -35,7 +35,7 @@ from sentry.models import (
     Project, Release, ReleaseEnvironment, ReleaseProject, ReleaseProjectEnvironment, UserReport
 )
 from sentry.plugins import plugins
-from sentry.signals import event_discarded, event_saved, first_event_received, regression_signal
+from sentry.signals import event_discarded, event_saved, first_event_received
 from sentry.tasks.merge import merge_group
 from sentry.tasks.post_process import post_process_group
 from sentry.utils import metrics
@@ -945,10 +945,6 @@ class EventManager(object):
             )
         else:
             self.logger.info('post_process.skip.raw_event', extra={'event_id': event.id})
-
-        # TODO: move this to the queue
-        if is_regression and not raw:
-            regression_signal.send_robust(sender=Group, instance=group)
 
         metrics.timing(
             'events.latency',

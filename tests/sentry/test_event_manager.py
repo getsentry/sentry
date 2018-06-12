@@ -78,16 +78,6 @@ class EventManagerTest(TransactionTestCase):
         assert event1.transaction == 'bar'
         assert event1.culprit == 'bar'
 
-    @mock.patch('sentry.signals.regression_signal.send')
-    def test_broken_regression_signal(self, send):
-        send.side_effect = Exception()
-
-        manager = EventManager(self.make_event())
-        event = manager.save(1)
-
-        assert event.message == 'foo'
-        assert event.project_id == 1
-
     @mock.patch('sentry.event_manager.should_sample')
     def test_saves_event_mapping_when_sampled(self, should_sample):
         should_sample.return_value = True
