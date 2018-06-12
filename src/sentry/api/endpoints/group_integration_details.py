@@ -9,7 +9,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.integration import IntegrationIssueConfigSerializer
 from sentry.integrations import IntegrationFeatures
 from sentry.integrations.exceptions import IntegrationError
-from sentry.models import ExternalIssue, GroupLink, OrganizationIntegration
+from sentry.models import ExternalIssue, GroupLink, Integration
 
 
 class GroupIntegrationDetailsEndpoint(GroupEndpoint):
@@ -23,13 +23,12 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
 
         organization_id = group.project.organization_id
         try:
-            # check org permissions
             # TODO(jess): should this eventually check ProjectIntegration?
-            integration = OrganizationIntegration.objects.filter(
-                integration_id=integration_id,
-                organization_id=organization_id,
-            ).select_related('integration').get().integration
-        except OrganizationIntegration.DoesNotExist:
+            integration = Integration.objects.get(
+                id=integration_id,
+                organizations=organization_id,
+            )
+        except Integration.DoesNotExist:
             return Response(status=404)
 
         if not integration.has_feature(IntegrationFeatures.ISSUE_SYNC):
@@ -53,13 +52,12 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
 
         organization_id = group.project.organization_id
         try:
-            # check org permissions
             # TODO(jess): should this eventually check ProjectIntegration?
-            integration = OrganizationIntegration.objects.filter(
-                integration_id=integration_id,
-                organization_id=organization_id,
-            ).select_related('integration').get().integration
-        except OrganizationIntegration.DoesNotExist:
+            integration = Integration.objects.get(
+                id=integration_id,
+                organizations=organization_id,
+            )
+        except Integration.DoesNotExist:
             return Response(status=404)
 
         if not integration.has_feature(IntegrationFeatures.ISSUE_SYNC):
@@ -105,13 +103,12 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
     def post(self, request, group, integration_id):
         organization_id = group.project.organization_id
         try:
-            # check org permissions
             # TODO(jess): should this eventually check ProjectIntegration?
-            integration = OrganizationIntegration.objects.filter(
-                integration_id=integration_id,
-                organization_id=organization_id,
-            ).select_related('integration').get().integration
-        except OrganizationIntegration.DoesNotExist:
+            integration = Integration.objects.get(
+                id=integration_id,
+                organizations=organization_id,
+            )
+        except Integration.DoesNotExist:
             return Response(status=404)
 
         if not integration.has_feature(IntegrationFeatures.ISSUE_SYNC):
@@ -158,12 +155,11 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
 
         organization_id = group.project.organization_id
         try:
-            # check org permissions
-            integration = OrganizationIntegration.objects.filter(
-                integration_id=integration_id,
-                organization_id=organization_id,
-            ).select_related('integration').get().integration
-        except OrganizationIntegration.DoesNotExist:
+            integration = Integration.objects.get(
+                id=integration_id,
+                organizations=organization_id,
+            )
+        except Integration.DoesNotExist:
             return Response(status=404)
 
         if not integration.has_feature(IntegrationFeatures.ISSUE_SYNC):
