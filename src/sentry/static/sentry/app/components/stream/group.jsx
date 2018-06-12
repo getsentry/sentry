@@ -1,4 +1,5 @@
 import {Flex, Box} from 'grid-emotion';
+import {Observer} from 'mobx-react';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
@@ -7,6 +8,7 @@ import jQuery from 'jquery';
 import styled from 'react-emotion';
 
 import {PanelItem} from 'app/components/panels';
+import {store} from 'app/components/streamResponsiveLayout';
 import {valueIsEqual} from 'app/utils';
 import AssigneeSelector from 'app/components/assigneeSelector';
 import Count from 'app/components/count';
@@ -112,9 +114,17 @@ const StreamGroup = createReactClass({
             projectId={projectId}
           />
         </GroupSummary>
-        <Box w={160} mx={2} className="hidden-xs hidden-sm">
-          <GroupChart id={data.id} statsPeriod={this.props.statsPeriod} data={data} />
-        </Box>
+        <Observer>
+          {() => (
+            <Box
+              w={store.showGraph ? 160 : 0}
+              mx={2}
+              css={{position: store.showGraph ? 'relative' : 'absolute'}}
+            >
+              <GroupChart id={data.id} statsPeriod={this.props.statsPeriod} data={data} />
+            </Box>
+          )}
+        </Observer>
         <Flex w={[40, 60, 80, 80]} mx={2} justify="flex-end">
           {hasGuideAnchor && <GuideAnchor target="events" type="text" />}
           <StyledCount value={data.count} />
@@ -123,9 +133,13 @@ const StreamGroup = createReactClass({
           {hasGuideAnchor && <GuideAnchor target="users" type="text" />}
           <StyledCount value={data.userCount} />
         </Flex>
-        <Box w={80} mx={2} className="hidden-xs hidden-sm">
-          <AssigneeSelector id={data.id} />
-        </Box>
+        <Observer>
+          {() => (
+            <Box w={store.showAssignee ? 80 : 0} mx={2}>
+              <AssigneeSelector id={data.id} />
+            </Box>
+          )}
+        </Observer>
       </Group>
     );
   },

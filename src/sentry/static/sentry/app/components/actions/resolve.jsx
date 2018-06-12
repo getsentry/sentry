@@ -1,6 +1,9 @@
+import {Observer} from 'mobx-react';
+import {Flex} from 'grid-emotion';
 import React from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
+
 import {getShortVersion} from 'app/utils';
 import {t} from 'app/locale';
 import CustomResolutionModal from 'app/components/customResolutionModal';
@@ -9,6 +12,7 @@ import DropdownLink from 'app/components/dropdownLink';
 import ActionLink from 'app/components/actions/actionLink';
 import Tooltip from 'app/components/tooltip';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
+import {store} from 'app/components/streamResponsiveLayout';
 
 export default class ResolveActions extends React.Component {
   static propTypes = {
@@ -123,16 +127,23 @@ export default class ResolveActions extends React.Component {
           orgId={orgId}
           projectId={projectId}
         />
-        <div className="btn-group">
+        <Flex className="btn-group">
           <ActionLink
             {...actionLinkProps}
             title={'Resolve'}
             className={buttonClass}
             onAction={() => onUpdate({status: 'resolved'})}
           >
-            <span className="icon-checkmark hidden-xs" style={{marginRight: 5}} />
-            <GuideAnchor target="resolve" type="text" />
-            {t('Resolve')}
+            <span className="icon-checkmark" />
+            <Observer>
+              {() =>
+                store.showResolveLabel && (
+                  <React.Fragment>
+                    <GuideAnchor target="resolve" type="text" />
+                    <span style={{marginLeft: 5}}>{t('Resolve')}</span>
+                  </React.Fragment>
+                )}
+            </Observer>
           </ActionLink>
 
           <DropdownLink
@@ -197,7 +208,7 @@ export default class ResolveActions extends React.Component {
               </Tooltip>
             </MenuItem>
           </DropdownLink>
-        </div>
+        </Flex>
       </div>
     );
   }

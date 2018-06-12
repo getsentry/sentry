@@ -137,6 +137,8 @@ const theme = {
     smallBadgeSize: '11px',
     collapsedWidth: '70px',
     expandedWidth: '220px',
+    collapsedInt: 70, // used in Responsive components
+    expandedInt: 220, // used in Responsive components
     mobileHeight: '54px',
     menuSpacing: '15px',
     panel: {

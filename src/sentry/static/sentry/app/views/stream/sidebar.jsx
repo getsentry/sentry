@@ -1,7 +1,10 @@
+import {Observer} from 'mobx-react';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import _ from 'lodash';
+import styled from 'react-emotion';
+
 import StreamTagFilter from 'app/views/stream/tagFilter';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {queryToObj, objToQuery} from 'app/utils/stream';
@@ -20,6 +23,7 @@ const StreamSidebar = createReactClass({
     query: PropTypes.string,
     onQueryChange: PropTypes.func.isRequired,
     loading: PropTypes.bool,
+    store: PropTypes.object,
   },
 
   getDefaultProps() {
@@ -109,48 +113,90 @@ const StreamSidebar = createReactClass({
   },
 
   render() {
-    let {loading, orgId, projectId, tags} = this.props;
+    let {loading, orgId, projectId, tags, store} = this.props;
     return (
-      <div className="stream-sidebar">
-        {loading ? (
-          <LoadingIndicator />
-        ) : (
-          <div>
-            <div className="stream-tag-filter">
-              <h6 className="nav-header">{t('Text')}</h6>
-              <form onSubmit={this.onTextFilterSubmit}>
-                <input
-                  className="form-control"
-                  placeholder={t('Search title and culprit text body')}
-                  onChange={this.onTextChange}
-                  value={this.state.textFilter}
-                />
-                {this.state.textFilter && (
-                  <a className="search-clear-form" onClick={this.onClearSearch}>
-                    <span className="icon-circle-cross" />
-                  </a>
-                )}
-              </form>
-              <hr />
-            </div>
+      <Observer>
+        {() => (
+          <StyledStreamSidebar visible={store.isStreamSidebarVisible}>
+            {loading ? (
+              <LoadingIndicator />
+            ) : (
+              <div>
+                <div className="stream-tag-filter">
+                  <h6 className="nav-header">{t('Text')}</h6>
+                  <form onSubmit={this.onTextFilterSubmit}>
+                    <input
+                      className="form-control"
+                      placeholder={t('Search title and culprit text body')}
+                      onChange={this.onTextChange}
+                      value={this.state.textFilter}
+                    />
+                    {this.state.textFilter && (
+                      <a className="search-clear-form" onClick={this.onClearSearch}>
+                        <span className="icon-circle-cross" />
+                      </a>
+                    )}
+                  </form>
+                  <hr />
+                </div>
 
-            {_.map(tags, tag => {
-              return (
-                <StreamTagFilter
-                  value={this.state.queryObj[tag.key]}
-                  key={tag.key}
-                  tag={tag}
-                  onSelect={this.onSelectTag}
-                  orgId={orgId}
-                  projectId={projectId}
-                />
-              );
-            })}
-          </div>
+                {_.map(tags, tag => {
+                  return (
+                    <StreamTagFilter
+                      value={this.state.queryObj[tag.key]}
+                      key={tag.key}
+                      tag={tag}
+                      onSelect={this.onSelectTag}
+                      orgId={orgId}
+                      projectId={projectId}
+                    />
+                  );
+                })}
+              </div>
+            )}
+          </StyledStreamSidebar>
         )}
-      </div>
+      </Observer>
     );
   },
 });
 
 export default StreamSidebar;
+
+const StyledStreamSidebar = styled('div')`
+  padding-left: 20px;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  opacity: 0;
+
+  .stream-tag-filter {
+    margin-bottom: 1em;
+
+    form {
+      position: relative;
+    }
+  }
+
+  h6 {
+    color: lighten(@gray, 10);
+    margin-bottom: 10px;
+  }
+
+  .select2-container {
+    width: 100%;
+    max-width: 100%;
+    padding: 6px 12px;
+  }
+
+  ${p =>
+    p.visible &&
+    `
+      width: 25%;
+      visibility: visible;
+      opacity: 1;
+      height: auto;
+      overflow: visible;
+      `};
+`;

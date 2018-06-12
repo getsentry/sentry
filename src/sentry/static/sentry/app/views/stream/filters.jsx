@@ -1,10 +1,13 @@
+import {Observer} from 'mobx-react';
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 
+import {t} from 'app/locale';
+import Button from 'app/components/buttons/button';
 import SavedSearchSelector from 'app/views/stream/savedSearchSelector';
 import SearchBar from 'app/views/stream/searchBar';
 import SortOptions from 'app/views/stream/sortOptions';
-import {t} from 'app/locale';
 
 class StreamFilters extends React.Component {
   static propTypes = {
@@ -49,7 +52,8 @@ class StreamFilters extends React.Component {
       queryMaxCount,
       query,
       savedSearchList,
-      isSearchDisabled,
+      // isSearchDisabled,
+      store,
       sort,
 
       onSidebarToggle,
@@ -79,22 +83,31 @@ class StreamFilters extends React.Component {
               <div className="stream-sort">
                 <SortOptions sort={sort} onSelect={onSortChange} />
               </div>
-
-              <SearchBar
-                orgId={orgId}
-                projectId={projectId}
-                placeholder={t('Search for events, users, tags, and everything else.')}
-                query={query || ''}
-                onSearch={onSearch}
-                disabled={isSearchDisabled}
-                excludeEnvironment={true}
-              />
-              <a
-                className="btn btn-default toggle-stream-sidebar"
-                onClick={onSidebarToggle}
-              >
-                <span className="icon-filter" />
-              </a>
+              <Observer>
+                {() => (
+                  <React.Fragment>
+                    <SearchBar
+                      orgId={orgId}
+                      projectId={projectId}
+                      placeholder={t(
+                        'Search for events, users, tags, and everything else.'
+                      )}
+                      query={query || ''}
+                      onSearch={onSearch}
+                      disabled={store.isStreamSidebarVisible}
+                      excludeEnvironment={true}
+                    />
+                    <ToggleButton
+                      size="small"
+                      onClick={onSidebarToggle}
+                      active={store.isStreamSidebarVisible}
+                      priority={store.isStreamSidebarVisible ? 'primary' : 'default'}
+                    >
+                      <span className="icon-filter" />
+                    </ToggleButton>
+                  </React.Fragment>
+                )}
+              </Observer>
             </div>
           </div>
         </div>
@@ -104,3 +117,25 @@ class StreamFilters extends React.Component {
 }
 
 export default StreamFilters;
+
+const ToggleButton = styled(Button)`
+  width: 50px;
+  margin-left: 5px;
+  height: 38px;
+  text-align: center;
+
+  &:focus,
+  &:active {
+    box-shadow: 0;
+  }
+
+  .icon-filter {
+    font-size: 19px;
+  }
+
+  ${p =>
+    p.active &&
+    `
+  box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.12);
+  `};
+`;

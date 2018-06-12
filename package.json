@@ -72,6 +72,7 @@
     "react-keydown": "^1.9.7",
     "react-lazyload": "^2.3.0",
     "react-mentions": "^1.2.0",
+    "react-responsive": "^4.1.0",
     "react-router": "3.2.0",
     "react-select": "^1.2.1",
     "react-sparklines": "1.7.0",

@@ -1,5 +1,6 @@
 import {Flex, Box} from 'grid-emotion';
 import {capitalize} from 'lodash';
+import {observer, Observer} from 'mobx-react';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
@@ -20,6 +21,16 @@ import SelectedGroupStore from 'app/stores/selectedGroupStore';
 import SentryTypes from 'app/sentryTypes';
 import ToolbarHeader from 'app/components/toolbarHeader';
 import Tooltip from 'app/components/tooltip';
+import {store} from 'app/components/streamResponsiveLayout';
+
+// Size enum
+const SIZE = {
+  TINY: 0,
+  SMALL: 1,
+  MEDIUM: 2,
+  LARGE: 3,
+  FULL: 4,
+};
 
 const BULK_LIMIT = 1000;
 const BULK_LIMIT_STR = BULK_LIMIT.toLocaleString();
@@ -149,6 +160,10 @@ const StreamActions = createReactClass({
     queryCount: PropTypes.number,
     hasReleases: PropTypes.bool,
     latestRelease: PropTypes.object,
+    /**
+     * Size of stream (0 = smallest)
+     */
+    size: PropTypes.number,
   },
 
   mixins: [ApiMixin, Reflux.listenTo(SelectedGroupStore, 'onSelectedGroupChange')],
@@ -309,6 +324,7 @@ const StreamActions = createReactClass({
       query,
       realtimeActive,
       statsPeriod,
+      size,
     } = this.props;
     let issues = this.state.selectedIds;
     let numIssues = issues.size;
@@ -333,6 +349,7 @@ const StreamActions = createReactClass({
               confirmMessage={confirm('resolve', true)}
               confirmLabel={label('resolve')}
               disabled={!anySelected}
+              size={size}
             />
             <IgnoreActions
               onUpdate={this.onUpdate}
@@ -340,33 +357,46 @@ const StreamActions = createReactClass({
               confirmMessage={confirm('ignore', true)}
               confirmLabel={label('ignore')}
               disabled={!anySelected}
+              size={size}
             />
-            <div className="btn-group hidden-sm hidden-xs">
-              <ActionLink
-                className={'btn btn-default btn-sm action-merge'}
-                disabled={!multiSelected}
-                onAction={this.onMerge}
-                shouldConfirm={this.shouldConfirm('merge')}
-                message={confirm('merge', false)}
-                confirmLabel={label('merge')}
-                title={t('Merge Selected Issues')}
-              >
-                {t('Merge')}
-              </ActionLink>
-            </div>
-            <div className="btn-group hidden-xs">
-              <ActionLink
-                className={'btn btn-default btn-sm action-bookmark hidden-sm hidden-xs'}
-                onAction={() => this.onUpdate({isBookmarked: true})}
-                shouldConfirm={this.shouldConfirm('bookmark')}
-                message={confirm('bookmark', false)}
-                confirmLabel={label('bookmark')}
-                title={t('Add to Bookmarks')}
-                disabled={!anySelected}
-              >
-                <i aria-hidden="true" className="icon-star-solid" />
-              </ActionLink>
-            </div>
+            <Observer>
+              {() => {
+                return store.showMerge ? (
+                  <div className="btn-group">
+                    <ActionLink
+                      className={'btn btn-default btn-sm action-merge'}
+                      disabled={!multiSelected}
+                      onAction={this.onMerge}
+                      shouldConfirm={this.shouldConfirm('merge')}
+                      message={confirm('merge', false)}
+                      confirmLabel={label('merge')}
+                      title={t('Merge Selected Issues')}
+                    >
+                      {t('Merge')}
+                    </ActionLink>
+                  </div>
+                ) : null;
+              }}
+            </Observer>
+            <Observer>
+              {() => {
+                return store.showBookmarks ? (
+                  <div className="btn-group">
+                    <ActionLink
+                      className={'btn btn-default btn-sm action-bookmark'}
+                      onAction={() => this.onUpdate({isBookmarked: true})}
+                      shouldConfirm={this.shouldConfirm('bookmark')}
+                      message={confirm('bookmark', false)}
+                      confirmLabel={label('bookmark')}
+                      title={t('Add to Bookmarks')}
+                      disabled={!anySelected}
+                    >
+                      <i aria-hidden="true" className="icon-star-solid" />
+                    </ActionLink>
+                  </div>
+                ) : null;
+              }}
+            </Observer>
             <div className="btn-group">
               <DropdownLink
                 key="actions"
@@ -375,34 +405,52 @@ const StreamActions = createReactClass({
                 className="btn btn-sm btn-default action-more"
                 title={<span className="icon-ellipsis" />}
               >
-                <MenuItem noAnchor={true}>
-                  <ActionLink
-                    className={'action-merge hidden-md hidden-lg hidden-xl'}
-                    disabled={!multiSelected}
-                    onAction={this.onMerge}
-                    shouldConfirm={this.shouldConfirm('merge')}
-                    message={confirm('merge', false)}
-                    confirmLabel={label('merge')}
-                    title={t('Merge Selected Issues')}
-                  >
-                    {t('Merge')}
-                  </ActionLink>
-                </MenuItem>
-                <MenuItem divider={true} className={'hidden-md hidden-lg hidden-xl'} />
-                <MenuItem noAnchor={true}>
-                  <ActionLink
-                    className={'action-bookmark hidden-md hidden-lg hidden-xl'}
-                    disabled={!anySelected}
-                    onAction={() => this.onUpdate({isBookmarked: true})}
-                    shouldConfirm={this.shouldConfirm('bookmark')}
-                    message={confirm('bookmark', false)}
-                    confirmLabel={label('bookmark')}
-                    title={t('Add to Bookmarks')}
-                  >
-                    {t('Add to Bookmarks')}
-                  </ActionLink>
-                </MenuItem>
-                <MenuItem divider={true} className={'hidden-md hidden-lg hidden-xl'} />
+                <Observer>
+                  {() => {
+                    return !store.showMerge ? (
+                      <React.Fragment>
+                        <MenuItem noAnchor={true}>
+                          <ActionLink
+                            className={'action-merge'}
+                            disabled={!multiSelected}
+                            onAction={this.onMerge}
+                            shouldConfirm={this.shouldConfirm('merge')}
+                            message={confirm('merge', false)}
+                            confirmLabel={label('merge')}
+                            title={t('Merge Selected Issues')}
+                          >
+                            {t('Merge')}
+                          </ActionLink>
+                        </MenuItem>
+                        <MenuItem divider />
+                      </React.Fragment>
+                    ) : null;
+                  }}
+                </Observer>
+
+                <Observer>
+                  {() => {
+                    return !store.showBookmarks ? (
+                      <React.Fragment>
+                        <MenuItem noAnchor={true}>
+                          <ActionLink
+                            className={'action-bookmark'}
+                            disabled={!anySelected}
+                            onAction={() => this.onUpdate({isBookmarked: true})}
+                            shouldConfirm={this.shouldConfirm('bookmark')}
+                            message={confirm('bookmark', false)}
+                            confirmLabel={label('bookmark')}
+                            title={t('Add to Bookmarks')}
+                          >
+                            {t('Add to Bookmarks')}
+                          </ActionLink>
+                          <MenuItem divider />
+                        </MenuItem>
+                      </React.Fragment>
+                    ) : null;
+                  }}
+                </Observer>
+
                 <MenuItem noAnchor={true}>
                   <ActionLink
                     className="action-remove-bookmark"
@@ -444,54 +492,74 @@ const StreamActions = createReactClass({
                 </MenuItem>
               </DropdownLink>
             </div>
-            <div className="btn-group">
-              <Tooltip
-                title={t(
-                  '%s real-time updates',
-                  realtimeActive ? t('Pause') : t('Enable')
-                )}
-                tooltipOptions={{container: 'body'}}
-              >
-                <a
-                  className="btn btn-default btn-sm hidden-xs realtime-control"
-                  onClick={this.onRealtimeChange}
-                >
-                  {realtimeActive ? (
-                    <span className="icon icon-pause" />
-                  ) : (
-                    <span className="icon icon-play" />
-                  )}
-                </a>
-              </Tooltip>
-            </div>
+            <Observer>
+              {() => {
+                return store.showPause ? (
+                  <div className="btn-group">
+                    <Tooltip
+                      title={t(
+                        '%s real-time updates',
+                        realtimeActive ? t('Pause') : t('Enable')
+                      )}
+                      tooltipOptions={{container: 'body'}}
+                    >
+                      <a
+                        className="btn btn-default btn-sm realtime-control"
+                        onClick={this.onRealtimeChange}
+                      >
+                        {realtimeActive ? (
+                          <span className="icon icon-pause" />
+                        ) : (
+                          <span className="icon icon-play" />
+                        )}
+                      </a>
+                    </Tooltip>
+                  </div>
+                ) : null;
+              }}
+            </Observer>
           </ActionSet>
-          <Box w={160} mx={2} className="hidden-xs hidden-sm">
-            <Flex>
-              <StyledToolbarHeader>{t('Graph:')}</StyledToolbarHeader>
-              <GraphToggle
-                active={statsPeriod === '24h'}
-                onClick={this.selectStatsPeriod.bind(this, '24h')}
-              >
-                {t('24h')}
-              </GraphToggle>
 
-              <GraphToggle
-                active={statsPeriod === '14d'}
-                onClick={this.selectStatsPeriod.bind(this, '14d')}
-              >
-                {t('14d')}
-              </GraphToggle>
-            </Flex>
-          </Box>
+          <Observer>
+            {() =>
+              store.showGraph && (
+                <Box w={160} mx={2}>
+                  <Flex>
+                    <StyledToolbarHeader>{t('Graph:')}</StyledToolbarHeader>
+                    <GraphToggle
+                      active={statsPeriod === '24h'}
+                      onClick={this.selectStatsPeriod.bind(this, '24h')}
+                    >
+                      {t('24h')}
+                    </GraphToggle>
+
+                    <GraphToggle
+                      active={statsPeriod === '14d'}
+                      onClick={this.selectStatsPeriod.bind(this, '14d')}
+                    >
+                      {t('14d')}
+                    </GraphToggle>
+                  </Flex>
+                </Box>
+              )}
+          </Observer>
+
           <Box w={[40, 60, 80, 80]} mx={2} className="align-right">
             <ToolbarHeader>{t('Events')}</ToolbarHeader>
           </Box>
+
           <Box w={[40, 60, 80, 80]} mx={2} className="align-right">
             <ToolbarHeader>{t('Users')}</ToolbarHeader>
           </Box>
-          <Box w={80} mx={2} className="align-right hidden-xs hidden-sm">
-            <ToolbarHeader>{t('Assignee')}</ToolbarHeader>
-          </Box>
+
+          <Observer>
+            {() =>
+              store.showAssignee && (
+                <Box w={80} mx={2} className="align-right">
+                  <ToolbarHeader>{t('Assignee')}</ToolbarHeader>
+                </Box>
+              )}
+          </Observer>
         </StyledFlex>
 
         {!allResultsVisible &&

@@ -1,3 +1,5 @@
+import {Observer} from 'mobx-react';
+import {Flex} from 'grid-emotion';
 import React from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
@@ -11,6 +13,7 @@ import CustomIgnoreDurationModal from 'app/components/customIgnoreDurationModal'
 import ActionLink from 'app/components/actions/actionLink';
 import Tooltip from 'app/components/tooltip';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
+import {store} from 'app/components/streamResponsiveLayout';
 
 export default class IgnoreActions extends React.Component {
   static propTypes = {
@@ -118,15 +121,22 @@ export default class IgnoreActions extends React.Component {
           windowName="ignoreUserWindow"
           windowChoices={this.getIgnoreWindows()}
         />
-        <div className="btn-group">
+        <Flex className="btn-group">
           <ActionLink
             {...actionLinkProps}
             className={linkClassName}
             onAction={() => onUpdate({status: 'ignored'})}
           >
-            <span className="icon-ban hidden-xs" style={{marginRight: 5}} />
-            <GuideAnchor target="ignore_delete_discard" type="text" />
-            {t('Ignore')}
+            <span className="icon-ban" />
+            <Observer>
+              {() =>
+                store.showResolveLabel && (
+                  <React.Fragment>
+                    <GuideAnchor target="ignore_delete_discard" type="text" />
+                    <span style={{marginLeft: 5}}>{t('Ignore')}</span>
+                  </React.Fragment>
+                )}
+            </Observer>
           </ActionLink>
 
           <DropdownLink
@@ -263,7 +273,7 @@ export default class IgnoreActions extends React.Component {
               </DropdownLink>
             </li>
           </DropdownLink>
-        </div>
+        </Flex>
       </div>
     );
   }

@@ -1,3 +1,4 @@
+import {Flex} from 'grid-emotion';
 import {Link, browserHistory} from 'react-router';
 import {omit, isEqual} from 'lodash';
 import Cookies from 'js-cookie';
@@ -7,6 +8,7 @@ import Reflux from 'reflux';
 import classNames from 'classnames';
 import createReactClass from 'create-react-class';
 import qs from 'query-string';
+import styled from 'react-emotion';
 
 import {Panel, PanelBody} from 'app/components/panels';
 import {logAjaxError} from 'app/utils/logging';
@@ -28,6 +30,7 @@ import SentryTypes from 'app/sentryTypes';
 import StreamActions from 'app/views/stream/actions';
 import StreamFilters from 'app/views/stream/filters';
 import StreamGroup from 'app/components/stream/group';
+import StreamResponsiveLayout, {store} from 'app/components/streamResponsiveLayout';
 import StreamSidebar from 'app/views/stream/sidebar';
 import TimeSince from 'app/components/timeSince';
 import analytics from 'app/utils/analytics';
@@ -539,9 +542,10 @@ const Stream = createReactClass({
   },
 
   onSidebarToggle() {
-    this.setState({
-      isSidebarVisible: !this.state.isSidebarVisible,
-    });
+    store.toggleStreamSidebar();
+    // this.setState({
+    // isSidebarVisible: !this.state.isSidebarVisible,
+    // });
   },
 
   /**
@@ -652,7 +656,7 @@ const Stream = createReactClass({
     );
   },
 
-  renderGroupNodes(ids, statsPeriod) {
+  renderGroupNodes(ids, statsPeriod, size) {
     // Restrict this guide to only show for new users (joined<30 days) and add guide anhor only to the first issue
     let userDateJoined = new Date(ConfigStore.get('user').dateJoined);
     let dateCutoff = new Date();
@@ -672,6 +676,7 @@ const Stream = createReactClass({
           statsPeriod={statsPeriod}
           query={this.state.query}
           hasGuideAnchor={hasGuideAnchor}
+          size={size}
         />
       );
     });
@@ -743,8 +748,9 @@ const Stream = createReactClass({
     let access = this.getAccess();
     let projectFeatures = this.getProjectFeatures();
     return (
-      <div className={classNames(classes)}>
-        <div className="stream-content">
+      <Flex className={classNames(classes)}>
+        <StreamResponsiveLayout streamSidebarCollapsed={!this.state.isSidebarVisible} />
+        <StreamContent>
           <StreamFilters
             access={access}
             orgId={orgId}
@@ -759,6 +765,7 @@ const Stream = createReactClass({
             onSavedSearchCreate={this.onSavedSearchCreate}
             onSidebarToggle={this.onSidebarToggle}
             isSearchDisabled={this.state.isSidebarVisible}
+            store={store}
             savedSearchList={this.state.savedSearchList}
           />
           <Panel>
@@ -783,7 +790,7 @@ const Stream = createReactClass({
             </PanelBody>
           </Panel>
           <Pagination pageLinks={this.state.pageLinks} />
-        </div>
+        </StreamContent>
         <StreamSidebar
           loading={this.props.tagsLoading}
           tags={this.props.tags}
@@ -791,9 +798,16 @@ const Stream = createReactClass({
           onQueryChange={this.onSearch}
           orgId={params.orgId}
           projectId={params.projectId}
+          store={store}
         />
-      </div>
+      </Flex>
     );
   },
 });
 export default Stream;
+
+const StreamContent = styled(Flex)`
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+`;
