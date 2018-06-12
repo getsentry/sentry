@@ -67,3 +67,5 @@ redis-py-cluster>=1.3.4,<1.4.0
 jsonschema==2.6.0
 # for bitbucket client
 unidiff>=0.5.4
+# for vsts repo
+mistune
