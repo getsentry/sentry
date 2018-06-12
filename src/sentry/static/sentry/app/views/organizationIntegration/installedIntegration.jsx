@@ -144,7 +144,7 @@ export default class InstalledIntegration extends React.Component {
             <Box mr={1}>
               <Button
                 size="small"
-                disabled={!this.isEnabledForProject()}
+                disabled={!this.isEnabledForProject() && provider.canAddProject}
                 priority={this.state.configuring ? 'primary' : undefined}
                 onClick={this.onConfigure}
               >
@@ -168,7 +168,10 @@ export default class InstalledIntegration extends React.Component {
         <div
           style={{
             display:
-              this.state.configuring && this.isEnabledForProject() ? 'block' : 'none',
+              this.state.configuring &&
+              (this.isEnabledForProject() || !provider.canAddProject)
+                ? 'block'
+                : 'none',
           }}
         >
           {this.renderConfiguration()}
