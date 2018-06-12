@@ -17,6 +17,7 @@ import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlide
 import Form from 'app/views/settings/components/forms/form';
 import FormField from 'app/views/settings/components/forms/formField';
 import TextField from 'app/views/settings/components/forms/textField';
+import Switch from 'app/components/switch';
 
 class UndoButton extends React.Component {
   static contextTypes = {
@@ -185,4 +186,35 @@ storiesOf('Forms/Fields/New', module)
         />
       </div>
     ))
+  )
+  .add(
+    'Without a parent Form',
+    withInfo('New form fields used withing having a parent Form')(() => {
+      return (
+        <div>
+          <TextField
+            name="simpletextfield"
+            label="Simple Text Field"
+            placeholder="Simple Text Field"
+            onChange={action('TextField onChange')}
+          />
+          <NewBooleanField
+            name="field"
+            label="New Boolean Field"
+            onChange={action('BooleanField onChange')}
+          />
+          <RadioField
+            name="radio"
+            label="Radio Field"
+            onChange={action('RadioField onChange')}
+            choices={[
+              ['choice_one', 'Choice One'],
+              ['choice_two', 'Choice Two'],
+              ['choice_three', 'Choice Three'],
+            ]}
+          />
+          <Switch id="test" />
+        </div>
+      );
+    })
   );

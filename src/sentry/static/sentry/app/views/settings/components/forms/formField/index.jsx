@@ -134,6 +134,31 @@ class ControlState extends React.Component {
   }
 }
 
+// MockedModel that returns values from props
+// Disables a lot of functionality but allows you to use fields
+// without wrapping them in a Form
+class MockModel {
+  constructor(props) {
+    this.props = props;
+
+    this.initialData = {
+      [props.name]: props.value,
+    };
+  }
+  setValue() {}
+  setFieldDescriptor() {}
+  handleBlurField() {}
+  getValue() {
+    return this.props.value;
+  }
+  getError() {
+    return this.props.error;
+  }
+  getFieldState() {
+    return false;
+  }
+}
+
 class FormField extends React.Component {
   static propTypes = {
     name: PropTypes.string.isRequired,
@@ -203,7 +228,7 @@ class FormField extends React.Component {
 
   getModel() {
     if (this.context.form === undefined) {
-      throw new Error('Make sure to wrap your fields into <Form/>');
+      return new MockModel(this.props);
     }
     return this.context.form;
   }
