@@ -135,11 +135,11 @@ const Content = styled(props => <Flex direction="column" {...props} />)`
 `;
 
 const ResultTypeIcon = styled(InlineSvg)`
-  color: ${p => p.theme.gray1};
+  color: ${p => p.theme.offWhite};
   font-size: 1.2em;
   flex-shrink: 0;
 `;
 
 const Description = styled('div')`
-  ${p => (p.highlighted ? `color: ${p.theme.gray1};` : '')};
+  ${p => (p.highlighted ? `color: ${p.theme.offWhite};` : '')};
 `;
