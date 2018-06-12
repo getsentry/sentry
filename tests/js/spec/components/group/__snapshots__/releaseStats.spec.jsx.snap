@@ -35,13 +35,6 @@ exports[`GroupReleaseStats renders 1`] = `
       "tags": Array [],
     }
   }
-  environment={
-    Object {
-      "id": "1",
-      "isHidden": false,
-      "name": "production",
-    }
-  }
   group={
     Object {
       "assignedTo": null,
@@ -85,12 +78,76 @@ exports[`GroupReleaseStats renders 1`] = `
   <div
     className="env-stats"
   >
-    <h6 />
+    <h6>
+      <span>
+        <DropdownLink
+          alwaysRenderMenu={true}
+          anchorRight={false}
+          caret={true}
+          disabled={false}
+          title="All Environments"
+        >
+          <DropdownMenu
+            alwaysRenderMenu={true}
+            keepMenuOpen={false}
+          >
+            <span
+              className="dropdown"
+            >
+              <a
+                className="dropdown-actor dropdown-toggle"
+                onClick={[Function]}
+                onMouseEnter={[Function]}
+                onMouseLeave={[Function]}
+              >
+                <div
+                  className="dropdown-actor-title"
+                >
+                  <span>
+                    All Environments
+                  </span>
+                  <i
+                    className="icon-arrow-down"
+                  />
+                </div>
+              </a>
+              <ul
+                className="dropdown-menu"
+                onClick={[Function]}
+                onMouseEnter={[Function]}
+                onMouseLeave={[Function]}
+              >
+                <MenuItem
+                  isActive={true}
+                  onClick={[Function]}
+                >
+                  <li
+                    className="active"
+                    href={null}
+                    onClick={[Function]}
+                    role="presentation"
+                    title={null}
+                  >
+                    <a
+                      onClick={[Function]}
+                      tabIndex="-1"
+                    >
+                      All Environments
+                    </a>
+                  </li>
+                </MenuItem>
+              </ul>
+            </span>
+          </DropdownMenu>
+        </DropdownLink>
+      </span>
+    </h6>
     <div
       className="env-content"
     >
       <div>
         <GroupReleaseChart
+          environment="All Environments"
           environmentStats={
             Object {
               "24h": Array [
@@ -225,7 +282,7 @@ exports[`GroupReleaseStats renders 1`] = `
                 <span>
                   <Tooltip
                     key="1517281200"
-                    title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 29th, 7:00 pm &#8594 Jan 30th, 2:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>2 events</dd></dl></div>"
+                    title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 29th, 7:00 pm &#8594 Jan 30th, 2:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>2 events</dd><dt class=\\"environment\\"><span></span></dt><dd>2 events<small>in All Environments</small></dd></dl></div>"
                     tooltipOptions={
                       Object {
                         "html": true,
@@ -241,7 +298,7 @@ exports[`GroupReleaseStats renders 1`] = `
                           "width": "50%",
                         }
                       }
-                      title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 29th, 7:00 pm &#8594 Jan 30th, 2:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>2 events</dd></dl></div>"
+                      title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 29th, 7:00 pm &#8594 Jan 30th, 2:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>2 events</dd><dt class=\\"environment\\"><span></span></dt><dd>2 events<small>in All Environments</small></dd></dl></div>"
                     >
                       <span
                         className="release"
@@ -286,7 +343,7 @@ exports[`GroupReleaseStats renders 1`] = `
                   </Tooltip>
                   <Tooltip
                     key="1517310000"
-                    title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 30th, 3:00 am &#8594 Jan 30th, 10:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd></dl></div>"
+                    title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 30th, 3:00 am &#8594 Jan 30th, 10:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd><dt class=\\"environment\\"><span></span></dt><dd>1 event<small>in All Environments</small></dd></dl></div>"
                     tooltipOptions={
                       Object {
                         "html": true,
@@ -302,7 +359,7 @@ exports[`GroupReleaseStats renders 1`] = `
                           "width": "50%",
                         }
                       }
-                      title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 30th, 3:00 am &#8594 Jan 30th, 10:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd></dl></div>"
+                      title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 30th, 3:00 am &#8594 Jan 30th, 10:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd><dt class=\\"environment\\"><span></span></dt><dd>1 event<small>in All Environments</small></dd></dl></div>"
                     >
                       <span
                         className="release"
@@ -352,6 +409,7 @@ exports[`GroupReleaseStats renders 1`] = `
         </GroupReleaseChart>
         <GroupReleaseChart
           className="bar-chart-small"
+          environment="All Environments"
           environmentStats={
             Object {
               "24h": Array [
@@ -486,7 +544,7 @@ exports[`GroupReleaseStats renders 1`] = `
                 <span>
                   <Tooltip
                     key="1514764800"
-                    title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Dec 31st, 4:00 pm &#8594 Jan 3rd, 3:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd></dl></div>"
+                    title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Dec 31st, 4:00 pm &#8594 Jan 3rd, 3:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd><dt class=\\"environment\\"><span></span></dt><dd>1 event<small>in All Environments</small></dd></dl></div>"
                     tooltipOptions={
                       Object {
                         "html": true,
@@ -502,7 +560,7 @@ exports[`GroupReleaseStats renders 1`] = `
                           "width": "50%",
                         }
                       }
-                      title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Dec 31st, 4:00 pm &#8594 Jan 3rd, 3:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd></dl></div>"
+                      title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Dec 31st, 4:00 pm &#8594 Jan 3rd, 3:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd><dt class=\\"environment\\"><span></span></dt><dd>1 event<small>in All Environments</small></dd></dl></div>"
                     >
                       <span
                         className="release"
@@ -547,7 +605,7 @@ exports[`GroupReleaseStats renders 1`] = `
                   </Tooltip>
                   <Tooltip
                     key="1515024000"
-                    title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 3rd, 4:00 pm &#8594 Jan 6th, 3:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>122 events</dd></dl></div>"
+                    title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 3rd, 4:00 pm &#8594 Jan 6th, 3:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>122 events</dd><dt class=\\"environment\\"><span></span></dt><dd>122 events<small>in All Environments</small></dd></dl></div>"
                     tooltipOptions={
                       Object {
                         "html": true,
@@ -563,7 +621,7 @@ exports[`GroupReleaseStats renders 1`] = `
                           "width": "50%",
                         }
                       }
-                      title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 3rd, 4:00 pm &#8594 Jan 6th, 3:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>122 events</dd></dl></div>"
+                      title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 3rd, 4:00 pm &#8594 Jan 6th, 3:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>122 events</dd><dt class=\\"environment\\"><span></span></dt><dd>122 events<small>in All Environments</small></dd></dl></div>"
                     >
                       <span
                         className="release"
@@ -615,13 +673,9 @@ exports[`GroupReleaseStats renders 1`] = `
           <span>
             First seen
           </span>
-          <small>
-            (
-            )
-          </small>
         </h6>
         <SeenInfo
-          environment="production"
+          environment={null}
           hasRelease={false}
           orgId="org-slug"
           projectId="project-slug"
@@ -672,13 +726,9 @@ exports[`GroupReleaseStats renders 1`] = `
           <span>
             Last seen
           </span>
-          <small>
-            (
-            )
-          </small>
         </h6>
         <SeenInfo
-          environment="production"
+          environment={null}
           hasRelease={false}
           orgId="org-slug"
           projectId="project-slug"

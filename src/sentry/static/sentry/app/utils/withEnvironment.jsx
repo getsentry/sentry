@@ -27,7 +27,12 @@ const withEnvironment = WrappedComponent =>
     },
 
     render() {
-      return <WrappedComponent environment={this.state.environment} {...this.props} />;
+      const features = new Set(
+        this.state.organization ? this.state.organization.features : []
+      );
+      const environment = features.has('environments') ? this.state.environment : null;
+
+      return <WrappedComponent environment={environment} {...this.props} />;
     },
   });
 
