@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {t, tct} from 'app/locale';
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/buttons/button';
@@ -12,10 +11,11 @@ import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import IndicatorStore from 'app/stores/indicatorStore';
-import SpreadLayout from 'app/components/spreadLayout';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import SpreadLayout from 'app/components/spreadLayout';
+import space from 'app/styles/space';
+import {t, tct} from 'app/locale';
 
 export default class IntegrationRepos extends AsyncComponent {
   static propTypes = {
@@ -45,7 +45,11 @@ export default class IntegrationRepos extends AsyncComponent {
   getEndpoints() {
     return [
       ['itemList', `/organizations/${this.props.orgId}/repos/`, {query: {status: ''}}],
-      ['integrationRepos', `/organizations/${this.props.orgId}/integrations/${this.props.integration.id}/repos/`]
+      [
+        'integrationRepos',
+        `/organizations/${this.props.orgId}/integrations/${this.props.integration
+          .id}/repos/`,
+      ],
     ];
   }
 
@@ -194,70 +198,66 @@ export default class IntegrationRepos extends AsyncComponent {
     );
 
     return (
-      <React.Fragment>
-        <Panel>
-          {header}
-          <PanelBody>
-            {itemList.length === 0 && (
-              <Box>
-                <EmptyMessage size="large">{t('No Repositories Added')}</EmptyMessage>
-              </Box>
-            )}
-            {itemList.length > 0 && (
-              <Box>
-                {itemList.map(repo => {
-                  let repoIsVisible = repo.status === 'active';
-                  return (
-                    <RepoOption key={repo.id}>
-                      <Box p={2} flex="1">
-                        <Flex direction="column">
-                          <Box pb={1}>
-                            <strong>{repo.name}</strong>
-                            {!repoIsVisible && (
-                              <small> — {this.getStatusLabel(repo)}</small>
-                            )}
-                            {repo.status === 'pending_deletion' && (
-                              <small>
-                                {' '}
-                                (
-                                <a onClick={() => this.cancelDelete(repo)}>
-                                  {t('Cancel')}
-                                </a>
-                                )
-                              </small>
-                            )}
-                          </Box>
-                          <Box>
-                            <small>{repo.provider.name}</small>
-                            {repo.url && (
-                              <small>
-                                {' '}
-                                — <a href={repo.url}>{repo.url}</a>
-                              </small>
-                            )}
-                          </Box>
-                        </Flex>
-                      </Box>
+      <Panel>
+        {header}
+        <PanelBody>
+          {itemList.length === 0 && (
+            <Box>
+              <EmptyMessage size="large">{t('No Repositories Added')}</EmptyMessage>
+            </Box>
+          )}
+          {itemList.length > 0 && (
+            <Box>
+              {itemList.map(repo => {
+                let repoIsVisible = repo.status === 'active';
+                return (
+                  <RepoOption key={repo.id}>
+                    <Box p={2} flex="1">
+                      <Flex direction="column">
+                        <Box pb={1}>
+                          <strong>{repo.name}</strong>
+                          {!repoIsVisible && (
+                            <small> — {this.getStatusLabel(repo)}</small>
+                          )}
+                          {repo.status === 'pending_deletion' && (
+                            <small>
+                              {' '}
+                              (
+                              <a onClick={() => this.cancelDelete(repo)}>{t('Cancel')}</a>
+                              )
+                            </small>
+                          )}
+                        </Box>
+                        <Box>
+                          <small>{repo.provider.name}</small>
+                          {repo.url && (
+                            <small>
+                              {' '}
+                              — <a href={repo.url}>{repo.url}</a>
+                            </small>
+                          )}
+                        </Box>
+                      </Flex>
+                    </Box>
 
-                      <Box p={2}>
-                        <Confirm
-                          disabled={!repoIsVisible}
-                          onConfirm={() => this.deleteRepo(repo)}
-                          message={t('Are you sure you want to remove this repository?')}
-                        >
-                          <Button size="xsmall">
-                            <span className="icon icon-trash" />
-                          </Button>
-                        </Confirm>
-                      </Box>
-                    </RepoOption>
-                  );
-                })}
-              </Box>
-            )}
-          </PanelBody>
-        </Panel>
-      </React.Fragment>
+                    <Box p={2}>
+                      <Confirm
+                        disabled={!repoIsVisible}
+                        onConfirm={() => this.deleteRepo(repo)}
+                        message={t('Are you sure you want to remove this repository?')}
+                      >
+                        <Button size="xsmall">
+                          <span className="icon icon-trash" />
+                        </Button>
+                      </Confirm>
+                    </Box>
+                  </RepoOption>
+                );
+              })}
+            </Box>
+          )}
+        </PanelBody>
+      </Panel>
     );
   }
 }
