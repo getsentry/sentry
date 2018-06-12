@@ -269,7 +269,7 @@ class BaseView(View, OrganizationMixin):
         return reverse('sentry-login')
 
     def get_not_2fa_compliant_url(self, request, *args, **kwargs):
-        return reverse('sentry-account-settings-2fa')
+        return reverse('sentry-account-settings-security')
 
     def get_context_data(self, request, **kwargs):
         context = csrf(request)

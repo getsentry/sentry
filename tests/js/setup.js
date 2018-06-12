@@ -326,7 +326,7 @@ window.TestStubs = {
         lastUsedAt: null,
         enrollButton: 'Activate',
         description:
-          'Recovery codes are the only way to access your account if you lose your device and cannot receive two factor authentication codes.',
+          'Recovery codes are the only way to access your account if you lose your device and cannot receive two-factor authentication codes.',
         isEnrolled: true,
         removeButton: null,
         id: 'recovery',
@@ -633,6 +633,33 @@ window.TestStubs = {
       projects: [],
       ...params,
     };
+  },
+
+  Organizations: params => {
+    return [
+      {
+        id: '1',
+        name: 'test 1',
+        slug: 'test 1',
+        require2FA: false,
+        status: {
+          id: 'active',
+          name: 'active',
+        },
+        ...params,
+      },
+      {
+        id: '2',
+        name: 'test 2',
+        slug: 'test 2',
+        require2FA: false,
+        status: {
+          id: 'active',
+          name: 'active',
+        },
+        ...params,
+      },
+    ];
   },
 
   Plugin: params => {
