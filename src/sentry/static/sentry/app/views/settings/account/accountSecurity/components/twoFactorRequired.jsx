@@ -2,6 +2,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {capitalize} from 'lodash';
+import {t} from 'app/locale';
 import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import space from 'app/styles/space';
@@ -32,13 +33,18 @@ class TwoFactorRequired extends AsyncComponent {
       orgsRequire2fa.slice(-1)[0],
     ].join(plural ? ' and ' : '');
 
-    let require = plural ? 'organizations require' : 'organization requires';
-    let organizations = plural ? 'these organizations' : 'this organization';
+    let require = plural ? t('organizations require') : t('organization requires');
+    let organizations = plural ? t('these organizations') : t('this organization');
 
     return (
       <StyledAlert className="require-2fa" type="error" icon="icon-circle-exclamation">
-        {`The ${organizationNames} ${require} all members to enable two-factor authentication.
-          You need to enable two-factor authentication to access projects under ${organizations}.`}
+        {t(
+          'The %s %s all members to enable two-factor authentication.' +
+            'You need to enable two-factor authentication to access projects under %s',
+          organizationNames,
+          require,
+          organizations
+        )}
       </StyledAlert>
     );
   }
