@@ -2,6 +2,11 @@ from __future__ import absolute_import
 from time import time
 
 from django.utils.translation import ugettext as _
+import six
+from sentry import options
+from sentry.auth.exceptions import IdentityNotValid
+
+
 from sentry.integrations import Integration, IntegrationProvider, IntegrationMetadata
 from sentry.integrations.exceptions import ApiError
 from .client import VstsApiClient
@@ -26,6 +31,9 @@ metadata = IntegrationMetadata(
 
 
 class VstsIntegration(Integration):
+    oauth_redirect_url = '/extensions/vsts/setup/'
+    oauth_refresh_token_uri = 'https://app.vssps.visualstudio.com/oauth2/token'
+
     def __init__(self, *args, **kwargs):
         super(VstsIntegration, self).__init__(*args, **kwargs)
         self.default_identity = None
@@ -82,6 +90,54 @@ class VstsIntegration(Integration):
                 'help': _('Enter the Visual Studio Team Services project name that you wish to use as a default for new work items'),
             },
         ]
+
+    def get_refresh_identity_params(self):
+        data = {
+            'refresh_token': self.default_identity.data.get('refresh_token'),
+            'client_secret': options.get('vsts.client-secret'),
+
+        }
+        for key, value in six.iteritems(data):
+            if value is None:
+                raise IdentityNotValid(
+                    'Could not refresh identity: %s missing %s' %
+                    ('vsts', key))
+
+        return data
+
+    def refresh_identity(self):
+        from sentry.http import safe_urlopen, safe_urlread
+        from sentry.utils.http import absolute_uri
+        from six.moves.urllib.parse import parse_qsl
+        from sentry.utils import json
+
+        if self.default_identity is None:
+            self.default_identity = self.get_default_identity()
+
+        data = self.get_refresh_identity_params()
+        resp = safe_urlopen(
+            url=self.oauth_refresh_token_uri,
+            headers={
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Length': '1654',
+            },
+            data={
+                'client_assertion_type': 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
+                'client_assertion': data['client_secret'],
+                'grant_type': 'refresh_token',
+                'assertion': data['refresh_token'],
+                'redirect_uri': absolute_uri(self.oauth_redirect_url),
+            },
+        )
+        resp.raise_for_status()
+        body = safe_urlread(resp)
+        if resp.headers['Content-Type'].startswith('application/x-www-form-urlencoded'):
+            self.save_identity(dict(parse_qsl(body)))
+        self.save_identity(json.loads(body))
+
+    def save_identity(self, data):
+        self.default_identity.data = data
+        self.default_identity.save()
 
 
 class VstsIntegrationProvider(IntegrationProvider):
