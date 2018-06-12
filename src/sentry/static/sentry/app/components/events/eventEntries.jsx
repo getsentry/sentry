@@ -83,6 +83,13 @@ const EventEntries = createReactClass({
     this.fetchData(); // I added this
   },
 
+  shouldComponentUpdate(nextProps, nextState) {
+    return (
+      this.props.event.id !== nextProps.event.id ||
+      this.state.loading !== nextState.loading
+    );
+  },
+
   getFilesEndpoint() {
     let params = this.context;
     let release = this.props.release;
@@ -98,7 +105,7 @@ const EventEntries = createReactClass({
 
     this.api.request(this.getFilesEndpoint(), {
       method: 'GET',
-      data: {}, 
+      data: {},
       success: (data, _, jqXHR) => {
         this.setState({
           error: false,
@@ -113,53 +120,46 @@ const EventEntries = createReactClass({
           loading: false,
         });
       },
-
     });
   },
 
-  shouldComponentUpdate(nextProps, nextState) {
-    return (
-      this.props.event.id !== nextProps.event.id ||
-      this.state.loading !== nextState.loading
-    );
-  },
+  //////////////////// I added this
 
-//////////////////// I added this
-
-  compareFiles(fileList, stackTraceData) {
-    // compare the file list against the stack trace content
+  compareFiles(fileList, stackTraceFiles) {
+    // compare the file list from artifacts against the culprit in the stack trace
     // figure out how to send this to the error banner rather than console.logging
-    let fileListSize = Object.keys(fileList).length;
-    let stackTraceDataSize = Object.keys(stackTraceData.frames).length;
 
-    // no files at all, fail fast
-    if (fileListSize === 0 && stackTraceDataSize === 0) {
-      console.log("We don't have any of your files! Upload em");
+    // if (typeof(fileListSize) === 'undefined') {
+    //   console.log("We don't have any of your files! Upload em");
+    // } else { // we have either the map OR the min, figure out which and message appropriately
+    //   if (typeof stackTraceFile !== 'undefined') { // we have stackTraceFiles
+    //     if (stackTraceFile.endsWith('.map')) {
+    //       console.log('We only have your map file. You need to upload the min');
+    //     } else {
+    //       console.log('We only have your min file. You need to upload the map');
+    //     }
+    //   } else {
+    //     // strip the file path from one file and compare
+    //     let file = fileListFile.replace(/^.*[\\\/]/, '');
+    //     if (stackTraceFile.indexOf(file) >= 0) {
+    //       console.log('They match!');
+    //     } else {
+    //       console.log('They do not match');
+    //     }
+    //   }
+    // }
+    if (fileList.length === 0) {
+      console.log('Upload artifacts!');
     } else {
-      let fileListFile = fileList.find(
-        file => file.name.endsWith('.js') || file.name.endsWith('.min.js')
-      ).name;
-      let stackTraceFile = stackTraceData.frames.find(
-        file =>
-          typeof file.map !== 'undefined' &&
-          file.map.startsWith('raven') !== true &&
-          file.map.endsWith('.map')
-      ).map;
-
-      // we have either the map OR the min, figure out which and message appropriately
-      if (typeof stackTraceFile === 'undefined') {
-        if (stackTraceFile.endsWith('.map')) {
-          console.log('We only have your map file. You need to upload the min');
+      for (let i = stackTraceFiles.length - 1; i > 0; i--) {
+        let test = stackTraceFiles[i].replace(/^.*[\\\/]/, '');
+        console.log('looppol', test, fileList);
+        if (fileList.includes(stackTraceFiles[i])) {
+          console.log(
+            'The filenames match but I still need to check the extensions and stuff'
+          );
         } else {
-          console.log('We only have your min file. You need to upload the map');
-        }
-      } else {
-        // strip the file path from one file and compare
-        let file = fileListFile.replace(/^.*[\\\/]/, '');
-        if (stackTraceFile.indexOf(file) >= 0) {
-          console.log('They match!');
-        } else {
-          console.log('They do not match');
+          console.log("The filenames don't match");
         }
       }
     }
@@ -168,14 +168,20 @@ const EventEntries = createReactClass({
   interfaces: INTERFACES,
 
   render() {
-    console.log("The filelist: ", this.state.fileList);
-    console.log("the file the error occurred on: ", this.props.group.culprit);
+    // let fileList = this.state.fileList; // the artifacts matching the release
+    const fileList = this.state.fileList.map(x => x.name);
+    console.log('The artifacts: ', fileList);
 
-    // still need to get errorType
+    const stackTraceFiles = this.props.event.entries[0].data.values[0].stacktrace.frames.map(
+      x => x.filename
+    );
+    console.log('The stack trace files: ', stackTraceFiles);
+
+    let errorType = this.props.event.errors[0].type;
     // probably going to add other error types in later
-    // if (errorType === 'fetch_invalid_http_code' && Object.keys(files).length > 0) {
-    //   this.compareFiles(files, data);
-    // }
+    if (errorType === 'fetch_invalid_http_code') {
+      this.compareFiles(fileList, stackTraceFiles);
+    }
 
     let {group, isShare, project, event, orgId} = this.props;
     let organization = this.getOrganization();
@@ -221,7 +227,11 @@ const EventEntries = createReactClass({
     return (
       <div className="entries">
         {!utils.objectIsEmpty(event.errors) && (
-          <EventErrors group={group} event={event} sourcemap-issue={this.isThereSourcemapIssue}/>
+          <EventErrors
+            group={group}
+            event={event}
+            sourcemap-issue={this.isThereSourcemapIssue}
+          />
         )}{' '}
         {!isShare &&
           features.has('suggested-commits') && (
