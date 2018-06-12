@@ -384,7 +384,7 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
 class TwoFactorAPITestCase(APITestCase):
     @fixture
     def path_2fa(self):
-        return reverse('sentry-account-settings-2fa')
+        return reverse('sentry-account-settings-security')
 
     def enable_org_2fa(self, organization):
         organization.flags.require_2fa = True

@@ -375,7 +375,7 @@ class Organization(Model):
             if not Authenticator.objects.user_has_2fa(user):
                 context = {
                     'user': user,
-                    'url': absolute_uri(reverse('sentry-account-settings-2fa')),
+                    'url': absolute_uri(reverse('sentry-account-settings-security')),
                     'organization': self
                 }
                 message = MessageBuilder(

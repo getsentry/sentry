@@ -5,10 +5,15 @@ import {Client} from 'app/api';
 import AccountSecurity from 'app/views/settings/account/accountSecurity';
 
 const ENDPOINT = '/users/me/authenticators/';
+const ORG_ENDPOINT = '/organizations/';
 
 describe('AccountSecurity', function() {
   beforeEach(function() {
     Client.clearMockResponses();
+    Client.addMockResponse({
+      url: ORG_ENDPOINT,
+      body: TestStubs.Organizations(),
+    });
   });
 
   it('renders empty', function() {
@@ -20,6 +25,7 @@ describe('AccountSecurity', function() {
     let wrapper = shallow(<AccountSecurity />, TestStubs.routerContext());
 
     expect(wrapper.find('EmptyMessage')).toHaveLength(1);
+    expect(wrapper.find('TwoFactorRequired')).toHaveLength(0);
   });
 
   it('renders a primary interface that is enrolled', function() {
@@ -43,6 +49,8 @@ describe('AccountSecurity', function() {
     // Remove button
     expect(wrapper.find('Button .icon-trash')).toHaveLength(1);
     expect(wrapper.find('CircleIndicator').prop('enabled')).toBe(true);
+
+    expect(wrapper.find('TwoFactorRequired')).toHaveLength(0);
   });
 
   it('can delete enrolled authenticator', function() {
@@ -80,6 +88,8 @@ describe('AccountSecurity', function() {
       wrapper.update();
       expect(wrapper.find('CircleIndicator').prop('enabled')).toBe(false);
     }, 1);
+    // still has another 2fa method
+    expect(wrapper.find('TwoFactorRequired')).toHaveLength(0);
   });
 
   it('renders a primary interface that is not enrolled', function() {
@@ -99,6 +109,8 @@ describe('AccountSecurity', function() {
         .prop('children')
     ).toBe('Add');
     expect(wrapper.find('CircleIndicator').prop('enabled')).toBe(false);
+    // user is not 2fa enrolled
+    expect(wrapper.find('TwoFactorRequired')).toHaveLength(1);
   });
 
   it('renders a backup interface that is not enrolled', function() {
@@ -114,6 +126,8 @@ describe('AccountSecurity', function() {
     // There should be an View Codes button
     expect(wrapper.find('Button')).toHaveLength(0);
     expect(wrapper.find('CircleIndicator').prop('enabled')).toBe(false);
+    // user is not 2fa enrolled
+    expect(wrapper.find('TwoFactorRequired')).toHaveLength(1);
   });
 
   it('renders a backup interface that is enrolled', function() {
@@ -134,6 +148,8 @@ describe('AccountSecurity', function() {
         .prop('children')
     ).toBe('View Codes');
     expect(wrapper.find('CircleIndicator').prop('enabled')).toBe(true);
+
+    expect(wrapper.find('TwoFactorRequired')).toHaveLength(0);
   });
 
   it('can change password', function() {
@@ -141,6 +157,7 @@ describe('AccountSecurity', function() {
       url: ENDPOINT,
       body: [TestStubs.Authenticators().Recovery({isEnrolled: false})],
     });
+
     let url = '/users/me/password/';
     let mock = Client.addMockResponse({
       url,
@@ -171,6 +188,8 @@ describe('AccountSecurity', function() {
         },
       })
     );
+    // user is not 2fa enrolled
+    expect(wrapper.find('TwoFactorRequired')).toHaveLength(1);
   });
 
   it('requires current password to be entered', function() {
@@ -195,5 +214,7 @@ describe('AccountSecurity', function() {
     wrapper.find('PasswordForm form').simulate('submit');
 
     expect(mock).not.toHaveBeenCalled();
+    // user is not 2fa enrolled
+    expect(wrapper.find('TwoFactorRequired')).toHaveLength(1);
   });
 });

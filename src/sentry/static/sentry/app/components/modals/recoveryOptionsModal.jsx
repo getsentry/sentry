@@ -47,12 +47,12 @@ class RecoveryOptionsModal extends AsyncComponent {
     return (
       <React.Fragment>
         <Header closeButton onHide={closeModal}>
-          {t('Two Factor Authentication Enabled')}
+          {t('Two-Factor Authentication Enabled')}
         </Header>
 
         <Body>
           <TextBlock>
-            {t(`Two factor authentication via ${authenticatorName} has been enabled.`)}
+            {t(`Two-factor authentication via ${authenticatorName} has been enabled.`)}
           </TextBlock>
           <TextBlock>
             {t('You should now set up recovery options to secure your account.')}
@@ -68,7 +68,7 @@ class RecoveryOptionsModal extends AsyncComponent {
             <Alert type="warning">
               {t(
                 `Recovery codes are the only way to access your account if you lose
-                  your device and cannot receive two factor authentication codes.`
+                  your device and cannot receive two-factor authentication codes.`
               )}
             </Alert>
           )}

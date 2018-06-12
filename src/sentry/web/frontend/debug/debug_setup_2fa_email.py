@@ -13,7 +13,7 @@ class DebugSetup2faEmailView(View):
     def get(self, request):
         context = {
             'user': request.user,
-            'url': absolute_uri(reverse('sentry-account-settings-2fa')),
+            'url': absolute_uri(reverse('sentry-account-settings-security')),
             'organization': Organization(
                 id=1,
                 slug='organization',
