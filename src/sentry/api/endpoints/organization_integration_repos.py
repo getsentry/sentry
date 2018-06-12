@@ -25,4 +25,4 @@ class OrganizationIntegrationReposEndpoint(OrganizationEndpoint):
             context = {'repos': repositories}
             return self.respond(context)
 
-        return self.respond(detail={'Repositories not supported'}, status=400)
+        return self.respond({'detail': 'Repositories not supported'}, status=400)

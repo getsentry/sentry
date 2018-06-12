@@ -37,5 +37,4 @@ class OrganizationIntegrationReposTest(APITestCase):
             self.org.slug, integration.id)
         response = self.client.get(path, format='json')
 
-        assert response.status_code == 200, response.content
-        assert response.data == {}
+        assert response.status_code == 400
