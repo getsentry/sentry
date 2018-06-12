@@ -16,42 +16,30 @@ class TwoFactorRequired extends AsyncComponent {
   }
 
   renderBody() {
-    let orgsRequire2FA = this.state.organizations
-      .filter(org => org.require2FA === true)
-      .map(({name}) => {
-        return capitalize(name);
-      });
-    let multipleOrgs = orgsRequire2FA.length > 1;
-    let formattedNames = orgsRequire2FA.join(', ').replace(/,(?!.*,)/gim, ' and');
+    let orgsRequire2fa = this.state.organizations
+      .filter(org => org.require2FA)
+      .map(({name}) => capitalize(name));
 
-    if (!orgsRequire2FA.length) {
+    if (!orgsRequire2fa.length) {
       return null;
     }
 
+    // singular vs plural message
+    let plural = orgsRequire2fa.length > 1;
+
+    let organizationNames = [
+      orgsRequire2fa.slice(0, -1).join(', '),
+      orgsRequire2fa.slice(-1)[0],
+    ].join(plural ? ' and ' : '');
+
+    let require = plural ? 'organizations require' : 'organization requires';
+    let organizations = plural ? 'these organizations' : 'this organization';
+
     return (
-      <div>
-        {multipleOrgs ? (
-          <StyledAlert
-            className="require-2fa"
-            type="error"
-            icon="icon-circle-exclamation"
-          >
-            {`The ${formattedNames} organizations require all members to enable
-              two-factor authentication. You need to enable two-factor
-              authentication to access projects under these organizations.`}
-          </StyledAlert>
-        ) : (
-          <StyledAlert
-            className="require-2fa"
-            type="error"
-            icon="icon-circle-exclamation"
-          >
-            {`The ${formattedNames} organization requires all members to enable
-              two-factor authentication. You need to enable two-factor
-              authentication to access projects under this organization.`}
-          </StyledAlert>
-        )}
-      </div>
+      <StyledAlert className="require-2fa" type="error" icon="icon-circle-exclamation">
+        {`The ${organizationNames} ${require} all members to enable two-factor authentication.
+          You need to enable two-factor authentication to access projects under ${organizations}.`}
+      </StyledAlert>
     );
   }
 }

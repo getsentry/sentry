@@ -1,7 +1,6 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import {Client} from 'app/api';
 import TwoFactorRequired from 'app/views/settings/account/accountSecurity/';
 
 const ENDPOINT = '/users/me/authenticators/';
@@ -9,15 +8,20 @@ const ORG_ENDPOINT = '/organizations/';
 
 describe('TwoFactorRequired', function() {
   beforeEach(function() {
-    Client.clearMockResponses();
-  });
+    MockApiClient.clearMockResponses();
 
-  it('renders empty', function() {
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: [TestStubs.Authenticators().Totp({isEnrolled: false})],
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
+      url: ORG_ENDPOINT,
+      body: TestStubs.Organizations({require2FA: false}),
+    });
+  });
+
+  it('renders empty', function() {
+    MockApiClient.addMockResponse({
       url: ORG_ENDPOINT,
       body: [],
     });
@@ -28,27 +32,14 @@ describe('TwoFactorRequired', function() {
   });
 
   it('does not render when 2FA is not required, not 2FA enrolled', function() {
-    Client.addMockResponse({
-      url: ENDPOINT,
-      body: [TestStubs.Authenticators().Totp({isEnrolled: false})],
-    });
-    Client.addMockResponse({
-      url: ORG_ENDPOINT,
-      body: TestStubs.Organizations({require2FA: false}),
-    });
-
     let wrapper = mount(<TwoFactorRequired />, TestStubs.routerContext());
     expect(wrapper.find('StyledAlert[className="require-2fa"]')).toHaveLength(0);
   });
 
   it('does not render when 2FA is not required, 2FA is enrolled', function() {
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: [TestStubs.Authenticators().Totp({isEnrolled: true})],
-    });
-    Client.addMockResponse({
-      url: ORG_ENDPOINT,
-      body: TestStubs.Organizations({require2FA: false}),
     });
 
     let wrapper = mount(<TwoFactorRequired />, TestStubs.routerContext());
@@ -56,11 +47,11 @@ describe('TwoFactorRequired', function() {
   });
 
   it('does not render when 2FA is required, 2FA is enrolled', function() {
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: [TestStubs.Authenticators().Totp({isEnrolled: true})],
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: ORG_ENDPOINT,
       body: TestStubs.Organizations({require2FA: true}),
     });
@@ -70,11 +61,7 @@ describe('TwoFactorRequired', function() {
   });
 
   it('renders when 2FA is required for multiple orgs, 2FA is not enrolled', function() {
-    Client.addMockResponse({
-      url: ENDPOINT,
-      body: [TestStubs.Authenticators().Totp({isEnrolled: false})],
-    });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: ORG_ENDPOINT,
       body: TestStubs.Organizations({require2FA: true}),
     });
@@ -87,11 +74,7 @@ describe('TwoFactorRequired', function() {
   });
 
   it('renders when 2FA is required for one org, 2FA is not enrolled', function() {
-    Client.addMockResponse({
-      url: ENDPOINT,
-      body: [TestStubs.Authenticators().Totp({isEnrolled: false})],
-    });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: ORG_ENDPOINT,
       body: [
         {

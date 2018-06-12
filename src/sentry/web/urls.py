@@ -364,7 +364,9 @@ urlpatterns += patterns(
     url(r'^out/$', OutView.as_view()),
 
     url(r'^accept-transfer/$', react_page_view, name='sentry-accept-project-transfer'),
-    url(r'^settings/account/security', generic_react_page_view, name='sentry-account-settings-security'),
+    # User settings use generic_react_page_view, while any view
+    # acting on behalf of an organization should use react_page_view
+    url(r'^settings/account/security/$', generic_react_page_view, name='sentry-account-settings-security'),
     url(r'^settings/account/', generic_react_page_view),
     url(r'^settings/', react_page_view),
     url(

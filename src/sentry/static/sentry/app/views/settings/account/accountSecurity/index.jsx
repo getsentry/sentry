@@ -53,10 +53,10 @@ class AccountSecurity extends AsyncView {
   };
 
   renderBody() {
-    let authenticators = this.state.authenticators;
+    let {authenticators} = this.state;
     let isEmpty = !authenticators.length;
     let twoFactorEnrolled = authenticators.some(({isEnrolled}) => {
-      return isEnrolled === true;
+      return isEnrolled;
     });
 
     return (
