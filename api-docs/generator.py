@@ -116,15 +116,15 @@ class SentryBox(object):
         return self
 
     def __exit__(self, exc_type, exc_value, tb):
-        drop_db()
-        if self.redis is not None:
-            report('redis', 'Stopping redis server')
-            self.redis.kill()
-            self.redis.wait()
         if self.sentry is not None:
             report('sentry', 'Shutting down sentry server')
             self.sentry.kill()
             self.sentry.wait()
+        if self.redis is not None:
+            report('redis', 'Stopping redis server')
+            self.redis.kill()
+            self.redis.wait()
+        drop_db()
 
 
 def dump_json(path, data):

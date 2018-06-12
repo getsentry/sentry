@@ -14,7 +14,7 @@ from sentry.utils.apidocs import scenario, attach_scenarios
 
 @scenario('ResolveEventId')
 def resolve_event_id_scenario(runner):
-    event = Event.objects.filter(project=runner.default_project).first()
+    event = Event.objects.filter(project_id=runner.default_project.id).first()
     runner.request(
         method='GET',
         path='/organizations/%s/eventids/%s/' % (runner.org.slug, event.event_id, )
