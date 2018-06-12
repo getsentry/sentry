@@ -7,6 +7,7 @@ from uuid import uuid4
 from time import time
 from django.views.decorators.csrf import csrf_exempt
 
+
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
@@ -64,6 +65,9 @@ class OAuth2Provider(Provider):
     def get_oauth_access_token_url(self):
         return self._get_oauth_parameter('access_token_url')
 
+    def get_oauth_refresh_token_url(self):
+        raise NotImplementedError
+
     def get_oauth_authorize_url(self):
         return self._get_oauth_parameter('authorize_url')
 
@@ -75,6 +79,9 @@ class OAuth2Provider(Provider):
 
     def get_oauth_scopes(self):
         return self.config.get('oauth_scopes', self.oauth_scopes)
+
+    def get_oauth_refresh_token(self):
+        return self.config.get('refresh_token')
 
     def get_pipeline_views(self):
         return [
