@@ -301,17 +301,17 @@ class TagStorageTest(SnubaTestCase):
         assert tags[0].first_seen == one_second_ago
         assert tags[0].times_seen == 1
 
-    def test_get_group_event_ids(self):
-        assert set(self.ts.get_group_event_ids(
+    def test_get_group_event_filter(self):
+        assert self.ts.get_group_event_filter(
             self.proj1.id,
             self.proj1group1.id,
             self.proj1env1.id,
             {
                 'foo': 'bar',
             }
-        )) == set(["1" * 32, "2" * 32])
+        ) == {'event_id__in': set(["1" * 32, "2" * 32])}
 
-        assert set(self.ts.get_group_event_ids(
+        assert self.ts.get_group_event_filter(
             self.proj1.id,
             self.proj1group1.id,
             self.proj1env1.id,
@@ -319,22 +319,22 @@ class TagStorageTest(SnubaTestCase):
                 'foo': 'bar',  # OR
                 'release': '200'
             }
-        )) == set(["1" * 32, "2" * 32])
+        ) == {'event_id__in': set(["1" * 32, "2" * 32])}
 
-        assert set(self.ts.get_group_event_ids(
+        assert self.ts.get_group_event_filter(
             self.proj1.id,
             self.proj1group2.id,
             self.proj1env1.id,
             {
                 'browser': 'chrome'
             }
-        )) == set(["3" * 32])
+        ) == {'event_id__in': set(["3" * 32])}
 
-        assert set(self.ts.get_group_event_ids(
+        assert self.ts.get_group_event_filter(
             self.proj1.id,
             self.proj1group2.id,
             self.proj1env1.id,
             {
                 'browser': 'ie'
             }
-        )) == set([])
+        ) == {'event_id__in': set([])}

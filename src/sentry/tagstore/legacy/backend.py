@@ -439,7 +439,7 @@ class LegacyTagStorage(TagStorage):
                     },
                     extra=extra)
 
-    def get_group_event_ids(self, project_id, group_id, environment_id, tags):
+    def get_group_event_filter(self, project_id, group_id, environment_id, tags):
         tagkeys = dict(
             models.TagKey.objects.filter(
                 project_id=project_id,
@@ -464,7 +464,7 @@ class LegacyTagStorage(TagStorage):
         except KeyError:
             # one or more tags were invalid, thus the result should be an empty
             # set
-            return set()
+            return {'id__in': set()}
 
         # Django doesnt support union, so we limit results and try to find
         # reasonable matches
@@ -491,9 +491,9 @@ class LegacyTagStorage(TagStorage):
                 ).values_list('event_id', flat=True)[:1000]
             )
             if not matches:
-                return set()
+                return {'id__in': set()}
 
-        return set(matches)
+        return {'id__in': set(matches)}
 
     def get_groups_user_counts(self, project_id, group_ids, environment_id):
         qs = models.GroupTagKey.objects.filter(

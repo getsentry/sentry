@@ -423,7 +423,7 @@ class TagStorage(TestCase):
 
         assert models.GroupTagValue.objects.count() == 0
 
-    def test_get_group_event_ids(self):
+    def test_get_group_event_filter(self):
         tags = {
             'abc': 'xyz',
             'foo': 'bar',
@@ -455,12 +455,12 @@ class TagStorage(TestCase):
             tags=different_tags.items(),
         )
 
-        assert len(
-            self.ts.get_group_event_ids(
-                self.proj1.id,
-                self.proj1group1.id,
-                self.proj1env1.id,
-                tags)) == 2
+        assert self.ts.get_group_event_filter(
+            self.proj1.id,
+            self.proj1group1.id,
+            self.proj1env1.id,
+            tags
+        ) == {'id__in': set([1, 2])}
 
     def test_get_groups_user_counts(self):
         k1, _ = self.ts.get_or_create_group_tag_key(

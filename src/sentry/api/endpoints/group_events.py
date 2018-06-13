@@ -92,17 +92,18 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
             events = events.filter(q)
 
         if tags:
-            event_ids = tagstore.get_group_event_ids(
+            event_filter = tagstore.get_group_event_filter(
                 group.project_id,
                 group.id,
                 environment.id if environment is not None else None,
                 tags,
             )
 
-            if not event_ids:
+            # HACK: Short-circuit filter responses like {'id__in': []}
+            if len(event_filter) == 1 and not event_filter.values()[0]:
                 return respond(events.none())
 
-            events = events.filter(id__in=event_ids)
+            events = events.filter(**event_filter)
 
         # filter out events which are beyond the retention period
         retention = quotas.get_event_retention(organization=group.project.organization)
