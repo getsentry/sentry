@@ -80,11 +80,12 @@ const EventEntries = createReactClass({
 
   componentDidMount() {
     let {event} = this.props;
+
+    if (!event.errors.length > 0) return;
     let errors = event.errors;
     let errorTypes = errors.map((errorEntries) => errorEntries.type);
 
     this.recordSourcemapError(errorTypes);
-    if (!event.errors) return;
   },
 
   shouldComponentUpdate(nextProps, nextState) {
