@@ -397,8 +397,8 @@ const StreamActions = createReactClass({
                   >
                     {t('Add to Bookmarks')}
                   </ActionLink>
-                  <MenuItem divider={true} className={'hidden-md hidden-lg hidden-xl'} />
                 </MenuItem>
+                <MenuItem divider={true} className={'hidden-md hidden-lg hidden-xl'} />
                 <MenuItem noAnchor={true}>
                   <ActionLink
                     className="action-remove-bookmark"
