@@ -58,7 +58,7 @@ class ApiSource extends React.Component {
 
   doSearch = debounce(async query => {
     let {params, searchOptions, organization} = this.props;
-    let orgId = params.orgId || (organization && organization.slug);
+    let orgId = (params && params.orgId) || (organization && organization.slug);
     let urls = ['/organizations/'];
 
     // Only run these queries when we have an org in context
@@ -93,14 +93,6 @@ class ApiSource extends React.Component {
       ...flatten(
         organizations.map(org => [
           {
-            title: `${org.slug} Settings`,
-            description: 'Organization Settings',
-            model: org,
-            sourceType: 'organization',
-            resultType: 'settings',
-            to: `/settings/${org.slug}/`,
-          },
-          {
             title: `${org.slug} Dashboard`,
             description: 'Organization Dashboard',
             model: org,
@@ -108,18 +100,18 @@ class ApiSource extends React.Component {
             resultType: 'route',
             to: `/${org.slug}/`,
           },
+          {
+            title: `${org.slug} Settings`,
+            description: 'Organization Settings',
+            model: org,
+            sourceType: 'organization',
+            resultType: 'settings',
+            to: `/settings/${org.slug}/`,
+          },
         ])
       ),
       ...flatten(
         (projects || []).map(project => [
-          {
-            title: `${project.slug} Settings`,
-            description: 'Project Settings',
-            model: project,
-            sourceType: 'project',
-            resultType: 'settings',
-            to: `/settings/${orgId}/${project.slug}/`,
-          },
           {
             title: `${project.slug} Dashboard`,
             description: 'Project Dashboard',
@@ -127,6 +119,14 @@ class ApiSource extends React.Component {
             sourceType: 'project',
             resultType: 'route',
             to: `/${orgId}/${project.slug}/`,
+          },
+          {
+            title: `${project.slug} Settings`,
+            description: 'Project Settings',
+            model: project,
+            sourceType: 'project',
+            resultType: 'settings',
+            to: `/settings/${orgId}/${project.slug}/`,
           },
         ])
       ),

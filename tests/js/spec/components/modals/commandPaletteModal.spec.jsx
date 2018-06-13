@@ -53,7 +53,14 @@ describe('Command Palette Modal', function() {
 
   it('can open command palette modal and search', async function() {
     let wrapper = mount(
-      <App params={{orgId: 'org-slug'}}>{<div>placeholder content</div>}</App>
+      <App params={{orgId: 'org-slug'}}>{<div>placeholder content</div>}</App>,
+      TestStubs.routerContext([
+        {
+          router: TestStubs.router({
+            params: {orgId: 'org-slug'},
+          }),
+        },
+      ])
     );
 
     // No Modal
@@ -81,10 +88,10 @@ describe('Command Palette Modal', function() {
 
     expect(
       wrapper
-        .find('ModalDialog SearchResult SearchTitle')
+        .find('SearchResult [data-test-id="badge-display-name"]')
         .first()
         .text()
-    ).toBe('billy-org Settings');
+    ).toBe('billy-org Dashboard');
 
     expect(
       wrapper
@@ -105,6 +112,6 @@ describe('Command Palette Modal', function() {
       .first()
       .simulate('click');
 
-    expect(navigateTo).toHaveBeenCalledWith('/settings/billy-org/', undefined);
+    expect(navigateTo).toHaveBeenCalledWith('/billy-org/', expect.anything());
   });
 });
