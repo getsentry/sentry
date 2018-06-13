@@ -398,22 +398,9 @@ class SnubaTagStorage(TagStorage):
 
         return {'event_id__in': set(result.keys())}
 
-    def get_group_tag_value_qs(self, project_id, group_id, environment_id, key, value=None):
-        # TODO: Implement
-        raise NotImplementedError
-
-    def get_event_tag_qs(self, project_id, environment_id, key, value):
-        # This method is not implemented because it is only used by the Django
-        # search backend.
-        raise NotImplementedError
-
     def get_group_ids_for_search_filter(
             self, project_id, environment_id, tags, candidates=None, limit=1000):
         # This method is not implemented since the `group.id` column doesn't
         # exist in Snuba. This logic is implemented in the search backend
         # instead.
         raise NotImplementedError
-
-    def update_group_for_events(self, project_id, event_ids, destination_id):
-        # Group updates are unncessary in Snuba, but we shouldn't throw an error.
-        pass
