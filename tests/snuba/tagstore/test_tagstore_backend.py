@@ -337,4 +337,4 @@ class TagStorageTest(SnubaTestCase):
             {
                 'browser': 'ie'
             }
-        ) == {'event_id__in': set([])}
+        ) is None

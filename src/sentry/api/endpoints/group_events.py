@@ -99,8 +99,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
                 tags,
             )
 
-            # HACK: Short-circuit filter responses like {'id__in': []}
-            if len(event_filter) == 1 and not event_filter.values()[0]:
+            if not event_filter:
                 return respond(events.none())
 
             events = events.filter(**event_filter)

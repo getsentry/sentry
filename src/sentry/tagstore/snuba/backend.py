@@ -393,6 +393,9 @@ class SnubaTagStorage(TagStorage):
         result = snuba.query(start, end, groupby=['event_id'], conditions=conditions,
             filter_keys=filters, referrer='tagstore.get_group_event_filter')
 
+        if not result:
+            return None
+
         return {'event_id__in': set(result.keys())}
 
     def get_group_tag_value_qs(self, project_id, group_id, environment_id, key, value=None):
