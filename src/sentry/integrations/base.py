@@ -16,7 +16,7 @@ from .exceptions import (
     ApiHostError, ApiError, ApiUnauthorized, IntegrationError, UnsupportedResponseType
 )
 from .constants import ERR_UNAUTHORIZED, ERR_INTERNAL, ERR_UNSUPPORTED_RESPONSE_TYPE
-from sentry.models import Identity, OrganizationIntegration
+from sentry.models import Identity, OrganizationIntegration, ProjectIntegration
 
 IntegrationMetadata = namedtuple('IntegrationMetadata', [
     'description',  # A markdown description of the integration
@@ -81,14 +81,14 @@ class IntegrationProvider(PipelineProvider):
     features = frozenset()
 
     @classmethod
-    def get_installation(cls, model, organization_id=None, **kwargs):
+    def get_installation(cls, model, organization_id=None, project_id=None, **kwargs):
         if cls.integration_cls is None:
             raise NotImplementedError
 
         if cls.needs_default_identity is True and organization_id is None:
             raise NotImplementedError('%s requires an organization_id' % cls.name)
 
-        return cls.integration_cls(model, organization_id, **kwargs)
+        return cls.integration_cls(model, organization_id, project_id, **kwargs)
 
     def get_logger(self):
         return logging.getLogger('sentry.integration.%s' % (self.key, ))
@@ -158,9 +158,16 @@ class Integration(object):
 
     logger = logging.getLogger('sentry.integrations')
 
-    def __init__(self, model, organization_id=None):
+    def __init__(self, model, organization_id=None, project_id=None):
         self.model = model
         self.organization_id = organization_id
+        if project_id is not None:
+            self.project_integration = ProjectIntegration.objects.get(
+                project_id=project_id,
+                integration_id=model.id,
+            )
+        else:
+            self.project_integration = None
 
     def get_organization_config(self):
         """
