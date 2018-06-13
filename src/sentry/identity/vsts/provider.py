@@ -1,12 +1,10 @@
 from __future__ import absolute_import
 
-import six
 from django import forms
 
 from sentry import http
 from sentry import options
 
-from sentry.auth.exceptions import IdentityNotValid
 from sentry.web.helpers import render_to_response
 from sentry.identity.oauth2 import OAuth2Provider, OAuth2LoginView, OAuth2CallbackView
 from sentry.pipeline import PipelineView
@@ -48,49 +46,6 @@ class VSTSIdentityProvider(OAuth2Provider):
             ),
             AccountConfigView(),
         ]
-
-    def get_oauth_redirect_url(self):
-        return '/extensions/vsts/setup/'
-
-    def get_refresh_identity_params(self):
-        data = {
-            'refresh_token': self.get_refresh_token(),
-            'client_secret': self.get_oauth_client_secret(),
-            'redirect_uri': self.get_oauth_redirect_url(),
-        }
-        for key, value in six.iteritems(data):
-            if value is None:
-                raise IdentityNotValid(
-                    'Could not refresh identity: %s missing %s' %
-                    (self.name, key))
-
-        return data
-
-    def refresh_identity(self):
-        from sentry.http import safe_urlopen, safe_urlread
-        from sentry.utils.http import absolute_uri
-        from six.moves.urllib.parse import parse_qsl
-        from sentry.utils import json
-
-        data = self.get_refresh_identity_params()
-        req = safe_urlopen(
-            url=absolute_uri(self.get_oauth_refresh_token_url()),
-            headers={
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Content-Length': '1654',
-            },
-            data={
-                'client_assertion_type': 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
-                'client_assertion': data['client_secret'],
-                'grant_type': 'refresh_token',
-                'assertion': data['refresh_token'],
-                'redirect_uri': absolute_uri(data['redirect_uri']),
-            },
-        )
-        body = safe_urlread(req)
-        if req.headers['Content-Type'].startswith('application/x-www-form-urlencoded'):
-            return dict(parse_qsl(body))
-        return json.loads(body)
 
 
 class VSTSOAuth2CallbackView(OAuth2CallbackView):
