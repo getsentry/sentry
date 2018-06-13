@@ -53,7 +53,7 @@ class Search extends React.Component {
     // Default Search result rendering
     renderItem: ({item, matches, itemProps, highlighted}) => (
       <SearchResultWrapper {...itemProps} highlighted={highlighted}>
-        <SearchResult item={item} matches={matches} />
+        <SearchResult highlighted={highlighted} item={item} matches={matches} />
       </SearchResultWrapper>
     ),
   };
