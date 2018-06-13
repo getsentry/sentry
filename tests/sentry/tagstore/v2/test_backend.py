@@ -460,7 +460,7 @@ class TagStorage(TestCase):
             self.proj1group1.id,
             self.proj1env1.id,
             tags
-        ) == {'id__in': set([1, 2])}
+        ) == {'id__in': set([self.proj1group1event1.id, self.proj1group1event2.id])}
 
     def test_get_groups_user_counts(self):
         k1, _ = self.ts.get_or_create_group_tag_key(
