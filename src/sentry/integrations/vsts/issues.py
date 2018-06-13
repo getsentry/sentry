@@ -4,7 +4,7 @@ from mistune import markdown
 
 
 from sentry.integrations.issues import IssueSyncMixin
-from sentry.utils.http import absolute_uri
+# from sentry.utils.http import absolute_uri
 
 
 class VstsIssueSync(IssueSyncMixin):
@@ -14,16 +14,9 @@ class VstsIssueSync(IssueSyncMixin):
 
     issue_fields = frozenset(['id', 'title', 'url'])
 
-    def get_issue_label(self, group, issue, **kwargs):
-        return 'Bug {}'.format(issue['id'])
-
-    def get_issue_url(self, group, issue, **kwargs):
-        return issue['url']
-
     def get_create_issue_config(self, group, **kwargs):
         fields = super(VstsIssueSync, self).get_create_issue_config(group, **kwargs)
         client = self.get_client()
-
         try:
             projects = client.get_projects(self.instance)
         except Exception as e:
@@ -40,37 +33,21 @@ class VstsIssueSync(IssueSyncMixin):
             }
         ] + fields
 
-    def get_link_existing_issue_fields(self, request, group, event, **kwargs):
-        return [
-            {
-                'name': 'item_id',
-                'label': 'Work Item ID',
-                'default': '',
-                'type': 'text',
-            },
-            {
-                'name': 'comment',
-                'label': 'Comment',
-                'default': 'I\'ve identified this issue in Sentry: {}'.format(
-                    absolute_uri(group.get_absolute_url()),
-                ),
-                'type': 'textarea',
-                'help': ('Markdown is supported. Leave blank if you don\'t want to add a comment.'),
-                'required': False
-            }
-        ]
+    def get_link_issue_config(self, group, **kwargs):
+        fields = super(VstsIssueSync, self).get_link_issue_config(group, **kwargs)
+        return fields
 
-    def create_issue(self, form_data, **kwargs):
+    def create_issue(self, data, **kwargs):
         """
         Creates the issue on the remote service and returns an issue ID.
         """
-        project = form_data.get('project') or self.default_project
+        project = data.get('project') or self.default_project
         if project is None:
             raise ValueError('VSTS expects project')
         client = self.get_client()
 
-        title = form_data['title']
-        description = form_data['description']
+        title = data['title']
+        description = data['description']
         # TODO(LB): Why was group removed from method?
         # link = absolute_uri(group.get_absolute_url())
         try:
@@ -85,35 +62,65 @@ class VstsIssueSync(IssueSyncMixin):
             self.raise_error(e)
 
         return {
-            'id': created_item['id'],
-            'url': created_item['_links']['html']['href'],
+            'key': created_item['id'],
+            # 'url': created_item['_links']['html']['href'],
             'title': title,
+            'description': description,
         }
 
-    def link_issue(self, request, group, form_data, **kwargs):
-        client = self.get_client()
-        if form_data.get('comment'):
-            try:
-                work_item = client.update_work_item(
-                    instance=self.instance,
-                    id=form_data['item_id'],
-                    link=absolute_uri(group.get_absolute_url()),
-                    comment=markdown(form_data['comment']) if form_data.get(
-                        'comment') else None,
-                )
-            except Exception as e:
-                self.raise_error(e)
-        else:
-            try:
-                work_item = client.get_work_item(
-                    instance=self.instance,
-                    id=form_data['item_id'],
-                )
-            except Exception as e:
-                self.raise_error(e)
+    def get_issue(self, issue_id, **kwargs):
+        raise NotImplementedError
 
-        return {
-            'id': work_item['id'],
-            'url': work_item['_links']['html']['href'],
-            'title': work_item['fields']['System.Title'],
-        }
+    # def get_issue_label(self, group, issue, **kwargs):
+    #     return 'Bug {}'.format(issue['id'])
+
+    # def get_issue_url(self, group, issue, **kwargs):
+    #     return issue['url']
+
+    # def get_link_existing_issue_fields(self, request, group, event, **kwargs):
+    #     return [
+    #         {
+    #             'name': 'item_id',
+    #             'label': 'Work Item ID',
+    #             'default': '',
+    #             'type': 'text',
+    #         },
+    #         {
+    #             'name': 'comment',
+    #             'label': 'Comment',
+    #             'default': 'I\'ve identified this issue in Sentry: {}'.format(
+    #                 absolute_uri(group.get_absolute_url()),
+    #             ),
+    #             'type': 'textarea',
+    #             'help': ('Markdown is supported. Leave blank if you don\'t want to add a comment.'),
+    #             'required': False
+    #         }
+    #     ]
+
+    # def link_issue(self, request, group, form_data, **kwargs):
+    #     client = self.get_client()
+    #     if form_data.get('comment'):
+    #         try:
+    #             work_item = client.update_work_item(
+    #                 instance=self.instance,
+    #                 id=form_data['item_id'],
+    #                 link=absolute_uri(group.get_absolute_url()),
+    #                 comment=markdown(form_data['comment']) if form_data.get(
+    #                     'comment') else None,
+    #             )
+    #         except Exception as e:
+    #             self.raise_error(e)
+    #     else:
+    #         try:
+    #             work_item = client.get_work_item(
+    #                 instance=self.instance,
+    #                 id=form_data['item_id'],
+    #             )
+    #         except Exception as e:
+    #             self.raise_error(e)
+
+    #     return {
+    #         'id': work_item['id'],
+    #         'url': work_item['_links']['html']['href'],
+    #         'title': work_item['fields']['System.Title'],
+    #     }
