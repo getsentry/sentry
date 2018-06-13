@@ -129,57 +129,35 @@ const EventEntries = createReactClass({
     // compare the file list from artifacts against the culprit in the stack trace
     // figure out how to send this to the error banner rather than console.logging
 
-    // if (typeof(fileListSize) === 'undefined') {
-    //   console.log("We don't have any of your files! Upload em");
-    // } else { // we have either the map OR the min, figure out which and message appropriately
-    //   if (typeof stackTraceFile !== 'undefined') { // we have stackTraceFiles
-    //     if (stackTraceFile.endsWith('.map')) {
-    //       console.log('We only have your map file. You need to upload the min');
-    //     } else {
-    //       console.log('We only have your min file. You need to upload the map');
-    //     }
-    //   } else {
-    //     // strip the file path from one file and compare
-    //     let file = fileListFile.replace(/^.*[\\\/]/, '');
-    //     if (stackTraceFile.indexOf(file) >= 0) {
-    //       console.log('They match!');
-    //     } else {
-    //       console.log('They do not match');
-    //     }
-    //   }
-    // }
     if (fileList.length === 0) {
       console.log('Upload artifacts!');
     } else {
-      for (let i = stackTraceFiles.length - 1; i > 0; i--) {
-        let test = stackTraceFiles[i].replace(/^.*[\\\/]/, '');
-        console.log('looppol', test, fileList);
-        if (fileList.includes(stackTraceFiles[i])) {
-          console.log(
-            'The filenames match but I still need to check the extensions and stuff'
-          );
-        } else {
-          console.log("The filenames don't match");
+        for (let i = stackTraceFiles.length - 1; i > 0; i--) {
+          let stackTraceFile = stackTraceFiles[i].replace(/^.*[\\\/]/, '');
+          let fakeMap = stackTraceFile + '.map';
+          console.log("we're comparing: ", stackTraceFile, fakeMap)
+          if (fileList.includes(stackTraceFile) && fileList.includes(fakeMap)) {
+            console.log('All the filenames are gucci');
+          } else if (fileList.includes(stackTraceFile) && !fileList.includes(fakeMap)) {
+            console.log("You need to upload the sourcemap file");
+          } else if (!fileList.includes(stackTraceFile) && fileList.includes(fakeMap)) {
+            console.log("You need to upload the minified JS file");
+          } else {
+            console.log("We don't have any of your files");
+          }
         }
       }
-    }
   },
 
   interfaces: INTERFACES,
 
   render() {
-    // let fileList = this.state.fileList; // the artifacts matching the release
-    const fileList = this.state.fileList.map(x => x.name);
-    console.log('The artifacts: ', fileList);
-
+    const fileList = this.state.fileList.map(x => x.name.replace(/^.*[\\\/]/, ''));
     const stackTraceFiles = this.props.event.entries[0].data.values[0].stacktrace.frames.map(
       x => x.filename
     );
-    console.log('The stack trace files: ', stackTraceFiles);
-
-    let errorType = this.props.event.errors[0].type;
-    // probably going to add other error types in later
-    if (errorType === 'fetch_invalid_http_code') {
+    const errorType = this.props.event.errors[0].type;
+    if (errorType === 'fetch_invalid_http_code') { // probably going to add other error types in later
       this.compareFiles(fileList, stackTraceFiles);
     }
 
