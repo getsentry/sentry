@@ -41,13 +41,15 @@ class VstsIntegration(Integration):
 
     def get_project_config(self):
         client = self.get_client()
+        disabled = False
         try:
             projects = client.get_projects(self.model.metadata['domain_name'])
         except ApiError:
-            # TODO(LB): This is an issue... what should happen if the client fails?
+            # TODO(LB): Disable for now. Need to decide what to do with this in the future
             # should a message be shown to the user?
             # Should we try refreshing the token? For VSTS that often clears up the problem
             project_choices = []
+            disabled = True
         else:
             project_choices = [(project['id'], project['name']) for project in projects['value']]
 
@@ -64,13 +66,14 @@ class VstsIntegration(Integration):
                 'name': 'default_project',
                 'type': 'choice',
                 'allowEmpty': True,
+                'disabled': disabled,
                 'required': True,
                 'choices': project_choices,
                 'initial': initial_project,
                 'label': _('Default Project Name'),
                 'placeholder': _('MyProject'),
                 'help': _('Enter the Visual Studio Team Services project name that you wish to use as a default for new work items'),
-            }
+            },
         ]
 
 
