@@ -8,6 +8,7 @@ from sentry.identity.github import get_user_info
 from sentry.integrations import Integration, IntegrationProvider, IntegrationMetadata
 from sentry.integrations.exceptions import ApiError
 from sentry.integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
+from sentry.integrations.repositories import RepositoryMixin
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.utils.http import absolute_uri
 
@@ -47,10 +48,13 @@ API_ERRORS = {
 }
 
 
-class GitHubIntegration(Integration):
+class GitHubIntegration(Integration, RepositoryMixin):
 
     def get_client(self):
         return GitHubAppsClient(external_id=self.model.external_id)
+
+    def get_repositories(self):
+        return self.get_client().get_repositories()
 
     def message_from_error(self, exc):
         if isinstance(exc, ApiError):
