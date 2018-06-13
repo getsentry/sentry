@@ -11,6 +11,8 @@ from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.identity.vsts import VSTSIdentityProvider
 from sentry.utils.http import absolute_uri
+
+from .repository import VstsRepositoryProvider
 DESCRIPTION = """
 VSTS
 """
@@ -147,6 +149,14 @@ class VstsIntegrationProvider(IntegrationProvider):
             data['token_type'] = payload['token_type']
 
         return data
+
+    def setup(self):
+        from sentry.plugins import bindings
+        bindings.add(
+            'integration-repository.provider',
+            VstsRepositoryProvider,
+            id='integrations:vsts',
+        )
 
 
 def get_projects(instance, access_token):
