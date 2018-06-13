@@ -47,18 +47,14 @@ exports[`CustomResolutionModal render() renders correctly 1`] = `
         >
           Version
         </h6>
-        <Select2FieldAutocomplete
-          ajaxDelay={250}
-          allowClear={false}
-          allowEmpty={false}
+        <SelectAutocompleteField
+          clearable={true}
           disabled={false}
           escapeMarkup={false}
           formatResult={[Function]}
           formatSelection={[Function]}
           hideErrorMessage={false}
           id="version"
-          minimumInputLength={null}
-          multiple={false}
           name="version"
           onChange={[Function]}
           onQuery={[Function]}

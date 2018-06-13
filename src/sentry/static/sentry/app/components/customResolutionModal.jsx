@@ -8,7 +8,7 @@ import underscore from 'lodash';
 import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
 
-import {Select2FieldAutocomplete} from 'app/components/forms';
+import {SelectAutocompleteField} from 'app/components/forms';
 import {t} from 'app/locale';
 
 export default class CustomResolutionModal extends React.Component {
@@ -55,7 +55,7 @@ export default class CustomResolutionModal extends React.Component {
           <form className="m-b-1">
             <div className="control-group m-b-1">
               <h6 className="nav-header">{t('Version')}</h6>
-              <Select2FieldAutocomplete
+              <SelectAutocompleteField
                 name="version"
                 onChange={v => this.onChange(v)}
                 placeholder={t('e.g. 1.0.4')}
