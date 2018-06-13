@@ -106,5 +106,12 @@ describe('ProjectReleaseTracking', function() {
         projectId: 'new-project',
       })
     );
+
+    fetchPlugins.mockClear();
+
+    // Does not call fetchPlugins if slug is the same
+    wrapper.setProps({...wrapper.props(), project: {...project, slug: 'new-project'}});
+    wrapper.update();
+    expect(fetchPlugins).not.toHaveBeenCalled();
   });
 });

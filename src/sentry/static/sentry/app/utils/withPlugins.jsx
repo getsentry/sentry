@@ -1,7 +1,8 @@
 import React from 'react';
-import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
+import createReactClass from 'create-react-class';
 
+import {defined} from 'app/utils';
 import {fetchPlugins} from 'app/actionCreators/plugins';
 import PluginsStore from 'app/stores/pluginsStore';
 import ProjectState from 'app/mixins/projectState';
@@ -24,17 +25,27 @@ const withPlugins = WrappedComponent =>
       this.fetchPlugins();
     },
 
-    componentDidUpdate(prevProps) {
+    componentDidUpdate(prevProps, prevState, prevContext) {
       let organization = this.props.organization || this.getOrganization();
       let project = this.props.project || this.getProject();
 
-      if (
-        (typeof prevProps.organization === 'undefined' ||
-          prevProps.organization.slug === organization.slug) &&
-        (typeof prevProps.project === 'undefined' ||
-          prevProps.project.slug === project.slug)
-      )
-        return;
+      // Only fetch plugins when a org slug or project slug has changed
+      let prevOrg = prevProps.organization || (prevContext && prevContext.organization);
+      let prevProject = prevProps.project || (prevContext && prevContext.project);
+
+      // If previous org/project is undefined then it means:
+      // the HoC has mounted, `fetchPlugins` has been called (via cDM), and
+      // store was updated. We don't need to fetchPlugins again (or it will cause an infinite loop)
+      //
+      // This is for the unusual case where component is mounted and receives a new org/project prop
+      // e.g. when switching projects via breadcrumbs in settings.
+      if (!defined(prevProject) || !defined(prevOrg)) return;
+
+      let isOrgSame = prevOrg.slug === organization.slug;
+      let isProjectSame = prevProject.slug === project.slug;
+
+      // Don't do anything if org and project are the same
+      if (isOrgSame && isProjectSame) return;
 
       this.fetchPlugins();
     },
