@@ -89,13 +89,15 @@ class RuleSerializer(serializers.Serializer):
         return attrs
 
     def validate_conditions(self, attrs, source):
-        if attrs['conditions'] == []:
+        name = attrs.get(source)
+        if not name:
             raise serializers.ValidationError(u'Must select a condition')
 
         return attrs
 
     def validate_actions(self, attrs, source):
-        if attrs['actions'] == []:
+        name = attrs.get(source)
+        if not name:
             raise serializers.ValidationError(u'Must select an action')
 
         return attrs
