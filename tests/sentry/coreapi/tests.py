@@ -489,9 +489,9 @@ class ValidateDataTest(BaseAPITest):
         assert data['errors'][0]['name'] == 'fingerprint'
 
         data = self.validate_and_normalize({
-            'fingerprint': ['{{default}}', 1, 'bar', 4.5, -2.7],
+            'fingerprint': ['{{default}}', 1, 'bar', 4.5, -2.7, True],
         })
-        assert data.get('fingerprint') == ['{{default}}', '1', 'bar', '4', '-2']
+        assert data.get('fingerprint') == ['{{default}}', '1', 'bar', '4', '-2', 'True']
         assert len(data['errors']) == 0
 
         data = self.validate_and_normalize({
