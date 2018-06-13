@@ -160,7 +160,14 @@ class Integration(object):
 
     def __init__(self, model, organization_id=None, project_id=None):
         self.model = model
-        self.organization_id = organization_id
+        if organization_id is not None:
+            self.org_integration = OrganizationIntegration.objects.get(
+                organization_id=organization_id,
+                integration_id=model.id,
+            )
+        else:
+            self.org_integration = None
+
         if project_id is not None:
             self.project_integration = ProjectIntegration.objects.get(
                 project_id=project_id,
@@ -194,15 +201,10 @@ class Integration(object):
         """
         For Integrations that rely solely on user auth for authentication
         """
-        if self.organization_id is None:
-            raise NotImplementedError
+        if self.org_integration is None:
+            raise NotImplementedError('%s requires an organization_id' % self.name)
 
-        org_integration = OrganizationIntegration.objects.get(
-            organization_id=self.organization_id,
-            integration_id=self.model.id,
-        )
-        identity = Identity.objects.get(id=org_integration.default_auth_id)
-
+        identity = Identity.objects.get(id=self.org_integration.default_auth_id)
         return identity
 
     def error_message_from_json(self, data):
