@@ -68,7 +68,6 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
 
     release = Release.objects.get(id=release_id)
     user = User.objects.get(id=user_id)
-
     prev_release = None
     if prev_release_id is not None:
         try:
@@ -120,7 +119,6 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
 
         end_sha = ref['commit']
         provider = provider_cls(id=repo.provider)
-
         try:
             repo_commits = provider.compare_commits(repo, start_sha, end_sha, actor=user)
         except NotImplementedError:

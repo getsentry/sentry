@@ -6,7 +6,10 @@ import InlineSvg from 'app/components/inlineSvg';
 
 const isBitbucket = providerId =>
   ['bitbucket', 'integrations:bitbucket'].includes(providerId);
-const isGithub = providerId => ['github', 'integrations:github'].includes(providerId);
+const isGithub = providerId =>
+  ['github', 'integrations:github', 'integrations:github_enterprise'].includes(
+    providerId
+  );
 
 class CommitLink extends React.Component {
   static propTypes = {

@@ -45,14 +45,21 @@ class GitHubClientMixin(ApiClient):
     def get_repo(self, repo):
         return self.get('/repos/{}'.format(repo))
 
+    def get_repositories(self):
+        repositories = self.get(
+            '/installation/repositories',
+            params={'per_page': 100},
+        )
+        return repositories['repositories']
 
-class GitHubAppsClient(GitHubClientMixin):
-
-    def __init__(self, external_id):
-        self.external_id = external_id
-        self.token = None
-        self.expires_at = None
-        super(GitHubAppsClient, self).__init__()
+    def request(self, method, path, headers=None, data=None, params=None):
+        if headers is None:
+            headers = {
+                'Authorization': 'token %s' % self.get_token(),
+                # TODO(jess): remove this whenever it's out of preview
+                'Accept': 'application/vnd.github.machine-man-preview+json',
+            }
+        return self._request(method, path, headers=headers, data=data, params=params)
 
     def get_token(self):
         if not self.token or self.expires_at < datetime.datetime.utcnow():
@@ -65,30 +72,26 @@ class GitHubAppsClient(GitHubClientMixin):
 
         return self.token
 
-    def request(self, method, path, headers=None, data=None, params=None):
-        if headers is None:
-            headers = {
-                'Authorization': 'token %s' % self.get_token(),
-                # TODO(jess): remove this whenever it's out of preview
-                'Accept': 'application/vnd.github.machine-man-preview+json',
-            }
-        return self._request(method, path, headers=headers, data=data, params=params)
-
     def create_token(self):
         return self.post(
             '/installations/{}/access_tokens'.format(
                 self.external_id,
             ),
             headers={
-                'Authorization': 'Bearer %s' % get_jwt(),
+                'Authorization': 'Bearer %s' % self.get_jwt(),
                 # TODO(jess): remove this whenever it's out of preview
                 'Accept': 'application/vnd.github.machine-man-preview+json',
             },
         )
 
-    def get_repositories(self):
-        repositories = self.get(
-            '/installation/repositories',
-            params={'per_page': 100},
-        )
-        return repositories['repositories']
+    def get_jwt(self):
+        return get_jwt()
+
+
+class GitHubAppsClient(GitHubClientMixin):
+
+    def __init__(self, external_id):
+        self.external_id = external_id
+        self.token = None
+        self.expires_at = None
+        super(GitHubAppsClient, self).__init__()

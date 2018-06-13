@@ -15,6 +15,7 @@ from sentry.plugins.config import ConfigValidator
 class IntegrationRepositoryProvider(object):
     name = None
     logger = None
+    repo_provider = None
 
     def __init__(self, id):
         self.id = id
