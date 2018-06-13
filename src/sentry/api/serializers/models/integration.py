@@ -24,7 +24,10 @@ class IntegrationSerializer(Serializer):
 
 
 class IntegrationConfigSerializer(IntegrationSerializer):
-    def serialize(self, obj, attrs, user, organization_id=None):
+    def __init__(self, organization_id=None):
+        self.organization_id = organization_id
+
+    def serialize(self, obj, attrs, user):
         data = super(IntegrationConfigSerializer, self).serialize(obj, attrs, user)
 
         data.update({
@@ -33,7 +36,7 @@ class IntegrationConfigSerializer(IntegrationSerializer):
         })
 
         try:
-            install = obj.get_installation(organization_id)
+            install = obj.get_installation(self.organization_id)
         except NotImplementedError:
             # The integration may not implement a Installed Integration object
             # representation.
@@ -76,8 +79,7 @@ class OrganizationIntegrationSerializer(Serializer):
         integration = serialize(
             objects=obj.integration,
             user=user,
-            serializer=IntegrationConfigSerializer(),
-            organization_id=obj.organization.id
+            serializer=IntegrationConfigSerializer(obj.organization.id),
         )
         integration.update({
             'configData': obj.config,

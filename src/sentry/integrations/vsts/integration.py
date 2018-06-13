@@ -3,6 +3,7 @@ from time import time
 
 from django.utils.translation import ugettext as _
 from sentry.integrations import Integration, IntegrationProvider, IntegrationMetadata
+from sentry.integrations.exceptions import ApiError
 from .client import VstsApiClient
 from sentry.pipeline import NestedPipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
@@ -40,10 +41,17 @@ class VstsIntegration(Integration):
 
     def get_project_config(self):
         client = self.get_client()
-        projects = client.get_projects(self.model.metadata['domain_name'])
-        project_choices = [(project['id'], project['name']) for project in projects['value']]
-        default_project = self.org_integration.config.get('default_project')
+        try:
+            projects = client.get_projects(self.model.metadata['domain_name'])
+        except ApiError:
+            # TODO(LB): This is an issue... what should happen if the client fails?
+            # should a message be shown to the user?
+            # Should we try refreshing the token? For VSTS that often clears up the problem
+            project_choices = []
+        else:
+            project_choices = [(project['id'], project['name']) for project in projects['value']]
 
+        default_project = self.org_integration.config.get('default_project')
         initial_project = ('', '')
         if default_project is not None:
             for project_id, project_name in project_choices:
