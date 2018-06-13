@@ -36,14 +36,6 @@ class EventSdk extends React.Component {
                 <pre>{data.version}</pre>
               </td>
             </tr>
-            {data.clientIP && (
-              <tr key="clientIP">
-                <td className="key">{t('Client IP')}</td>
-                <td className="value">
-                  <pre>{data.clientIP}</pre>
-                </td>
-              </tr>
-            )}
           </tbody>
         </table>
       </GroupEventDataSection>

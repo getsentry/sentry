@@ -16,8 +16,8 @@ import {Panel} from 'app/components/panels';
 const ExpandButton = styled.span`
   cursor: pointer;
   position: absolute;
-  right: ${p => p.theme.grid}px;
-  top: 1px;
+  right: 0;
+  top: 7px;
 `;
 
 export default createReactClass({
@@ -98,17 +98,19 @@ export default createReactClass({
         <div className="box-header">
           <h3>
             {t('Suspect Commits')} ({commits.length})
-            <ExpandButton onClick={() => this.setState({expanded: !expanded})}>
-              {expanded ? (
-                <React.Fragment>
-                  show less <InlineSvg src="icon-circle-subtract" size="16px" />
-                </React.Fragment>
-              ) : (
-                <React.Fragment>
-                  show more <InlineSvg src="icon-circle-add" size="16px" />
-                </React.Fragment>
-              )}
-            </ExpandButton>
+            {commits.length > 1 && (
+              <ExpandButton onClick={() => this.setState({expanded: !expanded})}>
+                {expanded ? (
+                  <React.Fragment>
+                    {t('Show less')} <InlineSvg src="icon-circle-subtract" size="16px" />
+                  </React.Fragment>
+                ) : (
+                  <React.Fragment>
+                    {t('Show more')} <InlineSvg src="icon-circle-add" size="16px" />
+                  </React.Fragment>
+                )}
+              </ExpandButton>
+            )}
           </h3>
           <Panel>
             {commits.slice(0, expanded ? 100 : 1).map(commit => {
