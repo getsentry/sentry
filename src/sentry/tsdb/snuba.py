@@ -213,3 +213,38 @@ class SnubaTSDB(BaseTSDB):
             return (items.keys(), list(set.union(*(set(v) for v in items.values()))))
         else:
             return (None, None)
+
+    # The following are no-ops, but implemented here to avoid NotImplementedErrors everywhere.
+
+    def incr(self, model, key, timestamp=None, count=1, environment_id=None):
+        pass
+
+    def merge(self, model, destination, sources, timestamp=None, environment_ids=None):
+        pass
+
+    def delete(self, models, keys, start=None, end=None, timestamp=None, environment_ids=None):
+        pass
+
+    def record(self, model, key, values, timestamp=None, environment_id=None):
+        pass
+
+    def merge_distinct_counts(self, model, destination, sources,
+                              timestamp=None, environment_ids=None):
+        pass
+
+    def delete_distinct_counts(self, models, keys, start=None, end=None,
+                               timestamp=None, environment_ids=None):
+        pass
+
+    def record_frequency_multi(self, requests, timestamp=None, environment_id=None):
+        pass
+
+    def merge_frequencies(self, model, destination, sources, timestamp=None, environment_ids=None):
+        pass
+
+    def delete_frequencies(self, models, keys, start=None, end=None,
+                           timestamp=None, environment_ids=None):
+        pass
+
+    def flush(self):
+        pass
