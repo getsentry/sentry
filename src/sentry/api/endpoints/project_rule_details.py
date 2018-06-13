@@ -58,9 +58,6 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
             partial=True
         )
 
-        if request.DATA['conditions'] == [] or request.DATA['actions'] == []:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
-
         if serializer.is_valid():
             rule = serializer.save(rule=rule)
             self.create_audit_entry(
