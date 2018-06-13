@@ -75,6 +75,7 @@ from .endpoints.organization_release_file_details import OrganizationReleaseFile
 from .endpoints.organization_release_commits import OrganizationReleaseCommitsEndpoint
 from .endpoints.organization_repositories import OrganizationRepositoriesEndpoint
 from .endpoints.organization_integration_details import OrganizationIntegrationDetailsEndpoint
+from .endpoints.organization_integration_repos import OrganizationIntegrationReposEndpoint
 from .endpoints.organization_integrations import OrganizationIntegrationsEndpoint
 from .endpoints.organization_config_integrations import OrganizationConfigIntegrationsEndpoint
 from .endpoints.organization_config_repositories import OrganizationConfigRepositoriesEndpoint
@@ -435,6 +436,10 @@ urlpatterns = patterns(
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/$',
         OrganizationIntegrationDetailsEndpoint.as_view(),
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/repos/$',
+        OrganizationIntegrationReposEndpoint.as_view(),
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/members/$',
