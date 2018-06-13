@@ -12,10 +12,12 @@ WEBHOOK_EVENTS = ['push', 'pull_request']
 class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
     name = 'GitHub'
     logger = logging.getLogger('sentry.plugins.github')
+    repo_provider = 'github'
 
     def get_config(self, organization):
         choices = []
-        for i in Integration.objects.filter(organizations=organization, provider='github'):
+        for i in Integration.objects.filter(
+                organizations=organization, provider=self.repo_provider):
             choices.append((i.id, i.name))
 
         if not choices:
