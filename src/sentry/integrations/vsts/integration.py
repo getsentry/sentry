@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 from time import time
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext as _
 from sentry.integrations import Integration, IntegrationProvider, IntegrationMetadata
 from .client import VstsApiClient
 from sentry.pipeline import NestedPipelineView
@@ -44,8 +44,13 @@ class VstsIntegration(Integration):
         project_choices = [(project['id'], project['name']) for project in projects['value']]
         default_project = self.org_integration.config.get('default_project')
 
-        # TODO(LB): This is only saving the id. That might work... but really I'd
-        # want to save the name. Help? Maybe name and id?
+        initial_project = ('', '')
+        if default_project is not None:
+            for project_id, project_name in project_choices:
+                if default_project == project_id:
+                    initial_project = (project_id, project_name)
+                    break
+
         return [
             {
                 'name': 'default_project',
@@ -53,13 +58,10 @@ class VstsIntegration(Integration):
                 'allowEmpty': True,
                 'required': True,
                 'choices': project_choices,
-                'initial': (default_project['id'], default_project['name']) if default_project is not None else ('', ''),
-                # TODO(LB): Tried using ugettext_lazy but got <django.utils.functional.__proxy__ object at 0x107fb5110> is not JSON serializable
-                # this was during the installation flow; decided to just move on instead
-                # of worrying about it
-                'label': 'Default Project Name',
-                'placeholder': 'MyProject',
-                'help': 'Enter the Visual Studio Team Services project name that you wish to use as a default for new work items',
+                'initial': initial_project,
+                'label': _('Default Project Name'),
+                'placeholder': _('MyProject'),
+                'help': _('Enter the Visual Studio Team Services project name that you wish to use as a default for new work items'),
             }
         ]
 
