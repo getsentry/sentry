@@ -333,7 +333,7 @@ class EventManager(object):
 
         def stringify(f):
             if isinstance(f, float):
-                return text(int(f)) if f < (1 << 53) else None
+                return text(int(f)) if abs(f) < (1 << 53) else None
             return text(f)
 
         casts = {
