@@ -94,9 +94,6 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
             'integration_id': data['integration_id'],
         }
 
-    def delete_repository(self, repo, actor=None):
-        pass
-
     def transform_changes(self, patch_set):
         type_mapping = {
             'add': 'A',
