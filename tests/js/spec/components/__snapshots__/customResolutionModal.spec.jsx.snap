@@ -26,64 +26,56 @@ exports[`CustomResolutionModal render() renders correctly 1`] = `
   restoreFocus={true}
   show={false}
 >
-  <div
-    className="modal-header"
+  <form
+    onSubmit={[Function]}
   >
-    <h4>
+    <ModalHeader
+      bsClass="modal-header"
+      closeButton={false}
+      closeLabel="Close"
+    >
       Resolved In
-    </h4>
-  </div>
-  <div
-    className="modal-body"
-  >
-    <form
-      className="m-b-1"
+    </ModalHeader>
+    <ModalBody
+      bsClass="modal-body"
+      componentClass="div"
     >
-      <div
-        className="control-group m-b-1"
+      <SelectAutocompleteField
+        clearable={true}
+        disabled={false}
+        hideErrorMessage={false}
+        id="version"
+        label="Version"
+        name="version"
+        onChange={[Function]}
+        onQuery={[Function]}
+        onResults={[Function]}
+        placeholder="e.g. 1.0.4"
+        required={false}
+        url="/api/0/projects/org/project/releases/"
+        value=""
+      />
+    </ModalBody>
+    <ModalFooter
+      bsClass="modal-footer"
+      componentClass="div"
+    >
+      <Button
+        className="css-lvyu5j"
+        disabled={false}
+        onClick={[Function]}
+        type="button"
       >
-        <h6
-          className="nav-header"
-        >
-          Version
-        </h6>
-        <SelectAutocompleteField
-          clearable={true}
-          disabled={false}
-          escapeMarkup={false}
-          formatResult={[Function]}
-          formatSelection={[Function]}
-          hideErrorMessage={false}
-          id="version"
-          name="version"
-          onChange={[Function]}
-          onQuery={[Function]}
-          onResults={[Function]}
-          placeholder="e.g. 1.0.4"
-          required={false}
-          url="/api/0/projects/org/project/releases/"
-          value=""
-        />
-      </div>
-    </form>
-  </div>
-  <div
-    className="modal-footer m-t-1"
-  >
-    <button
-      className="btn btn-default"
-      onClick={[Function]}
-      type="button"
-    >
-      Cancel
-    </button>
-    <button
-      className="btn btn-primary"
-      onClick={[Function]}
-      type="button"
-    >
-      Save Changes
-    </button>
-  </div>
+        Cancel
+      </Button>
+      <Button
+        disabled={false}
+        priority="primary"
+        type="submit"
+      >
+        Save Changes
+      </Button>
+    </ModalFooter>
+  </form>
 </Modal>
 `;

@@ -1,15 +1,13 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import ReactDOMServer from 'react-dom/server';
 import jQuery from 'jquery';
-import Modal from 'react-bootstrap/lib/Modal';
-import underscore from 'lodash';
-
-import TimeSince from 'app/components/timeSince';
-import Version from 'app/components/version';
+import Modal, {Header, Body, Footer} from 'react-bootstrap/lib/Modal';
 
 import {SelectAutocompleteField} from 'app/components/forms';
 import {t} from 'app/locale';
+import Button from 'app/components/buttons/button';
+import TimeSince from 'app/components/timeSince';
+import Version from 'app/components/version';
 
 export default class CustomResolutionModal extends React.Component {
   static propTypes = {
@@ -48,28 +46,21 @@ export default class CustomResolutionModal extends React.Component {
 
     return (
       <Modal show={this.props.show} animation={false} onHide={this.props.onCanceled}>
-        <div className="modal-header">
-          <h4>{t('Resolved In')}</h4>
-        </div>
-        <div className="modal-body">
-          <form className="m-b-1">
-            <div className="control-group m-b-1">
-              <h6 className="nav-header">{t('Version')}</h6>
-              <SelectAutocompleteField
-                name="version"
-                onChange={v => this.onChange(v)}
-                placeholder={t('e.g. 1.0.4')}
-                url={`/api/0/projects/${orgId}/${projectId}/releases/`}
-                value={version}
-                id={'version'}
-                onResults={results => {
-                  return {results};
-                }}
-                onQuery={query => {
-                  return {query};
-                }}
-                formatResult={release => {
-                  return ReactDOMServer.renderToStaticMarkup(
+        <form onSubmit={this.onSubmit}>
+          <Header>{t('Resolved In')}</Header>
+          <Body>
+            <SelectAutocompleteField
+              label={t('Version')}
+              id="version"
+              name="version"
+              onChange={this.onChange}
+              placeholder={t('e.g. 1.0.4')}
+              url={`/api/0/projects/${orgId}/${projectId}/releases/`}
+              value={version}
+              onResults={results => {
+                return results.map(release => ({
+                  value: release.version,
+                  label: (
                     <div>
                       <strong>
                         <Version version={release.version} anchor={false} />
@@ -79,26 +70,21 @@ export default class CustomResolutionModal extends React.Component {
                         Created <TimeSince date={release.dateCreated} />
                       </small>
                     </div>
-                  );
-                }}
-                formatSelection={item => underscore.escape(item.version)}
-                escapeMarkup={false}
-              />
-            </div>
-          </form>
-        </div>
-        <div className="modal-footer m-t-1">
-          <button
-            type="button"
-            className="btn btn-default"
-            onClick={this.props.onCanceled}
-          >
-            {t('Cancel')}
-          </button>
-          <button type="button" className="btn btn-primary" onClick={this.onSubmit}>
-            {t('Save Changes')}
-          </button>
-        </div>
+                  ),
+                }));
+              }}
+              onQuery={query => ({query})}
+            />
+          </Body>
+          <Footer>
+            <Button type="button" css={{marginRight: 10}} onClick={this.props.onCanceled}>
+              {t('Cancel')}
+            </Button>
+            <Button type="submit" priority="primary">
+              {t('Save Changes')}
+            </Button>
+          </Footer>
+        </form>
       </Modal>
     );
   }

@@ -39,6 +39,7 @@ class SelectAutocompleteControl extends React.Component {
     this.state = {
       query: '',
     };
+    this.cache = {};
   }
 
   componentWillUnmount() {
@@ -103,7 +104,7 @@ class SelectAutocompleteControl extends React.Component {
         onInputChange={this.handleInputChange}
         onClear={this.handleClear}
         async
-        cache={false}
+        cache={this.cache}
         {...this.props}
       />
     );
