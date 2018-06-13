@@ -20,7 +20,7 @@ describe('GenericField', function() {
       expect(wrapper.name()).toEqual('TextField');
     });
 
-    it('renders text with choices as Select2TextInput', function() {
+    it('renders text with choices as SelectTextField', function() {
       let wrapper = shallow(
         <GenericField
           formState={FormState.READY}
@@ -33,7 +33,7 @@ describe('GenericField', function() {
         />
       );
       expect(wrapper).toMatchSnapshot();
-      expect(wrapper.name()).toEqual('Select2TextField');
+      expect(wrapper.name()).toEqual('SelectTextField');
     });
   });
 });
