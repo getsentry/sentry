@@ -68,23 +68,23 @@ const EventEntries = createReactClass({
     };
   },
 
-  recordSourcemapError(errorType) {
+  recordSourcemapError(errorTypes) {
+    let {project, event} = this.props;
+
     analytics('sourcemap.sourcemap_error', {
-      'org_id': this.props.project.organization.id,
-      'group': this.props.event.groupID,
-      'error_type': errorType
+      'org_id': project.organization.id,
+      'group': event.groupID,
+      'error_type': errorTypes
     })
   },
 
   componentDidMount() {
-    if (typeof this.props.event.errors !== 'undefined') {
-      let errorTypes = this.props.event.errors;
-      let errorType = [];
-      for (let i = 0; i < errorTypes.length; i++) {
-        errorType.push(errorTypes[i].type);
-      }
-      this.recordSourcemapError(errorType);
-    }
+    let {event} = this.props;
+    let errors = event.errors;
+    let errorTypes = errors.map((errorEntries) => errorEntries.type);
+
+    this.recordSourcemapError(errorTypes);
+    if (!event.errors) return;
   },
 
   shouldComponentUpdate(nextProps, nextState) {
