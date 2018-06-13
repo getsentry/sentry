@@ -16,7 +16,7 @@ class GitHubEnterpriseRepositoryProvider(GitHubRepositoryProvider):
 
     def create_repository(self, organization, data, actor=None):
         integration = Integration.objects.get(
-            id=data['integration_id'], provider="github-enterprise")
+            id=data['integration_id'], provider=self.repo_provider)
 
         base_url = integration.metadata.get('domain_name')
         return {
