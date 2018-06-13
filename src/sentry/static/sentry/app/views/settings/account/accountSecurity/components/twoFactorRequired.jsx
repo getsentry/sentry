@@ -40,7 +40,7 @@ class TwoFactorRequired extends AsyncComponent {
       <StyledAlert className="require-2fa" type="error" icon="icon-circle-exclamation">
         {t(
           'The %s %s all members to enable two-factor authentication.' +
-            'You need to enable two-factor authentication to access projects under %s',
+            ' You need to enable two-factor authentication to access projects under %s.',
           organizationNames,
           require,
           organizations
