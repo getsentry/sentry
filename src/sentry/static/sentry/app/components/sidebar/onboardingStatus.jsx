@@ -17,22 +17,21 @@ class OnboardingStatus extends React.Component {
     collapsed: PropTypes.bool,
   };
 
-  shouldComponentUpdate(nextProps, nextState) {
+  componentWillReceiveProps(nextProps) {
+    let {currentPanel, org} = this.props;
     if (
-      this.props.currentPanel !== nextProps.currentPanel &&
-      (this.props.currentPanel || nextProps.currentPanel == 'todos')
+      currentPanel !== nextProps.currentPanel &&
+      (currentPanel || nextProps.currentPanel == 'todos')
     ) {
-      this.recordAnalytics(this.props.currentPanel, this.props.org.id);
+      this.recordAnalytics(currentPanel, org.id);
     }
     return true;
   }
 
   recordAnalytics(currentPanel, orgId) {
-    if (currentPanel == 'todos') {
-      analytics('onboarding.wizard_closed', {org_id: orgId});
-    } else {
-      analytics('onboarding.wizard_opened', {org_id: orgId});
-    }
+    currentPanel == 'todos'
+      ? analytics('onboarding.wizard_closed', {org_id: orgId})
+      : analytics('onboarding.wizard_opened', {org_id: orgId});
   }
 
   render() {

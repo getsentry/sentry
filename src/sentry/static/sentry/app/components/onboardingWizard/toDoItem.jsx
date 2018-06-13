@@ -23,7 +23,6 @@ const TodoItem = createReactClass({
     return {
       showConfirmation: false,
       isExpanded: false,
-      org: this.getOrganization(),
     };
   },
 
@@ -47,7 +46,7 @@ const TodoItem = createReactClass({
   },
 
   learnMoreUrlCreator() {
-    let {org} = this.state;
+    let org = this.getOrganization();
     let {task} = this.props;
     let learnMoreUrl;
     if (task.featureLocation === 'project') {
@@ -65,7 +64,7 @@ const TodoItem = createReactClass({
   },
 
   recordAnalytics(action) {
-    let {org} = this.state;
+    let org = this.getOrganization();
     let {task} = this.props;
     analytics('onboarding.wizard_clicked', {
       org_id: parseInt(org.id, 10),
@@ -138,11 +137,9 @@ const TodoItem = createReactClass({
             {task.status == 'skipped' && <span className="icon-x" />}
             {task.status == 'pending' && <span className="icon-ellipsis" />}
           </div>
-          <div onClick={this.handleClick}>
-            <a href={learnMoreUrl}>
-              <h4>{task.title}</h4>
-            </a>
-          </div>
+          <a href={learnMoreUrl} onClick={this.handleClick}>
+            <h4>{task.title}</h4>
+          </a>
           <div>{description}</div>
           {showSkipButton && (
             <a className="skip-btn btn btn-default" onClick={this.toggleConfirmation}>

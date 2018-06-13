@@ -1235,17 +1235,14 @@ exports[`Sidebar can have onboarding feature 1`] = `
                           <div
                             className="ob-checkbox"
                           />
-                          <div
+                          <a
+                            href="/organizations/org-slug/projects/new/"
                             onClick={[Function]}
                           >
-                            <a
-                              href="/organizations/org-slug/projects/new/"
-                            >
-                              <h4>
-                                Create a project
-                              </h4>
-                            </a>
-                          </div>
+                            <h4>
+                              Create a project
+                            </h4>
+                          </a>
                           <div>
                             <p>
                               Create your first Sentry project
@@ -1285,17 +1282,14 @@ exports[`Sidebar can have onboarding feature 1`] = `
                           <div
                             className="ob-checkbox"
                           />
-                          <div
+                          <a
+                            href="/organizations/org-slug/projects/choose/?onboarding=1&task=2"
                             onClick={[Function]}
                           >
-                            <a
-                              href="/organizations/org-slug/projects/choose/?onboarding=1&task=2"
-                            >
-                              <h4>
-                                Send your first event
-                              </h4>
-                            </a>
-                          </div>
+                            <h4>
+                              Send your first event
+                            </h4>
+                          </a>
                           <div>
                             <p>
                               Install Sentry's client
@@ -1334,17 +1328,14 @@ exports[`Sidebar can have onboarding feature 1`] = `
                           <div
                             className="ob-checkbox"
                           />
-                          <div
+                          <a
+                            href="/organizations/org-slug/members/"
                             onClick={[Function]}
                           >
-                            <a
-                              href="/organizations/org-slug/members/"
-                            >
-                              <h4>
-                                Invite team member
-                              </h4>
-                            </a>
-                          </div>
+                            <h4>
+                              Invite team member
+                            </h4>
+                          </a>
                           <div>
                             <p>
                               Bring your team aboard
@@ -1391,17 +1382,14 @@ exports[`Sidebar can have onboarding feature 1`] = `
                           <div
                             className="ob-checkbox"
                           />
-                          <div
+                          <a
+                            href="/organizations/org-slug/projects/new/"
                             onClick={[Function]}
                           >
-                            <a
-                              href="/organizations/org-slug/projects/new/"
-                            >
-                              <h4>
-                                Add a second platform
-                              </h4>
-                            </a>
-                          </div>
+                            <h4>
+                              Add a second platform
+                            </h4>
+                          </a>
                           <div>
                             <p>
                               Add Sentry to a second platform
@@ -1449,17 +1437,14 @@ exports[`Sidebar can have onboarding feature 1`] = `
                           <div
                             className="ob-checkbox"
                           />
-                          <div
+                          <a
+                            href="https://docs.sentry.io/hosted/learn/context/#capturing-the-user"
                             onClick={[Function]}
                           >
-                            <a
-                              href="https://docs.sentry.io/hosted/learn/context/#capturing-the-user"
-                            >
-                              <h4>
-                                Add user context
-                              </h4>
-                            </a>
-                          </div>
+                            <h4>
+                              Add user context
+                            </h4>
+                          </a>
                           <div>
                             <p>
                               Know who is being affected by crashes
@@ -1507,17 +1492,14 @@ exports[`Sidebar can have onboarding feature 1`] = `
                           <div
                             className="ob-checkbox"
                           />
-                          <div
+                          <a
+                            href="/organizations/org-slug/projects/choose/?onboarding=1&task=6"
                             onClick={[Function]}
                           >
-                            <a
-                              href="/organizations/org-slug/projects/choose/?onboarding=1&task=6"
-                            >
-                              <h4>
-                                Set up release tracking
-                              </h4>
-                            </a>
-                          </div>
+                            <h4>
+                              Set up release tracking
+                            </h4>
+                          </a>
                           <div>
                             <p>
                               See what releases are generating errors
@@ -1565,17 +1547,14 @@ exports[`Sidebar can have onboarding feature 1`] = `
                           <div
                             className="ob-checkbox"
                           />
-                          <div
+                          <a
+                            href="https://docs.sentry.io/hosted/clients/javascript/sourcemaps/"
                             onClick={[Function]}
                           >
-                            <a
-                              href="https://docs.sentry.io/hosted/clients/javascript/sourcemaps/"
-                            >
-                              <h4>
-                                Upload sourcemaps
-                              </h4>
-                            </a>
-                          </div>
+                            <h4>
+                              Upload sourcemaps
+                            </h4>
+                          </a>
                           <div>
                             <p>
                               Deminify javascript stacktraces
