@@ -85,10 +85,8 @@ def md5_from_hash(hash_bits):
 
 def get_fingerprint_for_event(event):
     fingerprint = event.data.get('fingerprint')
-    if fingerprint is None:
+    if not fingerprint:
         return ['{{ default }}']
-    if isinstance(fingerprint, six.string_types):
-        return [fingerprint]
     return fingerprint
 
 
@@ -333,27 +331,14 @@ class EventManager(object):
         def to_values(v):
             return {'values': v} if v and isinstance(v, (tuple, list)) else v
 
-        def convert_fingerprint(values):
-            rv = values[:]
-            bad_float = False
-            for idx, item in enumerate(rv):
-                if isinstance(item, float) and \
-                   (abs(item) >= (1 << 53) or int(item) != item):
-                    bad_float = True
-                rv[idx] = text(item)
-            if bad_float:
-                metrics.incr(
-                    'events.bad_float_fingerprint',
-                    skip_internal=True,
-                    tags={
-                        'project_id': data.get('project'),
-                    },
-                )
-            return rv
+        def stringify(f):
+            if isinstance(f, float):
+                return text(int(f)) if f < (1 << 53) else None
+            return text(f)
 
         casts = {
             'environment': lambda v: text(v) if v is not None else v,
-            'fingerprint': lambda v: convert_fingerprint(v) if isinstance(v, list) and all(isinstance(f, fp_types) for f in v) else v,
+            'fingerprint': lambda v: list(x for x in map(stringify, v) if x is not None) if isinstance(v, list) and all(isinstance(f, fp_types) for f in v) else v,
             'release': lambda v: text(v) if v is not None else v,
             'dist': lambda v: text(v).strip() if v is not None else v,
             'time_spent': lambda v: int(v) if v is not None else v,
