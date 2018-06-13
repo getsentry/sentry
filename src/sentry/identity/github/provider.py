@@ -47,6 +47,7 @@ class GitHubIdentityProvider(OAuth2Provider):
             'type': 'github',
             'id': user['id'],
             'email': user['email'],
+            'email_verified': bool(user['email']),
             'login': user['login'],
             'name': user['name'],
             'company': user['company'],
