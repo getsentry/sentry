@@ -161,6 +161,7 @@ class OAuth2ApiClientTest(TestCase):
                 'expires': timezone.now() - timedelta(days=200)
             }
         )
+
         client = OAuth2ApiClient(identity)
         client.check_auth()
 
