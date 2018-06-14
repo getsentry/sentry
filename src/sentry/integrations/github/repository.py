@@ -45,7 +45,7 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
 
     def _validate_repo(self, client, installation, repo):
         try:
-            repo = client.get_repo(repo)
+            repo_data = client.get_repo(repo)
         except Exception as e:
             installation.raise_error(e)
 
@@ -55,7 +55,7 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
         except Exception as e:
             installation.raise_error(e)
 
-        return repo
+        return repo_data
 
     def validate_config(self, organization, config, actor=None):
         """
