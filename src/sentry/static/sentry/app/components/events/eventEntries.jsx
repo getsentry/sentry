@@ -3,6 +3,7 @@ import React from 'react';
 
 import createReactClass from 'create-react-class';
 
+import analytics from 'app/utils/analytics';
 import {logException} from 'app/utils/logging';
 import EventCause from 'app/components/events/eventCause';
 import EventContexts from 'app/components/events/contexts';
@@ -65,6 +66,26 @@ const EventEntries = createReactClass({
     return {
       isShare: false,
     };
+  },
+
+  recordSourcemapError(errorTypes) {
+    let {project, event} = this.props;
+
+    analytics('sourcemap.sourcemap_error', {
+      'org_id': project.organization.id,
+      'group': event.groupID,
+      'error_type': errorTypes
+    })
+  },
+
+  componentDidMount() {
+    let {event} = this.props;
+
+    if (!event.errors || !event.errors.length > 0) return;
+    let errors = event.errors;
+    let errorTypes = errors.map((errorEntries) => errorEntries.type);
+
+    this.recordSourcemapError(errorTypes);
   },
 
   shouldComponentUpdate(nextProps, nextState) {
