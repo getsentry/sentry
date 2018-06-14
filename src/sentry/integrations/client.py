@@ -5,6 +5,7 @@ import json
 import requests
 
 from collections import OrderedDict
+from django.utils import timezone
 
 from BeautifulSoup import BeautifulStoneSoup
 from requests.exceptions import ConnectionError, HTTPError
@@ -236,3 +237,17 @@ class AuthApiClient(ApiClient):
         self.auth.refresh_token()
         kwargs = self.bind_auth(**kwargs)
         return ApiClient._request(self, method, path, **kwargs)
+
+
+class OAuth2ApiClient(ApiClient):
+    def __init__(self, identity, *args, **kwargs):
+        super(OAuth2ApiClient, self).__init__(*args, **kwargs)
+        self.identity = identity
+
+    def check_auth(self):
+        """
+        Checks if auth is expired and if so refreshes it
+        """
+        time_expires = self.identity.data.get('expires')
+        if time_expires is not None and time_expires <= timezone.now():
+            self.identity.idp.refresh_identity(self.identity)

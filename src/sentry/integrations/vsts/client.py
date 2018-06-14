@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.integrations.client import ApiClient
+from sentry.integrations.client import OAuth2ApiClient
 
 UNSET = object()
 
@@ -22,7 +22,7 @@ class VstsApiPath(object):
     work_items_create = u'https://{account_name}/{project}/_apis/wit/workitems/${type}'
 
 
-class VstsApiClient(ApiClient):
+class VstsApiClient(OAuth2ApiClient):
     api_version = '4.1'
 
     def __init__(self, access_token, *args, **kwargs):
@@ -30,6 +30,7 @@ class VstsApiClient(ApiClient):
         self.access_token = access_token
 
     def request(self, method, path, data=None, params=None):
+        self.check_auth()
         headers = {
             'Accept': 'application/json; api-version={}'.format(self.api_version),
             'Content-Type': 'application/json-patch+json' if method == 'PATCH' else 'application/json',
