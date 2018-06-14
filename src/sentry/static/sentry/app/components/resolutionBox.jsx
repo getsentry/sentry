@@ -54,7 +54,7 @@ export default class ResolutionBox extends React.Component {
     return (
       <div className="box">
         <span className="icon icon-checkmark" />
-        <p>{this.renderReason()}</p>
+        <p className="truncate break-all">{this.renderReason()}</p>
       </div>
     );
   };
