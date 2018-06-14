@@ -201,8 +201,12 @@ class UpdateProjectRuleTest(APITestCase):
                 'name': 'hello world',
                 'environment': 'production',
                 'actionMatch': 'any',
-                'actions': [],
-                'conditions': []
+                'actions': [{
+                    'id': 'sentry.rules.actions.notify_event.NotifyEventAction'
+                }],
+                'conditions': [{
+                    'id': 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition'
+                }],
             },
             format='json'
         )
@@ -246,8 +250,12 @@ class UpdateProjectRuleTest(APITestCase):
                 'name': 'hello world',
                 'environment': None,
                 'actionMatch': 'any',
-                'actions': [],
-                'conditions': []
+                'actions': [{
+                    'id': 'sentry.rules.actions.notify_event.NotifyEventAction'
+                }],
+                'conditions': [{
+                    'id': 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition'
+                }],
             },
             format='json'
         )
@@ -283,6 +291,7 @@ class UpdateProjectRuleTest(APITestCase):
                 'conditions': [{
                     'id': 'sentry.rules.actions.notify_event.NotifyEventAction'
                 }],
+                'actions': []
             },
             format='json'
         )
@@ -309,9 +318,12 @@ class UpdateProjectRuleTest(APITestCase):
             data={
                 'name': 'hello world',
                 'actionMatch': 'any',
+                'conditions': [{
+                    'id': 'sentry.rules.actions.notify_event.NotifyEventAction'
+                }],
                 'actions': [{
                     'id': 'foo'
-                }],
+                }]
             },
             format='json'
         )
@@ -341,11 +353,72 @@ class UpdateProjectRuleTest(APITestCase):
                 'conditions': [{
                     'id': 'sentry.rules.conditions.tagged_event.TaggedEventCondition'
                 }],
+                'actions': []
             },
             format='json'
         )
 
         assert response.status_code == 400, response.content
+
+        def test_rule_form_missing_condition(self):
+            self.login_as(user=self.user)
+
+            project = self.create_project()
+
+            rule = Rule.objects.create(project=project, label='foo')
+
+            url = reverse(
+                'sentry-api-0-project-rule-details',
+                kwargs={
+                    'organization_slug': project.organization.slug,
+                    'project_slug': project.slug,
+                    'rule_id': rule.id,
+                }
+            )
+            response = self.client.put(
+                url,
+                data={
+                    'name': 'hello world',
+                    'actionMatch': 'any',
+                    'conditions': [],
+                    'actions': [{
+                        'id': 'sentry.rules.actions.notify_event.NotifyEventAction'
+                    }],
+                },
+                format='json'
+            )
+
+            assert response.status_code == 400, response.content
+
+        def test_rule_form_missing_action(self):
+            self.login_as(user=self.user)
+
+            project = self.create_project()
+
+            rule = Rule.objects.create(project=project, label='foo')
+
+            url = reverse(
+                'sentry-api-0-project-rule-details',
+                kwargs={
+                    'organization_slug': project.organization.slug,
+                    'project_slug': project.slug,
+                    'rule_id': rule.id,
+                }
+            )
+            response = self.client.put(
+                url,
+                data={
+                    'name': 'hello world',
+                    'actionMatch': 'any',
+                    'action': [],
+                    'conditions': [{
+                        'id': 'sentry.rules.conditions.tagged_event.TaggedEventCondition'
+                    }],
+                },
+                format='json'
+            )
+
+            assert response.status_code == 400, response.content
 
 
 class DeleteProjectRuleTest(APITestCase):

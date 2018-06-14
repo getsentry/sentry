@@ -88,6 +88,20 @@ class RuleSerializer(serializers.Serializer):
 
         return attrs
 
+    def validate_conditions(self, attrs, source):
+        name = attrs.get(source)
+        if not name:
+            raise serializers.ValidationError(u'Must select a condition')
+
+        return attrs
+
+    def validate_actions(self, attrs, source):
+        name = attrs.get(source)
+        if not name:
+            raise serializers.ValidationError(u'Must select an action')
+
+        return attrs
+
     def save(self, rule):
         rule.project = self.context['project']
         if 'environment' in self.data:
