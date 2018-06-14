@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import analytics from 'app/utils/analytics';
 import {t} from '../../locale';
 import SidebarPanel from './sidebarPanel';
 import TodoList from '../onboardingWizard/todos';
@@ -15,6 +16,22 @@ class OnboardingStatus extends React.Component {
     hidePanel: PropTypes.func,
     collapsed: PropTypes.bool,
   };
+
+  componentDidUpdate(prevProps) {
+    let {currentPanel, org} = this.props;
+    if (
+      currentPanel !== prevProps.currentPanel &&
+      (currentPanel || prevProps.currentPanel == 'todos')
+    ) {
+      this.recordAnalytics(currentPanel, org.id);
+    }
+  }
+
+  recordAnalytics(currentPanel, orgId) {
+    currentPanel === 'todos'
+      ? analytics('onboarding.wizard_opened', {org_id: orgId})
+      : analytics('onboarding.wizard_closed', {org_id: orgId});
+  }
 
   render() {
     let {collapsed, org, currentPanel, hidePanel, showPanel, onShowPanel} = this.props;

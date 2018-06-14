@@ -1203,7 +1203,6 @@ exports[`Sidebar can have onboarding feature 1`] = `
               <div>
                 <div
                   className="onboarding-wrapper"
-                  onClick={[Function]}
                 >
                   <ul
                     className="list-unstyled"
@@ -1238,6 +1237,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                           />
                           <a
                             href="/organizations/org-slug/projects/new/"
+                            onClick={[Function]}
                           >
                             <h4>
                               Create a project
@@ -1284,6 +1284,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                           />
                           <a
                             href="/organizations/org-slug/projects/choose/?onboarding=1&task=2"
+                            onClick={[Function]}
                           >
                             <h4>
                               Send your first event
@@ -1329,6 +1330,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                           />
                           <a
                             href="/organizations/org-slug/members/"
+                            onClick={[Function]}
                           >
                             <h4>
                               Invite team member
@@ -1382,6 +1384,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                           />
                           <a
                             href="/organizations/org-slug/projects/new/"
+                            onClick={[Function]}
                           >
                             <h4>
                               Add a second platform
@@ -1436,6 +1439,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                           />
                           <a
                             href="https://docs.sentry.io/hosted/learn/context/#capturing-the-user"
+                            onClick={[Function]}
                           >
                             <h4>
                               Add user context
@@ -1490,6 +1494,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                           />
                           <a
                             href="/organizations/org-slug/projects/choose/?onboarding=1&task=6"
+                            onClick={[Function]}
                           >
                             <h4>
                               Set up release tracking
@@ -1544,6 +1549,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                           />
                           <a
                             href="https://docs.sentry.io/hosted/clients/javascript/sourcemaps/"
+                            onClick={[Function]}
                           >
                             <h4>
                               Upload sourcemaps

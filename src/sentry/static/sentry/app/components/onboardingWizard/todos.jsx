@@ -178,10 +178,6 @@ const TodoList = createReactClass({
     this.getOnboardingTasks();
   },
 
-  click(e) {
-    e.stopPropagation();
-  },
-
   render() {
     let nextTasks = this.state.tasks.filter(task => task.display);
 
@@ -191,7 +187,7 @@ const TodoList = createReactClass({
 
     return (
       <div>
-        <div onClick={this.click} className="onboarding-wrapper">
+        <div className="onboarding-wrapper">
           <ul className="list-unstyled">{todoListTasks}</ul>
         </div>
       </div>
