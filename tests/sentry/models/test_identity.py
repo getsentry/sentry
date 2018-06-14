@@ -8,7 +8,7 @@ from sentry.testutils import TestCase
 
 
 class ProviderDummy(Provider):
-    name = 'tester'
+    name = 'Tester'
     key = 'tester'
 
     def build_identity(self, state):
@@ -22,11 +22,7 @@ class IdentityTestCase(TestCase):
             external_id='tester_id',
         )
 
-        pipeline_provider = ProviderDummy()
-        pipeline_provider.name = 'Tester'
-        pipeline_provider.key = 'tester'
-        register(pipeline_provider)
-
+        register(ProviderDummy)
         identity_model = Identity.objects.create(
             idp=provider_model,
             user=self.user,
@@ -34,5 +30,5 @@ class IdentityTestCase(TestCase):
         )
 
         provider = identity_model.get_provider()
-        assert provider.type == 'tester'
-        assert provider.external_id == 'tester_id'
+        assert provider.name == 'Tester'
+        assert provider.key == 'tester'
