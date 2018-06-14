@@ -429,8 +429,24 @@ window.TestStubs = {
       id: '1',
       message: 'ApiException',
       groupID: '1',
-      eventID: '12345',
+      eventID: '12345678901234567890123456789012',
       ...params,
+    };
+  },
+
+  EventIdQueryResult: params => {
+    let event = TestStubs.Event({
+      metadata: {
+        type: 'event type',
+        value: 'event description',
+      },
+    });
+    return {
+      organizationSlug: 'org-slug',
+      projectSlug: 'project-slug',
+      groupId: event.groupID,
+      eventId: event.eventID,
+      event,
     };
   },
 
@@ -858,6 +874,22 @@ window.TestStubs = {
       isDefault: false,
     },
   ],
+
+  ShortIdQueryResult: params => {
+    let group = TestStubs.Group({
+      metadata: {
+        type: 'group type',
+        value: 'group description',
+      },
+    });
+    return {
+      organizationSlug: 'org-slug',
+      projectSlug: 'project-slug',
+      groupId: group.id,
+      shortId: 'test-1',
+      group,
+    };
+  },
 
   Subscriptions: () => {
     return [
