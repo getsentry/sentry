@@ -74,7 +74,7 @@ const SeenInfo = createReactClass({
         <dt key={0}>{t('When')}:</dt>
         {date ? (
           <dd key={1}>
-            <Tooltip title={this.getTooltipTitle} tooltipOptions={{html: true}}>
+            <Tooltip title={this.getTooltipTitle()} tooltipOptions={{html: true}}>
               <span>
                 <TimeSince className="dotted-underline" date={date} />
               </span>
