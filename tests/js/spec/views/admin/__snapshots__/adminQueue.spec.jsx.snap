@@ -63,9 +63,8 @@ exports[`AdminQueue render() renders 1`] = `
         <label>
           Show details for task:
         </label>
-        <Select2Field
+        <SelectField
           allowClear={true}
-          allowEmpty={false}
           choices={
             Array [
               Array [
@@ -238,13 +237,11 @@ exports[`AdminQueue render() renders 1`] = `
               ],
             ]
           }
+          clearable={true}
           disabled={false}
-          escapeMarkup={true}
           hideErrorMessage={false}
-          multiple={false}
           name="task"
           onChange={[Function]}
-          placeholder="--"
           required={false}
         />
       </div>

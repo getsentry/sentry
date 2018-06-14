@@ -75,9 +75,7 @@ exports[`OrganizationAuthView renders from api 1`] = `
           name="require_link"
           required={false}
         />
-        <Select2Field
-          allowClear={false}
-          allowEmpty={false}
+        <SelectField
           choices={
             Array [
               Array [
@@ -102,13 +100,11 @@ exports[`OrganizationAuthView renders from api 1`] = `
               ],
             ]
           }
+          clearable={true}
           disabled={false}
-          escapeMarkup={true}
           hideErrorMessage={false}
           label="Default Role"
-          multiple={false}
           name="default_role"
-          placeholder="--"
           required={true}
         />
       </ApiForm>

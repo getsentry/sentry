@@ -5,6 +5,8 @@ import {browserHistory} from 'react-router';
 import ProjectAlertRuleDetails from 'app/views/settings/projectAlerts/projectAlertRuleDetails';
 import EnvironmentStore from 'app/stores/environmentStore';
 
+import {selectByValue} from '../../helpers/select';
+
 jest.mock('jquery');
 jest.unmock('app/utils/recreateRoute');
 
@@ -87,7 +89,7 @@ describe('ProjectAlertRuleDetails', function() {
     });
 
     it('sets defaults', function() {
-      let selects = wrapper.find('Select2Field');
+      let selects = wrapper.find('SelectField Select');
       expect(selects.first().props().value).toBe('all');
       expect(selects.last().props().value).toBe(30);
     });
@@ -153,10 +155,17 @@ describe('ProjectAlertRuleDetails', function() {
     });
 
     it('sends correct environment value', function() {
+<<<<<<< HEAD
       wrapper
         .find('select#id-environment')
         .simulate('change', {target: {value: 'production'}});
       expect(wrapper.find('select#id-environment').props().value).toBe('production');
+=======
+      selectByValue(wrapper, 'production', {name: 'environment'});
+      expect(wrapper.find('SelectField[name="environment"] Select').prop('value')).toBe(
+        'production'
+      );
+>>>>>>> 0d086b6f08... feat(ui): Change Select2Field to use react-select
       wrapper.find('form').simulate('submit');
 
       expect(mock).toHaveBeenCalledWith(
@@ -167,10 +176,15 @@ describe('ProjectAlertRuleDetails', function() {
       );
     });
 
+<<<<<<< HEAD
     it('strips environment value if "All environments" is selected', function() {
       wrapper
         .find('select#id-environment')
         .simulate('change', {target: {value: '__all_environments__'}});
+=======
+    it('strips environment value if "All environments" is selected', async function() {
+      selectByValue(wrapper, '__all_environments__', {name: 'environment'});
+>>>>>>> 0d086b6f08... feat(ui): Change Select2Field to use react-select
       wrapper.find('form').simulate('submit');
 
       expect(mock).not.toHaveBeenCalledWith(

@@ -35,11 +35,13 @@ export default class SelectField extends FormField {
   };
 
   getField() {
-    const {options, placeholder, disabled, required} = this.props;
+    const {options, creatable, choices, placeholder, disabled, required} = this.props;
 
     return (
       <SelectControl
+        creatable={creatable}
         id={this.getId()}
+        choices={choices}
         options={options}
         placeholder={placeholder}
         disabled={disabled}

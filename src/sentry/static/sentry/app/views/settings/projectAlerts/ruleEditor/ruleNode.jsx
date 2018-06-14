@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 import Button from 'app/components/buttons/button';
-import {Select2Field, NumberField, TextField} from 'app/components/forms';
+import {SelectField, NumberField, TextField} from 'app/components/forms';
 
 class RuleNode extends React.Component {
   static propTypes = {
@@ -28,7 +28,8 @@ class RuleNode extends React.Component {
     }
 
     return (
-      <Select2Field
+      <SelectField
+        clearable={false}
         name={name}
         value={initialVal}
         choices={data.choices}

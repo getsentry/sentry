@@ -9,7 +9,7 @@ import NumberField from 'app/components/forms/numberField';
 import PasswordField from 'app/components/forms/passwordField';
 import RangeField from 'app/components/forms/rangeField';
 import SelectAsyncField from 'app/components/forms/selectAsyncField';
-import Select2Field from 'app/components/forms/select2Field';
+import SelectField from 'app/components/forms/selectField';
 import SelectCreatableField from 'app/components/forms/selectCreatableField';
 import TextField from 'app/components/forms/textField';
 import TextareaField from 'app/components/forms/textareaField';
@@ -77,7 +77,7 @@ export default class GenericField extends React.Component {
         if (props.has_autocomplete) {
           return <SelectAsyncField {...props} />;
         }
-        return <Select2Field {...props} />;
+        return <SelectField {...props} />;
       default:
         return null;
     }
