@@ -130,12 +130,12 @@ const TodoItem = createReactClass({
         onMouseOver={this.toggleDescription}
         onMouseOut={this.toggleDescription}
       >
-        {task.status == 'pending' && <div className="pending-bar" />}
+        {task.status === 'pending' && <div className="pending-bar" />}
         <div className="todo-content">
           <div className="ob-checkbox">
-            {task.status == 'complete' && <span className="icon-checkmark" />}
-            {task.status == 'skipped' && <span className="icon-x" />}
-            {task.status == 'pending' && <span className="icon-ellipsis" />}
+            {task.status === 'complete' && <span className="icon-checkmark" />}
+            {task.status === 'skipped' && <span className="icon-x" />}
+            {task.status === 'pending' && <span className="icon-ellipsis" />}
           </div>
           <a href={learnMoreUrl} onClick={this.handleClick}>
             <h4>{task.title}</h4>
