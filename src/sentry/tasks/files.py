@@ -6,7 +6,7 @@ from sentry.tasks.deletion import MAX_RETRIES
 
 @instrumented_task(
     name='sentry.tasks.files.delete_file',
-    queue='files',
+    queue='files.delete',
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES
 )
