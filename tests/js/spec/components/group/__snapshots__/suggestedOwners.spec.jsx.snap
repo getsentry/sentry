@@ -4,7 +4,7 @@ exports[`SuggestedOwners render() should not show owners committers without feat
 <SuggestedOwners
   event={
     Object {
-      "eventID": "12345",
+      "eventID": "12345678901234567890123456789012",
       "groupID": "1",
       "id": "1",
       "message": "ApiException",
@@ -184,7 +184,7 @@ exports[`SuggestedOwners render() should show owners when enable 1`] = `
 <SuggestedOwners
   event={
     Object {
-      "eventID": "12345",
+      "eventID": "12345678901234567890123456789012",
       "groupID": "1",
       "id": "1",
       "message": "ApiException",

@@ -23,6 +23,8 @@ class SearchResult extends React.Component {
         'member',
         'field',
         'route',
+        'issue',
+        'event',
       ]),
       /**
      * The type of result this is, for example:
@@ -30,7 +32,7 @@ class SearchResult extends React.Component {
      * - an application route (e.g. org dashboard)
      * - form field
      */
-      resultType: PropTypes.oneOf(['settings', 'route', 'field']),
+      resultType: PropTypes.oneOf(['settings', 'route', 'field', 'issue', 'event']),
       title: PropTypes.string,
       description: PropTypes.string,
       model: PropTypes.oneOfType([
@@ -38,6 +40,8 @@ class SearchResult extends React.Component {
         SentryTypes.Project,
         SentryTypes.Team,
         SentryTypes.Member,
+        SentryTypes.Group,
+        SentryTypes.Event,
       ]),
     }),
     matches: PropTypes.array,

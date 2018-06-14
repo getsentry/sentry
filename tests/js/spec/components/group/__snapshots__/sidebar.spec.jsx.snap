@@ -7,7 +7,7 @@ exports[`GroupSidebar renders with tags renders 1`] = `
   <SuggestedOwners
     event={
       Object {
-        "eventID": "12345",
+        "eventID": "12345678901234567890123456789012",
         "groupID": "1",
         "id": "1",
         "message": "ApiException",
