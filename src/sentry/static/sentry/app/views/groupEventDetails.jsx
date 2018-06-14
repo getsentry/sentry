@@ -110,6 +110,7 @@ const GroupEventDetails = createReactClass({
                 event={evt}
                 orgId={params.orgId}
                 project={this.getProject()}
+                release={this.props.group.lastRelease.version}
               />
             )}
           </div>

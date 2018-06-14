@@ -26,6 +26,7 @@ class CrashContent extends React.Component {
         type={stackType}
         values={exception.values}
         platform={event.platform}
+        release={event.release.version}
       />
     ) : (
       <ExceptionContent
@@ -34,12 +35,16 @@ class CrashContent extends React.Component {
         values={exception.values}
         platform={event.platform}
         newestFirst={newestFirst}
+        release={event.release.version}
+        event={event}
       />
     );
   };
 
   renderStacktrace = () => {
     const {event, stackView, newestFirst, stacktrace} = this.props;
+    // console.log("the release, again")
+    // this.props.event && console.log(this.props.event.release.version)
     return stackView === 'raw' ? (
       <pre className="traceback plain">
         {rawStacktraceContent(stacktrace, event.platform)}
@@ -50,12 +55,16 @@ class CrashContent extends React.Component {
         className="no-exception"
         includeSystemFrames={stackView === 'full'}
         platform={event.platform}
+        event={event}
         newestFirst={newestFirst}
+        release={event.release.version}
       />
     );
   };
 
   render() {
+    window.props = this.props.event;
+    // console.log("we're here", this.props.event.release.version);
     if (this.props.exception) {
       return <ErrorBoundary mini>{this.renderException()}</ErrorBoundary>;
     }

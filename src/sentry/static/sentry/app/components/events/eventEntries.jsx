@@ -31,6 +31,8 @@ import GenericInterface from 'app/components/events/interfaces/generic';
 import ThreadsInterface from 'app/components/events/interfaces/threads';
 import DebugMetaInterface from 'app/components/events/interfaces/debugmeta';
 
+import ApiMixin from 'app/mixins/apiMixin'; // I added this
+
 export const INTERFACES = {
   exception: ExceptionInterface,
   message: MessageInterface,
@@ -57,9 +59,10 @@ const EventEntries = createReactClass({
     // TODO(dcramer): ideally isShare would be replaced with simple permission
     // checks
     isShare: PropTypes.bool,
+    release: PropTypes.string,
   },
 
-  mixins: [GroupState],
+  mixins: [GroupState, ApiMixin],
 
   getDefaultProps() {
     return {
@@ -67,13 +70,97 @@ const EventEntries = createReactClass({
     };
   },
 
+  getInitialState() {
+    return {
+      loading: true,
+      error: false,
+      fileList: [],
+      pageLinks: null,
+    };
+  },
+
+  componentDidMount() {
+    this.fetchData(); // I added this
+  },
+
   shouldComponentUpdate(nextProps, nextState) {
-    return this.props.event.id !== nextProps.event.id;
+    return (
+      this.props.event.id !== nextProps.event.id ||
+      this.state.loading !== nextState.loading
+    );
+  },
+
+  getFilesEndpoint() {
+    let params = this.context;
+    let release = this.props.release;
+    return `/projects/${params.organization.slug}/${params.project
+      .slug}/releases/${encodeURIComponent(release)}/files/`;
+  },
+
+  fetchData() {
+    this.setState({
+      loading: true,
+      error: false,
+    });
+
+    this.api.request(this.getFilesEndpoint(), {
+      method: 'GET',
+      data: {},
+      success: (data, _, jqXHR) => {
+        this.setState({
+          error: false,
+          loading: false,
+          fileList: data,
+          pageLinks: jqXHR.getResponseHeader('Link'),
+        });
+      },
+      error: () => {
+        this.setState({
+          error: true,
+          loading: false,
+        });
+      },
+    });
+  },
+
+  //////////////////// I added this
+
+  compareFiles(fileList, stackTraceFiles) {
+    // compare the file list from artifacts against the culprit in the stack trace
+    // figure out how to send this to the error banner rather than console.logging
+
+    if (fileList.length === 0) {
+      console.log('Upload artifacts!');
+    } else {
+        for (let i = stackTraceFiles.length - 1; i > 0; i--) {
+          let stackTraceFile = stackTraceFiles[i].replace(/^.*[\\\/]/, '');
+          let fakeMap = stackTraceFile + '.map';
+          console.log("we're comparing: ", stackTraceFile, fakeMap)
+          if (fileList.includes(stackTraceFile) && fileList.includes(fakeMap)) {
+            console.log('All the filenames are gucci');
+          } else if (fileList.includes(stackTraceFile) && !fileList.includes(fakeMap)) {
+            console.log("You need to upload the sourcemap file");
+          } else if (!fileList.includes(stackTraceFile) && fileList.includes(fakeMap)) {
+            console.log("You need to upload the minified JS file");
+          } else {
+            console.log("We don't have any of your files");
+          }
+        }
+      }
   },
 
   interfaces: INTERFACES,
 
   render() {
+    const fileList = this.state.fileList.map(x => x.name.replace(/^.*[\\\/]/, ''));
+    const stackTraceFiles = this.props.event.entries[0].data.values[0].stacktrace.frames.map(
+      x => x.filename
+    );
+    const errorType = this.props.event.errors[0].type;
+    if (errorType === 'fetch_invalid_http_code') { // probably going to add other error types in later
+      this.compareFiles(fileList, stackTraceFiles);
+    }
+
     let {group, isShare, project, event, orgId} = this.props;
     let organization = this.getOrganization();
     let features = organization ? new Set(organization.features) : new Set();
@@ -118,7 +205,11 @@ const EventEntries = createReactClass({
     return (
       <div className="entries">
         {!utils.objectIsEmpty(event.errors) && (
-          <EventErrors group={group} event={event} />
+          <EventErrors
+            group={group}
+            event={event}
+            sourcemap-issue={this.isThereSourcemapIssue}
+          />
         )}{' '}
         {!isShare &&
           features.has('suggested-commits') && (

@@ -2,9 +2,13 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 //import GroupEventDataSection from "../eventDataSection";
+
 import Frame from 'app/components/events/interfaces/frame';
 import {t} from 'app/locale';
 import OrganizationState from 'app/mixins/organizationState';
+import ProjectState from 'app/mixins/projectState';
+import ApiMixin from 'app/mixins/apiMixin';
+
 
 const StacktraceContent = createReactClass({
   displayName: 'StacktraceContent',
@@ -15,14 +19,25 @@ const StacktraceContent = createReactClass({
     expandFirstFrame: PropTypes.bool,
     platform: PropTypes.string,
     newestFirst: PropTypes.bool,
+    release: PropTypes.string,
+    errorType: PropTypes.string,
   },
 
-  mixins: [OrganizationState],
+  mixins: [ApiMixin, ProjectState],
 
   getDefaultProps() {
     return {
       includeSystemFrames: true,
       expandFirstFrame: true,
+    };
+  },
+
+  getInitialState() {
+    return {
+      loading: true,
+      error: false,
+      fileList: [],
+      pageLinks: null,
     };
   },
 
@@ -46,7 +61,10 @@ const StacktraceContent = createReactClass({
   },
 
   render() {
+    let files = this.state.fileList;
     let data = this.props.data;
+    let errorType = this.props.errorType;
+
     let firstFrameOmitted, lastFrameOmitted;
 
     if (data.framesOmitted) {
