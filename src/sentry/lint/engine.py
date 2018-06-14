@@ -336,7 +336,7 @@ def run_formatter(cmd, file_list, prompt_on_changes=True):
     status = subprocess.Popen(cmd + file_list).wait()
     has_errors = status != 0
     if has_errors:
-        return False
+        return True
 
     # this is not quite correct, but it at least represents what would be staged
     output = subprocess.check_output(['git', 'diff'] + file_list)
