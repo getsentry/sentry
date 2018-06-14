@@ -120,8 +120,8 @@ const TodoItem = createReactClass({
 
     let showSkipButton =
       task.skippable &&
-      task.status != 'skipped' &&
-      task.status != 'complete' &&
+      task.status !== 'skipped' &&
+      task.status !== 'complete' &&
       !showConfirmation;
 
     return (

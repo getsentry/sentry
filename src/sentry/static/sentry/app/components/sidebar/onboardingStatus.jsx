@@ -28,7 +28,7 @@ class OnboardingStatus extends React.Component {
   }
 
   recordAnalytics(currentPanel, orgId) {
-    currentPanel == 'todos'
+    currentPanel === 'todos'
       ? analytics('onboarding.wizard_opened', {org_id: orgId})
       : analytics('onboarding.wizard_closed', {org_id: orgId});
   }
