@@ -1,18 +1,11 @@
 from __future__ import absolute_import
 
-from django.conf import settings
-
 from sentry.auth.superuser import logger, Superuser
 
 
 class SuperuserMiddleware(object):
     def process_request(self, request):
-        # This avoids touching user session, which means we avoid
-        # setting `Vary: Cookie` as a response header which will
-        # break HTTP caching entirely.
-        self.__skip_caching = request.path_info.startswith(settings.ANONYMOUS_STATIC_PREFIXES)
-
-        if self.__skip_caching:
+        if request.is_static:
             # XXX(dcramer): support legacy is_superuser calls for unauthenticated requests
             request.is_superuser = lambda: False
             return
@@ -32,7 +25,7 @@ class SuperuserMiddleware(object):
 
     def process_response(self, request, response):
         try:
-            if self.__skip_caching:
+            if request.is_static:
                 return response
         except AttributeError:
             pass
