@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
+from django.utils import timezone
+
 from sentry.api.base import Endpoint
 from sentry.relay import change_set, query
 from sentry.api.permissions import RelayPermission
@@ -13,6 +15,9 @@ class RelayHeartbeatEndpoint(Endpoint):
     permission_classes = (RelayPermission, )
 
     def post(self, request):
+        request.relay.last_seen = timezone.now()
+        request.relay.save()
+
         changesets = request.relay_request_data.get('changesets')
         if changesets:
             change_set.execute_changesets(request.relay, changesets)
