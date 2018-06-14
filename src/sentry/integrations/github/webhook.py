@@ -88,14 +88,13 @@ class InstallationEventWebhook(Webhook):
             org.id: org
             for org in integration.organizations.all()
         }
+        integration.update(status=1)
 
         Repository.objects.filter(
             organization_id__in=orgs.keys(),
             provider='integrations:github',
             integration_id=integration.id,
-        ).update(integration_id=None)
-
-        integration.delete()
+        ).update(status=1)
 
 
 class InstallationRepositoryEventWebhook(Webhook):

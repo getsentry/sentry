@@ -55,7 +55,8 @@ export default class OrganizationRepositories extends React.Component {
       onDeleteRepo,
     } = this.props;
     let {orgId} = params;
-    let hasItemList = itemList && itemList.length > 0;
+    let repoList = itemList.filter(repo => repo.provider.id !== 'integrations:github');
+    let hasRepoList = repoList && repoList.length > 0;
 
     return (
       <div>
@@ -84,7 +85,7 @@ export default class OrganizationRepositories extends React.Component {
           }
         />
 
-        {!hasItemList && (
+        {!hasRepoList && (
           <div className="m-b-2">
             <TextBlock>
               {t(
@@ -100,7 +101,7 @@ export default class OrganizationRepositories extends React.Component {
           </div>
         )}
 
-        {hasItemList ? (
+        {hasRepoList ? (
           <Panel>
             <PanelHeader disablePadding={true}>
               <Flex>
@@ -109,7 +110,7 @@ export default class OrganizationRepositories extends React.Component {
             </PanelHeader>
             <PanelBody>
               <Box>
-                {itemList.map(repo => {
+                {repoList.map(repo => {
                   let repoIsVisible = repo.status === 'active';
                   return (
                     <RepoRow key={repo.id}>
