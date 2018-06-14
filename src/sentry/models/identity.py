@@ -59,3 +59,7 @@ class Identity(Model):
         app_label = 'sentry'
         db_table = 'sentry_identity'
         unique_together = (('idp', 'external_id'), ('idp', 'user'))
+
+    def get_provider(self):
+        from sentry.identity import get
+        return get(self.idp.type)
