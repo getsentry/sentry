@@ -27,7 +27,7 @@ from jsonfield import JSONField
 
 from sentry.app import locks
 from sentry.db.models import (BoundedPositiveIntegerField, FlexibleForeignKey, Model)
-from sentry.models.tasks import delete_file as delete_file_task
+from sentry.tasks.files import delete_file as delete_file_task
 from sentry.utils import metrics
 from sentry.utils.retries import TimedRetryPolicy
 
