@@ -7,7 +7,7 @@ from uuid import uuid4
 from time import time
 from django.views.decorators.csrf import csrf_exempt
 
-
+from sentry.auth.exceptions import IdentityNotValid
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
@@ -83,6 +83,9 @@ class OAuth2Provider(Provider):
     def get_oauth_refresh_token(self):
         return self.config.get('refresh_token')
 
+    def get_refresh_token_headers(self):
+        return None
+
     def get_pipeline_views(self):
         return [
             OAuth2LoginView(
@@ -97,6 +100,14 @@ class OAuth2Provider(Provider):
             ),
         ]
 
+    def get_refresh_token_params(self, refresh_token):
+        return {
+            'client_id': self.get_client_id(),
+            'client_secret': self.get_client_secret(),
+            'grant_type': 'refresh_token',
+            'refresh_token': refresh_token,
+        }
+
     def get_oauth_data(self, payload):
         data = {'access_token': payload['access_token']}
 
@@ -108,6 +119,48 @@ class OAuth2Provider(Provider):
             data['token_type'] = payload['token_type']
 
         return data
+
+    def refresh_identity(self, auth_identity):
+        refresh_token = auth_identity.data.get('refresh_token')
+
+        if not refresh_token:
+            raise IdentityNotValid('Missing refresh token')
+
+        data = self.get_refresh_token_params(
+            refresh_token=refresh_token,
+        )
+
+        req = safe_urlopen(
+            url=self.get_refresh_token_url(),
+            headers=self.get_refresh_token_headers(),
+            data=data,
+        )
+
+        try:
+            body = safe_urlread(req)
+            payload = json.loads(body)
+        except Exception:
+            payload = {}
+
+        error = payload.get('error', 'unknown_error')
+        error_description = payload.get('error_description', 'no description available')
+
+        formatted_error = 'HTTP {} ({}): {}'.format(req.status_code, error, error_description)
+
+        if req.status_code == 401:
+            raise IdentityNotValid(formatted_error)
+
+        if req.status_code == 400:
+            # this may not be common, but at the very least Google will return
+            # an invalid grant when a user is suspended
+            if error == 'invalid_grant':
+                raise IdentityNotValid(formatted_error)
+
+        if req.status_code != 200:
+            raise Exception(formatted_error)
+
+        auth_identity.data.update(self.get_oauth_data(payload))
+        return auth_identity.update(data=auth_identity.data)
 
 
 class OAuth2LoginView(PipelineView):
