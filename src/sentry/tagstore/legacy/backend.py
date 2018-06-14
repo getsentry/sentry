@@ -684,7 +684,10 @@ class LegacyTagStorage(TagStorage):
                 ).count(),
             )
 
-    def get_tag_value_qs(self, project_id, environment_id, key, query=None):
+    def get_tag_value_paginator(self, project_id, environment_id, key, query=None,
+            order_by='-last_seen'):
+        from sentry.api.paginator import DateTimePaginator
+
         queryset = models.TagValue.objects.filter(
             project_id=project_id,
             key=key,
@@ -693,7 +696,29 @@ class LegacyTagStorage(TagStorage):
         if query:
             queryset = queryset.filter(value__contains=query)
 
-        return queryset
+        return DateTimePaginator(queryset=queryset, order_by=order_by)
+
+    def get_group_tag_value_iter(self, project_id, group_id, environment_id, key, callbacks=()):
+        from sentry.utils.query import RangeQuerySetWrapper
+
+        qs = self.get_group_tag_value_qs(project_id, group_id, environment_id, key)
+
+        return RangeQuerySetWrapper(queryset=qs, callbacks=callbacks)
+
+    def get_group_tag_value_paginator(self, project_id, group_id, environment_id, key,
+            order_by='-id'):
+        from sentry.api.paginator import DateTimePaginator, Paginator
+
+        qs = self.get_group_tag_value_qs(project_id, group_id, environment_id, key)
+
+        if order_by in ('-last_seen', '-first_seen'):
+            paginator_cls = DateTimePaginator
+        elif order_by == '-id':
+            paginator_cls = Paginator
+        else:
+            raise ValueError("Unsupported order_by: %s" % order_by)
+
+        return paginator_cls(queryset=qs, order_by=order_by)
 
     def get_group_tag_value_qs(self, project_id, group_id, environment_id, key, value=None):
         queryset = models.GroupTagValue.objects.filter(key=key)

@@ -56,7 +56,10 @@ class TagStorage(Service):
 
         'get_group_tag_keys_and_top_values',
 
-        'get_tag_value_qs',
+        'get_tag_value_paginator',
+        'get_group_tag_value_paginator',
+        'get_group_tag_value_iter',
+
         'get_group_tag_value_qs',
         'get_event_tag_qs',
     ])
@@ -294,9 +297,21 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_tag_value_qs(self, project_id, environment_id, key, query=None):
+    def get_tag_value_paginator(self, project_id, environment_id, key, query=None):
         """
-        >>> get_tag_value_qs(1, 2, 'environment', query='prod')
+        >>> get_tag_value_paginator(1, 2, 'environment', query='prod')
+        """
+        raise NotImplementedError
+
+    def get_group_tag_value_iter(self, project_id, group_id, environment_id, key, callbacks=()):
+        """
+        >>> get_group_tag_value_iter(1, 2, 3, 'environment')
+        """
+        raise NotImplementedError
+
+    def get_group_tag_value_paginator(self, project_id, group_id, environment_id, key):
+        """
+        >>> get_group_tag_value_paginator(1, 2, 3, 'environment')
         """
         raise NotImplementedError
 
