@@ -3,14 +3,14 @@ from __future__ import absolute_import
 import pytest
 import responses
 
-from django.utils import timezone
-from datetime import timedelta
+from time import time
 from mock import Mock
 from sentry.testutils import TestCase
 
 from sentry.integrations.exceptions import (
     ApiError, ApiHostError, ApiUnauthorized, UnsupportedResponseType
 )
+from sentry.identity import register
 from sentry.integrations.client import ApiClient, AuthApiClient, OAuth2ApiClient
 from sentry.identity.oauth2 import OAuth2Provider
 from sentry.models import Identity, IdentityProvider
@@ -137,14 +137,15 @@ class OAuth2ApiClientTest(TestCase):
         self.user = self.create_user()
         self.organization = self.create_organization()
         self.access_token = '1234567890'
-        self.identity_provider_model = IdentityProvider.objects.create(type='OAuthBase')
-        self.identity_provider = OAuthProvider()
+        self.identity_provider_model = IdentityProvider.objects.create(type='oauth')
+        register(OAuthProvider)
 
+    @responses.activate
     def test_check_auth(self):
         new_auth = {
             'access_token': '1234567890',
-            'refrsh_token': '0987654321',
-            'expires_in': '45678988239',
+            'refresh_token': '0987654321',
+            'expires_in': 45678988239,
         }
         responses.add(
             responses.POST,
@@ -158,13 +159,42 @@ class OAuth2ApiClientTest(TestCase):
             data={
                 'access_token': 'access_token',
                 'refresh_token': 'refresh_token',
-                'expires': timezone.now() - timedelta(days=200)
+                'expires': int(time()) - 3600
             }
         )
 
         client = OAuth2ApiClient(identity)
         client.check_auth()
 
-        assert client.identity.config['access_token'] == new_auth['access_token']
-        assert client.identity.config['refresh_token'] == new_auth['refresh_token']
-        assert client.identity.config['expires'] > timezone.now()
+        assert client.identity.data['access_token'] == new_auth['access_token']
+        assert client.identity.data['refresh_token'] == new_auth['refresh_token']
+        assert client.identity.data['expires'] > int(time())
+
+    @responses.activate
+    def test_check_auth_no_refresh(self):
+        new_auth = {
+            'access_token': '1234567890',
+            'refresh_token': '0987654321',
+            'expires_in': 45678988239,
+        }
+        old_auth = {
+            'access_token': 'access_token',
+            'refresh_token': 'refresh_token',
+            'expires': int(time()) + 3600
+        }
+        responses.add(
+            responses.POST,
+            'https://world.wide.web',
+            json=new_auth,
+        )
+        identity = Identity.objects.create(
+            idp=self.identity_provider_model,
+            user=self.user,
+            external_id='oauth_base',
+            data=old_auth
+        )
+
+        client = OAuth2ApiClient(identity)
+        client.check_auth()
+
+        assert client.identity.data == old_auth
