@@ -53,7 +53,14 @@ class VstsIntegration(Integration):
         else:
             project_choices = [(project['id'], project['name']) for project in projects['value']]
 
-        default_project = self.project_integration.config.get('default_project')
+        try:
+            # TODO(LB): Will not work in the UI until the serliazer sends a `project_id` to get_installation()
+            # serializers and UI are being refactored and it's not worth trying to fix
+            # the old system. Revisit
+            default_project = self.project_integration.config.get('default_project')
+        except Exception:
+            default_project = None
+
         initial_project = ('', '')
         if default_project is not None:
             for project_id, project_name in project_choices:
