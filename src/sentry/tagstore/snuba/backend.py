@@ -15,6 +15,7 @@ from dateutil.parser import parse as parse_datetime
 from django.utils import timezone
 import six
 import time
+import pytz
 
 from sentry.tagstore import TagKeyStatus
 from sentry.tagstore.base import TagStorage
@@ -36,7 +37,7 @@ tag_value_data_transformers = {
     'last_seen': parse_datetime,
 }
 
-parse_date = lambda d: datetime.strptime(d, '%Y-%m-%dT%H:%M:%S+00:00')
+parse_date = lambda d: datetime.strptime(d, '%Y-%m-%dT%H:%M:%S+00:00').replace(tzinfo=pytz.UTC)
 
 
 def fix_tag_value_data(data):
@@ -391,6 +392,11 @@ class SnubaTagStorage(TagStorage):
         if not order_by == '-last_seen':
             raise ValueError("Unsupported order_by: %s" % order_by)
 
+        conditions = []
+        # TODO: Add Snuba support for something like this?
+        # if query:
+        #     conditions.append(['like(bar, \'%%%s%%\')' % query, '=', 1])
+
         start, end = self.get_time_range()
         results = snuba.query(
             start=start,
@@ -406,6 +412,7 @@ class SnubaTagStorage(TagStorage):
                 ['min', 'timestamp', 'first_seen'],
                 ['max', 'timestamp', 'last_seen'],
             ],
+            conditions=conditions,
             orderby=order_by,
             # TODO: This means they can't actually paginate all TagValues.
             limit=1000,

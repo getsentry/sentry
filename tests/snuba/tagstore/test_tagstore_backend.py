@@ -338,3 +338,83 @@ class TagStorageTest(SnubaTestCase):
                 'browser': 'ie'
             }
         )) == set([])
+
+    def test_get_tag_value_paginator(self):
+        from sentry.tagstore.types import TagValue
+
+        # TODO: test query= once support is added
+
+        assert list(self.ts.get_tag_value_paginator(
+            self.proj1.id,
+            self.proj1env1.id,
+            'sentry:user',
+        ).get_result(10)) == [
+            TagValue(
+                key='sentry:user',
+                value=u'id:user1',
+                times_seen=2,
+                first_seen=self.now - timedelta(seconds=2),
+                last_seen=self.now - timedelta(seconds=1)
+            ),
+            TagValue(
+                key='sentry:user',
+                value=u'id:user2',
+                times_seen=1,
+                first_seen=self.now - timedelta(seconds=2),
+                last_seen=self.now - timedelta(seconds=2)
+            )
+        ]
+
+    def test_get_group_tag_value_iter(self):
+        from sentry.tagstore.types import GroupTagValue
+
+        assert list(self.ts.get_group_tag_value_iter(
+            self.proj1.id,
+            self.proj1group1.id,
+            self.proj1env1.id,
+            'sentry:user',
+        )) == [
+            GroupTagValue(
+                group_id=self.proj1group1.id,
+                key='sentry:user',
+                value=u'id:user1',
+                times_seen=1,
+                first_seen=self.now - timedelta(seconds=1),
+                last_seen=self.now - timedelta(seconds=1)
+            ),
+            GroupTagValue(
+                group_id=self.proj1group1.id,
+                key='sentry:user',
+                value=u'id:user2',
+                times_seen=1,
+                first_seen=self.now - timedelta(seconds=2),
+                last_seen=self.now - timedelta(seconds=2)
+            )
+        ]
+
+    def test_get_group_tag_value_paginator(self):
+        from sentry.tagstore.types import GroupTagValue
+
+        assert list(self.ts.get_group_tag_value_paginator(
+            self.proj1.id,
+            self.proj1group1.id,
+            self.proj1env1.id,
+            'sentry:user',
+        ).get_result(10)) == [
+            GroupTagValue(
+                group_id=self.proj1group1.id,
+                key='sentry:user',
+                value=u'id:user1',
+                times_seen=1,
+                first_seen=self.now - timedelta(seconds=1),
+                last_seen=self.now - timedelta(seconds=1)
+            ),
+            GroupTagValue(
+                group_id=self.proj1group1.id,
+                key='sentry:user',
+                value=u'id:user2',
+                times_seen=1,
+                first_seen=self.now - timedelta(seconds=2),
+                last_seen=self.now - timedelta(seconds=2)
+            )
+        ]
