@@ -6,8 +6,8 @@ import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
 import VersionHoverCard from 'app/components/versionHoverCard';
 import Tooltip from 'app/components/tooltip';
+import {componentToString} from 'app/utils/componentToString';
 import {defined, toTitleCase} from 'app/utils';
-import componentToString from 'app/utils/componentToString';
 import {t} from 'app/locale';
 
 const SeenInfo = createReactClass({
