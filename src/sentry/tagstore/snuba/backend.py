@@ -431,9 +431,6 @@ class SnubaTagStorage(TagStorage):
     def get_group_tag_value_iter(self, project_id, group_id, environment_id, key, callbacks=()):
         from sentry.tagstore.types import GroupTagValue
 
-        # from sentry.models import GroupHash
-        # hashes = list(GroupHash.objects.filter(group_id=group_id).values_list('hash', flat=True))
-
         start, end = self.get_time_range()
         results = snuba.query(
             start=start,
@@ -443,7 +440,6 @@ class SnubaTagStorage(TagStorage):
                 'project_id': [project_id],
                 'environment': [environment_id],
                 'tags_key': [key],
-                # 'primary_hash': hashes,
                 'issue': [group_id],
             },
             aggregations=[
@@ -485,7 +481,7 @@ class SnubaTagStorage(TagStorage):
             raise ValueError("Unsupported order_by: %s" % order_by)
 
         group_tag_values = self.get_group_tag_value_iter(
-            project_id, group_id, environment_id, key, order_by=order_by
+            project_id, group_id, environment_id, key
         )
 
         desc = order_by.startswith('-')
