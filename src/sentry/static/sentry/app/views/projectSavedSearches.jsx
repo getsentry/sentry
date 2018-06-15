@@ -86,9 +86,7 @@ class SavedSearchRow extends React.Component {
                 message={t('Are you sure you want to remove this?')}
                 onConfirm={this.handleRemove}
               >
-                <Button size="small">
-                  <span className="icon icon-trash" />
-                </Button>
+                <Button size="small" icon="icon-trash" />
               </Confirm>
             </InputColumn>
           )}

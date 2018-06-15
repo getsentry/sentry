@@ -1,12 +1,13 @@
 import {Box, Flex} from 'grid-emotion';
 import React from 'react';
 
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
+import Button from 'app/components/buttons/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ExternalLink from 'app/components/externalLink';
 import LinkWithConfirmation from 'app/components/linkWithConfirmation';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import Tooltip from 'app/components/tooltip';
@@ -39,13 +40,12 @@ export default class ProjectTags extends AsyncView {
   renderLink(key, canDelete, idx) {
     return (
       <LinkWithConfirmation
-        className={'btn btn-sm btn-default'}
         title={'Remove tag?'}
         message={'Are you sure you want to remove this tag?'}
         onConfirm={() => this.onDelete(key, idx)}
         disabled={!canDelete}
       >
-        <span className="icon icon-trash" />
+        <Button size="xsmall" icon="icon-trash" />
       </LinkWithConfirmation>
     );
   }
