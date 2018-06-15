@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from collections import OrderedDict
 from contextlib import contextmanager
 from dateutil.parser import parse as parse_datetime
 from itertools import chain
@@ -167,12 +168,12 @@ def nest_groups(data, groups, aggregate_cols):
             return {c: data[0][c] for c in aggregate_cols} if data else None
     else:
         g, rest = groups[0], groups[1:]
-        inter = {}
+        inter = OrderedDict()
         for d in data:
             inter.setdefault(d[g], []).append(d)
-        return {
-            k: nest_groups(v, rest, aggregate_cols) for k, v in six.iteritems(inter)
-        }
+        return OrderedDict(
+            (k, nest_groups(v, rest, aggregate_cols)) for k, v in six.iteritems(inter)
+        )
 
 
 def is_condition(cond_or_list):

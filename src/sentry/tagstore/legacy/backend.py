@@ -635,7 +635,7 @@ class LegacyTagStorage(TagStorage):
 
         # ANY matches should come last since they're the least specific and
         # will provide the largest range of matches
-        tag_lookups = sorted(six.iteritems(tags), key=lambda (k, v): v == ANY)
+        tag_lookups = sorted(six.iteritems(tags), key=lambda k_v: k_v[1] == ANY)
 
         # get initial matches to start the filter
         matches = candidates or []
@@ -701,7 +701,9 @@ class LegacyTagStorage(TagStorage):
     def get_group_tag_value_iter(self, project_id, group_id, environment_id, key, callbacks=()):
         from sentry.utils.query import RangeQuerySetWrapper
 
-        qs = self.get_group_tag_value_qs(project_id, group_id, environment_id, key)
+        qs = self.get_group_tag_value_qs(
+            project_id, group_id, environment_id, key
+        )
 
         return RangeQuerySetWrapper(queryset=qs, callbacks=callbacks)
 

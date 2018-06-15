@@ -10,10 +10,11 @@ from __future__ import absolute_import
 
 import functools
 from collections import defaultdict
-from datetime import timedelta
+from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_datetime
 from django.utils import timezone
 import six
+import time
 
 from sentry.tagstore import TagKeyStatus
 from sentry.tagstore.base import TagStorage
@@ -34,6 +35,8 @@ tag_value_data_transformers = {
     'first_seen': parse_datetime,
     'last_seen': parse_datetime,
 }
+
+parse_date = lambda d: datetime.strptime(d, '%Y-%m-%dT%H:%M:%S+00:00')
 
 
 def fix_tag_value_data(data):
@@ -382,42 +385,115 @@ class SnubaTagStorage(TagStorage):
 
     def get_tag_value_paginator(self, project_id, environment_id, key, query=None,
             order_by='-last_seen'):
-        from sentry.api.paginator import DateTimePaginator
+        from sentry.api.paginator import SequencePaginator
+        from sentry.tagstore.types import TagValue
 
-        qs = models.TagValue.objects.select_related('_key').filter(
-            project_id=project_id,
-            _key__project_id=project_id,
-            _key__key=key,
+        if not order_by == '-last_seen':
+            raise ValueError("Unsupported order_by: %s" % order_by)
+
+        start, end = self.get_time_range()
+        results = snuba.query(
+            start=start,
+            end=end,
+            groupby=['tags_value'],
+            filter_keys={
+                'project_id': [project_id],
+                'environment': [environment_id],
+                'tags_key': [key],
+            },
+            aggregations=[
+                ['count()', '', 'times_seen'],
+                ['min', 'timestamp', 'first_seen'],
+                ['max', 'timestamp', 'last_seen'],
+            ],
+            orderby=order_by,
+            # TODO: This means they can't actually paginate all TagValues.
+            limit=1000,
         )
 
-        qs = self._add_environment_filter(qs, environment_id)
+        tag_values = [
+            TagValue(
+                key=key,
+                value=k or u'',
+                times_seen=v['times_seen'],
+                first_seen=parse_date(v['first_seen']),
+                last_seen=parse_date(v['last_seen']),
+            ) for k, v in six.iteritems(results)
+        ]
 
-        if query:
-            qs = qs.filter(value__contains=query)
-
-        return DateTimePaginator(queryset=qs, order_by=order_by)
+        desc = order_by.startswith('-')
+        score_field = order_by.lstrip('-')
+        return SequencePaginator(
+            [(time.mktime(getattr(tv, score_field).timetuple()), tv) for tv in tag_values],
+            reverse=desc
+        )
 
     def get_group_tag_value_iter(self, project_id, group_id, environment_id, key, callbacks=()):
-        from sentry.utils.query import RangeQuerySetWrapper
+        from sentry.tagstore.types import GroupTagValue
 
-        qs = self.get_group_tag_value_qs(project_id, group_id, environment_id, key)
+        # from sentry.models import GroupHash
+        # hashes = list(GroupHash.objects.filter(group_id=group_id).values_list('hash', flat=True))
 
-        return RangeQuerySetWrapper(queryset=qs, callbacks=callbacks)
+        start, end = self.get_time_range()
+        results = snuba.query(
+            start=start,
+            end=end,
+            groupby=['tags_value'],
+            filter_keys={
+                'project_id': [project_id],
+                'environment': [environment_id],
+                'tags_key': [key],
+                # 'primary_hash': hashes,
+                'issue': [group_id],
+            },
+            aggregations=[
+                ['count()', '', 'times_seen'],
+                ['min', 'timestamp', 'first_seen'],
+                ['max', 'timestamp', 'last_seen'],
+            ],
+            orderby='-first_seen',  # Closest thing to pre-existing `-id` order
+            # TODO: This means they can't actually iterate all GroupTagValues.
+            limit=1000,
+        )
+
+        group_tag_values = [
+            GroupTagValue(
+                group_id=group_id,
+                key=key,
+                value=k or u'',
+                times_seen=v['times_seen'],
+                first_seen=parse_date(v['first_seen']),
+                last_seen=parse_date(v['last_seen']),
+            ) for k, v in six.iteritems(results)
+        ]
+
+        for cb in callbacks:
+            cb(group_tag_values)
+
+        return group_tag_values
 
     def get_group_tag_value_paginator(self, project_id, group_id, environment_id, key,
             order_by='-id'):
-        from sentry.api.paginator import DateTimePaginator, Paginator
-
-        qs = self.get_group_tag_value_qs(project_id, group_id, environment_id, key)
+        from sentry.api.paginator import SequencePaginator
 
         if order_by in ('-last_seen', '-first_seen'):
-            paginator_cls = DateTimePaginator
+            pass
         elif order_by == '-id':
-            paginator_cls = Paginator
+            # Snuba has no unique id per GroupTagValue so we'll substitute `-first_seen`
+            order_by = '-first_seen'
         else:
             raise ValueError("Unsupported order_by: %s" % order_by)
 
-        return paginator_cls(queryset=qs, order_by=order_by)
+        group_tag_values = self.get_group_tag_value_iter(
+            project_id, group_id, environment_id, key, order_by=order_by
+        )
+
+        desc = order_by.startswith('-')
+        score_field = order_by.lstrip('-')
+        return SequencePaginator(
+            [(time.mktime(getattr(gtv, score_field).timetuple()), gtv) for gtv in group_tag_values],
+            reverse=desc
+        )
 
     def get_group_tag_value_qs(self, project_id, group_id, environment_id, key, value=None):
         # This method is not implemented because it is only used by the Django

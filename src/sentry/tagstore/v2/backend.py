@@ -27,7 +27,6 @@ from sentry.utils import db
 
 from . import models
 from sentry.tagstore.types import TagKey, TagValue, GroupTagKey, GroupTagValue
-from functools import reduce
 
 
 logger = logging.getLogger('sentry.tagstore.v2')
@@ -1000,7 +999,9 @@ class V2TagStorage(TagStorage):
     def get_group_tag_value_iter(self, project_id, group_id, environment_id, key, callbacks=()):
         from sentry.utils.query import RangeQuerySetWrapper
 
-        qs = self.get_group_tag_value_qs(project_id, group_id, environment_id, key)
+        qs = self.get_group_tag_value_qs(
+            project_id, group_id, environment_id, key
+        )
 
         return RangeQuerySetWrapper(queryset=qs, callbacks=callbacks)
 
