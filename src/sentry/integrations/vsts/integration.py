@@ -36,10 +36,7 @@ class VstsIntegration(Integration):
         if self.default_identity is None:
             self.default_identity = self.get_default_identity()
 
-        access_token = self.default_identity.data.get('access_token')
-        if access_token is None:
-            raise ValueError('Identity missing access token')
-        return VstsApiClient(access_token)
+        return VstsApiClient(self.default_identity)
 
 
 class VstsIntegrationProvider(IntegrationProvider):

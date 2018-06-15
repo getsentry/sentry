@@ -25,9 +25,10 @@ class VstsApiPath(object):
 class VstsApiClient(OAuth2ApiClient):
     api_version = '4.1'
 
-    def __init__(self, access_token, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super(VstsApiClient, self).__init__(*args, **kwargs)
-        self.access_token = access_token
+        if 'access_token' not in self.identity.data:
+            raise ValueError('Vsts Identity missing access token')
 
     def request(self, method, path, data=None, params=None):
         self.check_auth()
@@ -36,7 +37,7 @@ class VstsApiClient(OAuth2ApiClient):
             'Content-Type': 'application/json-patch+json' if method == 'PATCH' else 'application/json',
             'X-HTTP-Method-Override': method,
             'X-TFS-FedAuthRedirect': 'Suppress',
-            'Authorization': 'Bearer {}'.format(self.access_token)
+            'Authorization': 'Bearer {}'.format(self.identity.data['access_token'])
         }
         return self._request(method, path, headers=headers, data=data, params=params)
 

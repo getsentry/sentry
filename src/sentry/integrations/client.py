@@ -5,11 +5,11 @@ import json
 import requests
 
 from collections import OrderedDict
-from django.utils import timezone
 
 from BeautifulSoup import BeautifulStoneSoup
 from requests.exceptions import ConnectionError, HTTPError
-
+from sentry.exceptions import InvalidIdentity
+from time import time
 from django.utils.functional import cached_property
 
 from sentry.http import build_session
@@ -249,5 +249,7 @@ class OAuth2ApiClient(ApiClient):
         Checks if auth is expired and if so refreshes it
         """
         time_expires = self.identity.data.get('expires')
-        if time_expires is not None and time_expires <= timezone.now():
-            self.identity.idp.refresh_identity(self.identity)
+        if time_expires is None:
+            raise InvalidIdentity('OAuth2ApiClient requires identity with specified expired time')
+        if int(time_expires) <= int(time()):
+            self.identity.get_provider().refresh_identity(self.identity)

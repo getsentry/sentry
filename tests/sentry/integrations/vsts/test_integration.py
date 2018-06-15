@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import responses
 
-import pytest
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.identity.vsts import VSTSIdentityProvider
@@ -50,7 +49,8 @@ class VstsIntegrationTest(APITestCase):
         organization = self.create_organization()
         project = self.create_project(organization=organization)
         self.access_token = '1234567890'
-        model = Integration.objects.create(
+        self.instance = 'instance.visualstudio.com'
+        self.model = Integration.objects.create(
             provider='integrations:vsts',
             external_id='vsts_external_id',
             name='vsts_name',
@@ -58,15 +58,15 @@ class VstsIntegrationTest(APITestCase):
                  'domain_name': 'instance.visualstudio.com'
             }
         )
+        self.identity_provider = IdentityProvider.objects.create(type='vsts')
         self.identity = Identity.objects.create(
-            idp=IdentityProvider.objects.create(
-                type='vsts',
-                config={}
-            ),
+            idp=self.identity_provider,
             user=self.user,
             external_id='vsts_id',
             data={
                 'access_token': self.access_token,
+                'refresh_token': 'qwertyuiop',
+                'expires': int(time()) - int(1234567890),
             }
         )
         self.org_integration = model.add_organization(organization.id, self.identity.id)
@@ -97,51 +97,24 @@ class VstsIntegrationTest(APITestCase):
             },
         )
 
+    def assert_identity_updated(self, new_identity, expected_data):
+        assert new_identity.data['access_token'] == expected_data['access_token']
+        assert new_identity.data['token_type'] == expected_data['token_type']
+        assert new_identity.data['refresh_token'] == expected_data['refresh_token']
+        assert new_identity.data['expires'] >= time()
+
     def test_get_client(self):
         client = self.integration.get_client()
-        assert client.access_token == self.access_token
+        assert client.identity.data['access_token'] == self.access_token
 
     @responses.activate
-    def test_get_project_config(self):
-        fields = self.integration.get_project_config()
-        assert len(fields) == 1
-        project_field = fields[0]
-        assert project_field['name'] == 'default_project'
-        assert project_field['disabled'] is False
-        assert project_field['choices'] == self.projects
-        assert project_field['initial'] == ('', '')
+    def test_refreshes_expired_token(self):
 
-    @responses.activate
-    def test_get_project_config_initial(self):
-        self.integration.project_integration.config = {'default_project': self.projects[1][0]}
-        self.integration.project_integration.save()
-        fields = self.integration.get_project_config()
-        assert len(fields) == 1
-        project_field = fields[0]
-        assert project_field['name'] == 'default_project'
-        assert project_field['disabled'] is False
-        assert project_field['choices'] == self.projects
-        assert project_field['initial'] == self.projects[1]
-
-    def test_get_project_config_failed_api_call(self):
-        fields = self.integration.get_project_config()
-        assert len(fields) == 1
-        project_field = fields[0]
-        assert project_field['name'] == 'default_project'
-        assert project_field['disabled'] is True
-
-    def test_get_refresh_identity_params_incomplete(self):
-        # no refresh token in identity
-        self.integration.default_identity = self.integration.get_default_identity()
-        with pytest.raises(IdentityNotValid):
-            self.integration.get_refresh_identity_params()
-
-    @responses.activate
-    def test_refresh_identity(self):
+        projects = {'value': ['Project1', 'Project2'], 'count': 2, }
         refresh_data = {
             'access_token': 'access token for this user',
             'token_type': 'type of token',
-            'expires_in': 'time in seconds that the token remains valid',
+            'expires_in': 123456789,
             'refresh_token': 'new refresh token to use when the token has timed out',
         }
         responses.add(
@@ -149,15 +122,19 @@ class VstsIntegrationTest(APITestCase):
             'https://app.vssps.visualstudio.com/oauth2/token',
             json=refresh_data,
         )
-        refresh_token = '123456789'
-        self.identity.update(
-            data={
-                'access_token': self.access_token,
-                'refresh_token': refresh_token,
-            }
+        responses.add(
+            responses.GET,
+            'https://{}/DefaultCollection/_apis/projects'.format(self.instance),
+            json=projects,
         )
-        self.integration.refresh_identity()
 
-        assert len(responses.calls) == 1
-        assert self.integration.default_identity.data == refresh_data
-        assert Identity.objects.get(id=self.identity.id).data == refresh_data
+        result = self.integration.get_client().get_projects(self.instance)
+
+        assert len(responses.calls) == 2
+        default_identity = self.integration.default_identity
+        self.assert_identity_updated(default_identity, refresh_data)
+
+        identity = Identity.objects.get(id=self.identity.id)
+        self.assert_identity_updated(identity, refresh_data)
+
+        assert result == projects
