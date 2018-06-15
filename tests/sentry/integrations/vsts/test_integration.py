@@ -44,6 +44,7 @@ class VstsIntegrationTest(APITestCase):
     def setUp(self):
         user = self.create_user()
         organization = self.create_organization()
+        project = self.create_project(organization=organization)
         self.access_token = '1234567890'
         model = Integration.objects.create(
             provider='integrations:vsts',
@@ -66,7 +67,8 @@ class VstsIntegrationTest(APITestCase):
             }
         )
         self.org_integration = model.add_organization(organization.id, identity.id)
-        self.integration = VstsIntegration(model, organization.id)
+        self.project_integration = model.add_project(project.id)
+        self.integration = VstsIntegration(model, organization.id, project.id)
         self.projects = [
             ('eb6e4656-77fc-42a1-9181-4c6d8e9da5d1', 'ProjectB'),
             ('6ce954b1-ce1f-45d1-b94d-e6bf2464ba2c', 'ProjectA')
@@ -108,7 +110,8 @@ class VstsIntegrationTest(APITestCase):
 
     @responses.activate
     def test_get_project_config_initial(self):
-        self.org_integration.update(config={'default_project': 'ProjectA'})
+        self.integration.project_integration.config = {'default_project': self.projects[1][0]}
+        self.integration.project_integration.save()
         fields = self.integration.get_project_config()
         assert len(fields) == 1
         project_field = fields[0]

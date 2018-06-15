@@ -53,7 +53,7 @@ class VstsIntegration(Integration):
         else:
             project_choices = [(project['id'], project['name']) for project in projects['value']]
 
-        default_project = self.org_integration.config.get('default_project')
+        default_project = self.project_integration.config.get('default_project')
         initial_project = ('', '')
         if default_project is not None:
             for project_id, project_name in project_choices:
@@ -149,17 +149,3 @@ class VstsIntegrationProvider(IntegrationProvider):
             VstsRepositoryProvider,
             id='integrations:vsts',
         )
-
-
-def get_projects(instance, access_token):
-    session = http.build_session()
-    url = 'https://%s/DefaultCollection/_apis/projects' % instance
-    response = session.get(
-        url,
-        headers={
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer %s' % access_token,
-        }
-    )
-    response.raise_for_status()
-    return response.json()
