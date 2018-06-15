@@ -4,6 +4,7 @@ from mistune import markdown
 
 
 from sentry.integrations.issues import IssueSyncMixin
+from django.utils.translation import ugettext as _
 # from sentry.utils.http import absolute_uri
 
 
@@ -18,18 +19,26 @@ class VstsIssueSync(IssueSyncMixin):
         fields = super(VstsIssueSync, self).get_create_issue_config(group, **kwargs)
         client = self.get_client()
         try:
-            projects = client.get_projects(self.instance)
+            projects = client.get_projects(self.instance)['value']
         except Exception as e:
             self.raise_error(e)
 
+        project_choices = []
+        initial_project = ('', '')
+        for project in projects:
+            project_choices.append((project['id'], project['name']))
+            if project['id'] == self.default_project:
+                initial_project = project['name']
         return [
             {
                 'name': 'project',
-                'label': 'Project',
-                # 'default': self.default_project, TODO(LB): Pending config working
-                'type': 'text',
-                'choices': [i['name'] for i in projects['value']],
                 'required': True,
+                'name': 'project',
+                'type': 'choice',
+                'choices': project_choices,
+                'defaultValue': initial_project,
+                'label': _('Project'),
+                'placeholder': initial_project or _('MyProject'),
             }
         ] + fields
 
