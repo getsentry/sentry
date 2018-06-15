@@ -139,7 +139,7 @@ class FileBlob(Model):
     def deletefile(self, commit=False):
         assert self.path
 
-        delete_file_task.delay(self.path)
+        delete_file_task.delay(self.path, self.checksum)
 
         self.path = None
 
