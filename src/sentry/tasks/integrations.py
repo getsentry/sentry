@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from sentry.tasks.base import instrumented_task, retry
 
-from sentry.models import ExternalIssue, Integration
+from sentry.models import ExternalIssue, Integration, User
 from sentry.integrations.exceptions import IntegrationError
 
 
@@ -30,3 +30,22 @@ def post_comment(external_issue_id, data, **kwargs):
 @retry(on=(IntegrationError,))
 def sync_metadata(installation):
     installation.sync_metadata()
+
+
+@instrumented_task(
+    name='sentry.tasks.integrations.sync_assignee_outbound',
+    queue='integrations',
+    default_retry_delay=60 * 5,
+    max_retries=5
+)
+@retry(exclude=(ExternalIssue.DoesNotExist, Integration.DoesNotExist, User.DoesNotExist))
+def sync_assignee_outbound(external_issue_id, user_id, **kwargs):
+    # sync Sentry assignee to an external issue
+    external_issue = ExternalIssue.objects.get(id=external_issue_id)
+    integration = Integration.objects.get(id=external_issue.integration_id)
+    # assume unassign if None
+    if user_id is None:
+        user = None
+    else:
+        user = User.objects.get(id=user_id)
+    integration.get_installation().sync_assignee_outbound(external_issue, user)
