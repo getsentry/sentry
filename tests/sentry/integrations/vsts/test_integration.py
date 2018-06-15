@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import responses
 
-
+from time import time
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.identity.vsts import VSTSIdentityProvider
 from sentry.integrations.vsts import VstsIntegration, VstsIntegrationProvider
@@ -69,33 +69,9 @@ class VstsIntegrationTest(APITestCase):
                 'expires': int(time()) - int(1234567890),
             }
         )
-        self.org_integration = model.add_organization(organization.id, self.identity.id)
-        self.project_integration = model.add_project(project.id)
-        self.integration = VstsIntegration(model, organization.id, project.id)
-        self.projects = [
-            ('eb6e4656-77fc-42a1-9181-4c6d8e9da5d1', 'ProjectB'),
-            ('6ce954b1-ce1f-45d1-b94d-e6bf2464ba2c', 'ProjectA')
-        ]
-
-        responses.add(
-            responses.GET,
-            'https://instance.visualstudio.com/DefaultCollection/_apis/projects',
-            json={
-                'value': [
-                    {
-                        'id': self.projects[0][0],
-                        'name': self.projects[0][1],
-
-                    },
-                    {
-                        'id': self.projects[1][0],
-                        'name': self.projects[1][1],
-
-                    }
-                ],
-                'count': 2
-            },
-        )
+        self.org_integration = self.model.add_organization(organization.id, self.identity.id)
+        self.project_integration = self.model.add_project(project.id)
+        self.integration = VstsIntegration(self.model, organization.id, project.id)
 
     def assert_identity_updated(self, new_identity, expected_data):
         assert new_identity.data['access_token'] == expected_data['access_token']
