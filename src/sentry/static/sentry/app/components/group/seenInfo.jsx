@@ -6,8 +6,8 @@ import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
 import VersionHoverCard from 'app/components/versionHoverCard';
 import Tooltip from 'app/components/tooltip';
+import {componentToString} from 'app/utils/componentToString';
 import {defined, toTitleCase} from 'app/utils';
-import componentToString from 'app/utils/componentToString';
 import {t} from 'app/locale';
 
 const SeenInfo = createReactClass({
@@ -74,7 +74,7 @@ const SeenInfo = createReactClass({
         <dt key={0}>{t('When')}:</dt>
         {date ? (
           <dd key={1}>
-            <Tooltip title={this.getTooltipTitle} tooltipOptions={{html: true}}>
+            <Tooltip title={this.getTooltipTitle()} tooltipOptions={{html: true}}>
               <span>
                 <TimeSince className="dotted-underline" date={date} />
               </span>
