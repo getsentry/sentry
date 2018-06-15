@@ -115,7 +115,7 @@ const TagDistributionMeter = createReactClass({
             '%';
 
           return (
-            <Tooltip key={value.id} title={tooltipHtml} tooltipOptions={{html: true}}>
+            <Tooltip key={value.key} title={tooltipHtml} tooltipOptions={{html: true}}>
               <Link
                 className={className}
                 style={{width: pct + '%'}}

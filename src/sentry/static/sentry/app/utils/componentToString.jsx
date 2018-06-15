@@ -1,7 +1,5 @@
-import ReactDOM from 'react-dom';
+import ReactDOMServer from 'react-dom/server';
 
-export default function(node) {
-  let el = document.createElement('div');
-  ReactDOM.render(node, el);
-  return el.innerHTML;
+export function componentToString(node) {
+  return ReactDOMServer.renderToStaticMarkup(node);
 }
