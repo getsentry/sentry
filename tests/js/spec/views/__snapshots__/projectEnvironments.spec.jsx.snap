@@ -91,7 +91,7 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
               >
                 <Title>
                   <div
-                    className="css-zmdcxu-Title e1kblvez1"
+                    className="css-zmdcxu-Title e1kblvez2"
                   >
                     Manage Environments
                   </div>
@@ -311,7 +311,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
               >
                 <Title>
                   <div
-                    className="css-zmdcxu-Title e1kblvez1"
+                    className="css-zmdcxu-Title e1kblvez2"
                   >
                     Manage Environments
                   </div>
@@ -977,7 +977,7 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
               >
                 <Title>
                   <div
-                    className="css-zmdcxu-Title e1kblvez1"
+                    className="css-zmdcxu-Title e1kblvez2"
                   >
                     Manage Environments
                   </div>
@@ -1197,7 +1197,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
               >
                 <Title>
                   <div
-                    className="css-zmdcxu-Title e1kblvez1"
+                    className="css-zmdcxu-Title e1kblvez2"
                   >
                     Manage Environments
                   </div>

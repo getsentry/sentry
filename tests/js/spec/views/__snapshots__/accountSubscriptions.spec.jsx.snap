@@ -64,7 +64,7 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                   >
                     <Title>
                       <div
-                        className="css-zmdcxu-Title e1kblvez1"
+                        className="css-zmdcxu-Title e1kblvez2"
                       >
                         Subscriptions
                       </div>

@@ -47,7 +47,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                   >
                     <Title>
                       <div
-                        className="css-zmdcxu-Title e1kblvez1"
+                        className="css-zmdcxu-Title e1kblvez2"
                       >
                         Projects
                       </div>
@@ -128,20 +128,20 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                             size="small"
                                           >
                                             <Component
-                                              className="css-h7y7by-Icon e17811v32"
+                                              className="css-ctvapb-Icon e17811v32"
                                               hasChildren={true}
                                               size="small"
                                             >
                                               <Box
-                                                className="css-h7y7by-Icon e17811v32"
+                                                className="css-ctvapb-Icon e17811v32"
                                                 size="small"
                                               >
                                                 <Base
-                                                  className="e17811v32 css-11bwulm-Icon"
+                                                  className="e17811v32 css-1t0n34y-Icon"
                                                   size="small"
                                                 >
                                                   <div
-                                                    className="e17811v32 css-11bwulm-Icon"
+                                                    className="e17811v32 css-1t0n34y-Icon"
                                                     is={null}
                                                     size="small"
                                                   >

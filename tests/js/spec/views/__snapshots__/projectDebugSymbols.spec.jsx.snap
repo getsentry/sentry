@@ -30,7 +30,7 @@ exports[`ProjectDebugSymbols renders 1`] = `
               >
                 <Title>
                   <div
-                    className="css-zmdcxu-Title e1kblvez1"
+                    className="css-zmdcxu-Title e1kblvez2"
                   >
                     Debug Information Files
                   </div>
@@ -279,7 +279,7 @@ exports[`ProjectDebugSymbols renders 1`] = `
                 >
                   <Title>
                     <div
-                      className="css-zmdcxu-Title e1kblvez1"
+                      className="css-zmdcxu-Title e1kblvez2"
                     >
                       Unreferenced Debug Information Files
                     </div>

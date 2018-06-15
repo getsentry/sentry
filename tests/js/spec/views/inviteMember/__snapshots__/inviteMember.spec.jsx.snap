@@ -46,7 +46,7 @@ exports[`CreateProject should render roles when available and allowed, and handl
               >
                 <Title>
                   <div
-                    className="css-zmdcxu-Title e1kblvez1"
+                    className="css-zmdcxu-Title e1kblvez2"
                   >
                     Add Member to Organization
                   </div>
