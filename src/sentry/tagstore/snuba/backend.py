@@ -393,9 +393,8 @@ class SnubaTagStorage(TagStorage):
             raise ValueError("Unsupported order_by: %s" % order_by)
 
         conditions = []
-        # TODO: Add Snuba support for something like this?
-        # if query:
-        #     conditions.append(['like(bar, \'%%%s%%\')' % query, '=', 1])
+        if query:
+            conditions.append(['tags_value', 'LIKE', '%{}%'.format(query)])
 
         start, end = self.get_time_range()
         results = snuba.query(
