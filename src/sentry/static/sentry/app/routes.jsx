@@ -17,7 +17,7 @@ import GroupMergedView from 'app/views/groupMerged/groupMergedView';
 import GroupSimilarView from 'app/views/groupSimilar/groupSimilarView';
 import GroupTagValues from 'app/views/groupTagValues';
 import GroupTags from 'app/views/groupTags';
-import GroupUserReports from 'app/views/groupUserReports';
+import GroupUserFeedback from 'app/views/groupUserFeedback';
 import HookStore from 'app/stores/hookStore';
 import LazyLoad from 'app/components/lazyLoad';
 import MyIssuesAssignedToMe from 'app/views/myIssues/assignedToMe';
@@ -51,7 +51,7 @@ import ProjectIssueTracking from 'app/views/projectIssueTracking';
 import ProjectReleases from 'app/views/projectReleases';
 import ProjectSavedSearches from 'app/views/projectSavedSearches';
 import ProjectSettings from 'app/views/projectSettings';
-import ProjectUserReports from 'app/views/projectUserReports';
+import ProjectUserFeedback from 'app/views/projectUserFeedback';
 import ProjectPlugins from 'app/views/projectPlugins';
 import ProjectPluginDetails from 'app/views/projectPluginDetails';
 import ReleaseAllEvents from 'app/views/releaseAllEvents';
@@ -829,7 +829,7 @@ function routes() {
             <Route path="artifacts/" component={errorHandler(ReleaseArtifacts)} />
             <Route path="commits/" component={errorHandler(ReleaseCommits)} />
           </Route>
-          <Route path="user-feedback/" component={errorHandler(ProjectUserReports)} />
+          <Route path="user-feedback/" component={errorHandler(ProjectUserFeedback)} />
 
           <Route path="settings/" component={errorHandler(ProjectSettings)}>
             <Redirect from="teams/" to="/settings/:orgId/:projectId/teams/" />
@@ -940,7 +940,7 @@ function routes() {
             <Route path="events/" component={errorHandler(GroupEvents)} />
             <Route path="tags/" component={errorHandler(GroupTags)} />
             <Route path="tags/:tagKey/" component={errorHandler(GroupTagValues)} />
-            <Route path="feedback/" component={errorHandler(GroupUserReports)} />
+            <Route path="feedback/" component={errorHandler(GroupUserFeedback)} />
             <Route path="similar/" component={errorHandler(GroupSimilarView)} />
             <Route path="merged/" component={errorHandler(GroupMergedView)} />
           </Route>
