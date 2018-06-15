@@ -129,7 +129,7 @@ class OAuthProvider(OAuth2Provider):
         return 'client_secret'
 
     def get_refresh_token_url(self):
-        return 'https://world.wide.web'
+        return 'https://example.com'
 
 
 class OAuth2ApiClientTest(TestCase):
@@ -149,7 +149,7 @@ class OAuth2ApiClientTest(TestCase):
         }
         responses.add(
             responses.POST,
-            'https://world.wide.web',
+            'https://example.com',
             json=new_auth,
         )
         identity = Identity.objects.create(
@@ -184,7 +184,7 @@ class OAuth2ApiClientTest(TestCase):
         }
         responses.add(
             responses.POST,
-            'https://world.wide.web',
+            'https://example.com',
             json=new_auth,
         )
         identity = Identity.objects.create(
