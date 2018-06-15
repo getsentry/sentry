@@ -111,7 +111,7 @@ class OAuth2Provider(Provider):
     def get_oauth_data(self, payload):
         data = {'access_token': payload['access_token']}
         if 'expires_in' in payload:
-            data['expires'] = int(time()) + int(payload['expires_in'])
+            data['expires'] = int(time()) + payload['expires_in']
         if 'refresh_token' in payload:
             data['refresh_token'] = payload['refresh_token']
         if 'token_type' in payload:
