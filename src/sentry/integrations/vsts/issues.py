@@ -5,7 +5,6 @@ from mistune import markdown
 
 from sentry.integrations.issues import IssueSyncMixin
 from django.utils.translation import ugettext as _
-# from sentry.utils.http import absolute_uri
 
 
 class VstsIssueSync(IssueSyncMixin):
@@ -64,7 +63,9 @@ class VstsIssueSync(IssueSyncMixin):
                 instance=self.instance,
                 project=project,
                 title=title,
-                comment=markdown(description),
+                # Decriptions cannot easily be seen. So, a comment will be added as well.
+                description=markdown(description),
+                comment=markdown(description)
                 # link=link,
             )
         except Exception as e:
@@ -78,58 +79,10 @@ class VstsIssueSync(IssueSyncMixin):
         }
 
     def get_issue(self, issue_id, **kwargs):
-        raise NotImplementedError
-
-    # def get_issue_label(self, group, issue, **kwargs):
-    #     return 'Bug {}'.format(issue['id'])
-
-    # def get_issue_url(self, group, issue, **kwargs):
-    #     return issue['url']
-
-    # def get_link_existing_issue_fields(self, request, group, event, **kwargs):
-    #     return [
-    #         {
-    #             'name': 'item_id',
-    #             'label': 'Work Item ID',
-    #             'default': '',
-    #             'type': 'text',
-    #         },
-    #         {
-    #             'name': 'comment',
-    #             'label': 'Comment',
-    #             'default': 'I\'ve identified this issue in Sentry: {}'.format(
-    #                 absolute_uri(group.get_absolute_url()),
-    #             ),
-    #             'type': 'textarea',
-    #             'help': ('Markdown is supported. Leave blank if you don\'t want to add a comment.'),
-    #             'required': False
-    #         }
-    #     ]
-
-    # def link_issue(self, request, group, form_data, **kwargs):
-    #     client = self.get_client()
-    #     if form_data.get('comment'):
-    #         try:
-    #             work_item = client.update_work_item(
-    #                 instance=self.instance,
-    #                 id=form_data['item_id'],
-    #                 link=absolute_uri(group.get_absolute_url()),
-    #                 comment=markdown(form_data['comment']) if form_data.get(
-    #                     'comment') else None,
-    #             )
-    #         except Exception as e:
-    #             self.raise_error(e)
-    #     else:
-    #         try:
-    #             work_item = client.get_work_item(
-    #                 instance=self.instance,
-    #                 id=form_data['item_id'],
-    #             )
-    #         except Exception as e:
-    #             self.raise_error(e)
-
-    #     return {
-    #         'id': work_item['id'],
-    #         'url': work_item['_links']['html']['href'],
-    #         'title': work_item['fields']['System.Title'],
-    #     }
+        client = self.get_client()
+        work_item = client.get_work_item(self.instance, issue_id)
+        return {
+            'key': work_item['id'],
+            'title': work_item['fields']['System.Title'],
+            'description': work_item['fields']['System.Description']
+        }
