@@ -6,7 +6,6 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models import Environment
-from sentry.tagstore.types import TagValue
 
 
 class ProjectTagKeyValuesEndpoint(ProjectEndpoint, EnvironmentMixin):
@@ -50,17 +49,5 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint, EnvironmentMixin):
         return self.paginate(
             request=request,
             paginator=paginator,
-            on_results=lambda results: serialize(
-                map(  # XXX: This is a pretty big abstraction leak
-                    lambda instance: TagValue(
-                        key=instance.key,
-                        value=instance.value,
-                        times_seen=instance.times_seen,
-                        first_seen=instance.first_seen,
-                        last_seen=instance.last_seen,
-                    ),
-                    results,
-                ),
-                request.user
-            ),
+            on_results=lambda results: serialize(results, request.user),
         )

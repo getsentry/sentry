@@ -994,7 +994,20 @@ class V2TagStorage(TagStorage):
         if query:
             qs = qs.filter(value__contains=query)
 
-        return DateTimePaginator(queryset=qs, order_by=order_by)
+        return DateTimePaginator(
+            queryset=qs,
+            order_by=order_by,
+            on_results=lambda results: map(
+                lambda instance: TagValue(
+                    key=instance.key,
+                    value=instance.value,
+                    times_seen=instance.times_seen,
+                    first_seen=instance.first_seen,
+                    last_seen=instance.last_seen,
+                ),
+                results
+            )
+        )
 
     def get_group_tag_value_iter(self, project_id, group_id, environment_id, key, callbacks=()):
         from sentry.utils.query import RangeQuerySetWrapper
@@ -1018,7 +1031,21 @@ class V2TagStorage(TagStorage):
         else:
             raise ValueError("Unsupported order_by: %s" % order_by)
 
-        return paginator_cls(queryset=qs, order_by=order_by)
+        return paginator_cls(
+            queryset=qs,
+            order_by=order_by,
+            on_results=lambda results: map(
+                lambda instance: GroupTagValue(
+                    group_id=instance.group_id,
+                    key=instance.key,
+                    value=instance.value,
+                    times_seen=instance.times_seen,
+                    last_seen=instance.last_seen,
+                    first_seen=instance.first_seen,
+                ),
+                results
+            )
+        )
 
     def get_group_tag_value_qs(self, project_id, group_id, environment_id, key, value=None):
         qs = models.GroupTagValue.objects.select_related('_key', '_value').filter(
