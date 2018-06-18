@@ -652,7 +652,7 @@ class V2TagStorage(TagStorage):
                         },
                         extra=extra)
 
-    def get_group_event_ids(self, project_id, group_id, environment_id, tags):
+    def get_group_event_filter(self, project_id, group_id, environment_id, tags):
         # NOTE: `environment_id=None` needs to be filtered differently in this method.
         # EventTag never has NULL `environment_id` fields (individual Events always have an environment),
         # and so `environment_id=None` needs to query EventTag for *all* environments (except, ironically
@@ -691,7 +691,7 @@ class V2TagStorage(TagStorage):
         except KeyError:
             # one or more tags were invalid, thus the result should be an empty
             # set
-            return set()
+            return None
 
         # Django doesnt support union, so we limit results and try to find
         # reasonable matches
@@ -720,9 +720,9 @@ class V2TagStorage(TagStorage):
                 ).values_list('event_id', flat=True)[:1000]
             )
             if not matches:
-                return set()
+                return None
 
-        return set(matches)
+        return {'id__in': set(matches)}
 
     def get_groups_user_counts(self, project_id, group_ids, environment_id):
         qs = models.GroupTagKey.objects.filter(

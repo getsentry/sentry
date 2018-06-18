@@ -235,12 +235,12 @@ class IndexEventTagsTest(TestCase):
                 tags=[('foo', 'bar'), ('biz', 'baz')],
             )
 
-        assert tagstore.get_group_event_ids(
+        assert tagstore.get_group_event_filter(
             self.project.id,
             group.id,
             self.environment.id,
             {'foo': 'bar', 'biz': 'baz'},
-        ) == set([event.id])
+        ) == {'id__in': set([event.id])}
 
         # ensure it safely handles repeat runs
         with self.tasks():
@@ -253,9 +253,9 @@ class IndexEventTagsTest(TestCase):
                 tags=[('foo', 'bar'), ('biz', 'baz')],
             )
 
-        assert tagstore.get_group_event_ids(
+        assert tagstore.get_group_event_filter(
             self.project.id,
             group.id,
             self.environment.id,
             {'foo': 'bar', 'biz': 'baz'},
-        ) == set([event.id])
+        ) == {'id__in': set([event.id])}

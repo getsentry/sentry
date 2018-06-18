@@ -1,7 +1,9 @@
 from __future__ import absolute_import
 
+from six.moves.urllib.parse import quote_plus
+
 from django.core.urlresolvers import reverse
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext as _
 
 from sentry.integrations import (
     Integration, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
@@ -178,15 +180,13 @@ class JiraIntegration(Integration, IssueSyncMixin):
             fkwargs['choices'] = self.make_choices(field_meta.get('allowedValues'))
         elif field_meta.get('autoCompleteUrl') and \
                 (schema.get('items') == 'user' or schema['type'] == 'user'):
-            pass
-            # TODO(jess): implement autocomplete for users
-            # fieldtype = 'select'
-            # sentry_url = '/api/0/issues/%s/plugins/%s/autocomplete' % (group.id, self.slug)
-            # fkwargs['url'] = '%s?jira_url=%s' % (
-            #     sentry_url, quote_plus(field_meta['autoCompleteUrl']),
-            # )
-            # fkwargs['has_autocomplete'] = True
-            # fkwargs['placeholder'] = 'Start typing to search for a user'
+            fieldtype = 'select'
+            sentry_url = reverse(
+                'sentry-extensions-jira-search', args=[group.organization.slug, self.model.id],
+            )
+            fkwargs['url'] = '%s?jira_url=%s' % (
+                sentry_url, quote_plus(field_meta['autoCompleteUrl']),
+            )
         elif schema['type'] in ['timetracking']:
             # TODO: Implement timetracking (currently unsupported alltogether)
             return None

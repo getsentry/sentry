@@ -43,7 +43,7 @@ class TagStorage(Service):
         'get_group_list_tag_value',
 
         'get_groups_user_counts',
-        'get_group_event_ids',
+        'get_group_event_filter',
         'get_group_tag_value_count',
         'get_top_group_tag_values',
         'get_first_release',
@@ -291,9 +291,9 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_group_event_ids(self, project_id, group_id, environment_id, tags):
+    def get_group_event_filter(self, project_id, group_id, environment_id, tags):
         """
-        >>> get_group_event_ids(1, 2, 3, {'key1': 'value1', 'key2': 'value2'})
+        >>> get_group_event_filter(1, 2, 3, {'key1': 'value1', 'key2': 'value2'})
         """
         raise NotImplementedError
 

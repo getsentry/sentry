@@ -93,6 +93,28 @@ class ProjectIntegrationSerializer(Serializer):
         return integration
 
 
+class IntegrationProviderSerializer(Serializer):
+    def serialize(self, obj, attrs, user, organization):
+        metadata = obj.metadata
+        metadata = metadata and metadata._asdict() or None
+
+        return {
+            'key': obj.key,
+            'name': obj.name,
+            'metadata': metadata,
+            'canAdd': obj.can_add,
+            'canAddProject': obj.can_add_project,
+            'features': [f.value for f in obj.features],
+            'setupDialog': dict(
+                url='/organizations/{}/integrations/{}/setup/'.format(
+                    organization.slug,
+                    obj.key,
+                ),
+                **obj.setup_dialog_config
+            )
+        }
+
+
 class IntegrationIssueConfigSerializer(IntegrationSerializer):
     def __init__(self, group, action, params=None):
         self.group = group

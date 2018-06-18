@@ -497,10 +497,24 @@ class SnubaTagStorage(TagStorage):
         # search backend.
         raise NotImplementedError
 
-    def get_group_event_ids(self, project_id, group_id, environment_id, tags):
-        # This method is not implemented since the `event.id` column doesn't
-        # exist in Snuba.
-        raise NotImplementedError
+    def get_group_event_filter(self, project_id, group_id, environment_id, tags):
+        start, end = self.get_time_range()
+        filters = {
+            'project_id': [project_id],
+            'environment': [environment_id],
+            'issue': [group_id],
+        }
+
+        conditions = [[['tags[{}]'.format(k), '=', v] for (k, v) in tags.items()]]
+
+        result = snuba.query(start, end, groupby=['event_id'], conditions=conditions,
+            filter_keys=filters, orderby='event_id', limit=1000,
+            referrer='tagstore.get_group_event_filter')
+
+        if not result:
+            return None
+
+        return {'event_id__in': set(result.keys())}
 
     def get_group_ids_for_search_filter(
             self, project_id, environment_id, tags, candidates=None, limit=1000):

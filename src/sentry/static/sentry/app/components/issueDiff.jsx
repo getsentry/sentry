@@ -78,9 +78,17 @@ class IssueDiff extends React.Component {
     // diff multiple exceptions
     //
     // See: https://github.com/getsentry/sentry/issues/6055
-    const exc = event.entries.find(({type}) => type === 'exception');
+    let exc = event.entries.find(({type}) => type === 'exception');
 
-    if (!exc || !exc.data) return [];
+    if (!exc) {
+      // Look for a message if not an exception
+      let msg = event.entries.find(({type}) => type === 'message');
+      if (!msg) return [];
+
+      return msg.data && msg.data.message && [msg.data.message];
+    }
+
+    if (!exc.data) return [];
 
     return exc.data.values
       .filter(value => !!value.stacktrace)

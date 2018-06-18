@@ -124,6 +124,10 @@ class AsyncComponent extends React.Component {
     });
   };
 
+  onRequestSuccess({stateKey, data, jqXHR}) {
+    // Allow children to implement this
+  }
+
   handleRequestSuccess = ({stateKey, data, jqXHR}, initialRequest) => {
     this.setState(prevState => {
       let state = {
@@ -139,6 +143,7 @@ class AsyncComponent extends React.Component {
 
       return state;
     });
+    this.onRequestSuccess({stateKey, data, jqXHR});
   };
 
   handleError(error, [stateKey]) {
