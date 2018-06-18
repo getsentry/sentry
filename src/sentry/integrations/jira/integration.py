@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from six.moves.urllib.parse import quote_plus
 
 from django.core.urlresolvers import reverse
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext as _
 
 from sentry.integrations import (
     Integration, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
