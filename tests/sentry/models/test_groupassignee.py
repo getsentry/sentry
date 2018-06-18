@@ -1,10 +1,12 @@
 from __future__ import absolute_import
 
+import mock
 import pytest
 import six
 
+from sentry.integrations.example.integration import ExampleIntegration
+from sentry.models import GroupAssignee, Activity, Integration, GroupLink, ExternalIssue
 from sentry.testutils import TestCase
-from sentry.models import GroupAssignee, Activity
 
 
 class GroupAssigneeTestCase(TestCase):
@@ -99,3 +101,91 @@ class GroupAssigneeTestCase(TestCase):
         assert activity[1].data['assignee'] == six.text_type(self.team.id)
         assert activity[1].data['assigneeEmail'] is None
         assert activity[1].data['assigneeType'] == 'team'
+
+    @mock.patch.object(ExampleIntegration, 'sync_assignee_outbound')
+    def test_assignee_sync_outbound_assign(self, mock_sync_assignee_outbound):
+        group = self.group
+        integration = Integration.objects.create(
+            provider='example',
+            external_id='123456',
+        )
+
+        external_issue = ExternalIssue.objects.create(
+            organization_id=group.organization.id,
+            integration_id=integration.id,
+            key='APP-123',
+        )
+
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id=external_issue.id,
+            relationship=GroupLink.Relationship.references,
+        )
+
+        with self.feature('organizations:internal-catchall'):
+            with self.tasks():
+                GroupAssignee.objects.assign(self.group, self.user)
+
+                mock_sync_assignee_outbound.assert_called_with(
+                    external_issue, self.user, assign=True)
+
+                assert GroupAssignee.objects.filter(
+                    project=self.group.project,
+                    group=self.group,
+                    user=self.user,
+                    team__isnull=True,
+                ).exists()
+
+                activity = Activity.objects.get(
+                    project=self.group.project,
+                    group=self.group,
+                    type=Activity.ASSIGNED,
+                )
+
+                assert activity.data['assignee'] == six.text_type(self.user.id)
+                assert activity.data['assigneeEmail'] == self.user.email
+                assert activity.data['assigneeType'] == 'user'
+
+    @mock.patch.object(ExampleIntegration, 'sync_assignee_outbound')
+    def test_assignee_sync_outbound_unassign(self, mock_sync_assignee_outbound):
+        group = self.group
+        integration = Integration.objects.create(
+            provider='example',
+            external_id='123456',
+        )
+
+        external_issue = ExternalIssue.objects.create(
+            organization_id=group.organization.id,
+            integration_id=integration.id,
+            key='APP-123',
+        )
+
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id=external_issue.id,
+            relationship=GroupLink.Relationship.references,
+        )
+
+        GroupAssignee.objects.assign(self.group, self.user)
+
+        with self.feature('organizations:internal-catchall'):
+            with self.tasks():
+                GroupAssignee.objects.deassign(self.group)
+                mock_sync_assignee_outbound.assert_called_with(external_issue, None, assign=False)
+
+                assert not GroupAssignee.objects.filter(
+                    project=self.group.project,
+                    group=self.group,
+                    user=self.user,
+                    team__isnull=True,
+                ).exists()
+
+                assert Activity.objects.filter(
+                    project=self.group.project,
+                    group=self.group,
+                    type=Activity.UNASSIGNED,
+                ).exists()
