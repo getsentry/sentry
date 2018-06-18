@@ -32,7 +32,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
         >
           <Wrapper>
             <div
-              className="css-1pnrn3o-Wrapper e1kblvez0"
+              className="css-1pnrn3o-Wrapper e1kblvez2"
             >
               <Flex
                 align="center"
@@ -46,11 +46,16 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                     is={null}
                   >
                     <Title>
-                      <div
-                        className="css-zmdcxu-Title e1kblvez1"
+                      <Base
+                        className="css-19wrrzr-Heading-Title e1kblvez1"
                       >
-                        Projects
-                      </div>
+                        <div
+                          className="css-19wrrzr-Heading-Title e1kblvez1"
+                          is={null}
+                        >
+                          Projects
+                        </div>
+                      </Base>
                     </Title>
                     <div>
                       <Button

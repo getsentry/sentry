@@ -31,7 +31,7 @@ exports[`CreateProject should render roles when available and allowed, and handl
     >
       <Wrapper>
         <div
-          className="css-1pnrn3o-Wrapper e1kblvez0"
+          className="css-1pnrn3o-Wrapper e1kblvez2"
         >
           <Flex
             align="center"
@@ -45,11 +45,16 @@ exports[`CreateProject should render roles when available and allowed, and handl
                 is={null}
               >
                 <Title>
-                  <div
-                    className="css-zmdcxu-Title e1kblvez1"
+                  <Base
+                    className="css-19wrrzr-Heading-Title e1kblvez1"
                   >
-                    Add Member to Organization
-                  </div>
+                    <div
+                      className="css-19wrrzr-Heading-Title e1kblvez1"
+                      is={null}
+                    >
+                      Add Member to Organization
+                    </div>
+                  </Base>
                 </Title>
               </div>
             </Base>

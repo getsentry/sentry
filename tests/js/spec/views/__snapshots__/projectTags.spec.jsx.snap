@@ -21,7 +21,7 @@ exports[`ProjectTags renders 1`] = `
         >
           <Wrapper>
             <div
-              className="css-1pnrn3o-Wrapper e1kblvez0"
+              className="css-1pnrn3o-Wrapper e1kblvez2"
             >
               <Flex
                 align="center"
@@ -35,11 +35,16 @@ exports[`ProjectTags renders 1`] = `
                     is={null}
                   >
                     <Title>
-                      <div
-                        className="css-zmdcxu-Title e1kblvez1"
+                      <Base
+                        className="css-19wrrzr-Heading-Title e1kblvez1"
                       >
-                        Tags
-                      </div>
+                        <div
+                          className="css-19wrrzr-Heading-Title e1kblvez1"
+                          is={null}
+                        >
+                          Tags
+                        </div>
+                      </Base>
                     </Title>
                   </div>
                 </Base>

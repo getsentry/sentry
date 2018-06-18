@@ -76,7 +76,7 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
         }
       >
         <div
-          className="css-1pnrn3o-Wrapper e1kblvez0"
+          className="css-1pnrn3o-Wrapper e1kblvez2"
         >
           <Flex
             align="center"
@@ -90,11 +90,16 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
                 is={null}
               >
                 <Title>
-                  <div
-                    className="css-zmdcxu-Title e1kblvez1"
+                  <Base
+                    className="css-19wrrzr-Heading-Title e1kblvez1"
                   >
-                    Manage Environments
-                  </div>
+                    <div
+                      className="css-19wrrzr-Heading-Title e1kblvez1"
+                      is={null}
+                    >
+                      Manage Environments
+                    </div>
+                  </Base>
                 </Title>
               </div>
             </Base>
@@ -296,7 +301,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
         }
       >
         <div
-          className="css-1pnrn3o-Wrapper e1kblvez0"
+          className="css-1pnrn3o-Wrapper e1kblvez2"
         >
           <Flex
             align="center"
@@ -310,11 +315,16 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                 is={null}
               >
                 <Title>
-                  <div
-                    className="css-zmdcxu-Title e1kblvez1"
+                  <Base
+                    className="css-19wrrzr-Heading-Title e1kblvez1"
                   >
-                    Manage Environments
-                  </div>
+                    <div
+                      className="css-19wrrzr-Heading-Title e1kblvez1"
+                      is={null}
+                    >
+                      Manage Environments
+                    </div>
+                  </Base>
                 </Title>
               </div>
             </Base>
@@ -962,7 +972,7 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
         }
       >
         <div
-          className="css-1pnrn3o-Wrapper e1kblvez0"
+          className="css-1pnrn3o-Wrapper e1kblvez2"
         >
           <Flex
             align="center"
@@ -976,11 +986,16 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
                 is={null}
               >
                 <Title>
-                  <div
-                    className="css-zmdcxu-Title e1kblvez1"
+                  <Base
+                    className="css-19wrrzr-Heading-Title e1kblvez1"
                   >
-                    Manage Environments
-                  </div>
+                    <div
+                      className="css-19wrrzr-Heading-Title e1kblvez1"
+                      is={null}
+                    >
+                      Manage Environments
+                    </div>
+                  </Base>
                 </Title>
               </div>
             </Base>
@@ -1182,7 +1197,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
         }
       >
         <div
-          className="css-1pnrn3o-Wrapper e1kblvez0"
+          className="css-1pnrn3o-Wrapper e1kblvez2"
         >
           <Flex
             align="center"
@@ -1196,11 +1211,16 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                 is={null}
               >
                 <Title>
-                  <div
-                    className="css-zmdcxu-Title e1kblvez1"
+                  <Base
+                    className="css-19wrrzr-Heading-Title e1kblvez1"
                   >
-                    Manage Environments
-                  </div>
+                    <div
+                      className="css-19wrrzr-Heading-Title e1kblvez1"
+                      is={null}
+                    >
+                      Manage Environments
+                    </div>
+                  </Base>
                 </Title>
               </div>
             </Base>

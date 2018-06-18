@@ -49,7 +49,7 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
         >
           <Wrapper>
             <div
-              className="css-12kovf2-Wrapper e1kblvez0"
+              className="css-12kovf2-Wrapper e1kblvez2"
             >
               <Flex
                 align="center"
@@ -63,11 +63,16 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                     is={null}
                   >
                     <Title>
-                      <div
-                        className="css-zmdcxu-Title e1kblvez1"
+                      <Base
+                        className="css-19wrrzr-Heading-Title e1kblvez1"
                       >
-                        Subscriptions
-                      </div>
+                        <div
+                          className="css-19wrrzr-Heading-Title e1kblvez1"
+                          is={null}
+                        >
+                          Subscriptions
+                        </div>
+                      </Base>
                     </Title>
                   </div>
                 </Base>
