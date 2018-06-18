@@ -18,7 +18,7 @@ from sentry.models.activity import Activity
 from sentry.signals import issue_assigned
 
 
-def sync_group_assignee(group, user_id, action):
+def sync_group_assignee(group, user_id, assign=True):
     from sentry.tasks.integrations import sync_assignee_outbound
     from sentry.models import GroupLink
     external_issue_ids = GroupLink.objects.filter(
@@ -32,7 +32,7 @@ def sync_group_assignee(group, user_id, action):
             kwargs={
                 'external_issue_id': external_issue_id,
                 'user_id': user_id,
-                'action': action,
+                'assign': assign,
             }
         )
 
@@ -98,7 +98,7 @@ class GroupAssigneeManager(BaseManager):
         # sync Sentry assignee to external issues
         if assignee_type == 'user' and features.has(
                 'organizations:internal-catchall', group.organization, actor=acting_user):
-            sync_group_assignee(group, assigned_to.id, 'assign')
+            sync_group_assignee(group, assigned_to.id, assign=True)
 
     def deassign(self, group, acting_user=None):
         from sentry import features
@@ -120,7 +120,7 @@ class GroupAssigneeManager(BaseManager):
 
         # sync Sentry assignee to external issues
         if features.has('organizations:internal-catchall', group.organization, actor=acting_user):
-            sync_group_assignee(group, None, 'deassign')
+            sync_group_assignee(group, None, assign=False)
 
 
 class GroupAssignee(Model):

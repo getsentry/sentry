@@ -39,7 +39,7 @@ def sync_metadata(installation):
     max_retries=5
 )
 @retry(exclude=(ExternalIssue.DoesNotExist, Integration.DoesNotExist, User.DoesNotExist))
-def sync_assignee_outbound(external_issue_id, user_id, action, **kwargs):
+def sync_assignee_outbound(external_issue_id, user_id, assign, **kwargs):
     # sync Sentry assignee to an external issue
     external_issue = ExternalIssue.objects.get(id=external_issue_id)
     integration = Integration.objects.get(id=external_issue.integration_id)
@@ -48,4 +48,4 @@ def sync_assignee_outbound(external_issue_id, user_id, action, **kwargs):
         user = None
     else:
         user = User.objects.get(id=user_id)
-    integration.get_installation().sync_assignee_outbound(external_issue, user, action)
+    integration.get_installation().sync_assignee_outbound(external_issue, user, assign=assign)
