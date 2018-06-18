@@ -39,8 +39,8 @@ describe('ContextPickerModal', function() {
   it('renders with only org selector when no org in latest context', function() {
     let wrapper = shallow(getComponent());
 
-    expect(wrapper.find('Select2Field[name="organization"]').exists()).toBe(true);
-    expect(wrapper.find('Select2Field[name="project"]').exists()).toBe(false);
+    expect(wrapper.find('StyledSelectControl[name="organization"]').exists()).toBe(true);
+    expect(wrapper.find('StyledSelectControl[name="project"]').exists()).toBe(false);
   });
 
   it('fetches org details and sets as active org if there is only one org', function() {
@@ -107,10 +107,14 @@ describe('ContextPickerModal', function() {
       url: `/organizations/${org.slug}/`,
     });
 
+    wrapper.find('StyledSelectControl[name="organization"] input').simulate('focus');
+
+    expect(wrapper.find('Select[name="organization"] .Select-menu')).toHaveLength(1);
+
     wrapper
-      .find('Select2Field[name="organization"]')
-      .instance()
-      .onChange({target: {value: org.slug}});
+      .find('Select[name="organization"] Option')
+      .first()
+      .simulate('mouseDown');
     expect(onFinish).toHaveBeenCalledWith('/test/org-slug/path/');
     // Is not called because we don't need to fetch org details
     expect(mock).not.toHaveBeenCalled();
@@ -131,17 +135,16 @@ describe('ContextPickerModal', function() {
     );
 
     // Default to org in latest context
-    expect(wrapper.find('Select2Field[name="organization"]').prop('value')).toBe(
+    expect(wrapper.find('StyledSelectControl[name="organization"]').prop('value')).toBe(
       org.slug
     );
-    expect(wrapper.find('Select2Field[name="project"]').prop('choices')).toEqual([
-      ['', ''],
-      [project.slug, project.slug],
-      [project2.slug, project2.slug],
+    expect(wrapper.find('StyledSelectControl[name="project"]').prop('options')).toEqual([
+      {value: project.slug, label: project.slug},
+      {value: project2.slug, label: project2.slug},
     ]);
   });
 
-  it('can select org and project', function() {
+  it('can select org and project', async function() {
     let spy = jest.spyOn(OrgActions, 'fetchOrganizationDetails');
     let api = MockApiClient.addMockResponse({
       url: `/organizations/${org2.slug}/`,
@@ -165,13 +168,22 @@ describe('ContextPickerModal', function() {
     );
 
     // Should not have anything selected
-    expect(wrapper.find('Select2Field[name="organization"]').prop('value')).toBe('');
+    expect(wrapper.find('StyledSelectControl[name="organization"]').prop('value')).toBe(
+      ''
+    );
+
+    spy.mockClear();
 
     // Select org2
     wrapper
-      .find('Select2Field[name="organization"]')
-      .instance()
-      .onChange({target: {value: org2.slug}});
+      .find('StyledSelectControl[name="organization"]')
+      .simulate('change', {value: org2.slug, label: org2.slug});
+
+    wrapper.find('StyledSelectControl[name="organization"] input').simulate('focus');
+    wrapper
+      .find('Select[name="organization"] Option')
+      .at(1)
+      .simulate('mouseDown');
 
     expect(spy).toHaveBeenCalledWith('org2', {
       setActive: true,
@@ -185,17 +197,17 @@ describe('ContextPickerModal', function() {
     });
     wrapper.update();
 
-    expect(wrapper.find('Select2Field[name="project"]').prop('choices')).toEqual([
-      ['', ''],
-      [project2.slug, project2.slug],
-      ['project3', 'project3'],
+    expect(wrapper.find('StyledSelectControl[name="project"]').prop('options')).toEqual([
+      {value: project2.slug, label: project2.slug},
+      {value: 'project3', label: 'project3'},
     ]);
 
-    // Select org3
+    // Select project3
+    wrapper.find('StyledSelectControl[name="project"] input').simulate('focus');
     wrapper
-      .find('Select2Field[name="project"]')
-      .instance()
-      .onChange({target: {value: 'project3'}});
+      .find('Select[name="project"] Option')
+      .at(1)
+      .simulate('mouseDown');
 
     expect(onFinish).toHaveBeenCalledWith('/test/org2/path/project3/');
   });

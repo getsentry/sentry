@@ -1,17 +1,20 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import ReactDOM from 'react-dom';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
+import styled from 'react-emotion';
 
 import {fetchOrganizationDetails} from 'app/actionCreators/organizations';
 import {t} from 'app/locale';
 import LatestContextStore from 'app/stores/latestContextStore';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import OrganizationsStore from 'app/stores/organizationsStore';
-import Select2Field from 'app/components/forms/select2Field';
+import SelectControl from 'app/components/forms/selectControl';
 import SentryTypes from 'app/proptypes';
 import replaceRouterParams from 'app/utils/replaceRouterParams';
 import withProjects from 'app/utils/withProjects';
+import space from 'app/styles/space';
 
 class ContextPickerModal extends React.Component {
   static propTypes = {
@@ -62,10 +65,19 @@ class ContextPickerModal extends React.Component {
   constructor(props) {
     super(props);
 
+    let {needProject, latestContext} = props;
+
+    let shouldHaveEmptyOrgSelector = !needProject || !latestContext.organization;
     this.state = {
       // Initialize loading to true if there is only 1 organization because component will immediately
       // attempt to fetch org details for that org. Otherwise we'd have to change state in `DidMount`
       loading: props.organizations.length === 1,
+
+      // Org select should be empty except if we need a project and there's an org in context
+      // (otherwise they need to select an org before we can fetch projects)
+      selectedOrganization: shouldHaveEmptyOrgSelector
+        ? ''
+        : latestContext.organization.slug,
     };
   }
 
@@ -160,7 +172,28 @@ class ContextPickerModal extends React.Component {
     );
   };
 
-  handleSelectOrganization = value => {
+  focusProjectSelector = () => {
+    if (!this.projectSelect || this.state.loading) return;
+
+    // eslint-disable-next-line react/no-find-dom-node
+    ReactDOM.findDOMNode(this.projectSelect)
+      .querySelector('input')
+      .focus();
+  };
+
+  focusOrganizationSelector = () => {
+    if (!this.orgSelect || this.state.loading) return;
+
+    // eslint-disable-next-line react/no-find-dom-node
+    ReactDOM.findDOMNode(this.orgSelect)
+      .querySelector('input')
+      .focus();
+  };
+
+  handleSelectOrganization = ({value}) => {
+    // Don't do anything if org value doesn't actually change
+    if (this.state.selectedOrganization === value) return;
+
     // If we do not need to select a project, we can early return after selecting an org
     // No need to fetch org details
     if (!this.props.needProject) {
@@ -170,18 +203,19 @@ class ContextPickerModal extends React.Component {
 
     this.setState(
       {
+        selectedOrganization: value,
         loading: true,
       },
       () => fetchOrganizationDetails(value, {setActive: true, loadProjects: true})
     );
   };
 
-  handleSelectProject = projectId => {
+  handleSelectProject = ({value}) => {
     let {latestContext} = this.props;
 
-    if (!projectId || !latestContext.organization) return;
+    if (!value || !latestContext.organization) return;
 
-    this.navigateIfFinish([latestContext.organization], [{slug: projectId}]);
+    this.navigateIfFinish([latestContext.organization], [{slug: value}]);
   };
 
   render() {
@@ -194,52 +228,53 @@ class ContextPickerModal extends React.Component {
 
     if (!shouldShowPicker) return null;
 
-    // Org select should be empty except if we need a project and there's an org in context
-    // (otherwise they need to select an org before we can fetch projects)
-    let shouldHaveEmptyOrgSelector = !needProject || !latestContext.organization;
+    let shouldShowProjectSelector = latestContext.organization && needProject && projects;
 
-    // We're inserting a blank el for `select2` so that we can have the placeholder :(
     let orgChoices = organizations
       .filter(({status}) => status.id !== 'pending_deletion')
-      .map(({slug}) => [slug, slug]);
+      .map(({slug}) => ({label: slug, value: slug}));
 
     return (
       <div>
-        {loading && <LoadingIndicator />}
-        {!loading && (
-          <React.Fragment>
-            <Header closeButton>{t('Select...')}</Header>
-            <Body>
-              <div css={{marginBottom: 12}}>
-                {t('Select an organization/project to continue')}
-              </div>
-              {needOrg && (
-                <Select2Field
-                  placeholder="Select an Organization"
-                  name="organization"
-                  choices={[['', ''], ...orgChoices]}
-                  value={
-                    shouldHaveEmptyOrgSelector ? '' : latestContext.organization.slug
-                  }
-                  onChange={this.handleSelectOrganization}
+        <React.Fragment>
+          <Header closeButton>{t('Select...')}</Header>
+          <Body ref={this.handleBodyMount}>
+            {loading && <StyledLoadingIndicator overlay />}
+            <div>{t('Select an organization/project to continue')}</div>
+            {needOrg && (
+              <StyledSelectControl
+                innerRef={ref => {
+                  this.orgSelect = ref;
+                  if (shouldShowProjectSelector) return;
+                  this.focusOrganizationSelector();
+                }}
+                placeholder="Select an Organization"
+                name="organization"
+                options={orgChoices}
+                openOnFocus
+                value={this.state.selectedOrganization}
+                onChange={this.handleSelectOrganization}
+              />
+            )}
+
+            {latestContext.organization &&
+              needProject &&
+              projects && (
+                <StyledSelectControl
+                  innerRef={ref => {
+                    this.projectSelect = ref;
+                    this.focusProjectSelector();
+                  }}
+                  placeholder="Select a Project"
+                  name="project"
+                  value=""
+                  openOnFocus
+                  options={projects.map(({slug}) => ({label: slug, value: slug}))}
+                  onChange={this.handleSelectProject}
                 />
               )}
-
-              {latestContext.organization &&
-                needProject &&
-                projects && (
-                  <Select2Field
-                    placeholder="Select a Project"
-                    name="project"
-                    allowEmpty
-                    value=""
-                    choices={[['', ''], ...projects.map(({slug}) => [slug, slug])]}
-                    onChange={this.handleSelectProject}
-                  />
-                )}
-            </Body>
-          </React.Fragment>
-        )}
+          </Body>
+        </React.Fragment>
       </div>
     );
   }
@@ -266,3 +301,11 @@ const ContextPickerModalContainer = withProjects(
 
 export default ContextPickerModalContainer;
 export {ContextPickerModal};
+
+const StyledSelectControl = styled(SelectControl)`
+  margin-top: ${space(1)};
+`;
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  z-index: 1;
+`;

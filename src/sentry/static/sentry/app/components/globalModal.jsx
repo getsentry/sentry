@@ -24,6 +24,13 @@ class GlobalModal extends React.Component {
       modalClassName: PropTypes.string,
     }),
     visible: PropTypes.bool,
+    /**
+     * Note this is the callback for the main App container and
+     * NOT the calling component.  GlobalModal is never used directly,
+     * but is controlled via stores. To access the onClose callback from
+     * the component, you must specify it when using the action creator.
+     */
+    onClose: PropTypes.func,
   };
 
   static defaultProps = {
@@ -32,14 +39,20 @@ class GlobalModal extends React.Component {
   };
 
   handleCloseModal = () => {
-    let {options} = this.props;
+    let {options, onClose} = this.props;
 
+    // onClose callback for calling component
     if (typeof options.onClose === 'function') {
       options.onClose();
     }
 
     // Action creator
     closeModal();
+
+    // Read description in propTypes
+    if (typeof onClose === 'function') {
+      onClose();
+    }
   };
 
   render() {
