@@ -138,9 +138,6 @@ class BasePaginator(object):
         if cursor.is_prev:
             results.reverse()
 
-        if self.on_results:
-            results = self.on_results(results)
-
         return build_cursor(
             results=results,
             limit=limit,
@@ -149,6 +146,7 @@ class BasePaginator(object):
             cursor=cursor,
             is_desc=self.desc,
             key=self.get_item_key,
+            on_results=self.on_results,
         )
 
     def count_hits(self, max_hits):
