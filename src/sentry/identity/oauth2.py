@@ -80,9 +80,6 @@ class OAuth2Provider(Provider):
     def get_oauth_scopes(self):
         return self.config.get('oauth_scopes', self.oauth_scopes)
 
-    def get_oauth_refresh_token(self):
-        return self.config.get('refresh_token')
-
     def get_refresh_token_headers(self):
         return None
 
@@ -119,15 +116,13 @@ class OAuth2Provider(Provider):
 
         return data
 
-    def refresh_identity(self, auth_identity):
-        refresh_token = auth_identity.data.get('refresh_token')
+    def refresh_identity(self, identity):
+        refresh_token = identity.data.get('refresh_token')
 
         if not refresh_token:
             raise IdentityNotValid('Missing refresh token')
 
-        data = self.get_refresh_token_params(
-            refresh_token=refresh_token,
-        )
+        data = self.get_refresh_token_params(refresh_token)
 
         req = safe_urlopen(
             url=self.get_refresh_token_url(),
@@ -158,8 +153,8 @@ class OAuth2Provider(Provider):
         if req.status_code != 200:
             raise Exception(formatted_error)
 
-        auth_identity.data.update(self.get_oauth_data(payload))
-        return auth_identity.update(data=auth_identity.data)
+        identity.data.update(self.get_oauth_data(payload))
+        return identity.update(data=identity.data)
 
 
 class OAuth2LoginView(PipelineView):

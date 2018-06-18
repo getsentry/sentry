@@ -239,10 +239,7 @@ class AuthApiClient(ApiClient):
         return ApiClient._request(self, method, path, **kwargs)
 
 
-class OAuth2ApiClient(ApiClient):
-    def __init__(self, identity, *args, **kwargs):
-        super(OAuth2ApiClient, self).__init__(*args, **kwargs)
-        self.identity = identity
+class OAuth2RefreshMixin(object):
 
     def check_auth(self):
         """

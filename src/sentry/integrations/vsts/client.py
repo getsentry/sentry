@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.integrations.client import OAuth2ApiClient
+from sentry.integrations.client import ApiClient, OAuth2RefreshMixin
 
 UNSET = object()
 
@@ -22,11 +22,12 @@ class VstsApiPath(object):
     work_items_create = u'https://{account_name}/{project}/_apis/wit/workitems/${type}'
 
 
-class VstsApiClient(OAuth2ApiClient):
+class VstsApiClient(ApiClient, OAuth2RefreshMixin):
     api_version = '4.1'
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, identity, *args, **kwargs):
         super(VstsApiClient, self).__init__(*args, **kwargs)
+        self.identity = identity
         if 'access_token' not in self.identity.data:
             raise ValueError('Vsts Identity missing access token')
 

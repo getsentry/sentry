@@ -11,7 +11,7 @@ from sentry.integrations.exceptions import (
     ApiError, ApiHostError, ApiUnauthorized, UnsupportedResponseType
 )
 from sentry.identity import register
-from sentry.integrations.client import ApiClient, AuthApiClient, OAuth2ApiClient
+from sentry.integrations.client import ApiClient, AuthApiClient, OAuth2RefreshMixin
 from sentry.identity.oauth2 import OAuth2Provider
 from sentry.models import Identity, IdentityProvider
 
@@ -130,6 +130,12 @@ class OAuthProvider(OAuth2Provider):
 
     def get_refresh_token_url(self):
         return 'https://example.com'
+
+
+class OAuth2ApiClient(ApiClient, OAuth2RefreshMixin):
+    def __init__(self, identity, *args, **kwargs):
+        super(OAuth2ApiClient, self).__init__(*args, **kwargs)
+        self.identity = identity
 
 
 class OAuth2ApiClientTest(TestCase):
