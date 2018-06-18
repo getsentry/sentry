@@ -17,7 +17,6 @@ class VSTSIdentityProvider(OAuth2Provider):
 
     oauth_access_token_url = 'https://app.vssps.visualstudio.com/oauth2/token'
     oauth_authorize_url = 'https://app.vssps.visualstudio.com/oauth2/authorize'
-    oauth_redirect_url = '/extensions/vsts/setup/'
     oauth_scopes = (
         'vso.code',
         'vso.project',
@@ -57,13 +56,16 @@ class VSTSIdentityProvider(OAuth2Provider):
             'Content-Length': '1654',
         }
 
-    def get_refresh_token_params(self, refresh_token):
+    def get_refresh_token_params(self, refresh_token, *args, **kwargs):
+        oauth_redirect_url = kwargs.get('redirect_url')
+        if oauth_redirect_url is None:
+            raise ValueError('VSTS requires oauth redirect url when refreshing identity')
         return {
             'client_assertion_type': 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
             'client_assertion': self.get_oauth_client_secret(),
             'grant_type': 'refresh_token',
             'assertion': refresh_token,
-            'redirect_uri': absolute_uri(self.oauth_redirect_url),
+            'redirect_uri': absolute_uri(oauth_redirect_url),
         }
 
 

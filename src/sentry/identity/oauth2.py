@@ -97,7 +97,7 @@ class OAuth2Provider(Provider):
             ),
         ]
 
-    def get_refresh_token_params(self, refresh_token):
+    def get_refresh_token_params(self, refresh_token, *args, **kwargs):
         return {
             'client_id': self.get_client_id(),
             'client_secret': self.get_client_secret(),
@@ -116,13 +116,13 @@ class OAuth2Provider(Provider):
 
         return data
 
-    def refresh_identity(self, identity):
+    def refresh_identity(self, identity, *args, **kwargs):
         refresh_token = identity.data.get('refresh_token')
 
         if not refresh_token:
             raise IdentityNotValid('Missing refresh token')
 
-        data = self.get_refresh_token_params(refresh_token)
+        data = self.get_refresh_token_params(refresh_token, *args, **kwargs)
 
         req = safe_urlopen(
             url=self.get_refresh_token_url(),

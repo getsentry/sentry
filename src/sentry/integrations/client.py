@@ -241,7 +241,7 @@ class AuthApiClient(ApiClient):
 
 class OAuth2RefreshMixin(object):
 
-    def check_auth(self):
+    def check_auth(self, *args, **kwargs):
         """
         Checks if auth is expired and if so refreshes it
         """
@@ -249,4 +249,4 @@ class OAuth2RefreshMixin(object):
         if time_expires is None:
             raise InvalidIdentity('OAuth2ApiClient requires identity with specified expired time')
         if int(time_expires) <= int(time()):
-            self.identity.get_provider().refresh_identity(self.identity)
+            self.identity.get_provider().refresh_identity(self.identity, *args, **kwargs)

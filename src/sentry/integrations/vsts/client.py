@@ -25,14 +25,15 @@ class VstsApiPath(object):
 class VstsApiClient(ApiClient, OAuth2RefreshMixin):
     api_version = '4.1'
 
-    def __init__(self, identity, *args, **kwargs):
+    def __init__(self, identity, oauth_redirect_url, *args, **kwargs):
         super(VstsApiClient, self).__init__(*args, **kwargs)
         self.identity = identity
+        self.oauth_redirect_url = oauth_redirect_url
         if 'access_token' not in self.identity.data:
             raise ValueError('Vsts Identity missing access token')
 
     def request(self, method, path, data=None, params=None):
-        self.check_auth()
+        self.check_auth(redirect_url=self.oauth_redirect_url)
         headers = {
             'Accept': 'application/json; api-version={}'.format(self.api_version),
             'Content-Type': 'application/json-patch+json' if method == 'PATCH' else 'application/json',

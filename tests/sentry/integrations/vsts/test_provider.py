@@ -169,7 +169,7 @@ class VstsIdentityProviderTest(TestCase):
             'https://app.vssps.visualstudio.com/oauth2/token',
             json=refresh_data,
         )
-        self.provider.refresh_identity(self.identity)
+        self.provider.refresh_identity(self.identity, redirect_url='redirect_url')
 
         assert len(responses.calls) == 1
 
