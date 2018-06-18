@@ -47,7 +47,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                   >
                     <Title>
                       <div
-                        className="css-zmdcxu-Title e1kblvez2"
+                        className="css-zmdcxu-Title e1kblvez1"
                       >
                         Projects
                       </div>

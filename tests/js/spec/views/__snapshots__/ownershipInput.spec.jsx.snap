@@ -802,20 +802,20 @@ exports[`Project Ownership Input renders 1`] = `
                               size="zero"
                             >
                               <Component
-                                className="css-1kk1aq-Icon e17811v32"
+                                className="css-1yzdiwi-Icon e17811v32"
                                 hasChildren={false}
                                 size="zero"
                               >
                                 <Box
-                                  className="css-1kk1aq-Icon e17811v32"
+                                  className="css-1yzdiwi-Icon e17811v32"
                                   size="zero"
                                 >
                                   <Base
-                                    className="e17811v32 css-1aoi37i-Icon"
+                                    className="e17811v32 css-d8e7y1-Icon"
                                     size="zero"
                                   >
                                     <div
-                                      className="e17811v32 css-1aoi37i-Icon"
+                                      className="e17811v32 css-d8e7y1-Icon"
                                       is={null}
                                       size="zero"
                                     >
