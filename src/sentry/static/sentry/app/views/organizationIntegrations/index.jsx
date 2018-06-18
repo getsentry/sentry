@@ -4,11 +4,12 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {t} from 'app/locale';
-import AsyncComponent from 'app/components/asyncComponent';
-import Link from 'app/components/link';
-import Button from 'app/components/buttons/button';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import AsyncComponent from 'app/components/asyncComponent';
+import Button from 'app/components/buttons/button';
+import Link from 'app/components/link';
 import PluginIcon from 'app/plugins/components/pluginIcon';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import theme from 'app/utils/theme';
 
 const ProviderName = styled.div`
@@ -17,19 +18,19 @@ const ProviderName = styled.div`
   margin-bottom: 3px;
 `;
 
-const TeamName = styled.div`
+const AuthorName = styled.div`
   color: ${p => p.theme.gray2};
   font-size: 14px;
 `;
 
 export default class OrganizationIntegrations extends AsyncComponent {
   static propTypes = {
-    orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
+    linkPrefix: PropTypes.string,
+    hideHeader: PropTypes.bool,
   };
 
   getEndpoints() {
-    let {orgId} = this.props;
+    let {orgId} = this.props.params;
     return [
       ['config', `/organizations/${orgId}/config/integrations/`],
       ['organization', `/organizations/${orgId}/`],
@@ -37,9 +38,11 @@ export default class OrganizationIntegrations extends AsyncComponent {
   }
 
   renderBody() {
-    let {orgId, projectId} = this.props;
+    let {location} = this.props;
     let orgFeatures = new Set(this.state.organization.features);
     let internalIntegrations = new Set(['jira']);
+
+    const linkPrefix = this.props.linkPrefix ? this.props.linkPrefix : location.pathname;
 
     const integrations = this.state.config.providers
       .filter(provider => {
@@ -54,35 +57,32 @@ export default class OrganizationIntegrations extends AsyncComponent {
           </Box>
           <Box px={2} flex={1}>
             <ProviderName>
-              <Link
-                to={`/settings/${orgId}/${projectId}/integrations/${provider.key}/`}
-                css={{color: theme.gray5}}
-              >
+              <Link to={`${linkPrefix}${provider.key}/`} css={{color: theme.gray5}}>
                 {provider.name}
               </Link>
             </ProviderName>
-            <TeamName>{provider.metadata.author}</TeamName>
+            <AuthorName>{provider.metadata.author}</AuthorName>
           </Box>
           <Box>
-            <Button
-              size="small"
-              to={`/settings/${orgId}/${projectId}/integrations/${provider.key}/`}
-            >
-              {t('Configure')}
+            <Button size="small" to={`${linkPrefix}${provider.key}/`}>
+              {t('Manage')}
             </Button>
           </Box>
         </PanelItem>
       ));
 
     return (
-      <Panel>
-        <PanelHeader disablePadding={true}>
-          <Box px={2} flex="1">
-            {t('Global Integrations')}
-          </Box>
-        </PanelHeader>
-        <PanelBody>{integrations}</PanelBody>
-      </Panel>
+      <React.Fragment>
+        {!this.props.hideHeader && <SettingsPageHeader title={t('Integrations')} />}
+        <Panel>
+          <PanelHeader disablePadding>
+            <Box px={2} flex="1">
+              {t('Integrations')}
+            </Box>
+          </PanelHeader>
+          <PanelBody>{integrations}</PanelBody>
+        </Panel>
+      </React.Fragment>
     );
   }
 }

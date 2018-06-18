@@ -65,6 +65,12 @@ const organizationNavigation = [
         show: ({access}) => access.has('org:write'),
         description: t('Manage repositories connected to the organization'),
       },
+      {
+        path: `${pathPrefix}/integrations/`,
+        title: t('Integrations'),
+        show: ({access}) => access.has('org:integrations'),
+        description: t('Manage integrations for an organization'),
+      },
     ],
   },
 ];

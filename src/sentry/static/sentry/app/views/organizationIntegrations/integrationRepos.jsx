@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/buttons/button';
 import Confirm from 'app/components/confirm';
@@ -19,7 +18,6 @@ import {t, tct} from 'app/locale';
 
 export default class IntegrationRepos extends AsyncComponent {
   static propTypes = {
-    orgId: PropTypes.string.isRequired,
     integration: PropTypes.object.isRequired,
   };
   static contextTypes = {
@@ -28,27 +26,17 @@ export default class IntegrationRepos extends AsyncComponent {
 
   constructor(props, context) {
     super(props, context);
-    Object.assign(this.state, {
-      ...this.getDefaultState(),
-      loading: true,
-    });
-  }
-
-  getDefaultState() {
-    return {
-      error: false,
-      itemList: null,
-      errors: {},
-    };
+    this.state = {error: false, adding: false, itemList: [], errors: {}};
   }
 
   getEndpoints() {
+    let orgId = this.context.organization.slug;
+
     return [
-      ['itemList', `/organizations/${this.props.orgId}/repos/`, {query: {status: ''}}],
+      ['itemList', `/organizations/${orgId}/repos/`, {query: {status: ''}}],
       [
         'integrationRepos',
-        `/organizations/${this.props.orgId}/integrations/${this.props.integration
-          .id}/repos/`,
+        `/organizations/${orgId}/integrations/${this.props.integration.id}/repos/`,
       ],
     ];
   }
@@ -74,9 +62,12 @@ export default class IntegrationRepos extends AsyncComponent {
   }
 
   addRepo(selection) {
-    let {integration, orgId} = this.props;
+    let {integration} = this.props;
+    let orgId = this.context.organization.slug;
     let {itemList} = this.state;
-    this.setState({loading: true});
+    let saveIndicator = IndicatorStore.add(t('Adding repository...'));
+    this.setState({adding: true});
+
     this.api.request(`/organizations/${orgId}/repos/`, {
       data: {
         installation: integration.id,
@@ -85,23 +76,25 @@ export default class IntegrationRepos extends AsyncComponent {
       },
       method: 'POST',
       success: repo => {
-        this.setState({loading: false, itemList: itemList.concat(repo)});
-        addSuccessMessage(
+        this.setState({itemList: itemList.concat(repo)});
+        IndicatorStore.addSuccess(
           tct('[repo] has been successfully added.', {
             repo: repo.name,
           })
         );
       },
-      error: data => {
-        this.setState({loading: false});
-        addErrorMessage(t('Unable to add repository.'));
+      error: () => IndicatorStore.addError(t('Unable to add repository.')),
+      complete: () => {
+        IndicatorStore.remove(saveIndicator);
+        this.setState({adding: false});
       },
     });
   }
 
   deleteRepo = repo => {
+    let orgId = this.context.organization.slug;
     let indicator = IndicatorStore.add(t('Saving changes..'));
-    this.api.request(`/organizations/${this.props.orgId}/repos/${repo.id}/`, {
+    this.api.request(`/organizations/${orgId}/repos/${repo.id}/`, {
       method: 'DELETE',
       success: data => {
         let itemList = this.state.itemList;
@@ -112,18 +105,15 @@ export default class IntegrationRepos extends AsyncComponent {
         });
         this.setState({itemList});
       },
-      error: () => {
-        addErrorMessage(t('Unable to delete repository.'));
-      },
-      complete: () => {
-        IndicatorStore.remove(indicator);
-      },
+      error: () => IndicatorStore.addError(t('Unable to delete repository.')),
+      complete: () => IndicatorStore.remove(indicator),
     });
   };
 
   cancelDelete = repo => {
-    let {orgId} = this.props;
+    let orgId = this.context.organization.slug;
     let indicator = IndicatorStore.add(t('Saving changes..'));
+
     this.api.request(`/organizations/${orgId}/repos/${repo.id}/`, {
       method: 'PUT',
       data: {status: 'visible'},
@@ -136,12 +126,8 @@ export default class IntegrationRepos extends AsyncComponent {
         });
         this.setState({itemList});
       },
-      error: () => {
-        addErrorMessage(t('An error occurred.'));
-      },
-      complete: () => {
-        IndicatorStore.remove(indicator);
-      },
+      error: () => IndicatorStore.addError(t('An error occurred.')),
+      complete: () => IndicatorStore.remove(indicator),
     });
   };
 
@@ -151,11 +137,11 @@ export default class IntegrationRepos extends AsyncComponent {
       return (
         <DropdownButton
           disabled={true}
-          title={t('You do not have permission to add repos')}
+          title={t('You do not have permission to add repositories')}
           isOpen={false}
           size="xsmall"
         >
-          {t('Add Repo')}
+          {t('Add Repository')}
         </DropdownButton>
       );
     }
@@ -182,8 +168,8 @@ export default class IntegrationRepos extends AsyncComponent {
         emptyMessage={t('No repositories available')}
       >
         {({isOpen}) => (
-          <DropdownButton isOpen={isOpen} size="xsmall">
-            {t('Add Repo')}
+          <DropdownButton isOpen={isOpen} size="xsmall" busy={this.state.adding}>
+            {t('Add Repository')}
           </DropdownButton>
         )}
       </DropdownAutoComplete>
@@ -193,9 +179,13 @@ export default class IntegrationRepos extends AsyncComponent {
   renderBody() {
     const itemList = this.getIntegrationRepos() || [];
     const header = (
-      <PanelHeader hasButtons>
-        <div>{t('Repositories')}</div>
-        <div style={{textTransform: 'none'}}>{this.renderDropdown()}</div>
+      <PanelHeader disablePadding hasButtons>
+        <Box flex={1} pl={2}>
+          {t('Repositories')}
+        </Box>
+        <Box pr={1} style={{textTransform: 'none'}}>
+          {this.renderDropdown()}
+        </Box>
       </PanelHeader>
     );
 
@@ -204,64 +194,46 @@ export default class IntegrationRepos extends AsyncComponent {
         {header}
         <PanelBody>
           {itemList.length === 0 && (
-            <Box>
-              <EmptyMessage size="large">{t('No Repositories Added')}</EmptyMessage>
-            </Box>
+            <EmptyMessage size="large">{t('No Repositories Added')}</EmptyMessage>
           )}
-          {itemList.length > 0 && (
-            <Box>
-              {itemList.map(repo => {
-                let repoIsVisible = repo.status === 'active';
-                let style =
-                  repo.status === 'disabled'
-                    ? {filter: 'grayscale(1)', opacity: '0.4'}
-                    : {};
-                return (
-                  <RepoOption key={repo.id}>
-                    <Box style={style} p={2} flex="1">
-                      <Flex direction="column">
-                        <Box pb={1}>
-                          <strong>{repo.name}</strong>
-                          {!repoIsVisible && (
-                            <small> — {this.getStatusLabel(repo)}</small>
-                          )}
-                          {repo.status === 'pending_deletion' && (
-                            <small>
-                              {' '}
-                              (
-                              <a onClick={() => this.cancelDelete(repo)}>{t('Cancel')}</a>
-                              )
-                            </small>
-                          )}
-                        </Box>
-                        <Box style={style}>
-                          <small>{repo.provider.name}</small>
-                          {repo.url && (
-                            <small>
-                              {' '}
-                              — <a href={repo.url}>{repo.url}</a>
-                            </small>
-                          )}
-                        </Box>
-                      </Flex>
+          {itemList.map(repo => {
+            let repoIsActive = repo.status === 'active';
+            return (
+              <RepoOption key={repo.id} disabled={repo.status === 'disabled'}>
+                <Box p={2} flex="1">
+                  <Flex direction="column">
+                    <Box pb={1}>
+                      <strong>{repo.name}</strong>
+                      {!repoIsActive && <small> — {this.getStatusLabel(repo)}</small>}
+                      {repo.status === 'pending_deletion' && (
+                        <small>
+                          {' '}
+                          (
+                          <a onClick={() => this.cancelDelete(repo)}>{t('Cancel')}</a>
+                          )
+                        </small>
+                      )}
                     </Box>
+                    <Box>
+                      <small>
+                        <a href={repo.url}>{repo.url.replace('https://', '')}</a>
+                      </small>
+                    </Box>
+                  </Flex>
+                </Box>
 
-                    <Box p={2}>
-                      <Confirm
-                        disabled={!repoIsVisible && repo.status !== 'disabled'}
-                        onConfirm={() => this.deleteRepo(repo)}
-                        message={t('Are you sure you want to remove this repository?')}
-                      >
-                        <Button size="xsmall">
-                          <span className="icon icon-trash" />
-                        </Button>
-                      </Confirm>
-                    </Box>
-                  </RepoOption>
-                );
-              })}
-            </Box>
-          )}
+                <Box p={2}>
+                  <Confirm
+                    disabled={!repoIsActive && repo.status !== 'disabled'}
+                    onConfirm={() => this.deleteRepo(repo)}
+                    message={t('Are you sure you want to remove this repository?')}
+                  >
+                    <Button size="xsmall" icon="icon-trash" />
+                  </Confirm>
+                </Box>
+              </RepoOption>
+            );
+          })}
         </PanelBody>
       </Panel>
     );
@@ -294,4 +266,11 @@ const RepoOption = styled(SpreadLayout)`
   &:last-child {
     border-bottom: none;
   }
+
+  ${p =>
+    p.disabled &&
+    `
+    filter: grayscale(1);
+    opacity: 0.4;
+  `};
 `;
