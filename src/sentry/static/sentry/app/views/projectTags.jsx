@@ -45,7 +45,7 @@ export default class ProjectTags extends AsyncView {
         onConfirm={() => this.onDelete(key, idx)}
         disabled={!canDelete}
       >
-        <Button size="xsmall" icon="icon-trash" />
+        <Button size="xsmall" icon="icon-trash" className="ref-delete" />
       </LinkWithConfirmation>
     );
   }
