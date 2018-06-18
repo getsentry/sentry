@@ -50,22 +50,6 @@ class VstsIssueSycnTest(TestCase):
         model.add_organization(self.organization.id, identity.id)
         self.integration = VstsIntegration(model, self.organization.id)
 
-    def test_get_issue_label(self):
-        group = self.create_group(message='Hello world', culprit='foo.bar')
-        assert self.integration.get_issue_label(group, {
-            'id': 309,
-        }) == 'Bug 309'
-
-    def test_get_issue_url(self):
-        group = self.create_group(message='Hello world', culprit='foo.bar')
-        assert self.integration.get_issue_url(
-            group,
-            {
-                'id': 309,
-                'url': 'https://fabrikam-fiber-inc.visualstudio.com/DefaultProject/_workitems?id=309',
-            },
-        ) == 'https://fabrikam-fiber-inc.visualstudio.com/DefaultProject/_workitems?id=309'
-
     @responses.activate
     def test_create_issue(self):
         responses.add(
