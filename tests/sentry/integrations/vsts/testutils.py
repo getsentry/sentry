@@ -61,10 +61,10 @@ WORK_ITEM_RESPONSE = """{
     "System.CreatedBy": "Jamal Hartnett <fabrikamfiber4@hotmail.com>",
     "System.ChangedDate": "2015-01-07T18:13:01.807Z",
     "System.ChangedBy": "Jamal Hartnett <fabrikamfiber4@hotmail.com>",
-    "System.Title": "Customer can sign in using their Microsoft Account",
+    "System.Title": "Hello",
     "Microsoft.VSTS.Scheduling.Effort": 8,
     "WEF_6CB513B6E70E43499D9FC94E5BBFB784_Kanban.Column": "New",
-    "System.Description": "Our authorization logic needs to allow for users with Microsoft accounts (formerly Live Ids) - http://msdn.microsoft.com/en-us/library/live/hh826547.aspx"
+    "System.Description": "Fix this."
   },
   "_links": {
     "self": {
