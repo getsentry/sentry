@@ -106,12 +106,9 @@ exports[`OrganizationRepositories renders with a repository 1`] = `
             >
               <Button
                 disabled={false}
+                icon="icon-trash"
                 size="xsmall"
-              >
-                <span
-                  className="icon icon-trash"
-                />
-              </Button>
+              />
             </Confirm>
           </Box>
         </RepoRow>

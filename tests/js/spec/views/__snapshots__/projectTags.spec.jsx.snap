@@ -209,7 +209,6 @@ exports[`ProjectTags renders 1`] = `
                                 is={null}
                               >
                                 <LinkWithConfirmation
-                                  className="btn btn-sm btn-default"
                                   disabled={false}
                                   message="Are you sure you want to remove this tag?"
                                   onConfirm={[Function]}
@@ -224,14 +223,122 @@ exports[`ProjectTags renders 1`] = `
                                     priority="primary"
                                   >
                                     <a
-                                      className="btn btn-sm btn-default"
                                       disabled={false}
                                       onClick={[Function]}
                                       title="Remove tag?"
                                     >
-                                      <span
-                                        className="icon icon-trash"
-                                      />
+                                      <Button
+                                        disabled={false}
+                                        icon="icon-trash"
+                                        size="xsmall"
+                                      >
+                                        <StyledButton
+                                          disabled={false}
+                                          onClick={[Function]}
+                                          role="button"
+                                          size="xsmall"
+                                        >
+                                          <Component
+                                            className="css-dkprmi-StyledButton-getColors e17811v30"
+                                            disabled={false}
+                                            onClick={[Function]}
+                                            role="button"
+                                            size="xsmall"
+                                          >
+                                            <button
+                                              className="css-dkprmi-StyledButton-getColors e17811v30"
+                                              disabled={false}
+                                              onClick={[Function]}
+                                              role="button"
+                                              size="xsmall"
+                                            >
+                                              <ButtonLabel
+                                                size="xsmall"
+                                              >
+                                                <Component
+                                                  className="css-9vplug-ButtonLabel e17811v31"
+                                                  size="xsmall"
+                                                >
+                                                  <Flex
+                                                    align="center"
+                                                    className="css-9vplug-ButtonLabel e17811v31"
+                                                    size="xsmall"
+                                                  >
+                                                    <Base
+                                                      align="center"
+                                                      className="e17811v31 css-esdzbq-ButtonLabel"
+                                                      size="xsmall"
+                                                    >
+                                                      <div
+                                                        className="e17811v31 css-esdzbq-ButtonLabel"
+                                                        is={null}
+                                                        size="xsmall"
+                                                      >
+                                                        <Icon
+                                                          hasChildren={false}
+                                                          size="xsmall"
+                                                        >
+                                                          <Component
+                                                            className="css-1kk1aq-Icon e17811v32"
+                                                            hasChildren={false}
+                                                            size="xsmall"
+                                                          >
+                                                            <Box
+                                                              className="css-1kk1aq-Icon e17811v32"
+                                                              size="xsmall"
+                                                            >
+                                                              <Base
+                                                                className="e17811v32 css-1aoi37i-Icon"
+                                                                size="xsmall"
+                                                              >
+                                                                <div
+                                                                  className="e17811v32 css-1aoi37i-Icon"
+                                                                  is={null}
+                                                                  size="xsmall"
+                                                                >
+                                                                  <StyledInlineSvg
+                                                                    size="16px"
+                                                                    src="icon-trash"
+                                                                  >
+                                                                    <InlineSvg
+                                                                      className="css-1ov3rcq-StyledInlineSvg e17811v33"
+                                                                      size="16px"
+                                                                      src="icon-trash"
+                                                                    >
+                                                                      <StyledSvg
+                                                                        className="css-1ov3rcq-StyledInlineSvg e17811v33"
+                                                                        height="16px"
+                                                                        viewBox={Object {}}
+                                                                        width="16px"
+                                                                      >
+                                                                        <svg
+                                                                          className="e17811v33 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                                          height="16px"
+                                                                          viewBox={Object {}}
+                                                                          width="16px"
+                                                                        >
+                                                                          <use
+                                                                            href="#test"
+                                                                            xlinkHref="#test"
+                                                                          />
+                                                                        </svg>
+                                                                      </StyledSvg>
+                                                                    </InlineSvg>
+                                                                  </StyledInlineSvg>
+                                                                </div>
+                                                              </Base>
+                                                            </Box>
+                                                          </Component>
+                                                        </Icon>
+                                                      </div>
+                                                    </Base>
+                                                  </Flex>
+                                                </Component>
+                                              </ButtonLabel>
+                                            </button>
+                                          </Component>
+                                        </StyledButton>
+                                      </Button>
                                     </a>
                                     <Modal
                                       animation={false}
@@ -349,7 +456,6 @@ exports[`ProjectTags renders 1`] = `
                                 is={null}
                               >
                                 <LinkWithConfirmation
-                                  className="btn btn-sm btn-default"
                                   disabled={false}
                                   message="Are you sure you want to remove this tag?"
                                   onConfirm={[Function]}
@@ -364,14 +470,122 @@ exports[`ProjectTags renders 1`] = `
                                     priority="primary"
                                   >
                                     <a
-                                      className="btn btn-sm btn-default"
                                       disabled={false}
                                       onClick={[Function]}
                                       title="Remove tag?"
                                     >
-                                      <span
-                                        className="icon icon-trash"
-                                      />
+                                      <Button
+                                        disabled={false}
+                                        icon="icon-trash"
+                                        size="xsmall"
+                                      >
+                                        <StyledButton
+                                          disabled={false}
+                                          onClick={[Function]}
+                                          role="button"
+                                          size="xsmall"
+                                        >
+                                          <Component
+                                            className="css-dkprmi-StyledButton-getColors e17811v30"
+                                            disabled={false}
+                                            onClick={[Function]}
+                                            role="button"
+                                            size="xsmall"
+                                          >
+                                            <button
+                                              className="css-dkprmi-StyledButton-getColors e17811v30"
+                                              disabled={false}
+                                              onClick={[Function]}
+                                              role="button"
+                                              size="xsmall"
+                                            >
+                                              <ButtonLabel
+                                                size="xsmall"
+                                              >
+                                                <Component
+                                                  className="css-9vplug-ButtonLabel e17811v31"
+                                                  size="xsmall"
+                                                >
+                                                  <Flex
+                                                    align="center"
+                                                    className="css-9vplug-ButtonLabel e17811v31"
+                                                    size="xsmall"
+                                                  >
+                                                    <Base
+                                                      align="center"
+                                                      className="e17811v31 css-esdzbq-ButtonLabel"
+                                                      size="xsmall"
+                                                    >
+                                                      <div
+                                                        className="e17811v31 css-esdzbq-ButtonLabel"
+                                                        is={null}
+                                                        size="xsmall"
+                                                      >
+                                                        <Icon
+                                                          hasChildren={false}
+                                                          size="xsmall"
+                                                        >
+                                                          <Component
+                                                            className="css-1kk1aq-Icon e17811v32"
+                                                            hasChildren={false}
+                                                            size="xsmall"
+                                                          >
+                                                            <Box
+                                                              className="css-1kk1aq-Icon e17811v32"
+                                                              size="xsmall"
+                                                            >
+                                                              <Base
+                                                                className="e17811v32 css-1aoi37i-Icon"
+                                                                size="xsmall"
+                                                              >
+                                                                <div
+                                                                  className="e17811v32 css-1aoi37i-Icon"
+                                                                  is={null}
+                                                                  size="xsmall"
+                                                                >
+                                                                  <StyledInlineSvg
+                                                                    size="16px"
+                                                                    src="icon-trash"
+                                                                  >
+                                                                    <InlineSvg
+                                                                      className="css-1ov3rcq-StyledInlineSvg e17811v33"
+                                                                      size="16px"
+                                                                      src="icon-trash"
+                                                                    >
+                                                                      <StyledSvg
+                                                                        className="css-1ov3rcq-StyledInlineSvg e17811v33"
+                                                                        height="16px"
+                                                                        viewBox={Object {}}
+                                                                        width="16px"
+                                                                      >
+                                                                        <svg
+                                                                          className="e17811v33 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                                          height="16px"
+                                                                          viewBox={Object {}}
+                                                                          width="16px"
+                                                                        >
+                                                                          <use
+                                                                            href="#test"
+                                                                            xlinkHref="#test"
+                                                                          />
+                                                                        </svg>
+                                                                      </StyledSvg>
+                                                                    </InlineSvg>
+                                                                  </StyledInlineSvg>
+                                                                </div>
+                                                              </Base>
+                                                            </Box>
+                                                          </Component>
+                                                        </Icon>
+                                                      </div>
+                                                    </Base>
+                                                  </Flex>
+                                                </Component>
+                                              </ButtonLabel>
+                                            </button>
+                                          </Component>
+                                        </StyledButton>
+                                      </Button>
                                     </a>
                                     <Modal
                                       animation={false}
@@ -489,7 +703,6 @@ exports[`ProjectTags renders 1`] = `
                                 is={null}
                               >
                                 <LinkWithConfirmation
-                                  className="btn btn-sm btn-default"
                                   disabled={false}
                                   message="Are you sure you want to remove this tag?"
                                   onConfirm={[Function]}
@@ -504,14 +717,122 @@ exports[`ProjectTags renders 1`] = `
                                     priority="primary"
                                   >
                                     <a
-                                      className="btn btn-sm btn-default"
                                       disabled={false}
                                       onClick={[Function]}
                                       title="Remove tag?"
                                     >
-                                      <span
-                                        className="icon icon-trash"
-                                      />
+                                      <Button
+                                        disabled={false}
+                                        icon="icon-trash"
+                                        size="xsmall"
+                                      >
+                                        <StyledButton
+                                          disabled={false}
+                                          onClick={[Function]}
+                                          role="button"
+                                          size="xsmall"
+                                        >
+                                          <Component
+                                            className="css-dkprmi-StyledButton-getColors e17811v30"
+                                            disabled={false}
+                                            onClick={[Function]}
+                                            role="button"
+                                            size="xsmall"
+                                          >
+                                            <button
+                                              className="css-dkprmi-StyledButton-getColors e17811v30"
+                                              disabled={false}
+                                              onClick={[Function]}
+                                              role="button"
+                                              size="xsmall"
+                                            >
+                                              <ButtonLabel
+                                                size="xsmall"
+                                              >
+                                                <Component
+                                                  className="css-9vplug-ButtonLabel e17811v31"
+                                                  size="xsmall"
+                                                >
+                                                  <Flex
+                                                    align="center"
+                                                    className="css-9vplug-ButtonLabel e17811v31"
+                                                    size="xsmall"
+                                                  >
+                                                    <Base
+                                                      align="center"
+                                                      className="e17811v31 css-esdzbq-ButtonLabel"
+                                                      size="xsmall"
+                                                    >
+                                                      <div
+                                                        className="e17811v31 css-esdzbq-ButtonLabel"
+                                                        is={null}
+                                                        size="xsmall"
+                                                      >
+                                                        <Icon
+                                                          hasChildren={false}
+                                                          size="xsmall"
+                                                        >
+                                                          <Component
+                                                            className="css-1kk1aq-Icon e17811v32"
+                                                            hasChildren={false}
+                                                            size="xsmall"
+                                                          >
+                                                            <Box
+                                                              className="css-1kk1aq-Icon e17811v32"
+                                                              size="xsmall"
+                                                            >
+                                                              <Base
+                                                                className="e17811v32 css-1aoi37i-Icon"
+                                                                size="xsmall"
+                                                              >
+                                                                <div
+                                                                  className="e17811v32 css-1aoi37i-Icon"
+                                                                  is={null}
+                                                                  size="xsmall"
+                                                                >
+                                                                  <StyledInlineSvg
+                                                                    size="16px"
+                                                                    src="icon-trash"
+                                                                  >
+                                                                    <InlineSvg
+                                                                      className="css-1ov3rcq-StyledInlineSvg e17811v33"
+                                                                      size="16px"
+                                                                      src="icon-trash"
+                                                                    >
+                                                                      <StyledSvg
+                                                                        className="css-1ov3rcq-StyledInlineSvg e17811v33"
+                                                                        height="16px"
+                                                                        viewBox={Object {}}
+                                                                        width="16px"
+                                                                      >
+                                                                        <svg
+                                                                          className="e17811v33 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                                          height="16px"
+                                                                          viewBox={Object {}}
+                                                                          width="16px"
+                                                                        >
+                                                                          <use
+                                                                            href="#test"
+                                                                            xlinkHref="#test"
+                                                                          />
+                                                                        </svg>
+                                                                      </StyledSvg>
+                                                                    </InlineSvg>
+                                                                  </StyledInlineSvg>
+                                                                </div>
+                                                              </Base>
+                                                            </Box>
+                                                          </Component>
+                                                        </Icon>
+                                                      </div>
+                                                    </Base>
+                                                  </Flex>
+                                                </Component>
+                                              </ButtonLabel>
+                                            </button>
+                                          </Component>
+                                        </StyledButton>
+                                      </Button>
                                     </a>
                                     <Modal
                                       animation={false}
@@ -636,7 +957,6 @@ exports[`ProjectTags renders 1`] = `
                                     title="This tag cannot be deleted."
                                   >
                                     <LinkWithConfirmation
-                                      className="btn btn-sm btn-default"
                                       disabled={true}
                                       message="Are you sure you want to remove this tag?"
                                       onConfirm={[Function]}
@@ -651,14 +971,123 @@ exports[`ProjectTags renders 1`] = `
                                         priority="primary"
                                       >
                                         <a
-                                          className="btn btn-sm btn-default disabled"
+                                          className="undefined disabled"
                                           disabled={true}
                                           onClick={[Function]}
                                           title="Remove tag?"
                                         >
-                                          <span
-                                            className="icon icon-trash"
-                                          />
+                                          <Button
+                                            disabled={false}
+                                            icon="icon-trash"
+                                            size="xsmall"
+                                          >
+                                            <StyledButton
+                                              disabled={false}
+                                              onClick={[Function]}
+                                              role="button"
+                                              size="xsmall"
+                                            >
+                                              <Component
+                                                className="css-dkprmi-StyledButton-getColors e17811v30"
+                                                disabled={false}
+                                                onClick={[Function]}
+                                                role="button"
+                                                size="xsmall"
+                                              >
+                                                <button
+                                                  className="css-dkprmi-StyledButton-getColors e17811v30"
+                                                  disabled={false}
+                                                  onClick={[Function]}
+                                                  role="button"
+                                                  size="xsmall"
+                                                >
+                                                  <ButtonLabel
+                                                    size="xsmall"
+                                                  >
+                                                    <Component
+                                                      className="css-9vplug-ButtonLabel e17811v31"
+                                                      size="xsmall"
+                                                    >
+                                                      <Flex
+                                                        align="center"
+                                                        className="css-9vplug-ButtonLabel e17811v31"
+                                                        size="xsmall"
+                                                      >
+                                                        <Base
+                                                          align="center"
+                                                          className="e17811v31 css-esdzbq-ButtonLabel"
+                                                          size="xsmall"
+                                                        >
+                                                          <div
+                                                            className="e17811v31 css-esdzbq-ButtonLabel"
+                                                            is={null}
+                                                            size="xsmall"
+                                                          >
+                                                            <Icon
+                                                              hasChildren={false}
+                                                              size="xsmall"
+                                                            >
+                                                              <Component
+                                                                className="css-1kk1aq-Icon e17811v32"
+                                                                hasChildren={false}
+                                                                size="xsmall"
+                                                              >
+                                                                <Box
+                                                                  className="css-1kk1aq-Icon e17811v32"
+                                                                  size="xsmall"
+                                                                >
+                                                                  <Base
+                                                                    className="e17811v32 css-1aoi37i-Icon"
+                                                                    size="xsmall"
+                                                                  >
+                                                                    <div
+                                                                      className="e17811v32 css-1aoi37i-Icon"
+                                                                      is={null}
+                                                                      size="xsmall"
+                                                                    >
+                                                                      <StyledInlineSvg
+                                                                        size="16px"
+                                                                        src="icon-trash"
+                                                                      >
+                                                                        <InlineSvg
+                                                                          className="css-1ov3rcq-StyledInlineSvg e17811v33"
+                                                                          size="16px"
+                                                                          src="icon-trash"
+                                                                        >
+                                                                          <StyledSvg
+                                                                            className="css-1ov3rcq-StyledInlineSvg e17811v33"
+                                                                            height="16px"
+                                                                            viewBox={Object {}}
+                                                                            width="16px"
+                                                                          >
+                                                                            <svg
+                                                                              className="e17811v33 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                                              height="16px"
+                                                                              viewBox={Object {}}
+                                                                              width="16px"
+                                                                            >
+                                                                              <use
+                                                                                href="#test"
+                                                                                xlinkHref="#test"
+                                                                              />
+                                                                            </svg>
+                                                                          </StyledSvg>
+                                                                        </InlineSvg>
+                                                                      </StyledInlineSvg>
+                                                                    </div>
+                                                                  </Base>
+                                                                </Box>
+                                                              </Component>
+                                                            </Icon>
+                                                          </div>
+                                                        </Base>
+                                                      </Flex>
+                                                    </Component>
+                                                  </ButtonLabel>
+                                                </button>
+                                              </Component>
+                                            </StyledButton>
+                                          </Button>
                                         </a>
                                         <Modal
                                           animation={false}
