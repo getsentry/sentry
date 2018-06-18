@@ -232,23 +232,34 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                           is={null}
                         >
                           Projects
-                          <form
-                            onSubmit={[Function]}
+                          <AsyncComponentSearchInput
+                            api={Client {}}
+                            className="search"
+                            onError={[Function]}
+                            onSearchSubmit={[Function]}
+                            onSuccess={[Function]}
+                            placeholder="Search Projects"
+                            stateKey="projectList"
+                            url="/organizations/org-slug/projects/"
                           >
-                            <Input
-                              className="search"
-                              onChange={[Function]}
-                              placeholder="Search Projects"
-                              value=""
+                            <form
+                              onSubmit={[Function]}
                             >
-                              <input
-                                className="search css-1m7xmcf-Input-inputStyles e1xej46s0"
+                              <Input
+                                className="search"
                                 onChange={[Function]}
                                 placeholder="Search Projects"
                                 value=""
-                              />
-                            </Input>
-                          </form>
+                              >
+                                <input
+                                  className="search css-1m7xmcf-Input-inputStyles e1xej46s0"
+                                  onChange={[Function]}
+                                  placeholder="Search Projects"
+                                  value=""
+                                />
+                              </Input>
+                            </form>
+                          </AsyncComponentSearchInput>
                         </div>
                       </Base>
                     </Flex>
