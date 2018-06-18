@@ -128,7 +128,7 @@ class GroupAssigneeTestCase(TestCase):
             with self.tasks():
                 GroupAssignee.objects.assign(self.group, self.user)
 
-                mock_sync_assignee_outbound.assert_called_with(external_issue, self.user)
+                mock_sync_assignee_outbound.assert_called_with(external_issue, self.user, 'assign')
 
                 assert GroupAssignee.objects.filter(
                     project=self.group.project,
@@ -174,7 +174,7 @@ class GroupAssigneeTestCase(TestCase):
         with self.feature('organizations:internal-catchall'):
             with self.tasks():
                 GroupAssignee.objects.deassign(self.group)
-                mock_sync_assignee_outbound.assert_called_with(external_issue, None)
+                mock_sync_assignee_outbound.assert_called_with(external_issue, None, 'deassign')
 
                 assert not GroupAssignee.objects.filter(
                     project=self.group.project,

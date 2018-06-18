@@ -18,13 +18,29 @@ from sentry.models.activity import Activity
 from sentry.signals import issue_assigned
 
 
+def sync_group_assignee(group, user_id, action):
+    from sentry.tasks.integrations import sync_assignee_outbound
+    from sentry.models import GroupLink
+    external_issue_ids = GroupLink.objects.filter(
+        project_id=group.project_id,
+        group_id=group.id,
+        linked_type=GroupLink.LinkedType.issue,
+    ).values_list('linked_id', flat=True)
+
+    for external_issue_id in external_issue_ids:
+        sync_assignee_outbound.apply_async(
+            kwargs={
+                'external_issue_id': external_issue_id,
+                'user_id': user_id,
+                'action': action,
+            }
+        )
+
+
 class GroupAssigneeManager(BaseManager):
     def assign(self, group, assigned_to, acting_user=None):
         from sentry import features
-        from sentry.models import (
-            User, Team, GroupLink, GroupSubscription, GroupSubscriptionReason
-        )
-        from sentry.tasks.integrations import sync_assignee_outbound
+        from sentry.models import User, Team, GroupSubscription, GroupSubscriptionReason
 
         GroupSubscription.objects.subscribe_actor(
             group=group,
@@ -80,26 +96,12 @@ class GroupAssigneeManager(BaseManager):
             activity.send_notification()
 
         # sync Sentry assignee to external issues
-        if isinstance(assigned_to, User) and features.has(
+        if assignee_type == 'user' and features.has(
                 'organizations:internal-catchall', group.organization, actor=acting_user):
-            external_issue_ids = GroupLink.objects.filter(
-                project_id=group.project_id,
-                group_id=group.id,
-                linked_type=GroupLink.LinkedType.issue,
-            ).values_list('linked_id', flat=True)
-
-            for external_issue_id in external_issue_ids:
-                sync_assignee_outbound.apply_async(
-                    kwargs={
-                        'external_issue_id': external_issue_id,
-                        'user_id': assigned_to.id,
-                    }
-                )
+            sync_group_assignee(group, assigned_to.id, 'assign')
 
     def deassign(self, group, acting_user=None):
         from sentry import features
-        from sentry.tasks.integrations import sync_assignee_outbound
-        from sentry.models import GroupLink
         affected = GroupAssignee.objects.filter(
             group=group,
         )[:1].count()
@@ -118,19 +120,7 @@ class GroupAssigneeManager(BaseManager):
 
         # sync Sentry assignee to external issues
         if features.has('organizations:internal-catchall', group.organization, actor=acting_user):
-            external_issue_ids = GroupLink.objects.filter(
-                project_id=group.project_id,
-                group_id=group.id,
-                linked_type=GroupLink.LinkedType.issue,
-            ).values_list('linked_id', flat=True)
-
-            for external_issue_id in external_issue_ids:
-                sync_assignee_outbound.apply_async(
-                    kwargs={
-                        'external_issue_id': external_issue_id,
-                        'user_id': None,
-                    }
-                )
+            sync_group_assignee(group, None, 'deassign')
 
 
 class GroupAssignee(Model):
