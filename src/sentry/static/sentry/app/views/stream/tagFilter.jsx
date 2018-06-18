@@ -81,7 +81,7 @@ class StreamTagFilter extends React.Component {
       .then(resp => {
         this.setState({
           isLoading: false,
-          options: Object.values(resp, StreamTagFilter.tagValueToSelectFormat),
+          options: Object.values(resp).map(StreamTagFilter.tagValueToSelectFormat),
         });
       });
   };
