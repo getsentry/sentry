@@ -161,6 +161,14 @@ const App = createReactClass({
     });
   },
 
+  handleGlobalModalClose() {
+    if (!this.mainContainerRef) return;
+    if (typeof this.mainContainerRef.focus !== 'function') return;
+
+    // Focus the main container to get hotkeys to keep working after modal closes
+    this.mainContainerRef.focus();
+  },
+
   renderBody() {
     let {needsUpgrade, newsletterConsentPrompt} = this.state;
     if (needsUpgrade) {
@@ -185,8 +193,12 @@ const App = createReactClass({
 
     return (
       <ThemeProvider theme={theme}>
-        <div className="main-container" tabIndex="-1">
-          <GlobalModal />
+        <div
+          className="main-container"
+          tabIndex="-1"
+          ref={ref => (this.mainContainerRef = ref)}
+        >
+          <GlobalModal onClose={this.handleGlobalModalClose} />
           <Alerts className="messages-container" />
           <Indicators className="indicators-container" />
           <ErrorBoundary>{this.renderBody()}</ErrorBoundary>
