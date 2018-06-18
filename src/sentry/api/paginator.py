@@ -139,7 +139,7 @@ class BasePaginator(object):
             results.reverse()
 
         if self.on_results:
-            self.on_results(results)
+            results = self.on_results(results)
 
         return build_cursor(
             results=results,
@@ -225,7 +225,7 @@ class OffsetPaginator(BasePaginator):
 
         results = list(results[:limit])
         if self.on_results:
-            self.on_results(results)
+            results = self.on_results(results)
 
         return CursorResult(
             results=results,
@@ -323,7 +323,7 @@ class SequencePaginator(object):
 
         results = self.values[lo:hi]
         if self.on_results:
-            self.on_results(results)
+            results = self.on_results(results)
 
         return CursorResult(
             results,
