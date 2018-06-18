@@ -203,9 +203,9 @@ class Endpoint(APIView):
 
     def paginate(
         self, request, on_results=None, paginator=None,
-        paginator_cls=Paginator, default_per_page=100, **kwargs
+        paginator_cls=Paginator, default_per_page=100, **paginator_kwargs
     ):
-        assert (paginator and not kwargs) or (paginator_cls and kwargs)
+        assert (paginator and not paginator_kwargs) or (paginator_cls and paginator_kwargs)
 
         per_page = int(request.GET.get('per_page', default_per_page))
         input_cursor = request.GET.get('cursor')
@@ -217,7 +217,7 @@ class Endpoint(APIView):
         assert per_page <= max(100, default_per_page)
 
         if not paginator:
-            paginator = paginator_cls(**kwargs)
+            paginator = paginator_cls(**paginator_kwargs)
 
         cursor_result = paginator.get_result(
             limit=per_page,

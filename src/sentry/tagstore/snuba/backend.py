@@ -387,7 +387,6 @@ class SnubaTagStorage(TagStorage):
     def get_tag_value_paginator(self, project_id, environment_id, key, query=None,
             order_by='-last_seen'):
         from sentry.api.paginator import SequencePaginator
-        from sentry.tagstore.types import TagValue
 
         if not order_by == '-last_seen':
             raise ValueError("Unsupported order_by: %s" % order_by)
@@ -435,8 +434,6 @@ class SnubaTagStorage(TagStorage):
         )
 
     def get_group_tag_value_iter(self, project_id, group_id, environment_id, key, callbacks=()):
-        from sentry.tagstore.types import GroupTagValue
-
         start, end = self.get_time_range()
         results = snuba.query(
             start=start,
