@@ -10,12 +10,10 @@ from __future__ import absolute_import
 
 import functools
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import timedelta
 from dateutil.parser import parse as parse_datetime
 from django.utils import timezone
 import six
-import time
-import pytz
 
 from sentry.tagstore import TagKeyStatus
 from sentry.tagstore.base import TagStorage
@@ -27,6 +25,7 @@ from sentry.tagstore.exceptions import (
 )
 from sentry.tagstore.types import TagKey, TagValue, GroupTagKey, GroupTagValue
 from sentry.utils import snuba
+from sentry.utils.dates import to_timestamp
 
 
 SEEN_COLUMN = 'timestamp'
@@ -36,8 +35,6 @@ tag_value_data_transformers = {
     'first_seen': parse_datetime,
     'last_seen': parse_datetime,
 }
-
-parse_date = lambda d: datetime.strptime(d, '%Y-%m-%dT%H:%M:%S+00:00').replace(tzinfo=pytz.UTC)
 
 
 def fix_tag_value_data(data):
@@ -419,17 +416,15 @@ class SnubaTagStorage(TagStorage):
         tag_values = [
             TagValue(
                 key=key,
-                value=k or u'',
-                times_seen=v['times_seen'],
-                first_seen=parse_date(v['first_seen']),
-                last_seen=parse_date(v['last_seen']),
-            ) for k, v in six.iteritems(results)
+                value=value,
+                **fix_tag_value_data(data)
+            ) for value, data in six.iteritems(results)
         ]
 
         desc = order_by.startswith('-')
         score_field = order_by.lstrip('-')
         return SequencePaginator(
-            [(time.mktime(getattr(tv, score_field).timetuple()), tv) for tv in tag_values],
+            [(int(to_timestamp(getattr(tv, score_field)) * 1000), tv) for tv in tag_values],
             reverse=desc
         )
 
@@ -459,11 +454,9 @@ class SnubaTagStorage(TagStorage):
             GroupTagValue(
                 group_id=group_id,
                 key=key,
-                value=k or u'',
-                times_seen=v['times_seen'],
-                first_seen=parse_date(v['first_seen']),
-                last_seen=parse_date(v['last_seen']),
-            ) for k, v in six.iteritems(results)
+                value=value,
+                **fix_tag_value_data(data)
+            ) for value, data in six.iteritems(results)
         ]
 
         for cb in callbacks:
@@ -490,7 +483,7 @@ class SnubaTagStorage(TagStorage):
         desc = order_by.startswith('-')
         score_field = order_by.lstrip('-')
         return SequencePaginator(
-            [(time.mktime(getattr(gtv, score_field).timetuple()), gtv) for gtv in group_tag_values],
+            [(int(to_timestamp(getattr(gtv, score_field)) * 1000), gtv) for gtv in group_tag_values],
             reverse=desc
         )
 
