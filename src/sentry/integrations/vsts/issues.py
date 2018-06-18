@@ -84,5 +84,5 @@ class VstsIssueSync(IssueSyncMixin):
         return {
             'key': work_item['id'],
             'title': work_item['fields']['System.Title'],
-            'description': work_item['fields']['System.Description']
+            'description': work_item['fields'].get('System.Description')
         }
