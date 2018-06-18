@@ -8,6 +8,9 @@ import SentryTypes from 'app/proptypes';
 
 /**
  * Interface to handle feature tags as well as user's organization access levels
+ *
+ * TODO:
+ *  - ConfigStore
  */
 class Feature extends React.Component {
   static propTypes = {
@@ -19,13 +22,20 @@ class Feature extends React.Component {
     config: PropTypes.arrayOf(PropTypes.string),
 
     /**
-     * List of required feature tags
+     * List of required feature tags. Note we do not enforce uniqueness of tags anywhere.
+     * On the backend end, feature tags have a scope prefix string that is stripped out on the
+     * frontend (since feature tags are attached to a context object).
+     *
+     * TODO(billy): Have different props (e.g. organizationFeature, projectFeature) if
+     * we needed to support duplicate feature tags across different scopes
      */
     feature: PropTypes.arrayOf(PropTypes.string),
+
     /**
      * List of required access levels
      */
     access: PropTypes.arrayOf(PropTypes.string),
+
     /**
      * If children is a function then will be treated as a render prop and passed this object:
      * {
