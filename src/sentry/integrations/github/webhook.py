@@ -16,6 +16,7 @@ from django.views.generic import View
 from django.utils import timezone
 from simplejson import JSONDecodeError
 from sentry import options
+from sentry.constants import ObjectStatus
 from sentry.models import (
     Commit, CommitAuthor, CommitFileChange, Integration, PullRequest,
     Repository, User
@@ -88,13 +89,13 @@ class InstallationEventWebhook(Webhook):
             org.id: org
             for org in integration.organizations.all()
         }
-        integration.update(status=1)
+        integration.update(status=ObjectStatus.DISABLED)
 
         Repository.objects.filter(
             organization_id__in=orgs.keys(),
             provider='integrations:github',
             integration_id=integration.id,
-        ).update(status=1)
+        ).update(status=ObjectStatus.DISABLED)
 
 
 class InstallationRepositoryEventWebhook(Webhook):

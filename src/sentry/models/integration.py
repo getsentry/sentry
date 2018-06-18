@@ -54,6 +54,7 @@ class Integration(Model):
     # instance is shared among multiple organizations
     metadata = EncryptedJsonField(default=lambda: {})
     status = BoundedPositiveIntegerField(
+        default=ObjectStatus.VISIBLE,
         choices=ObjectStatus.as_choices(),
         null=True,
     )

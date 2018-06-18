@@ -156,7 +156,7 @@ export default class InstalledIntegration extends React.Component {
     const {integration, provider} = this.props;
     const enabled = this.isEnabledForProject();
     const style =
-      integration.status !== 'active' ? {filter: 'grayscale(1)', opacity: '0.4'} : {};
+      integration.status === 'disabled' ? {filter: 'grayscale(1)', opacity: '0.4'} : {};
 
     return (
       <React.Fragment>
@@ -195,7 +195,7 @@ export default class InstalledIntegration extends React.Component {
               </Button>
             </Box>
           )}
-          {integration.status === 'active'
+          {integration.status === 'active' && integration.provider.key === 'github'
             ? this.disableIntegration(integration)
             : this.removeIntegration()}
         </PanelItem>
