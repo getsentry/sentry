@@ -1,5 +1,5 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+import {mount, shallow} from 'enzyme';
 
 import SelectControl from 'app/components/forms/selectControl';
 
@@ -33,5 +33,42 @@ describe('SelectControl', function() {
       {value: 'b', label: 'bcd'},
       {value: 'c', label: 'cde'},
     ]);
+  });
+
+  it('renders with complex objects with paired "choices"', function() {
+    let mock = jest.fn();
+    let Foo = <div>Foo</div>;
+    let Bar = <div>Bar</div>;
+
+    let wrapper = mount(
+      <SelectControl
+        choices={[[{id: 'foo', name: 'Foo'}, Foo], [{id: 'bar', name: 'Bar'}, Bar]]}
+        name="fieldName"
+        onChange={mock}
+      />
+    );
+    expect(wrapper.find('StyledSelect').prop('options')).toEqual([
+      {value: {id: 'foo', name: 'Foo'}, label: Foo},
+      {value: {id: 'bar', name: 'Bar'}, label: Bar},
+    ]);
+
+    wrapper.find('input').simulate('focus');
+    wrapper.find('.Select-control').simulate('mouseDown', {button: 0});
+    expect(
+      wrapper
+        .find('div.Select-option')
+        .first()
+        .prop('children')
+    ).toEqual(Foo);
+
+    wrapper
+      .find('Option')
+      .first()
+      .simulate('mouseDown');
+
+    expect(mock).toHaveBeenCalledWith({
+      value: {id: 'foo', name: 'Foo'},
+      label: Foo,
+    });
   });
 });
