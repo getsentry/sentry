@@ -3,13 +3,18 @@ from __future__ import absolute_import
 from datetime import datetime
 
 from rest_framework.response import Response
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationDiscoverPermission
-from sentry.models import Project, ProjectStatus
+from sentry.api.bases.organization import OrganizationDiscoverPermission
+from sentry.api.bases import OrganizationMemberEndpoint
+
+from sentry.models import Project, ProjectStatus, OrganizationMemberTeam
+
+from sentry import roles
+
 
 from sentry.utils import snuba
 
 
-class OrganizationDiscoverEndpoint(OrganizationEndpoint):
+class OrganizationDiscoverEndpoint(OrganizationMemberEndpoint):
     permission_classes = (OrganizationDiscoverPermission, )
 
     def do_query(self, start, end, selected_columns=None, conditions=None, having=None, filters=None,
@@ -32,7 +37,21 @@ class OrganizationDiscoverEndpoint(OrganizationEndpoint):
 
         return snuba_results
 
-    def post(self, request, organization):
+    def has_projects_access(self, member, organization, requested_projects):
+        has_global_access = roles.get(member.role).is_global
+        if has_global_access:
+            return True
+
+        member_project_list = Project.objects.filter(
+            organization=organization,
+            teams__in=OrganizationMemberTeam.objects.filter(
+                organizationmember=member,
+            ).values('team'),
+        ).values_list('id')
+
+        return set(requested_projects).issubset(set(member_project_list))
+
+    def post(self, request, organization, member):
         data = request.DATA
 
         filters = {
@@ -53,6 +72,8 @@ class OrganizationDiscoverEndpoint(OrganizationEndpoint):
 
         rollup = data.get('rollup')
 
+        projects = data.get('projects')
+
         org_projects = [project.id for project in list(Project.objects.filter(
             organization=organization,
             status=ProjectStatus.VISIBLE,
@@ -61,7 +82,13 @@ class OrganizationDiscoverEndpoint(OrganizationEndpoint):
         if (not isinstance(limit, int) or limit < 0 or limit > 1000):
             return Response({'detail': 'Invalid limit parameter'}, status=400)
 
-        if any(project_id not in org_projects for project_id in data['projects']):
+        if not projects:
+            return Response({'detail': 'No projects requested'})
+
+        if any(project_id not in org_projects for project_id in projects):
+            return Response({'detail': 'Invalid projects'}, status=400)
+
+        if not self.has_projects_access(member, organization, projects):
             return Response({'detail': 'Invalid projects'}, status=400)
 
         fmt = '%Y-%m-%dT%H:%M:%S'
