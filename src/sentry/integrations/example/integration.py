@@ -62,6 +62,9 @@ class ExampleIntegration(Integration, IssueSyncMixin):
             'description': 'This is a test external issue description',
         }
 
+    def sync_assignee_outbound(self, external_issue, user, assign=True, **kwargs):
+        pass
+
 
 class ExampleIntegrationProvider(IntegrationProvider):
     """
