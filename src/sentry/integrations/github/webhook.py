@@ -79,20 +79,15 @@ class InstallationEventWebhook(Webhook):
                 external_id=installation['id'],
                 provider='github',
             )
+            self._handle_delete(event, integration)
 
-            self._handle(event, integration)
+    def _handle_delete(self, event, integration):
 
-    def _handle(self, event, integration):
-        # TODO(maxbittker) these might need different behavior for missing
-        # repository models in __call__
-        orgs = {
-            org.id: org
-            for org in integration.organizations.all()
-        }
+        organizations = integration.organizations.all()
         integration.update(status=ObjectStatus.DISABLED)
 
         Repository.objects.filter(
-            organization_id__in=orgs.keys(),
+            organization_id__in=organizations.values_list('id', flat=True),
             provider='integrations:github',
             integration_id=integration.id,
         ).update(status=ObjectStatus.DISABLED)
@@ -101,8 +96,6 @@ class InstallationEventWebhook(Webhook):
 class InstallationRepositoryEventWebhook(Webhook):
     # https://developer.github.com/v3/activity/events/types/#installationrepositoriesevent
     def _handle(self, event, organization, repo):
-        # TODO(maxbittker) these might need different behavior for missing
-        # repository models in __call__
         pass
 
 

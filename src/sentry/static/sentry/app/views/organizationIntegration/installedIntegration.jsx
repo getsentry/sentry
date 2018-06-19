@@ -132,7 +132,7 @@ export default class InstalledIntegration extends React.Component {
     );
   }
 
-  removeIntegration() {
+  removeIntegration(integration) {
     const message = `Removing this integration will disable
       the integration for all projects and any
       repositories from this integration.
@@ -140,7 +140,7 @@ export default class InstalledIntegration extends React.Component {
     return (
       <Box mr={1} pr={2}>
         <Confirm
-          disabled={false}
+          disabled={integration.status === 'disabled'}
           message={t(message)}
           onConfirm={() => this.props.onRemove()}
         >
@@ -197,7 +197,7 @@ export default class InstalledIntegration extends React.Component {
           )}
           {integration.status === 'active' && integration.provider.key === 'github'
             ? this.disableIntegration(integration)
-            : this.removeIntegration()}
+            : this.removeIntegration(integration)}
         </PanelItem>
         <div
           style={{
