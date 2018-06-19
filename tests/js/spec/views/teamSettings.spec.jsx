@@ -68,7 +68,7 @@ describe('TeamSettings', function() {
     expect(router.push).toHaveBeenCalledWith('/settings/org/teams/new-slug/settings/');
   });
 
-  it('needs team:admin in order to see remove team button', function() {
+  it('needs team:admin in order to see an enabled Remove Team button', function() {
     let team = TestStubs.Team();
 
     let wrapper = mount(
@@ -80,13 +80,13 @@ describe('TeamSettings', function() {
       />,
       TestStubs.routerContext([{organization: TestStubs.Organization({access: []})}])
     );
-
     expect(
       wrapper
-        .find('PanelHeader')
+        .find('Panel')
         .last()
-        .text()
-    ).not.toBe('Remove Team');
+        .find('Button')
+        .prop('disabled')
+    ).toBe(true);
   });
 
   it('can remove team', async function() {

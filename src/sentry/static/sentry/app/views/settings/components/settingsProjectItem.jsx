@@ -1,8 +1,6 @@
 import styled from 'react-emotion';
 import React from 'react';
-
 import createReactClass from 'create-react-class';
-import theme from 'app/utils/theme';
 
 import {update} from 'app/actionCreators/projects';
 import ApiMixin from 'app/mixins/apiMixin';
@@ -17,10 +15,6 @@ const InlineButton = styled('button')`
   border: none;
   background-color: inherit;
   padding: 0;
-`;
-
-const StyledProjectLabel = styled(ProjectLabel)`
-  color: ${p => p.theme.blue};
 `;
 
 const ProjectItem = createReactClass({
@@ -68,6 +62,7 @@ const ProjectItem = createReactClass({
     let {project, organization} = this.props;
     let org = organization;
     let {isBookmarked} = this.state;
+    let LinkOrSpan = organization.access.includes('project:write') ? Link : 'span';
 
     return (
       <div key={project.id} className={isBookmarked ? 'isBookmarked' : null}>
@@ -80,9 +75,9 @@ const ProjectItem = createReactClass({
             )}
           </InlineButton>
         </Tooltip>
-        <Link to={`/settings/${org.slug}/${project.slug}/`} css={{color: theme.gray3}}>
-          <StyledProjectLabel project={project} organization={this.props.organization} />
-        </Link>
+        <LinkOrSpan to={`/settings/${org.slug}/${project.slug}/`}>
+          <ProjectLabel project={project} organization={this.props.organization} />
+        </LinkOrSpan>
       </div>
     );
   },

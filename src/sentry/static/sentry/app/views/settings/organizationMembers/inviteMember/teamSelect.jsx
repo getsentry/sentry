@@ -33,7 +33,7 @@ class TeamSelect extends React.Component {
           <PanelItem css={{flexWrap: 'wrap'}}>
             {teams.map(team => (
               <TeamItem key={team.slug}>
-                <label className="checkbox">
+                <label disabled={disabled} className="checkbox">
                   <Checkbox
                     id={team.slug}
                     disabled={disabled}
