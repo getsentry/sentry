@@ -7,18 +7,18 @@ import FormField from 'app/components/forms/formField';
 import SelectControl from 'app/components/forms/selectControl';
 import convertFromSelect2Choices from 'app/utils/convertFromSelect2Choices';
 
-export default class SelectTextField extends FormField {
+/**
+ * This is a <SelectField> that allows the user to create new options if one does't exist.
+ *
+ * This is used in some integrations
+ */
+export default class SelectCreatableField extends FormField {
   static propTypes = {
     ...FormField.propTypes,
-    options: PropTypes.arrayOf(
-      PropTypes.shape({
-        label: PropTypes.node,
-        value: PropTypes.any,
-      })
-    ),
-    choices: PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.string, PropTypes.array])),
+    options: SelectControl.propTypes.options,
+    clearable: SelectControl.propTypes.clearable,
+    choices: SelectControl.propTypes.choices,
     onChange: PropTypes.func,
-    clearable: PropTypes.bool,
     creatable: PropTypes.bool,
   };
 
@@ -54,11 +54,11 @@ export default class SelectTextField extends FormField {
     return convertFromSelect2Choices(props.choices) || props.options;
   }
 
+  getClassName = () => '';
+
   // Not sure why, but we need this to get react-select's `Creatable` to work properly
   // Otherwise, when you hit "enter" to create a new item, the "selected value" does
   // not update with new value (and also new value is not displayed in dropdown)
-  getClassName = () => '';
-
   coerceValue(value) {
     return value ? value.value : null;
   }

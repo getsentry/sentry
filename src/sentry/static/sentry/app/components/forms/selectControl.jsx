@@ -7,9 +7,13 @@ import convertFromSelect2Choices from 'app/utils/convertFromSelect2Choices';
 
 export default class SelectControl extends React.Component {
   static propTypes = {
-    async: PropTypes.bool,
-    creatable: PropTypes.bool,
-    options: PropTypes.array,
+    ...ReactSelect.propTypes,
+    options: PropTypes.arrayOf(
+      PropTypes.shape({
+        label: PropTypes.node,
+        value: PropTypes.any,
+      })
+    ),
     choices: PropTypes.oneOfType([
       PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.string, PropTypes.array])),
       PropTypes.func,

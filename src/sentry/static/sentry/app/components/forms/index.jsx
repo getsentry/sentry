@@ -12,7 +12,7 @@ export {default as RadioBooleanField} from './radioBooleanField';
 export {default as RangeField} from './rangeField';
 export {default as Select2FieldAutocomplete} from './select2FieldAutocomplete';
 export {default as Select2Field} from './select2Field';
-export {default as SelectTextField} from './selectTextField';
+export {default as SelectCreatableField} from './selectCreatableField';
 export {default as TextField} from './textField';
 export {default as TextareaField} from './textareaField';
 export {default as SelectField} from './selectField';
