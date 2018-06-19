@@ -64,6 +64,8 @@ export default class IntegrationRepos extends AsyncComponent {
         return 'Deletion Queued';
       case 'deletion_in_progress':
         return 'Deletion in Progress';
+      case 'disabled':
+        return 'Disabled';
       case 'hidden':
         return 'Disabled';
       default:
@@ -210,9 +212,13 @@ export default class IntegrationRepos extends AsyncComponent {
             <Box>
               {itemList.map(repo => {
                 let repoIsVisible = repo.status === 'active';
+                let style =
+                  repo.status === 'disabled'
+                    ? {filter: 'grayscale(1)', opacity: '0.4'}
+                    : {};
                 return (
                   <RepoOption key={repo.id}>
-                    <Box p={2} flex="1">
+                    <Box style={style} p={2} flex="1">
                       <Flex direction="column">
                         <Box pb={1}>
                           <strong>{repo.name}</strong>
@@ -228,7 +234,7 @@ export default class IntegrationRepos extends AsyncComponent {
                             </small>
                           )}
                         </Box>
-                        <Box>
+                        <Box style={style}>
                           <small>{repo.provider.name}</small>
                           {repo.url && (
                             <small>
@@ -242,7 +248,7 @@ export default class IntegrationRepos extends AsyncComponent {
 
                     <Box p={2}>
                       <Confirm
-                        disabled={!repoIsVisible}
+                        disabled={!repoIsVisible && repo.status !== 'disabled'}
                         onConfirm={() => this.deleteRepo(repo)}
                         message={t('Are you sure you want to remove this repository?')}
                       >

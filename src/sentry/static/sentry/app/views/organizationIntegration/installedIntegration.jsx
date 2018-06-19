@@ -38,6 +38,7 @@ export default class InstalledIntegration extends React.Component {
     integration: PropTypes.object.isRequired,
     onRemove: PropTypes.func.isRequired,
     onToggleEnabled: PropTypes.func.isRequired,
+    onDisable: PropTypes.func.isRequired,
   };
 
   constructor() {
@@ -111,21 +112,63 @@ export default class InstalledIntegration extends React.Component {
     );
   }
 
+  disableIntegration(integration) {
+    const message = `You must uninstall this integration
+      from ${integration.provider.key} in order to delete this integration
+      in Sentry.`;
+    return (
+      <Box mr={1} pr={2}>
+        <Confirm
+          disabled={false}
+          confirmText={t('Go to GitHub')}
+          message={t(message)}
+          onConfirm={() => this.props.onDisable(integration)}
+        >
+          <Button size="small">
+            <span className="icon icon-trash" style={{margin: 0}} />
+          </Button>
+        </Confirm>
+      </Box>
+    );
+  }
+
+  removeIntegration(integration) {
+    const message = `Removing this integration will disable
+      the integration for all projects and any
+      repositories from this integration.
+      Are you sure you want to remove this integration?`;
+    return (
+      <Box mr={1} pr={2}>
+        <Confirm
+          disabled={integration.status === 'disabled'}
+          message={t(message)}
+          onConfirm={() => this.props.onRemove()}
+        >
+          <Button size="small">
+            <span className="icon icon-trash" style={{margin: 0}} />
+          </Button>
+        </Confirm>
+      </Box>
+    );
+  }
+
   render() {
     const {integration, provider} = this.props;
     const enabled = this.isEnabledForProject();
+    const style =
+      integration.status === 'disabled' ? {filter: 'grayscale(1)', opacity: '0.4'} : {};
 
     return (
       <React.Fragment>
         <PanelItem p={0} py={2} key={integration.id} align="center">
-          <Box pl={2}>
+          <Box style={style} pl={2}>
             {integration.icon ? (
               <IntegrationIcon src={integration.icon} />
             ) : (
               <PluginIcon size={32} pluginId={provider.key} />
             )}
           </Box>
-          <Box px={2} flex={1}>
+          <Box style={style} px={2} flex={1}>
             <IntegrationName>{integration.name}</IntegrationName>
             <DomainName>{integration.domainName}</DomainName>
           </Box>
@@ -152,18 +195,9 @@ export default class InstalledIntegration extends React.Component {
               </Button>
             </Box>
           )}
-          <Box mr={1} pr={2}>
-            <Confirm
-              message={t(
-                'Removing this inegration will disable the integration for all projects. Are you sure you want to remove this integration?'
-              )}
-              onConfirm={() => this.props.onRemove()}
-            >
-              <Button size="small">
-                <span className="icon icon-trash" style={{margin: 0}} />
-              </Button>
-            </Confirm>
-          </Box>
+          {integration.status === 'active' && integration.provider.key === 'github'
+            ? this.disableIntegration(integration)
+            : this.removeIntegration(integration)}
         </PanelItem>
         <div
           style={{
