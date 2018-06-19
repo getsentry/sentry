@@ -48,7 +48,6 @@ export default function getConfiguration({project}) {
         {
           path: `${pathPrefix}/release-tracking/`,
           title: t('Releases'),
-          show: ({access}) => access.has('project:write'),
         },
         {
           path: `${pathPrefix}/ownership/`,
