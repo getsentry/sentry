@@ -19,7 +19,6 @@ class VSTSIdentityProvider(OAuth2Provider):
     oauth_authorize_url = 'https://app.vssps.visualstudio.com/oauth2/authorize'
     oauth_scopes = (
         'vso.code',
-        'vso.graph',
         'vso.project',
         'vso.release',
         'vso.serviceendpoint_manage',
