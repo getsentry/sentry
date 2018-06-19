@@ -20,7 +20,7 @@ from sentry.models import (
     Repository, User
 )
 from sentry.utils import json
-
+from sentry.constants import ObjectStatus
 from sentry.integrations.exceptions import ApiError
 from .repository import GitHubEnterpriseRepositoryProvider
 from .client import GitHubEnterpriseAppsClient
@@ -75,8 +75,25 @@ class Webhook(object):
 
 class InstallationEventWebhook(Webhook):
     # https://developer.github.com/v3/activity/events/types/#installationevent
-    def _handle(self, event, organization, repo):
-        pass
+    def __call__(self, event):
+        installation = event['installation']
+        if installation and event['action'] == 'deleted':
+            integration = Integration.objects.get(
+                external_id=installation['id'],
+                provider='github-enterprise',
+            )
+            self._handle_delete(event, integration)
+
+    def _handle_delete(self, event, integration):
+
+        organizations = integration.organizations.all()
+        integration.update(status=ObjectStatus.DISABLED)
+
+        Repository.objects.filter(
+            organization_id__in=organizations.values_list('id', flat=True),
+            provider='integrations:github_enterprise',
+            integration_id=integration.id,
+        ).update(status=ObjectStatus.DISABLED)
 
 
 class InstallationRepositoryEventWebhook(Webhook):
