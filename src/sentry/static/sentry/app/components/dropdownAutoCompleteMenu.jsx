@@ -339,9 +339,8 @@ const StyledMenu = styled('div')`
 
 const EmptyMessage = styled('div')`
   color: ${p => p.theme.gray1};
-  padding: ${space(1)} ${space(2)};
+  padding: ${space(2)};
   text-align: center;
-  font-size: 1.2em;
   text-transform: none;
 `;
 
