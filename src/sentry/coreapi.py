@@ -500,14 +500,13 @@ class LazyData(MutableMapping):
         data['key_id'] = self._key.id
         data['sdk'] = data.get('sdk') or helper.parse_client_as_sdk(auth.client)
 
-        # mutates data
+        # does not mutate data, must use return value of normalize
         manager = EventManager(data, version=auth.version)
-        manager.normalize(request_env={
+        self._data = manager.normalize(request_env={
             'client_ip': self._client_ip,
             'auth': self._auth,
         })
 
-        self._data = data
         self._decoded = True
 
     def __getitem__(self, name):

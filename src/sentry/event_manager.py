@@ -309,7 +309,7 @@ class EventManager(object):
     logger = logging.getLogger('sentry.events')
 
     def __init__(self, data, version='5'):
-        self.data = data
+        self.data = data.copy()
         self.version = version
 
     def normalize(self, request_env=None):
@@ -534,6 +534,7 @@ class EventManager(object):
 
     def save(self, project, raw=False):
         from sentry.tasks.post_process import index_event_tags
+        data = self.data
 
         project = Project.objects.get_from_cache(id=project)
 
@@ -545,7 +546,7 @@ class EventManager(object):
         try:
             event = Event.objects.get(
                 project_id=project.id,
-                event_id=self.data['event_id'],
+                event_id=data['event_id'],
             )
         except Event.DoesNotExist:
             pass
@@ -554,14 +555,12 @@ class EventManager(object):
                 'duplicate.found',
                 exc_info=True,
                 extra={
-                    'event_uuid': self.data['event_id'],
+                    'event_uuid': data['event_id'],
                     'project_id': project.id,
                     'model': Event.__name__,
                 }
             )
             return event
-
-        data = self.data.copy()
 
         # First we pull out our top-level (non-data attr) kwargs
         event_id = data.pop('event_id')
@@ -672,10 +671,7 @@ class EventManager(object):
         # tags are stored as a tuple
         tags = tags.items()
 
-        # XXX(dcramer): we're relying on mutation of the data object to ensure
-        # this propagates into Event
         data['tags'] = tags
-
         data['fingerprint'] = fingerprint or ['{{ default }}']
 
         # prioritize fingerprint over checksum as its likely the client defaulted
