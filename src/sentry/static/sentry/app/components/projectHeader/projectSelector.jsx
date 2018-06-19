@@ -204,7 +204,7 @@ const ProjectSelector = createReactClass({
     let label = this.getProjectLabel(team, project, hasSingleTeam, highlightText);
     let platforms;
     if (typeof project.platforms !== 'undefined') {
-      platforms = project && project.platforms.slice(0, 3);
+      platforms = project && project.platforms;
     } else {
       platforms = [];
     }

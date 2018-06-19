@@ -33,7 +33,6 @@ class PlatformList extends React.Component {
   render() {
     const {platforms} = this.props;
     const platformsPreview = platforms.slice(0, MAX_PLATFORMS);
-
     return (
       <PlatformIcons>
         {platforms.length > 0 ? (
