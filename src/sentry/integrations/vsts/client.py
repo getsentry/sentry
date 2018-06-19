@@ -8,6 +8,7 @@ FIELD_MAP = {
     'description': '/fields/System.Description',
     'comment': '/fields/System.History',
     'link': '/relations/-',
+    'assigned_to': '/fields/System.AssignedTo',
 }
 INVALID_ACCESS_TOKEN = 'HTTP 400 (invalid_request): The access token is not valid'
 
@@ -21,11 +22,12 @@ class VstsApiPath(object):
     work_items = u'https://{account_name}/DefaultCollection/_apis/wit/workitems/{id}'
     work_items_create = u'https://{account_name}/{project}/_apis/wit/workitems/${type}'
     work_items_types_states = u'https://{account_name}/{project}/_apis/wit/workitemtypes/{type}/states'
+    users = u'https://{account_name}.vssps.visualstudio.com/_apis/graph/users'
 
 
 class VstsApiClient(ApiClient, OAuth2RefreshMixin):
     api_version = '4.1'
-    api_version_preview = '-preview.1'  # in another pr vsts-assignee #8783
+    api_version_preview = '-preview.1'
 
     def __init__(self, identity, oauth_redirect_url, *args, **kwargs):
         super(VstsApiClient, self).__init__(*args, **kwargs)
@@ -88,7 +90,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
         )
 
     def update_work_item(self, instance, id, title=UNSET, description=UNSET, link=UNSET,
-                         comment=UNSET):
+                         comment=UNSET, assigned_to=UNSET):
         data = []
 
         for f_name, f_value in (('title', title), ('description', description), ('link', link)):
@@ -217,4 +219,12 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
                 account_name=instance,
             ),
             params={'stateFilter': 'WellFormed'}
+        )
+
+    def get_users(self, account_name):
+        return self.get(
+            VstsApiPath.users.format(
+                account_name=account_name,
+            ),
+            api_preview=True,
         )
