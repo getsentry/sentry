@@ -27,6 +27,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             'name': integration.name,
             'icon': integration.metadata.get('icon'),
             'domainName': integration.metadata.get('domain_name'),
+            'status': integration.get_status_display(),
             'provider': {
                 'key': integration.get_provider().key,
                 'name': integration.get_provider().name,
@@ -59,6 +60,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             'name': integration.name,
             'icon': integration.metadata.get('icon'),
             'domainName': integration.metadata.get('domain_name'),
+            'status': integration.get_status_display(),
             'provider': {
                 'key': integration.get_provider().key,
                 'name': integration.get_provider().name,

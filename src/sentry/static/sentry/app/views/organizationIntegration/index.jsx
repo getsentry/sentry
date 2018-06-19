@@ -116,6 +116,22 @@ export default class OrganizationIntegration extends AsyncView {
     this.dialog.focus();
   };
 
+  handleDisableIntegration = integration => {
+    const name = 'sentryDisableIntegration';
+
+    const width = 800;
+    const height = 600;
+    const {left, top} = computeCenteredWindow(width, height);
+
+    this.dialog = window.open(
+      'https://github.com/settings/installations',
+      name,
+      `scrollbars=yes,width=${width},height=${height},top=${top},left=${left}`
+    );
+
+    this.dialog.focus();
+  };
+
   receiveMessage = message => {
     if (message.origin !== document.origin) {
       return;
@@ -286,6 +302,7 @@ export default class OrganizationIntegration extends AsyncView {
             integration={integration}
             onToggleEnabled={e => this.handleToggleProjectIntegration(integration, e)}
             onRemove={() => this.handleDeleteIntegration(integration)}
+            onDisable={() => this.handleDisableIntegration(integration)}
           />
         ))
       );

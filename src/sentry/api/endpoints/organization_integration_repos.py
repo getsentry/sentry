@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from django.http import Http404
 
+from sentry.constants import ObjectStatus
 from sentry.api.bases.organization import (
     OrganizationEndpoint, OrganizationIntegrationsPermission
 )
@@ -18,6 +19,10 @@ class OrganizationIntegrationReposEndpoint(OrganizationEndpoint):
             integration = Integration.objects.get(id=integration_id, organizations=organization)
         except Integration.DoesNotExist:
             raise Http404
+
+        if integration.status == ObjectStatus.DISABLED:
+            context = {'repos': []}
+            return self.respond(context)
 
         install = integration.get_installation()
         if isinstance(install, RepositoryMixin):
