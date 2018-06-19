@@ -9,6 +9,9 @@ import handleXhrErrorResponse from 'app/utils/handleXhrErrorResponse';
 
 import SelectControl from './selectControl';
 
+/**
+ * Performs an API request to `url` when menu is initially opened
+ */
 class SelectAsyncControl extends React.Component {
   static propTypes = {
     /**
