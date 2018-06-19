@@ -9,6 +9,8 @@ import PropTypes from 'prop-types';
 import ConfigStore from 'app/stores/configStore';
 import theme from 'app/utils/theme';
 
+import RoleList from './fixtures/roleList';
+
 jest.mock('lodash/debounce', () => jest.fn(fn => fn));
 jest.mock('app/utils/recreateRoute');
 jest.mock('app/translations');
@@ -565,6 +567,7 @@ window.TestStubs = {
     user: TestStubs.User(),
     ...params,
   }),
+
   Members: () => [
     TestStubs.Member(),
     {
@@ -853,6 +856,8 @@ window.TestStubs = {
       ...params,
     };
   },
+
+  RoleList,
 
   Searches: params => [
     {
