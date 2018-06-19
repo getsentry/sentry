@@ -228,11 +228,13 @@ exports[`ProjectTags renders 1`] = `
                                       title="Remove tag?"
                                     >
                                       <Button
+                                        data-test-id="delete"
                                         disabled={false}
                                         icon="icon-trash"
                                         size="xsmall"
                                       >
                                         <StyledButton
+                                          data-test-id="delete"
                                           disabled={false}
                                           onClick={[Function]}
                                           role="button"
@@ -240,6 +242,7 @@ exports[`ProjectTags renders 1`] = `
                                         >
                                           <Component
                                             className="css-dkprmi-StyledButton-getColors e17811v30"
+                                            data-test-id="delete"
                                             disabled={false}
                                             onClick={[Function]}
                                             role="button"
@@ -247,6 +250,7 @@ exports[`ProjectTags renders 1`] = `
                                           >
                                             <button
                                               className="css-dkprmi-StyledButton-getColors e17811v30"
+                                              data-test-id="delete"
                                               disabled={false}
                                               onClick={[Function]}
                                               role="button"
@@ -475,11 +479,13 @@ exports[`ProjectTags renders 1`] = `
                                       title="Remove tag?"
                                     >
                                       <Button
+                                        data-test-id="delete"
                                         disabled={false}
                                         icon="icon-trash"
                                         size="xsmall"
                                       >
                                         <StyledButton
+                                          data-test-id="delete"
                                           disabled={false}
                                           onClick={[Function]}
                                           role="button"
@@ -487,6 +493,7 @@ exports[`ProjectTags renders 1`] = `
                                         >
                                           <Component
                                             className="css-dkprmi-StyledButton-getColors e17811v30"
+                                            data-test-id="delete"
                                             disabled={false}
                                             onClick={[Function]}
                                             role="button"
@@ -494,6 +501,7 @@ exports[`ProjectTags renders 1`] = `
                                           >
                                             <button
                                               className="css-dkprmi-StyledButton-getColors e17811v30"
+                                              data-test-id="delete"
                                               disabled={false}
                                               onClick={[Function]}
                                               role="button"
@@ -722,11 +730,13 @@ exports[`ProjectTags renders 1`] = `
                                       title="Remove tag?"
                                     >
                                       <Button
+                                        data-test-id="delete"
                                         disabled={false}
                                         icon="icon-trash"
                                         size="xsmall"
                                       >
                                         <StyledButton
+                                          data-test-id="delete"
                                           disabled={false}
                                           onClick={[Function]}
                                           role="button"
@@ -734,6 +744,7 @@ exports[`ProjectTags renders 1`] = `
                                         >
                                           <Component
                                             className="css-dkprmi-StyledButton-getColors e17811v30"
+                                            data-test-id="delete"
                                             disabled={false}
                                             onClick={[Function]}
                                             role="button"
@@ -741,6 +752,7 @@ exports[`ProjectTags renders 1`] = `
                                           >
                                             <button
                                               className="css-dkprmi-StyledButton-getColors e17811v30"
+                                              data-test-id="delete"
                                               disabled={false}
                                               onClick={[Function]}
                                               role="button"
@@ -977,11 +989,13 @@ exports[`ProjectTags renders 1`] = `
                                           title="Remove tag?"
                                         >
                                           <Button
+                                            data-test-id="delete"
                                             disabled={false}
                                             icon="icon-trash"
                                             size="xsmall"
                                           >
                                             <StyledButton
+                                              data-test-id="delete"
                                               disabled={false}
                                               onClick={[Function]}
                                               role="button"
@@ -989,6 +1003,7 @@ exports[`ProjectTags renders 1`] = `
                                             >
                                               <Component
                                                 className="css-dkprmi-StyledButton-getColors e17811v30"
+                                                data-test-id="delete"
                                                 disabled={false}
                                                 onClick={[Function]}
                                                 role="button"
@@ -996,6 +1011,7 @@ exports[`ProjectTags renders 1`] = `
                                               >
                                                 <button
                                                   className="css-dkprmi-StyledButton-getColors e17811v30"
+                                                  data-test-id="delete"
                                                   disabled={false}
                                                   onClick={[Function]}
                                                   role="button"
