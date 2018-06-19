@@ -101,6 +101,6 @@ class IssueSyncMixin(object):
     def sync_assignee_outbound(self, external_issue, user, assign=True, **kwargs):
         """
         Propagate a sentry issue's assignee to a linked issue's assignee.
-        If user is None, assume the issue has been unassigned
+        If assign=True, we're assigning the issue. Otherwise, deassign.
         """
         raise NotImplementedError
