@@ -68,4 +68,4 @@ jsonschema==2.6.0
 # for bitbucket client
 unidiff>=0.5.4
 # for vsts repo
-mistune
+mistune>0.7,<0.8

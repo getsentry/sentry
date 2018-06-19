@@ -36,14 +36,12 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                 {'detail': 'This feature is not supported for this integration.'}, status=400)
 
         # TODO(jess): add create issue config to serializer
-
-        kwargs = {'organization_id': organization_id}
         return Response(
             serialize(
                 integration,
                 request.user,
                 IntegrationIssueConfigSerializer(group, action, params=request.GET),
-                **kwargs
+                organization_id=organization_id
             )
         )
 

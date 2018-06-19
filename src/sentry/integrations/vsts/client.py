@@ -41,7 +41,6 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
             'X-TFS-FedAuthRedirect': 'Suppress',
             'Authorization': 'Bearer {}'.format(self.identity.data['access_token'])
         }
-
         return self._request(method, path, headers=headers, data=data, params=params)
 
     def create_work_item(self, instance, project, title=None,
