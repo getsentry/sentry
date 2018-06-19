@@ -3,6 +3,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
 import classNames from 'classnames';
+import {Flex} from 'grid-emotion';
 
 import ApiMixin from 'app/mixins/apiMixin';
 
@@ -224,9 +225,11 @@ const ProjectSelector = createReactClass({
       <MenuItem {...menuItemProps}>
         {/*ideally an icon here...*/}
         <ProjectBadge>
-          <PlatformList platforms={platforms} />
-          {project.isBookmarked && <span className="icon-star-solid bookmark " />}
-          {label}
+          <Flex>
+            <PlatformList platforms={platforms} />
+            {label}
+          </Flex>
+          {project.isBookmarked && <BookmarkIcon />}
         </ProjectBadge>
       </MenuItem>
     );
@@ -415,6 +418,15 @@ const ProjectSelector = createReactClass({
 const ProjectBadge = styled.div`
   display: flex;
   align-items: center;
+  justify-content: space-between;
+`;
+
+const BookmarkIcon = styled(props => (
+  <div {...props}>
+    <span className="icon-star-solid bookmark" />
+  </div>
+))`
+  font-size: 12px;
 `;
 
 export default ProjectSelector;
