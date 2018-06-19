@@ -60,9 +60,7 @@ const ProjectItem = createReactClass({
 
   render() {
     let {project, organization} = this.props;
-    let org = organization;
     let {isBookmarked} = this.state;
-    let LinkOrSpan = organization.access.includes('project:write') ? Link : 'span';
 
     return (
       <div key={project.id} className={isBookmarked ? 'isBookmarked' : null}>
@@ -75,9 +73,9 @@ const ProjectItem = createReactClass({
             )}
           </InlineButton>
         </Tooltip>
-        <LinkOrSpan to={`/settings/${org.slug}/${project.slug}/`}>
-          <ProjectLabel project={project} organization={this.props.organization} />
-        </LinkOrSpan>
+        <Link to={`/settings/${organization.slug}/${project.slug}/`}>
+          <ProjectLabel project={project} organization={organization} />
+        </Link>
       </div>
     );
   },
