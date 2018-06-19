@@ -14,6 +14,7 @@ describe('PlatformList', function() {
     const platforms = [];
     const wrapper = mount(<PlatformList platforms={platforms} />);
     const icons = wrapper.find('StyledPlatformIcon');
+    expect(icons.first().prop('platform')).toBe('default');
     expect(icons).toHaveLength(1);
   });
 });
