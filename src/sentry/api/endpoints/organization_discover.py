@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from datetime import datetime
 
 from rest_framework.response import Response
-from sentry.api.bases.organization import OrganizationDiscoverPermission
+from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.bases import OrganizationMemberEndpoint
 
 from sentry.models import Project, ProjectStatus, OrganizationMemberTeam
@@ -12,6 +12,12 @@ from sentry import roles
 
 
 from sentry.utils import snuba
+
+
+class OrganizationDiscoverPermission(OrganizationPermission):
+    scope_map = {
+        'POST': ['org:read', 'project:read']
+    }
 
 
 class OrganizationDiscoverEndpoint(OrganizationMemberEndpoint):
@@ -74,18 +80,18 @@ class OrganizationDiscoverEndpoint(OrganizationMemberEndpoint):
 
         projects = data.get('projects')
 
-        org_projects = [project.id for project in list(Project.objects.filter(
+        org_projects = set(Project.objects.filter(
             organization=organization,
             status=ProjectStatus.VISIBLE,
-        ))]
+        ).values_list('id', flat=True))
 
         if (not isinstance(limit, int) or limit < 0 or limit > 1000):
             return Response({'detail': 'Invalid limit parameter'}, status=400)
 
         if not projects:
-            return Response({'detail': 'No projects requested'})
+            return Response({'detail': 'No projects requested'}, status=400)
 
-        if any(project_id not in org_projects for project_id in projects):
+        if not set(projects).issubset(org_projects):
             return Response({'detail': 'Invalid projects'}, status=400)
 
         if not self.has_projects_access(member, organization, projects):
