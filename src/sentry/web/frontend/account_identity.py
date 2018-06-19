@@ -39,10 +39,27 @@ class AccountIdentityAssociateView(OrganizationView):
         return pipeline.current_step()
 
 
-class AccountIdentityLinkView(BaseView):
+class IdentityAuthView(BaseView):
+    auth_required = False
+
+    def handle(self, request, provider_key):
+        print(dict(request.session))
+        pipeline = IdentityProviderPipeline(
+            provider_key=provider_key,
+            request=request,
+        )
+        pipeline.initialize()
+        return pipeline.current_step()
+
+
+class IdentityCallbackView(BaseView):
+    auth_required = False
+
     @never_cache
-    def handle(self, request):
+    def handle(self, request, provider_key):
         pipeline = IdentityProviderPipeline.get_for_request(request)
+        print(pipeline)
+        print(dict(request.session))
 
         if pipeline is None or not pipeline.is_valid():
             return self.redirect(reverse('sentry-account-settings-identity'))

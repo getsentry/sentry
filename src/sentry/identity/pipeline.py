@@ -26,7 +26,10 @@ class IdentityProviderPipeline(Pipeline):
     provider_model_cls = IdentityProvider
 
     def redirect_url(self):
-        associate_url = reverse('sentry-account-link-identity')
+        associate_url = reverse(
+            'sentry-identity-callback',
+            kwargs={
+                'provider_key': self.provider.key})
 
         # Use configured redirect_url if specified for the pipeline if available
         return self.config.get('redirect_url', associate_url)
@@ -41,15 +44,12 @@ class IdentityProviderPipeline(Pipeline):
             'date_verified': timezone.now(),
         }
 
-        identity, created = Identity.objects.get_or_create(
+        Identity.objects.create_or_update(
             idp=self.provider_model,
             user=self.request.user,
             external_id=identity['id'],
             defaults=defaults,
         )
-
-        if not created:
-            identity.update(**defaults)
 
         messages.add_message(self.request, messages.SUCCESS, IDENTITY_LINKED.format(
             identity_provider=self.provider.name,
