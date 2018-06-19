@@ -6,6 +6,7 @@ exports[`CustomResolutionModal render() renders correctly 1`] = `
   autoFocus={true}
   backdrop={true}
   bsClass="modal"
+  className="custom-resolution-modal"
   dialogComponentClass={[Function]}
   enforceFocus={true}
   keyboard={true}
