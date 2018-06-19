@@ -1,7 +1,14 @@
 import React from 'react';
-
 import {mount} from 'enzyme';
-import {ProjectReleaseTracking} from 'app/views/settings/project/projectReleaseTracking';
+
+import ProjectReleaseTrackingContainer, {
+  ProjectReleaseTracking,
+} from 'app/views/settings/project/projectReleaseTracking';
+import {fetchPlugins} from 'app/actionCreators/plugins';
+
+jest.mock('app/actionCreators/plugins', () => ({
+  fetchPlugins: jest.fn(),
+}));
 
 describe('ProjectReleaseTracking', function() {
   let org = TestStubs.Organization();
@@ -75,5 +82,36 @@ describe('ProjectReleaseTracking', function() {
       );
       done();
     }, 1);
+  });
+
+  it('fetches new plugins when project changes', function() {
+    let wrapper = mount(
+      <ProjectReleaseTrackingContainer
+        organization={org}
+        project={project}
+        params={{orgId: org.slug, projectId: project.slug}}
+      />,
+      TestStubs.routerContext()
+    );
+    expect(fetchPlugins).toHaveBeenCalled();
+
+    fetchPlugins.mockClear();
+
+    // For example, this happens when we switch to a new project using settings breadcrumb
+    wrapper.setProps({...wrapper.props(), project: {...project, slug: 'new-project'}});
+    wrapper.update();
+
+    expect(fetchPlugins).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectId: 'new-project',
+      })
+    );
+
+    fetchPlugins.mockClear();
+
+    // Does not call fetchPlugins if slug is the same
+    wrapper.setProps({...wrapper.props(), project: {...project, slug: 'new-project'}});
+    wrapper.update();
+    expect(fetchPlugins).not.toHaveBeenCalled();
   });
 });
