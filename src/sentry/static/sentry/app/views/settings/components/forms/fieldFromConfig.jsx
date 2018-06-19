@@ -3,7 +3,7 @@ import React from 'react';
 
 import BooleanField from 'app/views/settings/components/forms/booleanField';
 import RangeField from 'app/views/settings/components/forms/rangeField';
-// import SelectAutocompleteField from './selectAutocompleteField';
+// import SelectAsyncField from './selectAsyncField';
 import SelectField from 'app/views/settings/components/forms/selectField';
 // import SelectCreatableField from './selectCreatableField';
 import TextField from 'app/views/settings/components/forms/textField';
@@ -85,7 +85,7 @@ export default class FieldFromConfig extends React.Component {
         // and rely on server validation
         delete props.required;
         // if (props.has_autocomplete) {
-        // return <SelectAutocompleteField {...props} />;
+        // return <SelectAsyncField {...props} />;
         // }
         return <SelectField {...props} />;
       case 'radio':

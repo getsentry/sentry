@@ -9,7 +9,7 @@ import handleXhrErrorResponse from 'app/utils/handleXhrErrorResponse';
 
 import SelectControl from './selectControl';
 
-class SelectAutocompleteControl extends React.Component {
+class SelectAsyncControl extends React.Component {
   static propTypes = {
     /**
      * API endpoint URL
@@ -84,7 +84,7 @@ class SelectAutocompleteControl extends React.Component {
       },
       err => {
         addErrorMessage(t('There was a problem with the request.'));
-        handleXhrErrorResponse('SelectAutocomplete failed')(err);
+        handleXhrErrorResponse('SelectAsync failed')(err);
       }
     );
   };
@@ -111,13 +111,13 @@ class SelectAutocompleteControl extends React.Component {
   }
 }
 
-export default SelectAutocompleteControl;
+export default SelectAsyncControl;
 
 // TODO: This needs an enzyme update or else it breaks tests
 
 // function forwardRef(props, ref) {
-// return <SelectAutocompleteControl {...props} forwardedRef={ref} />;
+// return <SelectAsyncControl {...props} forwardedRef={ref} />;
 // }
-// forwardRef.displayName = 'forwardRef(SelectAutocompleteField)';
+// forwardRef.displayName = 'forwardRef(SelectAsyncField)';
 
 // export default React.forwardRef(forwardRef);

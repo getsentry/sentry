@@ -41,7 +41,7 @@ exports[`CustomResolutionModal render() renders correctly 1`] = `
       bsClass="modal-body"
       componentClass="div"
     >
-      <SelectAutocompleteField
+      <SelectAsyncField
         clearable={true}
         disabled={false}
         hideErrorMessage={false}

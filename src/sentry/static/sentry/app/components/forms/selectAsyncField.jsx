@@ -1,13 +1,13 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import SelectAutocompleteControl from './selectAutocompleteControl';
+import SelectAsyncControl from './selectAsyncControl';
 import SelectField from './selectField';
 
-class SelectAutocompleteField extends SelectField {
+class SelectAsyncField extends SelectField {
   static propTypes = {
     ...SelectField.propTypes,
-    ...SelectAutocompleteControl.propTypes,
+    ...SelectAsyncControl.propTypes,
     /**
      * API endpoint URL
      */
@@ -58,7 +58,7 @@ class SelectAutocompleteField extends SelectField {
 
   getField() {
     return (
-      <SelectAutocompleteControl
+      <SelectAsyncControl
         value={this.state.value}
         onClear={this.handleClear}
         onResults={this.onResults}
@@ -71,4 +71,4 @@ class SelectAutocompleteField extends SelectField {
   }
 }
 
-export default SelectAutocompleteField;
+export default SelectAsyncField;

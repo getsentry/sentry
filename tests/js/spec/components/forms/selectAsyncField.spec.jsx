@@ -1,9 +1,9 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import {Form, SelectAutocompleteField} from 'app/components/forms';
+import {Form, SelectAsyncField} from 'app/components/forms';
 
-describe('SelectAutocompleteField', function() {
+describe('SelectAsyncField', function() {
   let api;
 
   beforeEach(function() {
@@ -20,7 +20,7 @@ describe('SelectAutocompleteField', function() {
   });
 
   it('supports autocomplete arguments from an integration', async function() {
-    let wrapper = mount(<SelectAutocompleteField url="/foo/bar/" name="fieldName" />);
+    let wrapper = mount(<SelectAsyncField url="/foo/bar/" name="fieldName" />);
 
     wrapper.find('input[id="id-fieldName"]').simulate('change', {target: {value: 'baz'}});
 
@@ -42,7 +42,7 @@ describe('SelectAutocompleteField', function() {
     let submitMock = jest.fn();
     let wrapper = mount(
       <Form onSubmit={submitMock}>
-        <SelectAutocompleteField url="/foo/bar/" name="fieldName" />
+        <SelectAsyncField url="/foo/bar/" name="fieldName" />
       </Form>,
       {}
     );

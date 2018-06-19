@@ -3,7 +3,7 @@ import React from 'react';
 import jQuery from 'jquery';
 import Modal, {Header, Body, Footer} from 'react-bootstrap/lib/Modal';
 
-import {SelectAutocompleteField} from 'app/components/forms';
+import {SelectAsyncField} from 'app/components/forms';
 import {t} from 'app/locale';
 import Button from 'app/components/buttons/button';
 import TimeSince from 'app/components/timeSince';
@@ -54,7 +54,7 @@ export default class CustomResolutionModal extends React.Component {
         <form onSubmit={this.onSubmit}>
           <Header>{t('Resolved In')}</Header>
           <Body>
-            <SelectAutocompleteField
+            <SelectAsyncField
               label={t('Version')}
               id="version"
               name="version"
