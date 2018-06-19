@@ -205,7 +205,7 @@ const ProjectSelector = createReactClass({
     if (typeof project.platforms !== 'undefined') {
       platforms = project && project.platforms.slice(0, 3);
     } else {
-      platforms = false;
+      platforms = [];
     }
 
     let menuItemProps = {
@@ -224,11 +224,7 @@ const ProjectSelector = createReactClass({
       <MenuItem {...menuItemProps}>
         {/*ideally an icon here...*/}
         <ProjectBadge>
-          {!platforms || !platforms.length ? (
-            <EmptyPlatformicon />
-          ) : (
-            <PlatformList platforms={platforms} />
-          )}
+          <PlatformList platforms={platforms} />
           {project.isBookmarked && <span className="icon-star-solid bookmark " />}
           {label}
         </ProjectBadge>
@@ -419,11 +415,6 @@ const ProjectSelector = createReactClass({
 const ProjectBadge = styled.div`
   display: flex;
   align-items: center;
-`;
-
-const EmptyPlatformicon = styled.div`
-  display: flex;
-  padding-left: 16px;
 `;
 
 export default ProjectSelector;

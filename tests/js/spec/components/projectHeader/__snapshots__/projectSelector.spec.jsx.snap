@@ -177,11 +177,40 @@ exports[`ProjectSelector render() can filter projects by project name 1`] = `
                       <div
                         className="css-39c7ei-ProjectBadge et07ovj0"
                       >
-                        <EmptyPlatformicon>
-                          <div
-                            className="css-1kns10t-EmptyPlatformicon et07ovj1"
-                          />
-                        </EmptyPlatformicon>
+                        <PlatformList
+                          platforms={Array []}
+                        >
+                          <PlatformIcons>
+                            <div
+                              className="css-1414z1f-PlatformIcons ezvce7z0"
+                            >
+                              <StyledPlatformIcon
+                                platform="default"
+                                size="16px"
+                              >
+                                <Platformicon
+                                  className="css-1yxhm6r-StyledPlatformIcon ezvce7z1"
+                                  platform="default"
+                                  size="16px"
+                                >
+                                  <img
+                                    className="css-1yxhm6r-StyledPlatformIcon ezvce7z1"
+                                    height="16px"
+                                    src={
+                                      Object {
+                                        "default": Object {
+                                          "id": "test",
+                                          "viewBox": Object {},
+                                        },
+                                      }
+                                    }
+                                    width="16px"
+                                  />
+                                </Platformicon>
+                              </StyledPlatformIcon>
+                            </div>
+                          </PlatformIcons>
+                        </PlatformList>
                         <span>
                           <strong
                             className="highlight"
@@ -381,11 +410,40 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
                       <div
                         className="css-39c7ei-ProjectBadge et07ovj0"
                       >
-                        <EmptyPlatformicon>
-                          <div
-                            className="css-1kns10t-EmptyPlatformicon et07ovj1"
-                          />
-                        </EmptyPlatformicon>
+                        <PlatformList
+                          platforms={Array []}
+                        >
+                          <PlatformIcons>
+                            <div
+                              className="css-1414z1f-PlatformIcons ezvce7z0"
+                            >
+                              <StyledPlatformIcon
+                                platform="default"
+                                size="16px"
+                              >
+                                <Platformicon
+                                  className="css-1yxhm6r-StyledPlatformIcon ezvce7z1"
+                                  platform="default"
+                                  size="16px"
+                                >
+                                  <img
+                                    className="css-1yxhm6r-StyledPlatformIcon ezvce7z1"
+                                    height="16px"
+                                    src={
+                                      Object {
+                                        "default": Object {
+                                          "id": "test",
+                                          "viewBox": Object {},
+                                        },
+                                      }
+                                    }
+                                    width="16px"
+                                  />
+                                </Platformicon>
+                              </StyledPlatformIcon>
+                            </div>
+                          </PlatformIcons>
+                        </PlatformList>
                         Another Project
                       </div>
                     </ProjectBadge>
@@ -414,11 +472,40 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
                       <div
                         className="css-39c7ei-ProjectBadge et07ovj0"
                       >
-                        <EmptyPlatformicon>
-                          <div
-                            className="css-1kns10t-EmptyPlatformicon et07ovj1"
-                          />
-                        </EmptyPlatformicon>
+                        <PlatformList
+                          platforms={Array []}
+                        >
+                          <PlatformIcons>
+                            <div
+                              className="css-1414z1f-PlatformIcons ezvce7z0"
+                            >
+                              <StyledPlatformIcon
+                                platform="default"
+                                size="16px"
+                              >
+                                <Platformicon
+                                  className="css-1yxhm6r-StyledPlatformIcon ezvce7z1"
+                                  platform="default"
+                                  size="16px"
+                                >
+                                  <img
+                                    className="css-1yxhm6r-StyledPlatformIcon ezvce7z1"
+                                    height="16px"
+                                    src={
+                                      Object {
+                                        "default": Object {
+                                          "id": "test",
+                                          "viewBox": Object {},
+                                        },
+                                      }
+                                    }
+                                    width="16px"
+                                  />
+                                </Platformicon>
+                              </StyledPlatformIcon>
+                            </div>
+                          </PlatformIcons>
+                        </PlatformList>
                         <span>
                           <strong
                             className="highlight"
@@ -498,7 +585,9 @@ exports[`ProjectSelector render() lists projects and has filter 1`] = `
         linkClassName=""
       >
         <ProjectBadge>
-          <EmptyPlatformicon />
+          <PlatformList
+            platforms={Array []}
+          />
           <span>
             Another Project
           </span>
@@ -511,7 +600,9 @@ exports[`ProjectSelector render() lists projects and has filter 1`] = `
         linkClassName=""
       >
         <ProjectBadge>
-          <EmptyPlatformicon />
+          <PlatformList
+            platforms={Array []}
+          />
           <span>
             Test Project
           </span>
