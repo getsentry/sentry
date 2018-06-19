@@ -1,11 +1,18 @@
-import React from 'react';
 import PropTypes from 'prop-types';
+import React from 'react';
 import ReactSelect, {Async} from 'react-select';
 import styled from 'react-emotion';
+
+import convertFromSelect2Choices from 'app/utils/convertFromSelect2Choices';
 
 export default class SelectControl extends React.Component {
   static propTypes = {
     async: PropTypes.bool,
+    options: PropTypes.array,
+    choices: PropTypes.oneOfType([
+      PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.string, PropTypes.array])),
+      PropTypes.func,
+    ]),
   };
 
   renderArrow = () => {
@@ -13,9 +20,22 @@ export default class SelectControl extends React.Component {
   };
 
   render() {
-    let {async, ...props} = this.props;
+    let {async, options, choices, ...props} = this.props;
 
-    return <StyledSelect arrowRenderer={this.renderArrow} async={async} {...props} />;
+    // Compatibility with old select2 API
+    let choicesOrOptions =
+      convertFromSelect2Choices(
+        typeof choices === 'function' ? choices(this.props) : choices
+      ) || options;
+
+    return (
+      <StyledSelect
+        arrowRenderer={this.renderArrow}
+        async={async}
+        {...props}
+        options={choicesOrOptions}
+      />
+    );
   }
 }
 
