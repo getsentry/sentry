@@ -10,7 +10,7 @@ describe('PlatformList', function() {
     expect(icons).toHaveLength(3);
   });
 
-  it('handles no platforms', function() {
+  it('renders default if no platforms', function() {
     const platforms = [];
     const wrapper = mount(<PlatformList platforms={platforms} />);
     const icons = wrapper.find('StyledPlatformIcon');
