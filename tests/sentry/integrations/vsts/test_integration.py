@@ -1,71 +1,13 @@
 from __future__ import absolute_import
 
 import responses
-
-from mock import Mock
-from django.http import HttpRequest
-
-from sentry.integrations.vsts import VstsIntegration, VstsIntegrationProvider, ProjectConfigView, ProjectForm, get_projects
+from sentry.integrations.vsts import VstsIntegration, VstsIntegrationProvider
 from sentry.identity.vsts import VSTSIdentityProvider
 from sentry.models import Integration, Identity, IdentityProvider
-from sentry.testutils import TestCase
+from sentry.testutils import APITestCase, TestCase
 
 
-class ProjectConfigViewTest(TestCase):
-    def setUp(self):
-        self.instance = 'example.visualstudio.com'
-        self.projects = [
-            {
-                'id': 'first-project-id',
-                'name': 'First Project',
-                        'url': 'https://myfirstproject.visualstudio.com/DefaultCollection/_apis/projects/xxxxxxx-xxxx-xxxx-xxxxxxxxxxxxxxxx',
-                        'description': 'My First Project!',
-            },
-            {
-                'id': 'second-project-id',
-                'name': 'Second Project',
-                        'url': 'https://mysecondproject.visualstudio.com/DefaultCollection/_apis/projects/xxxxxxx-xxxx-xxxx-xxxxxxxxxxxxxxxz',
-                        'description': 'Not My First Project!',
-            }
-        ]
-        responses.add(
-            responses.GET,
-            'https://{}/DefaultCollection/_apis/projects'.format(self.instance),
-            json={
-                'value': self.projects,
-                'count': 2,
-            },
-        )
-
-    @responses.activate
-    def test_get_projects(self):
-        result = get_projects(self.instance, 'access-token')
-        assert result['count'] == 2
-        assert result['value'][0]['name'] == 'First Project'
-        assert result['value'][1]['name'] == 'Second Project'
-
-    def test_project_form(self):
-        project_form = ProjectForm(self.projects)
-        assert project_form.fields['project'].choices == [
-            ('first-project-id', 'First Project'), ('second-project-id', 'Second Project')]
-
-    def test_dispatch(self):
-        view = ProjectConfigView()
-        request = HttpRequest()
-        request.POST = {'project': 'first-project-id'}
-
-        pipeline = Mock()
-        pipeline.state = {'projects': self.projects}
-        pipeline.fetch_state = lambda key: pipeline.state[key]
-        pipeline.bind_state = lambda name, value: pipeline.state.update({name: value})
-
-        view.dispatch(request, pipeline)
-
-        assert pipeline.fetch_state(key='project') == self.projects[0]
-        assert pipeline.next_step.call_count == 1
-
-
-class VSTSIntegrationTest(TestCase):
+class VstsIntegrationProviderTest(TestCase):
     def setUp(self):
         self.integration = VstsIntegrationProvider()
 
@@ -81,11 +23,10 @@ class VSTSIntegrationTest(TestCase):
                 'account': {'AccountName': 'sentry', 'AccountId': '123435'},
                 'instance': 'sentry.visualstudio.com',
             },
-            'project': {'name': 'My Project', 'id': 'my-project-id'},
         }
         integration_dict = self.integration.build_integration(state)
-        assert integration_dict['name'] == 'My Project'
-        assert integration_dict['external_id'] == 'my-project-id'
+        assert integration_dict['name'] == 'sentry'
+        assert integration_dict['external_id'] == '123435'
         assert integration_dict['metadata']['scopes'] == list(VSTSIdentityProvider.oauth_scopes)
         assert integration_dict['metadata']['domain_name'] == 'sentry.visualstudio.com'
 
@@ -99,15 +40,19 @@ class VSTSIntegrationTest(TestCase):
         assert integration_dict['user_identity']['data']['token_type'] == 'jwt-bearer'
 
 
-class VstsIntegrationTest(TestCase):
-    def test_get_client(self):
+class VstsIntegrationTest(APITestCase):
+    def setUp(self):
         user = self.create_user()
         organization = self.create_organization()
-        access_token = '1234567890'
+        project = self.create_project(organization=organization)
+        self.access_token = '1234567890'
         model = Integration.objects.create(
             provider='integrations:vsts',
             external_id='vsts_external_id',
             name='vsts_name',
+            metadata={
+                 'domain_name': 'instance.visualstudio.com'
+            }
         )
 
         identity = Identity.objects.create(
@@ -118,11 +63,66 @@ class VstsIntegrationTest(TestCase):
             user=user,
             external_id='vsts_id',
             data={
-                'access_token': access_token
+                'access_token': self.access_token,
             }
         )
-        model.add_organization(organization.id, identity.id)
-        integration = VstsIntegration(model, organization.id)
-        client = integration.get_client()
+        self.org_integration = model.add_organization(organization.id, identity.id)
+        self.project_integration = model.add_project(project.id)
+        self.integration = VstsIntegration(model, organization.id, project.id)
+        self.projects = [
+            ('eb6e4656-77fc-42a1-9181-4c6d8e9da5d1', 'ProjectB'),
+            ('6ce954b1-ce1f-45d1-b94d-e6bf2464ba2c', 'ProjectA')
+        ]
 
-        assert client.access_token == access_token
+        responses.add(
+            responses.GET,
+            'https://instance.visualstudio.com/DefaultCollection/_apis/projects',
+            json={
+                'value': [
+                    {
+                        'id': self.projects[0][0],
+                        'name': self.projects[0][1],
+
+                    },
+                    {
+                        'id': self.projects[1][0],
+                        'name': self.projects[1][1],
+
+                    }
+                ],
+                'count': 2
+            },
+        )
+
+    def test_get_client(self):
+        client = self.integration.get_client()
+        assert client.access_token == self.access_token
+
+    @responses.activate
+    def test_get_project_config(self):
+        fields = self.integration.get_project_config()
+        assert len(fields) == 1
+        project_field = fields[0]
+        assert project_field['name'] == 'default_project'
+        assert project_field['disabled'] is False
+        assert project_field['choices'] == self.projects
+        assert project_field['initial'] == ('', '')
+
+    @responses.activate
+    def test_get_project_config_initial(self):
+        self.integration.project_integration.config = {'default_project': self.projects[1][0]}
+        self.integration.project_integration.save()
+        fields = self.integration.get_project_config()
+        assert len(fields) == 1
+        project_field = fields[0]
+        assert project_field['name'] == 'default_project'
+        assert project_field['disabled'] is False
+        assert project_field['choices'] == self.projects
+        assert project_field['initial'] == self.projects[1]
+
+    def test_get_project_config_failed_api_call(self):
+        fields = self.integration.get_project_config()
+        assert len(fields) == 1
+        project_field = fields[0]
+        assert project_field['name'] == 'default_project'
+        assert project_field['disabled'] is True

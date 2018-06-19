@@ -24,6 +24,9 @@ class IntegrationSerializer(Serializer):
 
 
 class IntegrationConfigSerializer(IntegrationSerializer):
+    def __init__(self, organization_id=None):
+        self.organization_id = organization_id
+
     def serialize(self, obj, attrs, user):
         data = super(IntegrationConfigSerializer, self).serialize(obj, attrs, user)
 
@@ -33,7 +36,7 @@ class IntegrationConfigSerializer(IntegrationSerializer):
         })
 
         try:
-            install = obj.get_installation()
+            install = obj.get_installation(self.organization_id)
         except NotImplementedError:
             # The integration may not implement a Installed Integration object
             # representation.
@@ -73,7 +76,11 @@ class OrganizationIntegrationSerializer(Serializer):
         # we're using the IntegrationConfigSerializer which pulls in the
         # integration installation config object which very well may be making
         # API request for config options.
-        integration = serialize(obj.integration, user, IntegrationConfigSerializer())
+        integration = serialize(
+            objects=obj.integration,
+            user=user,
+            serializer=IntegrationConfigSerializer(obj.organization.id),
+        )
         integration.update({
             'configData': obj.config,
             'configDataProjects': attrs['project_configs'],
