@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import responses
 
 from time import time
-from sentry.auth.exceptions import IdentityNotValid
+
 from sentry.identity.vsts import VSTSIdentityProvider
 from sentry.integrations.vsts import VstsIntegration, VstsIntegrationProvider
 from sentry.models import Integration, Identity, IdentityProvider
@@ -72,6 +72,40 @@ class VstsIntegrationTest(APITestCase):
         self.org_integration = self.model.add_organization(organization.id, self.identity.id)
         self.project_integration = self.model.add_project(project.id)
         self.integration = VstsIntegration(self.model, organization.id, project.id)
+        self.projects = [
+            ('eb6e4656-77fc-42a1-9181-4c6d8e9da5d1', 'ProjectB'),
+            ('6ce954b1-ce1f-45d1-b94d-e6bf2464ba2c', 'ProjectA')
+        ]
+        self.project_result = {
+            'value': [
+                {
+                    'id': self.projects[0][0],
+                    'name': self.projects[0][1],
+
+                },
+                {
+                    'id': self.projects[1][0],
+                    'name': self.projects[1][1],
+                }
+            ],
+            'count': 2
+        }
+        responses.add(
+            responses.GET,
+            'https://instance.visualstudio.com/DefaultCollection/_apis/projects',
+            json=self.project_result,
+        )
+        self.refresh_data = {
+            'access_token': 'access token for this user',
+            'token_type': 'type of token',
+            'expires_in': 123456789,
+            'refresh_token': 'new refresh token to use when the token has timed out',
+        }
+        responses.add(
+            responses.POST,
+            'https://app.vssps.visualstudio.com/oauth2/token',
+            json=self.refresh_data,
+        )
 
     def assert_identity_updated(self, new_identity, expected_data):
         assert new_identity.data['access_token'] == expected_data['access_token']
@@ -85,32 +119,37 @@ class VstsIntegrationTest(APITestCase):
 
     @responses.activate
     def test_refreshes_expired_token(self):
-
-        projects = {'value': ['Project1', 'Project2'], 'count': 2, }
-        refresh_data = {
-            'access_token': 'access token for this user',
-            'token_type': 'type of token',
-            'expires_in': 123456789,
-            'refresh_token': 'new refresh token to use when the token has timed out',
-        }
-        responses.add(
-            responses.POST,
-            'https://app.vssps.visualstudio.com/oauth2/token',
-            json=refresh_data,
-        )
-        responses.add(
-            responses.GET,
-            'https://{}/DefaultCollection/_apis/projects'.format(self.instance),
-            json=projects,
-        )
-
         result = self.integration.get_client().get_projects(self.instance)
 
         assert len(responses.calls) == 2
         default_identity = self.integration.default_identity
-        self.assert_identity_updated(default_identity, refresh_data)
+        self.assert_identity_updated(default_identity, self.refresh_data)
 
         identity = Identity.objects.get(id=self.identity.id)
-        self.assert_identity_updated(identity, refresh_data)
+        self.assert_identity_updated(identity, self.refresh_data)
 
-        assert result == projects
+        projects = result['value']
+        assert projects[0]['id'] == self.projects[0][0] and projects[0]['name'] == self.projects[0][1]
+        assert projects[1]['id'] == self.projects[1][0] and projects[1]['name'] == self.projects[1][1]
+
+    @responses.activate
+    def test_get_project_config(self):
+        fields = self.integration.get_project_config()
+        assert len(fields) == 1
+        project_field = fields[0]
+        assert project_field['name'] == 'default_project'
+        assert project_field['disabled'] is False
+        assert project_field['choices'] == self.projects
+        assert project_field['initial'] == ('', '')
+
+    @responses.activate
+    def test_get_project_config_initial(self):
+        self.integration.project_integration.config = {'default_project': self.projects[1][0]}
+        self.integration.project_integration.save()
+        fields = self.integration.get_project_config()
+        assert len(fields) == 1
+        project_field = fields[0]
+        assert project_field['name'] == 'default_project'
+        assert project_field['disabled'] is False
+        assert project_field['choices'] == self.projects
+        assert project_field['initial'] == self.projects[1]
