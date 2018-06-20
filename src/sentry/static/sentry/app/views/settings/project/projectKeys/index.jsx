@@ -28,7 +28,6 @@ import SentryTypes from 'app/proptypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import recreateRoute from 'app/utils/recreateRoute';
-import InlineSvg from 'app/components/inlineSvg';
 
 const KeyRow = createReactClass({
   displayName: 'KeyRow',
