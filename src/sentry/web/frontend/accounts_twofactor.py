@@ -152,7 +152,7 @@ class TwoFactorSettingsView(BaseView):
                     context={
                         'authenticator': interface.authenticator,
                     },
-                    send_email=False,
+                    send_email=True,
                 )
 
                 request.user.refresh_session_nonce(self.request)

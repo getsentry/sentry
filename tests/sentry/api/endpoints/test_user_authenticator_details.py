@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import mock
 import six
 
 from django.core.urlresolvers import reverse
@@ -12,6 +13,12 @@ class UserAuthenticatorDetailsTest(APITestCase):
     def setUp(self):
         self.user = self.create_user(email='test@example.com', is_superuser=False)
         self.login_as(user=self.user)
+
+    def _assert_mfa_removed_email_sent(*args):
+        test, email_log = args
+        assert email_log.info.call_count == 1
+        assert 'mail.queued' in email_log.info.call_args[0]
+        assert email_log.info.call_args[1]['extra']['message_type'] == 'mfa-removed'
 
     def test_wrong_auth_id(self):
         url = reverse(
@@ -103,7 +110,8 @@ class UserAuthenticatorDetailsTest(APITestCase):
         assert 'challenge' not in resp.data
         assert 'response' not in resp.data
 
-    def test_u2f_remove_device(self):
+    @mock.patch('sentry.utils.email.logger')
+    def test_u2f_remove_device(self, email_log):
         auth = Authenticator.objects.create(
             type=3,  # u2f
             user=self.user,
@@ -155,6 +163,8 @@ class UserAuthenticatorDetailsTest(APITestCase):
         resp = self.client.delete(url)
         assert resp.status_code == 500
 
+        assert email_log.info.call_count == 0
+
     def test_sms_get_phone(self):
         interface = SmsInterface()
         interface.phone_number = '5551231234'
@@ -178,7 +188,8 @@ class UserAuthenticatorDetailsTest(APITestCase):
         assert 'totp_secret' not in resp.data
         assert 'form' not in resp.data
 
-    def test_recovery_codes_regenerate(self):
+    @mock.patch('sentry.utils.email.logger')
+    def test_recovery_codes_regenerate(self, email_log):
         interface = RecoveryCodeInterface()
         interface.enroll(self.user)
 
@@ -203,7 +214,10 @@ class UserAuthenticatorDetailsTest(APITestCase):
         resp = self.client.get(url)
         assert old_codes != resp.data['codes']
 
-    def test_delete(self):
+        assert email_log.info.call_count == 0
+
+    @mock.patch('sentry.utils.email.logger')
+    def test_delete(self, email_log):
         user = self.create_user(email='a@example.com', is_superuser=True)
         auth = Authenticator.objects.create(
             type=3,  # u2f
@@ -226,7 +240,10 @@ class UserAuthenticatorDetailsTest(APITestCase):
             id=auth.id,
         ).exists()
 
-    def test_cannot_delete_without_superuser(self):
+        self._assert_mfa_removed_email_sent(email_log)
+
+    @mock.patch('sentry.utils.email.logger')
+    def test_cannot_delete_without_superuser(self, email_log):
         user = self.create_user(email='a@example.com', is_superuser=False)
         auth = Authenticator.objects.create(
             type=3,  # u2f
@@ -249,3 +266,5 @@ class UserAuthenticatorDetailsTest(APITestCase):
         assert Authenticator.objects.filter(
             id=auth.id,
         ).exists()
+
+        assert email_log.info.call_count == 0
