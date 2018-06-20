@@ -412,12 +412,11 @@ class JiraIntegration(Integration, IssueSyncMixin):
     def sync_assignee_outbound(self, external_issue, user, assign=True, **kwargs):
         """
         Propagate a sentry issue's assignee to a jira issue's assignee
-        if user is None, unassign
         """
         client = self.get_client()
 
         jira_user = None
-        if user is not None:
+        if assign:
             for ue in user.emails.filter(is_verified=True):
                 try:
                     res = client.search_users_for_issue(external_issue.key, ue.email)
