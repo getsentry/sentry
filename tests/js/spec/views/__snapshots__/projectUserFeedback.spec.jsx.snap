@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`projectUserReports renders 1`] = `
+exports[`projectUserFeedback renders 1`] = `
 <div>
   <div
     className="row release-list-header"
@@ -94,7 +94,7 @@ exports[`projectUserReports renders 1`] = `
         orgId="org-slug"
         projectId="project-slug"
       >
-        <EventUserReport
+        <EventUserFeedback
           issueId="1"
           orgId="org-slug"
           projectId="project-slug"

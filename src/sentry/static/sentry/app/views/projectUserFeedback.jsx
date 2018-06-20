@@ -11,14 +11,14 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import CompactIssue from 'app/components/compactIssue';
-import EventUserReport from 'app/components/events/userReport';
+import EventUserFeedback from 'app/components/events/userFeedback';
 import {Panel, PanelBody} from 'app/components/panels';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {t, tct} from 'app/locale';
 import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
 
-const ProjectUserReports = createReactClass({
-  displayName: 'ProjectUserReports',
+const ProjectUserFeedback = createReactClass({
+  displayName: 'ProjectUserFeedback',
 
   propTypes: {
     defaultQuery: PropTypes.string,
@@ -139,7 +139,7 @@ const ProjectUserReports = createReactClass({
     });
   },
 
-  getUserReportsUrl() {
+  getUserFeedbackUrl() {
     let params = this.props.params;
 
     return `/${params.orgId}/${params.projectId}/settings/user-feedback/`;
@@ -178,7 +178,7 @@ const ProjectUserReports = createReactClass({
       <EmptyStateWarning>
         <p>{message}</p>
         <p>
-          <Link to={this.getUserReportsUrl()}>
+          <Link to={this.getUserFeedbackUrl()}>
             {t('Learn how to integrate User Feedback')}
           </Link>
         </p>
@@ -200,7 +200,7 @@ const ProjectUserReports = createReactClass({
           orgId={orgId}
           projectId={projectId}
         >
-          <EventUserReport
+          <EventUserFeedback
             report={item}
             orgId={orgId}
             projectId={projectId}
@@ -250,5 +250,5 @@ const ProjectUserReports = createReactClass({
   },
 });
 
-export {ProjectUserReports};
-export default withEnvironmentInQueryString(ProjectUserReports);
+export {ProjectUserFeedback};
+export default withEnvironmentInQueryString(ProjectUserFeedback);
