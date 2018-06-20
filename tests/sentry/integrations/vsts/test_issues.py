@@ -4,6 +4,7 @@ import responses
 
 from exam import fixture
 from django.test import RequestFactory
+from time import time
 
 from sentry.integrations.vsts.integration import VstsIntegration
 from sentry.models import Identity, IdentityProvider, Integration
@@ -40,6 +41,7 @@ class VstsIssueSycnTest(TestCase):
             external_id='vsts',
             data={
                 'access_token': '123456789',
+                'expires': time() + 1234567,
             }
         )
         model.add_organization(self.organization.id, identity.id)
