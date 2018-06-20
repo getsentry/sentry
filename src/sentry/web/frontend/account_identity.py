@@ -45,6 +45,6 @@ class AccountIdentityLinkView(BaseView):
         pipeline = IdentityProviderPipeline.get_for_request(request)
 
         if pipeline is None or not pipeline.is_valid():
-            return self.redirect(reverse('sentry-account-settings-identity'))
+            return self.redirect(reverse('sentry-account-settings-identities'))
 
         return pipeline.current_step()

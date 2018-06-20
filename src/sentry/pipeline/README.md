@@ -24,8 +24,7 @@ Some key points to understanding pipelines:
    One to call the pipelines `initialize` method, and the next which is
    called to move through the pipeline
 
- * Pipelines are bound to a specific organization and user when they are being
-   executed.
+ * Pipelines are bound to a specific session when they are being executed.
 
 ## Pipeline Providers
 
@@ -113,7 +112,7 @@ Executing a pipeline
 Executing a pipeline is done through either one or two views.
 
 With one view it will both initialize the pipeline, and traverse through the
-pipeline. The downside of this approach is that the organization, provider key,
+pipeline. The downside of this approach is that the provider key,
 and potentially other information must be known at request time of each step,
 which may not always be possible (think strict oAuth redirect URL that cannot
 be parameterized)

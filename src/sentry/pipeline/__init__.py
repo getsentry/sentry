@@ -130,21 +130,21 @@ class Pipeline(object):
         if not state.is_valid():
             return None
 
-        organization_id = state.org_id
-        if not organization_id:
-            return None
-
         provider_model = None
         if state.provider_model_id:
             provider_model = cls.provider_model_cls.objects.get(id=state.provider_model_id)
 
-        organization = Organization.objects.get(id=state.org_id)
+        organization = None
+        if state.org_id:
+            organization = Organization.objects.get(id=state.org_id)
+
         provider_key = state.provider_key
         config = state.config
 
-        return cls(request, organization, provider_key, provider_model, config)
+        return cls(request, organization=organization, provider_key=provider_key,
+                   provider_model=provider_model, config=config)
 
-    def __init__(self, request, organization, provider_key, provider_model=None, config=None):
+    def __init__(self, request, provider_key, organization=None, provider_model=None, config=None):
         if config is None:
             config = {}
 
@@ -185,7 +185,7 @@ class Pipeline(object):
             'uid': self.request.user.id if self.request.user.is_authenticated() else None,
             'provider_model_id': self.provider_model.id if self.provider_model else None,
             'provider_key': self.provider.key,
-            'org_id': self.organization.id,
+            'org_id': self.organization.id if self.organization else None,
             'step_index': 0,
             'signature': self.signature,
             'config': self.config,

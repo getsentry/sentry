@@ -322,7 +322,7 @@ class OrganizationView(BaseView):
         if organization is None:
             return False
         if self.valid_sso_required:
-            if not request.access.sso_is_valid:
+            if request.access.requires_sso and not request.access.sso_is_valid:
                 return False
             if self.needs_sso(request, organization):
                 return False

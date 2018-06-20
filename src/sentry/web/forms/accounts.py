@@ -178,7 +178,7 @@ class AuthenticationForm(forms.Form):
         return self.user_cache
 
 
-class RegistrationForm(forms.ModelForm):
+class PasswordlessRegistrationForm(forms.ModelForm):
     name = forms.CharField(
         label=_('Name'),
         max_length=30,
@@ -190,9 +190,6 @@ class RegistrationForm(forms.ModelForm):
         max_length=128,
         widget=forms.TextInput(attrs={'placeholder': 'you@example.com'}),
         required=True
-    )
-    password = forms.CharField(
-        required=True, widget=forms.PasswordInput(attrs={'placeholder': 'something super secret'})
     )
     subscribe = CustomTypedChoiceField(
         coerce=lambda x: six.text_type(x) == u'1',
@@ -207,7 +204,7 @@ class RegistrationForm(forms.ModelForm):
     )
 
     def __init__(self, *args, **kwargs):
-        super(RegistrationForm, self).__init__(*args, **kwargs)
+        super(PasswordlessRegistrationForm, self).__init__(*args, **kwargs)
         if not newsletter.is_enabled():
             del self.fields['subscribe']
         else:
@@ -220,7 +217,8 @@ class RegistrationForm(forms.ModelForm):
                 "your data to third parties. See our "
                 "<a href=\"{privacy_link}\">Privacy Policy</a> for more details."
             )
-            self.fields['subscribe'].help_text = mark_safe(notice.format(privacy_link=settings.PRIVACY_URL))
+            self.fields['subscribe'].help_text = mark_safe(
+                notice.format(privacy_link=settings.PRIVACY_URL))
 
     class Meta:
         fields = ('username', 'name')
@@ -232,9 +230,25 @@ class RegistrationForm(forms.ModelForm):
             return
         if User.objects.filter(username__iexact=value).exists():
             raise forms.ValidationError(
-                _('An account is already registered with that email address.')
-            )
+                _('An account is already registered with that email address.'))
         return value.lower()
+
+    def save(self, commit=True):
+        user = super(PasswordlessRegistrationForm, self).save(commit=False)
+        user.email = user.username
+        if commit:
+            user.save()
+            if self.cleaned_data.get('subscribe'):
+                newsletter.create_or_update_subscriptions(
+                    user, list_ids=newsletter.get_default_list_ids())
+        return user
+
+
+class RegistrationForm(PasswordlessRegistrationForm):
+    password = forms.CharField(
+        required=True,
+        widget=forms.PasswordInput(attrs={'placeholder': 'something super secret'}),
+    )
 
     def clean_password(self):
         password = self.cleaned_data['password']
@@ -243,12 +257,12 @@ class RegistrationForm(forms.ModelForm):
 
     def save(self, commit=True):
         user = super(RegistrationForm, self).save(commit=False)
-        user.email = user.username
         user.set_password(self.cleaned_data['password'])
         if commit:
             user.save()
             if self.cleaned_data.get('subscribe'):
-                newsletter.create_or_update_subscriptions(user, list_ids=newsletter.get_default_list_ids())
+                newsletter.create_or_update_subscriptions(
+                    user, list_ids=newsletter.get_default_list_ids())
         return user
 
 
