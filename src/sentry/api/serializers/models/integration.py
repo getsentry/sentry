@@ -129,9 +129,9 @@ class IntegrationIssueConfigSerializer(IntegrationSerializer):
         self.action = action
         self.params = params
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, organization_id=None):
         data = super(IntegrationIssueConfigSerializer, self).serialize(obj, attrs, user)
-        installation = obj.get_installation()
+        installation = obj.get_installation(organization_id)
 
         if self.action == 'link':
             data['linkIssueConfig'] = installation.get_link_issue_config(
