@@ -5,7 +5,7 @@ import BooleanField from 'app/views/settings/components/forms/booleanField';
 import RangeField from 'app/views/settings/components/forms/rangeField';
 // import Select2FieldAutocomplete from './select2FieldAutocomplete';
 import SelectField from 'app/views/settings/components/forms/selectField';
-// import Select2TextField from './select2TextField';
+// import SelectCreatableField from './selectCreatableField';
 import TextField from 'app/views/settings/components/forms/textField';
 import TextareaField from 'app/views/settings/components/forms/textareaField';
 import RadioField from 'app/views/settings/components/forms/radioField';
@@ -71,7 +71,7 @@ export default class FieldFromConfig extends React.Component {
         if (props.multiline) {
           return <TextareaField {...props} />;
         }
-        // if (props.choices) return <Select2TextField {...props} />;
+        // if (props.choices) return <SelectCreatableField {...props} />;
         return <TextField {...props} />;
       case 'number':
         return <InputField {...props} type="number" />;
