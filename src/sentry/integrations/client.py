@@ -8,7 +8,8 @@ from collections import OrderedDict
 
 from BeautifulSoup import BeautifulStoneSoup
 from requests.exceptions import ConnectionError, HTTPError
-
+from sentry.exceptions import InvalidIdentity
+from time import time
 from django.utils.functional import cached_property
 
 from sentry.http import build_session
@@ -236,3 +237,16 @@ class AuthApiClient(ApiClient):
         self.auth.refresh_token()
         kwargs = self.bind_auth(**kwargs)
         return ApiClient._request(self, method, path, **kwargs)
+
+
+class OAuth2RefreshMixin(object):
+
+    def check_auth(self, *args, **kwargs):
+        """
+        Checks if auth is expired and if so refreshes it
+        """
+        time_expires = self.identity.data.get('expires')
+        if time_expires is None:
+            raise InvalidIdentity('OAuth2ApiClient requires identity with specified expired time')
+        if int(time_expires) <= int(time()):
+            self.identity.get_provider().refresh_identity(self.identity, *args, **kwargs)
