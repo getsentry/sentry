@@ -3,9 +3,12 @@ from __future__ import absolute_import
 from mock import Mock
 import responses
 from django.http import HttpRequest
-from sentry.identity.vsts.provider import VSTSOAuth2CallbackView, AccountConfigView, AccountForm
+from sentry.identity.vsts.provider import VSTSOAuth2CallbackView, AccountConfigView, AccountForm, VSTSIdentityProvider
 from sentry.testutils import TestCase
 from six.moves.urllib.parse import parse_qs
+from sentry.utils.http import absolute_uri
+from sentry.models import Identity, IdentityProvider
+from time import time
 
 
 class TestVSTSOAuthCallbackView(TestCase):
@@ -120,3 +123,57 @@ class TestAccountConfigView(TestCase):
         account_form = AccountForm(self.accounts)
         assert account_form.fields['account'].choices == [
             ('1234567-89', 'sentry'), ('1234567-8910', 'sentry2')]
+
+
+class VstsIdentityProviderTest(TestCase):
+
+    def setUp(self):
+        self.identity_provider_model = IdentityProvider.objects.create(type='vsts')
+        self.identity = Identity.objects.create(
+            idp=self.identity_provider_model,
+            user=self.user,
+            external_id='vsts_id',
+            data={
+                'access_token': '123456789',
+                'token_type': 'token_type',
+                'expires': 12345678,
+                'refresh_token': 'n354678',
+            }
+
+        )
+        self.provider = VSTSIdentityProvider()
+        self.client_secret = '12345678'
+        self.provider.get_oauth_client_secret = lambda: self.client_secret
+
+    def get_refresh_token_params(self):
+        refresh_token = 'wertyui'
+        params = self.provider.get_refresh_token_params(refresh_token)
+        assert params == {
+            'client_assertion_type': 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
+            'client_assertion': self.client_secret,
+            'grant_type': 'refresh_token',
+            'assertion': refresh_token,
+            'redirect_uri': absolute_uri(self.provider.oauth_redirect_url),
+        }
+
+    @responses.activate
+    def test_refresh_identity(self):
+        refresh_data = {
+            'access_token': 'access token for this user',
+            'token_type': 'type of token',
+            'expires': 1234567,
+            'refresh_token': 'new refresh token to use when the token has timed out',
+        }
+        responses.add(
+            responses.POST,
+            'https://app.vssps.visualstudio.com/oauth2/token',
+            json=refresh_data,
+        )
+        self.provider.refresh_identity(self.identity, redirect_url='redirect_url')
+
+        assert len(responses.calls) == 1
+
+        new_identity = Identity.objects.get(id=self.identity.id)
+        assert new_identity.data['access_token'] == refresh_data['access_token']
+        assert new_identity.data['token_type'] == refresh_data['token_type']
+        assert new_identity.data['expires'] <= int(time())

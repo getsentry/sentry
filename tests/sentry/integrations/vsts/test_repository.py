@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import responses
 
 from exam import fixture
+from time import time
 
 from sentry.testutils import TestCase
 from sentry.models import Identity, IdentityProvider, Integration, Repository
@@ -44,7 +45,10 @@ class VisualStudioRepositoryProviderTest(TestCase):
             user=self.user,
             external_id='123',
             data={
-                'access_token': '123456789'
+                'access_token': '123456789',
+                'expires': int(time()) + 3600,
+                'refresh_token': 'rxxx-xxxx',
+                'token_type': 'jwt-bearer',
             },
         )
         integration.add_organization(self.organization.id, default_auth.id)

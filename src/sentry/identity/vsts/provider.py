@@ -8,6 +8,7 @@ from sentry import options
 from sentry.web.helpers import render_to_response
 from sentry.identity.oauth2 import OAuth2Provider, OAuth2LoginView, OAuth2CallbackView
 from sentry.pipeline import PipelineView
+from sentry.utils.http import absolute_uri
 
 
 class VSTSIdentityProvider(OAuth2Provider):
@@ -16,7 +17,6 @@ class VSTSIdentityProvider(OAuth2Provider):
 
     oauth_access_token_url = 'https://app.vssps.visualstudio.com/oauth2/token'
     oauth_authorize_url = 'https://app.vssps.visualstudio.com/oauth2/authorize'
-
     oauth_scopes = (
         'vso.code',
         'vso.project',
@@ -32,6 +32,9 @@ class VSTSIdentityProvider(OAuth2Provider):
     def get_oauth_client_secret(self):
         return options.get('vsts.client-secret')
 
+    def get_refresh_token_url(self):
+        return self.oauth_access_token_url
+
     def get_pipeline_views(self):
         return [
             OAuth2LoginView(
@@ -46,6 +49,24 @@ class VSTSIdentityProvider(OAuth2Provider):
             ),
             AccountConfigView(),
         ]
+
+    def get_refresh_token_header(self):
+        return {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Content-Length': '1654',
+        }
+
+    def get_refresh_token_params(self, refresh_token, *args, **kwargs):
+        oauth_redirect_url = kwargs.get('redirect_url')
+        if oauth_redirect_url is None:
+            raise ValueError('VSTS requires oauth redirect url when refreshing identity')
+        return {
+            'client_assertion_type': 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
+            'client_assertion': self.get_oauth_client_secret(),
+            'grant_type': 'refresh_token',
+            'assertion': refresh_token,
+            'redirect_uri': absolute_uri(oauth_redirect_url),
+        }
 
 
 class VSTSOAuth2CallbackView(OAuth2CallbackView):

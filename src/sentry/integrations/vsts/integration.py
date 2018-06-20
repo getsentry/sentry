@@ -2,8 +2,9 @@ from __future__ import absolute_import
 from time import time
 
 from django.utils.translation import ugettext as _
-from sentry.integrations import Integration, IntegrationProvider, IntegrationMetadata
 from sentry.integrations.exceptions import ApiError
+
+from sentry.integrations import Integration, IntegrationProvider, IntegrationMetadata
 from .client import VstsApiClient
 from sentry.pipeline import NestedPipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
@@ -34,10 +35,7 @@ class VstsIntegration(Integration):
         if self.default_identity is None:
             self.default_identity = self.get_default_identity()
 
-        access_token = self.default_identity.data.get('access_token')
-        if access_token is None:
-            raise ValueError('Identity missing access token')
-        return VstsApiClient(access_token)
+        return VstsApiClient(self.default_identity, VstsIntegrationProvider.oauth_redirect_url)
 
     def get_project_config(self):
         client = self.get_client()
@@ -90,6 +88,7 @@ class VstsIntegrationProvider(IntegrationProvider):
     metadata = metadata
     domain = '.visualstudio.com'
     api_version = '4.1'
+    oauth_redirect_url = '/extensions/vsts/setup/'
     needs_default_identity = True
     integration_cls = VstsIntegration
     can_add_project = True
@@ -101,7 +100,7 @@ class VstsIntegrationProvider(IntegrationProvider):
 
     def get_pipeline_views(self):
         identity_pipeline_config = {
-            'redirect_url': absolute_uri('/extensions/vsts/setup/'),
+            'redirect_url': absolute_uri(self.oauth_redirect_url),
         }
 
         identity_pipeline_view = NestedPipelineView(

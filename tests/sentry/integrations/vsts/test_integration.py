@@ -1,8 +1,11 @@
 from __future__ import absolute_import
 
 import responses
-from sentry.integrations.vsts import VstsIntegration, VstsIntegrationProvider
+
+from time import time
+
 from sentry.identity.vsts import VSTSIdentityProvider
+from sentry.integrations.vsts import VstsIntegration, VstsIntegrationProvider
 from sentry.models import Integration, Identity, IdentityProvider
 from sentry.testutils import APITestCase, TestCase
 
@@ -42,11 +45,12 @@ class VstsIntegrationProviderTest(TestCase):
 
 class VstsIntegrationTest(APITestCase):
     def setUp(self):
-        user = self.create_user()
+
         organization = self.create_organization()
         project = self.create_project(organization=organization)
         self.access_token = '1234567890'
-        model = Integration.objects.create(
+        self.instance = 'instance.visualstudio.com'
+        self.model = Integration.objects.create(
             provider='integrations:vsts',
             external_id='vsts_external_id',
             name='vsts_name',
@@ -54,49 +58,79 @@ class VstsIntegrationTest(APITestCase):
                  'domain_name': 'instance.visualstudio.com'
             }
         )
-
-        identity = Identity.objects.create(
-            idp=IdentityProvider.objects.create(
-                type='vsts',
-                config={}
-            ),
-            user=user,
+        self.identity_provider = IdentityProvider.objects.create(type='vsts')
+        self.identity = Identity.objects.create(
+            idp=self.identity_provider,
+            user=self.user,
             external_id='vsts_id',
             data={
                 'access_token': self.access_token,
+                'refresh_token': 'qwertyuiop',
+                'expires': int(time()) - int(1234567890),
             }
         )
-        self.org_integration = model.add_organization(organization.id, identity.id)
-        self.project_integration = model.add_project(project.id)
-        self.integration = VstsIntegration(model, organization.id, project.id)
+        self.org_integration = self.model.add_organization(organization.id, self.identity.id)
+        self.project_integration = self.model.add_project(project.id)
+        self.integration = VstsIntegration(self.model, organization.id, project.id)
         self.projects = [
             ('eb6e4656-77fc-42a1-9181-4c6d8e9da5d1', 'ProjectB'),
             ('6ce954b1-ce1f-45d1-b94d-e6bf2464ba2c', 'ProjectA')
         ]
+        self.project_result = {
+            'value': [
+                {
+                    'id': self.projects[0][0],
+                    'name': self.projects[0][1],
 
+                },
+                {
+                    'id': self.projects[1][0],
+                    'name': self.projects[1][1],
+                }
+            ],
+            'count': 2
+        }
         responses.add(
             responses.GET,
             'https://instance.visualstudio.com/DefaultCollection/_apis/projects',
-            json={
-                'value': [
-                    {
-                        'id': self.projects[0][0],
-                        'name': self.projects[0][1],
-
-                    },
-                    {
-                        'id': self.projects[1][0],
-                        'name': self.projects[1][1],
-
-                    }
-                ],
-                'count': 2
-            },
+            json=self.project_result,
         )
+        self.refresh_data = {
+            'access_token': 'access token for this user',
+            'token_type': 'type of token',
+            'expires_in': 123456789,
+            'refresh_token': 'new refresh token to use when the token has timed out',
+        }
+        responses.add(
+            responses.POST,
+            'https://app.vssps.visualstudio.com/oauth2/token',
+            json=self.refresh_data,
+        )
+
+    def assert_identity_updated(self, new_identity, expected_data):
+        assert new_identity.data['access_token'] == expected_data['access_token']
+        assert new_identity.data['token_type'] == expected_data['token_type']
+        assert new_identity.data['refresh_token'] == expected_data['refresh_token']
+        assert new_identity.data['expires'] >= time()
 
     def test_get_client(self):
         client = self.integration.get_client()
-        assert client.access_token == self.access_token
+        assert client.identity.data['access_token'] == self.access_token
+
+    @responses.activate
+    def test_refreshes_expired_token(self):
+        result = self.integration.get_client().get_projects(self.instance)
+
+        assert len(responses.calls) == 2
+        default_identity = self.integration.default_identity
+        self.assert_identity_updated(default_identity, self.refresh_data)
+
+        identity = Identity.objects.get(id=self.identity.id)
+        self.assert_identity_updated(identity, self.refresh_data)
+
+        projects = result['value']
+        assert projects[0]['id'] == self.projects[0][0] and projects[0]['name'] == self.projects[0][1]
+        assert projects[1]['id'] == self.projects[1][0] and projects[1]['name'] == self.projects[1][1]
 
     @responses.activate
     def test_get_project_config(self):
@@ -119,10 +153,3 @@ class VstsIntegrationTest(APITestCase):
         assert project_field['disabled'] is False
         assert project_field['choices'] == self.projects
         assert project_field['initial'] == self.projects[1]
-
-    def test_get_project_config_failed_api_call(self):
-        fields = self.integration.get_project_config()
-        assert len(fields) == 1
-        project_field = fields[0]
-        assert project_field['name'] == 'default_project'
-        assert project_field['disabled'] is True
