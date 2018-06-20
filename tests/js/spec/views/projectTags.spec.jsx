@@ -53,7 +53,7 @@ describe('ProjectTags', function() {
     let tags = wrapper.state('tags').length;
 
     wrapper
-      .find('a.btn')
+      .find('Button')
       .first()
       .simulate('click');
 

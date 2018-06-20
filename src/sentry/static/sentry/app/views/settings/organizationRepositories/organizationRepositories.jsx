@@ -153,9 +153,7 @@ export default class OrganizationRepositories extends React.Component {
                           onConfirm={() => onDeleteRepo(repo)}
                           message={t('Are you sure you want to remove this repository?')}
                         >
-                          <Button size="xsmall">
-                            <span className="icon icon-trash" />
-                          </Button>
+                          <Button size="xsmall" icon="icon-trash" />
                         </Confirm>
                       </Box>
                     </RepoRow>
