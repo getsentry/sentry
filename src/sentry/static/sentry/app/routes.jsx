@@ -391,12 +391,14 @@ const projectSettingsRoutes = (
         component={errorHandler(LazyLoad)}
       />
     </Route>
-    <Route path="plugins/" name="Integrations" component={errorHandler(ProjectPlugins)} />
-    <Route
-      path="plugins/:pluginId/"
-      name="Integration Details"
-      component={errorHandler(ProjectPluginDetails)}
-    />
+    <Route key="plugins/" path="plugins/" name="Integrations">
+      <IndexRoute component={errorHandler(ProjectPlugins)} />
+      <Route
+        path=":pluginId/"
+        name="Integration Details"
+        component={errorHandler(ProjectPluginDetails)}
+      />
+    </Route>
     {/* XXX(epurkhiser): This lives under project configurations for now until
         we've migrated enough integrations that it can live at the org level. */}
     <Route
