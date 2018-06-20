@@ -224,7 +224,7 @@ class IssueTrackingPlugin(Plugin):
 
         prefix = self.get_conf_key()
         event = group.get_latest_event()
-        Event.objects.bind_nodes([event], 'data')
+        Event.objects.bind_nodes([event], 'node_data')
 
         op = request.POST.get('op', 'create')
 

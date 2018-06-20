@@ -4,6 +4,7 @@ from collections import OrderedDict
 from functools import partial
 
 from sentry.testutils import TestCase
+from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.safe import safe_execute, trim, trim_dict, get_path
 
 a_very_long_string = 'a' * 1024
@@ -100,3 +101,4 @@ class GetChainTest(TestCase):
         assert get_path({'a': 2}, ['b'], 1) == 1
         assert get_path({'a': {'b': []}}, ['a', 'b']) == []
         assert get_path({'a': []}, ['a', 'b']) is None
+        assert get_path(CanonicalKeyDict({'a': 2}), ['a']) == 2

@@ -99,7 +99,7 @@ class EventCommittersTest(APITestCase):
             group_id=group.id,
             event_id='abcd',
             message='hello 123456',
-            data={
+            node_data={
                 'environment': 'production',
                 'type': 'default',
                 'sentry.interfaces.Exception': {

@@ -22,6 +22,7 @@ from sentry.db.models import (
 )
 from sentry.interfaces.base import get_interfaces
 from sentry.utils.cache import memoize
+from sentry.utils.canonical import CanonicalKeyView
 from sentry.utils.strings import truncatechars
 
 
@@ -38,11 +39,12 @@ class Event(Model):
     platform = models.CharField(max_length=64, null=True)
     datetime = models.DateTimeField(default=timezone.now, db_index=True)
     time_spent = BoundedIntegerField(null=True)
-    data = NodeField(
+    node_data = NodeField(
         blank=True,
         null=True,
         ref_func=lambda x: x.project_id or x.project.id,
         ref_version=2,
+        db_column='data',
     )
 
     objects = BaseManager()
@@ -56,6 +58,10 @@ class Event(Model):
         index_together = (('group_id', 'datetime'), )
 
     __repr__ = sane_repr('project_id', 'group_id')
+
+    @memoize
+    def data(self):
+        return CanonicalKeyView(self.node_data)
 
     # Implement a ForeignKey-like accessor for backwards compat
     def _set_group(self, group):
@@ -106,8 +112,9 @@ class Event(Model):
         etype = self.data.get('type', 'default')
         if 'metadata' not in self.data:
             # TODO(dcramer): remove after Dec 1 2016
-            data = self.data.copy() if self.data else {}
+            data = dict(self.data or {})
             data['message'] = self.message
+            data = CanonicalKeyView(data)
             return eventtypes.get(etype)(data).get_metadata()
         return self.data['metadata']
 
@@ -152,7 +159,7 @@ class Event(Model):
         return None
 
     def get_interfaces(self):
-        return get_interfaces(self.data)
+        return CanonicalKeyView(get_interfaces(self.data))
 
     @memoize
     def interfaces(self):

@@ -130,7 +130,7 @@ class MailPluginTest(TestCase):
             message=group.message,
             project=self.project,
             datetime=group.last_seen,
-            data={'tags': [
+            node_data={'tags': [
                 ('level', 'error'),
             ]},
         )
@@ -163,7 +163,7 @@ class MailPluginTest(TestCase):
             message=group.message,
             project=self.project,
             datetime=group.last_seen,
-            data={'tags': [
+            node_data={'tags': [
                 ('level', 'error'),
             ]},
         )
@@ -559,7 +559,7 @@ class MailPluginOwnersTest(TestCase):
             message=self.group.message,
             project=self.project,
             datetime=self.group.last_seen,
-            data=self.make_event_data('foo.py')
+            node_data=self.make_event_data('foo.py')
         )
         assert (sorted(set([self.user.pk, self.user2.pk])) == sorted(
             self.plugin.get_send_to(self.project, event.data)))
@@ -570,7 +570,7 @@ class MailPluginOwnersTest(TestCase):
             message=self.group.message,
             project=self.project,
             datetime=self.group.last_seen,
-            data=self.make_event_data('foo.cbl')
+            node_data=self.make_event_data('foo.cbl')
         )
         assert (sorted(set([self.user.pk, self.user2.pk])) == sorted(
             self.plugin.get_send_to(self.project, event.data)))
@@ -581,7 +581,7 @@ class MailPluginOwnersTest(TestCase):
             message=self.group.message,
             project=self.project,
             datetime=self.group.last_seen,
-            data=self.make_event_data('foo.jx')
+            node_data=self.make_event_data('foo.jx')
         )
         assert (sorted(set([self.user2.pk])) == sorted(
             self.plugin.get_send_to(self.project, event.data)))
@@ -592,7 +592,7 @@ class MailPluginOwnersTest(TestCase):
             message=self.group.message,
             project=self.project,
             datetime=self.group.last_seen,
-            data=self.make_event_data('foo.jx')
+            node_data=self.make_event_data('foo.jx')
         )
         assert (sorted(set([self.user2.pk])) == sorted(
             self.plugin.get_send_to(self.project, event.data)))
@@ -604,7 +604,7 @@ class MailPluginOwnersTest(TestCase):
             message=self.group.message,
             project=self.project,
             datetime=self.group.last_seen,
-            data=self.make_event_data('foo.cpp')
+            node_data=self.make_event_data('foo.cpp')
         )
         assert [] == sorted(self.plugin.get_send_to(self.project, event.data))
 
@@ -614,7 +614,7 @@ class MailPluginOwnersTest(TestCase):
             message=self.group.message,
             project=self.project,
             datetime=self.group.last_seen,
-            data=self.make_event_data('foo.cbl'),
+            node_data=self.make_event_data('foo.cbl'),
         )
         self.assert_notify(event_all_users, [self.user.email, self.user2.email])
 
@@ -623,7 +623,7 @@ class MailPluginOwnersTest(TestCase):
             message=self.group.message,
             project=self.project,
             datetime=self.group.last_seen,
-            data=self.make_event_data('foo.py'),
+            node_data=self.make_event_data('foo.py'),
         )
         self.assert_notify(event_team, [self.user.email, self.user2.email])
 
@@ -632,6 +632,6 @@ class MailPluginOwnersTest(TestCase):
             message=self.group.message,
             project=self.project,
             datetime=self.group.last_seen,
-            data=self.make_event_data('foo.jx'),
+            node_data=self.make_event_data('foo.jx'),
         )
         self.assert_notify(event_single_user, [self.user2.email])

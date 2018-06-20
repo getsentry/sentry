@@ -248,7 +248,7 @@ class IssueTrackingPlugin2(Plugin):
                 'message': 'Unable to create issues: there are '
                            'no events associated with this group',
             }, status=400)
-        Event.objects.bind_nodes([event], 'data')
+        Event.objects.bind_nodes([event], 'node_data')
         try:
             fields = self.get_new_issue_fields(request, group, event, **kwargs)
         except Exception as e:
@@ -311,7 +311,7 @@ class IssueTrackingPlugin2(Plugin):
                            'no events associated with this group',
             }, status=400)
 
-        Event.objects.bind_nodes([event], 'data')
+        Event.objects.bind_nodes([event], 'node_data')
 
         try:
             fields = self.get_link_existing_issue_fields(request, group, event, **kwargs)

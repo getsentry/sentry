@@ -64,12 +64,12 @@ class MergeGroupTest(TestCase):
         # reference check being bound to a group
         event1 = Event.objects.get(id=event1.id)
         assert event1.group_id == group2.id
-        Event.objects.bind_nodes([event1], 'data')
+        Event.objects.bind_nodes([event1], 'node_data')
         assert event1.data['foo'] == 'bar'
 
         event2 = Event.objects.get(id=event2.id)
         assert event2.group_id == group2.id
-        Event.objects.bind_nodes([event2], 'data')
+        Event.objects.bind_nodes([event2], 'node_data')
         assert event2.data['foo'] == 'baz'
 
     def test_merge_creates_redirect(self):

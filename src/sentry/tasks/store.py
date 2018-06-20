@@ -22,6 +22,7 @@ from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 from sentry.stacktraces import process_stacktraces, \
     should_process_for_stacktraces
+from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.dates import to_datetime
 from sentry.models import ProjectOption, Activity, Project
 
@@ -62,6 +63,7 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_event):
         error_logger.error('preprocess.failed.empty', extra={'cache_key': cache_key})
         return
 
+    data = CanonicalKeyDict(data)
     project = data['project']
     Raven.tags_context({
         'project': project,
@@ -115,6 +117,7 @@ def _do_process_event(cache_key, start_time, event_id, process_task):
         error_logger.error('process.failed.empty', extra={'cache_key': cache_key})
         return
 
+    data = CanonicalKeyDict(data)
     project = data['project']
     Raven.tags_context({
         'project': project,
@@ -264,6 +267,7 @@ def create_failed_event(cache_key, project_id, issues, event_id, start_time=None
         error_logger.error('process.failed_raw.empty', extra={'cache_key': cache_key})
         return True
 
+    data = CanonicalKeyDict(data)
     from sentry.models import RawEvent, ProcessingIssue
     raw_event = RawEvent.objects.create(
         project_id=project_id,
@@ -298,6 +302,9 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None,
 
     if cache_key:
         data = default_cache.get(cache_key)
+
+    if data is not None:
+        data = CanonicalKeyDict(data)
 
     if event_id is None and data is not None:
         event_id = data['event_id']

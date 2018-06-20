@@ -39,7 +39,7 @@ index = _make_index_backend(redis.clusters.get('default').get_local_client(0))
 def test_get_fingerprint():
     assert get_fingerprint(
         Event(
-            data={
+            node_data={
                 'sentry.interfaces.Message': {
                     'message': 'Hello world',
                 },
@@ -49,7 +49,7 @@ def test_get_fingerprint():
 
     assert get_fingerprint(
         Event(
-            data={
+            node_data={
                 'fingerprint': ['Not hello world'],
                 'sentry.interfaces.Message': {
                     'message': 'Hello world',
@@ -68,7 +68,7 @@ class UnmergeTestCase(TestCase):
                 platform='javascript',
                 message='Hello from JavaScript',
                 datetime=now,
-                data={
+                node_data={
                     'type': 'default',
                     'metadata': {},
                     'tags': [
@@ -81,7 +81,7 @@ class UnmergeTestCase(TestCase):
                 platform='python',
                 message='Hello from Python',
                 datetime=now - timedelta(hours=1),
-                data={
+                node_data={
                     'type': 'default',
                     'metadata': {},
                     'tags': [
@@ -94,7 +94,7 @@ class UnmergeTestCase(TestCase):
                 platform='java',
                 message='Hello from Java',
                 datetime=now - timedelta(hours=2),
-                data={
+                node_data={
                     'type': 'default',
                     'metadata': {},
                     'tags': [
@@ -154,7 +154,7 @@ class UnmergeTestCase(TestCase):
                     platform='python',
                     message='Hello from Python',
                     datetime=now - timedelta(hours=1),
-                    data={
+                    node_data={
                         'type': 'default',
                         'metadata': {},
                         'tags': [
@@ -167,7 +167,7 @@ class UnmergeTestCase(TestCase):
                     platform='java',
                     message='Hello from Java',
                     datetime=now - timedelta(hours=2),
-                    data={
+                    node_data={
                         'type': 'default',
                         'metadata': {},
                         'tags': [
@@ -229,7 +229,7 @@ class UnmergeTestCase(TestCase):
                 event_id=event_id,
                 message='%s' % (id, ),
                 datetime=now + shift(i),
-                data={
+                node_data={
                     'environment': 'production',
                     'type': 'default',
                     'metadata': {

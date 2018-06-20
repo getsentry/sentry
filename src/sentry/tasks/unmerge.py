@@ -585,7 +585,7 @@ def unmerge(
         unlock_hashes(project_id, fingerprints)
         return destination_id
 
-    Event.objects.bind_nodes(events, 'data')
+    Event.objects.bind_nodes(events, 'node_data')
 
     source_events = []
     destination_events = []

@@ -28,6 +28,6 @@ class EventDeletionTask(ModelDeletionTask):
         return relations
 
     def get_child_relations_bulk(self, instance_list):
-        node_ids = [i.data.id for i in instance_list]
+        node_ids = [i.node_data.id for i in instance_list]
 
         return [BaseRelation({'nodes': node_ids}, NodeDeletionTask)]

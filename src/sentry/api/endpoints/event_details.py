@@ -45,7 +45,7 @@ class EventDetailsEndpoint(Endpoint):
 
         self.check_object_permissions(request, event.group)
 
-        Event.objects.bind_nodes([event], 'data')
+        Event.objects.bind_nodes([event], 'node_data')
 
         # HACK(dcramer): work around lack of unique sorting on datetime
         base_qs = Event.objects.filter(

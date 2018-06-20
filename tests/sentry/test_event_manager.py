@@ -132,8 +132,8 @@ class EventManagerTest(TransactionTestCase):
         manager = EventManager(self.make_event(user={'id': '1'}))
         data = manager.normalize()
 
-        assert data['sentry.interfaces.User'] == {'id': '1'}
-        assert 'user' not in data
+        assert data['user'] == {'id': '1'}
+        assert 'sentry.interfaces.User' not in data.keys()
 
     def test_does_default_ip_address_to_user(self):
         manager = EventManager(
@@ -1356,7 +1356,7 @@ class GetHashesFromEventTest(TestCase):
         http_comp_hash.return_value = [['baz']]
         stack_comp_hash.return_value = [['foo', 'bar']]
         event = Event(
-            data={
+            node_data={
                 'sentry.interfaces.Stacktrace': {
                     'frames': [{
                         'lineno': 1,
@@ -1381,7 +1381,7 @@ class GetHashesFromEventTest(TestCase):
 class GetHashesFromFingerprintTest(TestCase):
     def test_default_value(self):
         event = Event(
-            data={
+            node_data={
                 'sentry.interfaces.Stacktrace': {
                     'frames': [
                         {
@@ -1408,7 +1408,7 @@ class GetHashesFromFingerprintTest(TestCase):
 
     def test_custom_values(self):
         event = Event(
-            data={
+            node_data={
                 'sentry.interfaces.Stacktrace': {
                     'frames': [
                         {

@@ -19,14 +19,14 @@ from optparse import make_option
 def get_group_event(pk):
     from sentry.models import Group, Event
     event = Group.objects.get(pk=pk).get_latest_event()
-    Event.objects.bind_nodes([event], 'data')
+    Event.objects.bind_nodes([event], 'node_data')
     return event
 
 
 def get_event(pk):
     from sentry.models import Event
     event = Event.objects.get(pk=pk)
-    Event.objects.bind_nodes([event], 'data')
+    Event.objects.bind_nodes([event], 'node_data')
     return event
 
 
