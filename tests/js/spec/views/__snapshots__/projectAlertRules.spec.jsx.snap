@@ -156,21 +156,21 @@ exports[`projectAlertRules renders 1`] = `
                                 size="small"
                               >
                                 <Component
-                                  className="css-179w01k-ButtonLabel e17811v31"
+                                  className="css-19bmqb3-ButtonLabel e17811v31"
                                   size="small"
                                 >
                                   <Flex
                                     align="center"
-                                    className="css-179w01k-ButtonLabel e17811v31"
+                                    className="css-19bmqb3-ButtonLabel e17811v31"
                                     size="small"
                                   >
                                     <Base
                                       align="center"
-                                      className="e17811v31 css-8mahft-ButtonLabel"
+                                      className="e17811v31 css-1eblpyp-ButtonLabel"
                                       size="small"
                                     >
                                       <div
-                                        className="e17811v31 css-8mahft-ButtonLabel"
+                                        className="e17811v31 css-1eblpyp-ButtonLabel"
                                         is={null}
                                         size="small"
                                       >
@@ -179,20 +179,20 @@ exports[`projectAlertRules renders 1`] = `
                                           size="small"
                                         >
                                           <Component
-                                            className="css-h7y7by-Icon e17811v32"
+                                            className="css-1vdnsie-Icon e17811v32"
                                             hasChildren={true}
                                             size="small"
                                           >
                                             <Box
-                                              className="css-h7y7by-Icon e17811v32"
+                                              className="css-1vdnsie-Icon e17811v32"
                                               size="small"
                                             >
                                               <Base
-                                                className="e17811v32 css-11bwulm-Icon"
+                                                className="e17811v32 css-nk081r-Icon"
                                                 size="small"
                                               >
                                                 <div
-                                                  className="e17811v32 css-11bwulm-Icon"
+                                                  className="e17811v32 css-nk081r-Icon"
                                                   is={null}
                                                   size="small"
                                                 >
@@ -472,21 +472,21 @@ exports[`projectAlertRules renders 1`] = `
                                             size="small"
                                           >
                                             <Component
-                                              className="css-179w01k-ButtonLabel e17811v31"
+                                              className="css-19bmqb3-ButtonLabel e17811v31"
                                               size="small"
                                             >
                                               <Flex
                                                 align="center"
-                                                className="css-179w01k-ButtonLabel e17811v31"
+                                                className="css-19bmqb3-ButtonLabel e17811v31"
                                                 size="small"
                                               >
                                                 <Base
                                                   align="center"
-                                                  className="e17811v31 css-8mahft-ButtonLabel"
+                                                  className="e17811v31 css-1eblpyp-ButtonLabel"
                                                   size="small"
                                                 >
                                                   <div
-                                                    className="e17811v31 css-8mahft-ButtonLabel"
+                                                    className="e17811v31 css-1eblpyp-ButtonLabel"
                                                     is={null}
                                                     size="small"
                                                   >
@@ -511,6 +511,7 @@ exports[`projectAlertRules renders 1`] = `
                               >
                                 <Button
                                   disabled={false}
+                                  icon="icon-trash"
                                   onClick={[Function]}
                                   size="small"
                                 >
@@ -538,27 +539,80 @@ exports[`projectAlertRules renders 1`] = `
                                           size="small"
                                         >
                                           <Component
-                                            className="css-179w01k-ButtonLabel e17811v31"
+                                            className="css-19bmqb3-ButtonLabel e17811v31"
                                             size="small"
                                           >
                                             <Flex
                                               align="center"
-                                              className="css-179w01k-ButtonLabel e17811v31"
+                                              className="css-19bmqb3-ButtonLabel e17811v31"
                                               size="small"
                                             >
                                               <Base
                                                 align="center"
-                                                className="e17811v31 css-8mahft-ButtonLabel"
+                                                className="e17811v31 css-1eblpyp-ButtonLabel"
                                                 size="small"
                                               >
                                                 <div
-                                                  className="e17811v31 css-8mahft-ButtonLabel"
+                                                  className="e17811v31 css-1eblpyp-ButtonLabel"
                                                   is={null}
                                                   size="small"
                                                 >
-                                                  <span
-                                                    className="icon-trash"
-                                                  />
+                                                  <Icon
+                                                    hasChildren={false}
+                                                    size="small"
+                                                  >
+                                                    <Component
+                                                      className="css-ljhpxy-Icon e17811v32"
+                                                      hasChildren={false}
+                                                      size="small"
+                                                    >
+                                                      <Box
+                                                        className="css-ljhpxy-Icon e17811v32"
+                                                        size="small"
+                                                      >
+                                                        <Base
+                                                          className="e17811v32 css-7mohvl-Icon"
+                                                          size="small"
+                                                        >
+                                                          <div
+                                                            className="e17811v32 css-7mohvl-Icon"
+                                                            is={null}
+                                                            size="small"
+                                                          >
+                                                            <StyledInlineSvg
+                                                              size="12px"
+                                                              src="icon-trash"
+                                                            >
+                                                              <InlineSvg
+                                                                className="css-1ov3rcq-StyledInlineSvg e17811v33"
+                                                                size="12px"
+                                                                src="icon-trash"
+                                                              >
+                                                                <StyledSvg
+                                                                  className="css-1ov3rcq-StyledInlineSvg e17811v33"
+                                                                  height="12px"
+                                                                  viewBox={Object {}}
+                                                                  width="12px"
+                                                                >
+                                                                  <svg
+                                                                    className="e17811v33 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                                    height="12px"
+                                                                    viewBox={Object {}}
+                                                                    width="12px"
+                                                                  >
+                                                                    <use
+                                                                      href="#test"
+                                                                      xlinkHref="#test"
+                                                                    />
+                                                                  </svg>
+                                                                </StyledSvg>
+                                                              </InlineSvg>
+                                                            </StyledInlineSvg>
+                                                          </div>
+                                                        </Base>
+                                                      </Box>
+                                                    </Component>
+                                                  </Icon>
                                                 </div>
                                               </Base>
                                             </Flex>

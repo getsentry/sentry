@@ -105,7 +105,10 @@ class Button extends React.Component {
         <ButtonLabel size={size}>
           {icon && (
             <Icon size={size} hasChildren={!!children}>
-              <StyledInlineSvg src={icon} size={size === 'small' ? '12px' : '16px'} />
+              <StyledInlineSvg
+                src={icon}
+                size={size && size.endsWith('small') ? '12px' : '16px'}
+              />
             </Icon>
           )}
           {children}
@@ -244,10 +247,6 @@ const getLabelPadding = ({size, priority}) => {
 
 const ButtonLabel = styled(props => <Flex align="center" {...props} />)`
   padding: ${getLabelPadding};
-
-  .icon {
-    margin-right: 2px;
-  }
 `;
 
 const getIconMargin = ({size, hasChildren}) => {
@@ -261,7 +260,6 @@ const getIconMargin = ({size, hasChildren}) => {
 
 const Icon = styled(({hasChildren, ...props}) => <Box {...props} />)`
   margin-right: ${getIconMargin};
-  margin-left: -2px;
 `;
 
 const StyledInlineSvg = styled(InlineSvg)`
