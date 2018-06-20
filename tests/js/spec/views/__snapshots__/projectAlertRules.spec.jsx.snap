@@ -156,21 +156,21 @@ exports[`projectAlertRules renders 1`] = `
                                 size="small"
                               >
                                 <Component
-                                  className="css-179w01k-ButtonLabel e17811v31"
+                                  className="css-19bmqb3-ButtonLabel e17811v31"
                                   size="small"
                                 >
                                   <Flex
                                     align="center"
-                                    className="css-179w01k-ButtonLabel e17811v31"
+                                    className="css-19bmqb3-ButtonLabel e17811v31"
                                     size="small"
                                   >
                                     <Base
                                       align="center"
-                                      className="e17811v31 css-8mahft-ButtonLabel"
+                                      className="e17811v31 css-1eblpyp-ButtonLabel"
                                       size="small"
                                     >
                                       <div
-                                        className="e17811v31 css-8mahft-ButtonLabel"
+                                        className="e17811v31 css-1eblpyp-ButtonLabel"
                                         is={null}
                                         size="small"
                                       >
@@ -179,20 +179,20 @@ exports[`projectAlertRules renders 1`] = `
                                           size="small"
                                         >
                                           <Component
-                                            className="css-ctvapb-Icon e17811v32"
+                                            className="css-1vdnsie-Icon e17811v32"
                                             hasChildren={true}
                                             size="small"
                                           >
                                             <Box
-                                              className="css-ctvapb-Icon e17811v32"
+                                              className="css-1vdnsie-Icon e17811v32"
                                               size="small"
                                             >
                                               <Base
-                                                className="e17811v32 css-1t0n34y-Icon"
+                                                className="e17811v32 css-nk081r-Icon"
                                                 size="small"
                                               >
                                                 <div
-                                                  className="e17811v32 css-1t0n34y-Icon"
+                                                  className="e17811v32 css-nk081r-Icon"
                                                   is={null}
                                                   size="small"
                                                 >
@@ -472,21 +472,21 @@ exports[`projectAlertRules renders 1`] = `
                                             size="small"
                                           >
                                             <Component
-                                              className="css-179w01k-ButtonLabel e17811v31"
+                                              className="css-19bmqb3-ButtonLabel e17811v31"
                                               size="small"
                                             >
                                               <Flex
                                                 align="center"
-                                                className="css-179w01k-ButtonLabel e17811v31"
+                                                className="css-19bmqb3-ButtonLabel e17811v31"
                                                 size="small"
                                               >
                                                 <Base
                                                   align="center"
-                                                  className="e17811v31 css-8mahft-ButtonLabel"
+                                                  className="e17811v31 css-1eblpyp-ButtonLabel"
                                                   size="small"
                                                 >
                                                   <div
-                                                    className="e17811v31 css-8mahft-ButtonLabel"
+                                                    className="e17811v31 css-1eblpyp-ButtonLabel"
                                                     is={null}
                                                     size="small"
                                                   >
@@ -538,21 +538,21 @@ exports[`projectAlertRules renders 1`] = `
                                           size="small"
                                         >
                                           <Component
-                                            className="css-179w01k-ButtonLabel e17811v31"
+                                            className="css-19bmqb3-ButtonLabel e17811v31"
                                             size="small"
                                           >
                                             <Flex
                                               align="center"
-                                              className="css-179w01k-ButtonLabel e17811v31"
+                                              className="css-19bmqb3-ButtonLabel e17811v31"
                                               size="small"
                                             >
                                               <Base
                                                 align="center"
-                                                className="e17811v31 css-8mahft-ButtonLabel"
+                                                className="e17811v31 css-1eblpyp-ButtonLabel"
                                                 size="small"
                                               >
                                                 <div
-                                                  className="e17811v31 css-8mahft-ButtonLabel"
+                                                  className="e17811v31 css-1eblpyp-ButtonLabel"
                                                   is={null}
                                                   size="small"
                                                 >

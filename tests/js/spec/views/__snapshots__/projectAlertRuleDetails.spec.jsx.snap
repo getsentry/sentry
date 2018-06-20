@@ -461,21 +461,21 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                                 size="small"
                                               >
                                                 <Component
-                                                  className="css-179w01k-ButtonLabel e17811v31"
+                                                  className="css-19bmqb3-ButtonLabel e17811v31"
                                                   size="small"
                                                 >
                                                   <Flex
                                                     align="center"
-                                                    className="css-179w01k-ButtonLabel e17811v31"
+                                                    className="css-19bmqb3-ButtonLabel e17811v31"
                                                     size="small"
                                                   >
                                                     <Base
                                                       align="center"
-                                                      className="e17811v31 css-8mahft-ButtonLabel"
+                                                      className="e17811v31 css-1eblpyp-ButtonLabel"
                                                       size="small"
                                                     >
                                                       <div
-                                                        className="e17811v31 css-8mahft-ButtonLabel"
+                                                        className="e17811v31 css-1eblpyp-ButtonLabel"
                                                         is={null}
                                                         size="small"
                                                       >
@@ -733,21 +733,21 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                                 size="small"
                                               >
                                                 <Component
-                                                  className="css-179w01k-ButtonLabel e17811v31"
+                                                  className="css-19bmqb3-ButtonLabel e17811v31"
                                                   size="small"
                                                 >
                                                   <Flex
                                                     align="center"
-                                                    className="css-179w01k-ButtonLabel e17811v31"
+                                                    className="css-19bmqb3-ButtonLabel e17811v31"
                                                     size="small"
                                                   >
                                                     <Base
                                                       align="center"
-                                                      className="e17811v31 css-8mahft-ButtonLabel"
+                                                      className="e17811v31 css-1eblpyp-ButtonLabel"
                                                       size="small"
                                                     >
                                                       <div
-                                                        className="e17811v31 css-8mahft-ButtonLabel"
+                                                        className="e17811v31 css-1eblpyp-ButtonLabel"
                                                         is={null}
                                                         size="small"
                                                       >
@@ -1013,18 +1013,18 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                   >
                                     <ButtonLabel>
                                       <Component
-                                        className="css-1lzmoq1-ButtonLabel e17811v31"
+                                        className="css-1dxlw1i-ButtonLabel e17811v31"
                                       >
                                         <Flex
                                           align="center"
-                                          className="css-1lzmoq1-ButtonLabel e17811v31"
+                                          className="css-1dxlw1i-ButtonLabel e17811v31"
                                         >
                                           <Base
                                             align="center"
-                                            className="e17811v31 css-1br8hoo-ButtonLabel"
+                                            className="e17811v31 css-mvnt76-ButtonLabel"
                                           >
                                             <div
-                                              className="e17811v31 css-1br8hoo-ButtonLabel"
+                                              className="e17811v31 css-mvnt76-ButtonLabel"
                                               is={null}
                                             >
                                               Cancel
@@ -1068,18 +1068,18 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                               >
                                 <ButtonLabel>
                                   <Component
-                                    className="css-1lzmoq1-ButtonLabel e17811v31"
+                                    className="css-1dxlw1i-ButtonLabel e17811v31"
                                   >
                                     <Flex
                                       align="center"
-                                      className="css-1lzmoq1-ButtonLabel e17811v31"
+                                      className="css-1dxlw1i-ButtonLabel e17811v31"
                                     >
                                       <Base
                                         align="center"
-                                        className="e17811v31 css-1br8hoo-ButtonLabel"
+                                        className="e17811v31 css-mvnt76-ButtonLabel"
                                       >
                                         <div
-                                          className="e17811v31 css-1br8hoo-ButtonLabel"
+                                          className="e17811v31 css-mvnt76-ButtonLabel"
                                           is={null}
                                         >
                                           Save Rule
@@ -1883,18 +1883,18 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                   >
                                     <ButtonLabel>
                                       <Component
-                                        className="css-1lzmoq1-ButtonLabel e17811v31"
+                                        className="css-1dxlw1i-ButtonLabel e17811v31"
                                       >
                                         <Flex
                                           align="center"
-                                          className="css-1lzmoq1-ButtonLabel e17811v31"
+                                          className="css-1dxlw1i-ButtonLabel e17811v31"
                                         >
                                           <Base
                                             align="center"
-                                            className="e17811v31 css-1br8hoo-ButtonLabel"
+                                            className="e17811v31 css-mvnt76-ButtonLabel"
                                           >
                                             <div
-                                              className="e17811v31 css-1br8hoo-ButtonLabel"
+                                              className="e17811v31 css-mvnt76-ButtonLabel"
                                               is={null}
                                             >
                                               Cancel
@@ -1938,18 +1938,18 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                               >
                                 <ButtonLabel>
                                   <Component
-                                    className="css-1lzmoq1-ButtonLabel e17811v31"
+                                    className="css-1dxlw1i-ButtonLabel e17811v31"
                                   >
                                     <Flex
                                       align="center"
-                                      className="css-1lzmoq1-ButtonLabel e17811v31"
+                                      className="css-1dxlw1i-ButtonLabel e17811v31"
                                     >
                                       <Base
                                         align="center"
-                                        className="e17811v31 css-1br8hoo-ButtonLabel"
+                                        className="e17811v31 css-mvnt76-ButtonLabel"
                                       >
                                         <div
-                                          className="e17811v31 css-1br8hoo-ButtonLabel"
+                                          className="e17811v31 css-mvnt76-ButtonLabel"
                                           is={null}
                                         >
                                           Save Rule

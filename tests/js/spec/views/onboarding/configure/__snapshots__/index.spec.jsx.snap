@@ -290,21 +290,21 @@ exports[`Configure should render correctly render() should render platform docs 
                                                       size="small"
                                                     >
                                                       <Component
-                                                        className="css-179w01k-ButtonLabel e17811v31"
+                                                        className="css-19bmqb3-ButtonLabel e17811v31"
                                                         size="small"
                                                       >
                                                         <Flex
                                                           align="center"
-                                                          className="css-179w01k-ButtonLabel e17811v31"
+                                                          className="css-19bmqb3-ButtonLabel e17811v31"
                                                           size="small"
                                                         >
                                                           <Base
                                                             align="center"
-                                                            className="e17811v31 css-8mahft-ButtonLabel"
+                                                            className="e17811v31 css-1eblpyp-ButtonLabel"
                                                             size="small"
                                                           >
                                                             <div
-                                                              className="e17811v31 css-8mahft-ButtonLabel"
+                                                              className="e17811v31 css-1eblpyp-ButtonLabel"
                                                               is={null}
                                                               size="small"
                                                             >

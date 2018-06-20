@@ -247,10 +247,6 @@ const getLabelPadding = ({size, priority}) => {
 
 const ButtonLabel = styled(props => <Flex align="center" {...props} />)`
   padding: ${getLabelPadding};
-
-  .icon {
-    margin-right: 2px;
-  }
 `;
 
 const getIconMargin = ({size, hasChildren}) => {
@@ -264,8 +260,6 @@ const getIconMargin = ({size, hasChildren}) => {
 
 const Icon = styled(({hasChildren, ...props}) => <Box {...props} />)`
   margin-right: ${getIconMargin};
-  margin-left: -2px;
-  display: contents;
 `;
 
 const StyledInlineSvg = styled(InlineSvg)`
