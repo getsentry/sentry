@@ -104,9 +104,8 @@ class RuleNode extends React.Component {
             type="button"
             tabIndex="-1"
             size="small"
-          >
-            <span className="icon icon-trash" />
-          </Button>
+            icon="icon-trash"
+          />
         </RuleNodeControls>
       </RuleNodeRow>
     );

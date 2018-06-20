@@ -28,6 +28,7 @@ import SentryTypes from 'app/proptypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import recreateRoute from 'app/utils/recreateRoute';
+import InlineSvg from 'app/components/inlineSvg';
 
 const KeyRow = createReactClass({
   displayName: 'KeyRow',
@@ -143,9 +144,7 @@ const KeyRow = createReactClass({
             'Are you sure you want to remove this key? This action is irreversible.'
           )}
         >
-          <Button size="small" disabled={this.state.loading}>
-            <span className="icon icon-trash" />
-          </Button>
+          <Button size="small" disabled={this.state.loading} icon="icon-trash" />
         </Confirm>
       );
     }
