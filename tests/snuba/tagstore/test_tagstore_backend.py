@@ -239,15 +239,15 @@ class TagStorageTest(SnubaTestCase):
         ) is None
 
     def test_get_group_ids_for_users(self):
-        assert set(self.ts.get_group_ids_for_users(
+        assert self.ts.get_group_ids_for_users(
             [self.proj1.id],
             [EventUser(project_id=self.proj1.id, ident='user1')]
-        )) == set([self.proj1group1.id, self.proj1group2.id])
+        ) == set([self.proj1group1.id, self.proj1group2.id])
 
-        assert set(self.ts.get_group_ids_for_users(
+        assert self.ts.get_group_ids_for_users(
             [self.proj1.id],
             [EventUser(project_id=self.proj1.id, ident='user2')]
-        )) == set([self.proj1group1.id])
+        ) == set([self.proj1group1.id])
 
     def test_get_group_tag_values_for_users(self):
         result = self.ts.get_group_tag_values_for_users(

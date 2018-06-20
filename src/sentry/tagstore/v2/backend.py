@@ -875,7 +875,7 @@ class V2TagStorage(TagStorage):
         )
 
     def get_group_ids_for_users(self, project_ids, event_users, limit=100):
-        return list(models.GroupTagValue.objects.filter(
+        return set(models.GroupTagValue.objects.filter(
             project_id__in=project_ids,
             _key__project_id__in=project_ids,
             _key__environment_id=AGGREGATE_ENVIRONMENT_ID,

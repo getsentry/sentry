@@ -330,7 +330,7 @@ class SnubaTagStorage(TagStorage):
         result = snuba.query(start, end, ['issue'], conditions, filters,
                              aggregations, limit=limit, orderby='-seen',
                              referrer='tagstore.get_group_ids_for_users')
-        return result.keys()
+        return set(result.keys())
 
     def get_group_tag_values_for_users(self, event_users, limit=100):
         start, end = self.get_time_range()
