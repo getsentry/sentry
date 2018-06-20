@@ -48,14 +48,16 @@ class PlatformList extends React.Component {
 const PlatformIcons = styled('div')`
   margin-right: ${space(0.5)};
   display: flex;
-  flex-direction: row-reverse;
+  flex-direction: row;
+  justify-content: flex-end;
+  width: 24px;
 `;
 
 const StyledPlatformIcon = styled(Platformicon)`
   border-radius: 3px;
   box-shadow: 0 0 0 1px #fff;
   &:not(:first-child) {
-    margin-right: ${ICON_SIZE * -1 + 4}px;
+    margin-left: ${ICON_SIZE * -1 + 4}px;
   }
 `;
 
