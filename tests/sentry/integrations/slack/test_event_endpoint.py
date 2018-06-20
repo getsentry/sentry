@@ -14,6 +14,7 @@ LINK_SHARED_EVENT = """{
     "channel": "Cxxxxxx",
     "user": "Uxxxxxxx",
     "message_ts": "123456789.9875",
+    "team_id": "TXXXXXXX1",
     "links": [
         {
             "domain": "example.com",
@@ -104,7 +105,7 @@ class UrlVerificationEventTest(BaseEventTest):
                 'token': 'fizzbuzz',
             }
         )
-        assert resp.status_code == 400, resp.content
+        assert resp.status_code == 401, resp.content
 
 
 class LinkSharedEventTest(BaseEventTest):
