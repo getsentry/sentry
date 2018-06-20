@@ -160,14 +160,65 @@ exports[`ProjectSelector render() can filter projects by project name 1`] = `
                     onClick={[Function]}
                     tabIndex="-1"
                   >
-                    <span>
-                      <strong
-                        className="highlight"
+                    <ProjectBadge>
+                      <div
+                        className="css-1dx2nj3-ProjectBadge et07ovj0"
                       >
-                        Another
-                      </strong>
-                       Project
-                    </span>
+                        <Flex>
+                          <Base
+                            className="css-sncxrr"
+                          >
+                            <div
+                              className="css-sncxrr"
+                              is={null}
+                            >
+                              <PlatformList
+                                platforms={Array []}
+                              >
+                                <PlatformIcons>
+                                  <div
+                                    className="css-10b0mx0-PlatformIcons ezvce7z0"
+                                  >
+                                    <StyledPlatformIcon
+                                      platform="default"
+                                      size="16px"
+                                    >
+                                      <Platformicon
+                                        className="css-b9p6z1-StyledPlatformIcon ezvce7z1"
+                                        platform="default"
+                                        size="16px"
+                                      >
+                                        <img
+                                          className="css-b9p6z1-StyledPlatformIcon ezvce7z1"
+                                          height="16px"
+                                          src={
+                                            Object {
+                                              "default": Object {
+                                                "id": "test",
+                                                "viewBox": Object {},
+                                              },
+                                            }
+                                          }
+                                          width="16px"
+                                        />
+                                      </Platformicon>
+                                    </StyledPlatformIcon>
+                                  </div>
+                                </PlatformIcons>
+                              </PlatformList>
+                              <span>
+                                <strong
+                                  className="highlight"
+                                >
+                                  Another
+                                </strong>
+                                 Project
+                              </span>
+                            </div>
+                          </Base>
+                        </Flex>
+                      </div>
+                    </ProjectBadge>
                   </a>
                 </li>
               </MenuItem>
@@ -340,7 +391,58 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
                     onClick={[Function]}
                     tabIndex="-1"
                   >
-                    Another Project
+                    <ProjectBadge>
+                      <div
+                        className="css-1dx2nj3-ProjectBadge et07ovj0"
+                      >
+                        <Flex>
+                          <Base
+                            className="css-sncxrr"
+                          >
+                            <div
+                              className="css-sncxrr"
+                              is={null}
+                            >
+                              <PlatformList
+                                platforms={Array []}
+                              >
+                                <PlatformIcons>
+                                  <div
+                                    className="css-10b0mx0-PlatformIcons ezvce7z0"
+                                  >
+                                    <StyledPlatformIcon
+                                      platform="default"
+                                      size="16px"
+                                    >
+                                      <Platformicon
+                                        className="css-b9p6z1-StyledPlatformIcon ezvce7z1"
+                                        platform="default"
+                                        size="16px"
+                                      >
+                                        <img
+                                          className="css-b9p6z1-StyledPlatformIcon ezvce7z1"
+                                          height="16px"
+                                          src={
+                                            Object {
+                                              "default": Object {
+                                                "id": "test",
+                                                "viewBox": Object {},
+                                              },
+                                            }
+                                          }
+                                          width="16px"
+                                        />
+                                      </Platformicon>
+                                    </StyledPlatformIcon>
+                                  </div>
+                                </PlatformIcons>
+                              </PlatformList>
+                              Another Project
+                            </div>
+                          </Base>
+                        </Flex>
+                      </div>
+                    </ProjectBadge>
                   </a>
                 </li>
               </MenuItem>
@@ -362,14 +464,65 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
                     onClick={[Function]}
                     tabIndex="-1"
                   >
-                    <span>
-                      <strong
-                        className="highlight"
+                    <ProjectBadge>
+                      <div
+                        className="css-1dx2nj3-ProjectBadge et07ovj0"
                       >
-                        Test
-                      </strong>
-                       Project
-                    </span>
+                        <Flex>
+                          <Base
+                            className="css-sncxrr"
+                          >
+                            <div
+                              className="css-sncxrr"
+                              is={null}
+                            >
+                              <PlatformList
+                                platforms={Array []}
+                              >
+                                <PlatformIcons>
+                                  <div
+                                    className="css-10b0mx0-PlatformIcons ezvce7z0"
+                                  >
+                                    <StyledPlatformIcon
+                                      platform="default"
+                                      size="16px"
+                                    >
+                                      <Platformicon
+                                        className="css-b9p6z1-StyledPlatformIcon ezvce7z1"
+                                        platform="default"
+                                        size="16px"
+                                      >
+                                        <img
+                                          className="css-b9p6z1-StyledPlatformIcon ezvce7z1"
+                                          height="16px"
+                                          src={
+                                            Object {
+                                              "default": Object {
+                                                "id": "test",
+                                                "viewBox": Object {},
+                                              },
+                                            }
+                                          }
+                                          width="16px"
+                                        />
+                                      </Platformicon>
+                                    </StyledPlatformIcon>
+                                  </div>
+                                </PlatformIcons>
+                              </PlatformList>
+                              <span>
+                                <strong
+                                  className="highlight"
+                                >
+                                  Test
+                                </strong>
+                                 Project
+                              </span>
+                            </div>
+                          </Base>
+                        </Flex>
+                      </div>
+                    </ProjectBadge>
                   </a>
                 </li>
               </MenuItem>
@@ -430,9 +583,16 @@ exports[`ProjectSelector render() lists projects and has filter 1`] = `
         key="another-project"
         linkClassName=""
       >
-        <span>
-          Another Project
-        </span>
+        <ProjectBadge>
+          <Flex>
+            <PlatformList
+              platforms={Array []}
+            />
+            <span>
+              Another Project
+            </span>
+          </Flex>
+        </ProjectBadge>
       </MenuItem>
       <MenuItem
         className=""
@@ -440,9 +600,16 @@ exports[`ProjectSelector render() lists projects and has filter 1`] = `
         key="test-project"
         linkClassName=""
       >
-        <span>
-          Test Project
-        </span>
+        <ProjectBadge>
+          <Flex>
+            <PlatformList
+              platforms={Array []}
+            />
+            <span>
+              Test Project
+            </span>
+          </Flex>
+        </ProjectBadge>
       </MenuItem>
     </DropdownLink>
   </h3>

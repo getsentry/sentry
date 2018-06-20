@@ -3,6 +3,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
 import classNames from 'classnames';
+import {Flex} from 'grid-emotion';
 
 import ApiMixin from 'app/mixins/apiMixin';
 
@@ -10,9 +11,11 @@ import ProjectLabel from 'app/components/projectLabel';
 import DropdownLink from 'app/components/dropdownLink';
 import MenuItem from 'app/components/menuItem';
 import Link from 'app/components/link';
+import PlatformList from 'app/components/platformList';
 
 import {sortArray} from 'app/utils';
 import {t} from 'app/locale';
+import styled from 'react-emotion';
 
 const ProjectSelector = createReactClass({
   displayName: 'ProjectSelector',
@@ -199,6 +202,12 @@ const ProjectSelector = createReactClass({
   getProjectNode(team, project, highlightText, hasSingleTeam, isSelected) {
     let projectId = project.slug;
     let label = this.getProjectLabel(team, project, hasSingleTeam, highlightText);
+    let platforms;
+    if (typeof project.platforms !== 'undefined') {
+      platforms = project && project.platforms;
+    } else {
+      platforms = [];
+    }
 
     let menuItemProps = {
       key: projectId, // TODO: what if two projects w/ same name under diff orgs?
@@ -214,8 +223,14 @@ const ProjectSelector = createReactClass({
 
     return (
       <MenuItem {...menuItemProps}>
-        {project.isBookmarked && <span className="icon-star-solid bookmark " />}
-        {label}
+        {/*ideally an icon here...*/}
+        <ProjectBadge>
+          <Flex>
+            <PlatformList platforms={platforms} />
+            {label}
+          </Flex>
+          {project.isBookmarked && <BookmarkIcon />}
+        </ProjectBadge>
       </MenuItem>
     );
   },
@@ -392,5 +407,19 @@ const ProjectSelector = createReactClass({
     );
   },
 });
+
+const ProjectBadge = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const BookmarkIcon = styled(props => (
+  <div {...props}>
+    <span className="icon-star-solid bookmark" />
+  </div>
+))`
+  font-size: 12px;
+`;
 
 export default ProjectSelector;
