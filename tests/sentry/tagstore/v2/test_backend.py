@@ -622,7 +622,7 @@ class TagStorage(TestCase):
 
         assert self.ts.get_group_ids_for_users(
             [self.proj1.id],
-            [eu]) == [self.proj1group1.id]
+            [eu]) == set([self.proj1group1.id])
 
     @xfail_if_mysql
     def test_get_group_tag_values_for_users(self):
