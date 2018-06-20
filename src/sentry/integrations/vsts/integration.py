@@ -92,6 +92,9 @@ class VstsIntegration(Integration, VstsIssueSync):
         except KeyError:
             return None
 
+    def create_comment(self, issue_id, comment):
+        self.get_client().update_work_item(self.instance, issue_id, comment=comment)
+
 
 class VstsIntegrationProvider(IntegrationProvider):
     key = 'vsts'

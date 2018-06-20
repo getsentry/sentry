@@ -18,7 +18,9 @@ def post_comment(external_issue_id, data, **kwargs):
     # sync Sentry comments to an external issue
     external_issue = ExternalIssue.objects.get(id=external_issue_id)
     integration = Integration.objects.get(id=external_issue.integration_id)
-    integration.get_installation().create_comment(external_issue.key, data['text'])
+    integration.get_installation(
+        organization_id=external_issue.organization_id).create_comment(
+        external_issue.key, data['text'])
 
 
 @instrumented_task(
