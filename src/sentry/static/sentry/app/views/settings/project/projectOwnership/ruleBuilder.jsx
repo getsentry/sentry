@@ -212,7 +212,7 @@ const Divider = styled(InlineSvg)`
 `;
 
 const AddButton = styled(Button)`
-  padding: ${space(0.5)}; //this sizes the button up to align with the inputs
+  padding: ${space(0.5)}; /* this sizes the button up to align with the inputs */
 `;
 
 export default RuleBuilder;

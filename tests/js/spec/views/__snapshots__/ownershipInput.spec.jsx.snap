@@ -738,7 +738,7 @@ exports[`Project Ownership Input renders 1`] = `
           size="small"
         >
           <Button
-            className="css-d4l84o-AddButton e1hyuoc79"
+            className="css-po7kq7-AddButton e1hyuoc79"
             disabled={true}
             icon="icon-circle-add"
             onClick={[Function]}
@@ -746,7 +746,7 @@ exports[`Project Ownership Input renders 1`] = `
             size="small"
           >
             <StyledButton
-              className="css-d4l84o-AddButton e1hyuoc79"
+              className="css-po7kq7-AddButton e1hyuoc79"
               disabled={true}
               href={null}
               onClick={[Function]}
@@ -756,7 +756,7 @@ exports[`Project Ownership Input renders 1`] = `
               to={null}
             >
               <Component
-                className="e1hyuoc79 css-1nx3ila-StyledButton-getColors-AddButton e17811v30"
+                className="e1hyuoc79 css-in0b2i-StyledButton-getColors-AddButton e17811v30"
                 disabled={true}
                 href={null}
                 onClick={[Function]}
@@ -766,7 +766,7 @@ exports[`Project Ownership Input renders 1`] = `
                 to={null}
               >
                 <button
-                  className="e1hyuoc79 css-1nx3ila-StyledButton-getColors-AddButton e17811v30"
+                  className="e1hyuoc79 css-in0b2i-StyledButton-getColors-AddButton e17811v30"
                   disabled={true}
                   href={null}
                   onClick={[Function]}
