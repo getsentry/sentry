@@ -4,6 +4,8 @@ from mistune import markdown
 
 
 from sentry.integrations.issues import IssueSyncMixin
+
+from sentry.integrations.exceptions import ApiUnauthorized, ApiError
 from django.utils.translation import ugettext as _
 
 
@@ -86,3 +88,39 @@ class VstsIssueSync(IssueSyncMixin):
             'title': work_item['fields']['System.Title'],
             'description': work_item['fields'].get('System.Description')
         }
+
+    def sync_assignee_outbound(self, external_issue, user, assign=True, **kwargs):
+        client = self.get_client()
+        assignee = None
+
+        # TODO(LB): What's the scope here? is this correct?
+        # Get a list of all users in a given scope. How do we define scope?
+        # https://docs.microsoft.com/en-us/rest/api/vsts/graph/users/list?view=vsts-rest-4.1
+        vsts_users = client.get_users(self.model.name)
+        sentry_email = user.emails.filter(is_verified=True).lower()
+
+        for vsts_user in vsts_users:
+            if vsts_user[u'mailAddress'].lower() == sentry_email:
+                assignee = vsts_user
+                break
+        if assignee is None and assign is True:
+            self.logger.info(
+                'vsts.assignee-not-found',
+                extra={
+                    'integration_id': external_issue.integration_id,
+                    'user_id': user.id,
+                    'issue_key': external_issue.key,
+                }
+            )
+            return
+        try:
+            client.update_work_item(self.instance, external_issue.key, assigned_to=assignee)
+        except (ApiUnauthorized, ApiError):
+            self.logger.info(
+                'vsts.failed-to-assign',
+                extra={
+                    'integration_id': external_issue.integration_id,
+                    'user_id': user.id,
+                    'issue_key': external_issue.key,
+                }
+            )
