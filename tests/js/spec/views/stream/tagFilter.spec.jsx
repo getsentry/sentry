@@ -30,9 +30,10 @@ describe('Stream TagFilter', function() {
 
   it('calls API and renders options when opened', async function() {
     let selectMock = jest.fn();
+    let tag = {key: 'browser', name: 'Browser'};
     let wrapper = mount(
       <StreamTagFilter
-        tag={{key: 'browser', name: 'Browser'}}
+        tag={tag}
         orgId={organization.slug}
         projectId={project.slug}
         value=""
@@ -48,5 +49,8 @@ describe('Stream TagFilter', function() {
 
     expect(apiMock).toHaveBeenCalled();
     expect(wrapper.find('div.Select-option').prop('children')).toBe('foo');
+
+    wrapper.find('Option').simulate('mouseDown');
+    expect(selectMock).toHaveBeenCalledWith(tag, 'foo');
   });
 });

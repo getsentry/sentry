@@ -41,13 +41,10 @@ class StreamTagFilter extends React.Component {
 
   componentWillReceiveProps(nextProps) {
     if (nextProps.value !== this.state.value) {
-      this.setState(
-        {
-          value: nextProps.value,
-          textValue: nextProps.value,
-        },
-        () => {}
-      );
+      this.setState({
+        value: nextProps.value,
+        textValue: nextProps.value,
+      });
     }
   }
 
@@ -65,7 +62,7 @@ class StreamTagFilter extends React.Component {
 
   handleLoadOptions = () => {
     let {tag} = this.props;
-    if (tag.allowInput || tag.predefined) return;
+    if (tag.isInput || tag.predefined) return;
     if (!this.api) return;
 
     this.setState({
@@ -142,7 +139,7 @@ class StreamTagFilter extends React.Component {
       <div className="stream-tag-filter">
         <h6 className="nav-header">{tag.key}</h6>
 
-        {!!tag.allowInput && (
+        {!!tag.isInput && (
           <input
             className="form-control"
             type="text"
@@ -151,7 +148,7 @@ class StreamTagFilter extends React.Component {
           />
         )}
 
-        {!tag.allowInput && (
+        {!tag.isInput && (
           <SelectControl
             filterOptions={(options, filter, currentValues) => options}
             placeholder="--"
