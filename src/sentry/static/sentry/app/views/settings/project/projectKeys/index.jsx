@@ -143,9 +143,7 @@ const KeyRow = createReactClass({
             'Are you sure you want to remove this key? This action is irreversible.'
           )}
         >
-          <Button size="small" disabled={this.state.loading}>
-            <span className="icon icon-trash" />
-          </Button>
+          <Button size="small" disabled={this.state.loading} icon="icon-trash" />
         </Confirm>
       );
     }

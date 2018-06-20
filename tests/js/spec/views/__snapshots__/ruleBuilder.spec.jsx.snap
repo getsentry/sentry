@@ -58,7 +58,7 @@ exports[`RuleBuilder renders 1`] = `
 >
   <BuilderBar>
     <div
-      className="css-1rsoebt-BuilderBar e1hyuoc75"
+      className="css-1kvuz3c-BuilderBar e1hyuoc75"
     >
       <BuilderSelect
         clearable={false}
@@ -372,7 +372,7 @@ exports[`RuleBuilder renders 1`] = `
         value=""
       >
         <input
-          className="css-17gm6uc-Input-inputStyles-BuilderInput e1hyuoc77"
+          className="css-1xtn8xn-Input-inputStyles-BuilderInput e1hyuoc77"
           onChange={[Function]}
           placeholder="src/example/*"
           value=""
@@ -839,115 +839,115 @@ exports[`RuleBuilder renders 1`] = `
           </div>
         </Base>
       </Flex>
-      <RuleAddButton
+      <AddButton
         disabled={true}
         icon="icon-circle-add"
         onClick={[Function]}
         priority="primary"
-        size="zero"
+        size="small"
       >
         <Button
-          className="css-3daogo-RuleAddButton e1hyuoc79"
+          className="css-po7kq7-AddButton e1hyuoc79"
           disabled={true}
           icon="icon-circle-add"
           onClick={[Function]}
           priority="primary"
-          size="zero"
+          size="small"
         >
           <StyledButton
-            className="css-3daogo-RuleAddButton e1hyuoc79"
+            className="css-po7kq7-AddButton e1hyuoc79"
             disabled={true}
             href={null}
             onClick={[Function]}
             priority="primary"
             role="button"
-            size="zero"
+            size="small"
             to={null}
           >
             <Component
-              className="e1hyuoc79 css-18qh3k2-StyledButton-getColors-RuleAddButton e17811v30"
+              className="e1hyuoc79 css-in0b2i-StyledButton-getColors-AddButton e17811v30"
               disabled={true}
               href={null}
               onClick={[Function]}
               priority="primary"
               role="button"
-              size="zero"
+              size="small"
               to={null}
             >
               <button
-                className="e1hyuoc79 css-18qh3k2-StyledButton-getColors-RuleAddButton e17811v30"
+                className="e1hyuoc79 css-in0b2i-StyledButton-getColors-AddButton e17811v30"
                 disabled={true}
                 href={null}
                 onClick={[Function]}
                 priority="primary"
                 role="button"
-                size="zero"
+                size="small"
                 to={null}
               >
                 <ButtonLabel
-                  size="zero"
+                  size="small"
                 >
                   <Component
-                    className="css-8ufe5w-ButtonLabel e17811v31"
-                    size="zero"
+                    className="css-19bmqb3-ButtonLabel e17811v31"
+                    size="small"
                   >
                     <Flex
                       align="center"
-                      className="css-8ufe5w-ButtonLabel e17811v31"
-                      size="zero"
+                      className="css-19bmqb3-ButtonLabel e17811v31"
+                      size="small"
                     >
                       <Base
                         align="center"
-                        className="e17811v31 css-g08cim-ButtonLabel"
-                        size="zero"
+                        className="e17811v31 css-1eblpyp-ButtonLabel"
+                        size="small"
                       >
                         <div
-                          className="e17811v31 css-g08cim-ButtonLabel"
+                          className="e17811v31 css-1eblpyp-ButtonLabel"
                           is={null}
-                          size="zero"
+                          size="small"
                         >
                           <Icon
                             hasChildren={false}
-                            size="zero"
+                            size="small"
                           >
                             <Component
-                              className="css-1kk1aq-Icon e17811v32"
+                              className="css-ljhpxy-Icon e17811v32"
                               hasChildren={false}
-                              size="zero"
+                              size="small"
                             >
                               <Box
-                                className="css-1kk1aq-Icon e17811v32"
-                                size="zero"
+                                className="css-ljhpxy-Icon e17811v32"
+                                size="small"
                               >
                                 <Base
-                                  className="e17811v32 css-1aoi37i-Icon"
-                                  size="zero"
+                                  className="e17811v32 css-7mohvl-Icon"
+                                  size="small"
                                 >
                                   <div
-                                    className="e17811v32 css-1aoi37i-Icon"
+                                    className="e17811v32 css-7mohvl-Icon"
                                     is={null}
-                                    size="zero"
+                                    size="small"
                                   >
                                     <StyledInlineSvg
-                                      size="16px"
+                                      size="12px"
                                       src="icon-circle-add"
                                     >
                                       <InlineSvg
                                         className="css-1ov3rcq-StyledInlineSvg e17811v33"
-                                        size="16px"
+                                        size="12px"
                                         src="icon-circle-add"
                                       >
                                         <StyledSvg
                                           className="css-1ov3rcq-StyledInlineSvg e17811v33"
-                                          height="16px"
+                                          height="12px"
                                           viewBox={Object {}}
-                                          width="16px"
+                                          width="12px"
                                         >
                                           <svg
                                             className="e17811v33 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
-                                            height="16px"
+                                            height="12px"
                                             viewBox={Object {}}
-                                            width="16px"
+                                            width="12px"
                                           >
                                             <use
                                               href="#test"
@@ -971,7 +971,7 @@ exports[`RuleBuilder renders 1`] = `
             </Component>
           </StyledButton>
         </Button>
-      </RuleAddButton>
+      </AddButton>
     </div>
   </BuilderBar>
 </RuleBuilder>
@@ -1249,7 +1249,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
   </Candidates>
   <BuilderBar>
     <div
-      className="css-1rsoebt-BuilderBar e1hyuoc75"
+      className="css-1kvuz3c-BuilderBar e1hyuoc75"
     >
       <BuilderSelect
         clearable={false}
@@ -1563,7 +1563,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
         value="a/bar"
       >
         <input
-          className="css-17gm6uc-Input-inputStyles-BuilderInput e1hyuoc77"
+          className="css-1xtn8xn-Input-inputStyles-BuilderInput e1hyuoc77"
           onChange={[Function]}
           placeholder="src/example/*"
           value="a/bar"
@@ -2510,109 +2510,109 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           </div>
         </Base>
       </Flex>
-      <RuleAddButton
+      <AddButton
         disabled={false}
         icon="icon-circle-add"
         onClick={[Function]}
         priority="primary"
-        size="zero"
+        size="small"
       >
         <Button
-          className="css-3daogo-RuleAddButton e1hyuoc79"
+          className="css-po7kq7-AddButton e1hyuoc79"
           disabled={false}
           icon="icon-circle-add"
           onClick={[Function]}
           priority="primary"
-          size="zero"
+          size="small"
         >
           <StyledButton
-            className="css-3daogo-RuleAddButton e1hyuoc79"
+            className="css-po7kq7-AddButton e1hyuoc79"
             disabled={false}
             onClick={[Function]}
             priority="primary"
             role="button"
-            size="zero"
+            size="small"
           >
             <Component
-              className="e1hyuoc79 css-1gabw8k-StyledButton-getColors-RuleAddButton e17811v30"
+              className="e1hyuoc79 css-1q9tuf6-StyledButton-getColors-AddButton e17811v30"
               disabled={false}
               onClick={[Function]}
               priority="primary"
               role="button"
-              size="zero"
+              size="small"
             >
               <button
-                className="e1hyuoc79 css-1gabw8k-StyledButton-getColors-RuleAddButton e17811v30"
+                className="e1hyuoc79 css-1q9tuf6-StyledButton-getColors-AddButton e17811v30"
                 disabled={false}
                 onClick={[Function]}
                 priority="primary"
                 role="button"
-                size="zero"
+                size="small"
               >
                 <ButtonLabel
-                  size="zero"
+                  size="small"
                 >
                   <Component
-                    className="css-8ufe5w-ButtonLabel e17811v31"
-                    size="zero"
+                    className="css-19bmqb3-ButtonLabel e17811v31"
+                    size="small"
                   >
                     <Flex
                       align="center"
-                      className="css-8ufe5w-ButtonLabel e17811v31"
-                      size="zero"
+                      className="css-19bmqb3-ButtonLabel e17811v31"
+                      size="small"
                     >
                       <Base
                         align="center"
-                        className="e17811v31 css-g08cim-ButtonLabel"
-                        size="zero"
+                        className="e17811v31 css-1eblpyp-ButtonLabel"
+                        size="small"
                       >
                         <div
-                          className="e17811v31 css-g08cim-ButtonLabel"
+                          className="e17811v31 css-1eblpyp-ButtonLabel"
                           is={null}
-                          size="zero"
+                          size="small"
                         >
                           <Icon
                             hasChildren={false}
-                            size="zero"
+                            size="small"
                           >
                             <Component
-                              className="css-1kk1aq-Icon e17811v32"
+                              className="css-ljhpxy-Icon e17811v32"
                               hasChildren={false}
-                              size="zero"
+                              size="small"
                             >
                               <Box
-                                className="css-1kk1aq-Icon e17811v32"
-                                size="zero"
+                                className="css-ljhpxy-Icon e17811v32"
+                                size="small"
                               >
                                 <Base
-                                  className="e17811v32 css-1aoi37i-Icon"
-                                  size="zero"
+                                  className="e17811v32 css-7mohvl-Icon"
+                                  size="small"
                                 >
                                   <div
-                                    className="e17811v32 css-1aoi37i-Icon"
+                                    className="e17811v32 css-7mohvl-Icon"
                                     is={null}
-                                    size="zero"
+                                    size="small"
                                   >
                                     <StyledInlineSvg
-                                      size="16px"
+                                      size="12px"
                                       src="icon-circle-add"
                                     >
                                       <InlineSvg
                                         className="css-1ov3rcq-StyledInlineSvg e17811v33"
-                                        size="16px"
+                                        size="12px"
                                         src="icon-circle-add"
                                       >
                                         <StyledSvg
                                           className="css-1ov3rcq-StyledInlineSvg e17811v33"
-                                          height="16px"
+                                          height="12px"
                                           viewBox={Object {}}
-                                          width="16px"
+                                          width="12px"
                                         >
                                           <svg
                                             className="e17811v33 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
-                                            height="16px"
+                                            height="12px"
                                             viewBox={Object {}}
-                                            width="16px"
+                                            width="12px"
                                           >
                                             <use
                                               href="#test"
@@ -2636,7 +2636,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
             </Component>
           </StyledButton>
         </Button>
-      </RuleAddButton>
+      </AddButton>
     </div>
   </BuilderBar>
 </RuleBuilder>

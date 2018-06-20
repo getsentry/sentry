@@ -84,13 +84,13 @@ describe('RuleBuilder', function() {
     await tick();
     wrapper.update();
 
-    let add = wrapper.find('RuleAddButton');
+    let add = wrapper.find('Button');
     add.simulate('click');
     expect(handleAdd).not.toHaveBeenCalled();
 
     let text = wrapper.find('BuilderInput');
     text.simulate('change', {target: {value: 'some/path/*'}});
-    expect(wrapper.find('RuleAddButton').prop('disabled')).toBe(true);
+    expect(wrapper.find('Button').prop('disabled')).toBe(true);
 
     add.simulate('click');
     expect(handleAdd).not.toHaveBeenCalled();
@@ -99,7 +99,7 @@ describe('RuleBuilder', function() {
     wrapper.find('SelectOwners .Select-control').simulate('keyDown', {keyCode: 40});
     wrapper.find('SelectOwners .Select-control').simulate('keyDown', {keyCode: 13});
 
-    expect(wrapper.find('RuleAddButton').prop('disabled')).toBe(false);
+    expect(wrapper.find('Button').prop('disabled')).toBe(false);
     add.simulate('click');
     expect(handleAdd).toHaveBeenCalled();
 
@@ -162,7 +162,7 @@ describe('RuleBuilder', function() {
     wrapper.update();
     expect(wrapper.find(RuleBuilder)).toMatchSnapshot();
 
-    wrapper.find('RuleAddButton').simulate('click');
+    wrapper.find('Button').simulate('click');
     expect(handleAdd).toHaveBeenCalled();
   });
 });

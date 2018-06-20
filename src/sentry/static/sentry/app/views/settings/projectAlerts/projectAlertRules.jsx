@@ -128,9 +128,7 @@ const RuleRow = createReactClass({
               message={t('Are you sure you want to remove this rule?')}
               onConfirm={this.onDelete}
             >
-              <Button size="small">
-                <span className="icon-trash" />
-              </Button>
+              <Button size="small" icon="icon-trash" />
             </Confirm>
           </div>
         </PanelHeader>

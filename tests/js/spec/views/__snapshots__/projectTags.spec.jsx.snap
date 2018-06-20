@@ -260,21 +260,21 @@ exports[`ProjectTags renders 1`] = `
                                                 size="xsmall"
                                               >
                                                 <Component
-                                                  className="css-9vplug-ButtonLabel e17811v31"
+                                                  className="css-6q5v1w-ButtonLabel e17811v31"
                                                   size="xsmall"
                                                 >
                                                   <Flex
                                                     align="center"
-                                                    className="css-9vplug-ButtonLabel e17811v31"
+                                                    className="css-6q5v1w-ButtonLabel e17811v31"
                                                     size="xsmall"
                                                   >
                                                     <Base
                                                       align="center"
-                                                      className="e17811v31 css-esdzbq-ButtonLabel"
+                                                      className="e17811v31 css-dqr4rq-ButtonLabel"
                                                       size="xsmall"
                                                     >
                                                       <div
-                                                        className="e17811v31 css-esdzbq-ButtonLabel"
+                                                        className="e17811v31 css-dqr4rq-ButtonLabel"
                                                         is={null}
                                                         size="xsmall"
                                                       >
@@ -283,43 +283,43 @@ exports[`ProjectTags renders 1`] = `
                                                           size="xsmall"
                                                         >
                                                           <Component
-                                                            className="css-1kk1aq-Icon e17811v32"
+                                                            className="css-ljhpxy-Icon e17811v32"
                                                             hasChildren={false}
                                                             size="xsmall"
                                                           >
                                                             <Box
-                                                              className="css-1kk1aq-Icon e17811v32"
+                                                              className="css-ljhpxy-Icon e17811v32"
                                                               size="xsmall"
                                                             >
                                                               <Base
-                                                                className="e17811v32 css-1aoi37i-Icon"
+                                                                className="e17811v32 css-7mohvl-Icon"
                                                                 size="xsmall"
                                                               >
                                                                 <div
-                                                                  className="e17811v32 css-1aoi37i-Icon"
+                                                                  className="e17811v32 css-7mohvl-Icon"
                                                                   is={null}
                                                                   size="xsmall"
                                                                 >
                                                                   <StyledInlineSvg
-                                                                    size="16px"
+                                                                    size="12px"
                                                                     src="icon-trash"
                                                                   >
                                                                     <InlineSvg
                                                                       className="css-1ov3rcq-StyledInlineSvg e17811v33"
-                                                                      size="16px"
+                                                                      size="12px"
                                                                       src="icon-trash"
                                                                     >
                                                                       <StyledSvg
                                                                         className="css-1ov3rcq-StyledInlineSvg e17811v33"
-                                                                        height="16px"
+                                                                        height="12px"
                                                                         viewBox={Object {}}
-                                                                        width="16px"
+                                                                        width="12px"
                                                                       >
                                                                         <svg
                                                                           className="e17811v33 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
-                                                                          height="16px"
+                                                                          height="12px"
                                                                           viewBox={Object {}}
-                                                                          width="16px"
+                                                                          width="12px"
                                                                         >
                                                                           <use
                                                                             href="#test"
@@ -511,21 +511,21 @@ exports[`ProjectTags renders 1`] = `
                                                 size="xsmall"
                                               >
                                                 <Component
-                                                  className="css-9vplug-ButtonLabel e17811v31"
+                                                  className="css-6q5v1w-ButtonLabel e17811v31"
                                                   size="xsmall"
                                                 >
                                                   <Flex
                                                     align="center"
-                                                    className="css-9vplug-ButtonLabel e17811v31"
+                                                    className="css-6q5v1w-ButtonLabel e17811v31"
                                                     size="xsmall"
                                                   >
                                                     <Base
                                                       align="center"
-                                                      className="e17811v31 css-esdzbq-ButtonLabel"
+                                                      className="e17811v31 css-dqr4rq-ButtonLabel"
                                                       size="xsmall"
                                                     >
                                                       <div
-                                                        className="e17811v31 css-esdzbq-ButtonLabel"
+                                                        className="e17811v31 css-dqr4rq-ButtonLabel"
                                                         is={null}
                                                         size="xsmall"
                                                       >
@@ -534,43 +534,43 @@ exports[`ProjectTags renders 1`] = `
                                                           size="xsmall"
                                                         >
                                                           <Component
-                                                            className="css-1kk1aq-Icon e17811v32"
+                                                            className="css-ljhpxy-Icon e17811v32"
                                                             hasChildren={false}
                                                             size="xsmall"
                                                           >
                                                             <Box
-                                                              className="css-1kk1aq-Icon e17811v32"
+                                                              className="css-ljhpxy-Icon e17811v32"
                                                               size="xsmall"
                                                             >
                                                               <Base
-                                                                className="e17811v32 css-1aoi37i-Icon"
+                                                                className="e17811v32 css-7mohvl-Icon"
                                                                 size="xsmall"
                                                               >
                                                                 <div
-                                                                  className="e17811v32 css-1aoi37i-Icon"
+                                                                  className="e17811v32 css-7mohvl-Icon"
                                                                   is={null}
                                                                   size="xsmall"
                                                                 >
                                                                   <StyledInlineSvg
-                                                                    size="16px"
+                                                                    size="12px"
                                                                     src="icon-trash"
                                                                   >
                                                                     <InlineSvg
                                                                       className="css-1ov3rcq-StyledInlineSvg e17811v33"
-                                                                      size="16px"
+                                                                      size="12px"
                                                                       src="icon-trash"
                                                                     >
                                                                       <StyledSvg
                                                                         className="css-1ov3rcq-StyledInlineSvg e17811v33"
-                                                                        height="16px"
+                                                                        height="12px"
                                                                         viewBox={Object {}}
-                                                                        width="16px"
+                                                                        width="12px"
                                                                       >
                                                                         <svg
                                                                           className="e17811v33 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
-                                                                          height="16px"
+                                                                          height="12px"
                                                                           viewBox={Object {}}
-                                                                          width="16px"
+                                                                          width="12px"
                                                                         >
                                                                           <use
                                                                             href="#test"
@@ -762,21 +762,21 @@ exports[`ProjectTags renders 1`] = `
                                                 size="xsmall"
                                               >
                                                 <Component
-                                                  className="css-9vplug-ButtonLabel e17811v31"
+                                                  className="css-6q5v1w-ButtonLabel e17811v31"
                                                   size="xsmall"
                                                 >
                                                   <Flex
                                                     align="center"
-                                                    className="css-9vplug-ButtonLabel e17811v31"
+                                                    className="css-6q5v1w-ButtonLabel e17811v31"
                                                     size="xsmall"
                                                   >
                                                     <Base
                                                       align="center"
-                                                      className="e17811v31 css-esdzbq-ButtonLabel"
+                                                      className="e17811v31 css-dqr4rq-ButtonLabel"
                                                       size="xsmall"
                                                     >
                                                       <div
-                                                        className="e17811v31 css-esdzbq-ButtonLabel"
+                                                        className="e17811v31 css-dqr4rq-ButtonLabel"
                                                         is={null}
                                                         size="xsmall"
                                                       >
@@ -785,43 +785,43 @@ exports[`ProjectTags renders 1`] = `
                                                           size="xsmall"
                                                         >
                                                           <Component
-                                                            className="css-1kk1aq-Icon e17811v32"
+                                                            className="css-ljhpxy-Icon e17811v32"
                                                             hasChildren={false}
                                                             size="xsmall"
                                                           >
                                                             <Box
-                                                              className="css-1kk1aq-Icon e17811v32"
+                                                              className="css-ljhpxy-Icon e17811v32"
                                                               size="xsmall"
                                                             >
                                                               <Base
-                                                                className="e17811v32 css-1aoi37i-Icon"
+                                                                className="e17811v32 css-7mohvl-Icon"
                                                                 size="xsmall"
                                                               >
                                                                 <div
-                                                                  className="e17811v32 css-1aoi37i-Icon"
+                                                                  className="e17811v32 css-7mohvl-Icon"
                                                                   is={null}
                                                                   size="xsmall"
                                                                 >
                                                                   <StyledInlineSvg
-                                                                    size="16px"
+                                                                    size="12px"
                                                                     src="icon-trash"
                                                                   >
                                                                     <InlineSvg
                                                                       className="css-1ov3rcq-StyledInlineSvg e17811v33"
-                                                                      size="16px"
+                                                                      size="12px"
                                                                       src="icon-trash"
                                                                     >
                                                                       <StyledSvg
                                                                         className="css-1ov3rcq-StyledInlineSvg e17811v33"
-                                                                        height="16px"
+                                                                        height="12px"
                                                                         viewBox={Object {}}
-                                                                        width="16px"
+                                                                        width="12px"
                                                                       >
                                                                         <svg
                                                                           className="e17811v33 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
-                                                                          height="16px"
+                                                                          height="12px"
                                                                           viewBox={Object {}}
-                                                                          width="16px"
+                                                                          width="12px"
                                                                         >
                                                                           <use
                                                                             href="#test"
@@ -1021,21 +1021,21 @@ exports[`ProjectTags renders 1`] = `
                                                     size="xsmall"
                                                   >
                                                     <Component
-                                                      className="css-9vplug-ButtonLabel e17811v31"
+                                                      className="css-6q5v1w-ButtonLabel e17811v31"
                                                       size="xsmall"
                                                     >
                                                       <Flex
                                                         align="center"
-                                                        className="css-9vplug-ButtonLabel e17811v31"
+                                                        className="css-6q5v1w-ButtonLabel e17811v31"
                                                         size="xsmall"
                                                       >
                                                         <Base
                                                           align="center"
-                                                          className="e17811v31 css-esdzbq-ButtonLabel"
+                                                          className="e17811v31 css-dqr4rq-ButtonLabel"
                                                           size="xsmall"
                                                         >
                                                           <div
-                                                            className="e17811v31 css-esdzbq-ButtonLabel"
+                                                            className="e17811v31 css-dqr4rq-ButtonLabel"
                                                             is={null}
                                                             size="xsmall"
                                                           >
@@ -1044,43 +1044,43 @@ exports[`ProjectTags renders 1`] = `
                                                               size="xsmall"
                                                             >
                                                               <Component
-                                                                className="css-1kk1aq-Icon e17811v32"
+                                                                className="css-ljhpxy-Icon e17811v32"
                                                                 hasChildren={false}
                                                                 size="xsmall"
                                                               >
                                                                 <Box
-                                                                  className="css-1kk1aq-Icon e17811v32"
+                                                                  className="css-ljhpxy-Icon e17811v32"
                                                                   size="xsmall"
                                                                 >
                                                                   <Base
-                                                                    className="e17811v32 css-1aoi37i-Icon"
+                                                                    className="e17811v32 css-7mohvl-Icon"
                                                                     size="xsmall"
                                                                   >
                                                                     <div
-                                                                      className="e17811v32 css-1aoi37i-Icon"
+                                                                      className="e17811v32 css-7mohvl-Icon"
                                                                       is={null}
                                                                       size="xsmall"
                                                                     >
                                                                       <StyledInlineSvg
-                                                                        size="16px"
+                                                                        size="12px"
                                                                         src="icon-trash"
                                                                       >
                                                                         <InlineSvg
                                                                           className="css-1ov3rcq-StyledInlineSvg e17811v33"
-                                                                          size="16px"
+                                                                          size="12px"
                                                                           src="icon-trash"
                                                                         >
                                                                           <StyledSvg
                                                                             className="css-1ov3rcq-StyledInlineSvg e17811v33"
-                                                                            height="16px"
+                                                                            height="12px"
                                                                             viewBox={Object {}}
-                                                                            width="16px"
+                                                                            width="12px"
                                                                           >
                                                                             <svg
                                                                               className="e17811v33 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
-                                                                              height="16px"
+                                                                              height="12px"
                                                                               viewBox={Object {}}
-                                                                              width="16px"
+                                                                              width="12px"
                                                                             >
                                                                               <use
                                                                                 href="#test"

@@ -426,6 +426,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                     >
                                       <Button
                                         disabled={false}
+                                        icon="icon-trash"
                                         onClick={[Function]}
                                         size="small"
                                         tabIndex="-1"
@@ -461,27 +462,80 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                                 size="small"
                                               >
                                                 <Component
-                                                  className="css-179w01k-ButtonLabel e17811v31"
+                                                  className="css-19bmqb3-ButtonLabel e17811v31"
                                                   size="small"
                                                 >
                                                   <Flex
                                                     align="center"
-                                                    className="css-179w01k-ButtonLabel e17811v31"
+                                                    className="css-19bmqb3-ButtonLabel e17811v31"
                                                     size="small"
                                                   >
                                                     <Base
                                                       align="center"
-                                                      className="e17811v31 css-8mahft-ButtonLabel"
+                                                      className="e17811v31 css-1eblpyp-ButtonLabel"
                                                       size="small"
                                                     >
                                                       <div
-                                                        className="e17811v31 css-8mahft-ButtonLabel"
+                                                        className="e17811v31 css-1eblpyp-ButtonLabel"
                                                         is={null}
                                                         size="small"
                                                       >
-                                                        <span
-                                                          className="icon icon-trash"
-                                                        />
+                                                        <Icon
+                                                          hasChildren={false}
+                                                          size="small"
+                                                        >
+                                                          <Component
+                                                            className="css-ljhpxy-Icon e17811v32"
+                                                            hasChildren={false}
+                                                            size="small"
+                                                          >
+                                                            <Box
+                                                              className="css-ljhpxy-Icon e17811v32"
+                                                              size="small"
+                                                            >
+                                                              <Base
+                                                                className="e17811v32 css-7mohvl-Icon"
+                                                                size="small"
+                                                              >
+                                                                <div
+                                                                  className="e17811v32 css-7mohvl-Icon"
+                                                                  is={null}
+                                                                  size="small"
+                                                                >
+                                                                  <StyledInlineSvg
+                                                                    size="12px"
+                                                                    src="icon-trash"
+                                                                  >
+                                                                    <InlineSvg
+                                                                      className="css-1ov3rcq-StyledInlineSvg e17811v33"
+                                                                      size="12px"
+                                                                      src="icon-trash"
+                                                                    >
+                                                                      <StyledSvg
+                                                                        className="css-1ov3rcq-StyledInlineSvg e17811v33"
+                                                                        height="12px"
+                                                                        viewBox={Object {}}
+                                                                        width="12px"
+                                                                      >
+                                                                        <svg
+                                                                          className="e17811v33 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                                          height="12px"
+                                                                          viewBox={Object {}}
+                                                                          width="12px"
+                                                                        >
+                                                                          <use
+                                                                            href="#test"
+                                                                            xlinkHref="#test"
+                                                                          />
+                                                                        </svg>
+                                                                      </StyledSvg>
+                                                                    </InlineSvg>
+                                                                  </StyledInlineSvg>
+                                                                </div>
+                                                              </Base>
+                                                            </Box>
+                                                          </Component>
+                                                        </Icon>
                                                       </div>
                                                     </Base>
                                                   </Flex>
@@ -698,6 +752,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                     >
                                       <Button
                                         disabled={false}
+                                        icon="icon-trash"
                                         onClick={[Function]}
                                         size="small"
                                         tabIndex="-1"
@@ -733,27 +788,80 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                                 size="small"
                                               >
                                                 <Component
-                                                  className="css-179w01k-ButtonLabel e17811v31"
+                                                  className="css-19bmqb3-ButtonLabel e17811v31"
                                                   size="small"
                                                 >
                                                   <Flex
                                                     align="center"
-                                                    className="css-179w01k-ButtonLabel e17811v31"
+                                                    className="css-19bmqb3-ButtonLabel e17811v31"
                                                     size="small"
                                                   >
                                                     <Base
                                                       align="center"
-                                                      className="e17811v31 css-8mahft-ButtonLabel"
+                                                      className="e17811v31 css-1eblpyp-ButtonLabel"
                                                       size="small"
                                                     >
                                                       <div
-                                                        className="e17811v31 css-8mahft-ButtonLabel"
+                                                        className="e17811v31 css-1eblpyp-ButtonLabel"
                                                         is={null}
                                                         size="small"
                                                       >
-                                                        <span
-                                                          className="icon icon-trash"
-                                                        />
+                                                        <Icon
+                                                          hasChildren={false}
+                                                          size="small"
+                                                        >
+                                                          <Component
+                                                            className="css-ljhpxy-Icon e17811v32"
+                                                            hasChildren={false}
+                                                            size="small"
+                                                          >
+                                                            <Box
+                                                              className="css-ljhpxy-Icon e17811v32"
+                                                              size="small"
+                                                            >
+                                                              <Base
+                                                                className="e17811v32 css-7mohvl-Icon"
+                                                                size="small"
+                                                              >
+                                                                <div
+                                                                  className="e17811v32 css-7mohvl-Icon"
+                                                                  is={null}
+                                                                  size="small"
+                                                                >
+                                                                  <StyledInlineSvg
+                                                                    size="12px"
+                                                                    src="icon-trash"
+                                                                  >
+                                                                    <InlineSvg
+                                                                      className="css-1ov3rcq-StyledInlineSvg e17811v33"
+                                                                      size="12px"
+                                                                      src="icon-trash"
+                                                                    >
+                                                                      <StyledSvg
+                                                                        className="css-1ov3rcq-StyledInlineSvg e17811v33"
+                                                                        height="12px"
+                                                                        viewBox={Object {}}
+                                                                        width="12px"
+                                                                      >
+                                                                        <svg
+                                                                          className="e17811v33 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                                          height="12px"
+                                                                          viewBox={Object {}}
+                                                                          width="12px"
+                                                                        >
+                                                                          <use
+                                                                            href="#test"
+                                                                            xlinkHref="#test"
+                                                                          />
+                                                                        </svg>
+                                                                      </StyledSvg>
+                                                                    </InlineSvg>
+                                                                  </StyledInlineSvg>
+                                                                </div>
+                                                              </Base>
+                                                            </Box>
+                                                          </Component>
+                                                        </Icon>
                                                       </div>
                                                     </Base>
                                                   </Flex>
@@ -1013,18 +1121,18 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                   >
                                     <ButtonLabel>
                                       <Component
-                                        className="css-1lzmoq1-ButtonLabel e17811v31"
+                                        className="css-1dxlw1i-ButtonLabel e17811v31"
                                       >
                                         <Flex
                                           align="center"
-                                          className="css-1lzmoq1-ButtonLabel e17811v31"
+                                          className="css-1dxlw1i-ButtonLabel e17811v31"
                                         >
                                           <Base
                                             align="center"
-                                            className="e17811v31 css-1br8hoo-ButtonLabel"
+                                            className="e17811v31 css-mvnt76-ButtonLabel"
                                           >
                                             <div
-                                              className="e17811v31 css-1br8hoo-ButtonLabel"
+                                              className="e17811v31 css-mvnt76-ButtonLabel"
                                               is={null}
                                             >
                                               Cancel
@@ -1068,18 +1176,18 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                               >
                                 <ButtonLabel>
                                   <Component
-                                    className="css-1lzmoq1-ButtonLabel e17811v31"
+                                    className="css-1dxlw1i-ButtonLabel e17811v31"
                                   >
                                     <Flex
                                       align="center"
-                                      className="css-1lzmoq1-ButtonLabel e17811v31"
+                                      className="css-1dxlw1i-ButtonLabel e17811v31"
                                     >
                                       <Base
                                         align="center"
-                                        className="e17811v31 css-1br8hoo-ButtonLabel"
+                                        className="e17811v31 css-mvnt76-ButtonLabel"
                                       >
                                         <div
-                                          className="e17811v31 css-1br8hoo-ButtonLabel"
+                                          className="e17811v31 css-mvnt76-ButtonLabel"
                                           is={null}
                                         >
                                           Save Rule
@@ -1883,18 +1991,18 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                   >
                                     <ButtonLabel>
                                       <Component
-                                        className="css-1lzmoq1-ButtonLabel e17811v31"
+                                        className="css-1dxlw1i-ButtonLabel e17811v31"
                                       >
                                         <Flex
                                           align="center"
-                                          className="css-1lzmoq1-ButtonLabel e17811v31"
+                                          className="css-1dxlw1i-ButtonLabel e17811v31"
                                         >
                                           <Base
                                             align="center"
-                                            className="e17811v31 css-1br8hoo-ButtonLabel"
+                                            className="e17811v31 css-mvnt76-ButtonLabel"
                                           >
                                             <div
-                                              className="e17811v31 css-1br8hoo-ButtonLabel"
+                                              className="e17811v31 css-mvnt76-ButtonLabel"
                                               is={null}
                                             >
                                               Cancel
@@ -1938,18 +2046,18 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                               >
                                 <ButtonLabel>
                                   <Component
-                                    className="css-1lzmoq1-ButtonLabel e17811v31"
+                                    className="css-1dxlw1i-ButtonLabel e17811v31"
                                   >
                                     <Flex
                                       align="center"
-                                      className="css-1lzmoq1-ButtonLabel e17811v31"
+                                      className="css-1dxlw1i-ButtonLabel e17811v31"
                                     >
                                       <Base
                                         align="center"
-                                        className="e17811v31 css-1br8hoo-ButtonLabel"
+                                        className="e17811v31 css-mvnt76-ButtonLabel"
                                       >
                                         <div
-                                          className="e17811v31 css-1br8hoo-ButtonLabel"
+                                          className="e17811v31 css-mvnt76-ButtonLabel"
                                           is={null}
                                         >
                                           Save Rule

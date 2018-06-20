@@ -13,6 +13,7 @@ import Input from 'app/views/settings/components/forms/controls/input';
 import SentryTypes from 'app/proptypes';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import SelectOwners from 'app/views/settings/project/projectOwnership/selectOwners';
+import space from 'app/styles/space.jsx';
 
 const initialState = {
   text: '',
@@ -143,12 +144,12 @@ class RuleBuilder extends React.Component {
             />
           </Flex>
 
-          <RuleAddButton
+          <AddButton
             priority="primary"
             disabled={!isValid}
             onClick={this.handleAddRule}
             icon="icon-circle-add"
-            size="zero"
+            size="small"
           />
         </BuilderBar>
       </React.Fragment>
@@ -189,7 +190,7 @@ const BuilderBar = styled.div`
   display: flex;
   height: 40px;
   align-items: center;
-  margin-bottom: 1em;
+  margin-bottom: ${space(2)};
 `;
 
 const BuilderSelect = styled(SelectField)`
@@ -199,7 +200,7 @@ const BuilderSelect = styled(SelectField)`
 `;
 
 const BuilderInput = styled(Input)`
-  padding: 0.5em;
+  padding: ${space(1)};
   line-height: 19px;
   margin-right: 5px;
 `;
@@ -210,11 +211,8 @@ const Divider = styled(InlineSvg)`
   margin-right: 5px;
 `;
 
-const RuleAddButton = styled(Button)`
-  width: 37px;
-  height: 37px;
-  flex-shrink: 0;
-  padding: 10px 12px !important;
+const AddButton = styled(Button)`
+  padding: ${space(0.5)}; /* this sizes the button up to align with the inputs */
 `;
 
 export default RuleBuilder;
