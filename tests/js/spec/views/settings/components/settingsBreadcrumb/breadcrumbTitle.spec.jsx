@@ -45,7 +45,6 @@ describe('BreadcrumbTitle', function() {
     breadcrumbs.update();
 
     const crumbs = breadcrumbs.find(Crumb);
-
     expect(crumbs.at(1).text()).toEqual('Second Title ');
     expect(crumbs.last().text()).toEqual('Last Title ');
 
