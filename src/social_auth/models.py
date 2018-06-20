@@ -8,8 +8,8 @@ from datetime import datetime, timedelta
 from django.conf import settings
 from django.db import models
 from django.db.models.loading import get_model
+from sentry.db.models.fields.encrypted import EncryptedJsonField
 
-from .fields import JSONField
 from .utils import setting
 
 
@@ -34,7 +34,7 @@ class UserSocialAuth(models.Model):
     user = models.ForeignKey(AUTH_USER_MODEL, related_name='social_auth')
     provider = models.CharField(max_length=32)
     uid = models.CharField(max_length=UID_LENGTH)
-    extra_data = JSONField(default='{}')
+    extra_data = EncryptedJsonField(default='{}')
 
     class Meta:
         """Meta data"""
