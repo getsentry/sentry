@@ -5,6 +5,7 @@ import {Client} from 'app/api';
 import ProjectTeams from 'app/views/settings/project/projectTeams';
 import {openCreateTeamModal} from 'app/actionCreators/modal';
 
+jest.unmock('app/actionCreators/modal');
 jest.mock('app/actionCreators/modal', () => ({
   openCreateTeamModal: jest.fn(),
 }));
