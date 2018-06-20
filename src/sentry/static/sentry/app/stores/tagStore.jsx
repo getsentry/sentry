@@ -4,8 +4,16 @@ import _ from 'lodash';
 import TagActions from 'app/actions/tagActions';
 import MemberListStore from 'app/stores/memberListStore';
 
+const uuidPattern = /[0-9a-f]{32}$/;
+
 const getUsername = ({isManaged, username, email}) => {
-  return !isManaged && username ? username : email;
+  // Users created via SAML receive unique UUID usernames. Use
+  // their email in these cases, instead.
+  if (username && uuidPattern.test(username)) {
+    return email;
+  } else {
+    return !isManaged && username ? username : email;
+  }
 };
 
 const getMemberListStoreUsernames = () => {
