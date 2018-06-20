@@ -4,19 +4,18 @@ import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
+import {stringifyRouteList} from 'app/utils';
 import Crumb from 'app/views/settings/components/settingsBreadcrumb/crumb';
 import Divider from 'app/views/settings/components/settingsBreadcrumb/divider';
 import InlineSvg from 'app/components/inlineSvg';
 import OrganizationCrumb from 'app/views/settings/components/settingsBreadcrumb/organizationCrumb';
 import ProjectCrumb from 'app/views/settings/components/settingsBreadcrumb/projectCrumb';
 import SentryTypes from 'app/proptypes';
+import SettingsBreadcrumbActions from 'app/actions/settingsBreadcrumbActions';
+import SettingsBreadcrumbStore from 'app/stores/settingsBreadcrumbStore';
 import TeamCrumb from 'app/views/settings/components/settingsBreadcrumb/teamCrumb';
 import TextLink from 'app/components/textLink';
 import recreateRoute from 'app/utils/recreateRoute';
-import SettingsBreadcrumbStore from 'app/stores/settingsBreadcrumbStore';
-import SettingsBreadcrumbActions, {
-  normalizeRoutes,
-} from 'app/actions/settingsBreadcrumbActions';
 
 const MENUS = {
   Organization: OrganizationCrumb,
@@ -49,7 +48,7 @@ class SettingsBreadcrumb extends React.Component {
         </LogoLink>
         {routes.map((route, i) => {
           if (!route.name) return null;
-          let pathTitle = pathMap[normalizeRoutes(routes.slice(0, i + 1))];
+          let pathTitle = pathMap[stringifyRouteList(routes.slice(0, i + 1))];
           let isLast = i === lastRouteIndex;
           let createMenu = MENUS[route.name];
           let Menu = typeof createMenu === 'function' && createMenu;
