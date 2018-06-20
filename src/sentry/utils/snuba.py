@@ -102,8 +102,6 @@ def raw_query(start, end, groupby, conditions=None, filter_keys=None,
     all_cols = groupby + aggregate_cols + condition_cols + selected_columns
     get_issues = 'issue' in all_cols
 
-    selected_columns = [col for col in selected_columns if col != 'issue']
-
     with timer('get_project_issues'):
         issues = get_project_issues(project_ids, filter_keys.get('issue')) if get_issues else None
 
@@ -151,9 +149,6 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
           aggregations=None, rollup=None, arrayjoin=None, limit=None, orderby=None,
           having=None, referrer=None, is_grouprelease=False, selected_columns=None):
 
-    groupby = groupby or []
-    conditions = conditions or []
-    having = having or []
     aggregations = aggregations or [['count()', '', 'aggregate']]
     filter_keys = filter_keys or {}
     selected_columns = selected_columns or []

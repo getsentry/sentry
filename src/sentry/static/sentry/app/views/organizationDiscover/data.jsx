@@ -1,4 +1,4 @@
-const SNUBA_COLUMNS = [
+const COLUMNS = [
   {name: 'level', type: 'string'},
   {name: 'logger', type: 'string'},
   {name: 'server_name', type: 'string'},
@@ -64,10 +64,6 @@ const SNUBA_COLUMNS = [
   {name: 'exception_frames.lineno', type: 'number'},
   {name: 'exception_frames.stack_level', type: 'string'},
 ];
-
-const OTHER_COLUMNS = [{name: 'issue', type: 'string'}];
-
-const COLUMNS = [...SNUBA_COLUMNS, ...OTHER_COLUMNS];
 
 const CONDITION_OPERATORS = [
   '>',

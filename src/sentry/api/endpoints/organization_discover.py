@@ -23,22 +23,14 @@ class OrganizationDiscoverPermission(OrganizationPermission):
 class OrganizationDiscoverEndpoint(OrganizationMemberEndpoint):
     permission_classes = (OrganizationDiscoverPermission, )
 
-    def do_query(self, start, end, selected_columns=None, conditions=None, having=None, filters=None,
-                 aggregations=None, orderby=None, limit=None, groupby=None, rollup=None):
+    def do_query(self, start, end, groupby, **kwargs):
 
         snuba_results = snuba.raw_query(
             start=start,
             end=end,
             groupby=groupby,
-            selected_columns=selected_columns,
-            conditions=conditions,
-            having=having,
-            filter_keys=filters,
-            aggregations=aggregations,
-            orderby=orderby,
-            limit=limit,
-            rollup=rollup,
             referrer='discover',
+            **kwargs
         )
 
         return snuba_results
@@ -103,14 +95,14 @@ class OrganizationDiscoverEndpoint(OrganizationMemberEndpoint):
         results = self.do_query(
             start,
             end,
+            groupby,
             selected_columns=selected_columns,
             conditions=conditions,
             orderby=orderby,
             limit=limit,
             aggregations=aggregations,
-            groupby=groupby,
             rollup=rollup,
-            filters=filters,
+            filter_keys=filters,
         )
 
         return Response(results, status=200)
