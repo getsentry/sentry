@@ -4,33 +4,24 @@ import styled from 'react-emotion';
 import {Flex, Box} from 'grid-emotion';
 import space from 'app/styles/space';
 
-const Heading = styled(Flex)`
-  margin: ${space(3)} 0;
-  flex: 1;
-`;
-
-const Title = styled(Heading)`
-  font-size: 20px;
-  font-weight: bold;
-`;
-
 class SettingsPageHeading extends React.Component {
   static propTypes = {
     icon: PropTypes.node,
     title: PropTypes.node,
     action: PropTypes.node,
     tabs: PropTypes.node,
-    noStyles: PropTypes.bool,
+    // Disables font styles in the title. Allows for more custom titles.
+    noTitleStyles: PropTypes.bool,
   };
 
   render() {
-    const StyledTitle = this.props.noStyles ? Heading : Title;
-
     return (
       <Wrapper tabs={this.props.tabs}>
         <Flex align="center">
           {this.props.icon && <Box pr={1}>{this.props.icon}</Box>}
-          {this.props.title && <StyledTitle>{this.props.title}</StyledTitle>}
+          {this.props.title && (
+            <Title styled={this.props.noTitleStyles}>{this.props.title}</Title>
+          )}
           {this.props.action && <div>{this.props.action}</div>}
         </Flex>
 
@@ -39,6 +30,16 @@ class SettingsPageHeading extends React.Component {
     );
   }
 }
+
+const Title = styled(Flex)`
+  ${p =>
+    !p.styled &&
+    `
+    font-size: 20px;
+    font-weight: bold;`};
+  margin: ${space(3)} 0;
+  flex: 1;
+`;
 
 const Wrapper = styled.div`
   font-size: 14px;
