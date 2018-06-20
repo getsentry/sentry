@@ -1041,7 +1041,7 @@ window.TestStubs = {
     ...params,
   }),
 
-  UserReport: () => ({
+  UserFeedback: () => ({
     id: '123',
     name: 'Lyn',
     email: 'lyn@sentry.io',

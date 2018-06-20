@@ -5,7 +5,7 @@ import TimeSince from 'app/components/timeSince';
 import utils from 'app/utils';
 import Link from 'app/components/link';
 
-class EventUserReport extends React.Component {
+class EventUserFeedback extends React.Component {
   static propTypes = {
     report: PropTypes.object.isRequired,
     orgId: PropTypes.string.isRequired,
@@ -55,4 +55,4 @@ class EventUserReport extends React.Component {
   }
 }
 
-export default EventUserReport;
+export default EventUserFeedback;

@@ -7,7 +7,7 @@ import qs from 'query-string';
 import SentryTypes from 'app/proptypes';
 import ApiMixin from 'app/mixins/apiMixin';
 import GroupState from 'app/mixins/groupState';
-import EventUserReport from 'app/components/events/userReport';
+import EventUserFeedback from 'app/components/events/userFeedback';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {t, tct} from 'app/locale';
@@ -15,8 +15,8 @@ import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {Panel} from 'app/components/panels';
 
-const GroupUserReports = createReactClass({
-  displayName: 'GroupUserReports',
+const GroupUserFeedback = createReactClass({
+  displayName: 'GroupUserFeedback',
 
   propTypes: {
     environment: SentryTypes.Environment,
@@ -81,7 +81,7 @@ const GroupUserReports = createReactClass({
     });
   },
 
-  getUserReportsUrl() {
+  getUserFeedbackUrl() {
     let params = this.props.params;
 
     return `/${params.orgId}/${params.projectId}/settings/user-feedback/`;
@@ -103,7 +103,7 @@ const GroupUserReports = createReactClass({
           <div className="col-md-9">
             {reportList.map((item, idx) => {
               return (
-                <EventUserReport
+                <EventUserFeedback
                   key={idx}
                   report={item}
                   projectId={projectId}
@@ -128,7 +128,7 @@ const GroupUserReports = createReactClass({
         <EmptyStateWarning>
           <p>{emptyStateMessage}</p>
           <p>
-            <Link to={this.getUserReportsUrl()}>
+            <Link to={this.getUserFeedbackUrl()}>
               {t('Learn how to integrate User Feedback')}
             </Link>
           </p>
@@ -138,4 +138,4 @@ const GroupUserReports = createReactClass({
   },
 });
 
-export default withEnvironmentInQueryString(GroupUserReports);
+export default withEnvironmentInQueryString(GroupUserFeedback);

@@ -15,7 +15,7 @@ import EventPackageData from 'app/components/events/packageData';
 import EventTags from 'app/components/events/eventTags';
 import EventSdk from 'app/components/events/sdk';
 import EventDevice from 'app/components/events/device';
-import EventUserReport from 'app/components/events/userReport';
+import EventUserFeedback from 'app/components/events/userFeedback';
 import SentryTypes from 'app/proptypes';
 import GroupState from 'app/mixins/groupState';
 import utils from 'app/utils';
@@ -68,28 +68,28 @@ const EventEntries = createReactClass({
     };
   },
 
-  recordSourcemapError(errorTypes) {
-    let {project, event} = this.props;
-
-    analytics('sourcemap.sourcemap_error', {
-      'org_id': project.organization.id,
-      'group': event.groupID,
-      'error_type': errorTypes
-    })
-  },
-
   componentDidMount() {
     let {event} = this.props;
 
     if (!event.errors || !event.errors.length > 0) return;
     let errors = event.errors;
-    let errorTypes = errors.map((errorEntries) => errorEntries.type);
+    let errorTypes = errors.map(errorEntries => errorEntries.type);
 
     this.recordSourcemapError(errorTypes);
   },
 
   shouldComponentUpdate(nextProps, nextState) {
     return this.props.event.id !== nextProps.event.id;
+  },
+
+  recordSourcemapError(errorTypes) {
+    let {project, event} = this.props;
+
+    analytics('sourcemap.sourcemap_error', {
+      org_id: project.organization.id,
+      group: event.groupID,
+      error_type: errorTypes,
+    });
   },
 
   interfaces: INTERFACES,
@@ -146,7 +146,7 @@ const EventEntries = createReactClass({
             <EventCause event={event} orgId={orgId} projectId={project.slug} />
           )}
         {event.userReport && (
-          <EventUserReport
+          <EventUserFeedback
             report={event.userReport}
             orgId={orgId}
             projectId={project.slug}
