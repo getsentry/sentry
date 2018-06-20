@@ -121,7 +121,7 @@ class ProjectEndpoint(Endpoint):
                     redirect_slug=project_slug
                 )
 
-                raise ResourceMoved(detail={'slug': redirect.project.slug})
+                raise ResourceMoved(redirect.project.slug)
             except ProjectRedirect.DoesNotExist:
                 raise ResourceDoesNotExist
 

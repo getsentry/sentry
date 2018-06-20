@@ -78,7 +78,7 @@ class ProjectDetailsTest(APITestCase):
 
         response = self.client.get(url)
         assert response.status_code == 302
-        assert response.data['detail']['slug'] == 'foobar'
+        assert response.data['detail']['extra']['slug'] == 'foobar'
 
 
 class ProjectUpdateTest(APITestCase):
