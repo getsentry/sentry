@@ -94,11 +94,14 @@ class SlackEventEndpoint(Endpoint):
             return self.on_url_verification(request, slack_request.data)
 
         if slack_request.type == 'link_shared':
-            return self.on_link_shared(
+            resp = self.on_link_shared(
                 request,
                 slack_request.integration,
                 slack_request.data.get('token'),
                 slack_request.data.get('event'),
             )
+
+            if resp:
+                return resp
 
         return self.respond()
