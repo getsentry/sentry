@@ -10,6 +10,7 @@ FIELD_MAP = {
     'comment': '/fields/System.History',
     'link': '/relations/-',
 }
+INVALID_ACCESS_TOKEN = 'HTTP 400 (invalid_request): The access token is not valid'
 
 
 class VstsApiPath(object):

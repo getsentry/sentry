@@ -25,8 +25,6 @@ metadata = IntegrationMetadata(
     aspects={},
 )
 
-INVALID_ACCESS_TOKEN = 'HTTP 400 (invalid_request): The access token is not valid'
-
 
 class VstsIntegration(Integration, VstsIssueSync):
     def __init__(self, *args, **kwargs):
@@ -44,12 +42,11 @@ class VstsIntegration(Integration, VstsIssueSync):
         disabled = False
         try:
             projects = client.get_projects(self.model.metadata['domain_name'])
-        except Exception as e:
+        except Exception:
             # TODO(LB): Disable for now. Need to decide what to do with this in the future
             # should a message be shown to the user?
-            if INVALID_ACCESS_TOKEN == e.message:
-                # TODO(LB): display to the user to reinstall integration
-                pass
+            #  If INVALID_ACCESS_TOKEN ask the user to reinstall integration?
+
             project_choices = []
             disabled = True
         else:
