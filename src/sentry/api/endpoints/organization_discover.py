@@ -1,8 +1,9 @@
 from __future__ import absolute_import
 
-from datetime import datetime
-
+from rest_framework import serializers
 from rest_framework.response import Response
+from rest_framework.exceptions import PermissionDenied
+from sentry.api.serializers.rest_framework import ListField
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.bases import OrganizationMemberEndpoint
 
@@ -20,20 +21,31 @@ class OrganizationDiscoverPermission(OrganizationPermission):
     }
 
 
-class OrganizationDiscoverEndpoint(OrganizationMemberEndpoint):
-    permission_classes = (OrganizationDiscoverPermission, )
+class DiscoverSerializer(serializers.Serializer):
+    projects = ListField(
+        child=serializers.IntegerField(),
+        required=True,
+        allow_null=False,
+    )
+    start = serializers.DateTimeField(required=True)
+    end = serializers.DateTimeField(required=True)
+    limit = serializers.IntegerField(min_value=0, max_value=1000, required=False)
 
-    def do_query(self, start, end, groupby, **kwargs):
+    def validate_projects(self, attrs, source):
+        organization = self.context['organization']
+        member = self.context['member']
+        projects = attrs[source]
 
-        snuba_results = snuba.raw_query(
-            start=start,
-            end=end,
-            groupby=groupby,
-            referrer='discover',
-            **kwargs
-        )
+        org_projects = set(Project.objects.filter(
+            organization=organization,
+            status=ProjectStatus.VISIBLE,
+        ).values_list('id', flat=True))
 
-        return snuba_results
+        if not set(projects).issubset(org_projects) or not self.has_projects_access(
+                member, organization, projects):
+            raise PermissionDenied
+
+        return attrs
 
     def has_projects_access(self, member, organization, requested_projects):
         has_global_access = roles.get(member.role).is_global
@@ -48,6 +60,22 @@ class OrganizationDiscoverEndpoint(OrganizationMemberEndpoint):
         ).values_list('id')
 
         return set(requested_projects).issubset(set(member_project_list))
+
+
+class OrganizationDiscoverEndpoint(OrganizationMemberEndpoint):
+    permission_classes = (OrganizationDiscoverPermission, )
+
+    def do_query(self, start, end, groupby, **kwargs):
+
+        snuba_results = snuba.raw_query(
+            start=start,
+            end=end,
+            groupby=groupby,
+            referrer='discover',
+            **kwargs
+        )
+
+        return snuba_results
 
     def post(self, request, organization, member):
         data = request.DATA
@@ -70,31 +98,18 @@ class OrganizationDiscoverEndpoint(OrganizationMemberEndpoint):
 
         rollup = data.get('rollup')
 
-        projects = data.get('projects')
+        serializer = DiscoverSerializer(
+            data=request.DATA, context={
+                'organization': organization, 'member': member})
 
-        org_projects = set(Project.objects.filter(
-            organization=organization,
-            status=ProjectStatus.VISIBLE,
-        ).values_list('id', flat=True))
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
 
-        if (not isinstance(limit, int) or limit < 0 or limit > 1000):
-            return Response({'detail': 'Invalid limit parameter'}, status=400)
+        serialized = serializer.object
 
-        if not projects:
-            return Response({'detail': 'No projects requested'}, status=400)
-
-        if not set(projects).issubset(org_projects):
-            return Response({'detail': 'Invalid projects'}, status=400)
-
-        if not self.has_projects_access(member, organization, projects):
-            return Response({'detail': 'Invalid projects'}, status=400)
-
-        fmt = '%Y-%m-%dT%H:%M:%S'
-        start = datetime.strptime(data['start'], fmt)
-        end = datetime.strptime(data['end'], fmt)
         results = self.do_query(
-            start,
-            end,
+            serialized['start'],
+            serialized['end'],
             groupby,
             selected_columns=selected_columns,
             conditions=conditions,
