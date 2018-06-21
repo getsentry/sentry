@@ -37,7 +37,6 @@ from sentry.models import (
 from sentry.plugins import plugins
 from sentry.signals import event_discarded, event_saved, first_event_received
 from sentry.tasks.merge import merge_group
-from sentry.tasks.post_process import post_process_group
 from sentry.utils import metrics
 from sentry.utils.cache import default_cache
 from sentry.utils.db import get_db_engine
@@ -50,6 +49,12 @@ from sentry.stacktraces import normalize_in_app
 HASH_RE = re.compile(r'^[0-9a-f]{32}$')
 DEFAULT_FINGERPRINT_VALUES = frozenset(['{{ default }}', '{{default}}'])
 ALLOWED_FUTURE_DELTA = timedelta(minutes=1)
+
+
+post_process_callback = getattr(settings, 'SENTRY_POST_PROCESS_CALLBACK', None)
+if post_process_callback is None:
+    from sentry.tasks.post_process import post_process_group
+    post_process_callback = post_process_group.delay
 
 
 def count_limit(count):
@@ -945,7 +950,7 @@ class EventManager(object):
                 project.update(first_event=date)
                 first_event_received.send(project=project, group=group, sender=Project)
 
-            post_process_group.delay(
+            post_process_callback(
                 group=group,
                 event=event,
                 is_new=is_new,
