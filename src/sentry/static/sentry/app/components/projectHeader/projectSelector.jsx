@@ -409,7 +409,7 @@ const ProjectSelector = createReactClass({
 });
 
 const StyledPlatformList = styled(PlatformList)`
-  margin-left: -10px;
+  width: 28px;
   margin-right: 6px;
 `;
 

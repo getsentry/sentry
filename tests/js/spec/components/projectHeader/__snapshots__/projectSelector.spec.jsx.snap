@@ -177,17 +177,17 @@ exports[`ProjectSelector render() can filter projects by project name 1`] = `
                                 platforms={Array []}
                               >
                                 <PlatformList
-                                  className="css-1rqhqfb-StyledPlatformList et07ovj0"
+                                  className="css-16pu8f4-StyledPlatformList et07ovj0"
                                   direction="left"
                                   platforms={Array []}
                                 >
                                   <PlatformIcons
-                                    className="css-1rqhqfb-StyledPlatformList et07ovj0"
+                                    className="css-16pu8f4-StyledPlatformList et07ovj0"
                                     direction="left"
                                     platforms={Array []}
                                   >
                                     <div
-                                      className="et07ovj0 css-6khb5f-PlatformIcons-StyledPlatformList ezvce7z0"
+                                      className="et07ovj0 css-1or6tzj-PlatformIcons-StyledPlatformList ezvce7z0"
                                       direction="left"
                                     >
                                       <StyledPlatformIcon
@@ -420,17 +420,17 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
                                 platforms={Array []}
                               >
                                 <PlatformList
-                                  className="css-1rqhqfb-StyledPlatformList et07ovj0"
+                                  className="css-16pu8f4-StyledPlatformList et07ovj0"
                                   direction="left"
                                   platforms={Array []}
                                 >
                                   <PlatformIcons
-                                    className="css-1rqhqfb-StyledPlatformList et07ovj0"
+                                    className="css-16pu8f4-StyledPlatformList et07ovj0"
                                     direction="left"
                                     platforms={Array []}
                                   >
                                     <div
-                                      className="et07ovj0 css-6khb5f-PlatformIcons-StyledPlatformList ezvce7z0"
+                                      className="et07ovj0 css-1or6tzj-PlatformIcons-StyledPlatformList ezvce7z0"
                                       direction="left"
                                     >
                                       <StyledPlatformIcon
@@ -505,17 +505,17 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
                                 platforms={Array []}
                               >
                                 <PlatformList
-                                  className="css-1rqhqfb-StyledPlatformList et07ovj0"
+                                  className="css-16pu8f4-StyledPlatformList et07ovj0"
                                   direction="left"
                                   platforms={Array []}
                                 >
                                   <PlatformIcons
-                                    className="css-1rqhqfb-StyledPlatformList et07ovj0"
+                                    className="css-16pu8f4-StyledPlatformList et07ovj0"
                                     direction="left"
                                     platforms={Array []}
                                   >
                                     <div
-                                      className="et07ovj0 css-6khb5f-PlatformIcons-StyledPlatformList ezvce7z0"
+                                      className="et07ovj0 css-1or6tzj-PlatformIcons-StyledPlatformList ezvce7z0"
                                       direction="left"
                                     >
                                       <StyledPlatformIcon
