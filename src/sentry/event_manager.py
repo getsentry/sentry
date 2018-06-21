@@ -37,7 +37,6 @@ from sentry.models import (
 from sentry.plugins import plugins
 from sentry.signals import event_discarded, event_saved, first_event_received
 from sentry.tasks.merge import merge_group
-from sentry.tasks.post_process import post_process_group
 from sentry.utils import metrics
 from sentry.utils.cache import default_cache
 from sentry.utils.db import get_db_engine
@@ -54,6 +53,7 @@ ALLOWED_FUTURE_DELTA = timedelta(minutes=1)
 
 post_process_callback = getattr(settings, 'SENTRY_POST_PROCESS_CALLBACK', None)
 if post_process_callback is None:
+    from sentry.tasks.post_process import post_process_group
     post_process_callback = post_process_group.delay
 
 
