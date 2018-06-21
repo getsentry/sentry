@@ -133,6 +133,7 @@ class EventManagerTest(TransactionTestCase):
         data = manager.normalize()
 
         assert data['user'] == {'id': '1'}
+        # data is a CanonicalKeyDict, so we need to check .keys() explicitly
         assert 'sentry.interfaces.User' not in data.keys()
 
     def test_does_default_ip_address_to_user(self):

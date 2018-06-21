@@ -184,9 +184,11 @@ def load_data(platform, default=None, timestamp=None, sample_name=None):
 
     # Make breadcrumb timestamps relative to right now so they make sense
     breadcrumbs = data.get('sentry.interfaces.Breadcrumbs')
-    if breadcrumbs is not None and 'values' in breadcrumbs:
+    if breadcrumbs is not None:
         duration = 1000
-        values = breadcrumbs['values']
+        # At this point, breadcrumbs are not normalized. They can either be a
+        # direct list or a values object containing a list.
+        values = isinstance(breadcrumbs, list) and breadcrumbs or breadcrumbs['values']
         for value in reversed(values):
             value['timestamp'] = milliseconds_ago(start, duration)
 
