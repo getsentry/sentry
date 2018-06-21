@@ -35,6 +35,10 @@ class SettingsBreadcrumb extends React.Component {
     organization: SentryTypes.Organization,
   };
 
+  static defaultProps = {
+    pathMap: {},
+  };
+
   componentDidUpdate(prevProps) {
     if (this.props.routes === prevProps.routes) return;
     SettingsBreadcrumbActions.trimMappings(this.props.routes);
