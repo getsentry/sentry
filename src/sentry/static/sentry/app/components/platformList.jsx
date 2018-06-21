@@ -11,10 +11,12 @@ const ICON_SIZE = 16;
 class PlatformList extends React.Component {
   static propTypes = {
     platforms: PropTypes.array,
+    direction: PropTypes.string,
   };
 
   static defaultProps = {
     platforms: [],
+    direction: 'right',
   };
 
   getIcon(platform) {
@@ -34,7 +36,7 @@ class PlatformList extends React.Component {
     const {platforms} = this.props;
     const platformsPreview = platforms.slice(0, MAX_PLATFORMS);
     return (
-      <PlatformIcons>
+      <PlatformIcons direction={this.props.direction} {...this.props}>
         {platforms.length > 0 ? (
           this.getIcons(platformsPreview)
         ) : (
@@ -49,7 +51,7 @@ const PlatformIcons = styled('div')`
   margin-right: ${space(0.5)};
   display: flex;
   flex-direction: row;
-  justify-content: flex-end;
+  justify-content: ${p => (p.direction == 'left' ? 'flex-end' : 'flex-start')};
   width: 24px;
 `;
 
