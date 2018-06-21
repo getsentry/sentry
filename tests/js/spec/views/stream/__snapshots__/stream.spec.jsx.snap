@@ -164,6 +164,8 @@ exports[`Stream render() displays the group list 1`] = `
           "isInput": true,
           "key": "timesSeen",
           "name": "Times Seen",
+          "predefined": true,
+          "values": Array [],
         },
       }
     }
@@ -335,6 +337,8 @@ exports[`Stream toggles environment select all environments 1`] = `
           "isInput": true,
           "key": "timesSeen",
           "name": "Times Seen",
+          "predefined": true,
+          "values": Array [],
         },
       }
     }

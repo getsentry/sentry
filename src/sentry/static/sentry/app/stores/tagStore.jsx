@@ -77,6 +77,9 @@ const TagStore = Reflux.createStore({
         key: 'timesSeen',
         name: 'Times Seen',
         isInput: true,
+        // Below values are required or else SearchBar will attempt to get values // This is required or else SearchBar will attempt to get values
+        values: [],
+        predefined: true,
       },
     };
     this.trigger(this.tags);
