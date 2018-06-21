@@ -111,7 +111,7 @@ const ProjectInstallPlatform = createReactClass({
 
   inInstallExperiment() {
     let {experimentPlatforms, integration} = this.state;
-    if (!integration || !integration.id) return;
+    if (!integration || !integration.id) return '';
 
     let currentPlatform = integration.id;
     let installExperiment =
