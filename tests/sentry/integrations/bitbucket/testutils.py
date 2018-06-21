@@ -271,3 +271,50 @@ PUSH_EVENT_EXAMPLE = b"""{
     }
 }
 """
+REPOS = b"""{
+    "pagelen": 10,
+    "values": [{
+            "uuid": "{1234567890}",
+            "name": "TestTheWeb",
+            "language": "java",
+            "created_on": "2018-05-14T23:52:37.376050+00:00",
+            "full_name": "sentrytester/testtheweb",
+            "has_issues": true,
+            "owner": {
+                "username": "sentrytester",
+                "display_name": "SentryTester",
+                "type": "team",
+                "uuid": "{96e91132}"
+            },
+            "updated_on": "2018-05-14T23:52:38.815019+00:00",
+            "size": 113085,
+            "type": "repository",
+            "slug": "testtheweb",
+            "is_private": true,
+            "description": ""
+        },
+        {
+            "uuid": "{0987654321}",
+            "name": "WebTheTest",
+            "language": "java",
+            "created_on": "2018-05-14T23:52:37.376050+00:00",
+            "full_name": "sentrytester/webthetest",
+            "has_issues": true,
+            "owner": {
+                "username": "sentrytester",
+                "display_name": "SentryTester",
+                "type": "team",
+                "uuid": "{96e91132}"
+            },
+            "updated_on": "2018-05-14T23:52:38.815019+00:00",
+            "size": 113085,
+            "type": "repository",
+            "slug": "webthetest",
+            "is_private": true,
+            "description": ""
+        }
+    ],
+    "page": 1,
+    "size": 2
+}
+"""
