@@ -122,8 +122,17 @@ class ProjectEndpoint(Endpoint):
                     organization__slug=organization_slug,
                     redirect_slug=project_slug
                 )
-                new_url = request.path.replace('projects/%s/%s/' % (organization_slug, project_slug), 'projects/%s/%s/' % (organization_slug, redirect.project.slug))
-                raise ResourceMoved(new_url)
+
+                # get full path so that we keep query strings
+                requested_url = request.get_full_path()
+                new_url = requested_url.replace('projects/%s/%s/' % (organization_slug, project_slug), 'projects/%s/%s/' % (organization_slug, redirect.project.slug))
+
+                # Resource was moved/renamed if the requested url is different than the new url
+                if requested_url != new_url:
+                    raise ResourceMoved(new_url)
+
+                # otherwise project doesn't exist
+                raise ResourceDoesNotExist
             except ProjectRedirect.DoesNotExist:
                 raise ResourceDoesNotExist
 
@@ -144,7 +153,7 @@ class ProjectEndpoint(Endpoint):
 
     def handle_exception(self, request, exc):
         if isinstance(exc, ResourceMoved):
-            response = Response({}, status=exc.detail.status_code)
+            response = Response({}, status=exc.status_code)
             response['Location'] = exc.detail['extra']['url']
             return response
-        raise exc
+        return super(ProjectEndpoint, self).handle_exception(request, exc)
