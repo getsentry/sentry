@@ -4,7 +4,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import Badge from 'app/components/badge';
-import space from '../../../styles/space';
+import Tag from 'app/views/settings/components/tag';
 
 const StyledNavItem = styled(Link)`
   display: block;
@@ -40,15 +40,6 @@ const StyledNavItem = styled(Link)`
   }
 `;
 
-const NewBadge = styled(Badge)`
-  background: ${p => p.theme.yellowOrange};
-  border-radius: 2px;
-  border: 1px solid ${p => p.theme.yellowOrangeDark};
-  height: auto;
-  padding: ${space(0.25)} ${space(0.5)};
-  line-height: 1;
-`;
-
 class SettingsNavItem extends React.Component {
   static propTypes = {
     label: PropTypes.node.isRequired,
@@ -62,7 +53,11 @@ class SettingsNavItem extends React.Component {
     let renderedBadge = '';
 
     if (badge === 'new') {
-      renderedBadge = <NewBadge text={badge} />;
+      renderedBadge = (
+        <Tag priority="attention" size="small" border={true}>
+          {badge}
+        </Tag>
+      );
     } else {
       renderedBadge = <Badge text={badge} />;
     }
