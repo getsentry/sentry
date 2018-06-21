@@ -26,6 +26,8 @@ const MENUS = {
 class SettingsBreadcrumb extends React.Component {
   static propTypes = {
     routes: PropTypes.array,
+    // pathMap maps stringifed routes to a breadcrumb title. This property is
+    // provided by the SettingsBreadcrumbStore.
     pathMap: PropTypes.object,
   };
 
