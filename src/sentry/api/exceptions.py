@@ -25,14 +25,15 @@ class SentryAPIException(APIException):
 
 
 class ResourceMoved(SentryAPIException):
-    status_code = status.HTTP_307_TEMPORARY_REDIRECT
+    status_code = status.HTTP_302_FOUND
     # code/message currently don't get used
     code = 'resource-moved'
     message = 'Resource has been moved'
 
-    def __init__(self, new_url):
+    def __init__(self, new_url, slug):
         super(ResourceMoved, self).__init__(
-            url=new_url
+            url=new_url,
+            slug=slug,
         )
 
 

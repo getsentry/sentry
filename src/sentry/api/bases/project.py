@@ -129,7 +129,7 @@ class ProjectEndpoint(Endpoint):
 
                 # Resource was moved/renamed if the requested url is different than the new url
                 if requested_url != new_url:
-                    raise ResourceMoved(new_url)
+                    raise ResourceMoved(new_url, redirect.project.slug)
 
                 # otherwise project doesn't exist
                 raise ResourceDoesNotExist
@@ -153,7 +153,10 @@ class ProjectEndpoint(Endpoint):
 
     def handle_exception(self, request, exc):
         if isinstance(exc, ResourceMoved):
-            response = Response({}, status=exc.status_code)
+            response = Response({
+                'slug': exc.detail['extra']['slug'],
+                'detail': exc.detail
+            }, status=exc.status_code)
             response['Location'] = exc.detail['extra']['url']
             return response
         return super(ProjectEndpoint, self).handle_exception(request, exc)

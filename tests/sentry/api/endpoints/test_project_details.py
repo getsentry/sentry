@@ -77,7 +77,9 @@ class ProjectDetailsTest(APITestCase):
         self.client.put(url, data={'slug': 'foobar'})
 
         response = self.client.get(url)
-        assert response.status_code == 307
+        assert response.status_code == 302
+        assert response.data['slug'] == 'foobar'
+        assert response.data['detail']['extra']['url'] == '/api/0/projects/%s/%s/' % (project.organization.slug, 'foobar')
         assert response['Location'] == 'http://testserver/api/0/projects/%s/%s/' % (project.organization.slug, 'foobar')
 
 
