@@ -41,7 +41,7 @@ class AvatarField(serializers.WritableField):
             return None
         data = b64decode(data)
         if len(data) > self.max_size:
-            raise ImageTooLarge
+            raise ImageTooLarge()
 
         try:
             with Image.open(BytesIO(data)) as img:
