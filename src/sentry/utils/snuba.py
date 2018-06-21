@@ -43,9 +43,9 @@ _snuba_pool = urllib3.connectionpool.connection_from_url(
 )
 
 
-def query(start, end, groupby, conditions=None, filter_keys=None,
-          aggregations=None, rollup=None, arrayjoin=None, limit=None, orderby=None,
-          having=None, referrer=None, is_grouprelease=False):
+def raw_query(start, end, groupby, conditions=None, filter_keys=None,
+              aggregations=None, rollup=None, arrayjoin=None, limit=None, orderby=None,
+              having=None, referrer=None, is_grouprelease=False, selected_columns=None,):
     """
     Sends a query to snuba.
 
@@ -67,10 +67,10 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
     groupby = groupby or []
     conditions = conditions or []
     having = having or []
-    aggregations = aggregations or [['count()', '', 'aggregate']]
+    aggregations = aggregations or []
     filter_keys = filter_keys or {}
+    selected_columns = selected_columns or []
 
-    # Forward and reverse translation maps from model ids to snuba keys, per column
     with timer('get_snuba_map'):
         forward, reverse = get_snuba_translators(filter_keys, is_grouprelease=is_grouprelease)
 
@@ -99,8 +99,9 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
     # we need to fetch the issue definitions (issue -> fingerprint hashes)
     aggregate_cols = [a[1] for a in aggregations]
     condition_cols = [c[0] for c in flat_conditions(conditions)]
-    all_cols = groupby + aggregate_cols + condition_cols
+    all_cols = groupby + aggregate_cols + condition_cols + selected_columns
     get_issues = 'issue' in all_cols
+
     with timer('get_project_issues'):
         issues = get_project_issues(project_ids, filter_keys.get('issue')) if get_issues else None
 
@@ -117,6 +118,7 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
         'arrayjoin': arrayjoin,
         'limit': limit,
         'orderby': orderby,
+        'selected_columns': selected_columns,
     }) if v is not None}
 
     headers = {}
@@ -140,10 +142,27 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
             raise SnubaError(body['error'])
         else:
             raise SnubaError('HTTP {}'.format(response.status))
+    return body
 
+
+def query(start, end, groupby, conditions=None, filter_keys=None,
+          aggregations=None, rollup=None, arrayjoin=None, limit=None, orderby=None,
+          having=None, referrer=None, is_grouprelease=False, selected_columns=None):
+
+    aggregations = aggregations or [['count()', '', 'aggregate']]
+    filter_keys = filter_keys or {}
+    selected_columns = selected_columns or []
+
+    body = raw_query(start, end, groupby=groupby, conditions=conditions, filter_keys=filter_keys,
+                     selected_columns=selected_columns, aggregations=aggregations, rollup=rollup, arrayjoin=arrayjoin,
+                     limit=limit, orderby=orderby, having=having, referrer=referrer, is_grouprelease=is_grouprelease)
+
+    # Forward and reverse translation maps from model ids to snuba keys, per column
+    with timer('get_snuba_map'):
+        forward, reverse = get_snuba_translators(filter_keys, is_grouprelease=is_grouprelease)
     # Validate and scrub response, and translate snuba keys back to IDs
     aggregate_cols = [a[2] for a in aggregations]
-    expected_cols = set(groupby + aggregate_cols)
+    expected_cols = set(groupby + aggregate_cols + selected_columns)
     got_cols = set(c['name'] for c in body['meta'])
 
     assert expected_cols == got_cols
