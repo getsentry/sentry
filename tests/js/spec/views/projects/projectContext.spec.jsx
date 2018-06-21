@@ -16,12 +16,27 @@ describe('projectContext component', function() {
     {name: 'Projects', path: ':projectId/', childRoutes: []},
   ];
 
-  const location = {};
+  const location = {query: {}};
 
   const project = TestStubs.Project();
   const org = TestStubs.Organization();
+  beforeEach(function() {
+    MockApiClient.clearMockResponses();
+    [project.slug, 'new-slug'].forEach(slug => {
+      MockApiClient.addMockResponse({
+        url: `/projects/${org.slug}/${slug}/members/`,
+        method: 'GET',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${org.slug}/${slug}/environments/`,
+        method: 'GET',
+        body: [],
+      });
+    });
+  });
 
-  it('displays error on 404s', function() {
+  it('displays error on 404s', async function() {
     const router = TestStubs.router();
 
     MockApiClient.addMockResponse({
@@ -46,6 +61,9 @@ describe('projectContext component', function() {
       context: {organization: org},
       childContextTypes: {organization: SentryTypes.Organization},
     });
+
+    await tick();
+    wrapper.update();
 
     expect(wrapper.state('error')).toBe(true);
     expect(wrapper.state('loading')).toBe(false);

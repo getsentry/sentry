@@ -138,7 +138,6 @@ const ProjectContext = createReactClass({
     let {orgId, projectId, location, skipReload} = this.props;
     // we fetch core access/information from the global organization data
     let activeProject = this.identifyProject();
-    let hasAccess = activeProject && activeProject.hasAccess;
 
     this.setState(state => ({
       // if `skipReload` is true, then don't change loading state
@@ -147,66 +146,53 @@ const ProjectContext = createReactClass({
       project: activeProject,
     }));
 
-    if (activeProject && hasAccess) {
-      setActiveProject(null);
-      const projectRequest = this.api.requestPromise(`/projects/${orgId}/${projectId}/`);
+    setActiveProject(null);
+    const projectRequest = this.api.requestPromise(`/projects/${orgId}/${projectId}/`);
 
-      const environmentRequest = this.api.requestPromise(
-        this.getEnvironmentListEndpoint()
-      );
+    const environmentRequest = this.api.requestPromise(this.getEnvironmentListEndpoint());
 
-      Promise.all([projectRequest, environmentRequest]).then(
-        ([project, envs]) => {
-          this.setState({
-            loading: false,
-            project,
-            error: false,
-            errorType: null,
-          });
+    Promise.all([projectRequest, environmentRequest]).then(
+      ([project, envs]) => {
+        this.setState({
+          loading: false,
+          project,
+          error: false,
+          errorType: null,
+        });
 
-          // assuming here that this means the project is considered the active project
-          setActiveProject(project);
+        // assuming here that this means the project is considered the active project
+        setActiveProject(project);
 
-          // If an environment is specified in the query string, load it instead of default
-          const queryEnv = location.query.environment;
-          // The default environment cannot be "" (No Environment)
-          const {defaultEnvironment} = project;
-          const envName = typeof queryEnv === 'undefined' ? defaultEnvironment : queryEnv;
-          loadEnvironments(envs, envName);
-        },
-        () => {
-          this.setState({
-            loading: false,
-            error: false,
-            errorType: ERROR_TYPES.UNKNOWN,
-          });
+        // If an environment is specified in the query string, load it instead of default
+        const queryEnv = location.query.environment;
+        // The default environment cannot be "" (No Environment)
+        const {defaultEnvironment} = project;
+        const envName = typeof queryEnv === 'undefined' ? defaultEnvironment : queryEnv;
+        loadEnvironments(envs, envName);
+
+        // TODO(dcramer): move member list to organization level
+        this.api.request(this.getMemberListEndpoint(), {
+          success: data => {
+            MemberListStore.loadInitialData(data.filter(m => m.user).map(m => m.user));
+          },
+        });
+      },
+      resp => {
+        let errorType = ERROR_TYPES.UNKNOWN;
+
+        if (resp.status === 404) {
+          errorType = ERROR_TYPES.PROJECT_NOT_FOUND;
+        } else if (activeProject && !activeProject.isMember) {
+          errorType = ERROR_TYPES.MISSING_MEMBERSHIP;
         }
-      );
 
-      // TODO(dcramer): move member list to organization level
-      this.api.request(this.getMemberListEndpoint(), {
-        success: data => {
-          MemberListStore.loadInitialData(data.filter(m => m.user).map(m => m.user));
-        },
-      });
-    } else if (activeProject && !activeProject.isMember) {
-      this.setState({
-        loading: false,
-        error: true,
-        errorType: ERROR_TYPES.MISSING_MEMBERSHIP,
-      });
-    } else {
-      // The request is a 404 or other error
-      this.api.request(`/projects/${orgId}/${projectId}/`, {
-        error: () => {
-          this.setState({
-            loading: false,
-            error: true,
-            errorType: ERROR_TYPES.PROJECT_NOT_FOUND,
-          });
-        },
-      });
-    }
+        this.setState({
+          loading: false,
+          error: true,
+          errorType,
+        });
+      }
+    );
   },
 
   getEnvironmentListEndpoint() {

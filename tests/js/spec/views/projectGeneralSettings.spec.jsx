@@ -219,15 +219,6 @@ describe('projectGeneralSettings', function() {
     expect(putMock).not.toHaveBeenCalled();
     wrapper.find('SaveButton').simulate('click');
 
-    await tick();
-    // :(
-    await tick();
-    wrapper.update();
-    // updates ProjectsStore
-    expect(ProjectsStore.itemsById['2'].slug).toBe('new-project');
-    expect(browserHistory.replace).toHaveBeenCalled();
-    expect(wrapper.find('Input[name="slug"]').prop('value')).toBe('new-project');
-
     // fetches new slug
     let newProjectGet = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/new-project/`,
@@ -245,9 +236,20 @@ describe('projectGeneralSettings', function() {
       body: [],
     });
 
+    await tick();
+    // :(
+    await tick();
+    wrapper.update();
+    // updates ProjectsStore
+    expect(ProjectsStore.itemsById['2'].slug).toBe('new-project');
+    expect(browserHistory.replace).toHaveBeenCalled();
+    expect(wrapper.find('Input[name="slug"]').prop('value')).toBe('new-project');
+
     wrapper.setProps({
       projectId: 'new-project',
     });
+    await tick();
+    wrapper.update();
     expect(newProjectGet).toHaveBeenCalled();
     expect(newProjectEnv).toHaveBeenCalled();
     expect(newProjectMembers).toHaveBeenCalled();

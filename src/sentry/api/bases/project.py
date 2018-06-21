@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from rest_framework.response import Response
+
 from sentry import roles
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist, ResourceMoved
@@ -120,8 +122,8 @@ class ProjectEndpoint(Endpoint):
                     organization__slug=organization_slug,
                     redirect_slug=project_slug
                 )
-
-                raise ResourceMoved(redirect.project.slug)
+                new_url = request.path.replace('projects/%s/%s/' % (organization_slug, project_slug), 'projects/%s/%s/' % (organization_slug, redirect.project.slug))
+                raise ResourceMoved(new_url)
             except ProjectRedirect.DoesNotExist:
                 raise ResourceDoesNotExist
 
@@ -139,3 +141,10 @@ class ProjectEndpoint(Endpoint):
 
         kwargs['project'] = project
         return (args, kwargs)
+
+    def handle_exception(self, request, exc):
+        if isinstance(exc, ResourceMoved):
+            response = Response({}, status=exc.detail.status_code)
+            response['Location'] = exc.detail['extra']['url']
+            return response
+        raise exc
