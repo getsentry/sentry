@@ -91,3 +91,93 @@ WORK_ITEM_RESPONSE = """{
   },
   "url": "https://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_apis/wit/workItems/309"
 }"""
+
+GET_USERS_RESPONSE = b"""{
+  "count": 4,
+  "value": [
+    {
+      "subjectKind": "user",
+      "cuid": "ec09a4d8-d914-4f28-9e39-23d52b683f90",
+      "domain": "Build",
+      "principalName": "51ac8d19-6694-459f-a65e-bec30e9e2e33",
+      "mailAddress": "",
+      "origin": "vsts",
+      "originId": "ec09a4d8-d914-4f28-9e39-23d52b683f90",
+      "displayName": "Project Collection Build Service (Ftottentest2)",
+      "_links": {
+        "self": {
+          "href": "https://fabrikam.vssps.visualstudio.com/_apis/graph/users/TWljcm9zb2Z0LlRlYW1Gb3VuZGF0aW9uLlNlcnZpY2VJZGVudGl0eTtmMzViOTAxNS1jZGU4LTQ4MzQtYTFkNS0wOWU4ZjM1OWNiODU6QnVpbGQ6NTFhYzhkMTktNjY5NC00NTlmLWE2NWUtYmVjMzBlOWUyZTMz"
+        },
+        "memberships": {
+          "href": "https://fabrikam.vssps.visualstudio.com/_apis/graph/memberships/TWljcm9zb2Z0LlRlYW1Gb3VuZGF0aW9uLlNlcnZpY2VJZGVudGl0eTtmMzViOTAxNS1jZGU4LTQ4MzQtYTFkNS0wOWU4ZjM1OWNiODU6QnVpbGQ6NTFhYzhkMTktNjY5NC00NTlmLWE2NWUtYmVjMzBlOWUyZTMz"
+        }
+      },
+      "url": "https://fabrikam.vssps.visualstudio.com/_apis/graph/users/TWljcm9zb2Z0LlRlYW1Gb3VuZGF0aW9uLlNlcnZpY2VJZGVudGl0eTtmMzViOTAxNS1jZGU4LTQ4MzQtYTFkNS0wOWU4ZjM1OWNiODU6QnVpbGQ6NTFhYzhkMTktNjY5NC00NTlmLWE2NWUtYmVjMzBlOWUyZTMz",
+      "descriptor": "TWljcm9zb2Z0LlRlYW1Gb3VuZGF0aW9uLlNlcnZpY2VJZGVudGl0eTtmMzViOTAxNS1jZGU4LTQ4MzQtYTFkNS0wOWU4ZjM1OWNiODU6QnVpbGQ6NTFhYzhkMTktNjY5NC00NTlmLWE2NWUtYmVjMzBlOWUyZTMz"
+    },
+    {
+      "subjectKind": "user",
+      "metaType": "member",
+      "cuid": "00ca946b-2fe9-4f2a-ae2f-40d5c48001bc",
+      "domain": "LOCAL AUTHORITY",
+      "principalName": "TeamFoundationService (TEAM FOUNDATION)",
+      "mailAddress": "",
+      "origin": "vsts",
+      "originId": "00ca946b-2fe9-4f2a-ae2f-40d5c48001bc",
+      "displayName": "TeamFoundationService (TEAM FOUNDATION)",
+      "_links": {
+        "self": {
+          "href": "https://fabrikam.vssps.visualstudio.com/_apis/graph/users/TWljcm9zb2Z0LklkZW50aXR5TW9kZWwuQ2xhaW1zLkNsYWltc0lkZW50aXR5Ozc3ODlmMDlkLWUwNTMtNGYyZS1iZGVlLTBjOGY4NDc2YTRiYw"
+        },
+        "memberships": {
+          "href": "https://fabrikam.vssps.visualstudio.com/_apis/graph/memberships/TWljcm9zb2Z0LklkZW50aXR5TW9kZWwuQ2xhaW1zLkNsYWltc0lkZW50aXR5Ozc3ODlmMDlkLWUwNTMtNGYyZS1iZGVlLTBjOGY4NDc2YTRiYw"
+        }
+      },
+      "url": "https://fabrikam.vssps.visualstudio.com/_apis/graph/users/TWljcm9zb2Z0LklkZW50aXR5TW9kZWwuQ2xhaW1zLkNsYWltc0lkZW50aXR5Ozc3ODlmMDlkLWUwNTMtNGYyZS1iZGVlLTBjOGY4NDc2YTRiYw",
+      "descriptor": "TWljcm9zb2Z0LklkZW50aXR5TW9kZWwuQ2xhaW1zLkNsYWltc0lkZW50aXR5Ozc3ODlmMDlkLWUwNTMtNGYyZS1iZGVlLTBjOGY4NDc2YTRiYw"
+    },
+    {
+      "subjectKind": "user",
+      "metaType": "member",
+      "cuid": "ddd94918-1fc8-459b-994a-cca86c4fbe95",
+      "domain": "TEAM FOUNDATION",
+      "principalName": "Anonymous",
+      "mailAddress": "",
+      "origin": "vsts",
+      "originId": "ddd94918-1fc8-459b-994a-cca86c4fbe95",
+      "displayName": "Anonymous",
+      "_links": {
+        "self": {
+          "href": "https://fabrikam.vssps.visualstudio.com/_apis/graph/users/TWljcm9zb2Z0LlRlYW1Gb3VuZGF0aW9uLlVuYXV0aGVudGljYXRlZElkZW50aXR5O1MtMS0wLTA"
+        },
+        "memberships": {
+          "href": "https://fabrikam.vssps.visualstudio.com/_apis/graph/memberships/TWljcm9zb2Z0LlRlYW1Gb3VuZGF0aW9uLlVuYXV0aGVudGljYXRlZElkZW50aXR5O1MtMS0wLTA"
+        }
+      },
+      "url": "https://fabrikam.vssps.visualstudio.com/_apis/graph/users/TWljcm9zb2Z0LlRlYW1Gb3VuZGF0aW9uLlVuYXV0aGVudGljYXRlZElkZW50aXR5O1MtMS0wLTA",
+      "descriptor": "TWljcm9zb2Z0LlRlYW1Gb3VuZGF0aW9uLlVuYXV0aGVudGljYXRlZElkZW50aXR5O1MtMS0wLTA"
+    },
+    {
+      "subjectKind": "user",
+      "metaType": "member",
+      "cuid": "65903f92-53dc-61b3-bb0e-e69cfa1cb719",
+      "domain": "45aa3d2d-7442-473d-b4d3-3c670da9dd96",
+      "principalName": "ftotten@vscsi.us",
+      "mailAddress": "ftotten@vscsi.us",
+      "origin": "aad",
+      "originId": "4be8f294-000d-4431-8506-57420b88e204",
+      "displayName": "Francis Totten",
+      "_links": {
+        "self": {
+          "href": "https://fabrikam.vssps.visualstudio.com/_apis/graph/users/TWljcm9zb2Z0LklkZW50aXR5TW9kZWwuQ2xhaW1zLkNsYWltc0lkZW50aXR5OzQ1YWEzZDJkLTc0NDItNDczZC1iNGQzLTNjNjcwZGE5ZGQ5NlxmdG90dGVuQHZzY3NpLnVz"
+        },
+        "memberships": {
+          "href": "https://fabrikam.vssps.visualstudio.com/_apis/graph/memberships/TWljcm9zb2Z0LklkZW50aXR5TW9kZWwuQ2xhaW1zLkNsYWltc0lkZW50aXR5OzQ1YWEzZDJkLTc0NDItNDczZC1iNGQzLTNjNjcwZGE5ZGQ5NlxmdG90dGVuQHZzY3NpLnVz"
+        }
+      },
+      "url": "https://fabrikam.vssps.visualstudio.com/_apis/graph/users/TWljcm9zb2Z0LklkZW50aXR5TW9kZWwuQ2xhaW1zLkNsYWltc0lkZW50aXR5OzQ1YWEzZDJkLTc0NDItNDczZC1iNGQzLTNjNjcwZGE5ZGQ5NlxmdG90dGVuQHZzY3NpLnVz",
+      "descriptor": "TWljcm9zb2Z0LklkZW50aXR5TW9kZWwuQ2xhaW1zLkNsYWltc0lkZW50aXR5OzQ1YWEzZDJkLTc0NDItNDczZC1iNGQzLTNjNjcwZGE5ZGQ5NlxmdG90dGVuQHZzY3NpLnVz"
+    }
+  ]
+}
+"""
