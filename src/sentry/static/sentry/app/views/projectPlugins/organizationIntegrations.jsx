@@ -30,7 +30,14 @@ export default class OrganizationIntegrations extends AsyncComponent {
     let {orgId, projectId} = this.props;
     let orgFeatures = new Set(this.state.organization.features);
     let internalIntegrations = new Set(['jira']);
-    let betaIntegrations = new Set(['jira', 'github', 'slack']);
+    let betaIntegrations = new Set([
+      'jira',
+      'bitbucket',
+      'github',
+      'slack',
+      'vsts',
+      'github-enterprise',
+    ]);
 
     const integrations = this.state.config.providers
       .filter(provider => {
@@ -96,5 +103,5 @@ const TeamName = styled.div`
 
 const StyledTag = styled(Tag)`
   font-size: 1rem;
-  display: inline-flex;
+  line-height: 0.8;
 `;
