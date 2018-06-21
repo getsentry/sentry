@@ -1,13 +1,16 @@
 from __future__ import absolute_import
 
-from sentry.integrations import Integration, IntegrationProvider, IntegrationMetadata
+from sentry.integrations import Integration, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
+from sentry.integrations.exceptions import IntegrationError
 from sentry.pipeline import NestedPipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
+from sentry.models import ProjectIntegration
 from django.utils.translation import ugettext_lazy as _
 from sentry.utils.http import absolute_uri
 
 from .repository import BitbucketRepositoryProvider
 from .client import BitbucketApiClient
+from .issues import BitbucketIssueSyncMixin
 
 DESCRIPTION = """
 Bitbucket for Sentry.io
@@ -29,13 +32,24 @@ scopes = (
 )
 
 
-class BitbucketIntegration(Integration):
+class BitbucketIntegration(Integration, BitbucketIssueSyncMixin):
     def get_client(self):
         return BitbucketApiClient(
             self.model.metadata['base_url'],
             self.model.metadata['shared_secret'],
             self.model.external_id,
         )
+
+    def get_repo(self, repo=None, project_id=None):
+        if repo is not None:
+            return repo
+
+        if project_id is None:
+            raise IntegrationError('Bitbucket requires a repo to create an issue')
+        return ProjectIntegration.objects.get(
+            project_id=project_id,
+            integration_id=self.model.id,
+        ).config['default_repo']
 
 
 class BitbucketIntegrationProvider(IntegrationProvider):
@@ -44,6 +58,7 @@ class BitbucketIntegrationProvider(IntegrationProvider):
     metadata = metadata
     scopes = scopes
     integration_cls = BitbucketIntegration
+    features = frozenset([IntegrationFeatures.ISSUE_SYNC])
 
     def get_pipeline_views(self):
         identity_pipeline_config = {
