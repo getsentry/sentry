@@ -76,7 +76,7 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
         }
       >
         <div
-          className="css-1pnrn3o-Wrapper e1kblvez2"
+          className="css-1pnrn3o-Wrapper e1kblvez1"
         >
           <Flex
             align="center"
@@ -91,10 +91,10 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
               >
                 <Title>
                   <Base
-                    className="css-19wrrzr-Heading-Title e1kblvez1"
+                    className="css-1mqcea-Title e1kblvez0"
                   >
                     <div
-                      className="css-19wrrzr-Heading-Title e1kblvez1"
+                      className="css-1mqcea-Title e1kblvez0"
                       is={null}
                     >
                       Manage Environments
@@ -301,7 +301,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
         }
       >
         <div
-          className="css-1pnrn3o-Wrapper e1kblvez2"
+          className="css-1pnrn3o-Wrapper e1kblvez1"
         >
           <Flex
             align="center"
@@ -316,10 +316,10 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
               >
                 <Title>
                   <Base
-                    className="css-19wrrzr-Heading-Title e1kblvez1"
+                    className="css-1mqcea-Title e1kblvez0"
                   >
                     <div
-                      className="css-19wrrzr-Heading-Title e1kblvez1"
+                      className="css-1mqcea-Title e1kblvez0"
                       is={null}
                     >
                       Manage Environments
@@ -972,7 +972,7 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
         }
       >
         <div
-          className="css-1pnrn3o-Wrapper e1kblvez2"
+          className="css-1pnrn3o-Wrapper e1kblvez1"
         >
           <Flex
             align="center"
@@ -987,10 +987,10 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
               >
                 <Title>
                   <Base
-                    className="css-19wrrzr-Heading-Title e1kblvez1"
+                    className="css-1mqcea-Title e1kblvez0"
                   >
                     <div
-                      className="css-19wrrzr-Heading-Title e1kblvez1"
+                      className="css-1mqcea-Title e1kblvez0"
                       is={null}
                     >
                       Manage Environments
@@ -1197,7 +1197,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
         }
       >
         <div
-          className="css-1pnrn3o-Wrapper e1kblvez2"
+          className="css-1pnrn3o-Wrapper e1kblvez1"
         >
           <Flex
             align="center"
@@ -1212,10 +1212,10 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
               >
                 <Title>
                   <Base
-                    className="css-19wrrzr-Heading-Title e1kblvez1"
+                    className="css-1mqcea-Title e1kblvez0"
                   >
                     <div
-                      className="css-19wrrzr-Heading-Title e1kblvez1"
+                      className="css-1mqcea-Title e1kblvez0"
                       is={null}
                     >
                       Manage Environments

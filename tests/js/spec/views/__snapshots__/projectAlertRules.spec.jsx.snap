@@ -83,7 +83,7 @@ exports[`projectAlertRules renders 1`] = `
           }
         >
           <div
-            className="css-1pnrn3o-Wrapper e1kblvez2"
+            className="css-1pnrn3o-Wrapper e1kblvez1"
           >
             <Flex
               align="center"
@@ -98,10 +98,10 @@ exports[`projectAlertRules renders 1`] = `
                 >
                   <Title>
                     <Base
-                      className="css-19wrrzr-Heading-Title e1kblvez1"
+                      className="css-1mqcea-Title e1kblvez0"
                     >
                       <div
-                        className="css-19wrrzr-Heading-Title e1kblvez1"
+                        className="css-1mqcea-Title e1kblvez0"
                         is={null}
                       >
                         Alerts
