@@ -49,18 +49,18 @@ class Feature extends React.Component {
   };
 
   hasFeature = (feature, features) => {
-    let shouldMatchOnlyProject = /^project:/.test(feature);
-    let shouldMatchOnlyOrg = /^organization:/.test(feature);
+    let shouldMatchOnlyProject = feature.match(/^project:(\w+)/);
+    let shouldMatchOnlyOrg = feature.match(/^organization:(\w+)/);
 
     // Array of feature strings
     let {config, organization, project} = features;
 
     if (shouldMatchOnlyProject) {
-      return project.includes(feature);
+      return project.includes(shouldMatchOnlyProject[1]);
     }
 
     if (shouldMatchOnlyOrg) {
-      return organization.includes(feature);
+      return organization.includes(shouldMatchOnlyOrg[1]);
     }
 
     // default, check all feature arrays

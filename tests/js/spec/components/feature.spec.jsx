@@ -5,7 +5,7 @@ import Feature from 'app/components/feature';
 
 describe('Feature', function() {
   const organization = TestStubs.Organization({
-    features: ['org-foo', 'org-bar'],
+    features: ['org-foo', 'org-bar', 'bar'],
     access: ['project:write', 'project:read'],
   });
   const project = TestStubs.Project({
@@ -157,6 +157,36 @@ describe('Feature', function() {
       expect(childrenMock).toHaveBeenCalledWith({
         hasFeature: false,
         hasAccess: false,
+      });
+    });
+
+    it('handles features prefixed with org/project', function() {
+      mount(
+        <Feature
+          organization={organization}
+          project={project}
+          feature={['organization:bar']}
+        >
+          {childrenMock}
+        </Feature>,
+        routerContext
+      );
+
+      expect(childrenMock).toHaveBeenCalledWith({
+        hasFeature: true,
+        hasAccess: true,
+      });
+
+      mount(
+        <Feature organization={organization} project={project} feature={['project:bar']}>
+          {childrenMock}
+        </Feature>,
+        routerContext
+      );
+
+      expect(childrenMock).toHaveBeenCalledWith({
+        hasFeature: false,
+        hasAccess: true,
       });
     });
   });
