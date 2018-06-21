@@ -153,3 +153,12 @@ class VstsIntegrationTest(APITestCase):
         assert project_field['disabled'] is False
         assert project_field['choices'] == self.projects
         assert project_field['initial'] == self.projects[1]
+
+    def test_get_project_config_failure(self):
+        fields = self.integration.get_project_config()
+        assert len(fields) == 1
+        project_field = fields[0]
+        assert project_field['name'] == 'default_project'
+        assert project_field['disabled'] is True
+        assert project_field['choices'] == []
+        assert project_field['initial'] == ('', '')
