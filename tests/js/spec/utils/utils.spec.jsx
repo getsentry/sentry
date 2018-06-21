@@ -245,6 +245,6 @@ describe('utils.stringifyRouteList', function() {
       {path: '/three/'},
       {path: '/:someKey/'},
     ];
-    expect(stringifyRouteList(routes)).toEqual('one/two/three/:someKey/');
+    expect(stringifyRouteList(routes)).toEqual('/one/two/three/:someKey/');
   });
 });

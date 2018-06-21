@@ -224,8 +224,8 @@ export function sortProjects(projects) {
 export const stringifyRouteList = routes =>
   routes
     .filter(r => r.path)
-    .map(r => r.path.replace(/^\//, ''))
-    .join('');
+    .map(r => r.path.replace(/\/$/, ''))
+    .join('') + '/';
 
 //build actorIds
 export const buildUserId = id => `user:${id}`;
