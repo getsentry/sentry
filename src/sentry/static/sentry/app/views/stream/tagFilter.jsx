@@ -51,7 +51,6 @@ class StreamTagFilter extends React.Component {
   componentWillUnmount() {
     if (!this.api) return;
     this.api.clear();
-    this.api = null;
   }
 
   getTagValuesAPIEndpoint = () => {
