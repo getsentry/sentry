@@ -4,6 +4,7 @@ import {
   parseRepo,
   explodeSlug,
   sortProjects,
+  stringifyRouteList,
 } from 'app/utils';
 
 describe('utils.valueIsEqual', function() {
@@ -232,5 +233,18 @@ describe('utils.projectDisplayCompare', function() {
         slug: 'z',
       },
     ]);
+  });
+});
+
+describe('utils.stringifyRouteList', function() {
+  it('converts a routes list into a string', function() {
+    const routes = [
+      {path: '/one/'},
+      {path: '/two/'},
+      {path: undefined},
+      {path: '/three/'},
+      {path: '/:someKey/'},
+    ];
+    expect(stringifyRouteList(routes)).toEqual('/one/two/three/:someKey/');
   });
 });

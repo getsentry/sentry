@@ -220,6 +220,13 @@ export function sortProjects(projects) {
   return projects.sort(projectDisplayCompare);
 }
 
+// Map a routes list into a string
+export const stringifyRouteList = routes =>
+  routes
+    .filter(r => r.path)
+    .map(r => r.path.replace(/\/$/, ''))
+    .join('') + '/';
+
 //build actorIds
 export const buildUserId = id => `user:${id}`;
 export const buildTeamId = id => `team:${id}`;
