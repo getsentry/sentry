@@ -4,7 +4,7 @@ from time import time
 from django.utils.translation import ugettext as _
 
 from sentry.integrations import Integration, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
-from sentry.integrations.exceptions import ApiError
+
 from sentry.integrations.vsts.issues import VstsIssueSync
 from sentry.pipeline import NestedPipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
@@ -25,6 +25,8 @@ metadata = IntegrationMetadata(
     aspects={},
 )
 
+INVALID_ACCESS_TOKEN = 'HTTP 400 (invalid_request): The access token is not valid'
+
 
 class VstsIntegration(Integration, VstsIssueSync):
     def __init__(self, *args, **kwargs):
@@ -42,10 +44,12 @@ class VstsIntegration(Integration, VstsIssueSync):
         disabled = False
         try:
             projects = client.get_projects(self.model.metadata['domain_name'])
-        except ApiError:
+        except Exception as e:
             # TODO(LB): Disable for now. Need to decide what to do with this in the future
             # should a message be shown to the user?
-            # Should we try refreshing the token? For VSTS that often clears up the problem
+            if INVALID_ACCESS_TOKEN == e.message:
+                # TODO(LB): display to the user to reinstall integration
+                pass
             project_choices = []
             disabled = True
         else:
