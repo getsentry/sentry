@@ -66,17 +66,22 @@ class IntegrationPipeline(Pipeline):
         # Does this integration provide a user identity for the user setting up
         # the integration?
         identity = data.get('user_identity')
-        identity_config = data.get('identity_config', {})
 
         if identity:
+            # Some identity providers may not be directly associated to the
+            # external integration. Integrations may specify the external_id to
+            # be used for the idp.
+            idp_external_id = data.get('idp_external_id', data['external_id'])
+            idp_config = data.get('idp_config', {})
+
             # Create identity provider for this integration if necessary
             idp, created = IdentityProvider.objects.get_or_create(
-                external_id=data['external_id'],
+                external_id=idp_external_id,
                 type=identity['type'],
-                defaults={'config': identity_config},
+                defaults={'config': idp_config},
             )
             if not created:
-                idp.update(config=identity_config)
+                idp.update(config=idp_config)
 
             identity_data = {
                 'status': IdentityStatus.VALID,

@@ -224,6 +224,9 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
         return {
             'name': installation['account']['login'],
             'external_id': installation['id'],
+            # GitHub identity is associated directly to the application, *not*
+            # to the installation itself.
+            'idp_external_id': installation['app_id'],
             'metadata': {
                 # The access token will be populated upon API usage
                 'access_token': None,
@@ -238,7 +241,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
                 'scopes': [],  # GitHub apps do not have user scopes
                 'data': {'access_token': identity['access_token']},
             },
-            'identity_config': state['oauth_config_information']
+            'idp_config': state['oauth_config_information']
         }
 
     def setup(self):
