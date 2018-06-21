@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from django.core.urlresolvers import reverse
+
 from sentry.api.base import Endpoint
 from sentry.utils.http import absolute_uri
 
@@ -37,6 +39,12 @@ class JiraDescriptorEndpoint(Endpoint):
                         },
                         'key': 'configure-sentry'
                     },
+                    'webhooks': [{
+                        'event': 'jira:issue_updated',
+                        'url': reverse('sentry-extensions-jira-issue-updated'),
+                        'excludeBody': False,
+                    }
+                    ]
                 },
                 'scopes': [
                     'read',
