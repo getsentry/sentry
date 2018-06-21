@@ -226,7 +226,7 @@ const ProjectSelector = createReactClass({
         {/*ideally an icon here...*/}
         <ProjectBadge>
           <Flex>
-            <PlatformList platforms={platforms} direction="left" />
+            <StyledPlatformList platforms={platforms} direction="left" />
             {label}
           </Flex>
           {project.isBookmarked && <BookmarkIcon />}
@@ -407,6 +407,11 @@ const ProjectSelector = createReactClass({
     );
   },
 });
+
+const StyledPlatformList = styled(PlatformList)`
+  margin-left: -10px;
+  margin-right: 6px;
+`;
 
 const ProjectBadge = styled.div`
   display: flex;

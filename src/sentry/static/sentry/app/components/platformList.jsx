@@ -36,7 +36,7 @@ class PlatformList extends React.Component {
     const {platforms} = this.props;
     const platformsPreview = platforms.slice(0, MAX_PLATFORMS);
     return (
-      <PlatformIcons direction={this.props.direction}>
+      <PlatformIcons direction={this.props.direction} {...this.props}>
         {platforms.length > 0 ? (
           this.getIcons(platformsPreview)
         ) : (
