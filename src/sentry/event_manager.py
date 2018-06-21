@@ -52,6 +52,11 @@ DEFAULT_FINGERPRINT_VALUES = frozenset(['{{ default }}', '{{default}}'])
 ALLOWED_FUTURE_DELTA = timedelta(minutes=1)
 
 
+post_process_callback = getattr(settings, 'SENTRY_POST_PROCESS_CALLBACK', None)
+if post_process_callback is None:
+    post_process_callback = post_process_group.delay
+
+
 def count_limit(count):
     # TODO: could we do something like num_to_store = max(math.sqrt(100*count)+59, 200) ?
     # ~ 150 * ((log(n) - 1.5) ^ 2 - 0.25)
@@ -945,7 +950,7 @@ class EventManager(object):
                 project.update(first_event=date)
                 first_event_received.send(project=project, group=group, sender=Project)
 
-            post_process_group.delay(
+            post_process_callback(
                 group=group,
                 event=event,
                 is_new=is_new,
