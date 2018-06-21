@@ -162,7 +162,7 @@ exports[`ProjectSelector render() can filter projects by project name 1`] = `
                   >
                     <ProjectBadge>
                       <div
-                        className="css-1dx2nj3-ProjectBadge et07ovj0"
+                        className="css-1dx2nj3-ProjectBadge et07ovj1"
                       >
                         <Flex>
                           <Base
@@ -172,40 +172,52 @@ exports[`ProjectSelector render() can filter projects by project name 1`] = `
                               className="css-sncxrr"
                               is={null}
                             >
-                              <PlatformList
+                              <StyledPlatformList
+                                direction="left"
                                 platforms={Array []}
                               >
-                                <PlatformIcons>
-                                  <div
-                                    className="css-10b0mx0-PlatformIcons ezvce7z0"
+                                <PlatformList
+                                  className="css-16pu8f4-StyledPlatformList et07ovj0"
+                                  direction="left"
+                                  platforms={Array []}
+                                >
+                                  <PlatformIcons
+                                    className="css-16pu8f4-StyledPlatformList et07ovj0"
+                                    direction="left"
+                                    platforms={Array []}
                                   >
-                                    <StyledPlatformIcon
-                                      platform="default"
-                                      size="16px"
+                                    <div
+                                      className="et07ovj0 css-1or6tzj-PlatformIcons-StyledPlatformList ezvce7z0"
+                                      direction="left"
                                     >
-                                      <Platformicon
-                                        className="css-b9p6z1-StyledPlatformIcon ezvce7z1"
+                                      <StyledPlatformIcon
                                         platform="default"
                                         size="16px"
                                       >
-                                        <img
+                                        <Platformicon
                                           className="css-b9p6z1-StyledPlatformIcon ezvce7z1"
-                                          height="16px"
-                                          src={
-                                            Object {
-                                              "default": Object {
-                                                "id": "test",
-                                                "viewBox": Object {},
-                                              },
+                                          platform="default"
+                                          size="16px"
+                                        >
+                                          <img
+                                            className="css-b9p6z1-StyledPlatformIcon ezvce7z1"
+                                            height="16px"
+                                            src={
+                                              Object {
+                                                "default": Object {
+                                                  "id": "test",
+                                                  "viewBox": Object {},
+                                                },
+                                              }
                                             }
-                                          }
-                                          width="16px"
-                                        />
-                                      </Platformicon>
-                                    </StyledPlatformIcon>
-                                  </div>
-                                </PlatformIcons>
-                              </PlatformList>
+                                            width="16px"
+                                          />
+                                        </Platformicon>
+                                      </StyledPlatformIcon>
+                                    </div>
+                                  </PlatformIcons>
+                                </PlatformList>
+                              </StyledPlatformList>
                               <span>
                                 <strong
                                   className="highlight"
@@ -393,7 +405,7 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
                   >
                     <ProjectBadge>
                       <div
-                        className="css-1dx2nj3-ProjectBadge et07ovj0"
+                        className="css-1dx2nj3-ProjectBadge et07ovj1"
                       >
                         <Flex>
                           <Base
@@ -403,40 +415,52 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
                               className="css-sncxrr"
                               is={null}
                             >
-                              <PlatformList
+                              <StyledPlatformList
+                                direction="left"
                                 platforms={Array []}
                               >
-                                <PlatformIcons>
-                                  <div
-                                    className="css-10b0mx0-PlatformIcons ezvce7z0"
+                                <PlatformList
+                                  className="css-16pu8f4-StyledPlatformList et07ovj0"
+                                  direction="left"
+                                  platforms={Array []}
+                                >
+                                  <PlatformIcons
+                                    className="css-16pu8f4-StyledPlatformList et07ovj0"
+                                    direction="left"
+                                    platforms={Array []}
                                   >
-                                    <StyledPlatformIcon
-                                      platform="default"
-                                      size="16px"
+                                    <div
+                                      className="et07ovj0 css-1or6tzj-PlatformIcons-StyledPlatformList ezvce7z0"
+                                      direction="left"
                                     >
-                                      <Platformicon
-                                        className="css-b9p6z1-StyledPlatformIcon ezvce7z1"
+                                      <StyledPlatformIcon
                                         platform="default"
                                         size="16px"
                                       >
-                                        <img
+                                        <Platformicon
                                           className="css-b9p6z1-StyledPlatformIcon ezvce7z1"
-                                          height="16px"
-                                          src={
-                                            Object {
-                                              "default": Object {
-                                                "id": "test",
-                                                "viewBox": Object {},
-                                              },
+                                          platform="default"
+                                          size="16px"
+                                        >
+                                          <img
+                                            className="css-b9p6z1-StyledPlatformIcon ezvce7z1"
+                                            height="16px"
+                                            src={
+                                              Object {
+                                                "default": Object {
+                                                  "id": "test",
+                                                  "viewBox": Object {},
+                                                },
+                                              }
                                             }
-                                          }
-                                          width="16px"
-                                        />
-                                      </Platformicon>
-                                    </StyledPlatformIcon>
-                                  </div>
-                                </PlatformIcons>
-                              </PlatformList>
+                                            width="16px"
+                                          />
+                                        </Platformicon>
+                                      </StyledPlatformIcon>
+                                    </div>
+                                  </PlatformIcons>
+                                </PlatformList>
+                              </StyledPlatformList>
                               Another Project
                             </div>
                           </Base>
@@ -466,7 +490,7 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
                   >
                     <ProjectBadge>
                       <div
-                        className="css-1dx2nj3-ProjectBadge et07ovj0"
+                        className="css-1dx2nj3-ProjectBadge et07ovj1"
                       >
                         <Flex>
                           <Base
@@ -476,40 +500,52 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
                               className="css-sncxrr"
                               is={null}
                             >
-                              <PlatformList
+                              <StyledPlatformList
+                                direction="left"
                                 platforms={Array []}
                               >
-                                <PlatformIcons>
-                                  <div
-                                    className="css-10b0mx0-PlatformIcons ezvce7z0"
+                                <PlatformList
+                                  className="css-16pu8f4-StyledPlatformList et07ovj0"
+                                  direction="left"
+                                  platforms={Array []}
+                                >
+                                  <PlatformIcons
+                                    className="css-16pu8f4-StyledPlatformList et07ovj0"
+                                    direction="left"
+                                    platforms={Array []}
                                   >
-                                    <StyledPlatformIcon
-                                      platform="default"
-                                      size="16px"
+                                    <div
+                                      className="et07ovj0 css-1or6tzj-PlatformIcons-StyledPlatformList ezvce7z0"
+                                      direction="left"
                                     >
-                                      <Platformicon
-                                        className="css-b9p6z1-StyledPlatformIcon ezvce7z1"
+                                      <StyledPlatformIcon
                                         platform="default"
                                         size="16px"
                                       >
-                                        <img
+                                        <Platformicon
                                           className="css-b9p6z1-StyledPlatformIcon ezvce7z1"
-                                          height="16px"
-                                          src={
-                                            Object {
-                                              "default": Object {
-                                                "id": "test",
-                                                "viewBox": Object {},
-                                              },
+                                          platform="default"
+                                          size="16px"
+                                        >
+                                          <img
+                                            className="css-b9p6z1-StyledPlatformIcon ezvce7z1"
+                                            height="16px"
+                                            src={
+                                              Object {
+                                                "default": Object {
+                                                  "id": "test",
+                                                  "viewBox": Object {},
+                                                },
+                                              }
                                             }
-                                          }
-                                          width="16px"
-                                        />
-                                      </Platformicon>
-                                    </StyledPlatformIcon>
-                                  </div>
-                                </PlatformIcons>
-                              </PlatformList>
+                                            width="16px"
+                                          />
+                                        </Platformicon>
+                                      </StyledPlatformIcon>
+                                    </div>
+                                  </PlatformIcons>
+                                </PlatformList>
+                              </StyledPlatformList>
                               <span>
                                 <strong
                                   className="highlight"
@@ -585,7 +621,8 @@ exports[`ProjectSelector render() lists projects and has filter 1`] = `
       >
         <ProjectBadge>
           <Flex>
-            <PlatformList
+            <StyledPlatformList
+              direction="left"
               platforms={Array []}
             />
             <span>
@@ -602,7 +639,8 @@ exports[`ProjectSelector render() lists projects and has filter 1`] = `
       >
         <ProjectBadge>
           <Flex>
-            <PlatformList
+            <StyledPlatformList
+              direction="left"
               platforms={Array []}
             />
             <span>
