@@ -226,7 +226,7 @@ const ProjectSelector = createReactClass({
         {/*ideally an icon here...*/}
         <ProjectBadge>
           <Flex>
-            <PlatformList platforms={platforms} />
+            <PlatformList platforms={platforms} direction="left" />
             {label}
           </Flex>
           {project.isBookmarked && <BookmarkIcon />}

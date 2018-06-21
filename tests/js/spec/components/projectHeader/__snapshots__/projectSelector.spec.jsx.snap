@@ -173,11 +173,15 @@ exports[`ProjectSelector render() can filter projects by project name 1`] = `
                               is={null}
                             >
                               <PlatformList
+                                direction="left"
                                 platforms={Array []}
                               >
-                                <PlatformIcons>
+                                <PlatformIcons
+                                  direction="left"
+                                >
                                   <div
                                     className="css-10b0mx0-PlatformIcons ezvce7z0"
+                                    direction="left"
                                   >
                                     <StyledPlatformIcon
                                       platform="default"
@@ -404,11 +408,15 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
                               is={null}
                             >
                               <PlatformList
+                                direction="left"
                                 platforms={Array []}
                               >
-                                <PlatformIcons>
+                                <PlatformIcons
+                                  direction="left"
+                                >
                                   <div
                                     className="css-10b0mx0-PlatformIcons ezvce7z0"
+                                    direction="left"
                                   >
                                     <StyledPlatformIcon
                                       platform="default"
@@ -477,11 +485,15 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
                               is={null}
                             >
                               <PlatformList
+                                direction="left"
                                 platforms={Array []}
                               >
-                                <PlatformIcons>
+                                <PlatformIcons
+                                  direction="left"
+                                >
                                   <div
                                     className="css-10b0mx0-PlatformIcons ezvce7z0"
+                                    direction="left"
                                   >
                                     <StyledPlatformIcon
                                       platform="default"
@@ -586,6 +598,7 @@ exports[`ProjectSelector render() lists projects and has filter 1`] = `
         <ProjectBadge>
           <Flex>
             <PlatformList
+              direction="left"
               platforms={Array []}
             />
             <span>
@@ -603,6 +616,7 @@ exports[`ProjectSelector render() lists projects and has filter 1`] = `
         <ProjectBadge>
           <Flex>
             <PlatformList
+              direction="left"
               platforms={Array []}
             />
             <span>
