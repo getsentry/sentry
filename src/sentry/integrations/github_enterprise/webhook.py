@@ -16,7 +16,7 @@ from django.views.generic import View
 from django.utils import timezone
 from simplejson import JSONDecodeError
 from sentry.models import (
-    Commit, CommitAuthor, CommitFileChange, Integration, PullRequest,
+    Commit, CommitAuthor, CommitFileChange, Identity, Integration, PullRequest,
     Repository, User
 )
 from sentry.utils import json
@@ -37,7 +37,10 @@ def get_external_id(username):
 
 
 def get_installation_metadata(event):
-    integration = Integration.objects.get(external_id=event['installation']['id'])
+    try:
+        integration = Integration.objects.get(external_id=event['installation']['id'])
+    except Integration.DoesNotExist:
+        return
     return integration.metadata['installation']
 
 
@@ -108,6 +111,9 @@ class PushEventWebhook(Webhook):
     def _handle(self, event, organization, repo):
         authors = {}
         metadata = get_installation_metadata(event)
+        if metadata is None:
+            return HttpResponse(status=400)
+
         client = GitHubEnterpriseAppsClient(
             metadata['url'],
             metadata['id'],
@@ -159,15 +165,12 @@ class PushEventWebhook(Webhook):
                                 # don't re-query
                                 gh_username_cache[gh_username] = None
                                 try:
-                                    user = User.objects.filter(
-                                        social_auth__provider='github',
-                                        social_auth__uid=gh_user['id'],
-                                        org_memberships=organization,
-                                    )[0]
-                                except IndexError:
+                                    # todo(meredith): make sure correct identity is used
+                                    identity = Identity.objects.get(external_id=gh_user['id'])
+                                except Identity.DoesNotExist:
                                     pass
                                 else:
-                                    author_email = user.email
+                                    author_email = identity.user.email
                                     gh_username_cache[gh_username] = author_email
                                     if commit_author is not None:
                                         try:
@@ -352,7 +355,10 @@ class GithubWebhookBase(View):
 
     def get_secret(self, event):
         metadata = get_installation_metadata(event)
-        return metadata['webhook_secret']
+        if metadata:
+            return metadata.get('webhook_secret')
+        else:
+            return None
 
     def handle(self, request):
         body = six.binary_type(request.body)
