@@ -40,6 +40,7 @@ from sentry.tasks.merge import merge_group
 from sentry.utils import metrics
 from sentry.utils.cache import default_cache
 from sentry.utils.db import get_db_engine
+from sentry.utils.imports import import_string
 from sentry.utils.safe import safe_execute, trim, trim_dict, get_path
 from sentry.utils.strings import truncatechars
 from sentry.utils.validators import is_float
@@ -55,6 +56,8 @@ post_process_callback = getattr(settings, 'SENTRY_POST_PROCESS_CALLBACK', None)
 if post_process_callback is None:
     from sentry.tasks.post_process import post_process_group
     post_process_callback = post_process_group.delay
+else:
+    post_process_callback = import_string(post_process_callback)
 
 
 def count_limit(count):
