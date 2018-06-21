@@ -94,11 +94,10 @@ class GroupAssigneeManager(BaseManager):
                 },
             )
             activity.send_notification()
-
-        # sync Sentry assignee to external issues
-        if assignee_type == 'user' and features.has(
-                'organizations:internal-catchall', group.organization, actor=acting_user):
-            sync_group_assignee(group, assigned_to.id, assign=True)
+            # sync Sentry assignee to external issues
+            if assignee_type == 'user' and features.has(
+                    'organizations:internal-catchall', group.organization, actor=acting_user):
+                sync_group_assignee(group, assigned_to.id, assign=True)
 
     def deassign(self, group, acting_user=None):
         from sentry import features
@@ -117,10 +116,10 @@ class GroupAssigneeManager(BaseManager):
                 user=acting_user,
             )
             activity.send_notification()
-
-        # sync Sentry assignee to external issues
-        if features.has('organizations:internal-catchall', group.organization, actor=acting_user):
-            sync_group_assignee(group, None, assign=False)
+            # sync Sentry assignee to external issues
+            if features.has('organizations:internal-catchall',
+                            group.organization, actor=acting_user):
+                sync_group_assignee(group, None, assign=False)
 
 
 class GroupAssignee(Model):
