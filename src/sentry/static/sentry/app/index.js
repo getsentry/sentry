@@ -141,6 +141,7 @@ export default {
     ListLink: require('app/components/listLink').default,
     MenuItem: require('app/components/menuItem').default,
     NarrowLayout: require('app/components/narrowLayout').default,
+    OrganizationAuth: require('app/views/settings/organizationAuth').default,
     OrganizationHomeContainer: require('app/components/organizations/homeContainer')
       .default,
     OrganizationsLoader: require('app/components/organizations/organizationsLoader')

@@ -4,6 +4,7 @@ import _ from 'lodash';
 let validHookNames = new Set([
   'assistant:support-button',
   'component:org-members-view',
+  'component:org-auth-view',
   'footer',
   'settings:organization-navigation',
   'settings:organization-navigation-config',
