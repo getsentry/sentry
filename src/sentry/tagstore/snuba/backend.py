@@ -380,20 +380,16 @@ class SnubaTagStorage(TagStorage):
             'environment': [environment_id],
             'issue': [group_id],
         }
-        aggregations = [
-            ['max', SEEN_COLUMN, 'last_seen'],
-        ]
 
         conditions = [[['tags[{}]'.format(k), '=', v] for (k, v) in tags.items()]]
 
-        result = snuba.query(start, end, groupby=['event_id'], conditions=conditions,
-                             aggregations=aggregations, orderby='-last_seen',
-                             filter_keys=filters, limit=1000, referrer='tagstore.get_group_event_filter')
+        result = snuba.raw_query(start, end, groupby=None, selected_columns=['event_id'], conditions=conditions, orderby='-timestamp', filter_keys=filters, limit=1000, referrer='tagstore.get_group_event_filter')
+        result = set(row['event_id'] for row in result['data'])
 
         if not result:
             return None
 
-        return {'event_id__in': set(result.keys())}
+        return {'event_id__in': result}
 
     def get_group_ids_for_search_filter(
             self, project_id, environment_id, tags, candidates=None, limit=1000):
