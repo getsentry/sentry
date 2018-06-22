@@ -240,6 +240,7 @@ exports[`AdminQueue render() renders 1`] = `
           clearable={true}
           disabled={false}
           hideErrorMessage={false}
+          multiple={false}
           name="task"
           onChange={[Function]}
           required={false}

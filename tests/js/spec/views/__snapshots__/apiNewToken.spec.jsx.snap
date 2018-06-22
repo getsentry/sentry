@@ -38,14 +38,10 @@ exports[`ApiNewToken render() renders 1`] = `
         </span>
       </span>
     </p>
-    <ApiForm
+    <StyledForm
       apiEndpoint="/api-tokens/"
       apiMethod="POST"
-      cancelLabel="Cancel"
       className="form-stacked api-new-token"
-      errorMessage="Unable to save your changes. Please ensure all fields are valid and try again."
-      footerClass="form-actions align-right"
-      hideErrors={false}
       initialData={
         Object {
           "scopes": Array [
@@ -61,11 +57,7 @@ exports[`ApiNewToken render() renders 1`] = `
       }
       onCancel={[Function]}
       onSubmitSuccess={[Function]}
-      requireChanges={false}
-      resetOnError={false}
-      submitDisabled={false}
       submitErrorMessage="There was an error saving your changes."
-      submitLabel="Save Changes"
       submitLoadingMessage="Saving changes.."
     >
       <MultipleCheckboxField
@@ -135,7 +127,7 @@ exports[`ApiNewToken render() renders 1`] = `
         name="scopes"
         required={true}
       />
-    </ApiForm>
+    </StyledForm>
   </NarrowLayout>
 </SideEffect(DocumentTitle)>
 `;

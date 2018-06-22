@@ -8,14 +8,9 @@ exports[`AdminSettings render() renders 1`] = `
     <h3>
       Settings
     </h3>
-    <ApiForm
+    <StyledForm
       apiEndpoint="/internal/options/"
       apiMethod="PUT"
-      cancelLabel="Cancel"
-      className="form-stacked"
-      errorMessage="Unable to save your changes. Please ensure all fields are valid and try again."
-      footerClass="form-actions align-right"
-      hideErrors={false}
       initialData={
         Object {
           "api.rate-limit.org-create": 25,
@@ -31,10 +26,7 @@ exports[`AdminSettings render() renders 1`] = `
         }
       }
       requireChanges={true}
-      resetOnError={false}
-      submitDisabled={false}
       submitErrorMessage="There was an error saving your changes."
-      submitLabel="Save Changes"
       submitLoadingMessage="Saving changes.."
     >
       <h4>
@@ -209,7 +201,7 @@ exports[`AdminSettings render() renders 1`] = `
         yesFirst={false}
         yesLabel="Please keep my usage information anonymous"
       />
-    </ApiForm>
+    </StyledForm>
   </div>
 </SideEffect(DocumentTitle)>
 `;

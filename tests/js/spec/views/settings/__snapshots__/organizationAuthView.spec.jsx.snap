@@ -50,19 +50,11 @@ exports[`OrganizationAuthView renders from api 1`] = `
       <legend>
         General Settings
       </legend>
-      <ApiForm
+      <StyledForm
         apiEndpoint="/organizations/org-slug/auth-provider/"
         apiMethod="PUT"
-        cancelLabel="Cancel"
-        className="form-stacked"
-        errorMessage="Unable to save your changes. Please ensure all fields are valid and try again."
-        footerClass="form-actions align-right"
-        hideErrors={false}
         initialData={Object {}}
         onSubmit={[Function]}
-        requireChanges={false}
-        resetOnError={false}
-        submitDisabled={false}
         submitErrorMessage="There was an error saving your changes."
         submitLabel="Save Settings"
         submitLoadingMessage="Saving changes.."
@@ -104,10 +96,11 @@ exports[`OrganizationAuthView renders from api 1`] = `
           disabled={false}
           hideErrorMessage={false}
           label="Default Role"
+          multiple={false}
           name="default_role"
           required={true}
         />
-      </ApiForm>
+      </StyledForm>
     </div>
   </div>
   <div

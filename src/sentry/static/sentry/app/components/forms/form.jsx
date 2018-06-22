@@ -1,11 +1,12 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
+import styled from 'react-emotion';
 
 import FormState from 'app/components/forms/state';
 import {t} from 'app/locale';
 
-export default class Form extends React.Component {
+class Form extends React.Component {
   static propTypes = {
     cancelLabel: PropTypes.string,
     onCancel: PropTypes.func,
@@ -166,3 +167,9 @@ export default class Form extends React.Component {
     );
   }
 }
+
+// Note: this is so we can use this as a selector for SelectField
+const StyledForm = styled(Form)``;
+
+export default StyledForm;
+export {Form};
