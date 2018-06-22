@@ -383,7 +383,7 @@ class SnubaTagStorage(TagStorage):
 
         conditions = [[['tags[{}]'.format(k), '=', v] for (k, v) in tags.items()]]
 
-        result = snuba.raw_query(start, end, groupby=None, selected_columns=['event_id'],
+        result = snuba.raw_query(start, end, selected_columns=['event_id'],
                                  conditions=conditions, orderby='-timestamp', filter_keys=filters,
                                  limit=1000, referrer='tagstore.get_group_event_filter')
 
