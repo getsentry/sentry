@@ -88,6 +88,8 @@ export default {
       DateTimeField: require('app/views/settings/components/forms/dateTimeField').default,
       EmailField: require('app/views/settings/components/forms/emailField').default,
       Form: require('app/views/settings/components/forms/form').default,
+      RadioBooleanField: require('app/views/settings/components/forms/radioBooleanField')
+        .default,
       RadioGroupField: require('app/views/settings/components/forms/radioField').default,
       RangeField: require('app/views/settings/components/forms/rangeField').default,
       SelectField: require('app/views/settings/components/forms/selectField').default,
