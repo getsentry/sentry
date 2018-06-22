@@ -4,7 +4,7 @@ from time import time
 from django.utils.translation import ugettext as _
 
 from sentry.integrations import Integration, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
-
+from sentry.integrations.exceptions import ApiError
 from sentry.integrations.vsts.issues import VstsIssueSync
 from sentry.pipeline import NestedPipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
@@ -42,7 +42,7 @@ class VstsIntegration(Integration, VstsIssueSync):
         disabled = False
         try:
             projects = client.get_projects(self.model.metadata['domain_name'])
-        except Exception:
+        except ApiError:
             # TODO(LB): Disable for now. Need to decide what to do with this in the future
             # should a message be shown to the user?
             #  If INVALID_ACCESS_TOKEN ask the user to reinstall integration?
