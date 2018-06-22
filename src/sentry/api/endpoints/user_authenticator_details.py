@@ -77,6 +77,16 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
         if interface.interface_id == 'recovery':
             interface.regenerate_codes()
 
+            capture_security_activity(
+                account=user,
+                type='recovery-codes-regenerated',
+                actor=request.user,
+                ip_address=request.META['REMOTE_ADDR'],
+                context={
+                    'authenticator': authenticator,
+                },
+                send_email=True
+            )
         return Response(serialize(interface))
 
     @sudo_required

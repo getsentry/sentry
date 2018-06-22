@@ -14,11 +14,10 @@ class UserAuthenticatorDetailsTest(APITestCase):
         self.user = self.create_user(email='test@example.com', is_superuser=False)
         self.login_as(user=self.user)
 
-    def _assert_mfa_removed_email_sent(*args):
-        test, email_log = args
+    def _assert_security_email_sent(self, email_type, email_log):
         assert email_log.info.call_count == 1
         assert 'mail.queued' in email_log.info.call_args[0]
-        assert email_log.info.call_args[1]['extra']['message_type'] == 'mfa-removed'
+        assert email_log.info.call_args[1]['extra']['message_type'] == email_type
 
     def test_wrong_auth_id(self):
         url = reverse(
@@ -56,7 +55,8 @@ class UserAuthenticatorDetailsTest(APITestCase):
         assert 'form' not in resp.data
         assert 'qrcode' not in resp.data
 
-    def test_get_recovery_codes(self):
+    @mock.patch('sentry.utils.email.logger')
+    def test_get_recovery_codes(self, email_log):
         interface = RecoveryCodeInterface()
         interface.enroll(self.user)
 
@@ -73,6 +73,8 @@ class UserAuthenticatorDetailsTest(APITestCase):
         assert resp.data['id'] == "recovery"
         assert resp.data['authId'] == six.text_type(interface.authenticator.id)
         assert len(resp.data['codes'])
+
+        assert email_log.info.call_count == 0
 
     def test_u2f_get_devices(self):
         auth = Authenticator.objects.create(
@@ -214,7 +216,7 @@ class UserAuthenticatorDetailsTest(APITestCase):
         resp = self.client.get(url)
         assert old_codes != resp.data['codes']
 
-        assert email_log.info.call_count == 0
+        self._assert_security_email_sent('recovery-codes-regenerated', email_log)
 
     @mock.patch('sentry.utils.email.logger')
     def test_delete(self, email_log):
@@ -240,7 +242,7 @@ class UserAuthenticatorDetailsTest(APITestCase):
             id=auth.id,
         ).exists()
 
-        self._assert_mfa_removed_email_sent(email_log)
+        self._assert_security_email_sent('mfa-removed', email_log)
 
     @mock.patch('sentry.utils.email.logger')
     def test_cannot_delete_without_superuser(self, email_log):

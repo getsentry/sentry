@@ -182,6 +182,16 @@ class RecoveryCodeSettingsView(TwoFactorSettingsView):
     def configure(self, request, interface):
         if 'regenerate' in request.POST:
             interface.regenerate_codes()
+            capture_security_activity(
+                account=request.user,
+                type='recovery-codes-regenerated',
+                actor=request.user,
+                ip_address=request.META['REMOTE_ADDR'],
+                context={
+                    'authenticator': interface.authenticator,
+                },
+                send_email=True,
+            )
             return HttpResponseRedirect(request.path)
         return TwoFactorSettingsView.configure(self, request, interface)
 
