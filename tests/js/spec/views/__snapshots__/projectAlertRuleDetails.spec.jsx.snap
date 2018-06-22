@@ -316,13 +316,6 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                             <div
                               className="controls"
                             >
-<<<<<<< HEAD
-                              <select
-                                className="form-control"
-                                disabled={false}
-                                id="id-actionMatch"
-                                multiple={false}
-=======
                               <SelectControl
                                 choices={
                                   Array [
@@ -343,32 +336,10 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                 clearable={false}
                                 disabled={false}
                                 id="id-actionMatch"
->>>>>>> 0d086b6f08... feat(ui): Change Select2Field to use react-select
                                 onChange={[Function]}
                                 required={true}
                                 value=""
                               >
-<<<<<<< HEAD
-                                <option
-                                  key="all"
-                                  value="all"
-                                >
-                                  all
-                                </option>
-                                <option
-                                  key="any"
-                                  value="any"
-                                >
-                                  any
-                                </option>
-                                <option
-                                  key="none"
-                                  value="none"
-                                >
-                                  none
-                                </option>
-                              </select>
-=======
                                 <StyledSelect
                                   arrowRenderer={[Function]}
                                   clearable={false}
@@ -578,7 +549,6 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                   </SelectPicker>
                                 </StyledSelect>
                               </SelectControl>
->>>>>>> 0d086b6f08... feat(ui): Change Select2Field to use react-select
                             </div>
                           </div>
                         </SelectField>
@@ -1043,13 +1013,6 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                         <div
                           className="controls"
                         >
-<<<<<<< HEAD
-                          <select
-                            className="form-control"
-                            disabled={false}
-                            id="id-environment"
-                            multiple={false}
-=======
                           <SelectControl
                             choices={
                               Array [
@@ -1070,32 +1033,10 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                             clearable={false}
                             disabled={false}
                             id="id-environment"
->>>>>>> 0d086b6f08... feat(ui): Change Select2Field to use react-select
                             onChange={[Function]}
                             required={true}
                             value="staging"
                           >
-<<<<<<< HEAD
-                            <option
-                              key="__all_environments__"
-                              value="__all_environments__"
-                            >
-                              All Environments
-                            </option>
-                            <option
-                              key="production"
-                              value="production"
-                            >
-                              Production
-                            </option>
-                            <option
-                              key="staging"
-                              value="staging"
-                            >
-                              Staging
-                            </option>
-                          </select>
-=======
                             <StyledSelect
                               arrowRenderer={[Function]}
                               clearable={false}
@@ -1326,7 +1267,6 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                               </SelectPicker>
                             </StyledSelect>
                           </SelectControl>
->>>>>>> 0d086b6f08... feat(ui): Change Select2Field to use react-select
                         </div>
                       </div>
                     </SelectField>
@@ -1816,13 +1756,6 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                             <div
                               className="controls"
                             >
-<<<<<<< HEAD
-                              <select
-                                className="form-control"
-                                disabled={false}
-                                id="id-frequency"
-                                multiple={false}
-=======
                               <SelectControl
                                 choices={
                                   Array [
@@ -1867,68 +1800,10 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                 clearable={false}
                                 disabled={false}
                                 id="id-frequency"
->>>>>>> 0d086b6f08... feat(ui): Change Select2Field to use react-select
                                 onChange={[Function]}
                                 required={true}
                                 value=""
                               >
-<<<<<<< HEAD
-                                <option
-                                  key="5"
-                                  value="5"
-                                >
-                                  5 minutes
-                                </option>
-                                <option
-                                  key="10"
-                                  value="10"
-                                >
-                                  10 minutes
-                                </option>
-                                <option
-                                  key="30"
-                                  value="30"
-                                >
-                                  30 minutes
-                                </option>
-                                <option
-                                  key="60"
-                                  value="60"
-                                >
-                                  60 minutes
-                                </option>
-                                <option
-                                  key="180"
-                                  value="180"
-                                >
-                                  3 hours
-                                </option>
-                                <option
-                                  key="720"
-                                  value="720"
-                                >
-                                  12 hours
-                                </option>
-                                <option
-                                  key="1440"
-                                  value="1440"
-                                >
-                                  24 hours
-                                </option>
-                                <option
-                                  key="10080"
-                                  value="10080"
-                                >
-                                  one week
-                                </option>
-                                <option
-                                  key="43200"
-                                  value="43200"
-                                >
-                                  30 days
-                                </option>
-                              </select>
-=======
                                 <StyledSelect
                                   arrowRenderer={[Function]}
                                   clearable={false}
@@ -2210,7 +2085,6 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                   </SelectPicker>
                                 </StyledSelect>
                               </SelectControl>
->>>>>>> 0d086b6f08... feat(ui): Change Select2Field to use react-select
                             </div>
                           </div>
                         </SelectField>
@@ -2673,13 +2547,6 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                             <div
                               className="controls"
                             >
-<<<<<<< HEAD
-                              <select
-                                className="form-control"
-                                disabled={false}
-                                id="id-actionMatch"
-                                multiple={false}
-=======
                               <SelectControl
                                 choices={
                                   Array [
@@ -2700,32 +2567,10 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                 clearable={false}
                                 disabled={false}
                                 id="id-actionMatch"
->>>>>>> 0d086b6f08... feat(ui): Change Select2Field to use react-select
                                 onChange={[Function]}
                                 required={true}
                                 value="all"
                               >
-<<<<<<< HEAD
-                                <option
-                                  key="all"
-                                  value="all"
-                                >
-                                  all
-                                </option>
-                                <option
-                                  key="any"
-                                  value="any"
-                                >
-                                  any
-                                </option>
-                                <option
-                                  key="none"
-                                  value="none"
-                                >
-                                  none
-                                </option>
-                              </select>
-=======
                                 <StyledSelect
                                   arrowRenderer={[Function]}
                                   clearable={false}
@@ -2956,7 +2801,6 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                   </SelectPicker>
                                 </StyledSelect>
                               </SelectControl>
->>>>>>> 0d086b6f08... feat(ui): Change Select2Field to use react-select
                             </div>
                           </div>
                         </SelectField>
@@ -3249,13 +3093,6 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                         <div
                           className="controls"
                         >
-<<<<<<< HEAD
-                          <select
-                            className="form-control"
-                            disabled={false}
-                            id="id-environment"
-                            multiple={false}
-=======
                           <SelectControl
                             choices={
                               Array [
@@ -3276,32 +3113,10 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                             clearable={false}
                             disabled={false}
                             id="id-environment"
->>>>>>> 0d086b6f08... feat(ui): Change Select2Field to use react-select
                             onChange={[Function]}
                             required={true}
                             value="__all_environments__"
                           >
-<<<<<<< HEAD
-                            <option
-                              key="__all_environments__"
-                              value="__all_environments__"
-                            >
-                              All Environments
-                            </option>
-                            <option
-                              key="production"
-                              value="production"
-                            >
-                              Production
-                            </option>
-                            <option
-                              key="staging"
-                              value="staging"
-                            >
-                              Staging
-                            </option>
-                          </select>
-=======
                             <StyledSelect
                               arrowRenderer={[Function]}
                               clearable={false}
@@ -3532,7 +3347,6 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                               </SelectPicker>
                             </StyledSelect>
                           </SelectControl>
->>>>>>> 0d086b6f08... feat(ui): Change Select2Field to use react-select
                         </div>
                       </div>
                     </SelectField>
@@ -3851,13 +3665,6 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                             <div
                               className="controls"
                             >
-<<<<<<< HEAD
-                              <select
-                                className="form-control"
-                                disabled={false}
-                                id="id-frequency"
-                                multiple={false}
-=======
                               <SelectControl
                                 choices={
                                   Array [
@@ -3902,68 +3709,10 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                 clearable={false}
                                 disabled={false}
                                 id="id-frequency"
->>>>>>> 0d086b6f08... feat(ui): Change Select2Field to use react-select
                                 onChange={[Function]}
                                 required={true}
                                 value={30}
                               >
-<<<<<<< HEAD
-                                <option
-                                  key="5"
-                                  value="5"
-                                >
-                                  5 minutes
-                                </option>
-                                <option
-                                  key="10"
-                                  value="10"
-                                >
-                                  10 minutes
-                                </option>
-                                <option
-                                  key="30"
-                                  value="30"
-                                >
-                                  30 minutes
-                                </option>
-                                <option
-                                  key="60"
-                                  value="60"
-                                >
-                                  60 minutes
-                                </option>
-                                <option
-                                  key="180"
-                                  value="180"
-                                >
-                                  3 hours
-                                </option>
-                                <option
-                                  key="720"
-                                  value="720"
-                                >
-                                  12 hours
-                                </option>
-                                <option
-                                  key="1440"
-                                  value="1440"
-                                >
-                                  24 hours
-                                </option>
-                                <option
-                                  key="10080"
-                                  value="10080"
-                                >
-                                  one week
-                                </option>
-                                <option
-                                  key="43200"
-                                  value="43200"
-                                >
-                                  30 days
-                                </option>
-                              </select>
-=======
                                 <StyledSelect
                                   arrowRenderer={[Function]}
                                   clearable={false}
@@ -4266,7 +4015,6 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                   </SelectPicker>
                                 </StyledSelect>
                               </SelectControl>
->>>>>>> 0d086b6f08... feat(ui): Change Select2Field to use react-select
                             </div>
                           </div>
                         </SelectField>
