@@ -85,7 +85,7 @@ def md5_from_hash(hash_bits):
 
 def get_fingerprint_for_event(event):
     fingerprint = event.data.get('fingerprint')
-    if not fingerprint:
+    if fingerprint is None:
         return ['{{ default }}']
     return fingerprint
 
