@@ -273,19 +273,6 @@ class TagStorageTest(SnubaTestCase):
         assert result[0].value == 'user2'
         assert result[0].last_seen == self.now - timedelta(seconds=2)
 
-        # Test that users identified by different means are collected.
-        # (effectively tests OR conditions in snuba API)
-        result = self.ts.get_group_tag_values_for_users([
-            EventUser(project_id=self.proj1.id, email='user1@sentry.io'),
-            EventUser(project_id=self.proj1.id, ident='user2')
-        ])
-        assert len(result) == 2
-        result.sort(key=lambda x: x.value)
-        assert result[0].value == 'user1'
-        assert result[0].last_seen == self.now - timedelta(seconds=1)
-        assert result[1].value == 'user2'
-        assert result[1].last_seen == self.now - timedelta(seconds=2)
-
     def test_get_release_tags(self):
         tags = list(
             self.ts.get_release_tags(
