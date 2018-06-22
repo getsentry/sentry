@@ -191,7 +191,7 @@ class IntegrationProjects extends AsyncComponent {
                     </React.Fragment>
                   }
                 >
-                  <Button size="xsmall" icon="icon-circle-close" />
+                  <Button size="xsmall" icon="icon-trash" />
                 </Confirm>
               </Box>
             </PanelItem>
