@@ -140,9 +140,23 @@ const RuleNodeForm = styled('div')`
   .form-control {
     padding: 3px 12px;
   }
-  .select2-container,
-  input {
-    min-width: 100px;
+
+  .Select {
+    line-height: 26px;
+    min-width: 150px;
+  }
+  .Select-control {
+    height: 24px;
+  }
+  .Select--single > .Select-control .Select-value {
+    line-height: 25px;
+  }
+  .Select-input {
+    height: 24px;
+    input {
+      line-height: 20px;
+      padding: 2px 0;
+    }
   }
 `;
 

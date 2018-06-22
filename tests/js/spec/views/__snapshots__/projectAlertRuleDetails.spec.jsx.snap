@@ -609,7 +609,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                 >
                                   <RuleNodeForm>
                                     <div
-                                      className="css-7h5qyd-RuleNodeForm e1qnqozx1"
+                                      className="css-xqmzt9-RuleNodeForm e1qnqozx1"
                                     >
                                       <input
                                         name="id"
@@ -1325,7 +1325,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                 >
                                   <RuleNodeForm>
                                     <div
-                                      className="css-7h5qyd-RuleNodeForm e1qnqozx1"
+                                      className="css-xqmzt9-RuleNodeForm e1qnqozx1"
                                     >
                                       <input
                                         name="id"
