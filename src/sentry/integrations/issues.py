@@ -34,6 +34,15 @@ class IssueSyncMixin(object):
         return '\n'.join(output)
 
     def get_create_issue_config(self, group, **kwargs):
+        """
+        These fields are used to render a form for the user,
+        and are then passed in the format of:
+
+        >>>{'title': 'TypeError: Object [object Object] has no method "updateFrom"''}
+
+        to `create_issue`, which handles creation of the issue
+        in JIRA, VSTS, Github, etc
+        """
         event = group.get_latest_event()
         if event is not None:
             Event.objects.bind_nodes([event], 'data')
@@ -53,6 +62,11 @@ class IssueSyncMixin(object):
         ]
 
     def get_link_issue_config(self, group, **kwargs):
+        """
+        Used by the `GroupIntegrationDetailsEndpoint` to
+        create an `ExternalIssue` using title/description
+        obtained from calling `get_issue` described below.
+        """
         return [
             {
                 'name': 'externalIssue',
