@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import collections
 import six
 
 from sentry.tsdb.base import BaseTSDB, TSDBModel
@@ -207,9 +208,9 @@ class SnubaTSDB(BaseTSDB):
         top level or a `{level1_key: [level2_key, ...]}` dictionary->list map.
         The output is a 2-tuple of ([level_1_keys], [all_level_2_keys])
         """
-        if isinstance(items, (list, tuple)):
-            return (items, None)
-        elif isinstance(items, dict):
+        if isinstance(items, collections.Mapping):
             return (items.keys(), list(set.union(*(set(v) for v in items.values()))))
+        elif isinstance(items, (collections.Sequence, collections.Set)):
+            return (items, None)
         else:
-            return (None, None)
+            raise ValueError('Unsupported type: %s' % (type(items)))
