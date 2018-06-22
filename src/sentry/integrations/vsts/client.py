@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 from sentry.integrations.client import ApiClient, OAuth2RefreshMixin
 UNSET = object()
-NULL = 'null'
 
 FIELD_MAP = {
     'title': '/fields/System.Title',
@@ -94,7 +93,8 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
                          comment=UNSET, assigned_to=UNSET):
         data = []
 
-        for f_name, f_value in (('title', title), ('description', description), ('link', link)):
+        for f_name, f_value in (('title', title), ('description', description),
+                                ('link', link), ('assigned_to', assigned_to)):
             if f_name == 'link':
                 # XXX: Link is not yet used, as we can't explicitly bind it to Sentry.
                 continue
