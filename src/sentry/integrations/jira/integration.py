@@ -11,6 +11,7 @@ from sentry.integrations import (
 )
 from sentry.integrations.exceptions import ApiUnauthorized, ApiError, IntegrationError
 from sentry.integrations.issues import IssueSyncMixin
+from sentry.utils.http import absolute_uri
 
 from .client import JiraApiClient
 
@@ -128,6 +129,20 @@ class JiraIntegration(Integration, IssueSyncMixin):
                 field['url'] = autocomplete_url
                 field['type'] = 'select'
         return fields
+
+    def get_group_description(self, group, event, **kwargs):
+        output = [
+            absolute_uri(group.get_absolute_url()),
+        ]
+        body = self.get_group_body(group, event)
+        if body:
+            output.extend([
+                '',
+                '{code}',
+                body,
+                '{code}',
+            ])
+        return '\n'.join(output)
 
     def get_client(self):
         return JiraApiClient(
