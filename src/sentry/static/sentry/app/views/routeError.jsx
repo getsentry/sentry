@@ -17,28 +17,31 @@ class RouteError extends React.Component {
   };
 
   componentWillMount() {
-    let {routes} = this.props;
+    let {routes, error} = this.props;
     let {organization, project} = this.context;
     // TODO(dcramer): show something in addition to embed (that contains it?)
     // throw this in a timeout so if it errors we dont fall over
-    this._timeout = window.setTimeout(
-      function() {
-        let route = getRouteStringFromRoutes(routes);
+    this._timeout = window.setTimeout(() => {
+      let route = getRouteStringFromRoutes(routes);
 
-        Raven.captureException(this.props.error, {
-          fingerprint: [this.props.error, route],
-          extra: {
-            route,
-            orgFeatures: (organization && organization.features) || [],
-            orgAccess: (organization && organization.access) || [],
-            projectFeatures: (project && project.features) || [],
-          },
-        });
-        // TODO(dcramer): we do not have errorId until send() is called which
-        // has latency in production so this will literally never fire
-        Raven.showReportDialog();
-      }.bind(this)
-    );
+      if (!error) return;
+
+      if (route) {
+        error.message += `: ${route}`;
+      }
+
+      Raven.captureException(error, {
+        extra: {
+          route,
+          orgFeatures: (organization && organization.features) || [],
+          orgAccess: (organization && organization.access) || [],
+          projectFeatures: (project && project.features) || [],
+        },
+      });
+      // TODO(dcramer): we do not have errorId until send() is called which
+      // has latency in production so this will literally never fire
+      Raven.showReportDialog();
+    });
   }
 
   componentWillUnmount() {
