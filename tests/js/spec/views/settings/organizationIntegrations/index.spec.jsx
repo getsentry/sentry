@@ -2,10 +2,10 @@
 import React from 'react';
 import {mount, shallow} from 'enzyme';
 
-import OrganizationIntegration from 'app/views/organizationIntegration';
+import Integration from 'app/views/settings/organizationIntegrations/integration';
 import {Client} from 'app/api';
 
-describe('OrganizationIntegration', function() {
+describe('Integration', function() {
   beforeEach(function() {
     Client.clearMockResponses();
   });
@@ -35,10 +35,7 @@ describe('OrganizationIntegration', function() {
       });
 
       it('Displays an empty list', function() {
-        const wrapper = shallow(
-          <OrganizationIntegration params={params} />,
-          routerContext
-        );
+        const wrapper = shallow(<Integration params={params} />, routerContext);
         expect(wrapper.find('PanelBody EmptyMessage').exists()).toBe(true);
       });
 
@@ -48,10 +45,7 @@ describe('OrganizationIntegration', function() {
           body: [],
         });
         const invalidKeyParams = {...params, providerKey: 'bad-key'};
-        const wrapper = shallow(
-          <OrganizationIntegration params={invalidKeyParams} />,
-          routerContext
-        );
+        const wrapper = shallow(<Integration params={invalidKeyParams} />, routerContext);
         expect(wrapper).toMatchSnapshot();
       });
     });
@@ -69,15 +63,12 @@ describe('OrganizationIntegration', function() {
       });
 
       it('renders', function() {
-        const wrapper = shallow(
-          <OrganizationIntegration params={params} />,
-          routerContext
-        );
+        const wrapper = shallow(<Integration params={params} />, routerContext);
         expect(wrapper).toMatchSnapshot();
       });
 
       it('opens a dialog on integration add', function() {
-        const wrapper = mount(<OrganizationIntegration params={params} />, routerContext);
+        const wrapper = mount(<Integration params={params} />, routerContext);
 
         const focus = jest.fn();
         const open = jest.fn().mockReturnValue({focus});
@@ -92,27 +83,30 @@ describe('OrganizationIntegration', function() {
       });
 
       it('Adds an integration on dialog completion', function() {
-        const wrapper = mount(<OrganizationIntegration params={params} />, routerContext);
+        const wrapper = mount(<Integration params={params} />, routerContext);
 
-        wrapper.instance().receiveMessage({
-          source: null,
-          origin: 'null',
-          data: {
-            success: true,
-            data: Object.assign({}, integration, {
-              id: '2',
-              domain_name: 'new-integration.github.com',
-              icon: 'http://example.com/new-integration-icon.png',
-              name: 'New Integration',
-            }),
-          },
-        });
+        wrapper
+          .find('AddIntegrationButton')
+          .instance()
+          .receiveMessage({
+            source: null,
+            origin: 'null',
+            data: {
+              success: true,
+              data: Object.assign({}, integration, {
+                id: '2',
+                domain_name: 'new-integration.github.com',
+                icon: 'http://example.com/new-integration-icon.png',
+                name: 'New Integration',
+              }),
+            },
+          });
 
         expect(wrapper.instance().state.integrations).toHaveLength(2);
       });
 
       it('Merges existing integrations', function() {
-        const wrapper = mount(<OrganizationIntegration params={params} />, routerContext);
+        const wrapper = mount(<Integration params={params} />, routerContext);
 
         const updatedIntegration = Object.assign({}, integration, {
           id: '1',
@@ -121,21 +115,24 @@ describe('OrganizationIntegration', function() {
           name: 'Updated Integration',
         });
 
-        wrapper.instance().receiveMessage({
-          source: null,
-          origin: 'null',
-          data: {
-            success: true,
-            data: updatedIntegration,
-          },
-        });
+        wrapper
+          .find('AddIntegrationButton')
+          .instance()
+          .receiveMessage({
+            source: null,
+            origin: 'null',
+            data: {
+              success: true,
+              data: updatedIntegration,
+            },
+          });
 
         expect(wrapper.instance().state.integrations).toHaveLength(1);
         expect(wrapper.instance().state.integrations[0]).toBe(updatedIntegration);
       });
 
       it('Deletes an integration', function() {
-        const wrapper = mount(<OrganizationIntegration params={params} />, routerContext);
+        const wrapper = mount(<Integration params={params} />, routerContext);
 
         Client.addMockResponse({
           url: `/organizations/${org.slug}/integrations/${integration.id}/`,

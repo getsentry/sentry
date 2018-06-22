@@ -21,6 +21,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         path = '/api/0/issues/{}/integrations/{}/?action=link'.format(group.id, integration.id)
 
         response = self.client.get(path)
+        provider = integration.get_provider()
 
         assert response.data == {
             'id': six.text_type(integration.id),
@@ -29,8 +30,11 @@ class GroupIntegrationDetailsTest(APITestCase):
             'domainName': integration.metadata.get('domain_name'),
             'status': integration.get_status_display(),
             'provider': {
-                'key': integration.get_provider().key,
-                'name': integration.get_provider().name,
+                'key': provider.key,
+                'name': provider.name,
+                'canAdd': provider.can_add,
+                'canAddProject': provider.can_add_project,
+                'features': [f.value for f in provider.features],
             },
             'linkIssueConfig': [{
                 'default': '',
@@ -54,6 +58,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         path = '/api/0/issues/{}/integrations/{}/?action=create'.format(group.id, integration.id)
 
         response = self.client.get(path)
+        provider = integration.get_provider()
 
         assert response.data == {
             'id': six.text_type(integration.id),
@@ -62,8 +67,11 @@ class GroupIntegrationDetailsTest(APITestCase):
             'domainName': integration.metadata.get('domain_name'),
             'status': integration.get_status_display(),
             'provider': {
-                'key': integration.get_provider().key,
-                'name': integration.get_provider().name,
+                'key': provider.key,
+                'name': provider.name,
+                'canAdd': provider.can_add,
+                'canAddProject': provider.can_add_project,
+                'features': [f.value for f in provider.features],
             },
             'createIssueConfig': [
                 {
@@ -138,8 +146,8 @@ class GroupIntegrationDetailsTest(APITestCase):
             integration_id=integration.id,
             organization_id=org.id,
         )
-        assert external_issue.description == 'This is a test external issue description'
-        assert external_issue.title == 'This is a test external issue title'
+        assert external_issue.description == u'This is a test external issue description'
+        assert external_issue.title == u'This is a test external issue title'
 
         assert GroupLink.objects.filter(
             linked_type=GroupLink.LinkedType.issue,
