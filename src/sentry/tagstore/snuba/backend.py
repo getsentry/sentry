@@ -383,13 +383,17 @@ class SnubaTagStorage(TagStorage):
 
         conditions = [[['tags[{}]'.format(k), '=', v] for (k, v) in tags.items()]]
 
-        result = snuba.raw_query(start, end, groupby=None, selected_columns=['event_id'], conditions=conditions, orderby='-timestamp', filter_keys=filters, limit=1000, referrer='tagstore.get_group_event_filter')
-        result = set(row['event_id'] for row in result['data'])
+        result = snuba.raw_query(
+            start, end, groupby=None, selected_columns=['event_id'],
+            conditions=conditions, orderby='-timestamp', filter_keys=filters,
+            limit=1000, referrer='tagstore.get_group_event_filter')
 
-        if not result:
+        event_id_set = set(row['event_id'] for row in result['data'])
+
+        if not event_id_set:
             return None
 
-        return {'event_id__in': result}
+        return {'event_id__in': event_id_set}
 
     def get_group_ids_for_search_filter(
             self, project_id, environment_id, tags, candidates=None, limit=1000):
